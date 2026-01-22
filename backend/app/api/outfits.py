@@ -1,8 +1,8 @@
 """Outfit recommendation API endpoints."""
 
 import logging
-from datetime import date, datetime, timezone
-from typing import Annotated, Optional
+from datetime import UTC, date, datetime
+from typing import Annotated
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -33,7 +33,8 @@ def get_user_today(user: User) -> date:
         user_tz = ZoneInfo(user.timezone or "UTC")
     except Exception:
         user_tz = ZoneInfo("UTC")
-    return datetime.now(timezone.utc).astimezone(user_tz).date()
+    return datetime.now(UTC).astimezone(user_tz).date()
+
 
 router = APIRouter(prefix="/outfits", tags=["Outfits"])
 
@@ -43,7 +44,7 @@ class WeatherOverrideRequest(BaseModel):
     """Manual weather override."""
 
     temperature: float = Field(description="Temperature in Celsius")
-    feels_like: Optional[float] = Field(None, description="Feels like temperature")
+    feels_like: float | None = Field(None, description="Feels like temperature")
     condition: str = Field(default="unknown", description="Weather condition")
     precipitation_chance: int = Field(default=0, ge=0, le=100)
     humidity: int = Field(default=50, ge=0, le=100)
@@ -53,7 +54,7 @@ class SuggestRequest(BaseModel):
     """Request for outfit suggestion."""
 
     occasion: str = Field(default="casual", description="Occasion type")
-    weather_override: Optional[WeatherOverrideRequest] = Field(
+    weather_override: WeatherOverrideRequest | None = Field(
         None, description="Manual weather override"
     )
     exclude_items: list[UUID] = Field(default_factory=list, description="Items to exclude")
@@ -65,13 +66,13 @@ class OutfitItemResponse(BaseModel):
 
     id: UUID
     type: str
-    subtype: Optional[str] = None
-    name: Optional[str] = None
-    primary_color: Optional[str] = None
+    subtype: str | None = None
+    name: str | None = None
+    primary_color: str | None = None
     colors: list[str] = []
     image_path: str
-    thumbnail_path: Optional[str] = None
-    layer_type: Optional[str] = None
+    thumbnail_path: str | None = None
+    layer_type: str | None = None
     position: int
 
 
@@ -80,18 +81,18 @@ class WoreInsteadItem(BaseModel):
 
     id: UUID
     type: str
-    name: Optional[str] = None
-    thumbnail_path: Optional[str] = None
+    name: str | None = None
+    thumbnail_path: str | None = None
 
 
 class FeedbackSummary(BaseModel):
     """Summary of outfit feedback for list views."""
 
-    rating: Optional[int] = None
-    comment: Optional[str] = None
-    worn_at: Optional[date] = None
-    actually_worn: Optional[bool] = None
-    wore_instead_items: Optional[list[WoreInsteadItem]] = None
+    rating: int | None = None
+    comment: str | None = None
+    worn_at: date | None = None
+    actually_worn: bool | None = None
+    wore_instead_items: list[WoreInsteadItem] | None = None
 
 
 class OutfitResponse(BaseModel):
@@ -102,12 +103,12 @@ class OutfitResponse(BaseModel):
     scheduled_for: date
     status: str
     source: str
-    reasoning: Optional[str] = None
-    style_notes: Optional[str] = None
-    highlights: Optional[list[str]] = None
-    weather: Optional[dict] = None
+    reasoning: str | None = None
+    style_notes: str | None = None
+    highlights: list[str] | None = None
+    weather: dict | None = None
     items: list[OutfitItemResponse]
-    feedback: Optional[FeedbackSummary] = None
+    feedback: FeedbackSummary | None = None
     created_at: datetime
 
 
@@ -124,16 +125,22 @@ class OutfitListResponse(BaseModel):
 class FeedbackRequest(BaseModel):
     """Request to submit feedback on an outfit."""
 
-    accepted: Optional[bool] = Field(None, description="Whether outfit was accepted")
-    rating: Optional[int] = Field(None, ge=1, le=5, description="Overall rating 1-5")
-    comfort_rating: Optional[int] = Field(None, ge=1, le=5, description="Comfort rating 1-5")
-    style_rating: Optional[int] = Field(None, ge=1, le=5, description="Style rating 1-5")
-    comment: Optional[str] = Field(None, max_length=1000, description="Optional comment")
-    worn: Optional[bool] = Field(None, description="Whether the outfit was worn")
-    worn_with_modifications: Optional[bool] = Field(None, description="If worn, whether modifications were made")
-    modification_notes: Optional[str] = Field(None, max_length=500)
-    actually_worn: Optional[bool] = Field(None, description="Did user actually wear this recommendation?")
-    wore_instead_items: Optional[list[UUID]] = Field(None, description="Item IDs user wore instead of recommendation")
+    accepted: bool | None = Field(None, description="Whether outfit was accepted")
+    rating: int | None = Field(None, ge=1, le=5, description="Overall rating 1-5")
+    comfort_rating: int | None = Field(None, ge=1, le=5, description="Comfort rating 1-5")
+    style_rating: int | None = Field(None, ge=1, le=5, description="Style rating 1-5")
+    comment: str | None = Field(None, max_length=1000, description="Optional comment")
+    worn: bool | None = Field(None, description="Whether the outfit was worn")
+    worn_with_modifications: bool | None = Field(
+        None, description="If worn, whether modifications were made"
+    )
+    modification_notes: str | None = Field(None, max_length=500)
+    actually_worn: bool | None = Field(
+        None, description="Did user actually wear this recommendation?"
+    )
+    wore_instead_items: list[UUID] | None = Field(
+        None, description="Item IDs user wore instead of recommendation"
+    )
 
 
 class FeedbackResponse(BaseModel):
@@ -141,22 +148,21 @@ class FeedbackResponse(BaseModel):
 
     id: UUID
     outfit_id: UUID
-    accepted: Optional[bool] = None
-    rating: Optional[int] = None
-    comfort_rating: Optional[int] = None
-    style_rating: Optional[int] = None
-    comment: Optional[str] = None
-    worn_at: Optional[date] = None
+    accepted: bool | None = None
+    rating: int | None = None
+    comfort_rating: int | None = None
+    style_rating: int | None = None
+    comment: str | None = None
+    worn_at: date | None = None
     worn_with_modifications: bool = False
-    modification_notes: Optional[str] = None
-    actually_worn: Optional[bool] = None
-    wore_instead_items: Optional[list[UUID]] = None
+    modification_notes: str | None = None
+    actually_worn: bool | None = None
+    wore_instead_items: list[UUID] | None = None
     created_at: datetime
 
 
 async def fetch_wore_instead_items_map(
-    db: AsyncSession,
-    outfits: list[Outfit]
+    db: AsyncSession, outfits: list[Outfit]
 ) -> dict[str, list[WoreInsteadItem]]:
     """
     Batch fetch wore_instead items for multiple outfits.
@@ -189,9 +195,7 @@ async def fetch_wore_instead_items_map(
         return {}
 
     # Batch fetch all items in one query
-    result = await db.execute(
-        select(ClothingItem).where(ClothingItem.id.in_(all_item_ids))
-    )
+    result = await db.execute(select(ClothingItem).where(ClothingItem.id.in_(all_item_ids)))
     items_by_id = {str(item.id): item for item in result.scalars().all()}
 
     # Build the map
@@ -201,12 +205,14 @@ async def fetch_wore_instead_items_map(
         for item_id in item_ids:
             if item_id in items_by_id:
                 item = items_by_id[item_id]
-                wore_items.append(WoreInsteadItem(
-                    id=item.id,
-                    type=item.type,
-                    name=item.name,
-                    thumbnail_path=item.thumbnail_path,
-                ))
+                wore_items.append(
+                    WoreInsteadItem(
+                        id=item.id,
+                        type=item.type,
+                        name=item.name,
+                        thumbnail_path=item.thumbnail_path,
+                    )
+                )
         if wore_items:
             wore_instead_map[outfit_id] = wore_items
 
@@ -214,8 +220,7 @@ async def fetch_wore_instead_items_map(
 
 
 def outfit_to_response(
-    outfit: Outfit,
-    wore_instead_items_map: dict[str, list["WoreInsteadItem"]] | None = None
+    outfit: Outfit, wore_instead_items_map: dict[str, list["WoreInsteadItem"]] | None = None
 ) -> OutfitResponse:
     """
     Convert Outfit model to response schema.
@@ -327,18 +332,18 @@ async def suggest_outfit(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
     except AIRecommendationError as e:
         logger.error(f"AI recommendation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(e),
-        )
+        ) from e
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
 
     # Fetch wore_instead items for this single outfit
     wore_instead_map = await fetch_wore_instead_items_map(db, [outfit])
@@ -351,10 +356,10 @@ async def list_outfits(
     current_user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status_filter: Optional[str] = Query(None, alias="status"),
-    occasion: Optional[str] = None,
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None,
+    status_filter: str | None = Query(None, alias="status"),
+    occasion: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> OutfitListResponse:
     """List user's outfit recommendations with filtering."""
     # Build query
@@ -403,11 +408,7 @@ async def list_outfits(
     total = len(count_result.all())
 
     # Apply pagination and ordering
-    query = (
-        query.order_by(Outfit.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    query = query.order_by(Outfit.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
 
     result = await db.execute(query)
     outfits = list(result.scalars().all())
@@ -528,9 +529,7 @@ async def delete_outfit(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """Delete an outfit."""
-    query = select(Outfit).where(
-        and_(Outfit.id == outfit_id, Outfit.user_id == current_user.id)
-    )
+    query = select(Outfit).where(and_(Outfit.id == outfit_id, Outfit.user_id == current_user.id))
 
     result = await db.execute(query)
     outfit = result.scalar_one_or_none()
@@ -557,7 +556,9 @@ async def submit_feedback(
     query = (
         select(Outfit)
         .where(and_(Outfit.id == outfit_id, Outfit.user_id == current_user.id))
-        .options(selectinload(Outfit.feedback), selectinload(Outfit.items).selectinload(OutfitItem.item))
+        .options(
+            selectinload(Outfit.feedback), selectinload(Outfit.items).selectinload(OutfitItem.item)
+        )
     )
 
     result = await db.execute(query)

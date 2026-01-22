@@ -51,22 +51,20 @@ class Outfit(Base):
 
     __tablename__ = "outfits"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
     # Context
-    weather_data: Mapped[Optional[dict]] = mapped_column(JSONB)
+    weather_data: Mapped[dict | None] = mapped_column(JSONB)
     occasion: Mapped[str] = mapped_column(String(50), nullable=False)
     scheduled_for: Mapped[date] = mapped_column(Date, nullable=False)
 
     # AI output
-    reasoning: Mapped[Optional[str]] = mapped_column(Text)
-    style_notes: Mapped[Optional[str]] = mapped_column(Text)
-    ai_raw_response: Mapped[Optional[dict]] = mapped_column(JSONB)
+    reasoning: Mapped[str | None] = mapped_column(Text)
+    style_notes: Mapped[str | None] = mapped_column(Text)
+    ai_raw_response: Mapped[dict | None] = mapped_column(JSONB)
 
     # Status
     status: Mapped[OutfitStatus] = mapped_column(
@@ -79,20 +77,18 @@ class Outfit(Base):
     )
 
     # Source item for pairings
-    source_item_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    source_item_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("clothing_items.id", ondelete="SET NULL"),
         nullable=True,
     )
 
     # Timestamps
-    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    viewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    responded_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -122,7 +118,7 @@ class OutfitItem(Base):
         UUID(as_uuid=True), ForeignKey("clothing_items.id", ondelete="CASCADE"), primary_key=True
     )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
-    layer_type: Mapped[Optional[str]] = mapped_column(String(20))
+    layer_type: Mapped[str | None] = mapped_column(String(20))
 
     # Relationships
     outfit: Mapped["Outfit"] = relationship("Outfit", back_populates="items")
@@ -134,30 +130,31 @@ class UserFeedback(Base):
 
     __tablename__ = "user_feedback"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     outfit_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("outfits.id", ondelete="CASCADE"), nullable=False, unique=True
+        UUID(as_uuid=True),
+        ForeignKey("outfits.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
     )
 
-    accepted: Mapped[Optional[bool]] = mapped_column(Boolean)
-    rating: Mapped[Optional[int]] = mapped_column(Integer)
-    comfort_rating: Mapped[Optional[int]] = mapped_column(Integer)
-    style_rating: Mapped[Optional[int]] = mapped_column(Integer)
-    comment: Mapped[Optional[str]] = mapped_column(Text)
+    accepted: Mapped[bool | None] = mapped_column(Boolean)
+    rating: Mapped[int | None] = mapped_column(Integer)
+    comfort_rating: Mapped[int | None] = mapped_column(Integer)
+    style_rating: Mapped[int | None] = mapped_column(Integer)
+    comment: Mapped[str | None] = mapped_column(Text)
 
-    worn_at: Mapped[Optional[date]] = mapped_column(Date)
+    worn_at: Mapped[date | None] = mapped_column(Date)
     worn_with_modifications: Mapped[bool] = mapped_column(Boolean, default=False)
-    modification_notes: Mapped[Optional[str]] = mapped_column(Text)
+    modification_notes: Mapped[str | None] = mapped_column(Text)
 
     # Tracking what user actually wore
-    actually_worn: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    wore_instead_items: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)  # List of item UUIDs worn instead
+    actually_worn: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    wore_instead_items: Mapped[list | None] = mapped_column(
+        JSONB, nullable=True
+    )  # List of item UUIDs worn instead
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationship
     outfit: Mapped["Outfit"] = relationship("Outfit", back_populates="feedback")

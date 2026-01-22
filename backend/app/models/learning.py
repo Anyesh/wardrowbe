@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     DateTime,
@@ -63,24 +63,22 @@ class UserLearningProfile(Base):
     learned_temporal_patterns: Mapped[dict] = mapped_column(JSONB, default=dict)
 
     # Overall recommendation acceptance rate (0-1)
-    overall_acceptance_rate: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 4))
+    overall_acceptance_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
 
     # Average ratings by category
-    average_overall_rating: Mapped[Optional[Decimal]] = mapped_column(Numeric(3, 2))
-    average_comfort_rating: Mapped[Optional[Decimal]] = mapped_column(Numeric(3, 2))
-    average_style_rating: Mapped[Optional[Decimal]] = mapped_column(Numeric(3, 2))
+    average_overall_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
+    average_comfort_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
+    average_style_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
 
     # Number of data points used for learning
     feedback_count: Mapped[int] = mapped_column(Integer, default=0)
     outfits_rated: Mapped[int] = mapped_column(Integer, default=0)
 
     # Learning metadata
-    last_computed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    last_computed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     model_version: Mapped[str] = mapped_column(String(20), default="1.0")
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -100,9 +98,7 @@ class ItemPairScore(Base):
 
     __tablename__ = "item_pair_scores"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
@@ -138,9 +134,7 @@ class ItemPairScore(Base):
     occasion_performance: Mapped[dict] = mapped_column(JSONB, default=dict)
     weather_performance: Mapped[dict] = mapped_column(JSONB, default=dict)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -183,14 +177,14 @@ class OutfitPerformance(Base):
     performance_score: Mapped[Decimal] = mapped_column(Numeric(5, 4), default=0)
 
     # Component scores
-    acceptance_score: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 4))
-    rating_score: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 4))
-    wear_score: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 4))
+    acceptance_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
+    rating_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
+    wear_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
 
     # Context at time of recommendation (denormalized for analysis)
     occasion: Mapped[str] = mapped_column(String(50))
-    weather_temp: Mapped[Optional[int]] = mapped_column(Integer)
-    weather_condition: Mapped[Optional[str]] = mapped_column(String(50))
+    weather_temp: Mapped[int | None] = mapped_column(Integer)
+    weather_condition: Mapped[str | None] = mapped_column(String(50))
 
     # Item type composition (for pattern analysis)
     # Format: {"top": "shirt", "bottom": "jeans", "shoes": "sneakers"}
@@ -202,7 +196,7 @@ class OutfitPerformance(Base):
 
     # Was this outfit modified before wearing?
     was_modified: Mapped[bool] = mapped_column(default=False)
-    modification_notes: Mapped[Optional[str]] = mapped_column(Text)
+    modification_notes: Mapped[str | None] = mapped_column(Text)
 
     computed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -222,9 +216,7 @@ class StyleInsight(Base):
 
     __tablename__ = "style_insights"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -250,14 +242,12 @@ class StyleInsight(Base):
 
     # Has user acknowledged/dismissed this insight?
     is_acknowledged: Mapped[bool] = mapped_column(default=False)
-    acknowledged_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # When should this insight expire?
-    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationship
     user: Mapped["User"] = relationship("User")

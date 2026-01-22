@@ -1,9 +1,8 @@
 """Learning system API endpoints."""
 
 import logging
-from datetime import date, datetime
-from decimal import Decimal
-from typing import Annotated, Optional
+from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -12,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.learning import StyleInsight, UserLearningProfile
+from app.models.learning import UserLearningProfile
 from app.models.user import User
 from app.services.learning_service import LearningService
 from app.utils.auth import get_current_user
@@ -60,15 +59,15 @@ class LearningProfileResponse(BaseModel):
     has_learning_data: bool
     feedback_count: int
     outfits_rated: int
-    overall_acceptance_rate: Optional[float] = None
-    average_rating: Optional[float] = None
-    average_comfort_rating: Optional[float] = None
-    average_style_rating: Optional[float] = None
+    overall_acceptance_rate: float | None = None
+    average_rating: float | None = None
+    average_comfort_rating: float | None = None
+    average_style_rating: float | None = None
     color_preferences: list[LearnedColorScore]
     style_preferences: list[LearnedStyleScore]
     occasion_patterns: list[OccasionPattern]
     weather_preferences: list[WeatherPreference]
-    last_computed_at: Optional[datetime] = None
+    last_computed_at: datetime | None = None
 
 
 class ItemPairResponse(BaseModel):
@@ -196,10 +195,18 @@ async def get_learning_insights(
         has_learning_data=has_data,
         feedback_count=profile.feedback_count if profile else 0,
         outfits_rated=profile.outfits_rated if profile else 0,
-        overall_acceptance_rate=float(profile.overall_acceptance_rate) if profile and profile.overall_acceptance_rate else None,
-        average_rating=float(profile.average_overall_rating) if profile and profile.average_overall_rating else None,
-        average_comfort_rating=float(profile.average_comfort_rating) if profile and profile.average_comfort_rating else None,
-        average_style_rating=float(profile.average_style_rating) if profile and profile.average_style_rating else None,
+        overall_acceptance_rate=float(profile.overall_acceptance_rate)
+        if profile and profile.overall_acceptance_rate
+        else None,
+        average_rating=float(profile.average_overall_rating)
+        if profile and profile.average_overall_rating
+        else None,
+        average_comfort_rating=float(profile.average_comfort_rating)
+        if profile and profile.average_comfort_rating
+        else None,
+        average_style_rating=float(profile.average_style_rating)
+        if profile and profile.average_style_rating
+        else None,
         color_preferences=color_preferences,
         style_preferences=style_preferences,
         occasion_patterns=occasion_patterns,
@@ -315,10 +322,18 @@ async def recompute_learning_profile(
         has_learning_data=profile.last_computed_at is not None,
         feedback_count=profile.feedback_count,
         outfits_rated=profile.outfits_rated,
-        overall_acceptance_rate=float(profile.overall_acceptance_rate) if profile.overall_acceptance_rate else None,
-        average_rating=float(profile.average_overall_rating) if profile.average_overall_rating else None,
-        average_comfort_rating=float(profile.average_comfort_rating) if profile.average_comfort_rating else None,
-        average_style_rating=float(profile.average_style_rating) if profile.average_style_rating else None,
+        overall_acceptance_rate=float(profile.overall_acceptance_rate)
+        if profile.overall_acceptance_rate
+        else None,
+        average_rating=float(profile.average_overall_rating)
+        if profile.average_overall_rating
+        else None,
+        average_comfort_rating=float(profile.average_comfort_rating)
+        if profile.average_comfort_rating
+        else None,
+        average_style_rating=float(profile.average_style_rating)
+        if profile.average_style_rating
+        else None,
         color_preferences=color_preferences,
         style_preferences=style_preferences,
         occasion_patterns=occasion_patterns,
@@ -390,9 +405,7 @@ async def get_item_pair_suggestions(
     """
     learning_service = LearningService(db)
 
-    pairs = await learning_service.get_item_pair_suggestions(
-        current_user.id, item_id, limit=limit
-    )
+    pairs = await learning_service.get_item_pair_suggestions(current_user.id, item_id, limit=limit)
 
     return [
         {

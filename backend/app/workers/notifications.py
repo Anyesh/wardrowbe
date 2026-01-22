@@ -2,7 +2,7 @@
 
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from arq import cron
 from sqlalchemy import and_, select
@@ -39,9 +39,7 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
         app_url = os.getenv("APP_URL", "http://localhost:3000")
         dispatcher = NotificationDispatcher(db, app_url)
 
-        results = await dispatcher.send_outfit_notification(
-            user_id=user_id, outfit_id=outfit_id
-        )
+        results = await dispatcher.send_outfit_notification(user_id=user_id, outfit_id=outfit_id)
 
         await db.commit()
 
@@ -54,7 +52,7 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
 
         return {"success": any(r.status == DeliveryStatus.SENT for r in results)}
 
-    except Exception as e:
+    except Exception:
         logger.exception(f"Failed to send notification for outfit {outfit_id}")
         await db.rollback()
         raise
@@ -94,14 +92,14 @@ async def retry_failed_notifications(ctx: dict):
             try:
                 # Increment attempt counter
                 notification.attempts += 1
-                notification.last_attempt_at = datetime.now(timezone.utc)
+                notification.last_attempt_at = datetime.now(UTC)
 
                 # Retry via the existing notification (don't create new records)
                 result = await dispatcher.retry_notification(notification)
 
                 if result.status == DeliveryStatus.SENT:
                     notification.status = NotificationStatus.sent
-                    notification.sent_at = datetime.now(timezone.utc)
+                    notification.sent_at = datetime.now(UTC)
                     retried += 1
                 elif notification.attempts >= notification.max_attempts:
                     notification.status = NotificationStatus.failed
@@ -112,9 +110,7 @@ async def retry_failed_notifications(ctx: dict):
                 await db.commit()
 
             except Exception as e:
-                logger.exception(
-                    f"Failed to retry notification {notification.id}: {e}"
-                )
+                logger.exception(f"Failed to retry notification {notification.id}: {e}")
                 if notification.attempts >= notification.max_attempts:
                     notification.status = NotificationStatus.failed
                     notification.error_message = str(e)
@@ -143,8 +139,9 @@ async def check_scheduled_notifications(ctx: dict):
     - notify_day_before=True: Notify evening before (e.g., Sunday evening for Monday outfit)
     """
     from sqlalchemy.orm import selectinload
-    from app.models.user import User
+
     from app.models.outfit import OutfitSource
+    from app.models.user import User
     from app.services.recommendation_service import RecommendationService
     from app.services.weather_service import get_weather_service
 
@@ -152,7 +149,7 @@ async def check_scheduled_notifications(ctx: dict):
 
     db = await get_db_session()
     try:
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         current_utc_day = now_utc.weekday()
         current_utc_time = now_utc.time()
         tomorrow_utc_day = (current_utc_day + 1) % 7
@@ -163,12 +160,18 @@ async def check_scheduled_notifications(ctx: dict):
         result = await db.execute(
             select(Schedule).where(
                 and_(
-                    Schedule.enabled == True,
+                    Schedule.enabled.is_(True),
                     # Match same-day OR day-before schedules
                     (
-                        ((Schedule.notify_day_before == False) & (Schedule.day_of_week == current_utc_day)) |
-                        ((Schedule.notify_day_before == True) & (Schedule.day_of_week == tomorrow_utc_day))
-                    )
+                        (
+                            (Schedule.notify_day_before.is_(False))
+                            & (Schedule.day_of_week == current_utc_day)
+                        )
+                        | (
+                            (Schedule.notify_day_before.is_(True))
+                            & (Schedule.day_of_week == tomorrow_utc_day)
+                        )
+                    ),
                 )
             )
         )
@@ -183,7 +186,9 @@ async def check_scheduled_notifications(ctx: dict):
         triggered = 0
         for schedule in schedules:
             # Check if current UTC time matches schedule time (within 1 minute)
-            schedule_minutes = schedule.notification_time.hour * 60 + schedule.notification_time.minute
+            schedule_minutes = (
+                schedule.notification_time.hour * 60 + schedule.notification_time.minute
+            )
             current_minutes = current_utc_time.hour * 60 + current_utc_time.minute
 
             if abs(schedule_minutes - current_minutes) > 1:
@@ -215,7 +220,7 @@ async def check_scheduled_notifications(ctx: dict):
                 select(NotificationSettings).where(
                     and_(
                         NotificationSettings.user_id == schedule.user_id,
-                        NotificationSettings.enabled == True,
+                        NotificationSettings.enabled.is_(True),
                     )
                 )
             )
@@ -249,7 +254,7 @@ async def check_scheduled_notifications(ctx: dict):
                 )
 
                 # Send notification (with for_tomorrow flag for messaging)
-                results = await dispatcher.send_outfit_notification(
+                _results = await dispatcher.send_outfit_notification(
                     user_id=str(user.id),
                     outfit_id=str(outfit.id),
                     for_tomorrow=is_for_tomorrow,
@@ -268,9 +273,7 @@ async def check_scheduled_notifications(ctx: dict):
 
             except ValueError as e:
                 # User-facing errors like "no location" or "no items"
-                logger.warning(
-                    f"Cannot generate outfit for user {schedule.user_id}: {e}"
-                )
+                logger.warning(f"Cannot generate outfit for user {schedule.user_id}: {e}")
             except Exception as e:
                 logger.exception(
                     f"Failed to generate/send notification for user {schedule.user_id}: {e}"
@@ -301,13 +304,13 @@ async def update_learning_profiles(ctx: dict):
 
     db = await get_db_session()
     try:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         one_hour_ago = now - timedelta(hours=1)
 
         # Find users who need profile updates
         # Query users with learning profiles that are stale or don't exist
-        from app.models.user import User
         from app.models.outfit import Outfit, OutfitStatus
+        from app.models.user import User
 
         # Get users who have given feedback (accepted/rejected outfits) recently
         result = await db.execute(
@@ -321,7 +324,7 @@ async def update_learning_profiles(ctx: dict):
             )
             .distinct()
         )
-        users_with_recent_feedback = set(row[0] for row in result.all())
+        users_with_recent_feedback = {row[0] for row in result.all()}
 
         if not users_with_recent_feedback:
             logger.info("No users with recent feedback to update")
@@ -367,7 +370,12 @@ async def update_learning_profiles(ctx: dict):
 class WorkerSettings:
     """ARQ worker settings for notification jobs."""
 
-    functions = [send_notification, retry_failed_notifications, check_scheduled_notifications, update_learning_profiles]
+    functions = [
+        send_notification,
+        retry_failed_notifications,
+        check_scheduled_notifications,
+        update_learning_profiles,
+    ]
 
     cron_jobs = [
         # Retry failed notifications every 5 minutes

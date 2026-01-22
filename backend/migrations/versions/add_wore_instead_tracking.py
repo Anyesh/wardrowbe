@@ -12,34 +12,28 @@ Fields added to user_feedback:
 - wore_instead_items: JSONB array of item UUIDs user wore instead
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
-
 # revision identifiers, used by Alembic.
-revision: str = '9a4d3f6e8c12'
-down_revision: Union[str, None] = '8f3c2d5e7b91'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "9a4d3f6e8c12"
+down_revision: str | None = "8f3c2d5e7b91"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     # Add actually_worn column
-    op.add_column(
-        'user_feedback',
-        sa.Column('actually_worn', sa.Boolean, nullable=True)
-    )
+    op.add_column("user_feedback", sa.Column("actually_worn", sa.Boolean, nullable=True))
 
     # Add wore_instead_items column (JSONB array of item UUIDs)
-    op.add_column(
-        'user_feedback',
-        sa.Column('wore_instead_items', JSONB, nullable=True)
-    )
+    op.add_column("user_feedback", sa.Column("wore_instead_items", JSONB, nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column('user_feedback', 'wore_instead_items')
-    op.drop_column('user_feedback', 'actually_worn')
+    op.drop_column("user_feedback", "wore_instead_items")
+    op.drop_column("user_feedback", "actually_worn")
