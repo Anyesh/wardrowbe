@@ -92,6 +92,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ## AI Configuration
 
 ### Using Ollama (Recommended for Self-Hosting)
+You can use separate models for image and text or use multimodal LLM like qwen3-vl, gemma3, etc.
 
 1. Install [Ollama](https://ollama.ai)
 2. Pull models:
