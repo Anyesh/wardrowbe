@@ -1,5 +1,5 @@
 import re
-from typing import Annotated, Optional
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -23,32 +23,32 @@ async def get_image(
     user_id: str,
     filename: str,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[Optional[User], Depends(get_current_user_optional)] = None,
-    expires: Optional[str] = Query(None),
-    sig: Optional[str] = Query(None),
+    current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
+    expires: str | None = Query(None),
+    sig: str | None = Query(None),
 ) -> FileResponse:
 
     try:
         UUID(user_id)
-    except ValueError:
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid user ID format",
-        )
-    
+        ) from e
+
     if not FILENAME_PATTERN.match(filename):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid filename format",
         )
-    
+
     path = f"{user_id}/{filename}"
     can_access = False
-    
+
     if expires and sig:
         if verify_signature(path, expires, sig):
             can_access = True
-    
+
     if not can_access and current_user:
         if str(current_user.id) == user_id:
             can_access = True
@@ -58,16 +58,16 @@ async def get_image(
             if family:
                 family_user_ids = [str(m.id) for m in family.members]
                 can_access = user_id in family_user_ids
-    
+
     if not can_access:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Access denied",
         )
-    
+
     image_service = ImageService()
     image_path = image_service.get_image_path(path)
-    
+
     if not image_path.resolve().is_relative_to(image_service.storage_path.resolve()):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

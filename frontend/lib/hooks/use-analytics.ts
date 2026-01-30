@@ -27,6 +27,7 @@ export interface WearStats {
   type: string;
   primary_color: string | null;
   thumbnail_path: string | null;
+  thumbnail_url: string | null;
   wear_count: number;
   last_worn_at: string | null;
 }

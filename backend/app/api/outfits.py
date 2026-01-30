@@ -350,18 +350,18 @@ async def suggest_outfit(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
     except AIRecommendationError as e:
         logger.error(f"AI recommendation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(e),
-        )
+        ) from e
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
 
     # Fetch wore_instead items for this single outfit
     wore_instead_map = await fetch_wore_instead_items_map(db, [outfit])

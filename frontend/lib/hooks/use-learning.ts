@@ -55,6 +55,7 @@ export interface ItemInfo {
   name: string | null;
   primary_color: string | null;
   thumbnail_path: string | null;
+  thumbnail_url: string | null;
 }
 
 export interface ItemPair {

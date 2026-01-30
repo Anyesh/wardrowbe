@@ -25,8 +25,11 @@ export interface Item {
   purchase_price?: number;
   favorite: boolean;
   image_path: string;
+  image_url: string;
   thumbnail_path?: string;
+  thumbnail_url?: string;
   medium_path?: string;
+  medium_url?: string;
   tags: ItemTags;
   colors: string[];
   primary_color?: string;
@@ -194,7 +197,9 @@ export interface OutfitItem {
   primary_color?: string;
   colors: string[];
   image_path: string;
+  image_url: string;
   thumbnail_path?: string;
+  thumbnail_url?: string;
   layer_type?: string;
   position: number;
 }

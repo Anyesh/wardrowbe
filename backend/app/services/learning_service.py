@@ -13,7 +13,6 @@ import logging
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from itertools import combinations
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import and_, func, select
@@ -30,7 +29,6 @@ from app.models.learning import (
 )
 from app.models.outfit import Outfit, OutfitItem, OutfitStatus, UserFeedback
 from app.models.preference import UserPreference
-from app.models.user import User
 from app.utils.signed_urls import sign_image_url
 
 logger = logging.getLogger(__name__)
@@ -144,7 +142,7 @@ class LearningService:
 
         if scores:
             total_weight = sum(weights)
-            performance_score = sum(s * w for s, w in zip(scores, weights)) / total_weight
+            performance_score = sum(s * w for s, w in zip(scores, weights, strict=True)) / total_weight
         else:
             performance_score = 0.5  # Neutral score if no data
 
@@ -683,7 +681,7 @@ class LearningService:
             select(ClothingItem).where(
                 and_(
                     ClothingItem.id.in_(paired_ids),
-                    ClothingItem.is_archived == False,
+                    ClothingItem.is_archived.is_(False),
                 )
             )
         )
@@ -866,7 +864,7 @@ class LearningService:
             .where(
                 and_(
                     StyleInsight.user_id == user_id,
-                    StyleInsight.is_acknowledged == False,
+                    StyleInsight.is_acknowledged.is_(False),
                     (StyleInsight.expires_at.is_(None)) | (StyleInsight.expires_at > now),
                 )
             )

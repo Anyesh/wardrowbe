@@ -18,7 +18,9 @@ export interface OutfitItem {
   primary_color: string | null;
   colors: string[];
   image_path: string;
+  image_url: string;
   thumbnail_path: string | null;
+  thumbnail_url: string | null;
   layer_type: string | null;
   position: number;
 }
@@ -28,6 +30,7 @@ export interface WoreInsteadItem {
   type: string;
   name: string | null;
   thumbnail_path: string | null;
+  thumbnail_url: string | null;
 }
 
 export interface FeedbackSummary {

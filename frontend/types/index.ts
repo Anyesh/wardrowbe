@@ -14,7 +14,9 @@ export interface ClothingItem {
   id: string;
   user_id: string;
   image_path: string;
+  image_url: string;
   thumbnail_path?: string;
+  thumbnail_url?: string;
   type: string;
   subtype?: string;
   tags: Record<string, unknown>;

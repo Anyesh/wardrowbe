@@ -9,10 +9,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, computed_field
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.database import get_db
-from app.models.outfit import Outfit, OutfitItem, OutfitSource
+from app.models.outfit import Outfit, OutfitSource
+from app.models.user import User
 from app.services.pairing_service import (
     AIGenerationError,
     InsufficientItemsError,
@@ -20,7 +20,6 @@ from app.services.pairing_service import (
 )
 from app.utils.auth import get_current_user
 from app.utils.signed_urls import sign_image_url
-from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -221,18 +220,18 @@ async def generate_pairings(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
     except AIGenerationError as e:
         logger.error(f"AI pairing generation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(e),
-        )
+        ) from e
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
 
     return GeneratePairingsResponse(
         generated=len(pairings),
