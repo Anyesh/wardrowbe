@@ -27,7 +27,6 @@ async def get_image(
     expires: str | None = Query(None),
     sig: str | None = Query(None),
 ) -> FileResponse:
-
     try:
         UUID(user_id)
     except ValueError as e:

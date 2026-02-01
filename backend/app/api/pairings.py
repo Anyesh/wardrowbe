@@ -2,7 +2,7 @@
 
 import logging
 from datetime import date, datetime
-from typing import Annotated, Optional
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -38,11 +38,11 @@ class SourceItemResponse(BaseModel):
 
     id: UUID
     type: str
-    subtype: Optional[str] = None
-    name: Optional[str] = None
-    primary_color: Optional[str] = None
+    subtype: str | None = None
+    name: str | None = None
+    primary_color: str | None = None
     image_path: str
-    thumbnail_path: Optional[str] = None
+    thumbnail_path: str | None = None
 
     @computed_field
     @property
@@ -52,7 +52,7 @@ class SourceItemResponse(BaseModel):
 
     @computed_field
     @property
-    def thumbnail_url(self) -> Optional[str]:
+    def thumbnail_url(self) -> str | None:
         """Signed URL for the thumbnail image."""
         if self.thumbnail_path:
             return sign_image_url(self.thumbnail_path)
@@ -64,13 +64,13 @@ class PairingItemResponse(BaseModel):
 
     id: UUID
     type: str
-    subtype: Optional[str] = None
-    name: Optional[str] = None
-    primary_color: Optional[str] = None
+    subtype: str | None = None
+    name: str | None = None
+    primary_color: str | None = None
     colors: list[str] = []
     image_path: str
-    thumbnail_path: Optional[str] = None
-    layer_type: Optional[str] = None
+    thumbnail_path: str | None = None
+    layer_type: str | None = None
     position: int
 
     @computed_field
@@ -81,7 +81,7 @@ class PairingItemResponse(BaseModel):
 
     @computed_field
     @property
-    def thumbnail_url(self) -> Optional[str]:
+    def thumbnail_url(self) -> str | None:
         """Signed URL for the thumbnail image."""
         if self.thumbnail_path:
             return sign_image_url(self.thumbnail_path)
@@ -91,9 +91,9 @@ class PairingItemResponse(BaseModel):
 class FeedbackSummary(BaseModel):
     """Summary of outfit feedback."""
 
-    rating: Optional[int] = None
-    comment: Optional[str] = None
-    worn_at: Optional[date] = None
+    rating: int | None = None
+    comment: str | None = None
+    worn_at: date | None = None
 
 
 class PairingResponse(BaseModel):
@@ -104,12 +104,12 @@ class PairingResponse(BaseModel):
     scheduled_for: date
     status: str
     source: str
-    reasoning: Optional[str] = None
-    style_notes: Optional[str] = None
-    highlights: Optional[list[str]] = None
-    source_item: Optional[SourceItemResponse] = None
+    reasoning: str | None = None
+    style_notes: str | None = None
+    highlights: list[str] | None = None
+    source_item: SourceItemResponse | None = None
     items: list[PairingItemResponse]
-    feedback: Optional[FeedbackSummary] = None
+    feedback: FeedbackSummary | None = None
     created_at: datetime
 
 
@@ -245,7 +245,7 @@ async def list_pairings(
     current_user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    source_type: Optional[str] = Query(None, description="Filter by source item type"),
+    source_type: str | None = Query(None, description="Filter by source item type"),
 ) -> PairingListResponse:
     """List all user's pairings with optional filtering."""
     service = PairingService(db)

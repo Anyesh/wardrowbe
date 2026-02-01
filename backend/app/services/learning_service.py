@@ -10,7 +10,7 @@ This service implements a Netflix/Spotify-style recommendation learning system t
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from itertools import combinations
 from uuid import UUID
@@ -142,7 +142,9 @@ class LearningService:
 
         if scores:
             total_weight = sum(weights)
-            performance_score = sum(s * w for s, w in zip(scores, weights, strict=True)) / total_weight
+            performance_score = (
+                sum(s * w for s, w in zip(scores, weights, strict=True)) / total_weight
+            )
         else:
             performance_score = 0.5  # Neutral score if no data
 
@@ -189,7 +191,7 @@ class LearningService:
             color_composition=color_composition,
             was_modified=feedback.worn_with_modifications,
             modification_notes=feedback.modification_notes,
-            computed_at=datetime.now(timezone.utc),
+            computed_at=datetime.now(UTC),
         )
 
         stmt = stmt.on_conflict_do_update(
@@ -275,7 +277,9 @@ class LearningService:
 
             # Update occasion performance
             occasion = outfit.occasion
-            occasion_perf = dict(pair_score.occasion_performance) if pair_score.occasion_performance else {}
+            occasion_perf = (
+                dict(pair_score.occasion_performance) if pair_score.occasion_performance else {}
+            )
             if occasion not in occasion_perf:
                 occasion_perf[occasion] = {"count": 0, "positive": 0}
             occasion_perf[occasion]["count"] += 1
@@ -288,7 +292,11 @@ class LearningService:
                 temp = outfit.weather_data.get("temperature")
                 if temp is not None:
                     temp_bucket = self._get_temp_bucket(temp)
-                    weather_perf = dict(pair_score.weather_performance) if pair_score.weather_performance else {}
+                    weather_perf = (
+                        dict(pair_score.weather_performance)
+                        if pair_score.weather_performance
+                        else {}
+                    )
                     if temp_bucket not in weather_perf:
                         weather_perf[temp_bucket] = {"count": 0, "positive": 0}
                     weather_perf[temp_bucket]["count"] += 1
@@ -328,8 +336,7 @@ class LearningService:
             return
 
         logger.info(
-            f"Processing 'wore instead' items for user {outfit.user_id}: "
-            f"{len(wore_items)} items"
+            f"Processing 'wore instead' items for user {outfit.user_id}: {len(wore_items)} items"
         )
 
         # Create positive pair scores for items they actually wore
@@ -406,9 +413,7 @@ class LearningService:
     async def _get_feedback_count(self, user_id: UUID) -> int:
         """Get total feedback count for a user."""
         result = await self.db.execute(
-            select(func.count(UserFeedback.id))
-            .join(Outfit)
-            .where(Outfit.user_id == user_id)
+            select(func.count(UserFeedback.id)).join(Outfit).where(Outfit.user_id == user_id)
         )
         return result.scalar() or 0
 
@@ -475,7 +480,7 @@ class LearningService:
                     color_scores[item.primary_color].append(signal)
 
                 # Style signals
-                for style in (item.style or []):
+                for style in item.style or []:
                     if style not in style_scores:
                         style_scores[style] = []
                     style_scores[style].append(signal)
@@ -582,13 +587,17 @@ class LearningService:
         profile.learned_style_scores = learned_style_scores
         profile.learned_occasion_patterns = learned_occasion_patterns
         profile.learned_weather_preferences = learned_weather_prefs
-        profile.overall_acceptance_rate = Decimal(str(round(acceptance_rate, 4))) if acceptance_rate else None
+        profile.overall_acceptance_rate = (
+            Decimal(str(round(acceptance_rate, 4))) if acceptance_rate else None
+        )
         profile.average_overall_rating = Decimal(str(round(avg_rating, 2))) if avg_rating else None
-        profile.average_comfort_rating = Decimal(str(round(avg_comfort, 2))) if avg_comfort else None
+        profile.average_comfort_rating = (
+            Decimal(str(round(avg_comfort, 2))) if avg_comfort else None
+        )
         profile.average_style_rating = Decimal(str(round(avg_style, 2))) if avg_style else None
         profile.feedback_count = len(outfits)
         profile.outfits_rated = rating_count
-        profile.last_computed_at = datetime.now(timezone.utc)
+        profile.last_computed_at = datetime.now(UTC)
 
         await self.db.commit()
         await self.db.refresh(profile)
@@ -754,7 +763,7 @@ class LearningService:
             return []
 
         insights = []
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expiry = now + timedelta(days=30)
 
         # Color insights
@@ -806,7 +815,7 @@ class LearningService:
                         category="overall",
                         insight_type="positive",
                         title="Great match!",
-                        description=f"You accept {rate*100:.0f}% of our suggestions. We're learning your style well!",
+                        description=f"You accept {rate * 100:.0f}% of our suggestions. We're learning your style well!",
                         confidence=Decimal("0.9"),
                         supporting_data={"acceptance_rate": rate},
                         expires_at=expiry,
@@ -857,7 +866,7 @@ class LearningService:
 
     async def get_active_insights(self, user_id: UUID) -> list[StyleInsight]:
         """Get all active (non-expired, non-acknowledged) insights for a user."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         result = await self.db.execute(
             select(StyleInsight)
@@ -889,7 +898,7 @@ class LearningService:
             return False
 
         insight.is_acknowledged = True
-        insight.acknowledged_at = datetime.now(timezone.utc)
+        insight.acknowledged_at = datetime.now(UTC)
         await self.db.commit()
 
         return True
@@ -926,7 +935,9 @@ class LearningService:
                     "name": p.item1.name,
                     "primary_color": p.item1.primary_color,
                     "thumbnail_path": p.item1.thumbnail_path,
-                    "thumbnail_url": sign_image_url(p.item1.thumbnail_path) if p.item1.thumbnail_path else None,
+                    "thumbnail_url": sign_image_url(p.item1.thumbnail_path)
+                    if p.item1.thumbnail_path
+                    else None,
                 },
                 "item2": {
                     "id": str(p.item2.id),
@@ -934,7 +945,9 @@ class LearningService:
                     "name": p.item2.name,
                     "primary_color": p.item2.primary_color,
                     "thumbnail_path": p.item2.thumbnail_path,
-                    "thumbnail_url": sign_image_url(p.item2.thumbnail_path) if p.item2.thumbnail_path else None,
+                    "thumbnail_url": sign_image_url(p.item2.thumbnail_path)
+                    if p.item2.thumbnail_path
+                    else None,
                 },
                 "compatibility_score": float(p.compatibility_score),
                 "times_paired": p.times_paired,
@@ -973,14 +986,16 @@ class LearningService:
         # Suggest adding learned favorite colors
         if profile.learned_color_scores:
             strong_likes = [
-                c for c, s in profile.learned_color_scores.items()
+                c
+                for c, s in profile.learned_color_scores.items()
                 if s >= threshold and c not in (prefs.color_favorites or [])
             ]
             if strong_likes:
                 updates["suggested_favorite_colors"] = strong_likes
 
             strong_dislikes = [
-                c for c, s in profile.learned_color_scores.items()
+                c
+                for c, s in profile.learned_color_scores.items()
                 if s <= -threshold and c not in (prefs.color_avoid or [])
             ]
             if strong_dislikes:
@@ -989,5 +1004,7 @@ class LearningService:
         return {
             "updated": bool(updates),
             "suggestions": updates,
-            "confidence": float(profile.overall_acceptance_rate) if profile.overall_acceptance_rate else None,
+            "confidence": float(profile.overall_acceptance_rate)
+            if profile.overall_acceptance_rate
+            else None,
         }

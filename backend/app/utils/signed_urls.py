@@ -27,9 +27,7 @@ def sign_image_url(path: str, expiry_seconds: int = DEFAULT_EXPIRY_SECONDS) -> s
     # Create signature: HMAC(secret, path + expires)
     message = f"{path}:{expires}"
     signature = hmac.new(
-        settings.secret_key.encode(),
-        message.encode(),
-        hashlib.sha256
+        settings.secret_key.encode(), message.encode(), hashlib.sha256
     ).hexdigest()[:32]  # Use first 32 chars for shorter URLs
 
     return f"/api/v1/images/{path}?expires={expires}&sig={signature}"
@@ -60,9 +58,7 @@ def verify_signature(path: str, expires: str, signature: str) -> bool:
     # Verify signature
     message = f"{path}:{expires}"
     expected_signature = hmac.new(
-        settings.secret_key.encode(),
-        message.encode(),
-        hashlib.sha256
+        settings.secret_key.encode(), message.encode(), hashlib.sha256
     ).hexdigest()[:32]
 
     return hmac.compare_digest(signature, expected_signature)
