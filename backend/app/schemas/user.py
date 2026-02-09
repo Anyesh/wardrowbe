@@ -49,6 +49,9 @@ class UserSyncRequest(BaseModel):
     email: str = Field(..., description="Email address or system-generated placeholder")
     display_name: str = Field(..., min_length=1, max_length=100)
     avatar_url: str | None = None
+    id_token: str | None = Field(
+        None, description="OIDC ID token for verification (required when OIDC is configured)"
+    )
 
 
 class UserSyncResponse(BaseModel):

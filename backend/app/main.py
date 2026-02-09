@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    settings.validate_security()
+    logger.info("Auth mode: %s", settings.get_auth_mode())
     yield
     await engine.dispose()
 
@@ -41,7 +43,6 @@ app.add_middleware(
 
 # Enable GZip compression for responses > 500 bytes
 app.add_middleware(GZipMiddleware, minimum_size=500)
-
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
 
@@ -51,7 +52,6 @@ app.include_router(api_router, prefix="/api/v1")
 async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    """Handle Pydantic validation errors with user-friendly messages."""
     errors = []
     for error in exc.errors():
         field = " -> ".join(str(loc) for loc in error["loc"])
@@ -68,7 +68,6 @@ async def validation_exception_handler(
 
 @app.exception_handler(ValidationError)
 async def pydantic_validation_handler(request: Request, exc: ValidationError) -> JSONResponse:
-    """Handle Pydantic model validation errors."""
     errors = []
     for error in exc.errors():
         field = " -> ".join(str(loc) for loc in error["loc"])
@@ -85,7 +84,6 @@ async def pydantic_validation_handler(request: Request, exc: ValidationError) ->
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Catch-all handler for unexpected exceptions."""
     logger.exception(f"Unhandled exception on {request.method} {request.url.path}: {exc}")
 
     # Don't expose internal error details in production

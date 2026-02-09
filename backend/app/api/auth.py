@@ -5,12 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import get_settings
+from app.config import DEFAULT_SECRET_KEY, get_settings
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user import UserResponse, UserSyncRequest, UserSyncResponse
 from app.services.user_service import UserEmailConflictError, UserService
 from app.utils.auth import get_current_user
+from app.utils.oidc import validate_oidc_id_token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 settings = get_settings()
@@ -30,17 +31,53 @@ def create_access_token(external_id: str, expires_delta: timedelta | None = None
     return jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
 
 
+def _is_dev_mode() -> bool:
+    return settings.debug and settings.secret_key == DEFAULT_SECRET_KEY
+
+
+def _oidc_configured() -> bool:
+    return bool(settings.oidc_issuer_url and settings.oidc_client_id)
+
+
 @router.post("/sync", response_model=UserSyncResponse)
 async def sync_user(
     sync_data: UserSyncRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> UserSyncResponse:
-    """
-    Sync user from OIDC provider.
+    if _is_dev_mode():
+        pass
+    elif _oidc_configured():
+        if not sync_data.id_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="OIDC id_token is required for authentication",
+            )
 
-    Called by frontend after successful OIDC authentication to ensure
-    user exists in local database. Returns a JWT token for API authentication.
-    """
+        try:
+            oidc_claims = await validate_oidc_id_token(
+                sync_data.id_token,
+                settings.oidc_issuer_url,
+                settings.oidc_client_id,
+            )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=str(e),
+            ) from None
+
+        if oidc_claims.get("sub") != sync_data.external_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token subject does not match external_id",
+            )
+    elif settings.auth_trust_header:
+        pass
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No authentication method configured",
+        )
+
     user_service = UserService(db)
 
     try:
@@ -49,9 +86,8 @@ async def sync_user(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
-        ) from e
+        ) from None
 
-    # Generate JWT token for API authentication
     access_token = create_access_token(user.external_id)
 
     return UserSyncResponse(
