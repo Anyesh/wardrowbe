@@ -1,5 +1,5 @@
+# Production Docker Compose for Raspberry Pi (ARM64)
 # Production Docker Compose
-# Configure your domain via environment variables
 
 services:
   # PostgreSQL Database
@@ -55,14 +55,19 @@ services:
       AI_TIMEOUT: ${AI_TIMEOUT:-120}
       AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      # OIDC (set these if using OIDC instead of forward auth)
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       # Auth header from TinyAuth
-      AUTH_TRUST_HEADER: "true"
+      AUTH_TRUST_HEADER: ${AUTH_TRUST_HEADER:-true}
       AUTH_HEADER_NAME: "Remote-User"
       # Notifications (default ntfy for form pre-fill)
       NTFY_SERVER: ${NTFY_SERVER:-}
       NTFY_TOPIC: ${NTFY_TOPIC:-}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
-      APP_URL: ${APP_URL:-https://localhost}
+      APP_URL: ${APP_URL:-https://localhost:3000}
     volumes:
       - uploads_data:/data/uploads
     dns:
@@ -105,7 +110,7 @@ services:
       NTFY_SERVER: ${NTFY_SERVER:-}
       NTFY_TOPIC: ${NTFY_TOPIC:-}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
-      APP_URL: ${APP_URL:-https://localhost}
+      APP_URL: ${APP_URL:-https://localhost:3000}
     volumes:
       - uploads_data:/data/uploads
     dns:
@@ -129,18 +134,16 @@ services:
     container_name: wardrobe_frontend
     restart: unless-stopped
     environment:
-      BACKEND_URL: http://backend:8000
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://localhost}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env}
       NEXT_PUBLIC_API_URL: ""
-      # Auth providers (leave empty for dev credentials)
-      AUTHENTIK_URL: ${AUTHENTIK_URL:-}
-      AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:-}
-      AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET:-}
-      POCKETID_URL: ${POCKETID_URL:-}
-      POCKETID_CLIENT_ID: ${POCKETID_CLIENT_ID:-}
-      POCKETID_CLIENT_SECRET: ${POCKETID_CLIENT_SECRET:-}
-      AUTH_TRUST_PROXY: ${AUTH_TRUST_PROXY:-}
+      # OIDC
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_END_SESSION_URL: ${OIDC_END_SESSION_URL:-}
+      # Trust self-signed certs for internal OIDC provider
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
     depends_on:
       - backend
     healthcheck:
@@ -150,12 +153,8 @@ services:
       retries: 3
     networks:
       - wardrobe_net
-
-  # AI is expected to be provided externally (e.g., OpenAI-compatible API)
-  # Configure AI_BASE_URL in your .env file
-
   # Nginx reverse proxy (internal routing)
-  # Auth is handled by external proxy (TinyAuth/Authentik)
+  # Auth is handled by external proxy (TinyAuth/Authentik/OIDC)
   nginx:
     image: nginx:alpine
     container_name: wardrobe_nginx
