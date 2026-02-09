@@ -11,41 +11,15 @@ interface OIDCProfile {
   picture?: string;
 }
 
-// Forward auth mode: trust Remote-User header from nginx/TinyAuth
 const isForwardAuth = process.env.AUTH_TRUST_PROXY === 'true';
 
-const AuthentikProvider: OAuthConfig<OIDCProfile> = {
-  id: 'authentik',
-  name: 'Authentik',
+const OIDCProvider: OAuthConfig<OIDCProfile> = {
+  id: 'oidc',
+  name: 'SSO',
   type: 'oauth',
-  wellKnown: `${process.env.AUTHENTIK_URL}/.well-known/openid-configuration`,
-  clientId: process.env.AUTHENTIK_CLIENT_ID!,
-  clientSecret: process.env.AUTHENTIK_CLIENT_SECRET!,
-  authorization: {
-    params: {
-      scope: 'openid email profile',
-    },
-  },
-  idToken: true,
-  checks: ['pkce', 'state'],
-  profile(profile) {
-    return {
-      id: profile.sub,
-      name: profile.name || profile.preferred_username,
-      email: profile.email,
-      image: profile.picture,
-    };
-  },
-};
-
-// Pocket ID OIDC provider - direct connection to Pocket ID
-const PocketIDProvider: OAuthConfig<OIDCProfile> = {
-  id: 'pocketid',
-  name: 'Pocket ID',
-  type: 'oauth',
-  wellKnown: `${process.env.POCKETID_URL}/.well-known/openid-configuration`,
-  clientId: process.env.POCKETID_CLIENT_ID!,
-  clientSecret: process.env.POCKETID_CLIENT_SECRET!,
+  wellKnown: `${process.env.OIDC_ISSUER_URL}/.well-known/openid-configuration`,
+  clientId: process.env.OIDC_CLIENT_ID!,
+  clientSecret: process.env.OIDC_CLIENT_SECRET!,
   authorization: {
     params: {
       scope: 'openid email profile',
@@ -116,29 +90,24 @@ const DevCredentialsProvider = CredentialsProvider({
     };
   },
 });
-
 // Determine which provider to use
 function getProviders() {
-  // Pocket ID OIDC (direct connection, supports profile pictures)
-  if (process.env.POCKETID_URL) {
-    return [PocketIDProvider];
+  const providers = [];
+
+  if (process.env.OIDC_ISSUER_URL) {
+    providers.push(OIDCProvider);
+  } else if (isForwardAuth) {
+    providers.push(ForwardAuthProvider);
+  } else {
+    providers.push(DevCredentialsProvider);
   }
-  // Authentik OIDC
-  if (process.env.AUTHENTIK_URL) {
-    return [AuthentikProvider];
-  }
-  // Forward auth via TinyAuth (no profile picture support)
-  if (isForwardAuth) {
-    return [ForwardAuthProvider];
-  }
-  // Default to dev credentials for local development
-  return [DevCredentialsProvider];
+  return providers;
 }
 
 export const authOptions: NextAuthOptions = {
   providers: getProviders(),
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, account, trigger }) {
       const apiUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://backend:8000';
 
       // Session update triggered - refresh user data from backend
@@ -176,6 +145,7 @@ export const authOptions: NextAuthOptions = {
               email: user.email,
               display_name: user.name || user.email?.split('@')[0] || 'User',
               avatar_url: user.image,
+              id_token: account?.id_token,
             }),
           });
 

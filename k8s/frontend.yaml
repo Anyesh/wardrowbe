@@ -34,25 +34,29 @@ spec:
                   key: nextauth-secret
             - name: NEXT_PUBLIC_API_URL
               value: ""
-            # Generic OIDC provider configuration
             - name: OIDC_ISSUER_URL
               valueFrom:
                 configMapKeyRef:
                   name: wardrobe-config
                   key: OIDC_ISSUER_URL
-                  optional: true
             - name: OIDC_CLIENT_ID
               valueFrom:
                 secretKeyRef:
                   name: wardrobe-secrets
                   key: oidc-client-id
-                  optional: true
             - name: OIDC_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: wardrobe-secrets
                   key: oidc-client-secret
+            - name: OIDC_END_SESSION_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: OIDC_END_SESSION_URL
                   optional: true
+            - name: NODE_TLS_REJECT_UNAUTHORIZED
+              value: "0"
           resources:
             requests:
               memory: "128Mi"

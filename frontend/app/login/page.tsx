@@ -5,34 +5,19 @@ import { signIn, getProviders, useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-function AuthentikLoginButton({ callbackUrl }: { callbackUrl: string }) {
+function OIDCLoginButton({ callbackUrl }: { callbackUrl: string }) {
   return (
     <button
-      onClick={() => signIn('authentik', { callbackUrl })}
-      className="flex w-full items-center justify-center gap-3 rounded-md bg-primary px-4 py-3 text-primary-foreground hover:bg-primary/90 transition-colors"
-    >
-      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-      </svg>
-      Sign in with Authentik
-    </button>
-  );
-}
-
-function PocketIDLoginButton({ callbackUrl }: { callbackUrl: string }) {
-  return (
-    <button
-      onClick={() => signIn('pocketid', { callbackUrl })}
+      onClick={() => signIn('oidc', { callbackUrl })}
       className="flex w-full items-center justify-center gap-3 rounded-md bg-primary px-4 py-3 text-primary-foreground hover:bg-primary/90 transition-colors"
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
       </svg>
-      Sign in with Pocket ID
+      Sign in
     </button>
   );
 }
-
 function ForwardAuthLogin({ callbackUrl }: { callbackUrl: string }) {
   const router = useRouter();
 
@@ -148,28 +133,22 @@ function LoginContent() {
   }, [status, callbackUrl, router]);
 
   // Detect auth mode based on available providers
-  const [authMode, setAuthMode] = useState<'loading' | 'forward-auth' | 'authentik' | 'pocketid' | 'dev'>('loading');
+  const [authMode, setAuthMode] = useState<'loading' | 'forward-auth' | 'oidc' | 'dev'>('loading');
 
   useEffect(() => {
-    getProviders()
-      .then((providers) => {
-        if (providers?.['pocketid']) {
-          setAuthMode('pocketid');
-        } else if (providers?.['authentik']) {
-          setAuthMode('authentik');
-        } else if (providers?.['dev-credentials']) {
-          setAuthMode('dev');
-        } else if (providers?.['forward-auth']) {
-          setAuthMode('forward-auth');
-        } else {
-          // Fallback to dev mode
-          setAuthMode('dev');
-        }
-      })
-      .catch(() => {
-        // On any error, fallback to dev mode
+    getProviders().then((providers) => {
+
+      if (providers?.['oidc']) {
+        setAuthMode('oidc');
+      } else if (providers?.['dev-credentials']) {
         setAuthMode('dev');
-      });
+      } else if (providers?.['forward-auth']) {
+        setAuthMode('forward-auth');
+      } else {
+        // Fallback to dev mode
+        setAuthMode('dev');
+      }
+    });
   }, []);
 
   if (status === 'loading' || authMode === 'loading') {
@@ -195,10 +174,10 @@ function LoginContent() {
       )}
 
       <div className="space-y-4">
-        {authMode === 'pocketid' && <PocketIDLoginButton callbackUrl={callbackUrl} />}
-        {authMode === 'authentik' && <AuthentikLoginButton callbackUrl={callbackUrl} />}
+        {authMode === 'oidc' && <OIDCLoginButton callbackUrl={callbackUrl} />}
         {authMode === 'forward-auth' && <ForwardAuthLogin callbackUrl={callbackUrl} />}
         {authMode === 'dev' && <DevLogin callbackUrl={callbackUrl} />}
+
       </div>
     </>
   );

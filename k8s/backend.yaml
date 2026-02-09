@@ -8,7 +8,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 1Gi
   storageClassName: local-path
 
 ---
@@ -91,6 +91,21 @@ spec:
                 secretKeyRef:
                   name: wardrobe-secrets
                   key: backend-secret-key
+            - name: OIDC_ISSUER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: OIDC_ISSUER_URL
+            - name: OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: wardrobe-secrets
+                  key: oidc-client-id
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: wardrobe-secrets
+                  key: oidc-client-secret
             - name: APP_URL
               valueFrom:
                 configMapKeyRef:
