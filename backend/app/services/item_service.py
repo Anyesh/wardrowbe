@@ -177,7 +177,7 @@ class ItemService:
 
         self.db.add(item)
         await self.db.flush()
-        await self.db.refresh(item)
+        await self.db.refresh(item, ["additional_images"])
         return item
 
     async def update(self, item: ClothingItem, item_data: ItemUpdate) -> ClothingItem:

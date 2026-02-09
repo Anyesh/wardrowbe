@@ -3,17 +3,18 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.database import get_db
-from app.models.notification import Notification
+from app.models.notification import Notification, NotificationSettings
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.schemas.notification import (
     EmailConfig,
+    ExpoPushConfig,
     MattermostConfig,
     MessageResponse,
     NotificationResponse,
@@ -36,14 +37,6 @@ router = APIRouter()
 
 
 def local_time_to_utc(local_time_str: str, day_of_week: int, user_tz: ZoneInfo) -> tuple[time, int]:
-    """
-    Convert a local time (HH:MM) + day_of_week to UTC.
-
-    Returns (utc_time, utc_day_of_week) since the day might shift when converting.
-
-    Example: 23:00 Monday in Sydney (UTC+11) = 12:00 Monday UTC
-    Example: 01:00 Tuesday in Sydney (UTC+11) = 14:00 Monday UTC (day shifts back!)
-    """
     hours, minutes = map(int, local_time_str.split(":"))
 
     # Use a reference date that falls on the given day_of_week
@@ -63,11 +56,6 @@ def local_time_to_utc(local_time_str: str, day_of_week: int, user_tz: ZoneInfo) 
 
 
 def utc_time_to_local(utc_time: time, utc_day_of_week: int, user_tz: ZoneInfo) -> tuple[str, int]:
-    """
-    Convert a UTC time + day_of_week back to local time.
-
-    Returns (local_time_str, local_day_of_week).
-    """
     # Use same reference date approach
     reference_monday = datetime(2026, 1, 5, tzinfo=ZoneInfo("UTC"))
     reference_date = reference_monday + timedelta(days=utc_day_of_week)
@@ -84,7 +72,6 @@ def utc_time_to_local(utc_time: time, utc_day_of_week: int, user_tz: ZoneInfo) -
 
 
 def _schedule_to_local_response(schedule: Schedule, user_tz: ZoneInfo) -> dict:
-    """Convert a schedule with UTC time to a response with local time."""
     local_time_str, local_day = utc_time_to_local(
         schedule.notification_time, schedule.day_of_week, user_tz
     )
@@ -106,10 +93,6 @@ def _schedule_to_local_response(schedule: Schedule, user_tz: ZoneInfo) -> dict:
 
 @router.get("/defaults/ntfy")
 async def get_ntfy_defaults():
-    """Get default ntfy server and token from environment (for form pre-fill).
-
-    User only needs to set their topic - server and token are pre-filled.
-    """
     settings = get_settings()
     return {
         "server": settings.ntfy_server or "https://ntfy.sh",
@@ -125,7 +108,6 @@ async def list_notification_settings(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all notification channels for the current user."""
     service = NotificationService(db)
     settings = await service.get_user_settings(current_user.id)
     return settings
@@ -137,7 +119,6 @@ async def create_notification_setting(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new notification channel configuration."""
     # Validate channel-specific config
     try:
         if data.channel == "ntfy":
@@ -146,6 +127,10 @@ async def create_notification_setting(
             MattermostConfig(**data.config)
         elif data.channel == "email":
             EmailConfig(**data.config)
+        elif data.channel == "expo_push":
+            from app.schemas.notification import ExpoPushConfig
+
+            ExpoPushConfig(**data.config)
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e.errors()[0]["msg"])) from None
 
@@ -170,7 +155,6 @@ async def get_notification_setting(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a specific notification channel configuration."""
     service = NotificationService(db)
     setting = await service.get_setting_by_id(setting_id, current_user.id)
     if not setting:
@@ -185,7 +169,6 @@ async def update_notification_setting(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update a notification channel configuration."""
     service = NotificationService(db)
 
     # If config is being updated, validate it against the channel type
@@ -202,6 +185,8 @@ async def update_notification_setting(
                 MattermostConfig(**data.config)
             elif existing.channel == "email":
                 EmailConfig(**data.config)
+            elif existing.channel == "expo_push":
+                ExpoPushConfig(**data.config)
         except ValidationError as e:
             raise HTTPException(status_code=400, detail=str(e.errors()[0]["msg"])) from None
 
@@ -224,7 +209,6 @@ async def delete_notification_setting(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a notification channel configuration."""
     service = NotificationService(db)
     success = await service.delete_setting(setting_id, current_user.id)
     if not success:
@@ -239,12 +223,58 @@ async def test_notification_setting(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Send a test notification to verify configuration."""
     service = NotificationService(db)
     success, message = await service.test_setting(setting_id, current_user.id)
     if not success:
         raise HTTPException(status_code=400, detail=message)
     return TestNotificationResponse(success=True, message=message)
+
+
+# ============= Push Token Registration =============
+
+
+class PushTokenRequest(BaseModel):
+    push_token: str
+
+
+@router.post("/push-token", response_model=NotificationSettingsResponse)
+async def register_push_token(
+    data: PushTokenRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        ExpoPushConfig(push_token=data.push_token)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid push token format") from None
+
+    # Check if expo_push channel already exists
+    existing = await db.execute(
+        select(NotificationSettings).where(
+            and_(
+                NotificationSettings.user_id == current_user.id,
+                NotificationSettings.channel == "expo_push",
+            )
+        )
+    )
+    setting = existing.scalar_one_or_none()
+
+    if setting:
+        setting.config = {"push_token": data.push_token}
+        setting.enabled = True
+    else:
+        setting = NotificationSettings(
+            user_id=current_user.id,
+            channel="expo_push",
+            enabled=True,
+            priority=0,  # Highest priority - push notifications preferred
+            config={"push_token": data.push_token},
+        )
+        db.add(setting)
+
+    await db.commit()
+    await db.refresh(setting)
+    return setting
 
 
 # ============= Schedules =============
@@ -255,10 +285,6 @@ async def list_schedules(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all notification schedules for the current user.
-
-    Times are stored in UTC and converted back to user's local timezone.
-    """
     # Get user's timezone
     try:
         user_tz = ZoneInfo(current_user.timezone or "UTC")
@@ -281,10 +307,6 @@ async def create_schedule(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new notification schedule.
-
-    Time is received in user's local timezone and stored in UTC.
-    """
     # Get user's timezone
     try:
         user_tz = ZoneInfo(current_user.timezone or "UTC")
@@ -328,7 +350,6 @@ async def get_schedule(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a specific schedule."""
     # Get user's timezone
     try:
         user_tz = ZoneInfo(current_user.timezone or "UTC")
@@ -354,10 +375,6 @@ async def update_schedule(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update a schedule.
-
-    Time is received in user's local timezone and stored in UTC.
-    """
     # Get user's timezone
     try:
         user_tz = ZoneInfo(current_user.timezone or "UTC")
@@ -402,7 +419,6 @@ async def delete_schedule(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a schedule."""
     result = await db.execute(
         select(Schedule).where(
             and_(Schedule.id == schedule_id, Schedule.user_id == current_user.id)
@@ -427,7 +443,6 @@ async def list_notification_history(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List notification delivery history."""
     result = await db.execute(
         select(Notification)
         .where(Notification.user_id == current_user.id)

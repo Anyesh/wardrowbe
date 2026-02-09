@@ -11,10 +11,12 @@ from sqlalchemy.orm import selectinload
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
 from app.models.outfit import Outfit, OutfitItem
 from app.models.user import User
-from app.schemas.notification import EmailConfig, MattermostConfig, NtfyConfig
+from app.schemas.notification import EmailConfig, ExpoPushConfig, MattermostConfig, NtfyConfig
 from app.services.notification_providers import (
     EmailMessage,
     EmailProvider,
+    ExpoPushMessage,
+    ExpoPushProvider,
     MattermostAttachment,
     MattermostMessage,
     MattermostProvider,
@@ -35,8 +37,6 @@ class DeliveryStatus(StrEnum):
 
 @dataclass
 class NotificationResult:
-    """Result of a notification delivery attempt."""
-
     channel: str
     status: DeliveryStatus
     error: str | None = None
@@ -44,14 +44,11 @@ class NotificationResult:
 
 
 class NotificationService:
-    """Service for managing notification settings and schedules."""
-
     def __init__(self, db: AsyncSession):
         self.db = db
 
     # Notification Settings CRUD
     async def get_user_settings(self, user_id: UUID) -> list[NotificationSettings]:
-        """Get all notification settings for a user."""
         result = await self.db.execute(
             select(NotificationSettings)
             .where(NotificationSettings.user_id == user_id)
@@ -62,7 +59,6 @@ class NotificationService:
     async def get_setting_by_id(
         self, setting_id: UUID, user_id: UUID
     ) -> NotificationSettings | None:
-        """Get a specific notification setting."""
         result = await self.db.execute(
             select(NotificationSettings).where(
                 and_(
@@ -76,7 +72,6 @@ class NotificationService:
     async def create_setting(
         self, user_id: UUID, channel: str, enabled: bool, priority: int, config: dict
     ) -> NotificationSettings:
-        """Create a new notification setting."""
         # Check if channel already exists
         existing = await self.db.execute(
             select(NotificationSettings).where(
@@ -109,7 +104,6 @@ class NotificationService:
         priority: int | None = None,
         config: dict | None = None,
     ) -> NotificationSettings | None:
-        """Update a notification setting."""
         setting = await self.get_setting_by_id(setting_id, user_id)
         if not setting:
             return None
@@ -126,7 +120,6 @@ class NotificationService:
         return setting
 
     async def delete_setting(self, setting_id: UUID, user_id: UUID) -> bool:
-        """Delete a notification setting."""
         setting = await self.get_setting_by_id(setting_id, user_id)
         if not setting:
             return False
@@ -136,7 +129,6 @@ class NotificationService:
         return True
 
     async def test_setting(self, setting_id: UUID, user_id: UUID) -> tuple[bool, str]:
-        """Test a notification setting by sending a test message."""
         setting = await self.get_setting_by_id(setting_id, user_id)
         if not setting:
             return False, "Setting not found"
@@ -151,6 +143,9 @@ class NotificationService:
             elif setting.channel == "email":
                 provider = EmailProvider(EmailConfig(**setting.config))
                 success = await provider.test_connection()
+            elif setting.channel == "expo_push":
+                provider = ExpoPushProvider(ExpoPushConfig(**setting.config))
+                success = await provider.test_connection()
             else:
                 return False, f"Unknown channel: {setting.channel}"
 
@@ -163,8 +158,6 @@ class NotificationService:
 
 
 class NotificationDispatcher:
-    """Dispatcher for sending notifications through configured channels."""
-
     def __init__(self, db: AsyncSession, app_url: str):
         self.db = db
         self.app_url = app_url.rstrip("/")
@@ -172,13 +165,6 @@ class NotificationDispatcher:
     async def send_outfit_notification(
         self, user_id: UUID, outfit_id: UUID, for_tomorrow: bool = False
     ) -> list[NotificationResult]:
-        """Send outfit notification to user via their configured channels.
-
-        Args:
-            user_id: User to send notification to
-            outfit_id: Outfit to include in notification
-            for_tomorrow: If True, messages say "Tomorrow's Outfit" instead of "Today's Outfit"
-        """
         # Get user
         user_result = await self.db.execute(select(User).where(User.id == user_id))
         user = user_result.scalar_one_or_none()
@@ -201,7 +187,7 @@ class NotificationDispatcher:
             .where(
                 and_(
                     NotificationSettings.user_id == user_id,
-                    NotificationSettings.enabled.is_(True),
+                    NotificationSettings.enabled,
                 )
             )
             .order_by(NotificationSettings.priority)
@@ -265,7 +251,6 @@ class NotificationDispatcher:
         return results
 
     async def retry_notification(self, notification: Notification) -> NotificationResult:
-        """Retry sending an existing notification without creating new records."""
         # Get user
         user_result = await self.db.execute(select(User).where(User.id == notification.user_id))
         user = user_result.scalar_one_or_none()
@@ -296,7 +281,7 @@ class NotificationDispatcher:
                 and_(
                     NotificationSettings.user_id == notification.user_id,
                     NotificationSettings.channel == notification.channel,
-                    NotificationSettings.enabled.is_(True),
+                    NotificationSettings.enabled,
                 )
             )
         )
@@ -318,7 +303,6 @@ class NotificationDispatcher:
         user: User,
         for_tomorrow: bool = False,
     ) -> NotificationResult:
-        """Send notification via specific channel."""
         try:
             if channel_config.channel == "ntfy":
                 provider = NtfyProvider(NtfyConfig(**channel_config.config))
@@ -333,6 +317,11 @@ class NotificationDispatcher:
             elif channel_config.channel == "email":
                 provider = EmailProvider(EmailConfig(**channel_config.config))
                 message = self._build_email_message(outfit, user, for_tomorrow)
+                result = await provider.send(message)
+
+            elif channel_config.channel == "expo_push":
+                provider = ExpoPushProvider(ExpoPushConfig(**channel_config.config))
+                message = self._build_expo_push_message(outfit, user, for_tomorrow)
                 result = await provider.send(message)
 
             else:
@@ -366,7 +355,6 @@ class NotificationDispatcher:
     def _build_ntfy_notification(
         self, outfit: Outfit, user: User, for_tomorrow: bool = False
     ) -> NtfyNotification:
-        """Build ntfy notification from outfit."""
         # Weather info for title
         weather = outfit.weather_data or {}
         temp = weather.get("temperature")
@@ -430,7 +418,6 @@ class NotificationDispatcher:
     def _build_mattermost_message(
         self, outfit: Outfit, user: User, for_tomorrow: bool = False
     ) -> MattermostMessage:
-        """Build Mattermost message from outfit."""
         weather_text = ""
         if outfit.weather_data:
             weather = outfit.weather_data
@@ -475,7 +462,6 @@ class NotificationDispatcher:
     def _build_email_message(
         self, outfit: Outfit, user: User, for_tomorrow: bool = False
     ) -> EmailMessage:
-        """Build email message from outfit."""
         weather_html = ""
         if outfit.weather_data:
             weather = outfit.weather_data
@@ -590,4 +576,31 @@ class NotificationDispatcher:
             subject=f"{day_label}'s Outfit: {outfit.occasion.title()}",
             html_body=html_body,
             text_body=text_body,
+        )
+
+    def _build_expo_push_message(
+        self, outfit: Outfit, user: User, for_tomorrow: bool = False
+    ) -> ExpoPushMessage:
+        weather = outfit.weather_data or {}
+        temp = weather.get("temperature")
+        day_label = "Tomorrow" if for_tomorrow else "Today"
+
+        if temp is not None:
+            title = f"{day_label}'s {outfit.occasion.title()} - {temp}\u00b0C"
+        else:
+            title = f"{day_label}'s {outfit.occasion.title()} Outfit"
+
+        parts = []
+        if outfit.reasoning:
+            parts.append(outfit.reasoning)
+        if outfit.style_notes:
+            parts.append(f"Tip: {outfit.style_notes}")
+
+        body = " \u2022 ".join(parts) if parts else "Your outfit is ready!"
+
+        return ExpoPushMessage(
+            to="",  # Provider uses its stored token
+            title=title,
+            body=body,
+            data={"outfit_id": str(outfit.id), "screen": "history"},
         )

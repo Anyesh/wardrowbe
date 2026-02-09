@@ -47,9 +47,20 @@ class EmailConfig(BaseModel):
         return v
 
 
+class ExpoPushConfig(BaseModel):
+    push_token: str
+
+    @field_validator("push_token")
+    @classmethod
+    def validate_token(cls, v: str) -> str:
+        if not v.startswith("ExponentPushToken[") and not v.startswith("ExpoPushToken["):
+            raise ValueError("Invalid Expo push token format")
+        return v
+
+
 # Notification settings schemas
 class NotificationSettingsBase(BaseModel):
-    channel: Literal["ntfy", "mattermost", "email"]
+    channel: Literal["ntfy", "mattermost", "email", "expo_push"]
     enabled: bool = True
     priority: int = 1
     config: dict
@@ -155,7 +166,6 @@ class NotificationResponse(BaseModel):
         from_attributes = True
 
 
-# Test notification
 class TestNotificationRequest(BaseModel):
     pass
 

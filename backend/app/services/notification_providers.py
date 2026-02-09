@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from app.schemas.notification import EmailConfig, MattermostConfig, NtfyConfig
+from app.schemas.notification import EmailConfig, ExpoPushConfig, MattermostConfig, NtfyConfig
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,6 @@ class NtfyProvider:
             return {"success": False, "error": str(e)}
 
     async def test_connection(self) -> bool:
-        """Test if we can send to this topic."""
         try:
             result = await self.send(
                 NtfyNotification(
@@ -91,8 +90,6 @@ class NtfyProvider:
 # Mattermost Provider
 @dataclass
 class MattermostAttachment:
-    """Mattermost message attachment."""
-
     title: str
     text: str = ""
     color: str = "#3B82F6"
@@ -104,8 +101,6 @@ class MattermostAttachment:
 
 @dataclass
 class MattermostMessage:
-    """Mattermost message."""
-
     text: str
     username: str = "Wardrowbe"
     icon_emoji: str = ":shirt:"
@@ -113,13 +108,10 @@ class MattermostMessage:
 
 
 class MattermostProvider:
-    """Mattermost notification provider."""
-
     def __init__(self, config: MattermostConfig):
         self.webhook_url = config.webhook_url
 
     async def send(self, message: MattermostMessage) -> dict:
-        """Send message via Mattermost webhook."""
         payload = {
             "text": message.text,
             "username": message.username,
@@ -156,7 +148,6 @@ class MattermostProvider:
             return {"success": False, "error": str(e)}
 
     async def test_connection(self) -> bool:
-        """Test webhook connection."""
         try:
             result = await self.send(
                 MattermostMessage(text="This is a test message from Wardrowbe.")
@@ -169,8 +160,6 @@ class MattermostProvider:
 # Email Provider
 @dataclass
 class EmailMessage:
-    """Email message."""
-
     to: str
     subject: str
     html_body: str
@@ -178,8 +167,6 @@ class EmailMessage:
 
 
 class EmailProvider:
-    """Email notification provider via SMTP."""
-
     def __init__(self, config: EmailConfig):
         self.to_address = config.address
         self.smtp_host = os.getenv("SMTP_HOST")
@@ -191,11 +178,9 @@ class EmailProvider:
         self.from_email = os.getenv("SMTP_FROM_EMAIL", self.smtp_user)
 
     def is_configured(self) -> bool:
-        """Check if SMTP is configured."""
         return bool(self.smtp_host and self.smtp_user)
 
     async def send(self, message: EmailMessage) -> dict:
-        """Send email via SMTP."""
         if not self.is_configured():
             return {"success": False, "error": "SMTP not configured"}
 
@@ -231,7 +216,6 @@ class EmailProvider:
             return {"success": False, "error": str(e)}
 
     async def test_connection(self) -> bool:
-        """Test SMTP connection."""
         if not self.is_configured():
             return False
 
@@ -242,6 +226,79 @@ class EmailProvider:
                     subject="Wardrowbe - Test Notification",
                     html_body="<p>This is a test email from Wardrowbe.</p>",
                     text_body="This is a test email from Wardrowbe.",
+                )
+            )
+            return result.get("success", False)
+        except Exception:
+            return False
+
+
+# Expo Push Provider
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+
+
+@dataclass
+class ExpoPushMessage:
+    to: str
+    title: str
+    body: str
+    data: dict | None = None
+    sound: str = "default"
+    badge: int | None = None
+    channel_id: str = "outfit-suggestions"
+
+
+class ExpoPushProvider:
+    def __init__(self, config: ExpoPushConfig):
+        self.push_token = config.push_token
+
+    async def send(self, message: ExpoPushMessage) -> dict:
+        payload = {
+            "to": message.to or self.push_token,
+            "title": message.title,
+            "body": message.body,
+            "sound": message.sound,
+            "channelId": message.channel_id,
+        }
+        if message.data:
+            payload["data"] = message.data
+        if message.badge is not None:
+            payload["badge"] = message.badge
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    EXPO_PUSH_URL,
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                )
+
+                if response.status_code == 200:
+                    result = response.json()
+                    ticket = result.get("data", {})
+                    if ticket.get("status") == "ok":
+                        return {"success": True, "ticket_id": ticket.get("id")}
+                    else:
+                        return {
+                            "success": False,
+                            "error": ticket.get("message", "Push send failed"),
+                        }
+                else:
+                    return {
+                        "success": False,
+                        "error": f"HTTP {response.status_code}: {response.text}",
+                    }
+        except Exception as e:
+            logger.exception("Expo push send failed")
+            return {"success": False, "error": str(e)}
+
+    async def test_connection(self) -> bool:
+        try:
+            result = await self.send(
+                ExpoPushMessage(
+                    to=self.push_token,
+                    title="Wardrowbe Test",
+                    body="Push notifications are working!",
                 )
             )
             return result.get("success", False)
