@@ -41,23 +41,28 @@ export function useAuth() {
     refetchOnWindowFocus: false,
   });
 
-  // Handle 401 errors by signing out - this clears the stale session
-  // and breaks the redirect loop between login and dashboard
   useEffect(() => {
-    if (
-      userQuery.error instanceof ApiError &&
-      userQuery.error.status === 401 &&
-      !signingOut.current
-    ) {
+    if (signingOut.current) return;
+
+    if (userQuery.error instanceof ApiError && userQuery.error.status === 401) {
+      signingOut.current = true;
+      signOut({ redirect: false }).then(() => {
+        signingOut.current = false;
+      });
+      return;
+    }
+
+    if (status === 'authenticated' && !hasToken) {
       signingOut.current = true;
       signOut({ redirect: false }).then(() => {
         signingOut.current = false;
       });
     }
-  }, [userQuery.error]);
+  }, [userQuery.error, status, hasToken]);
 
   const isAuthenticated = userQuery.isSuccess && !!userQuery.data;
-  const isLoading = status === 'loading' || userQuery.isLoading;
+ 
+  const isLoading = status === 'loading' || (status === 'authenticated' && userQuery.isPending);
 
   return {
     user: userQuery.data,

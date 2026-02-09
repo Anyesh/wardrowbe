@@ -121,16 +121,15 @@ function DevLogin({ callbackUrl }: { callbackUrl: string }) {
 function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const error = searchParams.get('error');
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
-  // If already authenticated via NextAuth, redirect
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && session?.accessToken) {
       router.push(callbackUrl);
     }
-  }, [status, callbackUrl, router]);
+  }, [status, session?.accessToken, callbackUrl, router]);
 
   // Detect auth mode based on available providers
   const [authMode, setAuthMode] = useState<'loading' | 'forward-auth' | 'oidc' | 'dev'>('loading');
