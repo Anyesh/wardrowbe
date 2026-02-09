@@ -137,7 +137,7 @@ class ItemService:
                 and_(
                     ClothingItem.user_id == user_id,
                     ClothingItem.image_hash == image_hash,
-                    ClothingItem.is_archived == False,
+                    ClothingItem.is_archived.is_(False),
                 )
             )
         )
