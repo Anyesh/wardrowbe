@@ -290,8 +290,27 @@ function LocationStep({
       async (position) => {
         const { latitude, longitude } = position.coords;
         setCoords({ lat: latitude, lon: longitude });
-        // Try to get city name (simplified - in production would use a geocoding API)
-        setLocationName(`${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`);
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+            { headers: { 'User-Agent': 'WardrobeAI/1.0' } }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            const city = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality;
+            const state = data.address?.state;
+            const country = data.address?.country;
+            if (city) {
+              setLocationName(state ? `${city}, ${state}` : `${city}, ${country}`);
+            } else if (data.display_name) {
+              setLocationName(data.display_name.split(',').slice(0, 2).join(',').trim());
+            }
+          }
+        } catch {
+          setLocationName(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
+        }
+
         setDetecting(false);
       },
       (error) => {
