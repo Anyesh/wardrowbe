@@ -436,28 +436,16 @@ interface ScheduleFormData {
 
 function AddScheduleDialog({
   onAdd,
-  existingDays,
   isLoading,
 }: {
   onAdd: (data: ScheduleFormData) => Promise<void>;
-  existingDays: number[];
   isLoading: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [time, setTime] = useState('07:00');
   const [occasion, setOccasion] = useState('casual');
   const [notifyDayBefore, setNotifyDayBefore] = useState(false);
-
-  const availableDays = DAYS.filter((d) => !existingDays.includes(d.value));
-
-  // Default to first available day, update when availableDays changes
-  const [dayOfWeek, setDayOfWeek] = useState<number>(availableDays[0]?.value ?? 0);
-
-  useEffect(() => {
-    if (availableDays.length > 0 && !availableDays.some((d) => d.value === dayOfWeek)) {
-      setDayOfWeek(availableDays[0].value);
-    }
-  }, [availableDays, dayOfWeek]);
+  const [dayOfWeek, setDayOfWeek] = useState<number>(0);
 
   // Calculate which day notification comes on
   const notifyDay = notifyDayBefore
@@ -491,15 +479,6 @@ function AddScheduleDialog({
     setNotifyDayBefore(false);
   };
 
-  if (availableDays.length === 0) {
-    return (
-      <Button disabled>
-        <Plus className="h-4 w-4 mr-2" />
-        All days scheduled
-      </Button>
-    );
-  }
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -527,7 +506,7 @@ function AddScheduleDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableDays.map((day) => (
+                  {DAYS.map((day) => (
                     <SelectItem key={day.value} value={String(day.value)}>
                       {day.label}
                     </SelectItem>
@@ -699,8 +678,6 @@ export default function NotificationsPage() {
     }
   };
 
-  const existingDays = schedules?.map((s) => s.day_of_week) || [];
-
   return (
     <div className="space-y-8">
       <div>
@@ -769,7 +746,6 @@ export default function NotificationsPage() {
               </CardDescription>
             </div>
             <AddScheduleDialog
-              existingDays={existingDays}
               onAdd={handleCreateSchedule}
               isLoading={createSchedule.isPending}
             />
@@ -790,9 +766,9 @@ export default function NotificationsPage() {
           ) : (
             <div className="space-y-3">
               {DAYS.map((day) => {
-                const schedule = schedules?.find((s) => s.day_of_week === day.value);
-                if (!schedule) return null;
-                return (
+                const daySchedules = schedules?.filter((s) => s.day_of_week === day.value) || [];
+                if (daySchedules.length === 0) return null;
+                return daySchedules.map((schedule) => (
                   <ScheduleCard
                     key={schedule.id}
                     schedule={schedule}
@@ -800,7 +776,7 @@ export default function NotificationsPage() {
                     onToggleDayBefore={(notify_day_before) => handleToggleDayBefore(schedule.id, notify_day_before)}
                     onDelete={() => setDeleteConfirm({ type: 'schedule', id: schedule.id })}
                   />
-                );
+                ));
               })}
             </div>
           )}

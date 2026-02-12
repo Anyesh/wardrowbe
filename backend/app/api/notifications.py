@@ -316,17 +316,20 @@ async def create_schedule(
     # Convert local time to UTC (day might shift!)
     utc_time, utc_day = local_time_to_utc(data.notification_time, data.day_of_week, user_tz)
 
-    # Check if schedule for this day already exists (check the LOCAL day, not UTC day)
-    # We need to check all schedules and see if any would show the same local day
-    existing = await db.execute(select(Schedule).where(Schedule.user_id == current_user.id))
-    for existing_schedule in existing.scalars().all():
-        _, existing_local_day = utc_time_to_local(
-            existing_schedule.notification_time, existing_schedule.day_of_week, user_tz
-        )
-        if existing_local_day == data.day_of_week:
-            raise HTTPException(
-                status_code=400, detail=f"Schedule for day {data.day_of_week} already exists"
+    # Prevent exact duplicate schedules
+    existing = await db.execute(
+        select(Schedule).where(
+            and_(
+                Schedule.user_id == current_user.id,
+                Schedule.day_of_week == utc_day,
+                Schedule.notification_time == utc_time,
+                Schedule.occasion == data.occasion,
+                Schedule.notify_day_before == data.notify_day_before,
             )
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="An identical schedule already exists")
 
     schedule = Schedule(
         user_id=current_user.id,
