@@ -229,7 +229,7 @@ class TestProcessScheduledNotification:
             patch("app.workers.notifications.get_db_session", return_value=db_session),
             patch.object(db_session, "close", new_callable=AsyncMock),
             patch(
-                "app.services.recommendation_service.RecommendationService",
+                "app.workers.notifications.RecommendationService",
                 return_value=mock_rec_service,
             ),
             patch(
@@ -316,7 +316,7 @@ class TestProcessScheduledNotification:
             patch("app.workers.notifications.get_db_session", return_value=db_session),
             patch.object(db_session, "close", new_callable=AsyncMock),
             patch(
-                "app.services.recommendation_service.RecommendationService",
+                "app.workers.notifications.RecommendationService",
                 return_value=mock_rec_service,
             ),
             patch("app.services.weather_service.get_weather_service"),
@@ -346,7 +346,7 @@ class TestProcessScheduledNotification:
                 patch("app.workers.notifications.get_db_session", return_value=db_session),
                 patch.object(db_session, "close", new_callable=AsyncMock),
                 patch(
-                    "app.services.recommendation_service.RecommendationService",
+                    "app.workers.notifications.RecommendationService",
                     return_value=mock_rec_service,
                 ),
                 patch("app.services.weather_service.get_weather_service"),
