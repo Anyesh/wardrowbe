@@ -165,8 +165,10 @@ class NotificationDispatcher:
     async def send_outfit_notification(
         self, user_id: UUID, outfit_id: UUID, for_tomorrow: bool = False
     ) -> list[NotificationResult]:
-        # Get user
-        user_result = await self.db.execute(select(User).where(User.id == user_id))
+        # Get user (skip deleted users)
+        user_result = await self.db.execute(
+            select(User).where(User.id == user_id, User.is_active.is_(True))
+        )
         user = user_result.scalar_one_or_none()
         if not user:
             raise ValueError("User not found")
@@ -187,7 +189,7 @@ class NotificationDispatcher:
             .where(
                 and_(
                     NotificationSettings.user_id == user_id,
-                    NotificationSettings.enabled,
+                    NotificationSettings.enabled == True,  # noqa: E712
                 )
             )
             .order_by(NotificationSettings.priority)
@@ -251,8 +253,9 @@ class NotificationDispatcher:
         return results
 
     async def retry_notification(self, notification: Notification) -> NotificationResult:
-        # Get user
-        user_result = await self.db.execute(select(User).where(User.id == notification.user_id))
+        user_result = await self.db.execute(
+            select(User).where(User.id == notification.user_id, User.is_active.is_(True))
+        )
         user = user_result.scalar_one_or_none()
         if not user:
             return NotificationResult(
@@ -281,7 +284,7 @@ class NotificationDispatcher:
                 and_(
                     NotificationSettings.user_id == notification.user_id,
                     NotificationSettings.channel == notification.channel,
-                    NotificationSettings.enabled,
+                    NotificationSettings.enabled == True,  # noqa: E712
                 )
             )
         )
@@ -316,7 +319,7 @@ class NotificationDispatcher:
 
             elif channel_config.channel == "email":
                 provider = EmailProvider(EmailConfig(**channel_config.config))
-                message = self._build_email_message(outfit, user, for_tomorrow)
+                message = self._build_email_message(outfit, user, provider.to_address, for_tomorrow)
                 result = await provider.send(message)
 
             elif channel_config.channel == "expo_push":
@@ -460,7 +463,7 @@ class NotificationDispatcher:
         )
 
     def _build_email_message(
-        self, outfit: Outfit, user: User, for_tomorrow: bool = False
+        self, outfit: Outfit, user: User, to: str, for_tomorrow: bool = False
     ) -> EmailMessage:
         weather_html = ""
         if outfit.weather_data:
@@ -531,7 +534,7 @@ class NotificationDispatcher:
 
             <div style="text-align: center; margin: 30px 0;">
                 <a href="{self.app_url}/dashboard/history"
-                   style="background: #3B82F6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; margin: 5px;">
+                   style="background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; margin: 5px;">
                     View Outfit
                 </a>
             </div>
@@ -572,7 +575,7 @@ class NotificationDispatcher:
         text_body = "\n".join(text_parts)
 
         return EmailMessage(
-            to=user.email,
+            to=to,
             subject=f"{day_label}'s Outfit: {outfit.occasion.title()}",
             html_body=html_body,
             text_body=text_body,

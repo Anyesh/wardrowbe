@@ -12,7 +12,7 @@ class FamilyMember(BaseModel):
     email: str
     avatar_url: str | None = None
     role: str
-    joined_at: datetime = Field(alias="created_at")
+    created_at: datetime
 
 
 class PendingInvite(BaseModel):
@@ -20,7 +20,7 @@ class PendingInvite(BaseModel):
 
     id: UUID
     email: str
-    invited_at: datetime = Field(alias="created_at")
+    created_at: datetime
     expires_at: datetime
 
 
@@ -54,6 +54,10 @@ class FamilyCreateResponse(BaseModel):
 
 class JoinFamilyRequest(BaseModel):
     invite_code: str = Field(..., min_length=1, max_length=20)
+
+
+class JoinByTokenRequest(BaseModel):
+    token: str = Field(..., min_length=1, max_length=100)
 
 
 class JoinFamilyResponse(BaseModel):

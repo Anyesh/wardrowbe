@@ -1,3 +1,5 @@
+import logging
+import os
 from typing import Annotated
 from uuid import UUID
 
@@ -15,14 +17,19 @@ from app.schemas.family import (
     InviteCodeResponse,
     InviteMemberRequest,
     InviteResponse,
+    JoinByTokenRequest,
     JoinFamilyRequest,
     JoinFamilyResponse,
     MessageResponse,
     PendingInvite,
     UpdateMemberRoleRequest,
 )
+from app.schemas.notification import EmailConfig
 from app.services.family_service import FamilyService
+from app.services.notification_providers import EmailProvider, build_family_invite_email
 from app.utils.auth import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/families", tags=["Families"])
 
@@ -80,6 +87,7 @@ async def get_my_family(
                 created_at=m.created_at,
             )
             for m in family.members
+            if m.is_active
         ],
         pending_invites=[
             PendingInvite(
@@ -154,6 +162,7 @@ async def update_family(
                 created_at=m.created_at,
             )
             for m in family.members
+            if m.is_active
         ],
         pending_invites=[
             PendingInvite(
@@ -220,6 +229,50 @@ async def join_family(
     )
 
 
+@router.post("/join-by-token", response_model=JoinFamilyResponse)
+async def join_family_by_token(
+    request: JoinByTokenRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> JoinFamilyResponse:
+    if current_user.family_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You are already in a family. Leave your current family first.",
+        )
+
+    family_service = FamilyService(db)
+    invite = await family_service.get_invite_by_token(request.token)
+
+    if invite is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired invite link",
+        )
+
+    if invite.email.lower() != current_user.email.lower():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This invite was sent to a different email address",
+        )
+
+    family = await family_service.accept_invite_by_token(invite, current_user)
+    await db.commit()
+
+    if family is None:
+        logger.error("Family %s not found after accepting invite %s", invite.family_id, invite.id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Family not found",
+        )
+
+    return JoinFamilyResponse(
+        family_id=family.id,
+        family_name=family.name,
+        role=current_user.role,
+    )
+
+
 @router.post("/me/leave", response_model=MessageResponse)
 async def leave_family(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -263,6 +316,20 @@ async def invite_member(
 
     invite = await family_service.create_invite(family, current_user, invite_data)
     await db.commit()
+
+    app_url = os.getenv("APP_URL", "http://localhost:3000")
+    provider = EmailProvider(EmailConfig(address=invite.email))
+    if provider.is_configured():
+        email = build_family_invite_email(
+            to=invite.email,
+            family_name=family.name,
+            inviter_name=current_user.display_name,
+            invite_token=invite.token,
+            app_url=app_url,
+        )
+        result = await provider.send(email)
+        if not result.get("success"):
+            logger.warning("Failed to send family invite email: %s", result.get("error"))
 
     return InviteResponse(
         id=invite.id,

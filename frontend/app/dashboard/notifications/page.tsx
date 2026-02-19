@@ -8,7 +8,6 @@ import {
   Trash2,
   Send,
   Clock,
-  CheckCircle,
   Loader2,
   Settings2,
   Calendar,
@@ -61,6 +60,7 @@ import {
   NotificationSettings,
   Schedule,
 } from '@/lib/hooks/use-notifications';
+import { useUserProfile } from '@/lib/hooks/use-user';
 import { OCCASIONS } from '@/lib/types';
 
 const DAYS = [
@@ -157,10 +157,12 @@ function AddChannelDialog({
   onAdd,
   isLoading,
   onSuccess,
+  userEmail,
 }: {
   onAdd: (data: ChannelFormData) => Promise<void>;
   isLoading: boolean;
   onSuccess?: () => void;
+  userEmail?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState<'ntfy' | 'mattermost' | 'email'>('ntfy');
@@ -186,14 +188,16 @@ function AddChannelDialog({
     }
   }, [open, ntfyDefaults, channel, config.server]);
 
-  // Reset config when channel changes, pre-fill ntfy defaults (server + token only)
+  // Reset config when channel changes, pre-fill defaults per channel type
   useEffect(() => {
     if (channel === 'ntfy' && ntfyDefaults) {
       setConfig({ server: ntfyDefaults.server, token: ntfyDefaults.token });
+    } else if (channel === 'email') {
+      setConfig(userEmail ? { address: userEmail } : {});
     } else {
       setConfig({});
     }
-  }, [channel, ntfyDefaults]);
+  }, [channel, ntfyDefaults, userEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -581,6 +585,7 @@ function AddScheduleDialog({
 export default function NotificationsPage() {
   const { data: settings, isLoading: loadingSettings } = useNotificationSettings();
   const { data: schedules, isLoading: loadingSchedules } = useSchedules();
+  const { data: userProfile } = useUserProfile();
 
   const createSetting = useCreateNotificationSetting();
   const updateSetting = useUpdateNotificationSetting();
@@ -700,7 +705,7 @@ export default function NotificationsPage() {
                 Add channels to receive your daily outfit recommendations
               </CardDescription>
             </div>
-            <AddChannelDialog onAdd={handleCreateChannel} isLoading={createSetting.isPending} />
+            <AddChannelDialog onAdd={handleCreateChannel} isLoading={createSetting.isPending} userEmail={userProfile?.email} />
           </div>
         </CardHeader>
         <CardContent>
@@ -782,30 +787,6 @@ export default function NotificationsPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Quick Setup Hint */}
-      {(settings?.length === 0 || schedules?.length === 0) && (
-        <Card className="border-dashed">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <CheckCircle className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">Quick Setup Guide</p>
-                <ol className="text-sm text-muted-foreground mt-2 space-y-1">
-                  <li>
-                    1. Add a notification channel (we recommend ntfy for instant mobile
-                    notifications)
-                  </li>
-                  <li>2. Configure your delivery schedule for each day of the week</li>
-                  <li>3. Receive personalized outfit suggestions automatically!</li>
-                </ol>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>

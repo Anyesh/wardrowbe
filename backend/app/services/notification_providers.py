@@ -304,3 +304,63 @@ class ExpoPushProvider:
             return result.get("success", False)
         except Exception:
             return False
+
+
+def build_notification_email(
+    to: str,
+    subject: str,
+    heading: str,
+    body: str,
+    cta_text: str,
+    cta_url: str,
+    app_url: str,
+) -> EmailMessage:
+    html_body = f"""\
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #111827;">{heading}</h2>
+    <p style="color: #374151; line-height: 1.6;">{body}</p>
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{cta_url}"
+           style="background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">
+            {cta_text}
+        </a>
+    </div>
+    <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
+    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{app_url}" style="color: #9CA3AF;">Wardrowbe</a></p>
+</div>"""
+    return EmailMessage(to=to, subject=subject, html_body=html_body, text_body=body)
+
+
+def build_family_invite_email(
+    to: str,
+    family_name: str,
+    inviter_name: str,
+    invite_token: str,
+    app_url: str,
+) -> EmailMessage:
+    invite_url = f"{app_url}/invite?token={invite_token}"
+    subject = f"{inviter_name} invited you to join {family_name} on Wardrowbe"
+    body_text = (
+        f'{inviter_name} invited you to join the family "{family_name}" on Wardrowbe. '
+        f"Click here to accept: {invite_url}"
+    )
+    html_body = f"""\
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #111827;">You&rsquo;re invited!</h2>
+    <p style="color: #374151; line-height: 1.6;">
+        <strong>{inviter_name}</strong> invited you to join the family
+        <strong>{family_name}</strong> on Wardrowbe.
+    </p>
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{invite_url}"
+           style="background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">
+            Accept Invitation
+        </a>
+    </div>
+    <p style="color: #9CA3AF; font-size: 13px;">
+        If you don&rsquo;t have a Wardrowbe account yet, you&rsquo;ll be asked to create one first.
+    </p>
+    <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
+    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{app_url}" style="color: #9CA3AF;">Wardrowbe</a></p>
+</div>"""
+    return EmailMessage(to=to, subject=subject, html_body=html_body, text_body=body_text)

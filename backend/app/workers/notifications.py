@@ -14,16 +14,20 @@ from app.models.notification import Notification, NotificationSettings, Notifica
 from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
 from app.models.user import User
+from app.schemas.notification import EmailConfig, ExpoPushConfig, NtfyConfig
 from app.services.learning_service import LearningService
-from app.services.notification_service import (
-    DeliveryStatus,
-    NotificationDispatcher,
-    NtfyConfig,
+from app.services.notification_providers import (
+    EmailProvider,
+    ExpoPushMessage,
+    ExpoPushProvider,
     NtfyNotification,
     NtfyProvider,
+    build_notification_email,
 )
+from app.services.notification_service import DeliveryStatus, NotificationDispatcher
 from app.services.recommendation_service import RecommendationService
 from app.services.weather_service import get_weather_service
+from app.utils.redis_lock import distributed_lock
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +69,7 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
 
         await db.commit()
 
+        # Log results
         for result in results:
             logger.info(
                 f"Notification result: channel={result.channel}, status={result.status.value}, "
@@ -82,12 +87,11 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
 
 
 async def retry_failed_notifications(ctx: dict):
-    from app.utils.redis_lock import distributed_lock
-
     logger.info("Checking for notifications to retry...")
 
     db = await get_db_session()
     try:
+        # Get notifications in retrying status
         result = await db.execute(
             select(Notification).where(
                 and_(
@@ -257,14 +261,14 @@ async def check_scheduled_notifications(ctx: dict):
         result = await db.execute(
             select(Schedule).where(
                 and_(
-                    Schedule.enabled.is_(True),
+                    Schedule.enabled == True,  # noqa: E712
                     (
                         (
-                            (Schedule.notify_day_before.is_(False))
+                            (Schedule.notify_day_before == False)  # noqa: E712
                             & (Schedule.day_of_week == current_utc_day)
                         )
                         | (
-                            (Schedule.notify_day_before.is_(True))
+                            (Schedule.notify_day_before == True)  # noqa: E712
                             & (Schedule.day_of_week == tomorrow_utc_day)
                         )
                     ),
@@ -337,8 +341,6 @@ async def check_scheduled_notifications(ctx: dict):
 
 
 async def check_wash_reminders(ctx: dict):
-    from app.utils.redis_lock import distributed_lock
-
     logger.info("Checking wash reminders...")
 
     # Non-blocking global lock: if another worker already running this job, skip.
@@ -379,6 +381,7 @@ async def _check_wash_reminders_inner(ctx: dict):
 
         for user_id, items in user_items.items():
             try:
+                # Check if user has notification channels
                 channels_result = await db.execute(
                     select(NotificationSettings).where(
                         and_(
@@ -414,13 +417,14 @@ async def _check_wash_reminders_inner(ctx: dict):
                 title = "Laundry Reminder"
                 body = f"{count} item{'s' if count != 1 else ''} need washing: {summary}"
 
+                # Send via first enabled channel
                 sent = False
                 sent_channel = "unknown"
                 for channel in channels:
                     try:
                         if channel.channel == "ntfy":
                             provider = NtfyProvider(NtfyConfig(**channel.config))
-                            result = await provider.send(
+                            send_result = await provider.send(
                                 NtfyNotification(
                                     title=title,
                                     message=body,
@@ -428,14 +432,41 @@ async def _check_wash_reminders_inner(ctx: dict):
                                     tags=["shirt", "droplet"],
                                 )
                             )
-                            sent = result.get("success", False)
+                            sent = send_result.get("success", False)
                             sent_channel = "ntfy"
+                        elif channel.channel == "email":
+                            email_provider = EmailProvider(EmailConfig(**channel.config))
+                            send_result = await email_provider.send(
+                                build_notification_email(
+                                    to=email_provider.to_address,
+                                    subject=title,
+                                    heading=title,
+                                    body=body,
+                                    cta_text="View Wardrobe",
+                                    cta_url=f"{app_url}/dashboard/wardrobe",
+                                    app_url=app_url,
+                                )
+                            )
+                            sent = send_result.get("success", False)
+                            sent_channel = "email"
+                        elif channel.channel == "expo_push":
+                            provider = ExpoPushProvider(ExpoPushConfig(**channel.config))
+                            send_result = await provider.send(
+                                ExpoPushMessage(
+                                    title=title,
+                                    body=body,
+                                    data={"screen": "wardrobe"},
+                                )
+                            )
+                            sent = send_result.get("success", False)
+                            sent_channel = "expo_push"
 
                         if sent:
                             break
                     except Exception as e:
                         logger.warning(f"Failed to send wash reminder via {channel.channel}: {e}")
 
+                # Create notification record
                 notification = Notification(
                     user_id=user_id,
                     channel=sent_channel,
@@ -476,11 +507,14 @@ async def update_learning_profiles(ctx: dict):
         now = datetime.now(UTC)
         one_hour_ago = now - timedelta(hours=1)
 
+        # Find users with recent feedback who need profile updates
+        # (accepted/rejected outfits in last hour)
         result = await db.execute(
             select(User.id)
             .join(Outfit, User.id == Outfit.user_id)
             .where(
                 and_(
+                    User.is_active.is_(True),
                     Outfit.status.in_([OutfitStatus.accepted, OutfitStatus.rejected]),
                     Outfit.responded_at >= one_hour_ago,
                 )
@@ -498,6 +532,7 @@ async def update_learning_profiles(ctx: dict):
 
         for user_id in users_with_recent_feedback:
             try:
+                # Check if profile needs update (doesn't exist or is stale)
                 profile_result = await db.execute(
                     select(UserLearningProfile).where(UserLearningProfile.user_id == user_id)
                 )

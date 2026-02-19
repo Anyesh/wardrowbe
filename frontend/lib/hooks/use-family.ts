@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { api, setAccessToken } from '@/lib/api';
 import { Family, FamilyCreateResponse, JoinFamilyResponse, FamilyMember } from '@/lib/types';
 
+// Helper to set token if available (for NextAuth mode)
 function useSetTokenIfAvailable() {
   const { data: session } = useSession();
   if (session?.accessToken) {
@@ -19,6 +20,7 @@ export function useFamily() {
   return useQuery({
     queryKey: ['family'],
     queryFn: () => api.get<Family>('/families/me'),
+    // Fetch when session is loaded (works with both NextAuth and forward auth)
     enabled: status !== 'loading',
     retry: false, // Don't retry on 404 (user not in family)
   });
@@ -68,6 +70,23 @@ export function useJoinFamily() {
         setAccessToken(session.accessToken as string);
       }
       return api.post<JoinFamilyResponse>('/families/join', { invite_code: inviteCode });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['family'] });
+    },
+  });
+}
+
+export function useJoinFamilyByToken() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (token: string) => {
+      if (session?.accessToken) {
+        setAccessToken(session.accessToken as string);
+      }
+      return api.post<JoinFamilyResponse>('/families/join-by-token', { token });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['family'] });
