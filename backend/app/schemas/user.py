@@ -44,9 +44,7 @@ class UserResponse(UserBase):
 
 class UserSyncRequest(BaseModel):
     external_id: str = Field(..., description="Subject ID from OIDC provider")
-    # Use str instead of EmailStr to allow system-generated emails for forward auth
-    # (e.g., "username@example.com" when no real email is provided by the proxy)
-    email: str = Field(..., description="Email address or system-generated placeholder")
+    email: str = Field(..., description="Email address")
     display_name: str = Field(..., min_length=1, max_length=100)
     avatar_url: str | None = None
     id_token: str | None = Field(
@@ -65,12 +63,6 @@ class UserSyncResponse(BaseModel):
     access_token: str = Field(..., description="JWT token for API authentication")
 
 
-class AuthStatusResponse(BaseModel):
-    configured: bool
-    mode: str
-    error: str | None = None
-
-
 class SessionUser(BaseModel):
     id: UUID
     external_id: str
@@ -78,3 +70,9 @@ class SessionUser(BaseModel):
     display_name: str
     family_id: UUID | None = None
     role: str
+
+
+class AuthStatusResponse(BaseModel):
+    configured: bool
+    mode: str
+    error: str | None = None

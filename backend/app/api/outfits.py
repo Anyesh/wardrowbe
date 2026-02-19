@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, computed_field
-from sqlalchemy import and_, select
+from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -180,7 +180,7 @@ class FeedbackResponse(BaseModel):
 
 
 async def fetch_wore_instead_items_map(
-    db: AsyncSession, outfits: list[Outfit]
+    db: AsyncSession, outfits: list[Outfit], user_id: UUID | None = None
 ) -> dict[str, list[WoreInsteadItem]]:
     from app.models.item import ClothingItem
 
@@ -208,8 +208,10 @@ async def fetch_wore_instead_items_map(
     if not all_item_ids:
         return {}
 
-    # Batch fetch all items in one query
-    result = await db.execute(select(ClothingItem).where(ClothingItem.id.in_(all_item_ids)))
+    query = select(ClothingItem).where(ClothingItem.id.in_(all_item_ids))
+    if user_id is not None:
+        query = query.where(ClothingItem.user_id == user_id)
+    result = await db.execute(query)
     items_by_id = {str(item.id): item for item in result.scalars().all()}
 
     # Build the map
@@ -369,7 +371,7 @@ async def suggest_outfit(
         ) from None
 
     # Fetch wore_instead items for this single outfit
-    wore_instead_map = await fetch_wore_instead_items_map(db, [outfit])
+    wore_instead_map = await fetch_wore_instead_items_map(db, [outfit], user_id=current_user.id)
     return outfit_to_response(outfit, wore_instead_map)
 
 
@@ -394,7 +396,9 @@ async def list_outfits(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You must be in a family to view family member outfits",
             )
-        member_result = await db.execute(select(User).where(User.id == family_member_id))
+        member_result = await db.execute(
+            select(User).where(User.id == family_member_id, User.is_active.is_(True))
+        )
         member = member_result.scalar_one_or_none()
         if not member or member.family_id != current_user.family_id:
             raise HTTPException(
@@ -456,7 +460,7 @@ async def list_outfits(
     outfits = list(result.scalars().all())
 
     # Batch fetch wore_instead items for all outfits (single query)
-    wore_instead_map = await fetch_wore_instead_items_map(db, outfits)
+    wore_instead_map = await fetch_wore_instead_items_map(db, outfits, user_id=current_user.id)
 
     # Convert outfits to responses
     outfit_responses = [outfit_to_response(o, wore_instead_map) for o in outfits]
@@ -495,7 +499,9 @@ async def get_outfit(
             detail="Outfit not found",
         )
 
-    return outfit_to_response(outfit, await fetch_wore_instead_items_map(db, [outfit]))
+    return outfit_to_response(
+        outfit, await fetch_wore_instead_items_map(db, [outfit], user_id=current_user.id)
+    )
 
 
 @router.post("/{outfit_id}/accept", response_model=OutfitResponse)
@@ -528,7 +534,9 @@ async def accept_outfit(
     await db.commit()
     await db.refresh(outfit)
 
-    return outfit_to_response(outfit, await fetch_wore_instead_items_map(db, [outfit]))
+    return outfit_to_response(
+        outfit, await fetch_wore_instead_items_map(db, [outfit], user_id=current_user.id)
+    )
 
 
 @router.post("/{outfit_id}/reject", response_model=OutfitResponse)
@@ -561,7 +569,9 @@ async def reject_outfit(
     await db.commit()
     await db.refresh(outfit)
 
-    return outfit_to_response(outfit, await fetch_wore_instead_items_map(db, [outfit]))
+    return outfit_to_response(
+        outfit, await fetch_wore_instead_items_map(db, [outfit], user_id=current_user.id)
+    )
 
 
 @router.delete("/{outfit_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -638,16 +648,23 @@ async def submit_feedback(
         user_today = get_user_today(current_user)
         feedback.worn_at = user_today
         for outfit_item in outfit.items:
-            outfit_item.item.wear_count += 1
-            outfit_item.item.last_worn_at = user_today
-            # Update wash tracking
-            outfit_item.item.wears_since_wash += 1
+            item = outfit_item.item
             effective_interval = (
-                outfit_item.item.wash_interval
-                if outfit_item.item.wash_interval is not None
-                else DEFAULT_WASH_INTERVALS.get(outfit_item.item.type, 3)
+                item.wash_interval
+                if item.wash_interval is not None
+                else DEFAULT_WASH_INTERVALS.get(item.type, 3)
             )
-            outfit_item.item.needs_wash = outfit_item.item.wears_since_wash >= effective_interval
+            # Atomic SQL increment to avoid race on concurrent feedback submissions
+            await db.execute(
+                update(ClothingItem)
+                .where(ClothingItem.id == item.id)
+                .values(
+                    wear_count=ClothingItem.wear_count + 1,
+                    last_worn_at=user_today,
+                    wears_since_wash=ClothingItem.wears_since_wash + 1,
+                    needs_wash=ClothingItem.wears_since_wash + 1 >= effective_interval,
+                )
+            )
     if request.worn_with_modifications is not None:
         feedback.worn_with_modifications = request.worn_with_modifications
     if request.modification_notes is not None:
@@ -678,18 +695,23 @@ async def submit_feedback(
             )
             wore_instead_items = list(result.scalars().all())
 
-            # Update wear tracking for alternative items
+            # Atomic SQL increment for wore-instead items
             for item in wore_instead_items:
-                item.wear_count += 1
-                item.last_worn_at = user_today
-                # Update wash tracking
-                item.wears_since_wash += 1
                 effective_interval = (
                     item.wash_interval
                     if item.wash_interval is not None
                     else DEFAULT_WASH_INTERVALS.get(item.type, 3)
                 )
-                item.needs_wash = item.wears_since_wash >= effective_interval
+                await db.execute(
+                    update(ClothingItem)
+                    .where(ClothingItem.id == item.id)
+                    .values(
+                        wear_count=ClothingItem.wear_count + 1,
+                        last_worn_at=user_today,
+                        wears_since_wash=ClothingItem.wears_since_wash + 1,
+                        needs_wash=ClothingItem.wears_since_wash + 1 >= effective_interval,
+                    )
+                )
 
             logger.info(
                 f"Tracked {len(wore_instead_items)} 'wore instead' items for washing/wear stats"
@@ -798,7 +820,9 @@ async def submit_family_rating(
         )
 
     # Check the outfit owner is in the same family
-    owner_result = await db.execute(select(User).where(User.id == outfit.user_id))
+    owner_result = await db.execute(
+        select(User).where(User.id == outfit.user_id, User.is_active.is_(True))
+    )
     owner = owner_result.scalar_one_or_none()
     if not owner or owner.family_id != current_user.family_id:
         raise HTTPException(
@@ -849,12 +873,22 @@ async def get_family_ratings(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[FamilyRatingResponse]:
-    # Verify outfit exists and is accessible
     result = await db.execute(select(Outfit).where(Outfit.id == outfit_id))
     outfit = result.scalar_one_or_none()
 
     if not outfit:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Outfit not found")
+
+    # Verify caller owns the outfit or is in the same family as the owner
+    if outfit.user_id != current_user.id:
+        if not current_user.family_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        owner_result = await db.execute(
+            select(User).where(User.id == outfit.user_id, User.is_active.is_(True))
+        )
+        owner = owner_result.scalar_one_or_none()
+        if not owner or owner.family_id != current_user.family_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     # Get ratings with user info
     ratings_result = await db.execute(

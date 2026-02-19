@@ -2,7 +2,7 @@ from datetime import datetime, time, timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -92,11 +92,14 @@ def _schedule_to_local_response(schedule: Schedule, user_tz: ZoneInfo) -> dict:
 
 
 @router.get("/defaults/ntfy")
-async def get_ntfy_defaults():
+async def get_ntfy_defaults(
+    current_user: User = Depends(get_current_user),
+):
     settings = get_settings()
+    has_token = bool(settings.ntfy_token)
     return {
         "server": settings.ntfy_server or "https://ntfy.sh",
-        "token": settings.ntfy_token or "",
+        "has_token": has_token,
     }
 
 
@@ -441,8 +444,8 @@ async def delete_schedule(
 
 @router.get("/history", response_model=list[NotificationResponse])
 async def list_notification_history(
-    limit: int = 20,
-    offset: int = 0,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

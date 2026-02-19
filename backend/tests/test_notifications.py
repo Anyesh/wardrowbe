@@ -161,6 +161,6 @@ class TestNotificationDefaults:
         )
         assert response.status_code == 200
         data = response.json()
-        # Should have server and token fields (may be empty)
+        # Should have server and has_token fields
         assert "server" in data
-        assert "token" in data
+        assert "has_token" in data
