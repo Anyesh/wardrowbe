@@ -9,14 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.item import ClothingItem, ItemStatus
-from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus
+from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
 from app.services.ai_service import AIService
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
 
-# Load prompt template
 PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "item_pairing.txt"
 PAIRING_PROMPT_TEMPLATE = PROMPT_PATH.read_text() if PROMPT_PATH.exists() else ""
 
@@ -39,7 +38,6 @@ class PairingService:
         return result.scalar_one_or_none()
 
     async def get_available_items(self, user: User, exclude_item_id: UUID) -> list[ClothingItem]:
-        """Get all available items for pairing (excluding the source item)."""
         query = select(ClothingItem).where(
             and_(
                 ClothingItem.user_id == user.id,
@@ -52,7 +50,6 @@ class PairingService:
         return list(result.scalars().all())
 
     def _format_item_description(self, item: ClothingItem) -> str:
-        """Format a single item for the prompt."""
         parts = []
 
         # Type and subtype
@@ -89,10 +86,6 @@ class PairingService:
     def _format_items_for_prompt(
         self, source_item: ClothingItem, items: list[ClothingItem]
     ) -> tuple[str, str, int, dict[int, UUID]]:
-        """
-        Format items for prompt.
-        Returns: (source_description, items_text, source_number, number_to_uuid_map)
-        """
         # Source item is always number 1
         source_number = 1
         source_description = self._format_item_description(source_item)
@@ -109,10 +102,7 @@ class PairingService:
         return source_description, items_text, source_number, number_map
 
     def _parse_ai_response(self, content: str) -> list[dict]:
-        """Parse AI response, handling potential formatting issues."""
-
         def strip_comments(json_str: str) -> str:
-            """Remove JavaScript-style comments from JSON string."""
             json_str = re.sub(r"//[^\n]*", "", json_str)
             json_str = re.sub(r"/\*[\s\S]*?\*/", "", json_str)
             return json_str
@@ -176,17 +166,6 @@ class PairingService:
         source_item_id: UUID,
         num_pairings: int = 3,
     ) -> list[Outfit]:
-        """
-        Generate outfit pairings for a source item.
-
-        Args:
-            user: The user
-            source_item_id: The item to pair around
-            num_pairings: Number of pairings to generate (1-5)
-
-        Returns:
-            List of created Outfit objects
-        """
         num_pairings = max(1, min(5, num_pairings))
 
         # Get source item
@@ -303,6 +282,7 @@ class PairingService:
                     selectinload(Outfit.items).selectinload(OutfitItem.item),
                     selectinload(Outfit.feedback),
                     selectinload(Outfit.source_item),
+                    selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
                 )
             )
             loaded_outfits.append(result.scalar_one())
@@ -317,7 +297,6 @@ class PairingService:
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Outfit], int]:
-        """Get all pairings for a specific source item."""
         # Base query
         base_query = select(Outfit).where(
             and_(
@@ -345,6 +324,7 @@ class PairingService:
                 selectinload(Outfit.items).selectinload(OutfitItem.item),
                 selectinload(Outfit.feedback),
                 selectinload(Outfit.source_item),
+                selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
             )
             .order_by(Outfit.created_at.desc())
             .offset((page - 1) * page_size)
@@ -363,7 +343,6 @@ class PairingService:
         page_size: int = 20,
         source_type: str | None = None,
     ) -> tuple[list[Outfit], int]:
-        """Get all pairings for a user."""
         # Base conditions
         conditions = [
             Outfit.user_id == user_id,
@@ -387,6 +366,7 @@ class PairingService:
                 selectinload(Outfit.items).selectinload(OutfitItem.item),
                 selectinload(Outfit.feedback),
                 selectinload(Outfit.source_item),
+                selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
             )
             .order_by(Outfit.created_at.desc())
             .offset((page - 1) * page_size)
@@ -400,12 +380,8 @@ class PairingService:
 
 
 class InsufficientItemsError(Exception):
-    """Not enough items for pairing."""
-
     pass
 
 
 class AIGenerationError(Exception):
-    """AI failed to generate pairings."""
-
     pass
