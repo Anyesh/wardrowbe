@@ -4,47 +4,12 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus
 from app.services.ai_service import AIService, ClothingTags
+from app.workers.db import close_db, get_db_session, init_db
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
-
-# Module-level engine and session factory (initialized once at startup)
-_engine = None
-_session_factory = None
-
-
-def get_engine():
-    """Get or create the database engine (singleton)."""
-    global _engine
-    if _engine is None:
-        _engine = create_async_engine(
-            str(settings.database_url),
-            echo=settings.database_echo,
-            pool_pre_ping=True,
-        )
-    return _engine
-
-
-def get_session_factory():
-    """Get or create the session factory (singleton)."""
-    global _session_factory
-    if _session_factory is None:
-        _session_factory = async_sessionmaker(
-            get_engine(),
-            class_=AsyncSession,
-            expire_on_commit=False,
-        )
-    return _session_factory
-
-
-async def get_db_session() -> AsyncSession:
-    """Get a database session from the pool."""
-    return get_session_factory()()
 
 
 def tags_to_item_fields(tags: ClothingTags, raw_response: str | None = None) -> dict[str, Any]:
@@ -85,10 +50,10 @@ def tags_to_item_fields(tags: ClothingTags, raw_response: str | None = None) -> 
     return fields
 
 
-async def update_item_status_to_error(item_id: str, error_msg: str) -> None:
+async def update_item_status_to_error(ctx: dict, item_id: str, error_msg: str) -> None:
     """Update item status to error in database."""
     try:
-        db = await get_db_session()
+        db = get_db_session(ctx)
         try:
             result = await db.execute(select(ClothingItem).where(ClothingItem.id == UUID(item_id)))
             item = result.scalar_one_or_none()
@@ -122,12 +87,12 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         if not path.exists():
             error_msg = f"Image not found: {image_path}"
             logger.error(error_msg)
-            await update_item_status_to_error(item_id, error_msg)
+            await update_item_status_to_error(ctx, item_id, error_msg)
             return {"status": "error", "error": "Image not found"}
 
         # Get user's AI endpoints from preferences
         ai_endpoints = None
-        db = await get_db_session()
+        db = get_db_session(ctx)
         try:
             # Get the item to find user_id
             result = await db.execute(select(ClothingItem).where(ClothingItem.id == UUID(item_id)))
@@ -157,7 +122,7 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         )
 
         # Update item in database
-        db = await get_db_session()
+        db = get_db_session(ctx)
         try:
             result = await db.execute(select(ClothingItem).where(ClothingItem.id == UUID(item_id)))
             item = result.scalar_one_or_none()
@@ -218,13 +183,14 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
     except Exception as e:
         error_msg = str(e)
         logger.exception(f"Error tagging item {item_id}: {error_msg}")
-        await update_item_status_to_error(item_id, error_msg)
+        await update_item_status_to_error(ctx, item_id, error_msg)
         return {"status": "error", "error": error_msg}
 
 
 async def startup(ctx: dict) -> None:
     """Worker startup hook."""
     logger.info("Tagging worker starting up...")
+    await init_db(ctx)
     ctx["ai_service"] = AIService()
     health = await ctx["ai_service"].check_health()
     logger.info(f"AI service health: {health}")
@@ -233,6 +199,7 @@ async def startup(ctx: dict) -> None:
 async def shutdown(ctx: dict) -> None:
     """Worker shutdown hook."""
     logger.info("Tagging worker shutting down...")
+    await close_db(ctx)
 
 
 class WorkerSettings:
