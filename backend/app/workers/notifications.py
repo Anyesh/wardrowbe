@@ -4,10 +4,8 @@ from datetime import UTC, datetime, timedelta
 
 from arq import cron
 from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import selectinload, sessionmaker
+from sqlalchemy.orm import selectinload
 
-from app.config import get_settings
 from app.models.item import ClothingItem
 from app.models.learning import UserLearningProfile
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
@@ -28,20 +26,14 @@ from app.services.notification_service import DeliveryStatus, NotificationDispat
 from app.services.recommendation_service import RecommendationService
 from app.services.weather_service import get_weather_service
 from app.utils.redis_lock import distributed_lock
+from app.workers.db import get_db_session
 
 logger = logging.getLogger(__name__)
 
 
-async def get_db_session() -> AsyncSession:
-    settings = get_settings()
-    engine = create_async_engine(str(settings.database_url), pool_pre_ping=True)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    return async_session()
-
-
-async def reset_schedule_trigger(schedule_id: str) -> None:
+async def reset_schedule_trigger(ctx: dict, schedule_id: str) -> None:
     try:
-        db = await get_db_session()
+        db = get_db_session(ctx)
         try:
             result = await db.execute(select(Schedule).where(Schedule.id == schedule_id))
             sched = result.scalar_one_or_none()
@@ -60,7 +52,7 @@ async def reset_schedule_trigger(schedule_id: str) -> None:
 async def send_notification(ctx: dict, user_id: str, outfit_id: str):
     logger.info(f"Sending notification for outfit {outfit_id} to user {user_id}")
 
-    db = await get_db_session()
+    db = get_db_session(ctx)
     try:
         app_url = os.getenv("APP_URL", "http://localhost:3000")
         dispatcher = NotificationDispatcher(db, app_url)
@@ -89,7 +81,7 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
 async def retry_failed_notifications(ctx: dict):
     logger.info("Checking for notifications to retry...")
 
-    db = await get_db_session()
+    db = get_db_session(ctx)
     try:
         # Get notifications in retrying status
         result = await db.execute(
@@ -165,7 +157,7 @@ async def retry_failed_notifications(ctx: dict):
 async def process_scheduled_notification(ctx: dict, schedule_id: str):
     logger.info(f"Processing scheduled notification for schedule {schedule_id}")
 
-    db = await get_db_session()
+    db = get_db_session(ctx)
     try:
         result = await db.execute(select(Schedule).where(Schedule.id == schedule_id))
         schedule = result.scalar_one_or_none()
@@ -242,7 +234,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
         logger.exception(f"Failed to process schedule {schedule_id}")
         await db.rollback()
         if ctx.get("job_try", 1) >= 3:
-            await reset_schedule_trigger(schedule_id)
+            await reset_schedule_trigger(ctx, schedule_id)
         raise
     finally:
         await db.close()
@@ -251,7 +243,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
 async def check_scheduled_notifications(ctx: dict):
     logger.info("Checking scheduled notifications...")
 
-    db = await get_db_session()
+    db = get_db_session(ctx)
     try:
         now_utc = datetime.now(UTC)
         current_utc_day = now_utc.weekday()
@@ -353,7 +345,7 @@ async def check_wash_reminders(ctx: dict):
 
 
 async def _check_wash_reminders_inner(ctx: dict):
-    db = await get_db_session()
+    db = get_db_session(ctx)
     try:
         result = await db.execute(
             select(ClothingItem).where(
@@ -502,7 +494,7 @@ async def _check_wash_reminders_inner(ctx: dict):
 async def update_learning_profiles(ctx: dict):
     logger.info("Starting periodic learning profile updates...")
 
-    db = await get_db_session()
+    db = get_db_session(ctx)
     try:
         now = datetime.now(UTC)
         one_hour_ago = now - timedelta(hours=1)
