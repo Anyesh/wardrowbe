@@ -23,7 +23,8 @@ from app.models.outfit import (
 from app.models.preference import UserPreference
 from app.models.user import User
 from app.services.ai_service import AIService
-from app.services.weather_service import WeatherData, WeatherServiceError, get_weather_service
+from app.services.weather_service import WeatherData, WeatherService, WeatherServiceError
+from app.utils.prompts import load_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -74,32 +75,13 @@ MONTH_TO_SEASON = {
     12: "winter",
 }
 
-RECOMMENDATION_PROMPT = """You are a fashion stylist. Pick items by their number to create one complete outfit.
-
-OCCASION: {occasion}
-WEATHER: {temperature}°C, {condition}
-{preferences_text}
-
-AVAILABLE ITEMS:
-{items_text}
-
-RULES:
-- Pick exactly ONE top (shirt/blouse/sweater) + ONE bottom (pants/jeans/skirt) + ONE shoes
-- OR pick ONE dress + ONE shoes
-- OPTIONAL: Add ONE bag/purse if available and appropriate for the occasion
-- OPTIONAL: Add accessories (belt, scarf, hat, jewelry) if they complement the outfit
-- For cold/rainy weather, include outerwear (jacket/coat) if available
-- Consider color coordination and occasion formality
-- Return the item NUMBERS in a JSON array
-
-Your response must be valid JSON with this structure:
-{{"items": [picked numbers here], "headline": "Short catchy title for this outfit (e.g. 'Classic Casual for Mild Weather')", "highlights": ["First key point about this outfit", "Second key point", "Third key point"], "styling_tip": "Optional practical styling advice"}}"""
+RECOMMENDATION_PROMPT = load_prompt("recommendation")
 
 
 class RecommendationService:
     def __init__(self, db: AsyncSession):
         self.db = db
-        self.weather_service = get_weather_service()
+        self.weather_service = WeatherService()
 
     async def get_candidate_items(
         self,

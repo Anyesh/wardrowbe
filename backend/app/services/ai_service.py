@@ -9,6 +9,7 @@ from PIL import Image, ImageOps
 from pydantic import BaseModel
 
 from app.config import get_settings
+from app.utils.prompts import load_prompt
 
 
 class TextGenerationResult(BaseModel):
@@ -37,16 +38,6 @@ class ClothingTags(BaseModel):
     raw_response: str | None = None  # Store the raw AI response
 
 
-def load_prompt(name: str) -> str:
-    """Load a prompt from the prompts directory."""
-    prompt_path = Path(__file__).parent.parent / "prompts" / f"{name}.txt"
-    if prompt_path.exists():
-        return prompt_path.read_text().strip()
-    # Fallback to default
-    return "Describe this clothing item in detail."
-
-
-# Load prompts from files
 TAGGING_PROMPT = load_prompt("clothing_analysis")
 DESCRIPTION_PROMPT = load_prompt("clothing_description")
 

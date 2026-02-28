@@ -1,7 +1,6 @@
 import json
 import logging
 import re
-from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy import and_, select
@@ -12,12 +11,12 @@ from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
 from app.services.ai_service import AIService
+from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
 
-PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "item_pairing.txt"
-PAIRING_PROMPT_TEMPLATE = PROMPT_PATH.read_text() if PROMPT_PATH.exists() else ""
+PAIRING_PROMPT_TEMPLATE = load_prompt("item_pairing")
 
 
 class PairingService:
