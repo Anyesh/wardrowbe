@@ -1,10 +1,13 @@
+import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import httpx
+import redis.asyncio as aioredis
 
 from app.config import get_settings
+from app.utils.redis_lock import get_redis
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -87,63 +90,42 @@ WMO_CODES = {
 }
 
 
-class WeatherCache:
-    """Simple in-memory cache for weather data with size limit."""
-
-    def __init__(self, ttl_seconds: int = 3600, max_entries: int = 1000):
-        self._cache: dict[str, tuple[datetime, WeatherData]] = {}
-        self._ttl = timedelta(seconds=ttl_seconds)
-        self._max_entries = max_entries
-
-    def _cache_key(self, lat: float, lon: float) -> str:
-        """Create cache key from coordinates (rounded to 2 decimals)."""
-        return f"{round(lat, 2)},{round(lon, 2)}"
-
-    def _cleanup_expired(self) -> None:
-        """Remove expired entries from cache."""
-        now = datetime.utcnow()
-        expired = [k for k, (cached_at, _) in self._cache.items() if now - cached_at >= self._ttl]
-        for key in expired:
-            del self._cache[key]
-
-    def get(self, lat: float, lon: float) -> WeatherData | None:
-        """Get cached weather data if not expired."""
-        key = self._cache_key(lat, lon)
-        if key in self._cache:
-            cached_at, data = self._cache[key]
-            if datetime.utcnow() - cached_at < self._ttl:
-                logger.debug(f"Weather cache hit for {key}")
-                return data
-            else:
-                del self._cache[key]
-        return None
-
-    def set(self, lat: float, lon: float, data: WeatherData) -> None:
-        """Cache weather data."""
-        # Cleanup if at max capacity
-        if len(self._cache) >= self._max_entries:
-            self._cleanup_expired()
-            # If still at capacity, remove oldest entries
-            if len(self._cache) >= self._max_entries:
-                oldest = sorted(self._cache.items(), key=lambda x: x[1][0])
-                for key, _ in oldest[: len(self._cache) // 4]:  # Remove oldest 25%
-                    del self._cache[key]
-
-        key = self._cache_key(lat, lon)
-        self._cache[key] = (datetime.utcnow(), data)
-        logger.debug(f"Weather cached for {key}")
-
-    def clear(self) -> None:
-        """Clear all cached data."""
-        self._cache.clear()
+CACHE_TTL = 3600  # 1 hour
+CACHE_PREFIX = "weather:"
 
 
 class WeatherService:
-    """Service for fetching weather data from Open-Meteo."""
-
     def __init__(self):
         self.base_url = settings.openmeteo_url
-        self.cache = WeatherCache(ttl_seconds=3600)  # 1 hour cache
+
+    @staticmethod
+    def _cache_key(lat: float, lon: float) -> str:
+        return f"{CACHE_PREFIX}{round(lat, 2)},{round(lon, 2)}"
+
+    async def _cache_get(self, lat: float, lon: float) -> WeatherData | None:
+        try:
+            redis = await get_redis()
+            raw = await redis.get(self._cache_key(lat, lon))
+        except aioredis.RedisError:
+            logger.debug(f"Redis unavailable for weather cache read ({lat}, {lon})")
+            return None
+        if raw is None:
+            return None
+        data = json.loads(raw)
+        data["timestamp"] = datetime.fromisoformat(data["timestamp"])
+        logger.debug(f"Weather cache hit for ({lat}, {lon})")
+        return WeatherData(**data)
+
+    async def _cache_set(self, lat: float, lon: float, data: WeatherData) -> None:
+        try:
+            redis = await get_redis()
+            await redis.set(
+                self._cache_key(lat, lon),
+                json.dumps(data.to_dict()),
+                ex=CACHE_TTL,
+            )
+        except aioredis.RedisError:
+            logger.debug(f"Redis unavailable for weather cache write ({lat}, {lon})")
 
     def _validate_coordinates(self, latitude: float, longitude: float) -> None:
         """Validate latitude and longitude bounds."""
@@ -176,9 +158,8 @@ class WeatherService:
         """
         self._validate_coordinates(latitude, longitude)
 
-        # Check cache first
         if use_cache:
-            cached = self.cache.get(latitude, longitude)
+            cached = await self._cache_get(latitude, longitude)
             if cached:
                 return cached
 
@@ -233,8 +214,7 @@ class WeatherService:
             timestamp=datetime.utcnow(),
         )
 
-        # Cache the result
-        self.cache.set(latitude, longitude, weather)
+        await self._cache_set(latitude, longitude, weather)
 
         logger.info(
             f"Weather fetched for ({latitude}, {longitude}): "
@@ -368,18 +348,4 @@ class WeatherService:
 
 
 class WeatherServiceError(Exception):
-    """Weather service error."""
-
     pass
-
-
-# Singleton instance
-_weather_service: WeatherService | None = None
-
-
-def get_weather_service() -> WeatherService:
-    """Get or create weather service instance."""
-    global _weather_service
-    if _weather_service is None:
-        _weather_service = WeatherService()
-    return _weather_service

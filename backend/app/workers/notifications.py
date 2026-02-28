@@ -24,7 +24,7 @@ from app.services.notification_providers import (
 )
 from app.services.notification_service import DeliveryStatus, NotificationDispatcher
 from app.services.recommendation_service import RecommendationService
-from app.services.weather_service import get_weather_service
+from app.services.weather_service import WeatherService
 from app.utils.redis_lock import distributed_lock
 from app.workers.db import get_db_session
 
@@ -192,7 +192,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
 
         if is_for_tomorrow and user.location_lat and user.location_lon:
             try:
-                weather_service = get_weather_service()
+                weather_service = WeatherService()
                 weather_override = await weather_service.get_tomorrow_weather(
                     user.location_lat, user.location_lon
                 )

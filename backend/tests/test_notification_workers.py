@@ -236,7 +236,7 @@ class TestProcessScheduledNotification:
                 "app.workers.notifications.NotificationDispatcher",
                 return_value=mock_dispatcher,
             ),
-            patch("app.services.weather_service.get_weather_service"),
+            patch("app.workers.notifications.WeatherService"),
         ):
             result = await process_scheduled_notification(ctx, str(schedule.id))
 
@@ -319,7 +319,7 @@ class TestProcessScheduledNotification:
                 "app.workers.notifications.RecommendationService",
                 return_value=mock_rec_service,
             ),
-            patch("app.services.weather_service.get_weather_service"),
+            patch("app.workers.notifications.WeatherService"),
         ):
             result = await process_scheduled_notification(ctx, str(schedule.id))
 
@@ -349,6 +349,6 @@ class TestProcessScheduledNotification:
                     "app.workers.notifications.RecommendationService",
                     return_value=mock_rec_service,
                 ),
-                patch("app.services.weather_service.get_weather_service"),
+                patch("app.workers.notifications.WeatherService"),
             ):
                 await process_scheduled_notification(ctx, str(schedule.id))

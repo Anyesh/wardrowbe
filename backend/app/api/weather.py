@@ -5,10 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from app.models.user import User
-from app.services.weather_service import (
-    WeatherServiceError,
-    get_weather_service,
-)
+from app.services.weather_service import WeatherService, WeatherServiceError
 from app.utils.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -67,7 +64,7 @@ async def get_current_weather(
             detail="Location not set. Please provide coordinates or set your location in settings.",
         )
 
-    weather_service = get_weather_service()
+    weather_service = WeatherService()
 
     try:
         weather = await weather_service.get_current_weather(float(lat), float(lon))
@@ -110,7 +107,7 @@ async def get_weather_forecast(
             detail="Location not set. Please provide coordinates or set your location in settings.",
         )
 
-    weather_service = get_weather_service()
+    weather_service = WeatherService()
 
     try:
         forecast = await weather_service.get_daily_forecast(float(lat), float(lon), days)
