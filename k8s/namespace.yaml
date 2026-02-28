@@ -5,3 +5,6 @@ metadata:
   labels:
     app.kubernetes.io/name: wardrobe
     app.kubernetes.io/managed-by: kubectl
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

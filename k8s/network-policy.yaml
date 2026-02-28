@@ -1,5 +1,13 @@
-# Network Policies for Wardrobe Namespace
-# Restricts pod-to-pod communication to only authorized paths
+# Default deny all ingress — each service must explicitly allow what it needs
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: wardrobe
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
 
 ---
 # Allow backend to access postgres
@@ -101,3 +109,32 @@ spec:
       ports:
         - protocol: TCP
           port: 8000
+
+---
+# Postgres and redis should never reach the internet
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-deny-egress
+  namespace: wardrobe
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Egress
+  egress: []
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-deny-egress
+  namespace: wardrobe
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Egress
+  egress: []

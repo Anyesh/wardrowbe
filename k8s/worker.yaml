@@ -15,10 +15,23 @@ spec:
       labels:
         app: worker
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: worker
           image: wardrobe/backend:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
           command:
             - arq
             - app.workers.tagging.WorkerSettings
@@ -88,6 +101,42 @@ spec:
                 secretKeyRef:
                   name: wardrobe-notifications
                   key: ntfy-token
+                  optional: true
+            - name: SMTP_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: SMTP_HOST
+                  optional: true
+            - name: SMTP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: SMTP_PORT
+                  optional: true
+            - name: SMTP_FROM_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: SMTP_FROM_NAME
+                  optional: true
+            - name: SMTP_FROM_EMAIL
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: SMTP_FROM_EMAIL
+                  optional: true
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: wardrobe-notifications
+                  key: smtp-user
+                  optional: true
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wardrobe-notifications
+                  key: smtp-password
                   optional: true
           volumeMounts:
             - name: uploads

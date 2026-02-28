@@ -31,6 +31,9 @@ spec:
       labels:
         app: postgres
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 70
       containers:
         - name: postgres
           image: postgres:15-alpine
