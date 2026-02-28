@@ -14,6 +14,7 @@ from app.models.notification import NotificationSettings
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.workers.notifications import check_scheduled_notifications, process_scheduled_notification
+from app.workers.worker import WorkerSettings
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -352,3 +353,26 @@ class TestProcessScheduledNotification:
                 patch("app.workers.notifications.WeatherService"),
             ):
                 await process_scheduled_notification(ctx, str(schedule.id))
+
+
+# ── Worker registry ──
+
+
+class TestWorkerFunctionRegistry:
+    def test_process_scheduled_notification_is_registered(self):
+        func_names = [f.__name__ for f in WorkerSettings.functions]
+        assert "process_scheduled_notification" in func_names
+
+    def test_all_enqueued_functions_are_registered(self):
+        func_names = {f.__name__ for f in WorkerSettings.functions}
+        required = {
+            "tag_item_image",
+            "send_notification",
+            "process_scheduled_notification",
+            "retry_failed_notifications",
+            "check_scheduled_notifications",
+            "check_wash_reminders",
+            "update_learning_profiles",
+        }
+        missing = required - func_names
+        assert not missing, f"Functions enqueued but not registered in WorkerSettings: {missing}"

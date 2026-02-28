@@ -53,7 +53,7 @@ services:
       WATCHPACK_POLLING: "true"
 
   worker:
-    command: watchfiles --filter python "arq app.workers.tagging.WorkerSettings" /app
+    command: watchfiles --filter python "arq app.workers.worker.WorkerSettings" /app
     volumes:
       - ./backend:/app
       - wardrobe_data:/data/wardrobe

@@ -96,7 +96,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: wardrobe-worker
-    command: arq app.workers.tagging.WorkerSettings
+    command: arq app.workers.worker.WorkerSettings
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:

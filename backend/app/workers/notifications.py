@@ -2,7 +2,6 @@ import logging
 import os
 from datetime import UTC, datetime, timedelta
 
-from arq import cron
 from sqlalchemy import and_, select
 from sqlalchemy.orm import selectinload
 
@@ -554,28 +553,3 @@ async def update_learning_profiles(ctx: dict):
         return {"error": str(e)}
     finally:
         await db.close()
-
-
-class WorkerSettings:
-    functions = [
-        send_notification,
-        retry_failed_notifications,
-        check_scheduled_notifications,
-        process_scheduled_notification,
-        check_wash_reminders,
-        update_learning_profiles,
-    ]
-
-    cron_jobs = [
-        # Retry failed notifications every 5 minutes
-        cron(retry_failed_notifications, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
-        # Check scheduled notifications every minute
-        cron(check_scheduled_notifications, minute=None),  # Every minute
-        # Check wash reminders every 6 hours (at minute 15)
-        cron(check_wash_reminders, minute=15, hour={0, 6, 12, 18}),
-        # Update learning profiles hourly (at minute 30 to avoid overlap with other jobs)
-        cron(update_learning_profiles, minute=30, hour=None),  # Every hour at :30
-    ]
-
-    # Redis settings are inherited from the main worker settings
-    redis_settings = None  # Will be set from environment

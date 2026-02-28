@@ -34,7 +34,7 @@ spec:
                 - ALL
           command:
             - arq
-            - app.workers.tagging.WorkerSettings
+            - app.workers.worker.WorkerSettings
           env:
             - name: DATABASE_URL
               valueFrom:

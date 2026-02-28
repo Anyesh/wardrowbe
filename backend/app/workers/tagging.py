@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.models.item import ClothingItem, ItemStatus
 from app.services.ai_service import AIService, ClothingTags
-from app.workers.db import close_db, get_db_session, init_db
+from app.workers.db import get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -185,62 +185,3 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         logger.exception(f"Error tagging item {item_id}: {error_msg}")
         await update_item_status_to_error(ctx, item_id, error_msg)
         return {"status": "error", "error": error_msg}
-
-
-async def startup(ctx: dict) -> None:
-    """Worker startup hook."""
-    logger.info("Tagging worker starting up...")
-    await init_db(ctx)
-    ctx["ai_service"] = AIService()
-    health = await ctx["ai_service"].check_health()
-    logger.info(f"AI service health: {health}")
-
-
-async def shutdown(ctx: dict) -> None:
-    """Worker shutdown hook."""
-    logger.info("Tagging worker shutting down...")
-    await close_db(ctx)
-
-
-class WorkerSettings:
-    """arq worker settings for tagging and notifications."""
-
-    # Import notification functions
-    from arq import cron
-
-    from app.workers.notifications import (
-        check_scheduled_notifications,
-        retry_failed_notifications,
-        send_notification,
-    )
-
-    functions = [
-        tag_item_image,
-        send_notification,
-        retry_failed_notifications,
-        check_scheduled_notifications,
-    ]
-
-    cron_jobs = [
-        # Retry failed notifications every 5 minutes
-        cron(retry_failed_notifications, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
-        # Check scheduled notifications every minute
-        cron(check_scheduled_notifications, minute=None),
-    ]
-
-    on_startup = startup
-    on_shutdown = shutdown
-
-    # Import redis settings
-    from app.workers.settings import get_redis_settings
-
-    redis_settings = get_redis_settings()
-
-    # Worker configuration
-    max_jobs = 5
-    job_timeout = 600  # 10 minutes per job (Pi's tinyllama is slow)
-    max_tries = 3
-    health_check_interval = 30
-
-    # Queue name - must match the queue used in items.py
-    queue_name = "arq:tagging"

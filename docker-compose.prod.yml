@@ -95,7 +95,7 @@ services:
       dockerfile: Dockerfile
     container_name: wardrobe_worker
     restart: unless-stopped
-    command: arq app.workers.tagging.WorkerSettings
+    command: arq app.workers.worker.WorkerSettings
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:

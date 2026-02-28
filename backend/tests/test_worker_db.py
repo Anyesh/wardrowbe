@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.workers.db import close_db, get_db_session, init_db
-from app.workers.tagging import shutdown, startup
+from app.workers.worker import shutdown, startup
 
 
 class TestInitDb:
@@ -87,8 +87,8 @@ class TestWorkerHooks:
         ctx: dict = {}
 
         with (
-            patch("app.workers.tagging.init_db", new_callable=AsyncMock) as mock_init,
-            patch("app.workers.tagging.AIService", return_value=mock_ai),
+            patch("app.workers.worker.init_db", new_callable=AsyncMock) as mock_init,
+            patch("app.workers.worker.AIService", return_value=mock_ai),
         ):
             await startup(ctx)
 
@@ -100,7 +100,7 @@ class TestWorkerHooks:
     async def test_shutdown_calls_close_db(self):
         ctx = {"db_engine": MagicMock(), "db_session_factory": MagicMock()}
 
-        with patch("app.workers.tagging.close_db", new_callable=AsyncMock) as mock_close:
+        with patch("app.workers.worker.close_db", new_callable=AsyncMock) as mock_close:
             await shutdown(ctx)
 
         mock_close.assert_awaited_once_with(ctx)
