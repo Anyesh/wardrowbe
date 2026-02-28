@@ -2,9 +2,8 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import timedelta
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,16 +24,9 @@ from app.models.user import User
 from app.services.ai_service import AIService
 from app.services.weather_service import WeatherData, WeatherService, WeatherServiceError
 from app.utils.prompts import load_prompt
+from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
-
-
-def get_user_today(user: User) -> date:
-    try:
-        user_tz = ZoneInfo(user.timezone or "UTC")
-    except Exception:
-        user_tz = ZoneInfo("UTC")
-    return datetime.now(UTC).astimezone(user_tz).date()
 
 
 @dataclass
