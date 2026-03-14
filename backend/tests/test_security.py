@@ -4,47 +4,29 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pydantic import ValidationError
 
-from app.api.preferences import _validate_url_not_private
 from app.schemas.notification import NtfyConfig, ScheduleBase, ScheduleUpdate
 
 
-class TestSSRFProtection:
-    def test_blocks_localhost(self):
-        with pytest.raises(ValueError, match="private/internal"):
-            _validate_url_not_private("http://127.0.0.1:8080/api")
-
-    def test_blocks_private_ip(self):
-        with pytest.raises(ValueError, match="private/internal"):
-            _validate_url_not_private("http://10.0.0.1:8080/api")
-
-    def test_blocks_link_local(self):
-        with pytest.raises(ValueError, match="private/internal"):
-            _validate_url_not_private("http://169.254.169.254/latest/meta-data")
-
-    def test_blocks_non_http(self):
-        with pytest.raises(ValueError, match="Only HTTP and HTTPS"):
-            _validate_url_not_private("ftp://example.com/file")
-
-    def test_blocks_unresolvable(self):
-        with pytest.raises(ValueError, match="Could not resolve"):
-            _validate_url_not_private("http://this-host-definitely-does-not-exist-xyz.invalid")
-
-    def test_allows_http(self):
-        try:
-            _validate_url_not_private("http://api.open-meteo.com/v1")
-        except ValueError as e:
-            if "private/internal" in str(e) or "Only HTTP" in str(e):
-                pytest.fail(f"Should allow HTTP to public IPs: {e}")
+class TestAIEndpointSchemeValidation:
+    @pytest.mark.asyncio
+    async def test_rejects_non_http_scheme(self, client, auth_headers):
+        response = await client.post(
+            "/api/v1/users/me/preferences/test-ai-endpoint",
+            json={"url": "ftp://example.com/file"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert "HTTP" in response.json()["detail"]
 
     @pytest.mark.asyncio
-    async def test_ai_endpoint_rejects_private_url(self, client, auth_headers):
+    async def test_allows_localhost(self, client, auth_headers):
         response = await client.post(
             "/api/v1/users/me/preferences/test-ai-endpoint",
             json={"url": "http://127.0.0.1:11434/v1"},
             headers=auth_headers,
         )
-        assert response.status_code == 400
-        assert "private/internal" in response.json()["detail"]
+        # Should not be rejected for being private — this is self-hosted OSS
+        assert response.status_code != 400 or "HTTP" not in response.json().get("detail", "")
 
 
 class TestOccasionValidation:

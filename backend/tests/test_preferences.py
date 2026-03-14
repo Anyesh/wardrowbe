@@ -72,7 +72,7 @@ class TestAIEndpointPreferences:
         assert data["ai_endpoints"][0]["name"] == "local-ollama"
 
     @pytest.mark.asyncio
-    async def test_test_ai_endpoint_rejects_private(
+    async def test_test_ai_endpoint_allows_localhost(
         self, client: AsyncClient, test_user, auth_headers
     ):
         response = await client.post(
@@ -83,8 +83,7 @@ class TestAIEndpointPreferences:
             },
             headers=auth_headers,
         )
-        assert response.status_code == 400
-        assert "private/internal" in response.json()["detail"]
+        assert response.status_code != 400
 
 
 class TestPreferenceValidation:
