@@ -18,7 +18,7 @@ COPY . .
 
 # Create non-root user and storage directory
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-RUN mkdir -p /data/wardrobe && chown -R appuser:appuser /data/wardrobe
+RUN mkdir -p /data/wardrobe /data/uploads && chown -R appuser:appuser /data
 USER appuser
 
 # Expose port
