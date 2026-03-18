@@ -45,6 +45,7 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
+      - "${OIDC_HOST:-localhost}:${OIDC_HOST_IP:-127.0.0.1}"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wardrobe}
       REDIS_URL: redis://redis:6379
@@ -138,6 +139,7 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
+      - "${OIDC_HOST:-localhost}:${OIDC_HOST_IP:-127.0.0.1}"
     dns:
       - ${LOCAL_DNS:-8.8.8.8}
     environment:
