@@ -136,24 +136,23 @@ class NotificationService:
 
         try:
             if setting.channel == "ntfy":
-                provider = NtfyProvider(NtfyConfig(**setting.config))
-                success = await provider.test_connection()
+                success, message = await NtfyProvider(NtfyConfig(**setting.config)).test_connection()
             elif setting.channel == "mattermost":
-                provider = MattermostProvider(MattermostConfig(**setting.config))
-                success = await provider.test_connection()
+                success, message = await MattermostProvider(
+                    MattermostConfig(**setting.config)
+                ).test_connection()
             elif setting.channel == "email":
-                provider = EmailProvider(EmailConfig(**setting.config))
-                success = await provider.test_connection()
+                success, message = await EmailProvider(
+                    EmailConfig(**setting.config)
+                ).test_connection()
             elif setting.channel == "expo_push":
-                provider = ExpoPushProvider(ExpoPushConfig(**setting.config))
-                success = await provider.test_connection()
+                success, message = await ExpoPushProvider(
+                    ExpoPushConfig(**setting.config)
+                ).test_connection()
             else:
                 return False, f"Unknown channel: {setting.channel}"
 
-            if success:
-                return True, "Test notification sent successfully"
-            else:
-                return False, "Failed to send test notification"
+            return success, message
         except Exception as e:
             return False, str(e)
 

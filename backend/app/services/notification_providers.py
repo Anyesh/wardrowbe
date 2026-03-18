@@ -63,15 +63,14 @@ class NtfyProvider:
                 if response.status_code == 200:
                     return {"success": True, "response": response.json()}
                 else:
-                    return {
-                        "success": False,
-                        "error": f"HTTP {response.status_code}: {response.text}",
-                    }
+                    error = f"HTTP {response.status_code}: {response.text}"
+                    logger.warning("ntfy request failed: %s", error)
+                    return {"success": False, "error": error}
         except Exception as e:
             logger.exception("ntfy send failed")
             return {"success": False, "error": str(e)}
 
-    async def test_connection(self) -> bool:
+    async def test_connection(self) -> tuple[bool, str]:
         try:
             result = await self.send(
                 NtfyNotification(
@@ -82,9 +81,11 @@ class NtfyProvider:
                     priority=2,
                 )
             )
-            return result.get("success", False)
-        except Exception:
-            return False
+            if result.get("success"):
+                return True, "Test notification sent successfully"
+            return False, result.get("error", "Unknown error")
+        except Exception as e:
+            return False, str(e)
 
 
 # Mattermost Provider
@@ -139,22 +140,23 @@ class MattermostProvider:
                 if response.status_code == 200:
                     return {"success": True}
                 else:
-                    return {
-                        "success": False,
-                        "error": f"HTTP {response.status_code}: {response.text}",
-                    }
+                    error = f"HTTP {response.status_code}: {response.text}"
+                    logger.warning("Mattermost request failed: %s", error)
+                    return {"success": False, "error": error}
         except Exception as e:
             logger.exception("Mattermost send failed")
             return {"success": False, "error": str(e)}
 
-    async def test_connection(self) -> bool:
+    async def test_connection(self) -> tuple[bool, str]:
         try:
             result = await self.send(
                 MattermostMessage(text="This is a test message from Wardrowbe.")
             )
-            return result.get("success", False)
-        except Exception:
-            return False
+            if result.get("success"):
+                return True, "Test notification sent successfully"
+            return False, result.get("error", "Unknown error")
+        except Exception as e:
+            return False, str(e)
 
 
 # Email Provider
@@ -215,9 +217,9 @@ class EmailProvider:
             logger.exception("Email send failed")
             return {"success": False, "error": str(e)}
 
-    async def test_connection(self) -> bool:
+    async def test_connection(self) -> tuple[bool, str]:
         if not self.is_configured():
-            return False
+            return False, "SMTP not configured"
 
         try:
             result = await self.send(
@@ -228,9 +230,11 @@ class EmailProvider:
                     text_body="This is a test email from Wardrowbe.",
                 )
             )
-            return result.get("success", False)
-        except Exception:
-            return False
+            if result.get("success"):
+                return True, "Test email sent successfully"
+            return False, result.get("error", "Unknown error")
+        except Exception as e:
+            return False, str(e)
 
 
 # Expo Push Provider
@@ -292,7 +296,7 @@ class ExpoPushProvider:
             logger.exception("Expo push send failed")
             return {"success": False, "error": str(e)}
 
-    async def test_connection(self) -> bool:
+    async def test_connection(self) -> tuple[bool, str]:
         try:
             result = await self.send(
                 ExpoPushMessage(
@@ -301,9 +305,11 @@ class ExpoPushProvider:
                     body="Push notifications are working!",
                 )
             )
-            return result.get("success", False)
-        except Exception:
-            return False
+            if result.get("success"):
+                return True, "Test push notification sent successfully"
+            return False, result.get("error", "Unknown error")
+        except Exception as e:
+            return False, str(e)
 
 
 def build_notification_email(
