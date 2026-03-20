@@ -68,7 +68,7 @@ function getProviders() {
     providers.push(OIDCProvider);
   }
 
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development') {
     providers.push(DevCredentialsProvider);
   }
   return providers;
