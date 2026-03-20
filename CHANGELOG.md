@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.1...wardrowbe-v1.2.2) (2026-03-20)
+
+
+### 🐛 Bug Fixes
+
+* 39: Add proper error messages for diagnose ([#40](https://github.com/Anyesh/wardrowbe/issues/40)) ([f4a71d1](https://github.com/Anyesh/wardrowbe/commit/f4a71d15eba68519f59ff571cca0a111d59cc0c7))
+* enable dev credential login in Docker production builds ([#43](https://github.com/Anyesh/wardrowbe/issues/43)) ([9aab711](https://github.com/Anyesh/wardrowbe/commit/9aab71185d82a1a789a104abdbb842511285e001))
+
 ## [1.2.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.0...wardrowbe-v1.2.1) (2026-02-20)
 
 
