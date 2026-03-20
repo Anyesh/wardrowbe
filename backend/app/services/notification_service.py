@@ -136,7 +136,9 @@ class NotificationService:
 
         try:
             if setting.channel == "ntfy":
-                success, message = await NtfyProvider(NtfyConfig(**setting.config)).test_connection()
+                success, message = await NtfyProvider(
+                    NtfyConfig(**setting.config)
+                ).test_connection()
             elif setting.channel == "mattermost":
                 success, message = await MattermostProvider(
                     MattermostConfig(**setting.config)
