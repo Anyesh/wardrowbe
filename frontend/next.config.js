@@ -6,18 +6,7 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8000',
-      },
-      {
-        protocol: 'http',
-        hostname: 'backend',
-        port: '8000',
-      },
-    ],
+    unoptimized: true,
   },
   // Skip type checking and linting during build (already done in CI)
   typescript: {
