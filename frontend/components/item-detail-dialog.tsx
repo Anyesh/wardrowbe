@@ -16,6 +16,7 @@ import {
   RefreshCw,
   RotateCcw,
   RotateCw,
+  Eraser,
   Layers,
   Droplets,
   ChevronDown,
@@ -56,7 +57,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
+import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { Item, CLOTHING_TYPES, CLOTHING_COLORS } from '@/lib/types';
 import { ColorEyedropper } from '@/components/color-eyedropper';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
@@ -92,6 +93,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const deleteItem = useDeleteItem();
   const reanalyzeItem = useReanalyzeItem();
   const rotateImage = useRotateImage();
+  const removeBackground = useRemoveBackground();
   const logWash = useLogWash();
   const { data: washHistory } = useWashHistory(item?.id || '');
   const { data: wearStats } = useItemWearStats(item?.id || '');
@@ -197,6 +199,17 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     }
   };
 
+  const handleRemoveBackground = async () => {
+    try {
+      await removeBackground.mutateAsync({ id: item.id });
+      setImageKey((k) => k + 1);
+      toast.success('Background removed');
+    } catch (error) {
+      console.error('Failed to remove background:', error);
+      toast.error('Failed to remove background');
+    }
+  };
+
   const isAnalyzing = reanalyzeItem.isPending || item.status === 'processing';
 
   // Use signed URL from backend for better quality in detail view
@@ -277,6 +290,19 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <RotateCw className="h-5 w-5" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRemoveBackground}
+                disabled={removeBackground.isPending || !item.image_url}
+                title="Remove background"
+              >
+                {removeBackground.isPending ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Eraser className="h-5 w-5" />
                 )}
               </Button>
               <Button

@@ -120,6 +120,26 @@ export function useUpdateItem() {
   });
 }
 
+export function useRemoveBackground() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async ({ id, bg_color }: { id: string; bg_color?: string }) => {
+      if (session?.accessToken) {
+        setAccessToken(session.accessToken as string);
+      }
+      return api.post<Item>(`/items/${id}/remove-background`, { bg_color: bg_color ?? '#FFFFFF' });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['outfits'] });
+      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+    },
+  });
+}
+
 export function useDeleteItem() {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
