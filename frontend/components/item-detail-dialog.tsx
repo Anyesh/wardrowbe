@@ -115,7 +115,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       setIsEditing(false);
       setActiveImageIndex(0);
     }
-  }, [item]);
+  }, [item?.id]);
 
   if (!item) return null;
 
