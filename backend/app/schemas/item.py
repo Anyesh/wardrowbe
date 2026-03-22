@@ -264,6 +264,14 @@ class ReorderImagesRequest(BaseModel):
     image_ids: list[UUID]
 
 
+class RemoveBackgroundRequest(BaseModel):
+    bg_color: str = Field(
+        default="#FFFFFF",
+        pattern=r"^#[0-9A-Fa-f]{6}$",
+        description="Hex color for the replacement background",
+    )
+
+
 class LogWashRequest(BaseModel):
     washed_at: date | None = None  # If None, use user's timezone to determine today
     method: str | None = Field(None, max_length=50)

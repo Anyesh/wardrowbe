@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import UTC, datetime
 from typing import Annotated
@@ -27,6 +28,7 @@ from app.schemas.item import (
     ItemUpdate,
     LogWashRequest,
     LogWearRequest,
+    RemoveBackgroundRequest,
     ReorderImagesRequest,
     WashHistoryResponse,
 )
@@ -860,6 +862,57 @@ async def rotate_item_image(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to rotate image",
+        ) from None
+
+
+@router.post("/{item_id}/remove-background", response_model=ItemResponse)
+async def remove_item_background(
+    item_id: UUID,
+    request: RemoveBackgroundRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> ItemResponse:
+    item_service = ItemService(db)
+    item = await item_service.get_by_id(item_id, current_user.id)
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found",
+        )
+
+    if not item.image_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Item has no image",
+        )
+
+    hex_color = request.bg_color.lstrip("#")
+    bg_color = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+
+    try:
+        image_service = ImageService()
+        await asyncio.to_thread(image_service.remove_background, item.image_path, bg_color)
+        await db.commit()
+        await db.refresh(item)
+        return ItemResponse.model_validate(item)
+    except ImportError:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Background removal provider not available. "
+            "For rembg: pip install rembg[cpu]. "
+            "For HTTP provider: set BG_REMOVAL_PROVIDER=http and BG_REMOVAL_URL.",
+        ) from None
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from None
+    except Exception as e:
+        logger.error(f"Failed to remove background: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to remove background",
         ) from None
 
 

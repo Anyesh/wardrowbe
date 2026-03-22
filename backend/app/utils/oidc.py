@@ -36,7 +36,9 @@ async def validate_oidc_id_token(
 
     try:
         discovery_url = f"{issuer_url.rstrip('/')}/.well-known/openid-configuration"
-        async with httpx.AsyncClient(timeout=10, verify=not settings.debug) as client:
+        async with httpx.AsyncClient(
+            timeout=10, verify=not settings.debug, follow_redirects=True
+        ) as client:
             disc_resp = await client.get(discovery_url)
             disc_resp.raise_for_status()
             jwks_uri = disc_resp.json()["jwks_uri"]

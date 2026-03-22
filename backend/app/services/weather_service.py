@@ -182,7 +182,7 @@ class WeatherService:
             "timezone": "auto",
         }
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             try:
                 response = await client.get(f"{self.base_url}/forecast", params=params)
                 response.raise_for_status()
@@ -256,7 +256,7 @@ class WeatherService:
             "timezone": "auto",
         }
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             try:
                 response = await client.get(f"{self.base_url}/forecast", params=params)
                 response.raise_for_status()
@@ -333,7 +333,7 @@ class WeatherService:
     async def check_health(self) -> dict:
         """Check if the weather service is available."""
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
                 # Simple request to check API availability
                 response = await client.get(
                     f"{self.base_url}/forecast",

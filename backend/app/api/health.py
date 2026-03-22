@@ -35,6 +35,19 @@ async def readiness_check(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
     }
 
 
+@router.get("/health/features")
+async def feature_check() -> dict[str, Any]:
+    features = {}
+    try:
+        from app.services.background_removal import get_provider
+
+        get_provider()
+        features["background_removal"] = True
+    except Exception:
+        features["background_removal"] = False
+    return features
+
+
 @router.get("/health/ai")
 async def ai_health_check() -> dict[str, Any]:
     ai_service = get_ai_service()

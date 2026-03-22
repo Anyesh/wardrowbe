@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     storage_path: str = Field(default="/data/wardrobe")
     max_upload_size_mb: int = Field(default=10)
 
+    # Background removal
+    bg_removal_provider: str = Field(default="rembg")  # "rembg" or "http"
+    bg_removal_model: str = Field(default="u2net")  # rembg model name
+    bg_removal_url: str | None = Field(default=None)  # URL for http provider (e.g. withoutbg)
+    bg_removal_api_key: str | None = Field(default=None)  # API key for http provider
+
     # Image processing
     thumbnail_size: int = 400
     medium_size: int = 800

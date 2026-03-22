@@ -233,6 +233,57 @@ class ImageService:
         """
         return ImageService.hash_distance(hash1, hash2) <= threshold
 
+    def remove_background(
+        self,
+        image_path: str,
+        bg_color: tuple[int, int, int] = (255, 255, 255),
+    ) -> dict[str, str]:
+        from app.services.background_removal import get_provider
+
+        base_path = image_path.rsplit(".", 1)[0]
+
+        original_full = self.storage_path / image_path
+        medium_path = f"{base_path}_medium.jpg"
+        medium_full = self.storage_path / medium_path
+        thumb_path = f"{base_path}_thumb.jpg"
+        thumb_full = self.storage_path / thumb_path
+
+        if not original_full.exists():
+            raise ValueError(f"Image not found: {image_path}")
+
+        image = Image.open(original_full).convert("RGB")
+        provider = get_provider()
+        result = provider.remove(image)
+
+        # Composite onto solid color background
+        background = Image.new("RGBA", result.size, (*bg_color, 255))
+        background.paste(result, mask=result.split()[3])
+        final = background.convert("RGB")
+
+        for size_name, max_size in SIZES.items():
+            if size_name == "original":
+                file_path = original_full
+                quality = 95
+            elif size_name == "medium":
+                file_path = medium_full
+                quality = 90
+            else:
+                file_path = thumb_full
+                quality = 88
+
+            img_copy = final.copy()
+            img_copy.thumbnail(max_size, Image.Resampling.LANCZOS)
+
+            output = BytesIO()
+            img_copy.save(output, format="JPEG", quality=quality, optimize=True)
+            file_path.write_bytes(output.getvalue())
+
+        return {
+            "image_path": image_path,
+            "medium_path": medium_path,
+            "thumbnail_path": thumb_path,
+        }
+
     def rotate_image(self, image_path: str, direction: str = "cw") -> dict[str, str]:
         """
         Rotate an image and regenerate all sizes.
