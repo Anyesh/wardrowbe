@@ -53,7 +53,7 @@ class NtfyProvider:
             headers["Actions"] = "; ".join(actions)
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
                 response = await client.post(
                     f"{self.server}/{notification.topic or self.topic}",
                     headers=headers,
@@ -134,7 +134,7 @@ class MattermostProvider:
             ]
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
                 response = await client.post(self.webhook_url, json=payload)
 
                 if response.status_code == 200:
@@ -270,7 +270,7 @@ class ExpoPushProvider:
             payload["badge"] = message.badge
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
                 response = await client.post(
                     EXPO_PUSH_URL,
                     json=payload,

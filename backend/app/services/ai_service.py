@@ -414,7 +414,7 @@ class AIService:
             logger.info(f"Trying AI endpoint for {task_name}: {endpoint.name}")
             model = endpoint.vision_model if use_vision_model else endpoint.text_model
 
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 for attempt in range(self.settings.ai_max_retries):
                     try:
                         request_body = {
@@ -526,7 +526,7 @@ class AIService:
 
         for endpoint in self._endpoints:
             try:
-                async with httpx.AsyncClient(timeout=5) as client:
+                async with httpx.AsyncClient(timeout=5, follow_redirects=True) as client:
                     # Try OpenAI-compatible /v1/models endpoint first
                     response = await client.get(
                         f"{endpoint.url}/models", headers=self._get_headers()
@@ -605,7 +605,7 @@ class AIService:
         for endpoint in self._endpoints:
             logger.info(f"Trying text generation via {endpoint.name}")
 
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 for attempt in range(self.settings.ai_max_retries):
                     try:
                         response = await client.post(
