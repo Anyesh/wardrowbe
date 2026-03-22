@@ -899,7 +899,9 @@ async def remove_item_background(
     except ImportError:
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Background removal is not available. Install rembg: pip install rembg[cpu]",
+            detail="Background removal provider not available. "
+            "For rembg: pip install rembg[cpu]. "
+            "For HTTP provider: set BG_REMOVAL_PROVIDER=http and BG_REMOVAL_URL.",
         ) from None
     except ValueError as e:
         raise HTTPException(

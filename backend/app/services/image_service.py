@@ -238,7 +238,7 @@ class ImageService:
         image_path: str,
         bg_color: tuple[int, int, int] = (255, 255, 255),
     ) -> dict[str, str]:
-        from rembg import remove
+        from app.services.background_removal import get_provider
 
         base_path = image_path.rsplit(".", 1)[0]
 
@@ -252,7 +252,8 @@ class ImageService:
             raise ValueError(f"Image not found: {image_path}")
 
         image = Image.open(original_full).convert("RGB")
-        result = remove(image)
+        provider = get_provider()
+        result = provider.remove(image)
 
         # Composite onto solid color background
         background = Image.new("RGBA", result.size, (*bg_color, 255))
