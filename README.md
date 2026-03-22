@@ -304,8 +304,31 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 | `SMTP_PORT` | SMTP port (default: 587) | No |
 | `SMTP_USER` | SMTP username | No |
 | `SMTP_PASSWORD` | SMTP password | No |
+| `BG_REMOVAL_PROVIDER` | Background removal backend: `rembg` or `http` (default: `rembg`) | No |
+| `BG_REMOVAL_MODEL` | rembg model name (default: `u2net`) | No |
+| `BG_REMOVAL_URL` | URL for HTTP bg removal provider | If http |
+| `BG_REMOVAL_API_KEY` | API key for HTTP bg removal provider | No |
 
 See [.env.example](.env.example) for all options.
+
+### Background Removal (Optional)
+
+Remove image backgrounds from wardrobe items. Two backends supported:
+
+**rembg (local, default):**
+```bash
+pip install rembg[cpu]  # add to your image, or install manually
+```
+No config needed — works out of the box. Change model with `BG_REMOVAL_MODEL` (default: `u2net`, options: `isnet-general-use`, `silueta`, `u2netp`).
+
+**HTTP provider (e.g. [withoutbg](https://github.com/nicholasgasior/withoutbg)):**
+```env
+BG_REMOVAL_PROVIDER=http
+BG_REMOVAL_URL=http://withoutbg:5000
+BG_REMOVAL_API_KEY=          # optional
+```
+
+If neither is configured, the remove-background button returns a 501 with setup instructions.
 
 ### Authentication
 
