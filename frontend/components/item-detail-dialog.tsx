@@ -61,6 +61,7 @@ import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemo
 import { Item, CLOTHING_TYPES, CLOTHING_COLORS } from '@/lib/types';
 import { ColorEyedropper } from '@/components/color-eyedropper';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
+import { useFeatures } from '@/lib/hooks/use-features';
 
 interface ItemDetailDialogProps {
   item: Item | null;
@@ -94,6 +95,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const reanalyzeItem = useReanalyzeItem();
   const rotateImage = useRotateImage();
   const removeBackground = useRemoveBackground();
+  const { data: features } = useFeatures();
   const logWash = useLogWash();
   const { data: washHistory } = useWashHistory(item?.id || '');
   const { data: wearStats } = useItemWearStats(item?.id || '');
@@ -292,19 +294,21 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   <RotateCw className="h-5 w-5" />
                 )}
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleRemoveBackground}
-                disabled={removeBackground.isPending || !item.image_url}
-                title="Remove background"
-              >
-                {removeBackground.isPending ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Eraser className="h-5 w-5" />
-                )}
-              </Button>
+              {features?.background_removal && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRemoveBackground}
+                  disabled={removeBackground.isPending || !item.image_url}
+                  title="Remove background"
+                >
+                  {removeBackground.isPending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Eraser className="h-5 w-5" />
+                  )}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
