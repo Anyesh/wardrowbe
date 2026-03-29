@@ -34,6 +34,9 @@ def _build_preference_response(preferences) -> PreferenceResponse:
         default_occasion=preferences.default_occasion
         if preferences.default_occasion is not None
         else "casual",
+        temperature_unit=preferences.temperature_unit
+        if preferences.temperature_unit is not None
+        else "celsius",
         temperature_sensitivity=preferences.temperature_sensitivity
         if preferences.temperature_sensitivity is not None
         else "normal",

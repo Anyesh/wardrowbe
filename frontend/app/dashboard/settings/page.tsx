@@ -192,6 +192,7 @@ export default function SettingsPage() {
     return 'metric';
   });
 
+
   useEffect(() => {
     if (userProfile) {
       setLocationName(userProfile.location_name || '');
@@ -301,6 +302,27 @@ export default function SettingsPage() {
     locationLon !== (userProfile.location_lon?.toString() || '') ||
     timezone !== (userProfile.timezone || 'UTC')
   );
+
+  const isDirty = hasChanges || measurementsDirty || !!hasLocationChanges;
+
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    const origPush = history.pushState.bind(history);
+    history.pushState = function (...args) {
+      if (window.confirm('You have unsaved changes. Leave this page?')) {
+        origPush(...args);
+      }
+    };
+
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      history.pushState = origPush;
+    };
+  }, [isDirty]);
 
   const handleToggleUnits = () => {
     const newSystem: UnitSystem = unitSystem === 'metric' ? 'imperial' : 'metric';

@@ -36,6 +36,9 @@ jobs:
           cd backend
           ruff format --check .
 
+      - name: Check migration heads
+        run: python backend/scripts/check_migration_heads.py
+
   backend-test:
     name: Backend Tests
     runs-on: ubuntu-latest
