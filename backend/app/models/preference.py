@@ -33,6 +33,7 @@ class UserPreference(Base):
     occasion_preferences: Mapped[dict] = mapped_column(JSONB, default=dict)
 
     # Temperature/comfort
+    temperature_unit: Mapped[str] = mapped_column(String(20), default="celsius")
     temperature_sensitivity: Mapped[str] = mapped_column(String(20), default="normal")
     cold_threshold: Mapped[int] = mapped_column(Integer, default=10)
     hot_threshold: Mapped[int] = mapped_column(Integer, default=25)

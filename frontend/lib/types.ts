@@ -100,6 +100,7 @@ export interface Preferences {
   color_avoid: string[];
   style_profile: StyleProfile;
   default_occasion: string;
+  temperature_unit: 'celsius' | 'fahrenheit';
   temperature_sensitivity: 'low' | 'normal' | 'high';
   cold_threshold: number;
   hot_threshold: number;

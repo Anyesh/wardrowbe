@@ -30,6 +30,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
 import { useWeather } from '@/lib/hooks/use-weather';
+import { usePreferences } from '@/lib/hooks/use-preferences';
+import { displayValue, tempSymbol, TempUnit } from '@/lib/temperature';
 import { usePendingOutfits, useAcceptOutfit, useRejectOutfit } from '@/lib/hooks/use-outfits';
 import { useSchedules, useNotificationSettings } from '@/lib/hooks/use-notifications';
 import { useFamily } from '@/lib/hooks/use-family';
@@ -37,6 +39,8 @@ import { toast } from 'sonner';
 
 function WeatherCard() {
   const { data: weather, isLoading, isError } = useWeather();
+  const { data: prefs } = usePreferences();
+  const unit: TempUnit = prefs?.temperature_unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
 
   if (isLoading) {
     return (
@@ -86,9 +90,9 @@ function WeatherCard() {
       </CardHeader>
       <CardContent>
         <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-3xl font-bold">{Math.round(weather.temperature)}°</span>
+          <span className="text-3xl font-bold">{displayValue(weather.temperature, unit)}{tempSymbol(unit)}</span>
           <span className="text-muted-foreground text-sm">
-            feels {Math.round(weather.feels_like)}°
+            feels {displayValue(weather.feels_like, unit)}°
           </span>
         </div>
         <p className="text-sm text-muted-foreground capitalize mb-1">

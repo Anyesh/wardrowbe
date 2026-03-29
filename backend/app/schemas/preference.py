@@ -33,6 +33,11 @@ class PreferenceBase(BaseModel):
     )
 
     # Temperature/comfort
+    temperature_unit: str = Field(
+        default="celsius",
+        pattern="^(celsius|fahrenheit)$",
+        description="Preferred temperature display unit",
+    )
     temperature_sensitivity: str = Field(
         default="normal",
         pattern="^(low|normal|high)$",
@@ -77,6 +82,7 @@ class PreferenceUpdate(BaseModel):
     color_avoid: list[str] | None = None
     style_profile: StyleProfile | None = None
     default_occasion: str | None = None
+    temperature_unit: str | None = Field(default=None, pattern="^(celsius|fahrenheit)$")
     temperature_sensitivity: str | None = Field(default=None, pattern="^(low|normal|high)$")
     cold_threshold: int | None = Field(default=None, ge=-20, le=30)
     hot_threshold: int | None = Field(default=None, ge=10, le=45)
