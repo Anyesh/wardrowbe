@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { ChevronLeft, ChevronRight, X, RotateCcw, RotateCw, Loader2, Users, Star, ExternalLink } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, X, RotateCcw, RotateCw, Loader2, Users, Star, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -68,9 +68,17 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
         <div className="flex items-center justify-between p-4 pb-2 border-b flex-shrink-0">
           <div>
             <h2 className="text-lg font-semibold capitalize">{outfit.occasion} Outfit</h2>
-            <p className="text-sm text-muted-foreground">
-              {currentIndex + 1} / {items.length}
-            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              {outfit.scheduled_for && (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <CalendarDays className="h-3 w-3" />
+                  {new Date(outfit.scheduled_for + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                </span>
+              )}
+              <span className="text-xs text-muted-foreground">
+                {currentIndex + 1} / {items.length}
+              </span>
+            </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full -mr-2">
             <X className="h-5 w-5" />

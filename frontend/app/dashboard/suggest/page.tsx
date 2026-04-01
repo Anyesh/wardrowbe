@@ -28,6 +28,7 @@ import {
   Cloudy,
   CloudSun,
   Snowflake,
+  CalendarDays,
   CloudLightning,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -309,9 +310,17 @@ function OutfitResult({
     <div className="space-y-6">
       {/* Header with occasion and new request */}
       <div className="flex items-center justify-between">
-        <Badge variant="secondary" className="capitalize text-sm px-3 py-1">
-          {occasion}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="capitalize text-sm px-3 py-1">
+            {occasion}
+          </Badge>
+          {outfit.scheduled_for && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <CalendarDays className="h-3 w-3" />
+              {new Date(outfit.scheduled_for + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            </span>
+          )}
+        </div>
         <Button variant="ghost" size="sm" onClick={onNewRequest}>
           Start over
         </Button>

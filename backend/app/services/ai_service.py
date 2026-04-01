@@ -76,6 +76,8 @@ VALID_TYPES = {
     "accessories",
     "top",
     "jumpsuit",
+    "socks",
+    "tie",
 }
 VALID_COLORS = {
     "black",
@@ -353,14 +355,43 @@ class AIService:
                                 break
             return None
 
+        COLOR_ALIASES: dict[str, str] = {
+            "grey": "gray",
+            "light grey": "gray",
+            "light gray": "gray",
+            "dark grey": "gray",
+            "dark gray": "gray",
+            "off-white": "cream",
+            "ivory": "cream",
+            "wine": "burgundy",
+            "maroon": "burgundy",
+            "forest green": "green",
+            "dark blue": "navy",
+            "royal blue": "blue",
+            "sky blue": "light-blue",
+            "baby blue": "light-blue",
+            "camel": "tan",
+            "khaki": "tan",
+            "rust": "orange",
+            "coral": "pink",
+            "rose": "pink",
+            "mauve": "purple",
+            "lavender": "purple",
+            "mustard": "yellow",
+            "gold": "yellow",
+            "silver": "gray",
+            "charcoal": "gray",
+        }
+
         def validate_value(value: str | None, valid_set: set) -> str | None:
             if value is None:
                 return None
             value_lower = value.lower().strip()
             if value_lower in valid_set:
                 return value_lower
-            if value_lower == "grey":
-                return "gray"
+            alias = COLOR_ALIASES.get(value_lower)
+            if alias and alias in valid_set:
+                return alias
             return None
 
         def validate_list(values: list, valid_set: set) -> list:

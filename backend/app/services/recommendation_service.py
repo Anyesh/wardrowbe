@@ -518,6 +518,7 @@ class RecommendationService:
         occasion: str,
         source: OutfitSource,
         number_map: dict[int, UUID],
+        scheduled_date: date | None = None,
     ) -> Outfit:
         selected_numbers = outfit_data.get("items", [])
         valid_ids = []
@@ -557,7 +558,7 @@ class RecommendationService:
             user_id=user.id,
             occasion=occasion,
             weather_data=weather.to_dict(),
-            scheduled_for=get_user_today(user),
+            scheduled_for=scheduled_date or get_user_today(user),
             reasoning=reasoning,
             style_notes=style_notes,
             ai_raw_response=outfit_data,
@@ -611,6 +612,7 @@ class RecommendationService:
         source: OutfitSource = OutfitSource.on_demand,
         time_of_day: str | None = None,
         single_outfit: bool = False,
+        scheduled_date: date | None = None,
     ) -> Outfit:
         exclude_items = exclude_items or []
         include_items = include_items or []
@@ -704,7 +706,13 @@ class RecommendationService:
                 else:
                     logger.info(f"Using cached suggestion for user {user.id}, occasion: {occasion}")
                     return await self._materialize_outfit(
-                        cached, user, weather, occasion, source, number_map
+                        cached,
+                        user,
+                        weather,
+                        occasion,
+                        source,
+                        number_map,
+                        scheduled_date=scheduled_date,
                     )
 
         # Fetch scoring context
@@ -787,7 +795,13 @@ class RecommendationService:
                 outfit_data["_ai_model"] = result.model
                 outfit_data["_ai_endpoint"] = result.endpoint
                 return await self._materialize_outfit(
-                    outfit_data, user, weather, occasion, source, number_map
+                    outfit_data,
+                    user,
+                    weather,
+                    occasion,
+                    source,
+                    number_map,
+                    scheduled_date=scheduled_date,
                 )
 
             # Multi-outfit parse
@@ -798,7 +812,13 @@ class RecommendationService:
             first["_ai_endpoint"] = result.endpoint
 
             outfit = await self._materialize_outfit(
-                first, user, weather, occasion, source, number_map
+                first,
+                user,
+                weather,
+                occasion,
+                source,
+                number_map,
+                scheduled_date=scheduled_date,
             )
 
             # Cache remaining outfits for "Try Another"

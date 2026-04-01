@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, select
 from sqlalchemy.orm import selectinload
@@ -202,6 +203,10 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             except Exception as e:
                 logger.warning(f"Failed to fetch tomorrow's weather: {e}")
 
+        user_tz = ZoneInfo(user.timezone or "UTC")
+        user_today = datetime.now(UTC).astimezone(user_tz).date()
+        target_date = user_today + timedelta(days=1) if is_for_tomorrow else user_today
+
         recommendation_service = RecommendationService(db)
         outfit = await recommendation_service.generate_recommendation(
             user=user,
@@ -210,6 +215,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             weather_override=weather_override,
             time_of_day="full day" if is_for_tomorrow else None,
             single_outfit=True,
+            scheduled_date=target_date,
         )
 
         app_url = os.getenv("APP_URL", "http://localhost:3000")

@@ -138,24 +138,39 @@ export const CLOTHING_COLORS = [
   { name: 'Orange', value: 'orange', hex: '#D2691E' },
 ] as const;
 
-// Clothing types
+// Clothing types — must match the TYPE vocabulary in clothing_analysis.txt
 export const CLOTHING_TYPES = [
   { label: 'Shirt', value: 'shirt' },
   { label: 'T-Shirt', value: 't-shirt' },
+  { label: 'Top', value: 'top' },
+  { label: 'Polo', value: 'polo' },
+  { label: 'Blouse', value: 'blouse' },
+  { label: 'Tank Top', value: 'tank-top' },
+  { label: 'Sweater', value: 'sweater' },
+  { label: 'Hoodie', value: 'hoodie' },
+  { label: 'Cardigan', value: 'cardigan' },
+  { label: 'Vest', value: 'vest' },
   { label: 'Pants', value: 'pants' },
   { label: 'Jeans', value: 'jeans' },
   { label: 'Shorts', value: 'shorts' },
-  { label: 'Jacket', value: 'jacket' },
-  { label: 'Sweater', value: 'sweater' },
-  { label: 'Hoodie', value: 'hoodie' },
-  { label: 'Dress', value: 'dress' },
   { label: 'Skirt', value: 'skirt' },
+  { label: 'Dress', value: 'dress' },
+  { label: 'Jumpsuit', value: 'jumpsuit' },
+  { label: 'Jacket', value: 'jacket' },
+  { label: 'Blazer', value: 'blazer' },
   { label: 'Coat', value: 'coat' },
   { label: 'Suit', value: 'suit' },
-  { label: 'Blazer', value: 'blazer' },
   { label: 'Shoes', value: 'shoes' },
+  { label: 'Sneakers', value: 'sneakers' },
+  { label: 'Boots', value: 'boots' },
+  { label: 'Sandals', value: 'sandals' },
+  { label: 'Socks', value: 'socks' },
+  { label: 'Tie', value: 'tie' },
+  { label: 'Hat', value: 'hat' },
+  { label: 'Scarf', value: 'scarf' },
+  { label: 'Belt', value: 'belt' },
+  { label: 'Bag', value: 'bag' },
   { label: 'Accessories', value: 'accessories' },
-  { label: 'Other', value: 'other' },
 ] as const;
 
 export const OCCASIONS = [
