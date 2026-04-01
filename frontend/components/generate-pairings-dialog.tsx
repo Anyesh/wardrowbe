@@ -83,7 +83,7 @@ export function GeneratePairingsDialog({
 
         {!generatedPairings ? (
           // Generation form
-          <div className="space-y-6 py-4">
+          <div className="space-y-6 py-4 min-w-0">
             {/* Source item preview */}
             <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 border">
               <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden relative border-2 border-primary/30">

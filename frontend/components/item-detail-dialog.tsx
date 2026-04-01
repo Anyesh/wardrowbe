@@ -231,7 +231,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden [&>button]:hidden">
           {/* Header - sticky */}
           <DialogHeader className="flex flex-row items-center justify-between space-y-0 p-4 border-b flex-shrink-0">
-            <DialogTitle className="text-xl">
+            <DialogTitle className="text-xl min-w-0 truncate">
               {item.name || typeInfo?.label || item.type}
             </DialogTitle>
             <div className="flex items-center gap-1">
@@ -329,7 +329,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto overscroll-contain p-6 pt-4">
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2 [&>*]:min-w-0">
             {/* Image Gallery */}
             <div className="space-y-2">
               <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
