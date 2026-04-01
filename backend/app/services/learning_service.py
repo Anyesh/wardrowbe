@@ -184,6 +184,10 @@ class LearningService:
                 item_composition["shoes"] = item_type
             elif item_type in ["jacket", "coat", "outerwear"]:
                 item_composition["outerwear"] = item_type
+            elif item_type == "socks":
+                item_composition["socks"] = item_type
+            elif item_type == "tie":
+                item_composition["neckwear"] = item_type
 
             if item.primary_color:
                 color_composition["primary_colors"].append(item.primary_color)

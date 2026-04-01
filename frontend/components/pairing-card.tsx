@@ -149,7 +149,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
         {(pairing.reasoning || pairing.highlights) && (
           <div className="mt-2 space-y-1.5 text-xs flex-1">
             {pairing.reasoning && (
-              <p className="font-medium text-foreground">{pairing.reasoning}</p>
+              <p className="font-medium text-foreground break-words">{pairing.reasoning}</p>
             )}
             {pairing.highlights && pairing.highlights.length > 0 && (
               <ul className="space-y-0.5">
@@ -167,7 +167,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
         {/* Styling tip */}
         {pairing.style_notes && (
           <div className="mt-2 p-2 bg-muted rounded border text-xs">
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground break-words">
               <span className="font-medium text-foreground">Tip:</span> {pairing.style_notes}
             </p>
           </div>

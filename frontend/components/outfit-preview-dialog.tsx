@@ -183,7 +183,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
               </div>
             </div>
             {currentItem.name && (
-              <p className="font-medium">{currentItem.name}</p>
+              <p className="font-medium break-words">{currentItem.name}</p>
             )}
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5 mt-1" asChild>
               <Link href={`/dashboard/wardrobe?item=${currentItem.id}`}>
@@ -231,7 +231,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
           {(outfit.reasoning || outfit.highlights || outfit.style_notes) && (
             <div className="border-t p-4 space-y-3">
               {outfit.reasoning && (
-                <p className="font-medium text-foreground">{outfit.reasoning}</p>
+                <p className="font-medium text-foreground break-words">{outfit.reasoning}</p>
               )}
               {outfit.highlights && outfit.highlights.length > 0 && (
                 <ul className="space-y-1.5">
@@ -245,7 +245,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
               )}
               {outfit.style_notes && (
                 <div className="p-3 bg-muted rounded-lg border">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     <span className="font-medium text-foreground">Tip:</span> {outfit.style_notes}
                   </p>
                 </div>

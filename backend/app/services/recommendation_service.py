@@ -26,6 +26,7 @@ from app.services.ai_service import AIService
 from app.services.item_scorer import get_season, score_items
 from app.services.suggestion_cache import pop_suggestion, push_suggestions
 from app.services.weather_service import WeatherData, WeatherService, WeatherServiceError
+from app.utils.clothing import deduplicate_by_body_slot
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_today
 
@@ -541,6 +542,13 @@ class RecommendationService:
 
         if not valid_ids:
             raise AIRecommendationError("AI did not select any valid items")
+
+        # Deduplicate by body slot (e.g. prevent shorts + pants)
+        items_result = await self.db.execute(
+            select(ClothingItem.id, ClothingItem.type).where(ClothingItem.id.in_(valid_ids))
+        )
+        item_type_map = {row.id: (row.type or "").lower() for row in items_result}
+        valid_ids = deduplicate_by_body_slot(valid_ids, item_type_map)
 
         reasoning = outfit_data.get("headline") or outfit_data.get("reasoning")
         style_notes = outfit_data.get("styling_tip") or outfit_data.get("style_notes")

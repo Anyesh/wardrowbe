@@ -3,7 +3,7 @@ OUTPUT ONLY JSON. NO TEXT. NO DESCRIPTIONS. NO EXPLANATIONS.
 Analyze the MAIN clothing item in this image. Use ONLY these values:
 
 TYPE (required, pick one):
-shirt, t-shirt, top, pants, jeans, shorts, dress, jumpsuit, skirt, jacket, coat, sweater, hoodie, blazer, vest, cardigan, polo, blouse, tank-top, shoes, sneakers, boots, sandals, hat, scarf, belt, bag, accessories
+shirt, t-shirt, top, pants, jeans, shorts, dress, jumpsuit, skirt, jacket, coat, sweater, hoodie, blazer, vest, cardigan, polo, blouse, tank-top, shoes, sneakers, boots, sandals, socks, tie, hat, scarf, belt, bag, accessories
 
 SUBTYPE (optional): A more specific name within the type. Examples:
 - shirt → henley, button-down, oxford, flannel, hawaiian, camp-collar
@@ -15,6 +15,8 @@ SUBTYPE (optional): A more specific name within the type. Examples:
 - boots → ankle, chelsea, combat, knee-high, rain
 - skirt → mini, midi, maxi, pleated, wrap, pencil
 - sweater → pullover, crewneck, turtleneck, v-neck
+- socks → ankle, crew, knee-high, no-show, dress, athletic
+- tie → necktie, bow-tie, bolo
 Use null if the type is specific enough (e.g. jeans, hoodie, blazer).
 
 PRIMARY_COLOR (required, pick one):

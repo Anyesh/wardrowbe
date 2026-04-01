@@ -11,6 +11,7 @@ from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
 from app.services.ai_service import AIService
+from app.utils.clothing import deduplicate_by_body_slot
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_today
 
@@ -220,6 +221,11 @@ class PairingService:
         created_outfits = []
         user_today = get_user_today(user)
 
+        # Build type map for body-slot validation
+        item_type_map: dict[UUID, str] = {source_item.id: (source_item.type or "").lower()}
+        for item in available_items:
+            item_type_map[item.id] = (item.type or "").lower()
+
         for pairing in pairings_data[:num_pairings]:
             # Get item numbers from the pairing
             selected_numbers = pairing.get("items", [])
@@ -238,6 +244,9 @@ class PairingService:
             # Ensure source item is included
             if source_item.id not in valid_ids:
                 valid_ids.insert(0, source_item.id)
+
+            # Deduplicate by body slot (e.g. prevent shorts + pants)
+            valid_ids = deduplicate_by_body_slot(valid_ids, item_type_map)
 
             if len(valid_ids) < 2:
                 logger.warning("Pairing has too few valid items, skipping")
