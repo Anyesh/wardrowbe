@@ -144,7 +144,7 @@ services:
     dns:
       - ${LOCAL_DNS:-8.8.8.8}
     environment:
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://localhost:3000}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env}
       NEXT_PUBLIC_API_URL: ""
       # OIDC
