@@ -57,7 +57,7 @@ services:
       AI_TIMEOUT: ${AI_TIMEOUT:-120}
       AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       # OIDC (set these if using OIDC instead of forward auth)
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
@@ -144,10 +144,9 @@ services:
     dns:
       - ${LOCAL_DNS:-8.8.8.8}
     environment:
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:8081}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env}
       NEXT_PUBLIC_API_URL: ""
-      DEV_MODE: ${DEV_MODE:-true}
       # OIDC
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
@@ -171,7 +170,7 @@ services:
     container_name: wardrobe_nginx
     restart: unless-stopped
     ports:
-      - "8081:80"
+      - "8080:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
@@ -180,8 +179,6 @@ services:
       - backend
     networks:
       - wardrobe_net
-      - default
-      - proxy
 
 volumes:
   postgres_data:
@@ -191,5 +188,3 @@ volumes:
 networks:
   wardrobe_net:
     driver: bridge
-  proxy:
-    external: true
