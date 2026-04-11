@@ -178,6 +178,8 @@ services:
       - backend
     networks:
       - wardrobe_net
+      - default
+      - proxy
 
 volumes:
   postgres_data:
@@ -187,3 +189,5 @@ volumes:
 networks:
   wardrobe_net:
     driver: bridge
+  proxy:
+    external: true
