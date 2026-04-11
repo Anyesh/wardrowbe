@@ -89,6 +89,7 @@ services:
       retries: 3
     networks:
       - wardrobe_net
+      - proxy
 
   # arq Worker for background jobs
   worker:
@@ -128,6 +129,7 @@ services:
         condition: service_healthy
     networks:
       - wardrobe_net
+      - proxy
 
   # Next.js Frontend
   frontend:
