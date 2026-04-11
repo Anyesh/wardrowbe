@@ -169,7 +169,7 @@ services:
     container_name: wardrobe_nginx
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8081:80"
+      - "8081:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
