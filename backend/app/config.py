@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     app_name: str = "Wardrowbe"
     debug: bool = False
     secret_key: str = Field(default=DEFAULT_SECRET_KEY)
+    studio_disabled: bool = False
 
     # CORS
     cors_origins: list[str] = Field(default=["http://localhost:3000", "http://localhost:8081"])
