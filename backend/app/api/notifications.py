@@ -1,6 +1,6 @@
-from datetime import datetime, time, timedelta
+import logging
+from datetime import time
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ValidationError
@@ -30,65 +30,14 @@ from app.schemas.notification import (
 from app.services.notification_service import NotificationService
 from app.utils.auth import get_current_user
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
-# ============= Timezone Helpers =============
-
-
-def local_time_to_utc(local_time_str: str, day_of_week: int, user_tz: ZoneInfo) -> tuple[time, int]:
-    hours, minutes = map(int, local_time_str.split(":"))
-
-    # Use a reference date that falls on the given day_of_week
-    # Jan 5, 2026 is a Monday (day_of_week=0)
-    reference_monday = datetime(2026, 1, 5, tzinfo=ZoneInfo("UTC"))
-    reference_date = reference_monday + timedelta(days=day_of_week)
-
-    # Create datetime in user's timezone
-    local_dt = reference_date.replace(
-        hour=hours, minute=minutes, second=0, microsecond=0, tzinfo=user_tz
-    )
-
-    # Convert to UTC
-    utc_dt = local_dt.astimezone(ZoneInfo("UTC"))
-
-    return utc_dt.time(), utc_dt.weekday()
-
-
-def utc_time_to_local(utc_time: time, utc_day_of_week: int, user_tz: ZoneInfo) -> tuple[str, int]:
-    # Use same reference date approach
-    reference_monday = datetime(2026, 1, 5, tzinfo=ZoneInfo("UTC"))
-    reference_date = reference_monday + timedelta(days=utc_day_of_week)
-
-    # Create datetime in UTC
-    utc_dt = reference_date.replace(
-        hour=utc_time.hour, minute=utc_time.minute, second=0, microsecond=0, tzinfo=ZoneInfo("UTC")
-    )
-
-    # Convert to user's timezone
-    local_dt = utc_dt.astimezone(user_tz)
-
-    return local_dt.strftime("%H:%M"), local_dt.weekday()
-
-
-def _schedule_to_local_response(schedule: Schedule, user_tz: ZoneInfo) -> dict:
-    local_time_str, local_day = utc_time_to_local(
-        schedule.notification_time, schedule.day_of_week, user_tz
-    )
-    return {
-        "id": schedule.id,
-        "user_id": schedule.user_id,
-        "day_of_week": local_day,  # Return local day
-        "notification_time": local_time_str,  # Return local time
-        "occasion": schedule.occasion,
-        "enabled": schedule.enabled,
-        "notify_day_before": schedule.notify_day_before,
-        "created_at": schedule.created_at,
-        "updated_at": schedule.updated_at,
-    }
-
-
-# ============= Defaults =============
+def _parse_local_time(time_str: str) -> time:
+    hours, minutes = map(int, time_str.split(":"))
+    return time(hours, minutes)
 
 
 @router.get("/defaults/ntfy")
@@ -288,20 +237,10 @@ async def list_schedules(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Get user's timezone
-    try:
-        user_tz = ZoneInfo(current_user.timezone or "UTC")
-    except Exception:
-        user_tz = ZoneInfo("UTC")
-
-    result = await db.execute(select(Schedule).where(Schedule.user_id == current_user.id))
-    schedules = list(result.scalars().all())
-
-    # Convert to local time and sort by local day
-    local_schedules = [_schedule_to_local_response(s, user_tz) for s in schedules]
-    local_schedules.sort(key=lambda x: x["day_of_week"])
-
-    return local_schedules
+    service = NotificationService(db)
+    schedules = await service.get_user_schedules(current_user.id)
+    schedules.sort(key=lambda s: s.day_of_week)
+    return schedules
 
 
 @router.post("/schedules", response_model=ScheduleResponse, status_code=201)
@@ -310,44 +249,24 @@ async def create_schedule(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Get user's timezone
+    service = NotificationService(db)
     try:
-        user_tz = ZoneInfo(current_user.timezone or "UTC")
-    except Exception:
-        user_tz = ZoneInfo("UTC")
-
-    # Convert local time to UTC (day might shift!)
-    utc_time, utc_day = local_time_to_utc(data.notification_time, data.day_of_week, user_tz)
-
-    # Prevent exact duplicate schedules
-    existing = await db.execute(
-        select(Schedule).where(
-            and_(
-                Schedule.user_id == current_user.id,
-                Schedule.day_of_week == utc_day,
-                Schedule.notification_time == utc_time,
-                Schedule.occasion == data.occasion,
-                Schedule.notify_day_before == data.notify_day_before,
-            )
+        schedule = await service.create_schedule(
+            user_id=current_user.id,
+            day_of_week=data.day_of_week,
+            notification_time=_parse_local_time(data.notification_time),
+            occasion=data.occasion,
+            enabled=data.enabled,
+            notify_day_before=data.notify_day_before,
         )
-    )
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail="An identical schedule already exists")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=409,
+            detail=str(e),
+        ) from None
 
-    schedule = Schedule(
-        user_id=current_user.id,
-        day_of_week=utc_day,  # Store UTC day
-        notification_time=utc_time,  # Store UTC time
-        occasion=data.occasion,
-        enabled=data.enabled,
-        notify_day_before=data.notify_day_before,
-    )
-    db.add(schedule)
     await db.commit()
-    await db.refresh(schedule)
-
-    # Return with local time (handled by response conversion)
-    return _schedule_to_local_response(schedule, user_tz)
+    return schedule
 
 
 @router.get("/schedules/{schedule_id}", response_model=ScheduleResponse)
@@ -356,22 +275,11 @@ async def get_schedule(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Get user's timezone
-    try:
-        user_tz = ZoneInfo(current_user.timezone or "UTC")
-    except Exception:
-        user_tz = ZoneInfo("UTC")
-
-    result = await db.execute(
-        select(Schedule).where(
-            and_(Schedule.id == schedule_id, Schedule.user_id == current_user.id)
-        )
-    )
-    schedule = result.scalar_one_or_none()
+    service = NotificationService(db)
+    schedule = await service.get_schedule_by_id(schedule_id, current_user.id)
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
-
-    return _schedule_to_local_response(schedule, user_tz)
+    return schedule
 
 
 @router.patch("/schedules/{schedule_id}", response_model=ScheduleResponse)
@@ -381,31 +289,15 @@ async def update_schedule(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Get user's timezone
-    try:
-        user_tz = ZoneInfo(current_user.timezone or "UTC")
-    except Exception:
-        user_tz = ZoneInfo("UTC")
-
-    result = await db.execute(
-        select(Schedule).where(
-            and_(Schedule.id == schedule_id, Schedule.user_id == current_user.id)
-        )
-    )
-    schedule = result.scalar_one_or_none()
+    service = NotificationService(db)
+    schedule = await service.get_schedule_by_id(schedule_id, current_user.id)
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
 
     if data.notification_time is not None:
-        # Get current local day to use for conversion
-        _, current_local_day = utc_time_to_local(
-            schedule.notification_time, schedule.day_of_week, user_tz
-        )
-        # Convert new local time to UTC
-        utc_time, utc_day = local_time_to_utc(data.notification_time, current_local_day, user_tz)
-        schedule.notification_time = utc_time
-        schedule.day_of_week = utc_day
-
+        schedule.notification_time = _parse_local_time(data.notification_time)
+    if data.day_of_week is not None:
+        schedule.day_of_week = data.day_of_week
     if data.occasion is not None:
         schedule.occasion = data.occasion
     if data.enabled is not None:
@@ -415,8 +307,7 @@ async def update_schedule(
 
     await db.commit()
     await db.refresh(schedule)
-
-    return _schedule_to_local_response(schedule, user_tz)
+    return schedule
 
 
 @router.delete("/schedules/{schedule_id}", response_model=MessageResponse)

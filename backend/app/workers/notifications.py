@@ -253,40 +253,41 @@ async def check_scheduled_notifications(ctx: dict):
     db = get_db_session(ctx)
     try:
         now_utc = datetime.now(UTC)
-        current_utc_day = now_utc.weekday()
-        current_utc_time = now_utc.time()
-        tomorrow_utc_day = (current_utc_day + 1) % 7
 
+        # Stored times are the user's LOCAL time, so we load the user's
+        # timezone and convert the current UTC instant to their local
+        # clock. This way DST transitions are handled correctly because
+        # ZoneInfo uses the real offset for today's date, not a fixed
+        # reference date.
         result = await db.execute(
-            select(Schedule).where(
-                and_(
-                    Schedule.enabled == True,  # noqa: E712
-                    (
-                        (
-                            (Schedule.notify_day_before == False)  # noqa: E712
-                            & (Schedule.day_of_week == current_utc_day)
-                        )
-                        | (
-                            (Schedule.notify_day_before == True)  # noqa: E712
-                            & (Schedule.day_of_week == tomorrow_utc_day)
-                        )
-                    ),
-                )
-            )
+            select(Schedule).options(selectinload(Schedule.user)).where(Schedule.enabled == True)  # noqa: E712
         )
         schedules = list(result.scalars().all())
 
         to_enqueue: list[Schedule] = []
         for schedule in schedules:
+            try:
+                user_tz = ZoneInfo(schedule.user.timezone or "UTC")
+            except (KeyError, ValueError):
+                user_tz = ZoneInfo("UTC")
+
+            now_local = now_utc.astimezone(user_tz)
+            local_day = now_local.weekday()
+            local_minutes = now_local.hour * 60 + now_local.minute
+            tomorrow_local_day = (local_day + 1) % 7
+
+            day_match = (not schedule.notify_day_before and schedule.day_of_week == local_day) or (
+                schedule.notify_day_before and schedule.day_of_week == tomorrow_local_day
+            )
+            if not day_match:
+                continue
+
             schedule_minutes = (
                 schedule.notification_time.hour * 60 + schedule.notification_time.minute
             )
-            current_minutes = current_utc_time.hour * 60 + current_utc_time.minute
-
-            if abs(schedule_minutes - current_minutes) > 1:
+            if abs(schedule_minutes - local_minutes) > 1:
                 continue
 
-            # Deduplication: skip if triggered within the last hour
             threshold = now_utc - timedelta(hours=1)
             if schedule.last_triggered_at and schedule.last_triggered_at >= threshold:
                 logger.debug(
@@ -295,7 +296,6 @@ async def check_scheduled_notifications(ctx: dict):
                 )
                 continue
 
-            # Mark as triggered NOW to prevent duplicate enqueues on next cron tick
             schedule.last_triggered_at = now_utc
             to_enqueue.append(schedule)
 
@@ -304,14 +304,9 @@ async def check_scheduled_notifications(ctx: dict):
                 f"(user={schedule.user_id}, occasion={schedule.occasion})"
             )
 
-        # Commit all last_triggered_at updates before enqueuing
         if to_enqueue:
             await db.commit()
 
-        # Enqueue jobs after commit so dedup is persisted even if enqueue fails.
-        # _job_id ensures idempotent enqueue: if multiple workers run the cron
-        # concurrently, only the first enqueue for each schedule/minute wins.
-        # arq silently ignores enqueue_job when a job with the same _job_id exists.
         minute_key = now_utc.strftime("%Y%m%d%H%M")
         enqueue_failures = 0
         for schedule in to_enqueue:
