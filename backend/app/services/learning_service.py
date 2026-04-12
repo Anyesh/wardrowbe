@@ -9,8 +9,9 @@ This service implements a Netflix/Spotify-style recommendation learning system t
 5. Integrates learned preferences into the recommendation flow
 """
 
+import enum
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from itertools import combinations
 from uuid import UUID
@@ -35,41 +36,60 @@ from app.utils.signed_urls import sign_image_url
 logger = logging.getLogger(__name__)
 
 
-class LearningService:
-    """Service for learning from user feedback and improving recommendations."""
+class PairSignalType(enum.Enum):
+    intent = "intent"
+    wear = "wear"
+    rating = "rating"
 
-    # Weights for computing performance scores
+
+class LearningService:
     ACCEPTANCE_WEIGHT = 0.4
     RATING_WEIGHT = 0.4
     WEAR_WEIGHT = 0.2
 
-    # Minimum data points needed for reliable learning
-    # Low threshold to show data early; quality improves with more feedback
     MIN_FEEDBACK_FOR_LEARNING = 1
     MIN_PAIRS_FOR_SCORING = 2
 
-    # Score decay for older feedback (per day)
     SCORE_DECAY_RATE = 0.995
+
+    MANUAL_SIGNAL_MULTIPLIER: float = 1.2
+    WEAR_BONUS_INCREMENT: Decimal = Decimal("0.1")
+    WEAR_BONUS_CAP: Decimal = Decimal("1.0")
 
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    def _determine_signal_types(self, feedback: UserFeedback) -> set[PairSignalType]:
+        types: set[PairSignalType] = set()
+        if feedback.accepted is not None:
+            types.add(PairSignalType.intent)
+        if feedback.worn_at is not None:
+            types.add(PairSignalType.wear)
+        if feedback.rating is not None:
+            types.add(PairSignalType.rating)
+        return types
+
+    def create_synthetic_feedback(
+        self,
+        outfit_id: UUID,
+        accepted: bool = True,
+        worn_at: date | None = None,
+        rating: int | None = None,
+        comment: str | None = None,
+    ) -> UserFeedback:
+        return UserFeedback(
+            outfit_id=outfit_id,
+            accepted=accepted,
+            worn_at=worn_at,
+            rating=rating,
+            comment=comment,
+        )
 
     async def process_feedback(
         self,
         outfit_id: UUID,
         user_id: UUID,
     ) -> None:
-        """
-        Process new feedback and update learning models.
-
-        This is called whenever a user submits feedback on an outfit.
-        It updates:
-        1. OutfitPerformance record
-        2. ItemPairScore records for items in the outfit
-        3. "Wore instead" items get positive signals
-        4. Triggers profile recomputation if threshold reached
-        """
-        # Get outfit with all related data
         result = await self.db.execute(
             select(Outfit)
             .where(Outfit.id == outfit_id)
@@ -83,21 +103,14 @@ class LearningService:
         if not outfit or not outfit.feedback:
             return
 
-        # Update outfit performance
         await self._update_outfit_performance(outfit)
 
-        # Update item pair scores
-        await self._update_item_pair_scores(outfit)
-
-        # Process "wore instead" items - these get POSITIVE signals
-        # because user actively chose them over our recommendation
-        if outfit.feedback.wore_instead_items:
-            await self._process_wore_instead(outfit)
+        signal_types = self._determine_signal_types(outfit.feedback)
+        if signal_types:
+            await self._update_item_pair_scores(outfit, signal_types)
 
         await self.db.commit()
 
-        # Re-fetch outfit with relationships after commit, since commit expires
-        # all loaded attributes and lazy loading is not allowed in async context
         result = await self.db.execute(
             select(Outfit)
             .where(Outfit.id == outfit_id)
@@ -108,7 +121,6 @@ class LearningService:
         )
         outfit = result.scalar_one()
 
-        # Incremental EMA update instead of full recomputation
         signal = self._get_outfit_signal(outfit)
         await self._update_profile_incremental(user_id, outfit, signal)
 
@@ -225,8 +237,9 @@ class LearningService:
 
         await self.db.execute(stmt)
 
-    async def _update_item_pair_scores(self, outfit: Outfit) -> None:
-        """Update compatibility scores for all item pairs in the outfit."""
+    async def _update_item_pair_scores(
+        self, outfit: Outfit, signal_types: set[PairSignalType] | None = None
+    ) -> None:
         feedback = outfit.feedback
         if not feedback:
             return
@@ -391,8 +404,75 @@ class LearningService:
             # Recompute compatibility
             pair_score.compatibility_score = self._compute_pair_compatibility(pair_score)
 
+    async def process_item_diff(
+        self,
+        outfit: Outfit,
+        added_pairs: set[tuple[UUID, UUID]],
+        removed_pairs: set[tuple[UUID, UUID]],
+    ) -> None:
+        feedback = outfit.feedback
+        if not feedback:
+            return
+
+        signal_types = self._determine_signal_types(feedback)
+        if not signal_types:
+            return
+
+        for pair in removed_pairs:
+            await self._apply_pair_delta(outfit, pair, signal_types, feedback, sign=-1)
+
+        for pair in added_pairs:
+            await self._apply_pair_delta(outfit, pair, signal_types, feedback, sign=+1)
+
+        await self.db.flush()
+
+    async def _apply_pair_delta(
+        self,
+        outfit: Outfit,
+        pair_ids: tuple[UUID, UUID],
+        signal_types: set[PairSignalType],
+        feedback: UserFeedback,
+        sign: int,
+    ) -> None:
+        lo, hi = sorted(pair_ids)
+        result = await self.db.execute(
+            select(ItemPairScore).where(
+                and_(
+                    ItemPairScore.user_id == outfit.user_id,
+                    ItemPairScore.item1_id == lo,
+                    ItemPairScore.item2_id == hi,
+                )
+            )
+        )
+        pair = result.scalar_one_or_none()
+
+        if pair is None:
+            if sign < 0:
+                return
+            pair = ItemPairScore(user_id=outfit.user_id, item1_id=lo, item2_id=hi)
+            self.db.add(pair)
+            await self.db.flush()
+
+        if PairSignalType.intent in signal_types and feedback.accepted is not None:
+            pair.times_paired = max(0, (pair.times_paired or 0) + sign)
+            if feedback.accepted:
+                pair.times_accepted = max(0, (pair.times_accepted or 0) + sign)
+            else:
+                pair.times_rejected = max(0, (pair.times_rejected or 0) + sign)
+
+        if PairSignalType.wear in signal_types and feedback.worn_at is not None:
+            delta = self.WEAR_BONUS_INCREMENT * sign
+            current = pair.wear_bonus or Decimal("0")
+            new_val = current + delta
+            if new_val < Decimal("0"):
+                new_val = Decimal("0")
+            if new_val > self.WEAR_BONUS_CAP:
+                new_val = self.WEAR_BONUS_CAP
+            pair.wear_bonus = new_val
+
+        pair.compatibility_score = self._compute_pair_compatibility(pair)
+
     def _get_temp_bucket(self, temp: float) -> str:
-        """Get temperature bucket for grouping."""
         if temp < 5:
             return "cold"
         elif temp < 15:
