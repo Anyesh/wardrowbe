@@ -77,6 +77,7 @@ export interface ItemFilter {
   search?: string;
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
+  ids?: string;
 }
 
 export interface StyleProfile {

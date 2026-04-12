@@ -102,4 +102,16 @@ export const api = {
     fetchApi<T>(endpoint, { ...options, method: 'DELETE' }),
 };
 
+const handledErrors = new WeakSet<object>();
+
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (error && typeof error === 'object') handledErrors.add(error);
+  if (error instanceof ApiError && error.status < 500) return error.message;
+  return fallback;
+}
+
+export function isErrorHandled(error: unknown): boolean {
+  return error !== null && typeof error === 'object' && handledErrors.has(error);
+}
+
 export { ApiError, NetworkError };

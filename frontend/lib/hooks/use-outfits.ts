@@ -47,9 +47,12 @@ export type OutfitSource = 'scheduled' | 'on_demand' | 'manual' | 'pairing';
 export interface Outfit {
   id: string;
   occasion: string;
-  scheduled_for: string;
-  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+  scheduled_for: string | null;
+  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'skipped' | 'expired';
   source: OutfitSource;
+  name: string | null;
+  replaces_outfit_id: string | null;
+  cloned_from_outfit_id: string | null;
   reasoning: string | null;
   style_notes: string | null;
   highlights: string[] | null;
@@ -59,6 +62,7 @@ export interface Outfit {
   family_ratings: FamilyRating[] | null;
   family_rating_average: number | null;
   family_rating_count: number | null;
+  is_starter_suggestion?: boolean;
   created_at: string;
 }
 
@@ -75,6 +79,12 @@ export interface OutfitFilters {
   occasion?: string;
   date_from?: string;
   date_to?: string;
+  source?: string;
+  is_lookbook?: boolean;
+  is_replacement?: boolean;
+  has_source_item?: boolean;
+  search?: string;
+  cloned_from_outfit_id?: string;
 }
 
 export interface FeedbackData {
@@ -119,6 +129,15 @@ export function useOutfits(filters: OutfitFilters = {}, page = 1, pageSize = 20)
   if (filters.occasion) params.occasion = filters.occasion;
   if (filters.date_from) params.date_from = filters.date_from;
   if (filters.date_to) params.date_to = filters.date_to;
+  if (filters.source) params.source = filters.source;
+  if (filters.is_lookbook !== undefined) params.is_lookbook = String(filters.is_lookbook);
+  if (filters.is_replacement !== undefined)
+    params.is_replacement = String(filters.is_replacement);
+  if (filters.has_source_item !== undefined)
+    params.has_source_item = String(filters.has_source_item);
+  if (filters.search) params.search = filters.search;
+  if (filters.cloned_from_outfit_id)
+    params.cloned_from_outfit_id = filters.cloned_from_outfit_id;
 
   return useQuery({
     queryKey: ['outfits', filters, page, pageSize],
