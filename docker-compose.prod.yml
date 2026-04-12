@@ -147,6 +147,7 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-https://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env}
       NEXT_PUBLIC_API_URL: ""
+      DEV_MODE: ${DEV_MODE:-true}
       # OIDC
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
