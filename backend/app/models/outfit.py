@@ -30,6 +30,7 @@ class OutfitStatus(enum.StrEnum):
     viewed = "viewed"
     accepted = "accepted"
     rejected = "rejected"
+    skipped = "skipped"
     expired = "expired"
 
 
@@ -51,7 +52,7 @@ class Outfit(Base):
     # Context
     weather_data: Mapped[dict | None] = mapped_column(JSONB)
     occasion: Mapped[str] = mapped_column(String(50), nullable=False)
-    scheduled_for: Mapped[date] = mapped_column(Date, nullable=False)
+    scheduled_for: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     # AI output
     reasoning: Mapped[str | None] = mapped_column(Text)
@@ -72,6 +73,20 @@ class Outfit(Base):
     source_item_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("clothing_items.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    replaces_outfit_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("outfits.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    cloned_from_outfit_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("outfits.id", ondelete="SET NULL"),
         nullable=True,
     )
 
@@ -98,6 +113,18 @@ class Outfit(Base):
     )
     source_item: Mapped[Optional["ClothingItem"]] = relationship(
         "ClothingItem", foreign_keys=[source_item_id]
+    )
+    replaces: Mapped[Optional["Outfit"]] = relationship(
+        "Outfit",
+        foreign_keys=[replaces_outfit_id],
+        remote_side="Outfit.id",
+        post_update=True,
+    )
+    cloned_from: Mapped[Optional["Outfit"]] = relationship(
+        "Outfit",
+        foreign_keys=[cloned_from_outfit_id],
+        remote_side="Outfit.id",
+        post_update=True,
     )
 
 

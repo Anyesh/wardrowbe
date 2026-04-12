@@ -116,8 +116,8 @@ class ItemPairScore(Base):
         nullable=False,
     )
 
-    # Compatibility score (-1 to 1, positive = good together, negative = avoid)
     compatibility_score: Mapped[Decimal] = mapped_column(Numeric(5, 4), default=0)
+    wear_bonus: Mapped[Decimal | None] = mapped_column(Numeric(5, 4), default=Decimal("0"))
 
     # Number of times this pair appeared together in outfits
     times_paired: Mapped[int] = mapped_column(Integer, default=0)
