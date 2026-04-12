@@ -43,6 +43,7 @@ export function OutfitCalendar({
     const map = new Map<string, Set<OutfitSource>>();
     outfits.forEach((outfit) => {
       const dateKey = outfit.scheduled_for;
+      if (!dateKey) return;
       if (!map.has(dateKey)) {
         map.set(dateKey, new Set());
       }

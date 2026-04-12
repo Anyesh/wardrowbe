@@ -94,11 +94,11 @@ function FeedOutfitCard({
             </Badge>
           </div>
           <span className="text-xs text-muted-foreground">
-            {new Date(outfit.scheduled_for).toLocaleDateString(undefined, {
+            {outfit.scheduled_for ? new Date(outfit.scheduled_for).toLocaleDateString(undefined, {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
-            })}
+            }) : 'Lookbook'}
           </span>
         </div>
 

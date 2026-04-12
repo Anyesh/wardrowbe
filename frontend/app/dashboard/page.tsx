@@ -219,11 +219,11 @@ function PendingOutfitsCard() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium capitalize truncate">{outfit.occasion}</p>
               <p className="text-xs text-muted-foreground">
-                {new Date(outfit.scheduled_for).toLocaleDateString('en-US', {
+                {outfit.scheduled_for ? new Date(outfit.scheduled_for).toLocaleDateString('en-US', {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
-                })}
+                }) : 'Lookbook'}
               </p>
             </div>
             <div className="flex gap-1">

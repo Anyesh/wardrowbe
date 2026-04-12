@@ -105,7 +105,7 @@ export default function HistoryPage() {
   const selectedDateOutfits = useMemo(() => {
     if (!data?.outfits || !selectedDate) return [];
     return data.outfits.filter((outfit) =>
-      isSameDay(parseISO(outfit.scheduled_for), selectedDate)
+      outfit.scheduled_for && isSameDay(parseISO(outfit.scheduled_for), selectedDate)
     );
   }, [data?.outfits, selectedDate]);
 
