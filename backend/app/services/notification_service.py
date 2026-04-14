@@ -1,7 +1,7 @@
 import html as html_mod
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from enum import StrEnum
 from uuid import UUID
 
@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
 from app.models.outfit import Outfit, OutfitItem
+from app.models.schedule import Schedule
 from app.models.user import User
 from app.schemas.notification import EmailConfig, ExpoPushConfig, MattermostConfig, NtfyConfig
 from app.services.notification_providers import (
@@ -157,6 +158,90 @@ class NotificationService:
             return success, message
         except Exception as e:
             return False, str(e)
+
+    async def get_user_schedules(self, user_id: UUID) -> list[Schedule]:
+        result = await self.db.execute(select(Schedule).where(Schedule.user_id == user_id))
+        return list(result.scalars().all())
+
+    async def get_schedule_by_id(self, schedule_id: UUID, user_id: UUID) -> Schedule | None:
+        result = await self.db.execute(
+            select(Schedule).where(and_(Schedule.id == schedule_id, Schedule.user_id == user_id))
+        )
+        return result.scalar_one_or_none()
+
+    async def create_schedule(
+        self,
+        user_id: UUID,
+        day_of_week: int,
+        notification_time: time,
+        occasion: str,
+        enabled: bool,
+        notify_day_before: bool,
+    ) -> Schedule:
+        existing = await self.db.execute(
+            select(Schedule).where(
+                and_(
+                    Schedule.user_id == user_id,
+                    Schedule.day_of_week == day_of_week,
+                    Schedule.notification_time == notification_time,
+                    Schedule.occasion == occasion,
+                    Schedule.notify_day_before == notify_day_before,
+                )
+            )
+        )
+        if existing.scalar_one_or_none() is not None:
+            raise ValueError("An identical schedule already exists")
+
+        schedule = Schedule(
+            user_id=user_id,
+            day_of_week=day_of_week,
+            notification_time=notification_time,
+            occasion=occasion,
+            enabled=enabled,
+            notify_day_before=notify_day_before,
+        )
+        self.db.add(schedule)
+        await self.db.flush()
+        await self.db.refresh(schedule)
+        return schedule
+
+    async def update_schedule(
+        self,
+        schedule_id: UUID,
+        user_id: UUID,
+        day_of_week: int | None = None,
+        notification_time: time | None = None,
+        occasion: str | None = None,
+        enabled: bool | None = None,
+        notify_day_before: bool | None = None,
+    ) -> Schedule | None:
+        schedule = await self.get_schedule_by_id(schedule_id, user_id)
+        if not schedule:
+            return None
+
+        if day_of_week is not None:
+            schedule.day_of_week = day_of_week
+        if notification_time is not None:
+            schedule.notification_time = notification_time
+        if occasion is not None:
+            schedule.occasion = occasion
+        if enabled is not None:
+            schedule.enabled = enabled
+        if notify_day_before is not None:
+            schedule.notify_day_before = notify_day_before
+
+        await self.db.flush()
+        await self.db.refresh(schedule)
+        return schedule
+
+    async def delete_schedule(self, schedule_id: UUID, user_id: UUID) -> bool:
+        schedule = await self.get_schedule_by_id(schedule_id, user_id)
+        if not schedule:
+            return False
+
+        await self.db.delete(schedule)
+        await self.db.flush()
+        return True
 
 
 class NotificationDispatcher:

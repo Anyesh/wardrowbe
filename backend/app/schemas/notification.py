@@ -136,6 +136,7 @@ class ScheduleCreate(ScheduleBase):
 
 
 class ScheduleUpdate(BaseModel):
+    day_of_week: int | None = None
     notification_time: str | None = None
     occasion: str | None = None
     enabled: bool | None = None
@@ -157,6 +158,13 @@ class ScheduleUpdate(BaseModel):
     def validate_time(cls, v: str | None) -> str | None:
         if v is not None and not re.match(r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", v):
             raise ValueError("notification_time must be in HH:MM format")
+        return v
+
+    @field_validator("day_of_week")
+    @classmethod
+    def validate_day(cls, v: int | None) -> int | None:
+        if v is not None and (v < 0 or v > 6):
+            raise ValueError("day_of_week must be 0-6 (Monday-Sunday)")
         return v
 
 

@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.database import get_db
 from app.models.notification import Notification, NotificationSettings
-from app.models.schedule import Schedule
 from app.models.user import User
 from app.schemas.notification import (
     EmailConfig,
@@ -290,23 +289,23 @@ async def update_schedule(
     db: AsyncSession = Depends(get_db),
 ):
     service = NotificationService(db)
-    schedule = await service.get_schedule_by_id(schedule_id, current_user.id)
+    patch = data.model_dump(exclude_unset=True)
+    raw_notification_time = patch.get("notification_time")
+    schedule = await service.update_schedule(
+        schedule_id=schedule_id,
+        user_id=current_user.id,
+        day_of_week=patch.get("day_of_week"),
+        notification_time=(
+            _parse_local_time(raw_notification_time) if raw_notification_time is not None else None
+        ),
+        occasion=patch.get("occasion"),
+        enabled=patch.get("enabled"),
+        notify_day_before=patch.get("notify_day_before"),
+    )
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
 
-    if data.notification_time is not None:
-        schedule.notification_time = _parse_local_time(data.notification_time)
-    if data.day_of_week is not None:
-        schedule.day_of_week = data.day_of_week
-    if data.occasion is not None:
-        schedule.occasion = data.occasion
-    if data.enabled is not None:
-        schedule.enabled = data.enabled
-    if data.notify_day_before is not None:
-        schedule.notify_day_before = data.notify_day_before
-
     await db.commit()
-    await db.refresh(schedule)
     return schedule
 
 
@@ -316,16 +315,11 @@ async def delete_schedule(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Schedule).where(
-            and_(Schedule.id == schedule_id, Schedule.user_id == current_user.id)
-        )
-    )
-    schedule = result.scalar_one_or_none()
-    if not schedule:
+    service = NotificationService(db)
+    success = await service.delete_schedule(schedule_id, current_user.id)
+    if not success:
         raise HTTPException(status_code=404, detail="Schedule not found")
 
-    await db.delete(schedule)
     await db.commit()
     return MessageResponse(message="Schedule deleted")
 

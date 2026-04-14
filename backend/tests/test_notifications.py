@@ -1,7 +1,10 @@
+from datetime import time
+
 import pytest
 from httpx import AsyncClient
 
 from app.models.notification import NotificationSettings
+from app.models.schedule import Schedule
 
 
 class TestNotificationSettings:
@@ -147,6 +150,68 @@ class TestSchedules:
         data = response.json()
         assert data["day_of_week"] == 0
         assert data["notification_time"] == "07:00"
+
+    @pytest.mark.asyncio
+    async def test_update_schedule(self, client: AsyncClient, test_user, auth_headers, db_session):
+        schedule = Schedule(
+            user_id=test_user.id,
+            day_of_week=1,
+            notification_time=time(8, 0),
+            occasion="work",
+            enabled=True,
+            notify_day_before=False,
+        )
+        db_session.add(schedule)
+        await db_session.commit()
+        await db_session.refresh(schedule)
+
+        response = await client.patch(
+            f"/api/v1/notifications/schedules/{schedule.id}",
+            json={
+                "day_of_week": 2,
+                "notification_time": "09:30",
+                "occasion": "casual",
+                "enabled": False,
+                "notify_day_before": True,
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["day_of_week"] == 2
+        assert data["notification_time"] == "09:30"
+        assert data["occasion"] == "casual"
+        assert data["enabled"] is False
+        assert data["notify_day_before"] is True
+
+    @pytest.mark.asyncio
+    async def test_delete_schedule(self, client: AsyncClient, test_user, auth_headers, db_session):
+        schedule = Schedule(
+            user_id=test_user.id,
+            day_of_week=3,
+            notification_time=time(7, 15),
+            occasion="work",
+            enabled=True,
+            notify_day_before=False,
+        )
+        db_session.add(schedule)
+        await db_session.commit()
+        await db_session.refresh(schedule)
+
+        response = await client.delete(
+            f"/api/v1/notifications/schedules/{schedule.id}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["message"] == "Schedule deleted"
+
+        get_response = await client.get(
+            f"/api/v1/notifications/schedules/{schedule.id}",
+            headers=auth_headers,
+        )
+        assert get_response.status_code == 404
 
 
 class TestNotificationDefaults:

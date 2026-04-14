@@ -47,6 +47,8 @@ async def rate_limit_by_ip(request: Request, action: str, limit: int, window_sec
     await check_rate_limit(key, limit, window_seconds)
 
 
-async def rate_limit_by_user(user_id: UUID, action: str, limit: int, window_seconds: int) -> None:
+async def rate_limit_by_user(
+    user_id: UUID, action: str, max_requests: int, window_seconds: int
+) -> None:
     key = f"rate_limit:{action}:user:{user_id}"
-    await check_rate_limit(key, limit, window_seconds)
+    await check_rate_limit(key, max_requests, window_seconds)
