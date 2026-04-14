@@ -6,7 +6,7 @@ This migration reverses the conversion so notification_time and day_of_week
 store the user's intended LOCAL time. The worker now compares against the
 user's local clock at trigger time.
 
-Revision ID: a1b2c3d4e5f6
+Revision ID: e1f2g3h4i5j6
 Revises: 7a3b5c8d9e0f
 Create Date: 2026-04-12
 """
@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "a1b2c3d4e5f6"
+revision: str = "e1f2g3h4i5j6"
 down_revision: str | None = "7a3b5c8d9e0f"
 branch_labels: str | None = None
 depends_on: str | None = None
