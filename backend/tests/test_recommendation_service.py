@@ -1,10 +1,11 @@
 from datetime import UTC, date, datetime
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
 
-from app.models.item import ClothingItem
+from app.models.item import ClothingItem, ItemStatus
+from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
 from app.services.item_scorer import ScoredItem
 from app.services.recommendation_service import (
@@ -202,6 +203,51 @@ class TestSuggestRequestTimeOfDay:
             headers=auth_headers,
         )
         assert response.status_code != 422
+
+
+class TestSuggestEndpointRuntime:
+    @pytest.mark.asyncio
+    async def test_suggest_reaches_ready_item_count(self, client, test_user, auth_headers, db_session):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path=f"test/{uuid4()}.jpg",
+            status=ItemStatus.ready,
+            primary_color="blue",
+        )
+        outfit = Outfit(
+            user_id=test_user.id,
+            occasion="casual",
+            status=OutfitStatus.pending,
+            source=OutfitSource.on_demand,
+        )
+        outfit.feedback = None
+        outfit.family_ratings = []
+        outfit.items = [OutfitItem(item=item, position=0, layer_type=None)]
+
+        db_session.add_all([item, outfit])
+        await db_session.commit()
+
+        with patch(
+            "app.api.outfits.RecommendationService.generate_recommendation",
+            new_callable=AsyncMock,
+            return_value=outfit,
+        ):
+            response = await client.post(
+                "/api/v1/outfits/suggest",
+                json={
+                    "occasion": "casual",
+                    "weather_override": {
+                        "temperature": 20,
+                        "condition": "clear",
+                    },
+                },
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_starter_suggestion"] is True
 
 
 def _make_item(**kwargs) -> ClothingItem:

@@ -23,6 +23,20 @@ class ItemService:
         )
         return result.scalar_one_or_none()
 
+    async def get_ready_item_count(self, user_id: UUID) -> int:
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(ClothingItem)
+            .where(
+                and_(
+                    ClothingItem.user_id == user_id,
+                    ClothingItem.status == ItemStatus.ready,
+                    ClothingItem.is_archived.is_(False),
+                )
+            )
+        )
+        return result.scalar() or 0
+
     async def get_list(
         self,
         user_id: UUID,

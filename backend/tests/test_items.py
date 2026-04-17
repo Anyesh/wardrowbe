@@ -247,6 +247,34 @@ class TestItemService:
     """Tests for ItemService business logic."""
 
     @pytest.mark.asyncio
+    async def test_get_ready_item_count(self, db_session: AsyncSession, test_user):
+        ready_item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path=f"test/{uuid4()}.jpg",
+            status=ItemStatus.ready,
+        )
+        processing_item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path=f"test/{uuid4()}.jpg",
+            status=ItemStatus.processing,
+        )
+        archived_item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path=f"test/{uuid4()}.jpg",
+            status=ItemStatus.ready,
+            is_archived=True,
+        )
+
+        db_session.add_all([ready_item, processing_item, archived_item])
+        await db_session.commit()
+
+        service = ItemService(db_session)
+        assert await service.get_ready_item_count(test_user.id) == 1
+
+    @pytest.mark.asyncio
     async def test_get_item_types(self, db_session: AsyncSession, test_user):
         """Test getting item type counts."""
         # Create items of different types
