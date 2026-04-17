@@ -207,7 +207,9 @@ class TestSuggestRequestTimeOfDay:
 
 class TestSuggestEndpointRuntime:
     @pytest.mark.asyncio
-    async def test_suggest_reaches_ready_item_count(self, client, test_user, auth_headers, db_session):
+    async def test_suggest_reaches_ready_item_count(
+        self, client, test_user, auth_headers, db_session
+    ):
         item = ClothingItem(
             user_id=test_user.id,
             type="shirt",
