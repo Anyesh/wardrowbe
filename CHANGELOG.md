@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.3...wardrowbe-v1.2.4) (2026-04-17)
+
+
+### 🐛 Bug Fixes
+
+* prevent same-slot item pairing, add socks/tie types, fix UI text… ([#55](https://github.com/Anyesh/wardrowbe/issues/55)) ([c457572](https://github.com/Anyesh/wardrowbe/commit/c4575720d706d30a432900693983b0a3b38fb1a8))
+* refetch outfit after commit ([f9b3ceb](https://github.com/Anyesh/wardrowbe/commit/f9b3ceba0eab745682168151cee3adc112641afc))
+
 ## [1.2.3](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.2...wardrowbe-v1.2.3) (2026-03-30)
 
 
