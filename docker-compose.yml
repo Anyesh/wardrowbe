@@ -55,6 +55,8 @@ services:
       AI_BASE_URL: ${AI_BASE_URL:-http://host.docker.internal:11434/v1}
       AI_VISION_MODEL: ${AI_VISION_MODEL:-gpt-4o}
       AI_TEXT_MODEL: ${AI_TEXT_MODEL:-gpt-4o}
+      AI_TIMEOUT: ${AI_TIMEOUT:-120}
+      AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
       NTFY_SERVER: ${NTFY_SERVER:-}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
       MATTERMOST_WEBHOOK_URL: ${MATTERMOST_WEBHOOK_URL:-}
@@ -106,6 +108,8 @@ services:
       AI_BASE_URL: ${AI_BASE_URL:-http://host.docker.internal:11434/v1}
       AI_VISION_MODEL: ${AI_VISION_MODEL:-gpt-4o}
       AI_TEXT_MODEL: ${AI_TEXT_MODEL:-gpt-4o}
+      AI_TIMEOUT: ${AI_TIMEOUT:-120}
+      AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
       STORAGE_PATH: /data/wardrobe
     volumes:
       - wardrobe_data:/data/wardrobe
