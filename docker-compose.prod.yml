@@ -170,9 +170,13 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:80"
+    environment:
+      NGINX_AI_TIMEOUT: ${NGINX_AI_TIMEOUT:-600}
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/templates:/etc/nginx/templates:ro
+    command: >
+      /bin/sh -c "envsubst '$${NGINX_AI_TIMEOUT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"
     depends_on:
       - frontend
       - backend
