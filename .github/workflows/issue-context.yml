@@ -1,0 +1,68 @@
+name: Suggest relevant files for new issues
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  suggest-context:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install cognitive-cache
+        run: uv pip install --system cognitive-cache
+
+      - name: Select relevant files
+        id: select
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          cognitive-cache select \
+            --repo . \
+            --task "${ISSUE_TITLE}. ${ISSUE_BODY}" \
+            --budget 12000 \
+            --json > /tmp/cc-result.json
+
+      - name: Comment on issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const result = JSON.parse(fs.readFileSync('/tmp/cc-result.json', 'utf8'));
+
+            if (!result.files || result.files.length === 0) {
+              core.info('No relevant files found, skipping comment.');
+              return;
+            }
+
+            const rows = result.files.slice(0, 15).map(f =>
+              `| \`${f.path}\` | ${f.score.toFixed(3)} | ${f.token_count} |`
+            ).join('\n');
+
+            const body = [
+              '### Relevant files',
+              '',
+              'These files are most likely related to this issue:',
+              '',
+              '| File | Relevance | Tokens |',
+              '|------|-----------|--------|',
+              rows,
+              '',
+              `<sub>${result.files.length} files selected (${result.total_tokens.toLocaleString()} tokens) via symbol analysis, dependency graphs, and git history. No LLM calls.</sub>`,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

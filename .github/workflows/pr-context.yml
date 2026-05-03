@@ -1,0 +1,89 @@
+name: Suggest relevant context for PRs
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  suggest-context:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install cognitive-cache
+        run: uv pip install --system cognitive-cache
+
+      - name: Get changed files
+        id: diff
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          git diff --name-only "origin/${BASE_REF}...HEAD" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Select relevant context
+        id: select
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          CHANGED_FILES: ${{ steps.diff.outputs.files }}
+        run: |
+          TASK="PR: ${PR_TITLE}. ${PR_BODY}. Changed files: ${CHANGED_FILES}"
+          cognitive-cache select \
+            --repo . \
+            --task "${TASK}" \
+            --budget 16000 \
+            --json > /tmp/cc-result.json
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const result = JSON.parse(fs.readFileSync('/tmp/cc-result.json', 'utf8'));
+
+            if (!result.files || result.files.length === 0) {
+              core.info('No relevant context files found, skipping comment.');
+              return;
+            }
+
+            const changedFiles = process.env.CHANGED_FILES?.split('\n').filter(Boolean) || [];
+            const contextFiles = result.files.filter(f => !changedFiles.includes(f.path));
+
+            if (contextFiles.length === 0) {
+              core.info('All relevant files are already in the diff, skipping comment.');
+              return;
+            }
+
+            const rows = contextFiles.slice(0, 15).map(f =>
+              `| \`${f.path}\` | ${f.score.toFixed(3)} | ${f.token_count} |`
+            ).join('\n');
+
+            const body = [
+              '### Context for reviewers',
+              '',
+              'Files not in this diff but likely needed to understand the change:',
+              '',
+              '| File | Relevance | Tokens |',
+              '|------|-----------|--------|',
+              rows,
+              '',
+              `<sub>${contextFiles.length} context files selected via symbol analysis, dependency graphs, and git history. No LLM calls.</sub>`,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+        env:
+          CHANGED_FILES: ${{ steps.diff.outputs.files }}
