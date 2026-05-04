@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Annotated
 
+import httpx
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,6 +47,41 @@ def _is_dev_mode() -> bool:
 
 def _oidc_configured() -> bool:
     return bool(settings.oidc_issuer_url and settings.oidc_client_id)
+
+
+async def _exchange_wechat_miniapp_code(code: str) -> str:
+    if not settings.wechat_miniapp_appid or not settings.wechat_miniapp_secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="WeChat miniapp auth is not configured",
+        )
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(
+                "https://api.weixin.qq.com/sns/jscode2session",
+                params={
+                    "appid": settings.wechat_miniapp_appid,
+                    "secret": settings.wechat_miniapp_secret,
+                    "js_code": code,
+                    "grant_type": "authorization_code",
+                },
+            )
+        data = response.json()
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid WeChat login code",
+        ) from None
+
+    openid = data.get("openid")
+    if response.status_code != status.HTTP_200_OK or data.get("errcode") or not openid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid WeChat login code",
+        )
+
+    return openid
 
 
 @router.get("/config", response_model=AuthConfigResponse)
@@ -166,28 +202,49 @@ async def sync_user(
 
 @router.post("/wechat-miniapp/sync", response_model=UserSyncResponse)
 async def sync_wechat_miniapp_user(
+    request: Request,
     sync_data: WeChatMiniappSyncRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> UserSyncResponse:
-    external_subject = sync_data.cloudbase_uid or sync_data.openid
-    if not external_subject:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="openid or cloudbase_uid is required",
-        )
+    await rate_limit_by_ip(request, "wechat_miniapp_sync", 10, 60)
 
-    external_id = f"wechat-miniapp:{external_subject}"
+    if _is_dev_mode():
+        subject_kind = "cloudbase_uid" if sync_data.cloudbase_uid else "openid"
+        external_subject = sync_data.cloudbase_uid or sync_data.openid
+        if not external_subject:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="openid or cloudbase_uid is required",
+            )
+    else:
+        if not sync_data.code:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="WeChat login code is required",
+            )
+        subject_kind = "openid"
+        external_subject = await _exchange_wechat_miniapp_code(sync_data.code)
+
+    external_id = f"wechat-miniapp:{subject_kind}:{external_subject}"
     email = f"{external_subject}@wechat-miniapp.local"
     user_service = UserService(db)
-    user, is_new = await user_service.sync_from_oidc(
-        UserSyncRequest(
-            external_id=external_id,
-            email=email,
-            display_name=sync_data.display_name or "WeChat User",
-            avatar_url=sync_data.avatar_url,
-            provider="wechat-miniapp",
+
+    try:
+        user, is_new = await user_service.sync_from_oidc(
+            UserSyncRequest(
+                external_id=external_id,
+                email=email,
+                display_name=sync_data.display_name or "WeChat User",
+                avatar_url=sync_data.avatar_url,
+                provider="wechat-miniapp",
+            )
         )
-    )
+    except UserEmailConflictError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e),
+        ) from None
+
     return UserSyncResponse(
         id=user.id,
         email=user.email,
