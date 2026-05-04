@@ -7,7 +7,7 @@ import imagehash
 from PIL import Image
 
 from app.config import get_settings
-from app.services.image_storage import ImageStorage, LocalImageStorage
+from app.services.image_storage import ImageStorage, get_image_storage
 
 settings = get_settings()
 
@@ -34,7 +34,7 @@ ALLOWED_MIME_TYPES = {
 class ImageService:
     def __init__(self, storage_path: str | None = None, storage: ImageStorage | None = None):
         self.storage_path = Path(storage_path or settings.storage_path)
-        self.storage = storage or LocalImageStorage(self.storage_path)
+        self.storage = storage or get_image_storage()
 
     def _get_user_path(self, user_id: uuid.UUID) -> Path:
         user_path = self.storage_path / str(user_id)

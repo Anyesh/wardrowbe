@@ -77,3 +77,28 @@ async def test_image_service_processes_into_storage(tmp_path: Path):
 
     assert result["image_path"].endswith(".jpg")
     assert await service.storage.get_bytes(result["thumbnail_path"])
+
+
+from app.config import get_settings
+from app.services.image_storage import get_image_storage
+
+
+def test_get_image_storage_returns_local_by_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    monkeypatch.setenv("STORAGE_PATH", str(tmp_path))
+    monkeypatch.setenv("STORAGE_BACKEND", "local")
+    get_settings.cache_clear()
+    get_image_storage.cache_clear()
+
+    storage = get_image_storage()
+
+    assert storage.__class__.__name__ == "LocalImageStorage"
+
+
+def test_get_image_storage_rejects_cloudbase_without_bucket(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("STORAGE_BACKEND", "cloudbase")
+    monkeypatch.delenv("CLOUDBASE_STORAGE_BUCKET", raising=False)
+    get_settings.cache_clear()
+    get_image_storage.cache_clear()
+
+    with pytest.raises(RuntimeError, match="CLOUDBASE_STORAGE_BUCKET"):
+        get_image_storage()
