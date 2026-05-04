@@ -1,0 +1,14 @@
+{
+  "appid": "touristappid",
+  "projectname": "wardrowbe-miniapp",
+  "description": "Wardrowbe Taro WeChat mini program",
+  "miniprogramRoot": "dist/",
+  "compileType": "miniprogram",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": false
+  }
+}

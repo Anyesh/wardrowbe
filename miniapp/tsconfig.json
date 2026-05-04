@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "types": ["node", "@tarojs/taro", "wechat-miniprogram"],
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src", "config", "babel.config.js"]
+}

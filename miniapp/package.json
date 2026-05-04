@@ -1,0 +1,34 @@
+{
+  "name": "wardrowbe-miniapp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:weapp": "node node_modules/@tarojs/cli/bin/taro build --type weapp --watch",
+    "build:weapp": "node node_modules/@tarojs/cli/bin/taro build --type weapp",
+    "typecheck": "node node_modules/typescript/lib/tsc.js --noEmit"
+  },
+  "dependencies": {
+    "@tarojs/components": "^4.0.9",
+    "@tarojs/helper": "^4.0.9",
+    "@tarojs/plugin-framework-react": "^4.0.9",
+    "@tarojs/plugin-platform-weapp": "^4.2.0",
+    "@tarojs/react": "^4.0.9",
+    "@tarojs/runtime": "^4.0.9",
+    "@tarojs/taro": "^4.0.9",
+    "download-git-repo": "^3.0.2",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@babel/preset-react": "^7.28.5",
+    "@tarojs/cli": "^4.0.9",
+    "@tarojs/webpack5-runner": "^4.0.9",
+    "@types/node": "^20.19.0",
+    "@types/react": "18.2.52",
+    "@types/react-dom": "18.2.18",
+    "@types/wechat-miniprogram": "^3.4.10",
+    "babel-preset-taro": "^4.2.0",
+    "sass": "^1.86.3",
+    "typescript": "5.3.3"
+  }
+}

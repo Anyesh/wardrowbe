@@ -1,0 +1,137 @@
+page {
+  min-height: 100%;
+  background: #f3f4f6;
+  color: #111827;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.row-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.card-subtitle,
+.muted {
+  color: #6b7280;
+  font-size: 24rpx;
+}
+
+.hero-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.button-secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  background: #f9fafb;
+  border-radius: 18rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+  border: 2rpx solid #e5e7eb;
+}
+
+.textarea {
+  min-height: 160rpx;
+}
+
+.chip {
+  padding: 12rpx 20rpx;
+  border-radius: 999rpx;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 24rpx;
+}
+
+.chip--active {
+  background: #111827;
+  color: #ffffff;
+}
+
+.badge {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.badge--warn {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.badge--ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20rpx;
+}
+
+.thumb-strip {
+  display: flex;
+  gap: 12rpx;
+  overflow-x: auto;
+}
+
+.thumb-strip__image {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 18rpx;
+  background: #e5e7eb;
+  flex: 0 0 auto;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60rpx 32rpx;
+  color: #6b7280;
+}
