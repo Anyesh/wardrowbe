@@ -9,7 +9,6 @@ from arq import create_pool
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import get_settings
 from app.database import get_db
 from app.models.user import User
 from app.schemas.item import (
@@ -38,7 +37,6 @@ from app.utils.auth import get_current_user
 from app.workers.settings import get_redis_settings
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 router = APIRouter(prefix="/items", tags=["Items"])
 
@@ -172,11 +170,10 @@ async def create_item(
     try:
         redis = await create_pool(get_redis_settings())
         try:
-            full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
             await redis.enqueue_job(
                 "tag_item_image",
                 str(item.id),
-                full_image_path,
+                image_paths["image_path"],
                 _queue_name="arq:tagging",
             )
             logger.info(f"Queued AI tagging job for item {item.id}")
@@ -278,11 +275,10 @@ async def bulk_create_items(
                 # Queue AI tagging job
                 if redis:
                     try:
-                        full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
                         await redis.enqueue_job(
                             "tag_item_image",
                             str(item.id),
-                            full_image_path,
+                            image_paths["image_path"],
                             _queue_name="arq:tagging",
                         )
                         logger.info(f"Queued AI tagging for bulk item {item.id}")
@@ -445,11 +441,10 @@ async def bulk_analyze_items(
     try:
         for item in items_to_process:
             try:
-                full_image_path = f"{settings.storage_path}/{item.image_path}"
                 await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
-                    full_image_path,
+                    item.image_path,
                     _queue_name="arq:tagging",
                 )
                 logger.info(f"Queued AI re-analysis for item {item.id}")
@@ -801,11 +796,10 @@ async def trigger_ai_analysis(
 
         redis = await create_pool(get_redis_settings())
         try:
-            full_image_path = f"{settings.storage_path}/{item.image_path}"
             job = await redis.enqueue_job(
                 "tag_item_image",
                 str(item.id),
-                full_image_path,
+                item.image_path,
                 _queue_name="arq:tagging",
             )
             logger.info(f"Queued AI re-analysis job for item {item.id}")
