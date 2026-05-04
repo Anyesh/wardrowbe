@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -37,16 +38,24 @@ class LocalImageStorage(ImageStorage):
 
         return full_path
 
-    async def put_bytes(self, key: str, data: bytes, content_type: str) -> str:
-        path = self._path_for(key)
+    @staticmethod
+    def _write_file(path: Path, data: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
+
+    @staticmethod
+    def _delete_file(path: Path) -> None:
+        if path.exists():
+            path.unlink()
+
+    async def put_bytes(self, key: str, data: bytes, content_type: str) -> str:
+        path = self._path_for(key)
+        await asyncio.to_thread(self._write_file, path, data)
         return key
 
     async def get_bytes(self, key: str) -> bytes:
-        return self._path_for(key).read_bytes()
+        return await asyncio.to_thread(self._path_for(key).read_bytes)
 
     async def delete(self, key: str) -> None:
         path = self._path_for(key)
-        if path.exists():
-            path.unlink()
+        await asyncio.to_thread(self._delete_file, path)
