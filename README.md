@@ -561,3 +561,23 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Storage for clothing photos
 
 Works great on a Raspberry Pi 5!
+
+
+## WeChat Miniapp & CloudBase
+
+This repository now includes a Taro-based WeChat mini program shell under `miniapp/` and CloudBase deployment artifacts under `cloudbase/`.
+
+### Miniapp
+
+- Run the Taro miniapp from `miniapp/`.
+- Configure the API base URL in the miniapp Settings page for local or staging HTTP access.
+- WeChat miniapp auth sync uses `POST /api/v1/auth/wechat-miniapp/sync` and returns the same JWT shape as the web login sync flow.
+
+### CloudBase deployment notes
+
+- Cloud Hosting is for the API container and worker container only.
+- Docker Compose is still the recommended local development workflow.
+- PostgreSQL and Redis must remain external managed services.
+- Persistent image storage should use the storage abstraction with a CloudBase-backed adapter rather than local container storage.
+
+See `cloudbase/README.md` for the deployment boundaries and environment checklist.
