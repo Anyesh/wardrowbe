@@ -53,6 +53,13 @@ class UserSyncRequest(BaseModel):
     provider: str | None = Field(None, description="Auth provider (e.g. 'oidc'), omit for default")
 
 
+class WeChatMiniappSyncRequest(BaseModel):
+    openid: str | None = Field(None, min_length=1, max_length=255)
+    cloudbase_uid: str | None = Field(None, min_length=1, max_length=255)
+    display_name: str | None = Field(None, max_length=100)
+    avatar_url: str | None = None
+
+
 class UserSyncResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

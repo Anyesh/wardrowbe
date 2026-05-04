@@ -15,6 +15,7 @@ from app.schemas.user import (
     UserResponse,
     UserSyncRequest,
     UserSyncResponse,
+    WeChatMiniappSyncRequest,
 )
 from app.services.user_service import UserEmailConflictError, UserService
 from app.utils.auth import get_current_user
@@ -160,6 +161,40 @@ async def sync_user(
         is_new_user=is_new,
         onboarding_completed=user.onboarding_completed,
         access_token=access_token,
+    )
+
+
+@router.post("/wechat-miniapp/sync", response_model=UserSyncResponse)
+async def sync_wechat_miniapp_user(
+    sync_data: WeChatMiniappSyncRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserSyncResponse:
+    external_subject = sync_data.cloudbase_uid or sync_data.openid
+    if not external_subject:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="openid or cloudbase_uid is required",
+        )
+
+    external_id = f"wechat-miniapp:{external_subject}"
+    email = f"{external_subject}@wechat-miniapp.local"
+    user_service = UserService(db)
+    user, is_new = await user_service.sync_from_oidc(
+        UserSyncRequest(
+            external_id=external_id,
+            email=email,
+            display_name=sync_data.display_name or "WeChat User",
+            avatar_url=sync_data.avatar_url,
+            provider="wechat-miniapp",
+        )
+    )
+    return UserSyncResponse(
+        id=user.id,
+        email=user.email,
+        display_name=user.display_name,
+        is_new_user=is_new,
+        onboarding_completed=user.onboarding_completed,
+        access_token=create_access_token(user.external_id),
     )
 
 
