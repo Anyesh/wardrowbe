@@ -65,6 +65,11 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     # Storage
     storage_path: str = Field(default="/data/wardrobe")
+    storage_backend: str = Field(default="local")
+    cloudbase_env_id: str | None = None
+    cloudbase_storage_bucket: str | None = None
+    wechat_miniapp_appid: str | None = None
+    wechat_miniapp_secret: str | None = None
     max_upload_size_mb: int = Field(default=10)
 
     # Background removal
