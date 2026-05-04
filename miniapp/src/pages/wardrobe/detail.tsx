@@ -18,11 +18,11 @@ export default function WardrobeDetailPage() {
   }, [itemId])
 
   useDidShow(() => {
-    load().catch((error) => Taro.showToast({ title: error instanceof Error ? error.message : 'Load failed', icon: 'none' }))
+    load().catch((error) => Taro.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' }))
   })
 
   if (!item) {
-    return <View className='page'><View className='card'><Text>Loading item…</Text></View></View>
+    return <View className='page'><View className='card'><Text>正在加载单品…</Text></View></View>
   }
 
   const save = async () => {
@@ -35,9 +35,9 @@ export default function WardrobeDetailPage() {
         favorite: item.favorite,
       })
       setItem(nextItem)
-      Taro.showToast({ title: 'Saved', icon: 'success' })
+      Taro.showToast({ title: '已保存', icon: 'success' })
     } catch (error) {
-      Taro.showToast({ title: error instanceof Error ? error.message : 'Save failed', icon: 'none' })
+      Taro.showToast({ title: error instanceof Error ? error.message : '保存失败', icon: 'none' })
     } finally {
       setSaving(false)
     }
@@ -47,24 +47,24 @@ export default function WardrobeDetailPage() {
     <View className='page stack'>
       <Image className='detail-image' src={item.image_url || item.medium_url || item.thumbnail_url || item.image_path} mode='aspectFit' />
       <View className='card stack'>
-        <Text className='section-title'>Item details</Text>
-        <Input className='input' value={item.name || ''} placeholder='Name' onInput={(event) => setItem({ ...item, name: event.detail.value })} />
-        <Input className='input' value={item.brand || ''} placeholder='Brand' onInput={(event) => setItem({ ...item, brand: event.detail.value })} />
-        <Textarea className='textarea' value={item.notes || ''} placeholder='Notes' onInput={(event) => setItem({ ...item, notes: event.detail.value })} />
+        <Text className='section-title'>单品详情</Text>
+        <Input className='input' value={item.name || ''} placeholder='名称' onInput={(event) => setItem({ ...item, name: event.detail.value })} />
+        <Input className='input' value={item.brand || ''} placeholder='品牌' onInput={(event) => setItem({ ...item, brand: event.detail.value })} />
+        <Textarea className='textarea' value={item.notes || ''} placeholder='备注' onInput={(event) => setItem({ ...item, notes: event.detail.value })} />
         <Text className='muted'>{joinList([titleCase(item.type), item.primary_color ? titleCase(item.primary_color) : undefined])}</Text>
         <View className='row-wrap'>
-          <Button size='mini' onClick={() => setItem({ ...item, favorite: !item.favorite })}>{item.favorite ? 'Unfavorite' : 'Favorite'}</Button>
-          <Button size='mini' className='button-secondary' onClick={async () => { const next = await logWash(itemId); setItem(next) }}>Mark washed</Button>
-          <Button size='mini' className='button-secondary' onClick={async () => { const next = await logWear(itemId); setItem(next) }}>Log wear</Button>
+          <Button size='mini' onClick={() => setItem({ ...item, favorite: !item.favorite })}>{item.favorite ? '取消收藏' : '收藏'}</Button>
+          <Button size='mini' className='button-secondary' onClick={async () => { const next = await logWash(itemId); setItem(next) }}>标记已洗</Button>
+          <Button size='mini' className='button-secondary' onClick={async () => { const next = await logWear(itemId); setItem(next) }}>记录穿着</Button>
         </View>
-        <Button loading={saving} onClick={save}>Save changes</Button>
+        <Button loading={saving} onClick={save}>保存修改</Button>
         <Button className='button-secondary' onClick={async () => {
-          const result = await Taro.showModal({ title: 'Delete item', content: 'Remove this item from your wardrobe?' })
+          const result = await Taro.showModal({ title: '删除单品', content: '确定要从衣橱中删除这件单品吗？' })
           if (result.confirm) {
             await deleteItem(itemId)
             Taro.navigateBack()
           }
-        }}>Delete item</Button>
+        }}>删除单品</Button>
       </View>
     </View>
   )

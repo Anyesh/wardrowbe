@@ -89,11 +89,11 @@ const CHIP_ORDER: FilterChip[] = [
 ];
 
 const CHIP_LABELS: Record<FilterChip, string> = {
-  all: 'All',
-  'my-looks': 'My Looks',
-  worn: 'Worn',
-  pairings: 'Pairings',
-  replacements: 'Replacements',
+  all: '全部',
+  'my-looks': '我的搭配',
+  worn: '已穿',
+  pairings: '搭配',
+  replacements: '替换',
   ai: 'AI',
 };
 
@@ -124,15 +124,15 @@ function chipToFilters(chip: FilterChip, search: string): OutfitFilters {
 }
 
 const EMPTY_MESSAGES: Record<FilterChip, string> = {
-  all: 'No outfits yet. Create your first look in the Studio!',
+  all: '还没有穿搭，去工作室创建你的第一套搭配吧！',
   'my-looks': 'No saved looks yet. Create one with the Studio editor.',
-  worn: 'No worn outfits recorded.',
-  pairings: 'No pairing outfits generated.',
-  replacements: 'No replacement outfits.',
-  ai: 'No AI-generated outfits.',
+  worn: '还没有已穿记录。',
+  pairings: '还没有生成搭配结果。',
+  replacements: '还没有替换穿搭。',
+  ai: '还没有 AI 生成的穿搭。',
 };
 
-function OutfitsPageContent() {
+function 穿搭PageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawFilter = (searchParams.get('filter') as FilterChip) || 'all';
@@ -275,10 +275,10 @@ function OutfitsPageContent() {
     updateQuery({ month: nextRef });
   };
 
-  const calendarOutfits: Outfit[] = calendarQuery.data?.outfits ?? [];
-  const dateSet = useMemo(() => outfitDateSet(calendarOutfits), [calendarOutfits]);
-  const dateMap = useMemo(() => outfitsByDate(calendarOutfits), [calendarOutfits]);
-  const selectedDayOutfits: Outfit[] = selectedDate
+  const calendar穿搭: Outfit[] = calendarQuery.data?.outfits ?? [];
+  const dateSet = useMemo(() => outfitDateSet(calendar穿搭), [calendar穿搭]);
+  const dateMap = useMemo(() => outfitsByDate(calendar穿搭), [calendar穿搭]);
+  const selectedDay穿搭: Outfit[] = selectedDate
     ? dateMap.get(selectedDate) ?? []
     : [];
 
@@ -293,8 +293,8 @@ function OutfitsPageContent() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Outfits</h1>
-          <p className="text-muted-foreground">Your looks, worn outfits, and AI suggestions</p>
+          <h1 className="text-2xl font-bold tracking-tight">穿搭</h1>
+          <p className="text-muted-foreground">你的搭配、已穿记录和 AI 建议</p>
         </div>
         <div className="flex items-center gap-3">
           <div
@@ -383,7 +383,7 @@ function OutfitsPageContent() {
       {view === 'list' ? (
         <>
           {listError ? (
-            <div className="text-center py-8 text-destructive">Failed to load outfits</div>
+            <div className="text-center py-8 text-destructive">加载穿搭失败</div>
           ) : listLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -440,7 +440,7 @@ function OutfitsPageContent() {
                 <OutfitCalendar
                   year={monthRef.year}
                   month={monthRef.month}
-                  outfits={calendarOutfits}
+                  outfits={calendar穿搭}
                   selectedDate={selectedDate ? parseYmd(selectedDate) : null}
                   onSelectDate={(d: Date) =>
                     setSelectedDate(formatDateKey(d.getFullYear(), d.getMonth() + 1, d.getDate()))
@@ -453,18 +453,18 @@ function OutfitsPageContent() {
 
           <div className="space-y-4">
             {calendarError ? (
-              <div className="text-center py-8 text-destructive">Failed to load outfits</div>
+              <div className="text-center py-8 text-destructive">加载穿搭失败</div>
             ) : calendarLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="aspect-[5/4] rounded-lg" />
                 ))}
               </div>
-            ) : selectedDate && selectedDayOutfits.length === 0 ? (
+            ) : selectedDate && selectedDay穿搭.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
                 <CalendarDays className="h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  No outfits on this day
+                  这一天没有穿搭记录
                 </p>
               </div>
             ) : (
@@ -475,17 +475,17 @@ function OutfitsPageContent() {
                       {formatReadableDate(selectedDate)}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      {selectedDayOutfits.length} outfit{selectedDayOutfits.length === 1 ? '' : 's'}
+                      {selectedDay穿搭.length} outfit{selectedDay穿搭.length === 1 ? '' : 's'}
                     </p>
                   </div>
                 )}
                 {!selectedDate && (
                   <p className="text-sm text-muted-foreground">
-                    {calendarOutfits.length} outfit{calendarOutfits.length === 1 ? '' : 's'} this month
+                    {calendar穿搭.length} outfit{calendar穿搭.length === 1 ? '' : 's'} 本月
                   </p>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(selectedDate ? selectedDayOutfits : calendarOutfits).map((outfit) => (
+                  {(selectedDate ? selectedDay穿搭 : calendar穿搭).map((outfit) => (
                     <OutfitCard key={outfit.id} outfit={outfit} />
                   ))}
                 </div>
@@ -511,7 +511,7 @@ function formatReadableDate(dateKey: string): string {
   });
 }
 
-export default function OutfitsPage() {
+export default function 穿搭Page() {
   return (
     <Suspense
       fallback={
@@ -525,7 +525,7 @@ export default function OutfitsPage() {
         </div>
       }
     >
-      <OutfitsPageContent />
+      <穿搭PageContent />
     </Suspense>
   );
 }

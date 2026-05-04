@@ -55,17 +55,17 @@ function SourceBadge({ source }: { source: OutfitSource }) {
   const config: Record<OutfitSource, { icon: typeof Calendar; label: string; className: string }> = {
     scheduled: {
       icon: Calendar,
-      label: 'Scheduled',
+      label: '计划推荐',
       className: 'bg-primary/10 text-primary border-primary/20',
     },
     on_demand: {
       icon: Zap,
-      label: 'On Demand',
+      label: '即时生成',
       className: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
     },
     manual: {
       icon: Edit3,
-      label: 'Manual',
+      label: '手动创建',
       className: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
     },
     pairing: {
@@ -114,18 +114,18 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
   const handleAccept = async () => {
     try {
       await acceptOutfit.mutateAsync(outfit.id);
-      toast.success('Outfit accepted');
+      toast.success('已接受这套穿搭');
     } catch {
-      toast.error('Failed to accept outfit');
+      toast.error('接受穿搭失败');
     }
   };
 
   const handleReject = async () => {
     try {
       await rejectOutfit.mutateAsync(outfit.id);
-      toast.success('Outfit rejected');
+      toast.success('已拒绝这套穿搭');
     } catch {
-      toast.error('Failed to reject outfit');
+      toast.error('拒绝穿搭失败');
     }
   };
 
@@ -236,7 +236,7 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
           <div className="mt-2 pt-2 border-t">
             <div className="flex items-center gap-2 text-xs">
               <Users className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">Family:</span>
+              <span className="text-muted-foreground">家庭评分：</span>
               <StarRating rating={Math.round(outfit.family_rating_average ?? 0)} />
               <span className="text-muted-foreground">
                 ({outfit.family_rating_count})

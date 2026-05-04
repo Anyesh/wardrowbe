@@ -161,7 +161,7 @@ function StyleSlider({
   );
 }
 
-export default function SettingsPage() {
+export default function 设置Page() {
   const { data: session } = useSession();
   const { data: preferences, isLoading } = usePreferences();
   const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
@@ -269,7 +269,7 @@ export default function SettingsPage() {
     const lon = parseFloat(locationLon);
 
     if (isNaN(lat) || isNaN(lon)) {
-      toast.error('Please enter valid latitude and longitude values');
+      toast.error('请输入有效的经纬度');
       return;
     }
 
@@ -292,7 +292,7 @@ export default function SettingsPage() {
       });
       toast.success('Location and timezone saved');
     } catch {
-      toast.error('Failed to save location');
+      toast.error('保存位置失败');
     }
   };
 
@@ -374,7 +374,7 @@ export default function SettingsPage() {
       setMeasurementsDirty(false);
       toast.success('Measurements saved');
     } catch (e) {
-      toast.error(getErrorMessage(e, 'Failed to save measurements'));
+      toast.error(getErrorMessage(e, '保存身体数据失败'));
     }
   };
 
@@ -395,7 +395,7 @@ export default function SettingsPage() {
     } catch (error) {
       setEndpointTests((prev) => ({
         ...prev,
-        [index]: { status: 'error', error: 'Failed to test endpoint' },
+        [index]: { status: 'error', error: '测试端点失败' },
       }));
     }
   };
@@ -472,9 +472,9 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+          <h1 className="text-2xl font-bold tracking-tight">设置</h1>
           <p className="text-sm text-muted-foreground">
-            Manage your preferences and account settings
+            管理你的偏好与账户设置
           </p>
         </div>
         <div className="flex gap-2">
@@ -621,7 +621,7 @@ export default function SettingsPage() {
               <Ruler className="h-5 w-5" />
               Body Measurements
             </CardTitle>
-            <CardDescription>Help AI recommend better-fitting outfits</CardDescription>
+            <CardDescription>帮助 AI 推荐更适合你的穿搭</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
@@ -856,10 +856,10 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Recommendation Settings */}
+        {/* Recommendation 设置 */}
         <Card>
           <CardHeader>
-            <CardTitle>Recommendation Settings</CardTitle>
+            <CardTitle>Recommendation 设置</CardTitle>
             <CardDescription>
               Customize how outfit recommendations are generated
             </CardDescription>
@@ -947,7 +947,7 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             {(formData.ai_endpoints || []).length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No custom endpoints configured. Using default server settings.
+                尚未配置自定义 AI 端点，当前使用服务器默认设置。
               </p>
             ) : (
               <div className="space-y-3">

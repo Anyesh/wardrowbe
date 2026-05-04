@@ -8,12 +8,12 @@ import { getItems } from '../../services/items'
 import type { Item, ItemFilter } from '../../shared/types'
 
 const SORT_OPTIONS = [
-  { label: 'Newest first', value: { sort_by: 'created_at', sort_order: 'desc' as const } },
-  { label: 'Oldest first', value: { sort_by: 'created_at', sort_order: 'asc' as const } },
-  { label: 'Most worn', value: { sort_by: 'wear_count', sort_order: 'desc' as const } },
+  { label: '最新优先', value: { sort_by: 'created_at', sort_order: 'desc' as const } },
+  { label: '最早优先', value: { sort_by: 'created_at', sort_order: 'asc' as const } },
+  { label: '穿着次数最多', value: { sort_by: 'wear_count', sort_order: 'desc' as const } },
 ]
 
-export default function WardrobePage() {
+export default function 衣橱Page() {
   const [items, setItems] = React.useState<Item[]>([])
   const [search, setSearch] = React.useState('')
   const [filters, setFilters] = React.useState<ItemFilter>({ sort_by: 'created_at', sort_order: 'desc' })
@@ -31,7 +31,7 @@ export default function WardrobePage() {
       setPage(response.page)
       setHasMore(response.has_more)
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Failed to load wardrobe')
+      setError(loadError instanceof Error ? loadError.message : '加载衣橱失败')
     } finally {
       setLoading(false)
     }
@@ -44,11 +44,11 @@ export default function WardrobePage() {
   return (
     <View className='page stack'>
       <View className='row'>
-        <Text className='hero-title'>Wardrobe</Text>
-        <Button size='mini' onClick={() => Taro.navigateTo({ url: '/pages/wardrobe/add' })}>Add</Button>
+        <Text className='hero-title'>衣橱</Text>
+        <Button size='mini' onClick={() => Taro.navigateTo({ url: '/pages/wardrobe/add' })}>添加</Button>
       </View>
 
-      <Input className='input' value={search} placeholder='Search by name or type' onInput={(event) => setSearch(event.detail.value)} onConfirm={() => load(1, false)} />
+      <Input className='input' value={search} placeholder='按名称或类型搜索' onInput={(event) => setSearch(event.detail.value)} onConfirm={() => load(1, false)} />
 
       <Picker
         mode='selector'
@@ -65,12 +65,12 @@ export default function WardrobePage() {
       <FilterSheet value={filters} onChange={setFilters} />
 
       <View className='row-wrap'>
-        <Button size='mini' onClick={() => load(1, false)}>Refresh</Button>
-        {hasMore ? <Button size='mini' className='button-secondary' onClick={() => load(page + 1, true)}>Load more</Button> : null}
+        <Button size='mini' onClick={() => load(1, false)}>刷新</Button>
+        {hasMore ? <Button size='mini' className='button-secondary' onClick={() => load(page + 1, true)}>加载更多</Button> : null}
       </View>
 
       {error ? <View className='card'><Text>{error}</Text></View> : null}
-      {loading && !items.length ? <View className='card'><Text>Loading wardrobe…</Text></View> : null}
+      {loading && !items.length ? <View className='card'><Text>正在加载衣橱…</Text></View> : null}
 
       {items.length ? (
         <View className='grid-2'>
@@ -80,7 +80,7 @@ export default function WardrobePage() {
         </View>
       ) : (
         <View className='card empty-state'>
-          <Text>No items yet. Add your first piece to start the wardrobe flow.</Text>
+          <Text>No items yet. 添加 your first piece to start the wardrobe flow.</Text>
         </View>
       )}
     </View>

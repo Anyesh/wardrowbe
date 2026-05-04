@@ -37,11 +37,11 @@ import { api, setAccessToken } from '@/lib/api';
 import { CLOTHING_COLORS, CLOTHING_TYPES, StyleProfile } from '@/lib/types';
 
 const STEPS = [
-  { id: 'welcome', title: 'Welcome', icon: Shirt },
-  { id: 'family', title: 'Family', icon: Users },
-  { id: 'location', title: 'Location', icon: MapPin },
-  { id: 'preferences', title: 'Style', icon: Palette },
-  { id: 'upload', title: 'First Item', icon: Camera },
+  { id: 'welcome', title: '欢迎', icon: Shirt },
+  { id: 'family', title: '家庭', icon: Users },
+  { id: 'location', title: '位置', icon: MapPin },
+  { id: 'preferences', title: '风格', icon: Palette },
+  { id: 'upload', title: '第一件单品', icon: Camera },
 ];
 
 function StepIndicator({ currentStep }: { currentStep: number }) {

@@ -288,16 +288,15 @@ function NoLearningData({ onRecompute, isRefreshing }: { onRecompute: () => void
     <Card className="col-span-full">
       <CardContent className="flex flex-col items-center justify-center py-12 text-center">
         <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No Learning Data Yet</h3>
+        <h3 className="text-lg font-semibold mb-2">还没有学习数据</h3>
         <p className="text-muted-foreground max-w-md mb-4">
-          Start by accepting or rejecting outfit suggestions and rating them.
-          The AI will learn from your feedback to make better recommendations.
+          先从接受/拒绝穿搭建议和评分开始。AI 会根据你的反馈持续学习，给出更好的推荐。
         </p>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Link href="/dashboard/suggest" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto">
               <Sparkles className="h-4 w-4 mr-2" />
-              Get Outfit Suggestions
+              获取穿搭建议
             </Button>
           </Link>
           <Button
@@ -307,11 +306,11 @@ function NoLearningData({ onRecompute, isRefreshing }: { onRecompute: () => void
             className="w-full sm:w-auto"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Computing...' : 'Compute Now'}
+            {isRefreshing ? '计算中…' : '立即计算'}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-4">
-          Already gave feedback? Click &quot;Compute Now&quot; to process it.
+          Already gave feedback? Click &quot;立即计算&quot; to process it.
         </p>
       </CardContent>
     </Card>
@@ -347,8 +346,8 @@ export default function LearningPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">AI Learning</h1>
-            <p className="text-muted-foreground">How the AI learns from your feedback</p>
+            <h1 className="text-2xl font-bold tracking-tight">AI 学习</h1>
+            <p className="text-muted-foreground">看看 AI 如何从你的反馈中学习</p>
           </div>
         </div>
         <LoadingSkeleton />
@@ -370,7 +369,7 @@ export default function LearningPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">AI Learning</h1>
+          <h1 className="text-2xl font-bold tracking-tight">AI 学习</h1>
           <p className="text-muted-foreground">
             {profile.has_learning_data
               ? 'The AI learns from your feedback to improve recommendations'
@@ -398,7 +397,7 @@ export default function LearningPage() {
             <StatCard
               title="Feedback Given"
               value={profile.feedback_count}
-              description={`${profile.outfits_rated} outfits rated`}
+              description={`${profile.outfits_rated} 套已评分穿搭`}
               icon={Activity}
             />
             <StatCard
@@ -407,19 +406,19 @@ export default function LearningPage() {
                 ? `${Math.round(profile.overall_acceptance_rate * 100)}%`
                 : '-'}
               description={profile.overall_acceptance_rate
-                ? 'of suggestions accepted'
+                ? '建议接受率'
                 : 'Not enough data'}
               icon={TrendingUp}
               trend={profile.overall_acceptance_rate && profile.overall_acceptance_rate > 0.5 ? 'up' : undefined}
             />
             <StatCard
-              title="Average Rating"
+              title="平均评分"
               value={profile.average_rating ? profile.average_rating.toFixed(1) : '-'}
-              description={profile.average_rating ? 'out of 5 stars' : 'Rate more outfits'}
+              description={profile.average_rating ? '满分 5 分' : 'Rate more outfits'}
               icon={Sparkles}
             />
             <StatCard
-              title="Style Rating"
+              title="风格评分"
               value={profile.average_style_rating ? profile.average_style_rating.toFixed(1) : '-'}
               description={profile.average_style_rating ? 'style satisfaction' : 'Rate outfit styles'}
               icon={Heart}

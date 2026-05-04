@@ -123,7 +123,7 @@ function WeatherCard({ weather, isLoading, temperatureUnit }: { weather?: Weathe
             <div>
               <p className="font-medium">Location not set</p>
               <p className="text-sm text-muted-foreground">
-                Set your location in settings for weather-aware suggestions
+                请先在设置里填写位置，以便生成结合天气的建议。
               </p>
             </div>
           </div>
@@ -480,7 +480,7 @@ export default function SuggestPage() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError('Failed to generate outfit suggestion. Please try again.');
+        setError('生成穿搭建议失败，请稍后重试。');
       }
       console.error('Suggestion error:', err);
     } finally {
@@ -589,7 +589,7 @@ export default function SuggestPage() {
                   ) : (
                     <>
                       <Sparkles className="h-5 w-5" />
-                      Get Suggestion
+                      获取建议
                     </>
                   )}
                 </Button>

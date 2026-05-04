@@ -44,16 +44,16 @@ export function CloneToLookbookDialog({
   const handleConfirm = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      toast.error('Please enter a name');
+      toast.error('请输入名称');
       return;
     }
     try {
       const result = await clone.mutateAsync({ name: trimmed });
-      toast.success('Saved to lookbook');
+      toast.success('已保存到灵感簿');
       onSuccess?.(result.id);
       onClose();
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to save to lookbook'));
+      toast.error(getErrorMessage(error, '保存到灵感簿失败'));
     }
   };
 

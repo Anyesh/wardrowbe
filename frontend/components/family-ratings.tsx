@@ -48,7 +48,7 @@ export function FamilyRatingForm({ outfitId, existingRating, onSuccess }: Family
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      toast.error('Please select a rating');
+      toast.error('请先选择评分');
       return;
     }
     try {
@@ -57,10 +57,10 @@ export function FamilyRatingForm({ outfitId, existingRating, onSuccess }: Family
         rating,
         comment: comment.trim() || undefined,
       });
-      toast.success(existingRating ? 'Rating updated!' : 'Rating submitted!');
+      toast.success(existingRating ? '评分已更新！' : '评分已提交！');
       onSuccess?.();
     } catch {
-      toast.error('Failed to submit rating');
+      toast.error('提交评分失败');
     }
   };
 
@@ -84,7 +84,7 @@ export function FamilyRatingForm({ outfitId, existingRating, onSuccess }: Family
         disabled={rating === 0 || submitRating.isPending}
       >
         {submitRating.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {existingRating ? 'Update Rating' : 'Submit Rating'}
+        {existingRating ? '更新评分' : '提交评分'}
       </Button>
     </div>
   );
@@ -113,9 +113,9 @@ export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: Famil
   const handleDelete = async () => {
     try {
       await deleteRating.mutateAsync(outfitId);
-      toast.success('Rating removed');
+      toast.success('评分已移除');
     } catch {
-      toast.error('Failed to remove rating');
+      toast.error('移除评分失败');
     }
   };
 

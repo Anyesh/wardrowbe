@@ -23,7 +23,7 @@ export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
     return (
       <div className="min-h-[240px] rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 flex items-center justify-center p-6">
         <p className="text-sm text-muted-foreground text-center">
-          Tap items below to start building your outfit
+          点击下方单品，开始搭建你的穿搭。
         </p>
       </div>
     );

@@ -41,7 +41,7 @@ export default function DashboardLayout({
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading your wardrobe...</p>
+          <p className="text-sm text-muted-foreground">正在加载你的衣橱…</p>
         </div>
       </div>
     );

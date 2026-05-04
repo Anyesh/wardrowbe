@@ -38,22 +38,22 @@ function SourceBadge({ source }: { source: OutfitSource }) {
   const config: Record<OutfitSource, { icon: typeof Calendar; label: string; className: string }> = {
     scheduled: {
       icon: Calendar,
-      label: 'Scheduled',
+      label: '计划推荐',
       className: 'bg-primary/10 text-primary border-primary/20',
     },
     on_demand: {
       icon: Zap,
-      label: 'On Demand',
+      label: '即时生成',
       className: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
     },
     manual: {
       icon: Edit3,
-      label: 'Manual',
+      label: '手动创建',
       className: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
     },
     pairing: {
       icon: Zap,
-      label: 'Pairing',
+      label: '搭配',
       className: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
     },
   };
@@ -98,7 +98,7 @@ function FeedOutfitCard({
               month: 'short',
               day: 'numeric',
               year: 'numeric',
-            }) : 'Lookbook'}
+            }) : '灵感簿'}
           </span>
         </div>
 
@@ -152,7 +152,7 @@ function FeedOutfitCard({
               ))}
             </div>
             <span className="text-muted-foreground text-xs">
-              ({outfit.family_rating_count} rating{outfit.family_rating_count !== 1 ? 's' : ''})
+              （{outfit.family_rating_count} 条评分）
             </span>
           </div>
         )}
@@ -183,13 +183,13 @@ function FeedOutfitCard({
               onClick={() => setShowRatingForm(true)}
             >
               <Star className="h-4 w-4 mr-2" />
-              Rate {memberName}&apos;s outfit
+              为 {memberName} 的穿搭评分
             </Button>
           )
         ) : (
           <div className="flex items-center justify-between pt-2 border-t">
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Your rating:</span>
+              <span className="text-muted-foreground">你的评分：</span>
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
@@ -238,9 +238,9 @@ function NoFamilyState() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Family Feed</h1>
+        <h1 className="text-2xl font-bold tracking-tight">家庭动态</h1>
         <p className="text-muted-foreground">
-          Browse and rate your family members&apos; outfits
+          查看并评价家庭成员的穿搭
         </p>
       </div>
 
@@ -248,14 +248,14 @@ function NoFamilyState() {
         <div className="rounded-full bg-muted p-6 mb-4">
           <Users className="h-12 w-12 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">Join a family first</h3>
+        <h3 className="text-lg font-semibold mb-2">请先加入家庭</h3>
         <p className="text-muted-foreground mb-6 max-w-sm">
-          Create or join a family to browse and rate each other&apos;s outfits.
+          创建或加入家庭后，你就可以查看并评价彼此的穿搭。
         </p>
         <Button asChild>
           <Link href="/dashboard/family">
             <Users className="mr-2 h-4 w-4" />
-            Set Up Family
+            去设置家庭
           </Link>
         </Button>
       </div>
@@ -296,15 +296,15 @@ function FeedContent() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Family Feed</h1>
+            <h1 className="text-2xl font-bold tracking-tight">家庭动态</h1>
             <p className="text-muted-foreground">
-              Browse and rate your family members&apos; outfits
+              查看并评价家庭成员的穿搭
             </p>
           </div>
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/family">
               <Settings className="h-4 w-4 mr-2" />
-              Manage Family
+              管理家庭
             </Link>
           </Button>
         </div>
@@ -313,9 +313,9 @@ function FeedContent() {
           <div className="rounded-full bg-muted p-6 mb-4">
             <Users className="h-12 w-12 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">No other members yet</h3>
+          <h3 className="text-lg font-semibold mb-2">还没有其他家庭成员</h3>
           <p className="text-muted-foreground mb-6 max-w-sm">
-            Invite family members to start browsing and rating each other&apos;s outfits.
+            邀请家庭成员后，就可以开始浏览并评价彼此的穿搭。
           </p>
           <Button asChild>
             <Link href="/dashboard/family">
@@ -332,15 +332,15 @@ function FeedContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Family Feed</h1>
+          <h1 className="text-2xl font-bold tracking-tight">家庭动态</h1>
           <p className="text-muted-foreground">
-            Browse and rate your family members&apos; outfits
+            查看并评价家庭成员的穿搭
           </p>
         </div>
         <Button variant="outline" size="sm" asChild>
           <Link href="/dashboard/family">
             <Settings className="h-4 w-4 mr-2" />
-            Manage Family
+            管理家庭
           </Link>
         </Button>
       </div>
@@ -394,7 +394,7 @@ function FeedContent() {
       ) : !data || data.outfits.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
           <Shirt className="h-10 w-10 text-muted-foreground mb-3" />
-          <h3 className="text-base font-semibold mb-1">No outfits yet</h3>
+          <h3 className="text-base font-semibold mb-1">还没有穿搭</h3>
           <p className="text-sm text-muted-foreground max-w-xs">
             {selectedMemberInfo?.display_name ?? 'This member'} hasn&apos;t received any outfit recommendations yet.
             Check back later!

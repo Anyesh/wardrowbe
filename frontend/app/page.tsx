@@ -11,13 +11,13 @@ export default function Home() {
           wardrowbe
         </h1>
         <p className="text-muted-foreground mb-8">
-          AI-powered wardrobe management and outfit recommendations
+          智能衣橱管理与穿搭推荐
         </p>
         <Link
           href="/dashboard"
           className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
         >
-          Get Started
+          立即开始
         </Link>
       </div>
     </main>

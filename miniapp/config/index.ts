@@ -29,22 +29,29 @@ export default {
   },
   mini: {
     postcss: {
-      pxtransform: {
-        enable: true,
-        config: {},
-      },
-      url: {
-        enable: true,
-        config: {
-          limit: 1024,
-        },
-      },
+      pxtransform: { enable: true, config: {} },
+      url: { enable: true, config: { limit: 1024 } },
       cssModules: {
         enable: false,
         config: {
           namingPattern: 'module',
           generateScopedName: '[name]__[local]___[hash:base64:5]',
         },
+      },
+    },
+  },
+  h5: {
+    publicPath: '/',
+    staticDirectory: 'static',
+    router: {
+      mode: 'browser',
+    },
+    postcss: {
+      autoprefixer: {
+        enable: true,
+      },
+      cssModules: {
+        enable: false,
       },
     },
   },

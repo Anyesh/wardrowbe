@@ -6,11 +6,11 @@ import { Home, Shirt, Sparkles, LayoutGrid, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Home', href: '/dashboard', icon: Home },
-  { name: 'Wardrobe', href: '/dashboard/wardrobe', icon: Shirt },
-  { name: 'Suggest', href: '/dashboard/suggest', icon: Sparkles },
-  { name: 'Outfits', href: '/dashboard/outfits', icon: LayoutGrid },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { name: '首页', href: '/dashboard', icon: Home },
+  { name: '衣橱', href: '/dashboard/wardrobe', icon: Shirt },
+  { name: '建议', href: '/dashboard/suggest', icon: Sparkles },
+  { name: '穿搭', href: '/dashboard/outfits', icon: LayoutGrid },
+  { name: '设置', href: '/dashboard/settings', icon: Settings },
 ];
 
 export function MobileNav() {

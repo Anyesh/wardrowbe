@@ -28,7 +28,7 @@ export default function SuggestPage() {
   }, [])
 
   useDidShow(() => {
-    load().catch((error) => Taro.showToast({ title: error instanceof Error ? error.message : 'Load failed', icon: 'none' }))
+    load().catch((error) => Taro.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' }))
   })
 
   const generate = async () => {
@@ -48,7 +48,7 @@ export default function SuggestPage() {
       setLastSuggestionId(nextOutfit.id)
       Taro.navigateTo({ url: `/pages/suggest/result?id=${nextOutfit.id}` })
     } catch (error) {
-      Taro.showToast({ title: error instanceof Error ? error.message : 'Suggestion failed', icon: 'none' })
+      Taro.showToast({ title: error instanceof Error ? error.message : '生成建议失败', icon: 'none' })
     } finally {
       setLoading(false)
     }
@@ -56,18 +56,18 @@ export default function SuggestPage() {
 
   return (
     <View className='page stack'>
-      <Text className='hero-title'>Suggest an outfit</Text>
+      <Text className='hero-title'>生成穿搭建议</Text>
       <View className='card stack'>
-        <Text className='section-title'>Weather context</Text>
-        <Text>{weather ? `${formatTemp(weather.temperature, preferences?.temperature_unit || 'celsius')} · ${weather.condition}` : 'Weather will use your saved location.'}</Text>
-        <Input className='input' value={temperatureOverride} placeholder='Optional override temperature (°C)' onInput={(event) => setTemperatureOverride(event.detail.value)} />
+        <Text className='section-title'>天气信息</Text>
+        <Text>{weather ? `${formatTemp(weather.temperature, preferences?.temperature_unit || 'celsius')} · ${weather.condition}` : '将使用你在设置中保存的位置天气。'}</Text>
+        <Input className='input' value={temperatureOverride} placeholder='可选：手动覆盖温度（°C）' onInput={(event) => setTemperatureOverride(event.detail.value)} />
       </View>
       <View className='card stack'>
-        <Text className='section-title'>Occasion</Text>
+        <Text className='section-title'>场景</Text>
         <OccasionChips value={occasion} onChange={setOccasion} />
       </View>
-      <Button loading={loading} onClick={generate}>Generate outfit</Button>
-      {profile?.location_name ? <Text className='muted'>Using location: {profile.location_name}</Text> : null}
+      <Button loading={loading} onClick={generate}>生成穿搭</Button>
+      {profile?.location_name ? <Text className='muted'>当前位置：{profile.location_name}</Text> : null}
     </View>
   )
 }

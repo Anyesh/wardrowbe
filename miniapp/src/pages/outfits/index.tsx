@@ -31,13 +31,13 @@ export default function OutfitsPage() {
   }, [filter, search])
 
   useDidShow(() => {
-    load().catch((error) => Taro.showToast({ title: error instanceof Error ? error.message : 'Load failed', icon: 'none' }))
+    load().catch((error) => Taro.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' }))
   })
 
   return (
     <View className='page stack'>
-      <Text className='hero-title'>Outfits</Text>
-      <Input className='input' value={search} placeholder='Search outfits' onInput={(event) => setSearch(event.detail.value)} onConfirm={() => load()} />
+      <Text className='hero-title'>穿搭</Text>
+      <Input className='input' value={search} placeholder='搜索穿搭' onInput={(event) => setSearch(event.detail.value)} onConfirm={() => load()} />
       <View className='row-wrap'>
         {OUTFIT_FILTERS.map((option) => (
           <View key={option.value} className={`chip ${filter === option.value ? 'chip--active' : ''}`} onClick={() => setFilter(option.value)}>
@@ -46,12 +46,12 @@ export default function OutfitsPage() {
         ))}
       </View>
       <Picker mode='date' fields='month' value={month} onChange={(event) => setMonth(event.detail.value)}>
-        <View className='input'><Text>{month || 'Select month summary'}</Text></View>
+        <View className='input'><Text>{month || '选择月份概览'}</Text></View>
       </Picker>
-      <Button size='mini' onClick={() => load()}>Refresh list</Button>
+      <Button size='mini' onClick={() => load()}>刷新列表</Button>
       {outfits.length ? outfits.map((outfit) => (
         <OutfitCard key={outfit.id} outfit={outfit} onClick={() => Taro.navigateTo({ url: `/pages/suggest/result?id=${outfit.id}` })} />
-      )) : <View className='card empty-state'><Text>No outfits found for this filter.</Text></View>}
+      )) : <View className='card empty-state'><Text>当前筛选条件下没有穿搭。</Text></View>}
     </View>
   )
 }

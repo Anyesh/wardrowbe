@@ -33,14 +33,14 @@ import { toast } from 'sonner';
 import { formatWornAgo, getWornAgoColorClass } from '@/lib/utils';
 
 const SORT_OPTIONS = [
-  { label: 'Newest first', value: 'created_at', order: 'desc' as const },
-  { label: 'Oldest first', value: 'created_at', order: 'asc' as const },
-  { label: 'Recently worn', value: 'last_worn', order: 'desc' as const },
-  { label: 'Least recently worn', value: 'last_worn', order: 'asc' as const },
-  { label: 'Most worn', value: 'wear_count', order: 'desc' as const },
-  { label: 'Least worn', value: 'wear_count', order: 'asc' as const },
-  { label: 'Name A–Z', value: 'name', order: 'asc' as const },
-  { label: 'Name Z–A', value: 'name', order: 'desc' as const },
+  { label: '最新优先', value: 'created_at', order: 'desc' as const },
+  { label: '最早优先', value: 'created_at', order: 'asc' as const },
+  { label: '最近穿过', value: 'last_worn', order: 'desc' as const },
+  { label: '最久未穿', value: 'last_worn', order: 'asc' as const },
+  { label: '穿着次数最多', value: 'wear_count', order: 'desc' as const },
+  { label: '穿着次数最少', value: 'wear_count', order: 'asc' as const },
+  { label: '名称 A–Z', value: 'name', order: 'asc' as const },
+  { label: '名称 Z–A', value: 'name', order: 'desc' as const },
 ] as const;
 
 function ItemCard({
@@ -83,7 +83,7 @@ function ItemCard({
             sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+          <div className="w-full h-full flex 件单品-center justify-center text-muted-foreground text-sm">
             {item.type}
           </div>
         )}
@@ -107,19 +107,19 @@ function ItemCard({
         )}
         {item.needs_wash && (
           <div className="absolute bottom-2 right-2 z-10">
-            <div className="bg-amber-500/90 text-white rounded-full p-1" title="Needs washing">
+            <div className="bg-amber-500/90 text-white rounded-full p-1" title="需要清洗">
               <Droplets className="h-3.5 w-3.5" />
             </div>
           </div>
         )}
         {isProcessing && (
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
+          <div className="absolute inset-0 bg-black/60 flex flex-col 件单品-center justify-center gap-2">
             <Loader2 className="h-6 w-6 text-white animate-spin" />
-            <span className="text-white text-xs font-medium">AI Analyzing...</span>
+            <span className="text-white text-xs font-medium">AI 分析中…</span>
           </div>
         )}
         {isError && (
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-2">
+          <div className="absolute inset-0 bg-black/60 flex flex-col 件单品-center justify-center gap-2 p-2">
             <AlertCircle className="h-6 w-6 text-red-400" />
             <span className="text-white text-xs font-medium text-center">Analysis Failed</span>
             {onRetry && (
@@ -140,7 +140,7 @@ function ItemCard({
         )}
       </div>
       <CardContent className="p-3">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex 件单品-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className="font-medium text-sm truncate">
               {item.name || item.type}
@@ -173,12 +173,12 @@ function ItemCard({
           </p>
         ) : item.wear_count > 0 ? (
           <p className="text-xs text-muted-foreground mt-1">
-            Worn {item.wear_count} time{item.wear_count !== 1 ? 's' : ''}
+            已穿 {item.wear_count} 次{item.wear_count !== 1 ? 's' : ''}
           </p>
         ) : null}
         {item.ai_confidence !== undefined && item.ai_confidence > 0 && item.status === 'ready' && (
           <p className="text-xs text-muted-foreground mt-1">
-            AI completeness: {Math.round(item.ai_confidence * 100)}%
+            AI 完整度：{Math.round(item.ai_confidence * 100)}%
           </p>
         )}
       </CardContent>
@@ -200,14 +200,13 @@ function ItemCardSkeleton() {
 
 function EmptyWardrobe({ onAddClick }: { onAddClick: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+    <div className="flex flex-col 件单品-center justify-center py-16 px-4 text-center">
       <div className="rounded-full bg-muted p-6 mb-4">
         <Grid3X3 className="h-12 w-12 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-semibold mb-2">Your wardrobe is empty</h3>
+      <h3 className="text-lg font-semibold mb-2">你的衣橱还是空的</h3>
       <p className="text-muted-foreground mb-6 max-w-sm">
-        Add your first clothing item to start getting personalized outfit
-        suggestions.
+        添加第一件单品后，即可开始获得个性化穿搭建议。
       </p>
       <Button onClick={onAddClick}>
         <Plus className="mr-2 h-4 w-4" />
@@ -263,24 +262,24 @@ export default function WardrobePage() {
     typeFilter !== 'all',
   ].filter(Boolean).length;
 
-  // Fetch items with automatic polling (faster when items are processing)
+  // Fetch 件单品 with automatic polling (faster when 件单品 are processing)
   const { data, isLoading, error } = useItems(filters, page, 20);
   const { data: itemTypes } = useItemTypes();
   const reanalyze = useReanalyzeItem();
   const bulkDelete = useBulkDeleteItems();
   const bulkReanalyze = useBulkReanalyzeItems();
 
-  const items = data?.items || [];
+  const 件单品 = data?.items || [];
   const total = data?.total || 0;
 
   // Get selected item: try from list first, then fetch individually (for deep-link from outfit pages)
-  const listItem = detailItemId ? items.find((i) => i.id === detailItemId) || null : null;
+  const listItem = detailItemId ? 件单品.find((i) => i.id === detailItemId) || null : null;
   const { data: fetchedItem } = useItem(detailItemId && !listItem ? detailItemId : '');
   const detailItem = listItem || fetchedItem || null;
 
-  // Count items being processed or with errors
-  const processingCount = items.filter((i) => i.status === 'processing').length;
-  const errorCount = items.filter((i) => i.status === 'error').length;
+  // Count 件单品 being processed or with errors
+  const processingCount = 件单品.filter((i) => i.status === 'processing').length;
+  const errorCount = 件单品.filter((i) => i.status === 'error').length;
 
   // Clear selection when filters change (but not page - allow cross-page selection)
   useEffect(() => {
@@ -356,13 +355,13 @@ export default function WardrobePage() {
     const params = getBulkParams();
     try {
       const result = await bulkDelete.mutateAsync(params);
-      toast.success(`Deleted ${result.deleted} items`);
+      toast.success(`已删除 ${result.deleted} 件单品`);
       if (result.failed > 0) {
-        toast.error(`Failed to delete ${result.failed} items`);
+        toast.error(`Failed to delete ${result.failed} 件单品`);
       }
       handleClearSelection();
     } catch {
-      toast.error('Failed to delete items');
+      toast.error('Failed to delete 件单品');
     }
   };
 
@@ -371,16 +370,16 @@ export default function WardrobePage() {
     try {
       const result = await bulkReanalyze.mutateAsync(params);
       if (result.queued > 20) {
-        toast.success(`Queued ${result.queued} items for re-analysis. This may take a while.`);
+        toast.success(`已加入队列：${result.queued} 件单品 重新分析，可能需要一点时间。`);
       } else {
-        toast.success(`Queued ${result.queued} items for re-analysis`);
+        toast.success(`已加入队列：${result.queued} 件单品 重新分析`);
       }
       if (result.failed > 0) {
-        toast.error(`Failed to queue ${result.failed} items`);
+        toast.error(`加入队列失败：${result.failed} 件单品`);
       }
       handleClearSelection();
     } catch {
-      toast.error('Failed to queue items for re-analysis');
+      toast.error('加入队列失败：件单品 重新分析');
     }
   };
 
@@ -392,17 +391,17 @@ export default function WardrobePage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <div className="flex items-center justify-between sm:justify-start gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">My Wardrobe</h1>
+          <div className="flex 件单品-center justify-between sm:justify-start gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">我的衣橱</h1>
             <Button onClick={() => setAddDialogOpen(true)} className="sm:hidden" size="sm">
               <Plus className="h-4 w-4" />
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            {total} item{total !== 1 ? 's' : ''} in your wardrobe
+            {total} item{total !== 1 ? 's' : ''} 在你的衣橱中
           </p>
           {(processingCount > 0 || errorCount > 0) && (
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex 件单品-center gap-2 mt-2">
               {processingCount > 0 && (
                 <Badge variant="secondary" className="gap-1 text-xs">
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -430,7 +429,7 @@ export default function WardrobePage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search items..."
+              placeholder="Search 件单品..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -467,7 +466,7 @@ export default function WardrobePage() {
             >
               <SlidersHorizontal className="h-4 w-4" />
               {activeFilterCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex 件单品-center justify-center">
                   {activeFilterCount}
                 </span>
               )}
@@ -477,7 +476,7 @@ export default function WardrobePage() {
 
         {/* Expandable filter row */}
         {showFilters && (
-          <div className="flex flex-wrap gap-2 items-center p-3 rounded-lg border bg-muted/30">
+          <div className="flex flex-wrap gap-2 件单品-center p-3 rounded-lg border bg-muted/30">
             <Select
               value={typeFilter}
               onValueChange={(value) => {
@@ -547,7 +546,7 @@ export default function WardrobePage() {
       {error ? (
         <div className="text-center py-8">
           <p className="text-destructive">
-            Failed to load items. Please try again.
+            Failed to load 件单品. Please try again.
           </p>
           <Button
             variant="outline"
@@ -563,11 +562,11 @@ export default function WardrobePage() {
             <ItemCardSkeleton key={i} />
           ))}
         </div>
-      ) : items.length === 0 ? (
+      ) : 件单品.length === 0 ? (
         search || typeFilter !== 'all' || needsWash !== undefined || favoriteFilter !== undefined ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">
-              No items found matching your filters.
+              No 件单品 found matching your filters.
             </p>
             <Button
               variant="outline"

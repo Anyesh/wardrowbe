@@ -28,18 +28,18 @@ import { useCreateStudioOutfit, usePatchOutfit } from '@/lib/hooks/use-studio';
 import {
   INITIAL_STUDIO_STATE,
   studioReducer,
-  type StudioItem,
+  type 工作室Item,
 } from '@/lib/studio/editor-state';
 import {
   clearDraft,
   loadDraft,
   saveDraft,
-  type StudioDraft,
+  type 工作室Draft,
 } from '@/lib/studio/draft-storage';
 import { isWornImmutableError } from '@/lib/studio/errors';
 import { computeEditLoadPhase } from '@/lib/studio/edit-load';
 
-export default function StudioEditorPage() {
+export default function 工作室EditorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit') || undefined;
@@ -47,7 +47,7 @@ export default function StudioEditorPage() {
 
   const [state, dispatch] = useReducer(studioReducer, INITIAL_STUDIO_STATE);
   const [draftPrompted, setDraftPrompted] = useState(false);
-  const [pendingDraft, setPendingDraft] = useState<StudioDraft | null>(null);
+  const [pendingDraft, setPendingDraft] = useState<工作室Draft | null>(null);
   const [editLoaded, setEditLoaded] = useState(false);
   const [wornConflictOpen, setWornConflictOpen] = useState(false);
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
@@ -70,7 +70,7 @@ export default function StudioEditorPage() {
   useEffect(() => {
     if (!isEditMode || editLoaded || !editOutfit) return;
     if (editOutfit.feedback?.worn_at) return;
-    const items: StudioItem[] = editOutfit.items.map((item) => ({
+    const items: 工作室Item[] = editOutfit.items.map((item) => ({
       id: item.id,
       type: item.type,
       name: item.name ?? null,
@@ -110,7 +110,7 @@ export default function StudioEditorPage() {
   const handleResumeDraft = useCallback(() => {
     if (!pendingDraft || !draftItemsData?.items) return;
     const byId = new Map(draftItemsData.items.map((i) => [i.id, i]));
-    const resumedItems: StudioItem[] = pendingDraft.items
+    const resumedItems: 工作室Item[] = pendingDraft.items
       .map((id) => byId.get(id))
       .filter((item): item is NonNullable<typeof item> => item !== undefined)
       .map((item) => ({
@@ -195,14 +195,14 @@ export default function StudioEditorPage() {
             items: state.items.map((i) => i.id),
           },
         });
-        toast.success('Outfit updated');
+        toast.success('穿搭已更新');
         router.push(`/dashboard/outfits/${editId}`);
       } catch (error) {
         if (isWornImmutableError(error)) {
           setWornConflictOpen(true);
           return;
         }
-        toast.error(getErrorMessage(error, 'Failed to save outfit'));
+        toast.error(getErrorMessage(error, '保存穿搭失败'));
       }
       return;
     }
@@ -223,14 +223,14 @@ export default function StudioEditorPage() {
         mark_worn: markWorn,
       });
       clearDraft();
-      toast.success(markWorn ? 'Saved and marked worn' : 'Saved to lookbook');
+      toast.success(markWorn ? '已保存并标记为已穿' : '已保存到灵感簿');
       router.push(
         markWorn
           ? '/dashboard/outfits?filter=worn'
           : '/dashboard/outfits?filter=my-looks'
       );
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to save outfit'));
+      toast.error(getErrorMessage(error, '保存穿搭失败'));
     }
   };
 
@@ -261,12 +261,12 @@ export default function StudioEditorPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] px-4 text-center">
         <AlertCircle className="h-10 w-10 text-muted-foreground mb-3" />
-        <h2 className="text-lg font-semibold mb-1">Outfit not found</h2>
+        <h2 className="text-lg font-semibold mb-1">未找到该穿搭</h2>
         <p className="text-sm text-muted-foreground mb-4 max-w-md">
           This outfit no longer exists. It may have been deleted from another tab or device.
         </p>
         <Button asChild>
-          <Link href="/dashboard/outfits">Back to outfits</Link>
+          <Link href="/dashboard/outfits">返回穿搭列表</Link>
         </Button>
       </div>
     );
@@ -292,7 +292,7 @@ export default function StudioEditorPage() {
             </Button>
           )}
           <Button asChild>
-            <Link href="/dashboard/outfits">Back to outfits</Link>
+            <Link href="/dashboard/outfits">返回穿搭列表</Link>
           </Button>
         </div>
       </div>
@@ -311,7 +311,7 @@ export default function StudioEditorPage() {
           </p>
           <div className="flex gap-2">
             <Button variant="outline" asChild>
-              <Link href={`/dashboard/outfits/${editId}`}>Back to outfit</Link>
+              <Link href={`/dashboard/outfits/${editId}`}>返回穿搭详情</Link>
             </Button>
             <Button onClick={() => setCloneDialogOpen(true)}>Save as new</Button>
           </div>
@@ -339,7 +339,7 @@ export default function StudioEditorPage() {
           </Link>
         </Button>
         <h1 className="text-lg font-semibold">
-          {isEditMode ? 'Edit Outfit' : 'Studio'}
+          {isEditMode ? '编辑穿搭' : '工作室'}
         </h1>
         <div className="flex flex-col items-end">
           <div className="flex gap-2">
@@ -363,7 +363,7 @@ export default function StudioEditorPage() {
               ) : isEditMode ? (
                 'Save Changes'
               ) : (
-                'Save to Lookbook'
+                '保存到灵感簿'
               )}
             </Button>
           </div>
@@ -436,7 +436,7 @@ export default function StudioEditorPage() {
               selectedIds={selectedIds}
               onToggle={handleToggle}
               hideNeedsWash={true}
-              emptyMessage="No items in your wardrobe yet. Add items first."
+              emptyMessage="你的衣橱里还没有单品，请先添加。"
               heightClass="h-[280px]"
             />
           </div>

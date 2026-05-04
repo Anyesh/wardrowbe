@@ -25,7 +25,7 @@ export function ItemPicker({
   onToggle,
   hideNeedsWash = true,
   filterType,
-  emptyMessage = 'No items found',
+  emptyMessage = '没有找到单品',
   heightClass = 'h-[360px]',
 }: ItemPickerProps) {
   const [searchQuery, setSearchQuery] = useState('');

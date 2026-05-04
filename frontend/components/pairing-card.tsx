@@ -36,9 +36,9 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
   const handleDelete = async () => {
     try {
       await deletePairing.mutateAsync(pairing.id);
-      toast.success('Pairing deleted');
+      toast.success('已删除搭配');
     } catch {
-      toast.error('Failed to delete pairing');
+      toast.error('删除搭配失败');
     }
   };
 
@@ -54,7 +54,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
         <div className="flex items-center justify-between mb-2">
           <Badge variant="outline">
             <Sparkles className="h-3 w-3 mr-1" />
-            Pairing
+            搭配
           </Badge>
           <Button
             variant="ghost"
@@ -70,7 +70,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
         {/* Source item highlighted */}
         {pairing.source_item && (
           <div className="mb-2">
-            <p className="text-xs text-muted-foreground mb-1">Built around:</p>
+            <p className="text-xs text-muted-foreground mb-1">围绕这件核心单品：</p>
             <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/20">
               <div className="w-12 h-12 rounded-md bg-muted overflow-hidden relative border-2 border-primary/30">
                 {pairing.source_item.thumbnail_url ? (
@@ -183,7 +183,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
               onClick={onFeedback}
             >
               <Star className="h-3 w-3 mr-1" />
-              {pairing.feedback?.rating ? 'Update Rating' : 'Rate This Pairing'}
+              {pairing.feedback?.rating ? 'Update Rating' : 'Rate This 搭配'}
             </Button>
           </div>
         )}

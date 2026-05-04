@@ -54,6 +54,8 @@ export async function syncWeChatMiniapp(displayName?: string, avatarUrl?: string
   if (Taro.getEnv() === Taro.ENV_TYPE.WEAPP) {
     const login = await Taro.login()
     code = login.code
+  } else {
+    throw new Error('微信小程序登录仅在微信环境下可用；H5 调试请使用 Web 版登录或手动配置 Token。')
   }
 
   const response = await apiRequest<UserSyncResponse>('/auth/wechat-miniapp/sync', {

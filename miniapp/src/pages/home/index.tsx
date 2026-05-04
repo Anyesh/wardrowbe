@@ -55,7 +55,7 @@ export default function HomePage() {
       </View>
 
       {error ? <View className='card'><Text>{error}</Text></View> : null}
-      {loading ? <View className='card'><Text>Loading dashboard…</Text></View> : null}
+      {loading ? <View className='card'><Text>正在加载首页…</Text></View> : null}
 
       <View className='card stack'>
         <Text className='section-title'>Weather</Text>
@@ -65,38 +65,38 @@ export default function HomePage() {
             <Text className='muted'>Feels like {formatTemp(weather.feels_like, 'celsius')} · {weather.condition}</Text>
           </>
         ) : (
-          <Text className='muted'>Set your location in Settings to load local weather.</Text>
+          <Text className='muted'>请先在设置里填写位置，以便加载本地天气。</Text>
         )}
       </View>
 
       <View className='grid-2'>
         <View className='card stack'>
-          <Text className='section-title'>Pending outfits</Text>
+          <Text className='section-title'>待处理穿搭</Text>
           <Text className='card-title'>{pendingOutfits.length}</Text>
-          <Text className='muted'>Suggestions waiting for a response</Text>
+          <Text className='muted'>等待你反馈的穿搭建议</Text>
         </View>
         <View className='card stack'>
-          <Text className='section-title'>Wardrobe items</Text>
+          <Text className='section-title'>衣橱单品</Text>
           <Text className='card-title'>{analytics?.wardrobe.total_items ?? '—'}</Text>
-          <Text className='muted'>Ready + processing pieces in your closet</Text>
+          <Text className='muted'>衣橱中可穿与处理中单品总数</Text>
         </View>
       </View>
 
       <View className='card stack'>
-        <Text className='section-title'>Quick actions</Text>
+        <Text className='section-title'>快捷操作</Text>
         <View className='row-wrap'>
-          <Button size='mini' onClick={() => Taro.switchTab({ url: '/pages/wardrobe/index' })}>Open wardrobe</Button>
-          <Button size='mini' className='button-secondary' onClick={() => Taro.navigateTo({ url: '/pages/wardrobe/add' })}>Add item</Button>
-          <Button size='mini' className='button-secondary' onClick={() => Taro.switchTab({ url: '/pages/suggest/index' })}>Suggest outfit</Button>
+          <Button size='mini' onClick={() => Taro.switchTab({ url: '/pages/wardrobe/index' })}>打开衣橱</Button>
+          <Button size='mini' className='button-secondary' onClick={() => Taro.navigateTo({ url: '/pages/wardrobe/add' })}>添加单品</Button>
+          <Button size='mini' className='button-secondary' onClick={() => Taro.switchTab({ url: '/pages/suggest/index' })}>生成建议</Button>
         </View>
       </View>
 
       <View className='card stack'>
-        <Text className='section-title'>Insights</Text>
+        <Text className='section-title'>洞察</Text>
         {(analytics?.insights || []).length ? (
           analytics?.insights.map((insight) => <Text key={insight}>• {insight}</Text>)
         ) : (
-          <Text className='muted'>Your wardrobe insights will appear here after more activity.</Text>
+          <Text className='muted'>有更多穿搭活动后，这里会显示你的衣橱洞察。</Text>
         )}
       </View>
     </View>

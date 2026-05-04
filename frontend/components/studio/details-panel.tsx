@@ -35,20 +35,20 @@ function computeWarnings(items: StudioItem[]): string[] {
 
   if (!hasFullBody) {
     if (hasTop && !hasBottom) {
-      warnings.push('No bottoms selected.');
+      warnings.push('尚未选择下装。');
     }
     if (hasBottom && !hasTop) {
-      warnings.push('No top selected.');
+      warnings.push('尚未选择上装。');
     }
   }
 
   const bottomCount = roles.filter((r) => r === 'bottom').length;
   if (bottomCount > 1) {
-    warnings.push('Multiple bottoms selected.');
+    warnings.push('选择了多件下装。');
   }
 
   if (items.length >= 3 && !hasFootwear) {
-    warnings.push('No footwear selected.');
+    warnings.push('尚未选择鞋履。');
   }
 
   return warnings;

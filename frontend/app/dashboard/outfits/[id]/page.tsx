@@ -60,21 +60,21 @@ export default function OutfitDetailPage() {
   const handleWearToday = async () => {
     try {
       const result = await wearTodayMutation.mutateAsync({});
-      toast.success('Added to today');
+      toast.success('已加入今日穿搭');
       router.push(`/dashboard/outfits/${result.id}`);
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to wear today'));
+      toast.error(getErrorMessage(error, '标记今日已穿失败'));
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm('Delete this outfit? This cannot be undone.')) return;
+    if (!confirm('确定删除这套穿搭吗？此操作不可撤销。')) return;
     try {
       await deleteMutation.mutateAsync(outfit.id);
-      toast.success('Outfit deleted');
+      toast.success('穿搭已删除');
       router.push('/dashboard/outfits');
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to delete'));
+      toast.error(getErrorMessage(error, '删除失败'));
     }
   };
 
@@ -105,7 +105,7 @@ export default function OutfitDetailPage() {
               ? formatDistanceToNow(parseISO(outfit.scheduled_for), {
                   addSuffix: true,
                 })
-              : 'Lookbook template'}
+              : '灵感簿模板'}
           </span>
         </div>
       </div>

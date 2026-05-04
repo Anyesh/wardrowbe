@@ -201,8 +201,8 @@ export default function AnalyticsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground">Your wardrobe insights and statistics</p>
+          <h1 className="text-2xl font-bold tracking-tight">分析</h1>
+          <p className="text-muted-foreground">你的衣橱洞察与统计</p>
         </div>
         <LoadingSkeleton />
       </div>
@@ -212,7 +212,7 @@ export default function AnalyticsPage() {
   if (isError || !data) {
     return (
       <div className="text-center py-8 text-red-500">
-        Failed to load analytics. Please try again.
+        加载分析数据失败，请稍后重试。
       </div>
     );
   }
@@ -222,46 +222,46 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground">Your wardrobe insights and statistics</p>
+        <h1 className="text-2xl font-bold tracking-tight">分析</h1>
+        <p className="text-muted-foreground">你的衣橱洞察与统计</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Items"
+          title="单品总数"
           value={wardrobe.total_items}
-          description={`${wardrobe.items_by_status.ready} ready to wear`}
+          description={`${wardrobe.items_by_status.ready} 件可穿`}
           icon={Shirt}
         />
         <StatCard
-          title="Outfits Generated"
+          title="生成穿搭数"
           value={wardrobe.total_outfits}
-          description={`${wardrobe.outfits_this_week} this week`}
+          description={`${wardrobe.outfits_this_week} 本周`}
           icon={Sparkles}
         />
         <StatCard
-          title="Acceptance Rate"
+          title="接受率"
           value={wardrobe.acceptance_rate ? `${wardrobe.acceptance_rate}%` : '-'}
-          description={wardrobe.acceptance_rate ? 'of suggestions accepted' : 'No data yet'}
+          description={wardrobe.acceptance_rate ? '建议接受率' : '暂无数据'}
           icon={TrendingUp}
           trend={wardrobe.acceptance_rate && wardrobe.acceptance_rate > 50 ? 'up' : undefined}
         />
         <StatCard
-          title="Total Wears"
+          title="穿着总次数"
           value={wardrobe.total_wears}
-          description={wardrobe.average_rating ? `Avg rating: ${wardrobe.average_rating}/5` : 'Track your outfits'}
+          description={wardrobe.average_rating ? `Avg rating: ${wardrobe.average_rating}/5` : '记录你的穿搭'}
           icon={Activity}
         />
       </div>
 
-      {/* Insights */}
+      {/* 洞察 */}
       {insights.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Lightbulb className="h-5 w-5" />
-              Insights
+              洞察
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -278,18 +278,18 @@ export default function AnalyticsPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Color Distribution */}
+        {/* 颜色分布 */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PieChart className="h-5 w-5" />
-              Color Distribution
+              颜色分布
             </CardTitle>
-            <CardDescription>Most common colors in your wardrobe</CardDescription>
+            <CardDescription>你衣橱里最常见的颜色</CardDescription>
           </CardHeader>
           <CardContent>
             {color_distribution.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No color data yet</p>
+              <p className="text-muted-foreground text-sm">暂无颜色数据</p>
             ) : (
               <div className="space-y-3">
                 {color_distribution.slice(0, 8).map((color) => (
@@ -305,13 +305,13 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart className="h-5 w-5" />
-              Item Types
+              单品类型
             </CardTitle>
-            <CardDescription>Breakdown by clothing type</CardDescription>
+            <CardDescription>按衣物类型拆分统计</CardDescription>
           </CardHeader>
           <CardContent>
             {type_distribution.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No items yet</p>
+              <p className="text-muted-foreground text-sm">暂无单品数据</p>
             ) : (
               <div className="space-y-3">
                 {type_distribution.map((type) => (
@@ -332,10 +332,10 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {/* Most Worn */}
+        {/* 最常穿 */}
         <Card>
           <CardHeader>
-            <CardTitle>Most Worn</CardTitle>
+            <CardTitle>最常穿</CardTitle>
             <CardDescription>Your favorites</CardDescription>
           </CardHeader>
           <CardContent>
@@ -351,10 +351,10 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Least Worn */}
+        {/* 最少穿 */}
         <Card>
           <CardHeader>
-            <CardTitle>Least Worn</CardTitle>
+            <CardTitle>最少穿</CardTitle>
             <CardDescription>Consider wearing these</CardDescription>
           </CardHeader>
           <CardContent>
@@ -370,10 +370,10 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Never Worn */}
+        {/* 从未穿过 */}
         <Card>
           <CardHeader>
-            <CardTitle>Never Worn</CardTitle>
+            <CardTitle>从未穿过</CardTitle>
             <CardDescription>Time to try these?</CardDescription>
           </CardHeader>
           <CardContent>
@@ -390,11 +390,11 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* Acceptance Trend */}
+      {/* 接受趋势 */}
       {acceptance_trend.length > 0 && acceptance_trend.some((t) => t.total > 0) && (
         <Card>
           <CardHeader>
-            <CardTitle>Acceptance Rate Trend</CardTitle>
+            <CardTitle>接受率 Trend</CardTitle>
             <CardDescription>How you&apos;ve responded to suggestions over time</CardDescription>
           </CardHeader>
           <CardContent>

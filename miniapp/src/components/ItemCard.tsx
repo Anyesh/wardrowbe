@@ -24,7 +24,7 @@ export default function ItemCard({ item, onClick }: ItemCardProps) {
         <Text className='muted'>{joinList([titleCase(item.type), item.primary_color ? titleCase(item.primary_color) : undefined])}</Text>
         <View className='row-wrap'>
           <Text className={`badge ${item.status === 'ready' ? 'badge--ok' : ''}`}>{titleCase(item.status)}</Text>
-          {item.needs_wash ? <Text className='badge badge--warn'>Needs wash</Text> : null}
+          {item.needs_wash ? <Text className='badge badge--warn'>需要清洗</Text> : null}
         </View>
       </View>
     </View>

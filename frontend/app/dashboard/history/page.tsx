@@ -25,24 +25,23 @@ function EmptyHistory() {
       <div className="rounded-full bg-muted p-6 mb-4">
         <Calendar className="h-12 w-12 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-semibold mb-2">No recommendation history</h3>
+      <h3 className="text-lg font-semibold mb-2">还没有推荐历史</h3>
       <p className="text-muted-foreground mb-6 max-w-sm">
-        Your outfit recommendation history will appear here once you start
-        receiving suggestions.
+        开始接收穿搭建议后，你的历史记录会显示在这里。
       </p>
       <Button variant="outline" asChild>
-        <a href="/dashboard/suggest">Get Your First Suggestion</a>
+        <a href="/dashboard/suggest">获取第一套建议</a>
       </Button>
     </div>
   );
 }
 
-function EmptyDate({ date }: { date: Date }) {
+function Empty约会({ date }: { date: 约会 }) {
   return (
     <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
       <Calendar className="h-8 w-8 text-muted-foreground mb-2" />
       <p className="text-sm text-muted-foreground">
-        No outfits for {format(date, 'MMMM d, yyyy')}
+        当天没有穿搭记录：{format(date, 'MMMM d, yyyy')}
       </p>
     </div>
   );
@@ -91,10 +90,10 @@ function CalendarSkeleton() {
 }
 
 export default function HistoryPage() {
-  const now = new Date();
+  const now = new 约会();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(now);
+  const [selected约会, setSelected约会] = useState<约会 | null>(now);
   const [filters, setFilters] = useState<OutfitFilters>({});
   const [feedbackOutfit, setFeedbackOutfit] = useState<Outfit | null>(null);
   const [previewOutfit, setPreviewOutfit] = useState<Outfit | null>(null);
@@ -102,12 +101,12 @@ export default function HistoryPage() {
   const { data, isLoading, isError } = useCalendarOutfits(year, month, filters);
 
   // Filter outfits for the selected date
-  const selectedDateOutfits = useMemo(() => {
-    if (!data?.outfits || !selectedDate) return [];
+  const selected约会Outfits = useMemo(() => {
+    if (!data?.outfits || !selected约会) return [];
     return data.outfits.filter((outfit) =>
-      outfit.scheduled_for && isSameDay(parseISO(outfit.scheduled_for), selectedDate)
+      outfit.scheduled_for && isSameDay(parseISO(outfit.scheduled_for), selected约会)
     );
-  }, [data?.outfits, selectedDate]);
+  }, [data?.outfits, selected约会]);
 
   const handleMonthChange = (newYear: number, newMonth: number) => {
     setYear(newYear);
@@ -131,7 +130,7 @@ export default function HistoryPage() {
   if (isError) {
     return (
       <div className="text-center py-8 text-red-500">
-        Failed to load history. Please try again.
+        加载历史失败，请稍后重试。
       </div>
     );
   }
@@ -141,9 +140,9 @@ export default function HistoryPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">History</h1>
+          <h1 className="text-2xl font-bold tracking-tight">历史</h1>
           <p className="text-muted-foreground">
-            View your past outfit recommendations
+            查看你过往收到的穿搭建议
           </p>
         </div>
       </div>
@@ -152,27 +151,27 @@ export default function HistoryPage() {
       <div className="flex gap-3 flex-wrap">
         <Select value={filters.occasion || 'all'} onValueChange={handleOccasionChange}>
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="All occasions" />
+            <SelectValue placeholder="全部场景" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All occasions</SelectItem>
-            <SelectItem value="casual">Casual</SelectItem>
-            <SelectItem value="office">Office</SelectItem>
-            <SelectItem value="formal">Formal</SelectItem>
-            <SelectItem value="date">Date</SelectItem>
-            <SelectItem value="workout">Workout</SelectItem>
+            <SelectItem value="all">全部场景</SelectItem>
+            <SelectItem value="casual">休闲</SelectItem>
+            <SelectItem value="office">通勤</SelectItem>
+            <SelectItem value="formal">正式</SelectItem>
+            <SelectItem value="date">约会</SelectItem>
+            <SelectItem value="workout">运动</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="All status" />
+            <SelectValue placeholder="全部状态" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All status</SelectItem>
-            <SelectItem value="accepted">Accepted</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="viewed">Viewed</SelectItem>
+            <SelectItem value="all">全部状态</SelectItem>
+            <SelectItem value="accepted">已接受</SelectItem>
+            <SelectItem value="rejected">已拒绝</SelectItem>
+            <SelectItem value="pending">待处理</SelectItem>
+            <SelectItem value="viewed">已查看</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -189,8 +188,8 @@ export default function HistoryPage() {
                 year={year}
                 month={month}
                 outfits={data?.outfits || []}
-                selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
+                selected约会={selected约会}
+                onSelect约会={setSelected约会}
                 onMonthChange={handleMonthChange}
               />
             )}
@@ -200,13 +199,13 @@ export default function HistoryPage() {
         {/* Outfits column */}
         <div className="order-1 lg:order-2 space-y-4">
           {/* Selected date header */}
-          {selectedDate && (
+          {selected约会 && (
             <div className="border-b pb-3">
               <h2 className="text-lg font-semibold">
-                {format(selectedDate, 'EEEE, MMMM d')}
+                {format(selected约会, 'EEEE, MMMM d')}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {selectedDateOutfits.length} outfit{selectedDateOutfits.length !== 1 ? 's' : ''}
+                {selected约会Outfits.length} 套穿搭
               </p>
             </div>
           )}
@@ -215,11 +214,11 @@ export default function HistoryPage() {
             <LoadingSkeleton />
           ) : !data || data.outfits.length === 0 ? (
             <EmptyHistory />
-          ) : selectedDate && selectedDateOutfits.length === 0 ? (
-            <EmptyDate date={selectedDate} />
+          ) : selected约会 && selected约会Outfits.length === 0 ? (
+            <Empty约会 date={selected约会} />
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {selectedDateOutfits.map((outfit) => (
+              {selected约会Outfits.map((outfit) => (
                 <OutfitHistoryCard
                   key={outfit.id}
                   outfit={outfit}

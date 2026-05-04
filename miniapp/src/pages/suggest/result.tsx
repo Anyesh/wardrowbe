@@ -20,11 +20,11 @@ export default function SuggestResultPage() {
   }, [outfitId])
 
   useDidShow(() => {
-    load().catch((error) => Taro.showToast({ title: error instanceof Error ? error.message : 'Load failed', icon: 'none' }))
+    load().catch((error) => Taro.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' }))
   })
 
   if (!outfit) {
-    return <View className='page'><View className='card'><Text>Loading suggestion…</Text></View></View>
+    return <View className='page'><View className='card'><Text>正在加载建议…</Text></View></View>
   }
 
   return (
@@ -32,7 +32,7 @@ export default function SuggestResultPage() {
       <OutfitCard outfit={outfit} />
       {outfit.highlights?.length ? (
         <View className='card stack'>
-          <Text className='section-title'>Highlights</Text>
+          <Text className='section-title'>亮点</Text>
           {outfit.highlights.map((highlight) => <Text key={highlight}>• {highlight}</Text>)}
         </View>
       ) : null}
@@ -43,21 +43,21 @@ export default function SuggestResultPage() {
           try {
             const next = await acceptOutfit(outfit.id)
             setOutfit(next)
-            Taro.showToast({ title: 'Accepted', icon: 'success' })
+            Taro.showToast({ title: '已接受', icon: 'success' })
           } finally {
             setLoading(false)
           }
-        }}>Love it</Button>
+        }}>很喜欢</Button>
         <Button className='button-secondary' loading={loading} onClick={async () => {
           setLoading(true)
           try {
             const next = await rejectOutfit(outfit.id)
             setOutfit(next)
-            Taro.showToast({ title: 'Rejected', icon: 'none' })
+            Taro.showToast({ title: '已拒绝', icon: 'none' })
           } finally {
             setLoading(false)
           }
-        }}>Reject</Button>
+        }}>拒绝</Button>
         <Button className='button-secondary' loading={loading} onClick={async () => {
           setLoading(true)
           try {
@@ -67,7 +67,7 @@ export default function SuggestResultPage() {
           } finally {
             setLoading(false)
           }
-        }}>Try another</Button>
+        }}>换一套</Button>
       </View>
     </View>
   )

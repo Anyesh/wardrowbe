@@ -23,7 +23,7 @@ export default function WardrobeAddPage() {
 
   const submit = async () => {
     if (!filePath) {
-      Taro.showToast({ title: 'Choose an image first', icon: 'none' })
+      Taro.showToast({ title: '请先选择图片', icon: 'none' })
       return
     }
     setUploading(true)
@@ -34,12 +34,12 @@ export default function WardrobeAddPage() {
         ...(brand ? { brand } : {}),
         ...(CLOTHING_COLORS[colorIndex] ? { primary_color: CLOTHING_COLORS[colorIndex].value } : {}),
       })
-      Taro.showToast({ title: 'Uploaded', icon: 'success' })
+      Taro.showToast({ title: '上传成功', icon: 'success' })
       setTimeout(() => {
         Taro.switchTab({ url: '/pages/wardrobe/index' })
       }, 300)
     } catch (error) {
-      Taro.showToast({ title: error instanceof Error ? error.message : 'Upload failed', icon: 'none' })
+      Taro.showToast({ title: error instanceof Error ? error.message : '上传失败', icon: 'none' })
     } finally {
       setUploading(false)
     }
@@ -48,18 +48,18 @@ export default function WardrobeAddPage() {
   return (
     <View className='page stack'>
       <View className='card stack'>
-        <Text className='section-title'>Add to wardrobe</Text>
-        <Button onClick={chooseImage}>Choose camera or gallery</Button>
-        {filePath ? <Image className='detail-image' src={filePath} mode='aspectFit' /> : <Text className='muted'>Select a photo to preview and upload it.</Text>}
+        <Text className='section-title'>添加到衣橱</Text>
+        <Button onClick={chooseImage}>选择拍照或相册</Button>
+        {filePath ? <Image className='detail-image' src={filePath} mode='aspectFit' /> : <Text className='muted'>选择一张照片进行预览并上传。</Text>}
         <Picker mode='selector' range={CLOTHING_TYPES.map((item) => item.label)} value={typeIndex} onChange={(event) => setTypeIndex(Number(event.detail.value))}>
           <View className='input'><Text>{CLOTHING_TYPES[typeIndex]?.label || 'Type'}</Text></View>
         </Picker>
         <Picker mode='selector' range={CLOTHING_COLORS.map((item) => item.name)} value={colorIndex} onChange={(event) => setColorIndex(Number(event.detail.value))}>
           <View className='input'><Text>{CLOTHING_COLORS[colorIndex]?.name || 'Color'}</Text></View>
         </Picker>
-        <Input className='input' value={name} placeholder='Item name (optional)' onInput={(event) => setName(event.detail.value)} />
-        <Input className='input' value={brand} placeholder='Brand (optional)' onInput={(event) => setBrand(event.detail.value)} />
-        <Button loading={uploading} onClick={submit}>Upload item</Button>
+        <Input className='input' value={name} placeholder='单品名称（可选）' onInput={(event) => setName(event.detail.value)} />
+        <Input className='input' value={brand} placeholder='品牌（可选）' onInput={(event) => setBrand(event.detail.value)} />
+        <Button loading={uploading} onClick={submit}>上传单品</Button>
       </View>
     </View>
   )

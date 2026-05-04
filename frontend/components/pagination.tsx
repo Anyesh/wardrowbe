@@ -24,7 +24,7 @@ export function Pagination({ page, total, pageSize, onPageChange }: PaginationPr
         size="icon"
         disabled={page === 1}
         onClick={() => onPageChange(1)}
-        aria-label="First page"
+        aria-label="第一页"
       >
         <ChevronsLeft className="h-4 w-4" />
       </Button>
@@ -33,19 +33,19 @@ export function Pagination({ page, total, pageSize, onPageChange }: PaginationPr
         size="icon"
         disabled={page === 1}
         onClick={() => onPageChange(page - 1)}
-        aria-label="Previous page"
+        aria-label="上一页"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <span className="px-4 text-sm text-muted-foreground">
-        Page {page} of {totalPages}
+        第 {page} / {totalPages} 页
       </span>
       <Button
         variant="outline"
         size="icon"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
-        aria-label="Next page"
+        aria-label="下一页"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
@@ -54,7 +54,7 @@ export function Pagination({ page, total, pageSize, onPageChange }: PaginationPr
         size="icon"
         disabled={page >= totalPages}
         onClick={() => onPageChange(totalPages)}
-        aria-label="Last page"
+        aria-label="最后一页"
       >
         <ChevronsRight className="h-4 w-4" />
       </Button>

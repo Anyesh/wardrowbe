@@ -48,7 +48,7 @@ function WeatherCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Cloud className="h-4 w-4" />
-            Today&apos;s Weather
+            今日天气
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -65,15 +65,15 @@ function WeatherCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Cloud className="h-4 w-4" />
-            Today&apos;s Weather
+            今日天气
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-3">
-            Location not set
+            尚未设置位置
           </p>
           <Button size="sm" variant="outline" asChild>
-            <Link href="/dashboard/settings">Set Location</Link>
+            <Link href="/dashboard/settings">设置位置</Link>
           </Button>
         </CardContent>
       </Card>
@@ -85,14 +85,14 @@ function WeatherCard() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Cloud className="h-4 w-4" />
-          Today&apos;s Weather
+          今日天气
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-baseline gap-2 mb-1">
           <span className="text-3xl font-bold">{displayValue(weather.temperature, unit)}{tempSymbol(unit)}</span>
           <span className="text-muted-foreground text-sm">
-            feels {displayValue(weather.feels_like, unit)}°
+            体感 {displayValue(weather.feels_like, unit)}°
           </span>
         </div>
         <p className="text-sm text-muted-foreground capitalize mb-1">
@@ -101,13 +101,13 @@ function WeatherCard() {
         {weather.precipitation_chance > 0 && (
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Droplets className="h-3 w-3" />
-            {weather.precipitation_chance}% chance of rain
+            {weather.precipitation_chance}% 降雨概率
           </p>
         )}
         <Button size="sm" className="w-full mt-3" asChild>
           <Link href="/dashboard/suggest">
             <Sparkles className="h-4 w-4 mr-1" />
-            Get Outfit Suggestion
+            获取穿搭建议
           </Link>
         </Button>
       </CardContent>
@@ -123,18 +123,18 @@ function PendingOutfitsCard() {
   const handleAccept = async (id: string) => {
     try {
       await acceptOutfit.mutateAsync(id);
-      toast.success('Outfit accepted');
+      toast.success('已接受这套穿搭');
     } catch {
-      toast.error('Failed to accept outfit');
+      toast.error('接受穿搭失败');
     }
   };
 
   const handleReject = async (id: string) => {
     try {
       await rejectOutfit.mutateAsync(id);
-      toast.success('Outfit rejected');
+      toast.success('已拒绝这套穿搭');
     } catch {
-      toast.error('Failed to reject outfit');
+      toast.error('拒绝穿搭失败');
     }
   };
 
@@ -144,7 +144,7 @@ function PendingOutfitsCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Pending Outfits
+            待处理穿搭
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -155,7 +155,7 @@ function PendingOutfitsCard() {
     );
   }
 
-  const pendingOutfits = data?.outfits || [];
+  const pendingOutfits = data?.套 || [];
 
   if (pendingOutfits.length === 0) {
     return (
@@ -163,12 +163,12 @@ function PendingOutfitsCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            All Caught Up
+            已全部处理
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            No outfits waiting for your response
+            暂时没有等待你反馈的穿搭
           </p>
         </CardContent>
       </Card>
@@ -181,12 +181,12 @@ function PendingOutfitsCard() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Clock className="h-4 w-4 text-orange-500" />
-            Pending Outfits
+            待处理穿搭
             <Badge variant="secondary" className="ml-1">{data?.total || pendingOutfits.length}</Badge>
           </CardTitle>
           {(data?.total ?? 0) > 2 && (
             <Link href="/dashboard/history" className="text-xs text-muted-foreground hover:text-foreground">
-              View all
+              查看全部
             </Link>
           )}
         </div>
@@ -223,7 +223,7 @@ function PendingOutfitsCard() {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
-                }) : 'Lookbook'}
+                }) : '灵感簿'}
               </p>
             </div>
             <div className="flex gap-1">
@@ -470,8 +470,8 @@ function WeeklySummaryCard() {
       <CardContent>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-2xl font-bold">{wardrobe.outfits_this_week}</p>
-            <p className="text-xs text-muted-foreground">outfits</p>
+            <p className="text-2xl font-bold">{wardrobe.套_this_week}</p>
+            <p className="text-xs text-muted-foreground">套</p>
           </div>
           <div>
             <p className="text-2xl font-bold">
@@ -482,7 +482,7 @@ function WeeklySummaryCard() {
         </div>
         {wardrobe.average_rating && (
           <p className="text-xs text-muted-foreground mt-2">
-            Avg rating: {wardrobe.average_rating}/5
+            平均评分：{wardrobe.average_rating}/5
           </p>
         )}
       </CardContent>
@@ -524,7 +524,7 @@ function InsightsCard() {
           </CardTitle>
           {insights.length > 3 && (
             <Link href="/dashboard/analytics" className="text-sm text-muted-foreground hover:text-foreground flex items-center">
-              View all <ChevronRight className="h-4 w-4" />
+              查看全部 <ChevronRight className="h-4 w-4" />
             </Link>
           )}
         </div>
@@ -541,7 +541,7 @@ function InsightsCard() {
           </ul>
         ) : (
           <p className="text-muted-foreground text-sm">
-            Add more items and generate outfits to see personalized insights!
+            添加更多单品并生成穿搭后，这里会出现个性化洞察。
           </p>
         )}
       </CardContent>
@@ -564,10 +564,10 @@ function FamilyFeedCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <HeartHandshake className="h-5 w-5" />
-          Family Outfits
+          家庭穿搭
         </CardTitle>
         <CardDescription>
-          See what your family is wearing and rate their outfits
+          看看家人在穿什么，并为他们的穿搭评分
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -577,7 +577,7 @@ function FamilyFeedCard() {
         </div>
         <Button asChild className="w-full">
           <Link href="/dashboard/family/feed">
-            Browse Family Outfits
+            Browse 家庭穿搭
             <ChevronRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -603,7 +603,7 @@ function QuickActionsCard() {
         <Button asChild variant="outline" className="w-full justify-start">
           <Link href="/dashboard/suggest">
             <Sparkles className="mr-2 h-4 w-4" />
-            Get Outfit Suggestion
+            获取穿搭建议
           </Link>
         </Button>
       </CardContent>

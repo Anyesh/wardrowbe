@@ -37,6 +37,7 @@ services:
     environment:
       DEBUG: "true"
       DATABASE_ECHO: "false"
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","http://frontend:3000","http://localhost:10086","http://127.0.0.1:10086"]}
       TEST_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD:-wardrobe}@postgres:5432/wardrobe_test
 
   frontend:

@@ -8,7 +8,7 @@ interface FilterSheetProps {
   onChange: (value: ItemFilter) => void
 }
 
-const typeOptions = ['All types', ...CLOTHING_TYPES.map((item) => item.label)]
+const typeOptions = ['全部类型', ...CLOTHING_TYPES.map((item) => item.label)]
 
 export default function FilterSheet({ value, onChange }: FilterSheetProps) {
   const currentTypeIndex = value.type
@@ -19,15 +19,15 @@ export default function FilterSheet({ value, onChange }: FilterSheetProps) {
     <View className='card stack'>
       <Text className='section-title'>Filters</Text>
       <View className='row'>
-        <Text>Favorites only</Text>
+        <Text>仅看收藏</Text>
         <Switch checked={Boolean(value.favorite)} onChange={(event) => onChange({ ...value, favorite: event.detail.value })} />
       </View>
       <View className='row'>
-        <Text>Needs wash</Text>
+        <Text>需要清洗</Text>
         <Switch checked={Boolean(value.needs_wash)} onChange={(event) => onChange({ ...value, needs_wash: event.detail.value })} />
       </View>
       <View className='stack'>
-        <Text className='muted'>Item type</Text>
+        <Text className='muted'>单品类型</Text>
         <Picker
           mode='selector'
           range={typeOptions}

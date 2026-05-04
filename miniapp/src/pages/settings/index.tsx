@@ -51,10 +51,10 @@ export default function SettingsPage() {
           default_occasion: preferences.default_occasion,
         })
       }
-      Taro.showToast({ title: 'Saved', icon: 'success' })
+      Taro.showToast({ title: '已保存', icon: 'success' })
       setToken(getAccessToken())
     } catch (error) {
-      Taro.showToast({ title: error instanceof Error ? error.message : 'Save failed', icon: 'none' })
+      Taro.showToast({ title: error instanceof Error ? error.message : '保存失败', icon: 'none' })
     } finally {
       setSaving(false)
     }
@@ -64,35 +64,35 @@ export default function SettingsPage() {
     try {
       const response = await syncWeChatMiniapp(profile?.display_name || 'WeChat User', profile?.avatar_url || undefined)
       setToken(response.access_token)
-      Taro.showToast({ title: 'Synced', icon: 'success' })
+      Taro.showToast({ title: '已同步', icon: 'success' })
       await load()
     } catch (error) {
-      Taro.showToast({ title: error instanceof Error ? error.message : 'Sync failed', icon: 'none' })
+      Taro.showToast({ title: error instanceof Error ? error.message : '同步失败', icon: 'none' })
     }
   }
 
   return (
     <View className='page stack'>
       <View className='card stack'>
-        <Text className='section-title'>Connection</Text>
+        <Text className='section-title'>连接设置</Text>
         <Input className='input' value={apiBaseUrl} placeholder='https://api.example.com' onInput={(event) => setApiBaseUrlState(event.detail.value)} />
-        <Text className='muted'>Current token: {token ? `${token.slice(0, 12)}…` : 'Not set'}</Text>
+        <Text className='muted'>当前 Token：{token ? `${token.slice(0, 12)}…` : '未设置'}</Text>
         <View className='row-wrap'>
-          <Button size='mini' onClick={handleSync}>WeChat sync</Button>
-          <Button size='mini' className='button-secondary' onClick={() => { clearAccessToken(); setToken('') }}>Clear token</Button>
+          <Button size='mini' onClick={handleSync}>微信同步</Button>
+          <Button size='mini' className='button-secondary' onClick={() => { clearAccessToken(); setToken('') }}>清除 Token</Button>
         </View>
       </View>
 
       <View className='card stack'>
-        <Text className='section-title'>Profile</Text>
-        <Input className='input' value={profile?.display_name || ''} placeholder='Display name' onInput={(event) => setProfile((current) => ({ ...(current || { id: '', email: '', display_name: '', timezone: 'UTC', role: 'member', onboarding_completed: false }), display_name: event.detail.value }))} />
-        <Input className='input' value={profile?.location_name || ''} placeholder='Location name' onInput={(event) => setProfile((current) => ({ ...(current || { id: '', email: '', display_name: '', timezone: 'UTC', role: 'member', onboarding_completed: false }), location_name: event.detail.value }))} />
-        <Input className='input' value={profile?.timezone || 'UTC'} placeholder='Timezone' onInput={(event) => setProfile((current) => ({ ...(current || { id: '', email: '', display_name: '', timezone: 'UTC', role: 'member', onboarding_completed: false }), timezone: event.detail.value }))} />
+        <Text className='section-title'>个人资料</Text>
+        <Input className='input' value={profile?.display_name || ''} placeholder='显示名称' onInput={(event) => setProfile((current) => ({ ...(current || { id: '', email: '', display_name: '', timezone: 'UTC', role: 'member', onboarding_completed: false }), display_name: event.detail.value }))} />
+        <Input className='input' value={profile?.location_name || ''} placeholder='位置名称' onInput={(event) => setProfile((current) => ({ ...(current || { id: '', email: '', display_name: '', timezone: 'UTC', role: 'member', onboarding_completed: false }), location_name: event.detail.value }))} />
+        <Input className='input' value={profile?.timezone || 'UTC'} placeholder='时区' onInput={(event) => setProfile((current) => ({ ...(current || { id: '', email: '', display_name: '', timezone: 'UTC', role: 'member', onboarding_completed: false }), timezone: event.detail.value }))} />
       </View>
 
       <View className='card stack'>
         <Text className='section-title'>Preferences</Text>
-        <Input className='input' value={preferences?.default_occasion || 'casual'} placeholder='Default occasion' onInput={(event) => setPreferences((current) => ({ ...(current || { color_favorites: [], color_avoid: [], style_profile: { casual: 50, formal: 50, sporty: 50, minimalist: 50, bold: 50 }, default_occasion: 'casual', temperature_unit: 'celsius', temperature_sensitivity: 'normal', cold_threshold: 10, hot_threshold: 25, layering_preference: 'moderate', avoid_repeat_days: 7, prefer_underused_items: true, variety_level: 'moderate', ai_endpoints: [] }), default_occasion: event.detail.value }))} />
+        <Input className='input' value={preferences?.default_occasion || 'casual'} placeholder='默认场景' onInput={(event) => setPreferences((current) => ({ ...(current || { color_favorites: [], color_avoid: [], style_profile: { casual: 50, formal: 50, sporty: 50, minimalist: 50, bold: 50 }, default_occasion: 'casual', temperature_unit: 'celsius', temperature_sensitivity: 'normal', cold_threshold: 10, hot_threshold: 25, layering_preference: 'moderate', avoid_repeat_days: 7, prefer_underused_items: true, variety_level: 'moderate', ai_endpoints: [] }), default_occasion: event.detail.value }))} />
         <Picker
           mode='selector'
           range={TEMP_UNITS as unknown as string[]}
@@ -106,7 +106,7 @@ export default function SettingsPage() {
         </Picker>
       </View>
 
-      <Button loading={saving} onClick={saveSettings}>Save settings</Button>
+      <Button loading={saving} onClick={saveSettings}>保存设置</Button>
     </View>
   )
 }

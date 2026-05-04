@@ -25,12 +25,12 @@ export function LineageCard({ outfit }: LineageCardProps) {
   const Icon = isReplacement ? ArrowRight : BookmarkCheck;
 
   const label = isReplacement
-    ? `Replaces ${referenced.occasion} suggestion${
+    ? `替换自 ${referenced.occasion} 的建议${
         referenced.scheduled_for
           ? ` from ${format(parseISO(referenced.scheduled_for), 'MMM d')}`
           : ''
       }`
-    : `From your ${referenced.name || referenced.occasion} lookbook entry`;
+    : `来自你的 ${referenced.name || referenced.occasion} 灵感簿条目`;
 
   return (
     <Card className="border-muted bg-muted/30">

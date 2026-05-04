@@ -7,21 +7,21 @@ import { X, Home, Shirt, Sparkles, Layers, LayoutGrid, History, BarChart3, Brain
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Wardrobe', href: '/dashboard/wardrobe', icon: Shirt },
-  { name: 'Suggest Outfit', href: '/dashboard/suggest', icon: Sparkles },
-  { name: 'Outfits', href: '/dashboard/outfits', icon: LayoutGrid },
-  { name: 'Pairings', href: '/dashboard/pairings', icon: Layers },
-  { name: 'History', href: '/dashboard/history', icon: History },
-  { name: 'Family Feed', href: '/dashboard/family/feed', icon: HeartHandshake },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'AI Learning', href: '/dashboard/learning', icon: Brain },
+  { name: '概览', href: '/dashboard', icon: Home },
+  { name: '衣橱', href: '/dashboard/wardrobe', icon: Shirt },
+  { name: '穿搭建议', href: '/dashboard/suggest', icon: Sparkles },
+  { name: '穿搭', href: '/dashboard/outfits', icon: LayoutGrid },
+  { name: '搭配', href: '/dashboard/pairings', icon: Layers },
+  { name: '历史', href: '/dashboard/history', icon: History },
+  { name: '家庭动态', href: '/dashboard/family/feed', icon: HeartHandshake },
+  { name: '分析', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'AI 学习', href: '/dashboard/learning', icon: Brain },
 ];
 
 const secondaryNavigation = [
-  { name: 'Family', href: '/dashboard/family', icon: Users },
-  { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { name: '家庭', href: '/dashboard/family', icon: Users },
+  { name: '通知', href: '/dashboard/notifications', icon: Bell },
+  { name: '设置', href: '/dashboard/settings', icon: Settings },
 ];
 
 interface MobileSidebarProps {
@@ -71,7 +71,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
           className="absolute right-4 top-4 p-2 text-muted-foreground hover:text-foreground"
           onClick={onClose}
         >
-          <span className="sr-only">Close sidebar</span>
+          <span className="sr-only">关闭侧边栏</span>
           <X className="h-6 w-6" />
         </button>
 
@@ -112,7 +112,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
               </li>
               <li>
                 <div className="text-xs font-semibold leading-6 text-muted-foreground">
-                  Settings
+                  设置
                 </div>
                 <ul role="list" className="-mx-2 mt-2 space-y-1">
                   {secondaryNavigation.map((item) => {

@@ -13,11 +13,11 @@ import { ApiError } from '@/lib/api';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 404) return 'This invite link is invalid or has expired.';
-    if (error.status === 403) return 'This invite was sent to a different email address.';
-    if (error.status === 409) return 'You are already in a family.';
+    if (error.status === 404) return '邀请链接无效或已过期。';
+    if (error.status === 403) return '该邀请发送给了其他邮箱地址。';
+    if (error.status === 409) return '你已经加入了一个家庭。';
   }
-  return 'Something went wrong. Please try again.';
+  return '发生错误，请稍后再试。';
 }
 
 function InviteContent() {
@@ -63,10 +63,10 @@ function InviteContent() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Family Invitation
+            家庭邀请
           </CardTitle>
           <CardDescription>
-            You&apos;ve been invited to join a family on Wardrowbe
+            你已被邀请加入 Wardrowbe 家庭
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -28,7 +28,7 @@ function getSourceBadge(outfit: Outfit): {
 } | null {
   if (outfit.replaces_outfit_id) {
     return {
-      label: 'Replacement',
+      label: '替换',
       icon: <RefreshCw className="h-3 w-3" />,
       className: 'bg-orange-100 text-orange-700 border-orange-200',
     };
@@ -39,14 +39,14 @@ function getSourceBadge(outfit: Outfit): {
     outfit.scheduled_for
   ) {
     return {
-      label: 'Worn',
+      label: '已穿',
       icon: <BookmarkCheck className="h-3 w-3" />,
       className: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     };
   }
   if (outfit.source === 'manual') {
     return {
-      label: 'Studio',
+      label: '工作室',
       icon: <Shirt className="h-3 w-3" />,
       className: 'bg-purple-100 text-purple-700 border-purple-200',
     };

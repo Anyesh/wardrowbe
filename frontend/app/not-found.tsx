@@ -14,7 +14,7 @@ export default function NotFound() {
         <Button asChild>
           <Link href="/dashboard">
             <Home className="w-4 h-4 mr-2" />
-            Back to Dashboard
+            返回概览
           </Link>
         </Button>
       </div>

@@ -23,14 +23,14 @@ export default function GlobalError({
         </div>
         <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
         <p className="text-muted-foreground mb-6">
-          An unexpected error occurred. Please try again or contact support if
-          the problem persists.
+          发生了意外错误，请重试；如果问题仍然存在，请联系支持。
+          
         </p>
         <div className="flex gap-3 justify-center">
           <Button variant="outline" onClick={() => window.location.href = '/'}>
-            Go Home
+            返回首页
           </Button>
-          <Button onClick={reset}>Try Again</Button>
+          <Button onClick={reset}>重试</Button>
         </div>
         {process.env.NODE_ENV === 'development' && (
           <pre className="mt-6 p-4 bg-muted rounded-lg text-left text-xs overflow-auto max-h-48">
