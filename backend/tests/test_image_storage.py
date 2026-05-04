@@ -1,9 +1,18 @@
+from io import BytesIO
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from app.services import image_storage
+from app.services.image_service import ImageService
 from app.services.image_storage import LocalImageStorage
+
+
+def make_jpeg() -> bytes:
+    out = BytesIO()
+    Image.new("RGB", (32, 32), "white").save(out, format="JPEG")
+    return out.getvalue()
 
 
 @pytest.mark.asyncio
@@ -54,3 +63,17 @@ async def test_local_storage_runs_disk_operations_in_thread(
     await storage.delete("user/a.jpg")
 
     assert calls == ["_write_file", "read_bytes", "_delete_file"]
+
+
+@pytest.mark.asyncio
+async def test_image_service_processes_into_storage(tmp_path: Path):
+    service = ImageService(storage=LocalImageStorage(tmp_path))
+
+    result = await service.process_and_store(
+        user_id="11111111-1111-1111-1111-111111111111",
+        image_data=make_jpeg(),
+        original_filename="shirt.jpg",
+    )
+
+    assert result["image_path"].endswith(".jpg")
+    assert await service.storage.get_bytes(result["thumbnail_path"])

@@ -7,6 +7,7 @@ import imagehash
 from PIL import Image
 
 from app.config import get_settings
+from app.services.image_storage import ImageStorage, LocalImageStorage
 
 settings = get_settings()
 
@@ -31,9 +32,9 @@ ALLOWED_MIME_TYPES = {
 
 
 class ImageService:
-    def __init__(self, storage_path: str | None = None):
+    def __init__(self, storage_path: str | None = None, storage: ImageStorage | None = None):
         self.storage_path = Path(storage_path or settings.storage_path)
-        self.storage_path.mkdir(parents=True, exist_ok=True)
+        self.storage = storage or LocalImageStorage(self.storage_path)
 
     def _get_user_path(self, user_id: uuid.UUID) -> Path:
         user_path = self.storage_path / str(user_id)
@@ -113,7 +114,6 @@ class ImageService:
         base_filename = self._generate_filename(".jpg")
         base_name = base_filename.rsplit(".", 1)[0]
 
-        user_path = self._get_user_path(user_id)
         paths = {}
 
         # Process and save each size
@@ -129,15 +129,12 @@ class ImageService:
                 quality = 88  # Good quality for thumbnails
 
             filename = f"{base_name}{suffix}.jpg"
-            file_path = user_path / filename
+            paths[size_name] = f"{user_id}/{filename}"
 
             # For original, preserve as much quality as possible
             # For others, resize with appropriate quality
             resized_data = self._resize_image(image.copy(), max_size, quality=quality)
-            file_path.write_bytes(resized_data)
-
-            # Store relative path
-            paths[size_name] = f"{user_id}/{filename}"
+            await self.storage.put_bytes(paths[size_name], resized_data, "image/jpeg")
 
         # Compute perceptual hash for duplicate detection
         image_hash = self.compute_phash(image_data, original_filename)
