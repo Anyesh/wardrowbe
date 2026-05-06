@@ -10,7 +10,7 @@ page {
  */
 .page {
   min-height: 100vh;
-  padding: 28rpx 24rpx 180rpx;
+  padding: 28rpx 24rpx;
   box-sizing: border-box;
 }
 
@@ -270,6 +270,8 @@ page {
   flex-direction: column;
   gap: 16rpx;
   z-index: 50;
+  padding-bottom: 0;
+  padding-bottom: constant(safe-area-inset-bottom);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
