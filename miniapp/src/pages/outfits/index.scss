@@ -1,1 +1,15 @@
-/* Outfits page uses shared styles. */
+.outfits-page__filters {
+  display: flex;
+  gap: 12rpx;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6rpx;
+}
+
+.outfits-page__filters .chip {
+  flex: 0 0 auto;
+}
+
+.outfits-page__month {
+  width: 100%;
+}

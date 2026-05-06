@@ -2,6 +2,8 @@ import React from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { Button, Input, Text, View } from '@tarojs/components'
 import './index.scss'
+import BottomActionBar from '../../components/BottomActionBar'
+import PageHeader from '../../components/PageHeader'
 import OccasionChips from '../../components/OccasionChips'
 import { setLastSuggestionId } from '../../services/session'
 import { suggestOutfit } from '../../services/outfits'
@@ -55,19 +57,43 @@ export default function SuggestPage() {
   }
 
   return (
-    <View className='page stack'>
-      <Text className='hero-title'>生成穿搭建议</Text>
-      <View className='card stack'>
-        <Text className='section-title'>天气信息</Text>
-        <Text>{weather ? `${formatTemp(weather.temperature, preferences?.temperature_unit || 'celsius')} · ${weather.condition}` : '将使用你在设置中保存的位置天气。'}</Text>
-        <Input className='input' value={temperatureOverride} placeholder='可选：手动覆盖温度（°C）' onInput={(event) => setTemperatureOverride(event.detail.value)} />
+    <View className='page page--with-footer stack suggest-page'>
+      <PageHeader
+        eyebrow='Suggest'
+        title='生成穿搭建议'
+        subtitle={profile?.location_name ? `当前位置：${profile.location_name}` : undefined}
+      />
+
+      <View className='section-card stack'>
+        <Text className='section-title'>上下文</Text>
+        <Text className='card-subtitle'>
+          {weather
+            ? `${formatTemp(weather.temperature, preferences?.temperature_unit || 'celsius')} · ${weather.condition}`
+            : '将使用你在设置中保存的位置天气。'}
+        </Text>
       </View>
-      <View className='card stack'>
+
+      <View className='section-card stack suggest-page__occasion'>
         <Text className='section-title'>场景</Text>
         <OccasionChips value={occasion} onChange={setOccasion} />
       </View>
-      <Button loading={loading} onClick={generate}>生成穿搭</Button>
-      {profile?.location_name ? <Text className='muted'>当前位置：{profile.location_name}</Text> : null}
+
+      <View className='section-card stack'>
+        <Text className='section-title'>可选：覆盖温度</Text>
+        <Input
+          className='input'
+          value={temperatureOverride}
+          placeholder='输入温度（°C）'
+          onInput={(event) => setTemperatureOverride(event.detail.value)}
+        />
+        <Text className='muted'>用于临时测试或当天气与体感差异较大时手动调整。</Text>
+      </View>
+
+      <BottomActionBar>
+        <Button className='primary-button' loading={loading} disabled={loading} onClick={generate}>
+          生成穿搭
+        </Button>
+      </BottomActionBar>
     </View>
   )
 }

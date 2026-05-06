@@ -2,6 +2,8 @@ import React from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { Button, Text, View } from '@tarojs/components'
 import './index.scss'
+import PageHeader from '../../components/PageHeader'
+import StatCard from '../../components/StatCard'
 import type { AnalyticsResponse, Outfit, UserProfile, WeatherData } from '../../shared/types'
 import { formatTemp } from '../../shared/temperature'
 import { getOutfits } from '../../services/outfits'
@@ -48,21 +50,30 @@ export default function HomePage() {
   })
 
   return (
-    <View className='page stack'>
-      <View className='stack'>
-        <Text className='muted'>Welcome back</Text>
-        <Text className='hero-title'>{profile?.display_name || 'Wardrowbe'}</Text>
-      </View>
+    <View className='page stack home-page'>
+      <PageHeader
+        eyebrow='Welcome back'
+        title={profile?.display_name || 'Wardrowbe'}
+        subtitle={profile?.location_name ? `当前位置：${profile.location_name}` : undefined}
+      />
 
-      {error ? <View className='card'><Text>{error}</Text></View> : null}
-      {loading ? <View className='card'><Text>正在加载首页…</Text></View> : null}
+      {error ? (
+        <View className='section-card'>
+          <Text>{error}</Text>
+        </View>
+      ) : null}
+      {loading ? (
+        <View className='section-card'>
+          <Text>正在加载首页…</Text>
+        </View>
+      ) : null}
 
-      <View className='card stack'>
-        <Text className='section-title'>Weather</Text>
+      <View className='section-card stack'>
+        <Text className='section-title'>Today</Text>
         {weather ? (
           <>
-            <Text className='card-title'>{formatTemp(weather.temperature, 'celsius')}</Text>
-            <Text className='muted'>Feels like {formatTemp(weather.feels_like, 'celsius')} · {weather.condition}</Text>
+            <Text className='hero-title'>{formatTemp(weather.temperature, 'celsius')}</Text>
+            <Text className='muted'>体感 {formatTemp(weather.feels_like, 'celsius')} · {weather.condition}</Text>
           </>
         ) : (
           <Text className='muted'>请先在设置里填写位置，以便加载本地天气。</Text>
@@ -70,34 +81,34 @@ export default function HomePage() {
       </View>
 
       <View className='grid-2'>
-        <View className='card stack'>
-          <Text className='section-title'>待处理穿搭</Text>
-          <Text className='card-title'>{pendingOutfits.length}</Text>
-          <Text className='muted'>等待你反馈的穿搭建议</Text>
-        </View>
-        <View className='card stack'>
-          <Text className='section-title'>衣橱单品</Text>
-          <Text className='card-title'>{analytics?.wardrobe.total_items ?? '—'}</Text>
-          <Text className='muted'>衣橱中可穿与处理中单品总数</Text>
+        <StatCard label='待处理穿搭' value={pendingOutfits.length} hint='等待你反馈的穿搭建议' />
+        <StatCard label='衣橱单品' value={analytics?.wardrobe.total_items ?? '—'} hint='衣橱中可穿与处理中单品总数' />
+      </View>
+
+      <View className='section-card stack home-page__actions'>
+        <Text className='section-title'>Quick actions</Text>
+        <Button className='primary-button' onClick={() => Taro.switchTab({ url: '/pages/suggest/index' })}>
+          生成今日穿搭
+        </Button>
+        <View className='grid-2 home-page__actions-grid'>
+          <Button className='secondary-button' onClick={() => Taro.switchTab({ url: '/pages/wardrobe/index' })}>
+            浏览衣橱
+          </Button>
+          <Button className='secondary-button' onClick={() => Taro.navigateTo({ url: '/pages/wardrobe/add' })}>
+            添加单品
+          </Button>
         </View>
       </View>
 
-      <View className='card stack'>
-        <Text className='section-title'>快捷操作</Text>
-        <View className='row-wrap'>
-          <Button size='mini' onClick={() => Taro.switchTab({ url: '/pages/wardrobe/index' })}>打开衣橱</Button>
-          <Button size='mini' className='button-secondary' onClick={() => Taro.navigateTo({ url: '/pages/wardrobe/add' })}>添加单品</Button>
-          <Button size='mini' className='button-secondary' onClick={() => Taro.switchTab({ url: '/pages/suggest/index' })}>生成建议</Button>
-        </View>
-      </View>
-
-      <View className='card stack'>
-        <Text className='section-title'>洞察</Text>
-        {(analytics?.insights || []).length ? (
-          analytics?.insights.map((insight) => <Text key={insight}>• {insight}</Text>)
-        ) : (
-          <Text className='muted'>有更多穿搭活动后，这里会显示你的衣橱洞察。</Text>
-        )}
+      <View className='section-card stack'>
+        <Text className='section-title'>Insights</Text>
+        {(analytics?.insights || []).length
+          ? analytics?.insights.map((insight) => (
+              <Text key={insight} className='home-page__insight'>
+                • {insight}
+              </Text>
+            ))
+          : <Text className='muted'>有更多穿搭活动后，这里会显示你的衣橱洞察。</Text>}
       </View>
     </View>
   )
