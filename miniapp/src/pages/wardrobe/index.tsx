@@ -101,20 +101,12 @@ export default function 衣橱Page() {
           </Picker>
 
           <View className='row wardrobe-page__summary-right'>
-            <Button
-              className='chip wardrobe-page__chip wardrobe-page__chip--button'
-              size='mini'
+            <View
+              className='chip wardrobe-page__chip wardrobe-page__chip--clickable'
               onClick={() => setShowFilters((current) => !current)}
             >
-              {activeFilterCount ? `筛选（${activeFilterCount}）` : '筛选'}
-            </Button>
-            <Button
-              className='chip wardrobe-page__chip wardrobe-page__chip--button'
-              size='mini'
-              onClick={() => load(1, false)}
-            >
-              刷新
-            </Button>
+              <Text>{activeFilterCount ? `筛选（${activeFilterCount}）` : '筛选'}</Text>
+            </View>
           </View>
         </View>
 
@@ -169,6 +161,15 @@ export default function 衣橱Page() {
           ) : (
             <Text className='muted'>{loading ? '加载中…' : '已经到底啦'}</Text>
           )}
+
+          <Text
+            className='muted wardrobe-page__load-more-refresh'
+            onClick={() => {
+              if (!loading) load(1, false)
+            }}
+          >
+            刷新列表
+          </Text>
         </View>
       ) : null}
     </View>

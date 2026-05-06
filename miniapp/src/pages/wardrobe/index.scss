@@ -22,6 +22,15 @@
   font-weight: 500;
 }
 
+.wardrobe-page__chip--clickable {
+  padding: 12rpx 20rpx;
+  font-weight: 500;
+}
+
+.wardrobe-page__chip--clickable:active {
+  opacity: 0.82;
+}
+
 .wardrobe-page__grid {
   margin-top: 8rpx;
 }
@@ -30,6 +39,13 @@
   padding: 18rpx 0 8rpx;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.wardrobe-page__load-more-refresh {
+  padding: 12rpx 16rpx;
 }
 
 .wardrobe-page__error-actions {
