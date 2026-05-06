@@ -1,15 +1,32 @@
 .outfits-page__filters {
+  width: 100%;
+}
+
+.outfits-page__filters-inner {
   display: flex;
   gap: 12rpx;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
   padding-bottom: 6rpx;
 }
 
-.outfits-page__filters .chip {
+.outfits-page__filters-inner .chip {
   flex: 0 0 auto;
 }
 
 .outfits-page__month {
   width: 100%;
+  align-items: stretch;
+}
+
+.outfits-page__month-picker {
+  flex: 1;
+  min-width: 0;
+}
+
+.outfits-page__month-picker .input {
+  width: 100%;
+}
+
+.outfits-page__month-button {
+  flex: 0 0 auto;
+  padding: 0 24rpx;
 }

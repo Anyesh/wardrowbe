@@ -1,6 +1,6 @@
 import React from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { Button, Input, Picker, Text, View } from '@tarojs/components'
+import { Button, Input, Picker, ScrollView, Text, View } from '@tarojs/components'
 import './index.scss'
 import EmptyState from '../../components/EmptyState'
 import OutfitCard from '../../components/OutfitCard'
@@ -52,25 +52,29 @@ export default function OutfitsPage() {
         onConfirm={() => load()}
       />
 
-      <View className='outfits-page__filters'>
-        {OUTFIT_FILTERS.map((option) => (
-          <View
-            key={option.value}
-            className={`chip ${filter === option.value ? 'chip--active' : ''}`}
-            onClick={() => setFilter(option.value)}
-          >
-            <Text>{option.label}</Text>
-          </View>
-        ))}
-      </View>
+      <ScrollView className='outfits-page__filters' scrollX enableFlex showScrollbar={false}>
+        <View className='outfits-page__filters-inner'>
+          {OUTFIT_FILTERS.map((option) => (
+            <View
+              key={option.value}
+              className={`chip ${filter === option.value ? 'chip--active' : ''}`}
+              onClick={() => setFilter(option.value)}
+            >
+              <Text>{option.label}</Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
 
       <View className='row outfits-page__month'>
-        <Picker mode='date' fields='month' value={month} onChange={(event) => setMonth(event.detail.value)}>
-          <View className='input'>
-            <Text>{month || '选择月份概览'}</Text>
-          </View>
-        </Picker>
-        <Button className='secondary-button' onClick={() => load()}>
+        <View className='outfits-page__month-picker'>
+          <Picker mode='date' fields='month' value={month} onChange={(event) => setMonth(event.detail.value)}>
+            <View className='input'>
+              <Text>{month || '选择月份概览'}</Text>
+            </View>
+          </Picker>
+        </View>
+        <Button className='secondary-button outfits-page__month-button' onClick={() => load()}>
           刷新
         </Button>
       </View>
