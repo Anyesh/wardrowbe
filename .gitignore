@@ -58,3 +58,4 @@ k8s/*.secret.yaml
 .claude/
 CLAUDE.md
 deploy.sh
+.worktrees/
