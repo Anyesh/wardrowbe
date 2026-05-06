@@ -1,6 +1,37 @@
-.item-card__image {
-  width: 100%;
-  height: 260rpx;
-  border-radius: 20rpx;
-  background: #e5e7eb;
+.wardrobe-page__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.wardrobe-page__summary {
+  align-items: center;
+}
+
+.wardrobe-page__summary-right {
+  justify-content: flex-end;
+  gap: 12rpx;
+}
+
+.wardrobe-page__chip {
+  flex: 0 0 auto;
+}
+
+.wardrobe-page__chip--button {
+  padding: 0 18rpx;
+  font-weight: 500;
+}
+
+.wardrobe-page__grid {
+  margin-top: 8rpx;
+}
+
+.wardrobe-page__load-more {
+  padding: 18rpx 0 8rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.wardrobe-page__error-actions {
+  margin-top: 16rpx;
 }

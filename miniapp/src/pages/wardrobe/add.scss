@@ -1,1 +1,10 @@
-/* Upload page reuses shared styles and detail image size. */
+.add-page__preview {
+  gap: 18rpx;
+}
+
+.add-page__preview-image {
+  width: 100%;
+  height: 520rpx;
+  border-radius: 24rpx;
+  background: #e5e7eb;
+}

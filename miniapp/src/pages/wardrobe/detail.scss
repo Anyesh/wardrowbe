@@ -1,6 +1,49 @@
-.detail-image {
+.detail-hero {
   width: 100%;
-  height: 520rpx;
+  border-radius: 32rpx;
+  overflow: hidden;
   background: #ffffff;
-  border-radius: 24rpx;
+}
+
+.detail-hero__image {
+  width: 100%;
+  height: 560rpx;
+  background: #e5e7eb;
+}
+
+.wardrobe-detail__summary {
+  gap: 18rpx;
+}
+
+.wardrobe-detail__summary-main {
+  gap: 12rpx;
+}
+
+.wardrobe-detail__badges {
+  gap: 12rpx;
+}
+
+.wardrobe-detail__edit {
+  gap: 18rpx;
+}
+
+.detail-actions {
+  gap: 18rpx;
+}
+
+.wardrobe-detail__danger {
+  border: 2rpx solid #fee2e2;
+  background: #fff1f2;
+}
+
+.wardrobe-detail__danger-button {
+  background: #dc2626;
+  color: #ffffff;
+  min-height: 88rpx;
+  border-radius: 22rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
