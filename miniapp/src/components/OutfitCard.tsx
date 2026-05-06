@@ -10,13 +10,12 @@ interface OutfitCardProps {
 
 export default function OutfitCard({ outfit, onClick }: OutfitCardProps) {
   return (
-    <View className='card stack' onClick={onClick}>
+    <View className='outfit-card section-card' onClick={onClick}>
       <View className='row'>
         <Text className='card-title'>{titleCase(outfit.occasion)}</Text>
         <Text className='badge'>{titleCase(outfit.status)}</Text>
       </View>
       <Text className='muted'>Created {formatDate(outfit.created_at)}</Text>
-      {outfit.reasoning ? <Text>{outfit.reasoning}</Text> : null}
       <View className='thumb-strip'>
         {outfit.items.slice(0, 4).map((item) => (
           <Image
@@ -27,6 +26,7 @@ export default function OutfitCard({ outfit, onClick }: OutfitCardProps) {
           />
         ))}
       </View>
+      {outfit.reasoning ? <Text className='outfit-card__summary'>{outfit.reasoning}</Text> : null}
     </View>
   )
 }

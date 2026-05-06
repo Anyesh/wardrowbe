@@ -87,6 +87,67 @@ page {
   box-shadow: 0 10rpx 30rpx rgba(15, 23, 42, 0.06);
 }
 
+/**
+ * Shared card variants
+ */
+.item-card {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.item-card:active {
+  transform: scale(0.99);
+}
+
+.item-card__image {
+  width: 100%;
+  height: 280rpx;
+  background: #e5e7eb;
+}
+
+.item-card__body {
+  padding: 22rpx 24rpx 26rpx;
+  gap: 14rpx;
+}
+
+.outfit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  transition: transform 0.12s ease;
+}
+
+.outfit-card:active {
+  transform: scale(0.99);
+}
+
+.outfit-card__summary {
+  color: #4b5563;
+  font-size: 24rpx;
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.filter-sheet {
+  gap: 22rpx;
+}
+
+.filter-sheet__group {
+  gap: 18rpx;
+}
+
+.filter-sheet__group + .filter-sheet__group {
+  padding-top: 18rpx;
+  border-top: 2rpx solid #f3f4f6;
+}
+
 .card-title {
   font-size: 30rpx;
   font-weight: 600;

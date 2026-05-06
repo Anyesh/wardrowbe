@@ -1,5 +1,5 @@
 import React from 'react'
-import { Picker, Switch, Text, View } from '@tarojs/components'
+import { Button, Picker, Switch, Text, View } from '@tarojs/components'
 import { CLOTHING_TYPES } from '../shared/constants'
 import type { ItemFilter } from '../shared/types'
 
@@ -16,18 +16,39 @@ export default function FilterSheet({ value, onChange }: FilterSheetProps) {
     : 0
 
   return (
-    <View className='card stack'>
-      <Text className='section-title'>Filters</Text>
+    <View className='filter-sheet section-card stack'>
       <View className='row'>
-        <Text>仅看收藏</Text>
-        <Switch checked={Boolean(value.favorite)} onChange={(event) => onChange({ ...value, favorite: event.detail.value })} />
+        <Text className='section-title'>筛选</Text>
+        <Button
+          className='secondary-button'
+          size='mini'
+          onClick={() =>
+            onChange({
+              ...value,
+              favorite: undefined,
+              needs_wash: undefined,
+              type: undefined,
+            })
+          }
+        >
+          重置
+        </Button>
       </View>
-      <View className='row'>
-        <Text>需要清洗</Text>
-        <Switch checked={Boolean(value.needs_wash)} onChange={(event) => onChange({ ...value, needs_wash: event.detail.value })} />
+
+      <View className='filter-sheet__group stack'>
+        <Text className='muted'>偏好</Text>
+        <View className='row'>
+          <Text>仅看收藏</Text>
+          <Switch checked={Boolean(value.favorite)} onChange={(event) => onChange({ ...value, favorite: event.detail.value })} />
+        </View>
+        <View className='row'>
+          <Text>需要清洗</Text>
+          <Switch checked={Boolean(value.needs_wash)} onChange={(event) => onChange({ ...value, needs_wash: event.detail.value })} />
+        </View>
       </View>
-      <View className='stack'>
-        <Text className='muted'>单品类型</Text>
+
+      <View className='filter-sheet__group stack'>
+        <Text className='muted'>类型</Text>
         <Picker
           mode='selector'
           range={typeOptions}
