@@ -1,1 +1,17 @@
-/* Settings page uses shared app styles. */
+.settings-page__section {
+  gap: 18rpx;
+}
+
+.settings-page__token {
+  word-break: break-all;
+}
+
+.settings-page__actions {
+  gap: 16rpx;
+}
+
+.settings-page__picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}

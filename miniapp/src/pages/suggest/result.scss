@@ -1,1 +1,13 @@
-/* Suggest result page uses shared styles. */
+.result-page__highlights,
+.result-page__notes {
+  gap: 16rpx;
+}
+
+.result-page__secondary-actions {
+  gap: 16rpx;
+}
+
+.result-page__secondary-button {
+  flex: 1;
+  min-width: 0;
+}

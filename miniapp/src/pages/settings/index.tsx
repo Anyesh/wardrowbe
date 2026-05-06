@@ -2,11 +2,40 @@ import React from 'react'
 import { Button, Input, Picker, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import './index.scss'
-import { getAccessToken, setApiBaseUrl, getApiBaseUrl, clearAccessToken } from '../../services/session'
+import PageHeader from '../../components/PageHeader'
+import BottomActionBar from '../../components/BottomActionBar'
+import { clearAccessToken, getAccessToken, getApiBaseUrl, setApiBaseUrl } from '../../services/session'
 import { getPreferences, getUserProfile, syncWeChatMiniapp, updatePreferences, updateUserProfile } from '../../services/user'
 import type { Preferences, UserProfile } from '../../shared/types'
 
 const TEMP_UNITS = ['celsius', 'fahrenheit'] as const
+
+const DEFAULT_PROFILE: UserProfile = {
+  id: '',
+  email: '',
+  display_name: '',
+  timezone: 'UTC',
+  role: 'member',
+  onboarding_completed: false,
+  avatar_url: null,
+  location_name: '',
+}
+
+const DEFAULT_PREFERENCES: Preferences = {
+  color_favorites: [],
+  color_avoid: [],
+  style_profile: { casual: 50, formal: 50, sporty: 50, minimalist: 50, bold: 50 },
+  default_occasion: 'casual',
+  temperature_unit: 'celsius',
+  temperature_sensitivity: 'normal',
+  cold_threshold: 10,
+  hot_threshold: 25,
+  layering_preference: 'moderate',
+  avoid_repeat_days: 7,
+  prefer_underused_items: true,
+  variety_level: 'moderate',
+  ai_endpoints: [],
+}
 
 export default function SettingsPage() {
   const [apiBaseUrl, setApiBaseUrlState] = React.useState('')
@@ -26,7 +55,7 @@ export default function SettingsPage() {
       setProfile(nextProfile)
       setPreferences(nextPreferences)
     } catch {
-      // ignore initial load errors here; page remains editable for local debug setup
+      // Ignore initial load errors so local setup remains editable.
     }
   }, [])
 
@@ -71,42 +100,91 @@ export default function SettingsPage() {
     }
   }
 
+  const editableProfile = profile || DEFAULT_PROFILE
+  const editablePreferences = preferences || DEFAULT_PREFERENCES
+
   return (
-    <View className='page stack'>
-      <View className='card stack'>
-        <Text className='section-title'>连接设置</Text>
-        <Input className='input' value={apiBaseUrl} placeholder='https://api.example.com' onInput={(event) => setApiBaseUrlState(event.detail.value)} />
-        <Text className='muted'>当前 Token：{token ? `${token.slice(0, 12)}…` : '未设置'}</Text>
-        <View className='row-wrap'>
-          <Button size='mini' onClick={handleSync}>微信同步</Button>
-          <Button size='mini' className='button-secondary' onClick={() => { clearAccessToken(); setToken('') }}>清除 Token</Button>
+    <View className='page page--with-footer stack settings-page'>
+      <PageHeader title='设置' subtitle='管理连接信息、个人资料和偏好设置。' />
+
+      <View className='section-card stack settings-page__section'>
+        <Text className='section-title'>连接与账号</Text>
+        <Input
+          className='input'
+          value={apiBaseUrl}
+          placeholder='https://api.example.com'
+          onInput={(event) => setApiBaseUrlState(event.detail.value)}
+        />
+        <Text className='muted settings-page__token'>当前 Token：{token ? `${token.slice(0, 12)}…` : '未设置'}</Text>
+        <View className='row-wrap settings-page__actions'>
+          <Button className='secondary-button' onClick={handleSync}>
+            微信同步
+          </Button>
+          <Button
+            className='secondary-button'
+            onClick={() => {
+              clearAccessToken()
+              setToken('')
+            }}
+          >
+            清除 Token
+          </Button>
         </View>
       </View>
 
-      <View className='card stack'>
+      <View className='section-card stack settings-page__section'>
         <Text className='section-title'>个人资料</Text>
-        <Input className='input' value={profile?.display_name || ''} placeholder='显示名称' onInput={(event) => setProfile((current) => ({ ...(current || { id: '', email: '', display_name: '', timezone: 'UTC', role: 'member', onboarding_completed: false }), display_name: event.detail.value }))} />
-        <Input className='input' value={profile?.location_name || ''} placeholder='位置名称' onInput={(event) => setProfile((current) => ({ ...(current || { id: '', email: '', display_name: '', timezone: 'UTC', role: 'member', onboarding_completed: false }), location_name: event.detail.value }))} />
-        <Input className='input' value={profile?.timezone || 'UTC'} placeholder='时区' onInput={(event) => setProfile((current) => ({ ...(current || { id: '', email: '', display_name: '', timezone: 'UTC', role: 'member', onboarding_completed: false }), timezone: event.detail.value }))} />
+        <Input
+          className='input'
+          value={editableProfile.display_name || ''}
+          placeholder='显示名称'
+          onInput={(event) => setProfile({ ...editableProfile, display_name: event.detail.value })}
+        />
+        <Input
+          className='input'
+          value={editableProfile.location_name || ''}
+          placeholder='位置名称'
+          onInput={(event) => setProfile({ ...editableProfile, location_name: event.detail.value })}
+        />
+        <Input
+          className='input'
+          value={editableProfile.timezone || 'UTC'}
+          placeholder='时区'
+          onInput={(event) => setProfile({ ...editableProfile, timezone: event.detail.value })}
+        />
       </View>
 
-      <View className='card stack'>
-        <Text className='section-title'>Preferences</Text>
-        <Input className='input' value={preferences?.default_occasion || 'casual'} placeholder='默认场景' onInput={(event) => setPreferences((current) => ({ ...(current || { color_favorites: [], color_avoid: [], style_profile: { casual: 50, formal: 50, sporty: 50, minimalist: 50, bold: 50 }, default_occasion: 'casual', temperature_unit: 'celsius', temperature_sensitivity: 'normal', cold_threshold: 10, hot_threshold: 25, layering_preference: 'moderate', avoid_repeat_days: 7, prefer_underused_items: true, variety_level: 'moderate', ai_endpoints: [] }), default_occasion: event.detail.value }))} />
-        <Picker
-          mode='selector'
-          range={TEMP_UNITS as unknown as string[]}
-          value={Math.max(0, TEMP_UNITS.indexOf(preferences?.temperature_unit || 'celsius'))}
-          onChange={(event) => {
-            const nextUnit = TEMP_UNITS[Number(event.detail.value)]
-            setPreferences((current) => ({ ...(current || { color_favorites: [], color_avoid: [], style_profile: { casual: 50, formal: 50, sporty: 50, minimalist: 50, bold: 50 }, default_occasion: 'casual', temperature_unit: 'celsius', temperature_sensitivity: 'normal', cold_threshold: 10, hot_threshold: 25, layering_preference: 'moderate', avoid_repeat_days: 7, prefer_underused_items: true, variety_level: 'moderate', ai_endpoints: [] }), temperature_unit: nextUnit }))
-          }}
-        >
-          <View className='input'><Text>{preferences?.temperature_unit || 'celsius'}</Text></View>
-        </Picker>
+      <View className='section-card stack settings-page__section'>
+        <Text className='section-title'>偏好设置</Text>
+        <Input
+          className='input'
+          value={editablePreferences.default_occasion || 'casual'}
+          placeholder='默认场景'
+          onInput={(event) => setPreferences({ ...editablePreferences, default_occasion: event.detail.value })}
+        />
+        <View className='settings-page__picker'>
+          <Text className='muted'>温度单位</Text>
+          <Picker
+            mode='selector'
+            range={TEMP_UNITS as unknown as string[]}
+            value={Math.max(0, TEMP_UNITS.indexOf(editablePreferences.temperature_unit || 'celsius'))}
+            onChange={(event) => {
+              const nextUnit = TEMP_UNITS[Number(event.detail.value)]
+              setPreferences({ ...editablePreferences, temperature_unit: nextUnit })
+            }}
+          >
+            <View className='input'>
+              <Text>{editablePreferences.temperature_unit || 'celsius'}</Text>
+            </View>
+          </Picker>
+        </View>
       </View>
 
-      <Button loading={saving} onClick={saveSettings}>保存设置</Button>
+      <BottomActionBar>
+        <Button className='primary-button' loading={saving} disabled={saving} onClick={saveSettings}>
+          保存设置
+        </Button>
+      </BottomActionBar>
     </View>
   )
 }
