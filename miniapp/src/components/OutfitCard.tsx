@@ -15,7 +15,7 @@ export default function OutfitCard({ outfit, onClick }: OutfitCardProps) {
         <Text className='card-title'>{titleCase(outfit.occasion)}</Text>
         <Text className='badge'>{titleCase(outfit.status)}</Text>
       </View>
-      <Text className='muted'>Created {formatDate(outfit.created_at)}</Text>
+      <Text className='muted'>创建于 {formatDate(outfit.created_at)}</Text>
       <View className='thumb-strip'>
         {outfit.items.slice(0, 4).map((item) => (
           <Image

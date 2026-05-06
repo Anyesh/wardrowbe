@@ -39,7 +39,7 @@ export default function HomePage() {
         setWeather(null)
       }
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Failed to load dashboard')
+      setError(loadError instanceof Error ? loadError.message : '加载首页失败')
     } finally {
       setLoading(false)
     }
@@ -52,7 +52,7 @@ export default function HomePage() {
   return (
     <View className='page stack home-page'>
       <PageHeader
-        eyebrow='Welcome back'
+        eyebrow='欢迎回来'
         title={profile?.display_name || 'Wardrowbe'}
         subtitle={profile?.location_name ? `当前位置：${profile.location_name}` : undefined}
       />
@@ -69,7 +69,7 @@ export default function HomePage() {
       ) : null}
 
       <View className='section-card stack'>
-        <Text className='section-title'>Today</Text>
+        <Text className='section-title'>今日概览</Text>
         {weather ? (
           <>
             <Text className='hero-title'>{formatTemp(weather.temperature, 'celsius')}</Text>
@@ -86,7 +86,7 @@ export default function HomePage() {
       </View>
 
       <View className='section-card stack home-page__actions'>
-        <Text className='section-title'>Quick actions</Text>
+        <Text className='section-title'>快捷操作</Text>
         <Button className='primary-button' onClick={() => Taro.switchTab({ url: '/pages/suggest/index' })}>
           生成今日穿搭
         </Button>
@@ -101,7 +101,7 @@ export default function HomePage() {
       </View>
 
       <View className='section-card stack'>
-        <Text className='section-title'>Insights</Text>
+        <Text className='section-title'>衣橱洞察</Text>
         {(analytics?.insights || []).length
           ? analytics?.insights.map((insight) => (
               <Text key={insight}>

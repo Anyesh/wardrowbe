@@ -110,8 +110,28 @@ export default function 衣橱Page() {
           </View>
         </View>
 
-        {showFilters ? <FilterSheet value={filters} onChange={applyFilters} /> : null}
       </View>
+
+      {showFilters ? (
+        <View className='wardrobe-page__sheet'>
+          <View className='wardrobe-page__sheet-mask' onClick={() => setShowFilters(false)} />
+          <View className='wardrobe-page__sheet-panel'>
+            <View className='row wardrobe-page__sheet-header'>
+              <Text className='section-title'>筛选衣橱</Text>
+              <View className='chip wardrobe-page__chip wardrobe-page__chip--clickable' onClick={() => setShowFilters(false)}>
+                <Text>关闭</Text>
+              </View>
+            </View>
+            <FilterSheet
+              value={filters}
+              onChange={(next) => {
+                applyFilters(next)
+                setShowFilters(false)
+              }}
+            />
+          </View>
+        </View>
+      ) : null}
 
       {error ? (
         <View className='section-card'>

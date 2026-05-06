@@ -3,7 +3,6 @@ import { Button, Input, Picker, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import './index.scss'
 import PageHeader from '../../components/PageHeader'
-import BottomActionBar from '../../components/BottomActionBar'
 import { clearAccessToken, getAccessToken, getApiBaseUrl, setApiBaseUrl } from '../../services/session'
 import { getPreferences, getUserProfile, syncWeChatMiniapp, updatePreferences, updateUserProfile } from '../../services/user'
 import type { Preferences, UserProfile } from '../../shared/types'
@@ -91,7 +90,7 @@ export default function SettingsPage() {
 
   const handleSync = async () => {
     try {
-      const response = await syncWeChatMiniapp(profile?.display_name || 'WeChat User', profile?.avatar_url || undefined)
+      const response = await syncWeChatMiniapp(profile?.display_name || '微信用户', profile?.avatar_url || undefined)
       setToken(response.access_token)
       Taro.showToast({ title: '已同步', icon: 'success' })
       await load()
@@ -104,7 +103,7 @@ export default function SettingsPage() {
   const editablePreferences = preferences || DEFAULT_PREFERENCES
 
   return (
-    <View className='page page--with-footer stack settings-page'>
+    <View className='page stack settings-page'>
       <PageHeader title='设置' subtitle='管理连接信息、个人资料和偏好设置。' />
 
       <View className='section-card stack settings-page__section'>
@@ -180,11 +179,12 @@ export default function SettingsPage() {
         </View>
       </View>
 
-      <BottomActionBar>
+      <View className='section-card stack settings-page__save'>
+        <Text className='muted'>确认无误后保存当前设置。</Text>
         <Button className='primary-button' loading={saving} disabled={saving} onClick={saveSettings}>
           保存设置
         </Button>
-      </BottomActionBar>
+      </View>
     </View>
   )
 }

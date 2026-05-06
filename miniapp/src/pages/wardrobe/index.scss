@@ -51,3 +51,32 @@
 .wardrobe-page__error-actions {
   margin-top: 16rpx;
 }
+
+
+.wardrobe-page__sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+}
+
+.wardrobe-page__sheet-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.32);
+}
+
+.wardrobe-page__sheet-panel {
+  position: relative;
+  width: 100%;
+  padding: 24rpx;
+  box-sizing: border-box;
+  border-radius: 32rpx 32rpx 0 0;
+  background: #f3f4f6;
+  box-shadow: 0 -12rpx 40rpx rgba(15, 23, 42, 0.12);
+}
+
+.wardrobe-page__sheet-header {
+  margin-bottom: 16rpx;
+}

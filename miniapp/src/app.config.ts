@@ -23,31 +23,31 @@ export default {
     list: [
       {
         pagePath: 'pages/home/index',
-        text: 'Home',
+        text: '首页',
         iconPath: 'assets/tabbar/home.png',
         selectedIconPath: 'assets/tabbar/home-active.png',
       },
       {
         pagePath: 'pages/wardrobe/index',
-        text: 'Wardrobe',
+        text: '衣橱',
         iconPath: 'assets/tabbar/wardrobe.png',
         selectedIconPath: 'assets/tabbar/wardrobe-active.png',
       },
       {
         pagePath: 'pages/suggest/index',
-        text: 'Suggest',
+        text: '建议',
         iconPath: 'assets/tabbar/suggest.png',
         selectedIconPath: 'assets/tabbar/suggest-active.png',
       },
       {
         pagePath: 'pages/outfits/index',
-        text: 'Outfits',
+        text: '穿搭',
         iconPath: 'assets/tabbar/outfits.png',
         selectedIconPath: 'assets/tabbar/outfits-active.png',
       },
       {
         pagePath: 'pages/settings/index',
-        text: 'Settings',
+        text: '设置',
         iconPath: 'assets/tabbar/settings.png',
         selectedIconPath: 'assets/tabbar/settings-active.png',
       },

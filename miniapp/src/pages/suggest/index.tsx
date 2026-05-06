@@ -2,7 +2,6 @@ import React from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { Button, Input, Text, View } from '@tarojs/components'
 import './index.scss'
-import BottomActionBar from '../../components/BottomActionBar'
 import PageHeader from '../../components/PageHeader'
 import OccasionChips from '../../components/OccasionChips'
 import { setLastSuggestionId } from '../../services/session'
@@ -57,9 +56,9 @@ export default function SuggestPage() {
   }
 
   return (
-    <View className='page page--with-footer stack suggest-page'>
+    <View className='page stack suggest-page'>
       <PageHeader
-        eyebrow='Suggest'
+        eyebrow='穿搭建议'
         title='生成穿搭建议'
         subtitle={profile?.location_name ? `当前位置：${profile.location_name}` : undefined}
       />
@@ -83,17 +82,18 @@ export default function SuggestPage() {
         <Input
           className='input'
           value={temperatureOverride}
-          placeholder='输入温度（°C）'
+          placeholder='输入温度'
           onInput={(event) => setTemperatureOverride(event.detail.value)}
         />
         <Text className='muted'>用于临时测试或当天气与体感差异较大时手动调整。</Text>
       </View>
 
-      <BottomActionBar>
+      <View className='section-card stack suggest-page__cta'>
+        <Text className='muted'>准备好后，生成一套适合当前场景的穿搭建议。</Text>
         <Button className='primary-button' loading={loading} disabled={loading} onClick={generate}>
           生成穿搭
         </Button>
-      </BottomActionBar>
+      </View>
     </View>
   )
 }

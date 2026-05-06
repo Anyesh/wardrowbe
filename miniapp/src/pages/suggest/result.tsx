@@ -84,7 +84,7 @@ export default function SuggestResultPage() {
         <PageHeader title='穿搭结果' subtitle='查看推荐结论与下一步操作。' />
         <EmptyState
           title='还没有穿搭结果'
-          description={error || '先去 Suggest 生成一套新的穿搭。'}
+          description={error || '先去“穿搭建议”生成一套新的穿搭。'}
           action={(
             <Button className='primary-button' onClick={() => Taro.switchTab({ url: '/pages/suggest/index' })}>
               去生成穿搭

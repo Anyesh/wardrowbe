@@ -1,6 +1,6 @@
 import React from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { Button, Input, Picker, ScrollView, Text, View } from '@tarojs/components'
+import { Button, Input, ScrollView, Text, View } from '@tarojs/components'
 import './index.scss'
 import EmptyState from '../../components/EmptyState'
 import OutfitCard from '../../components/OutfitCard'
@@ -13,7 +13,6 @@ export default function OutfitsPage() {
   const [outfits, setOutfits] = React.useState<Outfit[]>([])
   const [search, setSearch] = React.useState('')
   const [filter, setFilter] = React.useState('all')
-  const [month, setMonth] = React.useState('')
 
   const load = React.useCallback(async () => {
     const params = filter === 'all'
@@ -39,7 +38,7 @@ export default function OutfitsPage() {
   return (
     <View className='page stack outfits-page'>
       <PageHeader
-        eyebrow='Outfits'
+        eyebrow='穿搭记录'
         title='穿搭'
         subtitle='浏览、搜索并筛选历史穿搭'
       />
@@ -66,18 +65,7 @@ export default function OutfitsPage() {
         </View>
       </ScrollView>
 
-      <View className='row outfits-page__month'>
-        <View className='outfits-page__month-picker'>
-          <Picker mode='date' fields='month' value={month} onChange={(event) => setMonth(event.detail.value)}>
-            <View className='input'>
-              <Text>{month || '选择月份概览'}</Text>
-            </View>
-          </Picker>
-        </View>
-        <Button className='secondary-button outfits-page__month-button' onClick={() => load()}>
-          刷新
-        </Button>
-      </View>
+
 
       {outfits.length
         ? outfits.map((outfit) => (
@@ -90,7 +78,7 @@ export default function OutfitsPage() {
         : (
             <EmptyState
               title='还没有符合条件的穿搭'
-              description='调整筛选条件，或者先去 Suggest 生成一套新的穿搭。'
+              description='调整筛选条件，或者先去“穿搭建议”生成一套新的穿搭。'
               action={
                 <Button className='primary-button' onClick={() => Taro.switchTab({ url: '/pages/suggest/index' })}>
                   去生成穿搭
