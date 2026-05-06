@@ -21,11 +21,36 @@ export default {
     backgroundColor: '#ffffff',
     borderStyle: 'black',
     list: [
-      { pagePath: 'pages/home/index', text: 'Home' },
-      { pagePath: 'pages/wardrobe/index', text: 'Wardrobe' },
-      { pagePath: 'pages/suggest/index', text: 'Suggest' },
-      { pagePath: 'pages/outfits/index', text: 'Outfits' },
-      { pagePath: 'pages/settings/index', text: 'Settings' },
+      {
+        pagePath: 'pages/home/index',
+        text: 'Home',
+        iconPath: 'assets/tabbar/home.png',
+        selectedIconPath: 'assets/tabbar/home-active.png',
+      },
+      {
+        pagePath: 'pages/wardrobe/index',
+        text: 'Wardrobe',
+        iconPath: 'assets/tabbar/wardrobe.png',
+        selectedIconPath: 'assets/tabbar/wardrobe-active.png',
+      },
+      {
+        pagePath: 'pages/suggest/index',
+        text: 'Suggest',
+        iconPath: 'assets/tabbar/suggest.png',
+        selectedIconPath: 'assets/tabbar/suggest-active.png',
+      },
+      {
+        pagePath: 'pages/outfits/index',
+        text: 'Outfits',
+        iconPath: 'assets/tabbar/outfits.png',
+        selectedIconPath: 'assets/tabbar/outfits-active.png',
+      },
+      {
+        pagePath: 'pages/settings/index',
+        text: 'Settings',
+        iconPath: 'assets/tabbar/settings.png',
+        selectedIconPath: 'assets/tabbar/settings-active.png',
+      },
     ],
   },
 } as const
