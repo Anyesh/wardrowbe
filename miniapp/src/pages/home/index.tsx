@@ -104,7 +104,7 @@ export default function HomePage() {
         <Text className='section-title'>Insights</Text>
         {(analytics?.insights || []).length
           ? analytics?.insights.map((insight) => (
-              <Text key={insight} className='home-page__insight'>
+              <Text key={insight}>
                 • {insight}
               </Text>
             ))
