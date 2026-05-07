@@ -18,6 +18,7 @@ from app.schemas.user import (
     UserSyncResponse,
     WeChatMiniappSyncRequest,
 )
+from app.services.onboarding_service import OnboardingService
 from app.services.user_service import UserEmailConflictError, UserService
 from app.utils.auth import get_current_user
 from app.utils.oidc import validate_oidc_id_token
@@ -188,6 +189,10 @@ async def sync_user(
             detail=str(e),
         ) from None
 
+    if is_new:
+        onboarding_service = OnboardingService(db)
+        await onboarding_service.ensure_default_state(user.id)
+
     access_token = create_access_token(user.external_id)
 
     return UserSyncResponse(
@@ -244,6 +249,10 @@ async def sync_wechat_miniapp_user(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
         ) from None
+
+    if is_new:
+        onboarding_service = OnboardingService(db)
+        await onboarding_service.ensure_default_state(user.id)
 
     return UserSyncResponse(
         id=user.id,

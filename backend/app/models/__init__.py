@@ -7,6 +7,7 @@ from app.models.learning import (
     UserLearningProfile,
 )
 from app.models.notification import Notification, NotificationSettings
+from app.models.onboarding import UserOnboardingState, UserOnboardingStep
 from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, UserFeedback
 from app.models.preference import UserPreference
 from app.models.schedule import Schedule
@@ -17,6 +18,8 @@ __all__ = [
     "FamilyInvite",
     "User",
     "UserPreference",
+    "UserOnboardingState",
+    "UserOnboardingStep",
     "UserLearningProfile",
     "ItemPairScore",
     "OutfitPerformance",
