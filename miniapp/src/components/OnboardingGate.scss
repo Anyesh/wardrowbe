@@ -1,0 +1,16 @@
+.onboarding-gate-root {
+  position: relative;
+  min-height: 100%;
+}
+
+.onboarding-gate-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 24, 40, 0.42);
+  color: #ffffff;
+  font-size: 26rpx;
+}

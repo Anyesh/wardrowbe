@@ -1,6 +1,7 @@
 import React from 'react'
 import Taro from '@tarojs/taro'
 import './app.scss'
+import OnboardingGate from './components/OnboardingGate'
 import { CLOUDBASE_ENV_ID } from './shared/constants'
 
 export default function App({ children }: { children: React.ReactNode }) {
@@ -11,5 +12,5 @@ export default function App({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  return children
+  return React.createElement(OnboardingGate, null, children)
 }

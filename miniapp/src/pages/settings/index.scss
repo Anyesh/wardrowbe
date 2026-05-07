@@ -19,3 +19,25 @@
 .settings-page__save {
   gap: 16rpx;
 }
+
+.settings-page__slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.settings-page__field-label {
+  text-transform: capitalize;
+}
+
+.settings-page__switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-page__json-editor {
+  min-height: 220rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
