@@ -19,7 +19,6 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "Wardrowbe"
-    app_version: str = "1.0.0"
     debug: bool = False
     secret_key: str = Field(default=DEFAULT_SECRET_KEY)
     studio_disabled: bool = False
@@ -54,7 +53,6 @@ class Settings(BaseSettings):
     # Weather
     openmeteo_url: str = Field(default="https://api.open-meteo.com/v1")
     geocoding_user_agent: str | None = Field(default=None)
-    geocoding_contact: str | None = Field(default=None)
 
     # Notifications - default ntfy channel (used when user has none configured)
     ntfy_server: str | None = None
@@ -114,13 +112,7 @@ class Settings(BaseSettings):
         return "unknown"
 
     def get_geocoding_user_agent(self) -> str:
-        if self.geocoding_user_agent:
-            return self.geocoding_user_agent
-
-        base = f"{self.app_name}/{self.app_version}"
-        if self.geocoding_contact:
-            return f"{base} ({self.geocoding_contact})"
-        return base
+        return self.geocoding_user_agent or "Wardrowbe/1.0"
 
 
 @lru_cache

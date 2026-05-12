@@ -303,10 +303,6 @@ export default function SettingsPage() {
         const lon = position.coords.longitude.toFixed(6);
         setLocationLat(lat);
         setLocationLon(lon);
-        const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (detectedTimezone) {
-          setTimezone(detectedTimezone);
-        }
         await finalizeFromCoordinates(lat, lon);
         setIsGettingLocation(false);
         toast.success('Location detected. Review it, then save.');
