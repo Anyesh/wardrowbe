@@ -2,6 +2,7 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from json import JSONDecodeError
 
 import httpx
 import redis.asyncio as aioredis
@@ -121,7 +122,12 @@ class WeatherService:
                 data = response.json()
             except (httpx.HTTPError, ValueError) as e:
                 logger.error(f"Geocoding error for {query!r}: {e}")
-                return None
+                raise GeocodingServiceError(f"Failed to geocode location {query!r}: {e}") from None
+            except (JSONDecodeError, ValueError) as e:
+                logger.error(f"Geocoding returned invalid JSON for {query!r}: {e}")
+                raise GeocodingServiceError(
+                    f"Failed to decode geocoding response for location {query!r}: {e}"
+                ) from None
 
         if not data:
             return None
@@ -386,4 +392,8 @@ class WeatherService:
 
 
 class WeatherServiceError(Exception):
+    pass
+
+
+class GeocodingServiceError(WeatherServiceError):
     pass

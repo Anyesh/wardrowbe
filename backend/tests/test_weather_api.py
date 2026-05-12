@@ -4,6 +4,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 
+from app.api.weather import GEOCODING_FAILURE_DETAIL
+from app.services.weather_service import GeocodingServiceError
+
 
 class TestWeatherApi:
     @pytest.mark.asyncio
@@ -65,3 +68,39 @@ class TestWeatherApi:
         assert response.json()["detail"] == (
             "Location not set. Please provide coordinates or set your location in settings."
         )
+
+    @pytest.mark.asyncio
+    async def test_current_weather_returns_503_when_saved_location_geocoding_fails(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        test_user.location_name = "New York City"
+        test_user.location_lat = None
+        test_user.location_lon = None
+        await db_session.commit()
+
+        geocode_mock = AsyncMock(side_effect=GeocodingServiceError("geocoder unavailable"))
+
+        with patch("app.api.weather.WeatherService.geocode_location_name", geocode_mock):
+            response = await client.get("/api/v1/weather/current", headers=auth_headers)
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == GEOCODING_FAILURE_DETAIL
+        geocode_mock.assert_awaited_once_with("New York City")
+
+    @pytest.mark.asyncio
+    async def test_forecast_returns_503_when_saved_location_geocoding_fails(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        test_user.location_name = "New York City"
+        test_user.location_lat = None
+        test_user.location_lon = None
+        await db_session.commit()
+
+        geocode_mock = AsyncMock(side_effect=GeocodingServiceError("geocoder unavailable"))
+
+        with patch("app.api.weather.WeatherService.geocode_location_name", geocode_mock):
+            response = await client.get("/api/v1/weather/forecast", headers=auth_headers)
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == GEOCODING_FAILURE_DETAIL
+        geocode_mock.assert_awaited_once_with("New York City")
