@@ -119,7 +119,7 @@ class WeatherService:
                 response = await client.get("https://nominatim.openstreetmap.org/search", params=params)
                 response.raise_for_status()
                 data = response.json()
-            except httpx.HTTPError as e:
+            except (httpx.HTTPError, ValueError) as e:
                 logger.error(f"Geocoding error for {query!r}: {e}")
                 return None
 
