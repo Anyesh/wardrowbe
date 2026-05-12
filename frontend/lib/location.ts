@@ -32,6 +32,12 @@ export interface ReverseGeocodeResponse {
   display_name?: string;
 }
 
+export const DEFAULT_NETWORK_LOCATION_URL = 'https://ipapi.co/json/';
+
+export function getNetworkLocationUrl(): string {
+  return process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL || DEFAULT_NETWORK_LOCATION_URL;
+}
+
 export function resolveNetworkLocation(
   data: NetworkLocationApiResponse,
   fallbackTimezone?: string

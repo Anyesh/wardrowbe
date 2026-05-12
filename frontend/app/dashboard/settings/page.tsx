@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePreferences, useUpdatePreferences, useResetPreferences, useTestAIEndpoint } from '@/lib/hooks/use-preferences';
 import { useUserProfile, useUpdateUserProfile } from '@/lib/hooks/use-user';
 import {
+  getNetworkLocationUrl,
   formatReverseGeocodedLocation,
   getGeolocationFailureMessage,
   resolveNetworkLocation,
@@ -32,7 +33,6 @@ const CM_TO_IN = 0.393701;
 const IN_TO_CM = 2.54;
 const KG_TO_LBS = 2.20462;
 const LBS_TO_KG = 0.453592;
-const NETWORK_LOCATION_URL = 'https://ipapi.co/json/';
 
 function convertMeasurement(value: number, key: string, from: string, to: string): number {
   if (from === to) return value;
@@ -223,7 +223,7 @@ export default function SettingsPage() {
   }, [userProfile]);
 
   const detectLocationFromNetwork = async () => {
-    const response = await fetch(NETWORK_LOCATION_URL, {
+    const response = await fetch(getNetworkLocationUrl(), {
       headers: { Accept: 'application/json' },
     });
 

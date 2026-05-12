@@ -1,12 +1,40 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  DEFAULT_NETWORK_LOCATION_URL,
   formatReverseGeocodedLocation,
+  getNetworkLocationUrl,
   getGeolocationFailureMessage,
   resolveNetworkLocation,
 } from '@/lib/location'
 
 describe('location helpers', () => {
+  it('uses the default network provider URL when no env override is set', () => {
+    const original = process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL
+    delete process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL
+
+    expect(getNetworkLocationUrl()).toBe(DEFAULT_NETWORK_LOCATION_URL)
+
+    if (original === undefined) {
+      delete process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL
+    } else {
+      process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL = original
+    }
+  })
+
+  it('uses the configured network provider URL when provided', () => {
+    const original = process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL
+    process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL = 'https://geo.example.com/json'
+
+    expect(getNetworkLocationUrl()).toBe('https://geo.example.com/json')
+
+    if (original === undefined) {
+      delete process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL
+    } else {
+      process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL = original
+    }
+  })
+
   it('resolves network location with formatted city label and timezone', () => {
     const result = resolveNetworkLocation({
       success: true,

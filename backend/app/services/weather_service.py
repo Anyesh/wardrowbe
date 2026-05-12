@@ -112,7 +112,7 @@ class WeatherService:
         }
 
         headers = {
-            "User-Agent": "Wardrowbe/1.0 (local-docker-geocoding)",
+            "User-Agent": settings.get_geocoding_user_agent(),
         }
 
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, headers=headers) as client:
