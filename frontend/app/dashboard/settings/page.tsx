@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Loader2, Save, RotateCcw, Check, Plus, Trash2, ChevronUp, ChevronDown, Server, MapPin, Navigation, Ruler } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -197,7 +197,11 @@ export default function SettingsPage() {
     }
     return 'metric';
   });
+  const unitSystemRef = useRef(unitSystem);
 
+  useEffect(() => {
+    unitSystemRef.current = unitSystem;
+  }, [unitSystem]);
 
   useEffect(() => {
     if (userProfile) {
@@ -209,9 +213,10 @@ export default function SettingsPage() {
       if (userProfile.body_measurements) {
         const initial: Record<string, string> = {};
         const numericKeys = ['chest', 'waist', 'hips', 'inseam', 'height', 'weight'];
+        const displayUnitSystem = unitSystemRef.current;
         for (const [key, value] of Object.entries(userProfile.body_measurements)) {
           if (numericKeys.includes(key) && typeof value === 'number') {
-            const converted = convertMeasurement(value, key, 'metric', unitSystem);
+            const converted = convertMeasurement(value, key, 'metric', displayUnitSystem);
             initial[key] = String(converted);
           } else {
             initial[key] = String(value);
