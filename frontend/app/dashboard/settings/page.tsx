@@ -19,6 +19,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { usePreferences, useUpdatePreferences, useResetPreferences, useTestAIEndpoint } from '@/lib/hooks/use-preferences';
 import { useUserProfile, useUpdateUserProfile } from '@/lib/hooks/use-user';
+import {
+  getNetworkLocationUrl,
+  formatReverseGeocodedLocation,
+  getGeolocationFailureMessage,
+  resolveNetworkLocation,
+} from '@/lib/location';
 import { CLOTHING_COLORS, OCCASIONS, Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
 import { toF, toCelsius } from '@/lib/temperature';
 import { toast } from 'sonner';
@@ -216,49 +222,94 @@ export default function SettingsPage() {
     }
   }, [userProfile]);
 
+  const detectLocationFromNetwork = async () => {
+    const response = await fetch(getNetworkLocationUrl(), {
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Network-based location lookup failed (${response.status}${response.statusText ? ` ${response.statusText}` : ''})`
+      );
+    }
+
+    const data = await response.json();
+    const resolved = resolveNetworkLocation(data, timezone);
+    setLocationLat(resolved.lat);
+    setLocationLon(resolved.lon);
+    if (resolved.locationName) {
+      setLocationName(resolved.locationName);
+    }
+    if (resolved.timezone) {
+      setTimezone(resolved.timezone);
+    }
+    return resolved;
+  };
+
   const handleGetCurrentLocation = () => {
+    setIsGettingLocation(true);
+    const finalizeFromCoordinates = async (lat: string, lon: string) => {
+      // Reverse geocode to get city name
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          const nextLocationName = formatReverseGeocodedLocation(data);
+          if (nextLocationName) {
+            setLocationName(nextLocationName);
+            return nextLocationName;
+          }
+        }
+      } catch {
+        // Ignore geocoding errors, we still have coordinates
+      }
+
+      return undefined;
+    };
+
+    const fallbackToNetworkLocation = async (reason?: string) => {
+      try {
+        await detectLocationFromNetwork();
+        toast.success(
+          reason
+            ? `${reason} Approximate location filled in. Review it, then save.`
+            : 'Approximate location filled in. Review it, then save.'
+        );
+      } catch (fallbackError) {
+        const fallbackMessage = fallbackError instanceof Error
+          ? fallbackError.message
+          : 'Unable to detect your location';
+        toast.error(fallbackMessage);
+      } finally {
+        setIsGettingLocation(false);
+      }
+    };
+
     if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
+      void fallbackToNetworkLocation('Geolocation is not supported by your browser.');
       return;
     }
 
-    setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const lat = position.coords.latitude.toFixed(6);
         const lon = position.coords.longitude.toFixed(6);
         setLocationLat(lat);
         setLocationLon(lon);
-
-        // Reverse geocode to get city name
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-            { headers: { 'User-Agent': 'WardrobeAI/1.0' } }
-          );
-          if (response.ok) {
-            const data = await response.json();
-            const city = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality;
-            const country = data.address?.country;
-            if (city && country) {
-              setLocationName(`${city}, ${country}`);
-            } else if (city) {
-              setLocationName(city);
-            } else if (data.display_name) {
-              // Fallback to first part of display name
-              setLocationName(data.display_name.split(',').slice(0, 2).join(',').trim());
-            }
-          }
-        } catch {
-          // Ignore geocoding errors, we still have coordinates
+        const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (detectedTimezone) {
+          setTimezone(detectedTimezone);
         }
-
+        await finalizeFromCoordinates(lat, lon);
         setIsGettingLocation(false);
-        toast.success('Location detected');
+        toast.success('Location detected. Review it, then save.');
       },
       (error) => {
-        setIsGettingLocation(false);
-        toast.error(`Failed to get location: ${error.message}`);
+        void fallbackToNetworkLocation(
+          getGeolocationFailureMessage(error)
+        );
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
