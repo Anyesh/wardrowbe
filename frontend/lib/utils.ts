@@ -60,12 +60,18 @@ export function getDaysSinceDateInTimezone(dateStr: string, timezone: string = '
 
 /**
  * Format a "worn X days ago" message based on a date string and user's timezone.
+ * Accepts a translation function for i18n support.
  */
-export function formatWornAgo(dateStr: string, timezone: string = 'UTC'): string {
+export function formatWornAgo(
+  dateStr: string,
+  timezone: string = 'UTC',
+  t: (key: string, params?: Record<string, unknown>) => string = (key, params) =>
+    params ? `${key}:${JSON.stringify(params)}` : key
+): string {
   const days = getDaysSinceDateInTimezone(dateStr, timezone);
-  if (days === 0) return 'Worn today';
-  if (days === 1) return 'Worn yesterday';
-  return `Worn ${days}d ago`;
+  if (days === 0) return t('wornAgo.today');
+  if (days === 1) return t('wornAgo.yesterday');
+  return t('wornAgo.daysAgo', { days });
 }
 
 /**

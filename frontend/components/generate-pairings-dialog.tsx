@@ -18,6 +18,7 @@ import { useGeneratePairings } from '@/lib/hooks/use-pairings';
 import { Item, Pairing } from '@/lib/types';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 interface GeneratePairingsDialogProps {
   item: Item | null;
@@ -36,6 +37,7 @@ export function GeneratePairingsDialog({
   const [generatedPairings, setGeneratedPairings] = useState<Pairing[] | null>(null);
   const generatePairings = useGeneratePairings();
   const router = useRouter();
+  const t = useTranslations('dialogs.generatePairings');
 
   const handleGenerate = async () => {
     if (!item) return;
@@ -46,7 +48,7 @@ export function GeneratePairingsDialog({
         numPairings,
       });
       setGeneratedPairings(result.pairings);
-      toast.success(`Generated ${result.generated} outfit${result.generated !== 1 ? 's' : ''}!`);
+      toast.success(t('success', { count: result.generated }));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate pairings';
       toast.error(message);
@@ -74,10 +76,10 @@ export function GeneratePairingsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Find Matching Outfits
+            {t('title')}
           </DialogTitle>
           <DialogDescription>
-            AI will create complete outfits featuring this item
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -108,7 +110,7 @@ export function GeneratePairingsDialog({
             {/* Number of pairings selector */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>Number of outfits</Label>
+                <Label>{t('numOutfits')}</Label>
                 <span className="text-sm font-medium text-primary">{numPairings}</span>
               </div>
               <Slider
@@ -120,7 +122,7 @@ export function GeneratePairingsDialog({
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground">
-                More outfits = more variety, but takes longer to generate
+                {t('numOutfitsDesc')}
               </p>
             </div>
           </div>
@@ -132,10 +134,10 @@ export function GeneratePairingsDialog({
             </div>
             <div>
               <p className="font-medium text-lg">
-                {generatedPairings.length} outfit{generatedPairings.length !== 1 ? 's' : ''} created!
+                {generatedPairings.length} outfit{generatedPairings.length !== 1 ? 's' : ''} {t('success').replace(/\d+ outfit\(s\) /, '')}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                View them in the Pairings section
+                {t('successDesc')}
               </p>
             </div>
 
@@ -174,7 +176,7 @@ export function GeneratePairingsDialog({
           {!generatedPairings ? (
             <>
               <Button variant="outline" onClick={handleClose}>
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 onClick={handleGenerate}
@@ -183,12 +185,12 @@ export function GeneratePairingsDialog({
                 {generatePairings.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
+                    {t('generating')}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Generate Outfits
+                    {t('generate')}
                   </>
                 )}
               </Button>
@@ -196,10 +198,10 @@ export function GeneratePairingsDialog({
           ) : (
             <>
               <Button variant="outline" onClick={handleClose}>
-                Close
+                {t('close')}
               </Button>
               <Button onClick={handleViewPairings}>
-                View Pairings
+                {t('viewPairings')}
               </Button>
             </>
           )}

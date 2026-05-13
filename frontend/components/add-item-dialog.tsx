@@ -35,7 +35,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreateItem, useBulkCreateItems, BulkUploadResponse } from '@/lib/hooks/use-items';
-import { CLOTHING_TYPES, CLOTHING_COLORS } from '@/lib/types';
+import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
+import { useTranslations } from 'next-intl';
 
 interface AddItemDialogProps {
   open: boolean;
@@ -49,6 +50,9 @@ interface FileWithPreview {
 }
 
 export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
+  const t = useTranslations('dialogs.addItem');
+  const clothingTypes = useClothingTypes();
+  const clothingColors = useClothingColors();
   // Single upload state
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -158,15 +162,15 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
       // Show toast based on results
       if (result.failed === 0) {
-        toast.success(`${result.successful} item${result.successful !== 1 ? 's' : ''} uploaded successfully`);
+        toast.success(t('bulk.allSuccess', { count: result.successful }));
       } else if (result.successful === 0) {
-        toast.error(`Failed to upload all ${result.failed} item${result.failed !== 1 ? 's' : ''}`);
+        toast.error(t('bulk.allFailed', { count: result.failed }));
       } else {
-        toast.warning(`${result.successful} uploaded, ${result.failed} failed`);
+        toast.warning(t('bulk.partial', { success: result.successful, failed: result.failed }));
       }
     } catch (error) {
       console.error('Failed to bulk upload:', error);
-      toast.error('Failed to upload items. Please try again.');
+      toast.error(t('bulk.uploadError'));
     }
   };
 
@@ -235,16 +239,16 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     <Dialog open={open} onOpenChange={handleCloseRequest}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add Items</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            Upload photos of your clothing items
+            {t('subtitle')}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="single">Single Item</TabsTrigger>
-            <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
+            <TabsTrigger value="single">{t('singleItem')}</TabsTrigger>
+            <TabsTrigger value="bulk">{t('bulkUpload')}</TabsTrigger>
           </TabsList>
 
           {/* Single Item Upload */}
@@ -263,18 +267,18 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                   <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                   <p className="mt-2 text-sm text-muted-foreground">
                     {isSingleDragActive
-                      ? 'Drop the image here...'
-                      : 'Drag & drop an image, or tap to select'}
+                      ? t('dropzoneActive')
+                      : t('dropzone')}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    JPEG, PNG, WebP, or HEIC
+                    {t('formatHint')}
                   </p>
                 </div>
               ) : (
                 <div className="relative">
                   <img
                     src={preview}
-                    alt="Preview"
+                    alt={t('previewAlt')}
                     className="w-full h-48 object-cover rounded-lg"
                   />
                   <Button
@@ -291,15 +295,15 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="type">Type <span className="text-muted-foreground font-normal">(AI will detect if empty)</span></Label>
+                  <Label htmlFor="type">{t('typeLabel')}</Label>
                   <Select value={type} onValueChange={setType}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Let AI detect..." />
+                      <SelectValue placeholder={t('letAiDetect')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {CLOTHING_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
+                      {clothingTypes.map((ct) => (
+                        <SelectItem key={ct.value} value={ct.value}>
+                          {ct.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -307,34 +311,34 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name (optional)</Label>
+                  <Label htmlFor="name">{t('namePlaceholder')}</Label>
                   <Input
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., Blue Oxford Shirt"
+                    placeholder={t('nameInputPlaceholder')}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="brand">Brand</Label>
+                    <Label htmlFor="brand">{t('brandPlaceholder')}</Label>
                     <Input
                       id="brand"
                       value={brand}
                       onChange={(e) => setBrand(e.target.value)}
-                      placeholder="e.g., J.Crew"
+                      placeholder={t('brandInputPlaceholder')}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="color">Primary Color</Label>
+                    <Label htmlFor="color">{t('primaryColor')}</Label>
                     <Select value={primaryColor} onValueChange={setPrimaryColor}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select..." />
+                        <SelectValue placeholder={t('selectPlaceholder')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {CLOTHING_COLORS.map((c) => (
+                        {clothingColors.map((c) => (
                           <SelectItem key={c.value} value={c.value}>
                             <div className="flex items-center gap-2">
                               <div
@@ -351,19 +355,19 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
+                  <Label htmlFor="notes">{t('notesPlaceholder')}</Label>
                   <Input
                     id="notes"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Any additional notes..."
+                    placeholder={t('notesInputPlaceholder')}
                   />
                 </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={handleCloseRequest}>
-                  Cancel
+                  {t('bulk.discardConfirm.keepEditing')}
                 </Button>
                 <Button
                   type="submit"
@@ -372,10 +376,10 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                   {createItem.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
+                      {t('uploading')}
                     </>
                   ) : (
-                    'Add Item'
+                    t('addItem')
                   )}
                 </Button>
               </div>
@@ -398,8 +402,8 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                   <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
                   <p className="mt-2 text-sm text-muted-foreground">
                     {isBulkDragActive
-                      ? 'Drop the images here...'
-                      : 'Drag & drop multiple images, or tap to select'}
+                      ? t('dropzoneActive')
+                      : t('dropzone')}
                   </p>
                   {/* <p className="mt-1 text-xs text-muted-foreground">
                     Up to 20 images (JPEG, PNG, WebP, HEIC)
@@ -410,8 +414,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium">
-                        {bulkFiles.length} image{bulkFiles.length !== 1 ? 's' : ''} selected
-                      
+                        {t('bulk.imageCount', { count: bulkFiles.length })}
                       </p>
                       <Button
                         type="button"
@@ -419,7 +422,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                         size="sm"
                         onClick={clearBulkFiles}
                       >
-                        Clear All
+                        {t('bulk.clearAll')}
                       </Button>
                     </div>
 
@@ -450,7 +453,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                     </ScrollArea>
 
                     <p className="text-xs text-muted-foreground">
-                      All items will be auto-tagged by AI. You can edit details later.
+                      {t('bulk.hint')}
                     </p>
                   </div>
                 )}
@@ -460,7 +463,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">Uploading {bulkFiles.length} items...</span>
+                        <span className="text-sm">{t('bulk.uploadingCount', { count: bulkFiles.length })}</span>
                       </div>
                       <span className="text-sm text-muted-foreground">{bulkCreateItems.uploadProgress}%</span>
                     </div>
@@ -470,7 +473,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={handleCloseRequest}>
-                    Cancel
+                    {t('bulk.discardConfirm.keepEditing')}
                   </Button>
                   <Button
                     onClick={handleBulkSubmit}
@@ -479,12 +482,12 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                     {bulkCreateItems.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Uploading...
+                        {t('uploading')}
                       </>
                     ) : (
                       <>
                         <Upload className="mr-2 h-4 w-4" />
-                        Upload {bulkFiles.length} Item{bulkFiles.length !== 1 ? 's' : ''}
+                        {t('bulk.uploadButton', { count: bulkFiles.length })}
                       </>
                     )}
                   </Button>
@@ -505,11 +508,11 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
                 <div className="text-center">
                   <p className="text-lg font-medium">
-                    {bulkResult.successful} of {bulkResult.total} uploaded successfully
+                    {t('bulk.resultSuccess', { success: bulkResult.successful, total: bulkResult.total })}
                   </p>
                   {bulkResult.failed > 0 && (
                     <p className="text-sm text-muted-foreground">
-                      {bulkResult.failed} item{bulkResult.failed !== 1 ? 's' : ''} failed
+                      {t('bulk.resultFailed', { count: bulkResult.failed })}
                     </p>
                   )}
                 </div>
@@ -544,10 +547,10 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" onClick={clearBulkFiles}>
-                    Upload More
+                    {t('bulk.uploadMore')}
                   </Button>
                   <Button onClick={handleClose}>
-                    Done
+                    {t('bulk.done')}
                   </Button>
                 </div>
               </div>
@@ -560,14 +563,16 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Discard selected images?</AlertDialogTitle>
+          <AlertDialogTitle>{t('bulk.discardConfirm.title')}</AlertDialogTitle>
           <AlertDialogDescription>
-            You have {activeTab === 'single' ? '1 image' : `${bulkFiles.length} image${bulkFiles.length !== 1 ? 's' : ''}`} selected that will be lost if you close this dialog.
+            {activeTab === 'single'
+              ? t('bulk.discardConfirm.singleImage')
+              : t('bulk.discardConfirm.imageCount', { count: bulkFiles.length })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep editing</AlertDialogCancel>
-          <AlertDialogAction onClick={handleClose}>Discard</AlertDialogAction>
+          <AlertDialogCancel>{t('bulk.discardConfirm.keepEditing')}</AlertDialogCancel>
+          <AlertDialogAction onClick={handleClose}>{t('bulk.discardConfirm.discard')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -1,0 +1,1291 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "wardrobe": "Wardrobe",
+    "suggestOutfit": "Suggest Outfit",
+    "outfits": "Outfits",
+    "pairings": "Pairings",
+    "history": "History",
+    "familyFeed": "Family Feed",
+    "analytics": "Analytics",
+    "aiLearning": "AI Learning",
+    "settingsLabel": "Settings",
+    "family": "Family",
+    "notifications": "Notifications",
+    "home": "Home",
+    "suggest": "Suggest",
+    "brandAlt": "Wardrowbe",
+    "brandName": "wardrowbe",
+    "openSidebar": "Open sidebar",
+    "closeSidebar": "Close sidebar",
+    "toggleTheme": "Toggle theme",
+    "signOut": "Sign out",
+    "userFallback": "User"
+  },
+  "landing": {
+    "brandName": "wardrowbe",
+    "tagline": "AI-powered wardrobe management and outfit recommendations",
+    "getStarted": "Get Started"
+  },
+  "notFound": {
+    "title": "404",
+    "heading": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "backToDashboard": "Back to Dashboard"
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. Please try again or contact support if the problem persists.",
+    "goHome": "Go Home",
+    "tryAgain": "Try Again"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Sign in to manage your wardrobe",
+    "devMode": "Development Mode - Any credentials accepted",
+    "email": "Email",
+    "displayName": "Display Name",
+    "signingIn": "Signing in...",
+    "termsAgreement": "By signing in, you agree to our terms of service and privacy policy.",
+    "errors": {
+      "OAuthSignin": "Error signing in with OAuth provider. Please try again.",
+      "OAuthCallback": "Error during OAuth callback. Please try again.",
+      "OAuthCreateAccount": "Error creating account. Please try again.",
+      "Callback": "Error during authentication callback. Please try again.",
+      "CredentialsSignin": "Invalid email or password. Please try again.",
+      "AccessDenied": "Access denied. You do not have permission to sign in.",
+      "default": "An error occurred during sign in. Please try again."
+    },
+    "backendError": {
+      "title": "Backend Configuration Error",
+      "description": "Unable to connect to backend server. Please check that the backend is running."
+    }
+  },
+  "onboarding": {
+    "steps": {
+      "welcome": "Welcome",
+      "family": "Family",
+      "location": "Location",
+      "style": "Style",
+      "firstItem": "First Item"
+    },
+    "welcome": {
+      "greeting": "Welcome to Wardrowbe{name}!",
+      "description": "Let's get your digital wardrobe set up in just a few steps.",
+      "feature1": "Photograph your clothes",
+      "feature2": "Get personalized outfits",
+      "feature3": "Share with family",
+      "getStarted": "Get Started"
+    },
+    "family": {
+      "title": "Family Setup",
+      "description": "Create or join a family to share the wardrobe experience",
+      "createFamily": "Create Family",
+      "createFamilyDesc": "Start a new family",
+      "joinFamily": "Join Family",
+      "joinFamilyDesc": "Use an invite code",
+      "familyName": "Family Name",
+      "familyNamePlaceholder": "e.g., The Smith Family",
+      "inviteCode": "Invite Code",
+      "inviteCodePlaceholder": "e.g., ABC123XY",
+      "skipForNow": "Skip for now",
+      "success": "Family created successfully!",
+      "joinSuccess": "Joined family successfully!",
+      "error": "Failed to set up family. Please try again."
+    },
+    "location": {
+      "title": "Your Location",
+      "description": "We use this to provide weather-appropriate outfit suggestions",
+      "detectLocation": "Detect My Location",
+      "orManual": "Or enter manually",
+      "cityLabel": "City/Location Name",
+      "cityPlaceholder": "e.g., New York, NY",
+      "continue": "Continue",
+      "locationSuccess": "Location set successfully!",
+      "locationError": "Failed to detect location. Please enter it manually.",
+      "saveError": "Failed to save location. Please try again."
+    },
+    "style": {
+      "title": "Your Style",
+      "description": "Help us understand your style preferences",
+      "favoriteColors": "Favorite Colors",
+      "favoriteColorsDesc": "Tap colors you love wearing",
+      "colorsToAvoid": "Colors to Avoid",
+      "colorsToAvoidDesc": "Tap colors you prefer not to wear",
+      "styleProfile": "Style Profile",
+      "styleProfileDesc": "Adjust how much you prefer each style",
+      "saveSuccess": "Style preferences saved!",
+      "saveError": "Failed to save style preferences."
+    },
+    "firstItem": {
+      "title": "Add Your First Item",
+      "description": "Take a photo or upload an image of a clothing item",
+      "uploadPrompt": "Click to upload or take photo",
+      "formatHint": "PNG, JPG, or HEIC",
+      "typeLabel": "What type of clothing is this?",
+      "typePlaceholder": "Select type...",
+      "addToWardrobe": "Add to Wardrobe",
+      "chooseDifferentPhoto": "Choose Different Photo",
+      "uploadError": "Failed to upload item. Please try again.",
+      "analyzing": "AI is analyzing your item..."
+    },
+    "complete": {
+      "title": "You're All Set!",
+      "description": "Your wardrobe is ready. Start adding clothes and get personalized outfit suggestions!",
+      "goToDashboard": "Go to Dashboard",
+      "finishing": "Finishing..."
+    },
+    "back": "Back"
+  },
+  "invite": {
+    "title": "Family Invitation",
+    "description": "You've been invited to join a family on Wardrowbe",
+    "acceptButton": "Accept Invitation",
+    "joinedFamily": "Joined {name}!",
+    "errors": {
+      "invalidLink": "This invite link is invalid or has expired.",
+      "wrongEmail": "This invite was sent to a different email address.",
+      "alreadyInFamily": "You are already in a family.",
+      "default": "Something went wrong. Please try again."
+    }
+  },
+  "dashboard": {
+    "layout": {
+      "loading": "Loading your wardrobe..."
+    },
+    "welcomeBack": "Welcome back, {name}",
+    "subtitle": "Here's what's happening with your wardrobe",
+    "weather": {
+      "title": "Today's Weather",
+      "locationNotSet": "Location not set",
+      "setLocation": "Set Location",
+      "feelsLike": "feels {temp}",
+      "rainChance": "{percent}% chance of rain",
+      "getOutfitSuggestion": "Get Outfit Suggestion"
+    },
+    "pendingOutfits": {
+      "title": "Pending Outfits",
+      "allCaughtUp": "All Caught Up",
+      "noPending": "No outfits waiting for your response",
+      "accepted": "Outfit accepted",
+      "acceptFailed": "Failed to accept outfit",
+      "rejected": "Outfit rejected",
+      "rejectFailed": "Failed to reject outfit",
+      "viewAll": "View all"
+    },
+    "nextScheduled": {
+      "title": "Next Scheduled",
+      "noSchedules": "No schedules set up",
+      "setUpSchedule": "Set Up Schedule",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "comingUp": "Coming up"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "noChannels": "No channels configured",
+      "addChannel": "Add Channel",
+      "configure": "Configure",
+      "activeCount": "{active} of {total} active"
+    },
+    "weeklySummary": {
+      "title": "This Week",
+      "outfits": "outfits",
+      "accepted": "accepted",
+      "avgRating": "Avg rating"
+    },
+    "insights": {
+      "title": "Insights",
+      "empty": "Add more items and generate outfits to see personalized insights!"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "description": "Common tasks to get you started",
+      "addNewItem": "Add New Item",
+      "getOutfitSuggestion": "Get Outfit Suggestion"
+    },
+    "familyFeed": {
+      "title": "Family Outfits",
+      "description": "See what your family is wearing and rate their outfits",
+      "browse": "Browse Family Outfits",
+      "memberCount": "{count} members in {name}"
+    }
+  },
+  "wardrobe": {
+    "title": "My Wardrobe",
+    "itemCount": "{count} items in your wardrobe",
+    "search": "Search items...",
+    "allTypes": "All types",
+    "needsWash": "Needs wash",
+    "favorites": "Favorites",
+    "clearFilters": "Clear filters",
+    "empty": {
+      "title": "Your wardrobe is empty",
+      "description": "Add your first clothing item to start getting personalized outfit suggestions.",
+      "addFirstItem": "Add First Item"
+    },
+    "ai": {
+      "analyzing": "AI Analyzing...",
+      "analysisFailed": "Analysis Failed",
+      "retry": "Retry",
+      "completeness": "AI completeness: {percent}%",
+      "analyzingCount": "{count} analyzing",
+      "failedCount": "{count} failed"
+    },
+    "wearCount": "Worn {count} times",
+    "errors": {
+      "loadFailed": "Failed to load items. Please try again.",
+      "noItemsFound": "No items found matching your filters.",
+      "clearFilters": "Clear Filters"
+    },
+    "sort": {
+      "newestFirst": "Newest first",
+      "oldestFirst": "Oldest first",
+      "recentlyWorn": "Recently worn",
+      "leastRecentlyWorn": "Least recently worn",
+      "mostWorn": "Most worn",
+      "leastWorn": "Least worn",
+      "nameAZ": "Name A\u2013Z",
+      "nameZA": "Name Z\u2013A"
+    },
+    "bulkActions": {
+      "deleteSuccess": "{count} items deleted",
+      "deleteError": "Failed to delete items"
+    },
+    "itemDeleted": "Item deleted",
+    "itemDeleteFailed": "Failed to delete item",
+    "itemUpdated": "Item updated",
+    "itemUpdateFailed": "Failed to update item",
+    "reanalysisQueued": "Queued for re-analysis",
+    "reanalysisFailed": "Failed to queue for re-analysis"
+  },
+  "suggest": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "subtitle": "Let's find the perfect outfit for your day",
+    "weatherHints": {
+      "rainy": "Bring an umbrella or rain jacket",
+      "cold": "Layer up - it's quite cold",
+      "mild": "A light jacket would be perfect",
+      "hot": "Keep it light and breathable",
+      "windy": "Consider something windproof",
+      "nice": "Great weather for any style"
+    },
+    "location": {
+      "notSet": "Location not set",
+      "setDescription": "Set your location in settings for weather-aware suggestions"
+    },
+    "weatherOverride": {
+      "active": "Weather override active",
+      "overrideWeather": "Override weather",
+      "condition": "Condition",
+      "reset": "Reset",
+      "temperature": "Temperature",
+      "sunny": "Sunny",
+      "cloudy": "Cloudy",
+      "rainy": "Rainy"
+    },
+    "occasionPrompt": "What's the occasion?",
+    "yourOutfit": "Your Outfit",
+    "tryAnother": "Try Another",
+    "loveIt": "Love it",
+    "startOver": "Start over",
+    "getSuggestion": "Get Suggestion",
+    "generating": "Creating your look...",
+    "error": "Failed to generate outfit suggestion. Please try again.",
+    "tip": "Tip:"
+  },
+  "outfits": {
+    "title": "Outfits",
+    "subtitle": "Your looks, worn outfits, and AI suggestions",
+    "viewList": "List",
+    "viewCalendar": "Calendar",
+    "newOutfit": "New Outfit",
+    "filters": {
+      "all": "All",
+      "myLooks": "My Looks",
+      "worn": "Worn",
+      "pairings": "Pairings",
+      "replacements": "Replacements",
+      "ai": "AI"
+    },
+    "empty": {
+      "all": "No outfits yet. Create your first look!",
+      "myLooks": "No lookbook templates yet.",
+      "worn": "No worn outfits yet.",
+      "pairings": "No pairings yet.",
+      "replacements": "No replacement outfits yet.",
+      "ai": "No AI suggestions yet."
+    },
+    "search": "Search lookbook...",
+    "totalCount": "{count} total",
+    "loadMore": "Load more",
+    "loadError": "Failed to load outfits",
+    "calendar": {
+      "noOutfitsOnDay": "No outfits on this day",
+      "outfitCount": "{count} outfit(s)",
+      "monthlyCount": "{count} outfit(s) this month",
+      "legendScheduled": "Scheduled",
+      "legendOnDemand": "On-demand"
+    },
+    "detail": {
+      "backToOutfits": "Back to Outfits",
+      "lookbookTemplate": "Lookbook template",
+      "items": "Items ({count})",
+      "wearToday": "Wear today",
+      "saveToLookbook": "Save to lookbook",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this outfit? This cannot be undone.",
+      "deleted": "Outfit deleted",
+      "addedToToday": "Added to today",
+      "notWornYet": "This look has not been worn yet. Click \"Wear today\" to log it.",
+      "wornCount": "Worn {count} time(s)",
+      "undated": "Undated",
+      "seeAll": "See all"
+    },
+    "new": {
+      "cancel": "Cancel",
+      "editOutfit": "Edit Outfit",
+      "studio": "Studio",
+      "wearToday": "Wear Today",
+      "saveChanges": "Save Changes",
+      "saveToLookbook": "Save to Lookbook",
+      "validation": {
+        "needItemAndOccasion": "Pick at least one item and an occasion",
+        "needItem": "Pick at least one item",
+        "needOccasion": "Pick an occasion"
+      },
+      "draft": {
+        "found": "You have an unsaved draft from your last session. Resume it?",
+        "startFresh": "Start fresh",
+        "resume": "Resume"
+      },
+      "errors": {
+        "notFound": "Outfit not found",
+        "notFoundDesc": "This outfit no longer exists. It may have been deleted from another tab or device.",
+        "cannotEdit": "You can't edit this outfit",
+        "couldNotLoad": "Couldn't load this outfit",
+        "couldNotLoadDesc": "Your session may have expired or this outfit belongs to another account.",
+        "genericError": "Something went wrong while loading this outfit. Check your connection and try again.",
+        "tryAgain": "Try again",
+        "backToOutfits": "Back to outfits"
+      },
+      "worn": {
+        "title": "This outfit has been worn",
+        "description": "Worn outfits can't be edited because they're part of your wear history.",
+        "saveAsNew": "Save as new",
+        "backToOutfit": "Back to outfit"
+      },
+      "tabs": {
+        "canvas": "Canvas",
+        "details": "Details",
+        "yourWardrobe": "Your Wardrobe",
+        "emptyWardrobe": "No items in your wardrobe yet. Add items first."
+      },
+      "discardChanges": "Discard changes",
+      "nameRequired": "Give your lookbook entry a name before saving",
+      "outfitUpdated": "Outfit updated",
+      "savedAndMarkedWorn": "Saved and marked worn"
+    },
+    "cards": {
+      "replacement": "Replacement",
+      "worn": "Worn",
+      "studio": "Studio",
+      "pairing": "Pairing",
+      "ai": "AI",
+      "lookbookTemplate": "Lookbook template",
+      "outfitFallback": "{occasion} outfit"
+    }
+  },
+  "pairings": {
+    "title": "Pairings",
+    "subtitle": "AI-generated outfit combinations built around your items",
+    "empty": {
+      "title": "No pairings yet",
+      "description": "Select an item from your wardrobe and use \"Find Pairings\" to discover outfit combinations that work well together.",
+      "goToWardrobe": "Go to Wardrobe"
+    },
+    "allItemTypes": "All item types",
+    "pairingCount": "{count} pairing(s)",
+    "loadMore": "Load More",
+    "loadError": "Failed to load pairings. Please try again."
+  },
+  "history": {
+    "title": "History",
+    "subtitle": "View your past outfit recommendations",
+    "empty": {
+      "title": "No recommendation history",
+      "description": "Your outfit recommendation history will appear here once you start receiving suggestions.",
+      "getFirstSuggestion": "Get Your First Suggestion"
+    },
+    "noOutfitsForDate": "No outfits for {date}",
+    "filters": {
+      "allOccasions": "All occasions",
+      "casual": "Casual",
+      "office": "Office",
+      "formal": "Formal",
+      "date": "Date",
+      "workout": "Workout",
+      "allStatus": "All status",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "pending": "Pending",
+      "viewed": "Viewed"
+    },
+    "outfitCount": "{count} outfit(s)",
+    "loadError": "Failed to load history. Please try again.",
+    "sourceBadges": {
+      "scheduled": "Scheduled",
+      "onDemand": "On Demand",
+      "manual": "Manual",
+      "pairing": "Pairing"
+    }
+  },
+  "family": {
+    "title": "Family",
+    "description": "Create or join a family to share your wardrobe experience",
+    "createFamily": "Create Family",
+    "createFamilyDesc": "Start a new family",
+    "joinFamily": "Join Family",
+    "joinFamilyDesc": "Join an existing family with an invite code",
+    "cardCreateDesc": "Start a new family and invite members",
+    "cardJoinDesc": "Use an invite code",
+    "familyName": "Family Name",
+    "inviteCode": "Invite Code",
+    "create": "Create",
+    "join": "Join",
+    "cancel": "Cancel",
+    "invalidInviteCode": "Invalid invite code. Please check and try again.",
+    "leaveFamily": "Leave Family",
+    "leaveConfirm": {
+      "title": "Leave Family?",
+      "description": "Are you sure you want to leave {name}? You can join again later with an invite code."
+    },
+    "leftSuccess": "Left family successfully",
+    "editName": "Edit Name",
+    "save": "Save",
+    "inviteCodeSection": {
+      "title": "Invite Code",
+      "description": "Share this code with family members to let them join"
+    },
+    "sendInvite": "Send Invite",
+    "sendInviteDesc": "Invite someone by email",
+    "roles": {
+      "member": "Member",
+      "admin": "Admin"
+    },
+    "members": {
+      "title": "Members",
+      "description": "People in your family",
+      "you": "You",
+      "admin": "Admin",
+      "removeConfirm": {
+        "title": "Remove Member?",
+        "description": "Are you sure you want to remove {name} from the family?"
+      },
+      "removed": "Member removed",
+      "removeError": "Failed to remove member"
+    },
+    "pendingInvites": {
+      "title": "Pending Invites",
+      "description": "Invitations that haven't been accepted yet",
+      "expires": "Expires {date}"
+    },
+    "familyOutfits": {
+      "title": "Family Outfits",
+      "description": "Browse and rate your family members' outfits",
+      "openFeed": "Open Family Feed"
+    },
+    "nameUpdated": "Family name updated",
+    "nameUpdateError": "Failed to update family name",
+    "familyCreated": "Family created!",
+    "inviteSent": "Invitation sent!",
+    "inviteError": "Failed to send invitation",
+    "joinedFamily": "Joined {name}!",
+    "joinError": "Failed to join family",
+    "removed": "Member removed",
+    "removeMemberFailed": "Failed to remove member",
+    "confirmLeave": "Are you sure you want to leave the family?",
+    "inviteCodeCopied": "Invite code copied!"
+  },
+  "familyFeed": {
+    "title": "Family Feed",
+    "subtitle": "Browse and rate your family members' outfits",
+    "sourceBadges": {
+      "scheduled": "Scheduled",
+      "onDemand": "On Demand",
+      "manual": "Manual",
+      "pairing": "Pairing"
+    },
+    "lookbook": "Lookbook",
+    "noMembers": {
+      "title": "No other members yet",
+      "description": "Invite family members to start browsing and rating each other's outfits.",
+      "inviteMembers": "Invite Members",
+      "manageFamily": "Manage Family"
+    },
+    "noOutfits": {
+      "title": "No outfits yet",
+      "description": "{member} hasn't received any outfit recommendations yet. Check back later!"
+    },
+    "rateOutfit": "Rate {member}'s outfit",
+    "edit": "Edit",
+    "ratingCount": "{count} rating(s)",
+    "toasts": {
+      "ratingUpdated": "Rating updated!",
+      "ratingSubmitted": "Rating submitted!",
+      "ratingFailed": "Failed to submit rating",
+      "ratingRemoved": "Rating removed",
+      "removeFailed": "Failed to remove rating"
+    },
+    "familyRatings": {
+      "noRatings": "No family ratings yet. Be the first to rate!",
+      "noRatingsShort": "No family ratings yet."
+    },
+    "yourRating": "Your rating:",
+    "noFamily": {
+      "title": "Join a family first",
+      "description": "Create or join a family to browse and rate each other's outfits.",
+      "setUpFamily": "Set Up Family"
+    }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Your wardrobe insights and statistics",
+    "stats": {
+      "totalItems": {
+        "title": "Total Items",
+        "description": "{count} ready to wear"
+      },
+      "outfitsGenerated": {
+        "title": "Outfits Generated",
+        "description": "{count} this week"
+      },
+      "acceptanceRate": {
+        "title": "Acceptance Rate",
+        "description": "of suggestions accepted"
+      },
+      "totalWears": {
+        "title": "Total Wears",
+        "noData": "No data yet",
+        "description": "Track your outfits"
+      },
+      "avgRating": "Avg rating: {rating}/5"
+    },
+    "insights": {
+      "title": "Insights",
+      "colorDistribution": {
+        "title": "Color Distribution",
+        "description": "Most common colors in your wardrobe",
+        "noData": "No color data yet"
+      },
+      "itemTypes": {
+        "title": "Item Types",
+        "description": "Breakdown by clothing type",
+        "noData": "No items yet"
+      },
+      "mostWorn": {
+        "title": "Most Worn",
+        "description": "Your favorites",
+        "noData": "Start tracking your outfits!"
+      },
+      "leastWorn": {
+        "title": "Least Worn",
+        "description": "Consider wearing these",
+        "noData": "Keep tracking!"
+      },
+      "neverWorn": {
+        "title": "Never Worn",
+        "description": "Time to try these?",
+        "noData": "All items have been worn!"
+      },
+      "acceptanceTrend": {
+        "title": "Acceptance Rate Trend",
+        "description": "How you've responded to suggestions over time"
+      }
+    },
+    "loadError": "Failed to load analytics. Please try again."
+  },
+  "learning": {
+    "title": "AI Learning",
+    "subtitle": "How the AI learns from your feedback",
+    "subtitleEmpty": "Start rating outfits to help the AI learn your preferences",
+    "recompute": "Recompute",
+    "stats": {
+      "feedbackGiven": "Feedback Given",
+      "acceptanceRate": "Acceptance Rate",
+      "averageRating": "Average Rating",
+      "styleRating": "Style Rating",
+      "outfitsRated": "{count} outfits rated",
+      "suggestionsAccepted": "of suggestions accepted",
+      "notEnoughData": "Not enough data",
+      "outOf5Stars": "out of 5 stars",
+      "rateMoreOutfits": "Rate more outfits",
+      "styleSatisfaction": "style satisfaction",
+      "rateOutfitStyles": "Rate outfit styles"
+    },
+    "styleInsights": {
+      "title": "Style Insights",
+      "description": "What we've learned about your preferences",
+      "noData": "New Insights"
+    },
+    "colorPreferences": {
+      "title": "Learned Color Preferences",
+      "description": "Colors you tend to accept or reject",
+      "noData": "Not enough feedback to determine color preferences yet."
+    },
+    "stylePreferences": {
+      "title": "Learned Style Preferences",
+      "description": "Styles that match your taste",
+      "noData": "Not enough feedback to determine style preferences yet."
+    },
+    "bestCombinations": {
+      "title": "Your Best Combinations",
+      "description": "Item pairs that you consistently love together"
+    },
+    "occasionPatterns": {
+      "title": "Occasion Patterns",
+      "description": "What works for different occasions"
+    },
+    "preferredColors": "Preferred colors:",
+    "weatherPreferences": {
+      "title": "Weather Preferences",
+      "description": "How you dress for different conditions",
+      "layers": "~{count} layers",
+      "success": "{percent}% success"
+    },
+    "suggestedUpdates": {
+      "title": "Suggested Preference Updates",
+      "description": "Based on your feedback, we suggest updating your preferences",
+      "addToFavorites": "Add to favorite colors:",
+      "addToAvoid": "Add to colors to avoid:",
+      "updatePreferences": "Update Preferences"
+    },
+    "noData": {
+      "title": "No Learning Data Yet",
+      "description": "Start by accepting or rejecting outfit suggestions and rating them.",
+      "getOutfitSuggestions": "Get Outfit Suggestions",
+      "computeNow": "Compute Now",
+      "computing": "Computing...",
+      "alreadyGaveFeedback": "Already gave feedback? Click \"Compute Now\" to process it."
+    },
+    "lastUpdated": "Learning profile last updated:",
+    "paired": "x paired",
+    "confident": "% confident",
+    "dismiss": "Dismiss",
+    "loadError": "Failed to load learning data. Please try again."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your preferences and account settings",
+    "reset": "Reset",
+    "save": "Save",
+    "unsavedChanges": "You have unsaved changes. Leave this page?",
+    "account": {
+      "title": "Account",
+      "description": "Your profile information",
+      "name": "Name",
+      "email": "Email"
+    },
+    "location": {
+      "title": "Location",
+      "description": "Set your location for weather-based outfit recommendations",
+      "cityLabel": "City / Location Name (optional)",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "timezone": "Timezone",
+      "useMyLocation": "Use My Location",
+      "saveLocation": "Save Location",
+      "detected": "Location detected. Review it, then save.",
+      "saved": "Location and timezone saved",
+      "selectTimezone": "Select timezone",
+      "required": "Location is required for weather-based outfit recommendations.",
+      "errors": {
+        "detectFailed": "Failed to detect location. Please enter it manually.",
+        "saveFailed": "Failed to save location. Please try again.",
+        "fetchFailed": "Failed to fetch coordinates for that location. Please try a more specific city name.",
+        "geolocationDenied": "Location access was denied.",
+        "geolocationUnavailable": "Location is currently unavailable.",
+        "geolocationTimeout": "Location request timed out.",
+        "geolocationFailed": "Failed to get exact location: {message}",
+        "geolocationFailedGeneric": "Failed to get exact location."
+      }
+    },
+    "body": {
+      "title": "Body Measurements",
+      "description": "Help AI recommend better-fitting outfits",
+      "unitSystem": "Unit System",
+      "metric": "Metric (cm/kg)",
+      "imperial": "Imperial (in/lbs)",
+      "bodyLabel": "Body",
+      "sizesLabel": "Sizes",
+      "fields": {
+        "height": "Height",
+        "weight": "Weight",
+        "chest": "Chest",
+        "waist": "Waist",
+        "hips": "Hips",
+        "inseam": "Inseam"
+      },
+      "sizeFields": {
+        "shirtSize": "Shirt Size",
+        "pantsSize": "Pants Size",
+        "dressSize": "Dress Size",
+        "shoeSize": "Shoe Size"
+      },
+      "saveMeasurements": "Save Measurements",
+      "saving": "Saving...",
+      "sizePlaceholders": {
+        "shirt_size": "e.g. M, L, XL",
+        "pants_size": "e.g. 32, 34",
+        "dress_size": "e.g. 8, 10",
+        "shoe_size": "e.g. 10, 42"
+      }
+    },
+    "colors": {
+      "favoriteColors": "Favorite Colors",
+      "colorsToAvoid": "Colors to Avoid",
+      "description": "Select colors you love and colors to avoid in recommendations"
+    },
+    "styleProfile": {
+      "title": "Style Profile",
+      "description": "Adjust how much you prefer each style in outfit recommendations",
+      "styles": {
+        "casual": "Casual",
+        "formal": "Formal",
+        "sporty": "Sporty",
+        "minimalist": "Minimalist",
+        "bold": "Bold"
+      }
+    },
+    "temperature": {
+      "title": "Temperature & Comfort",
+      "description": "Adjust how recommendations adapt to weather",
+      "unit": "Temperature Unit",
+      "celsius": "Celsius",
+      "fahrenheit": "Fahrenheit",
+      "sensitivity": "Temperature Sensitivity",
+      "sensitivityOptions": {
+        "low": "I feel warm easily",
+        "normal": "Normal",
+        "high": "I feel cold easily"
+      },
+      "layering": "Layering Preference",
+      "layeringOptions": {
+        "minimal": "Minimal layers",
+        "moderate": "Moderate layers",
+        "heavy": "Heavy layers"
+      },
+      "coldThreshold": "Cold Threshold",
+      "hotThreshold": "Hot Threshold"
+    },
+    "recommendations": {
+      "title": "Recommendation Settings",
+      "description": "Customize how outfit recommendations are generated",
+      "defaultOccasion": "Default Occasion",
+      "varietyLevel": "Variety Level",
+      "varietyOptions": {
+        "low": "Low (stick to favorites)",
+        "moderate": "Moderate",
+        "high": "High (try new combinations)"
+      },
+      "avoidRepeatDays": "Avoid Repeat Items Within (days)",
+      "preferUnderused": "Prefer Underused Items",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "aiEndpoints": {
+      "title": "AI Endpoints",
+      "description": "Configure AI endpoints for image analysis. Endpoints are tried in order from top to bottom.",
+      "noEndpoints": "No custom endpoints configured. Using default server settings.",
+      "fields": {
+        "name": "Name",
+        "url": "URL",
+        "visionModel": "Vision Model",
+        "textModel": "Text Model"
+      },
+      "active": "Active",
+      "disabled": "Disabled",
+      "connected": "Connected",
+      "error": "Error",
+      "testConnection": "Test Connection",
+      "modelsAvailable": "models available",
+      "vision": "Vision:",
+      "text": "Text:",
+      "addEndpoint": "Add Endpoint",
+      "testFailed": "Failed to test endpoint"
+    },
+    "preferencesSaved": "Preferences saved",
+    "preferencesSaveError": "Failed to save preferences",
+    "preferencesReset": "Preferences reset",
+    "preferencesResetError": "Failed to reset preferences",
+    "confirmReset": "Are you sure you want to reset all preferences to defaults?"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Configure how and when you receive outfit recommendations",
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "channels": {
+      "title": "Notification Channels",
+      "description": "Add channels to receive your daily outfit recommendations",
+      "noChannels": "No notification channels configured",
+      "noChannelsDesc": "Add a channel to start receiving outfit suggestions",
+      "addChannel": "Add Channel",
+      "dialog": {
+        "title": "Notification Channel",
+        "description": "Configure a new way to receive outfit recommendations."
+      },
+      "types": {
+        "ntfy": "ntfy Push Notifications",
+        "mattermost": "Mattermost",
+        "email": "Email"
+      },
+      "fields": {
+        "serverUrl": "Server URL",
+        "topic": "Topic *",
+        "accessToken": "Access Token",
+        "webhookUrl": "Webhook URL *",
+        "emailAddress": "Email Address *"
+      },
+      "helpers": {
+        "topicSubscribe": "Subscribe to this topic in your ntfy app",
+        "accessTokenOptional": "Required if your ntfy server uses authentication",
+        "mattermostWebhook": "Create an incoming webhook in Mattermost settings"
+      },
+      "adding": "Adding...",
+      "test": "Test",
+      "priority": "Priority {level}",
+      "deleteConfirm": {
+        "title": "Delete Notification Channel?",
+        "description": "This will remove this notification channel and stop all notifications sent through it."
+      },
+      "deleting": "Deleting...",
+      "deleted": "Channel deleted",
+      "deleteError": "Failed to delete channel",
+      "toggle": {
+        "enabled": "Channel enabled",
+        "disabled": "Channel disabled"
+      }
+    },
+    "schedule": {
+      "title": "Delivery Schedule",
+      "description": "Set when you want to receive outfit recommendations each day",
+      "addSchedule": "Add Schedule",
+      "notifyDayBefore": "Notify day before",
+      "notifyDayBeforeDesc": "Get notification the evening before with tomorrow's forecast",
+      "preview": "You'll receive an outfit suggestion at {time} on {day} for {occasion}",
+      "noSchedules": "No schedules configured",
+      "noSchedulesDesc": "Add a schedule to receive daily outfit suggestions",
+      "deleteConfirm": {
+        "title": "Delete Schedule?",
+        "description": "This will remove this delivery schedule."
+      },
+      "deleted": "Schedule deleted",
+      "deleteError": "Failed to delete schedule"
+    },
+    "channelAdded": "Channel added",
+    "channelAddFailed": "Failed to add channel",
+    "channelTestSent": "Test notification sent",
+    "channelTestFailed": "Failed to send test notification",
+    "scheduleAdded": "Schedule added",
+    "scheduleAddFailed": "Failed to add schedule"
+  },
+  "dialogs": {
+    "addItem": {
+      "title": "Add Items",
+      "subtitle": "Upload photos of your clothing items",
+      "singleItem": "Single Item",
+      "bulkUpload": "Bulk Upload",
+      "dropzone": "Drag & drop an image, or tap to select",
+      "formatHint": "PNG, JPG, or HEIC",
+      "typeLabel": "Type (AI will detect if empty)",
+      "letAiDetect": "Let AI detect...",
+      "namePlaceholder": "Name (optional)",
+      "brandPlaceholder": "Brand",
+      "primaryColor": "Primary Color",
+      "selectPlaceholder": "Select...",
+      "notesPlaceholder": "Notes",
+      "addItem": "Add Item",
+      "uploading": "Uploading...",
+      "previewAlt": "Preview",
+      "nameInputPlaceholder": "e.g., Blue Oxford Shirt",
+      "brandInputPlaceholder": "e.g., J.Crew",
+      "notesInputPlaceholder": "Any additional notes...",
+      "dropzoneActive": "Drop the image here",
+      "bulk": {
+        "hint": "All items will be auto-tagged by AI. You can edit details later.",
+        "resultSuccess": "{success} of {total} uploaded successfully",
+        "resultFailed": "{count} item(s) failed",
+        "uploadMore": "Upload More",
+        "done": "Done",
+        "imageCount": "{count, plural, one {# image selected} other {# images selected}}",
+        "uploadingCount": "Uploading {count} items...",
+        "uploadButton": "Upload {count, plural, one {# Item} other {# Items}}",
+        "clearAll": "Clear All",
+        "discardConfirm": {
+          "title": "Discard selected images?",
+          "keepEditing": "Keep editing",
+          "discard": "Discard",
+          "singleImage": "1 image selected that will be lost if you close this dialog.",
+          "imageCount": "{count, plural, one {# image selected} other {# images selected}} that will be lost if you close this dialog."
+        }
+      }
+    },
+    "itemDetail": {
+      "name": "Name",
+      "type": "Type",
+      "brand": "Brand",
+      "primaryColor": "Primary Color",
+      "notes": "Notes",
+      "washInterval": "Wash Interval",
+      "titles": {
+        "toggleFavorite": "Toggle favorite",
+        "findMatchingOutfits": "Find matching outfits",
+        "analysisInProgress": "Analysis in progress...",
+        "reanalyzeWithAI": "Re-analyze with AI",
+        "rotateLeft": "Rotate left",
+        "rotateRight": "Rotate right",
+        "removeBackground": "Remove background",
+        "close": "Close",
+        "setAsPrimary": "Set as primary",
+        "deleteImage": "Delete image"
+      },
+      "placeholders": {
+        "itemName": "Item name",
+        "brandName": "Brand name",
+        "selectColor": "Select color",
+        "additionalNotes": "Additional notes...",
+        "washIntervalDefault": "Default: {count}"
+      },
+      "view": {
+        "washStatus": "Wash Status",
+        "washHistory": "Wash history ({count})",
+        "wearHistory": "Wear History",
+        "totalWears": "Total wears",
+        "lastWorn": "Last worn",
+        "avgPerMonth": "Avg/month",
+        "usualOccasion": "Usual occasion",
+        "last6Months": "Last 6 months",
+        "timeline": "Timeline ({count} events)",
+        "aiAnalysis": "AI Analysis",
+        "aiAnalyzing": "AI Analyzing...",
+        "complete": "{percent}% complete",
+        "confident": "{percent}% confident",
+        "primaryImage": "Primary",
+        "wears": "wears",
+        "washIntervalHint": "Number of wears before this item needs washing. Leave blank for default.",
+        "wornCount": "Worn {count} times",
+        "lastWornDate": "Last: {date}",
+        "wearsSinceWash": "Wears since wash: {current}/{max}",
+        "needsWashing": "Needs washing",
+        "lastWashed": "Last washed: {date}",
+        "never": "Never",
+        "today": "Today",
+        "daysAgo": "{count}d ago",
+        "monthWears": "{month}: {count} wears",
+        "fitBadge": "{fit} fit",
+        "addedDate": "Added {date}"
+      },
+      "actions": {
+        "markWashed": "Mark Washed",
+        "save": "Save",
+        "saved": "Item saved",
+        "saveError": "Failed to save item",
+        "deleteConfirm": "Delete this item?",
+        "deleted": "Item deleted",
+        "deleteError": "Failed to delete item",
+        "washed": "Item marked as washed",
+        "washError": "Failed to mark as washed",
+        "deletedWithName": "\"{name}\" has been removed.",
+        "deletedFallback": "Item removed from your wardrobe.",
+        "deleteErrorDescription": "Something went wrong. Please try again.",
+        "imageRotated": "Image rotated",
+        "imageRotateError": "Failed to rotate image",
+        "backgroundRemoved": "Background removed",
+        "backgroundRemoveError": "Failed to remove background",
+        "cancelEditing": "Cancel editing",
+        "editItem": "Edit item",
+        "deleteItem": "Delete item",
+        "delete": "Delete",
+        "deleteDescription": "This will permanently delete \"{name}\" from your wardrobe. This action cannot be undone.",
+        "cancel": "Cancel"
+      }
+    },
+    "generatePairings": {
+      "title": "Find Matching Outfits",
+      "description": "AI will create complete outfits featuring this item",
+      "numOutfits": "Number of outfits",
+      "numOutfitsDesc": "More outfits = more variety, but takes longer to generate",
+      "generate": "Generate Outfits",
+      "generating": "Generating...",
+      "success": "{count} outfit(s) created!",
+      "successDesc": "View them in the Pairings section",
+      "cancel": "Cancel",
+      "close": "Close",
+      "viewPairings": "View Pairings"
+    },
+    "feedback": {
+      "didYouWear": "Did you wear this outfit?",
+      "didYouWearDesc": "Let us know if you followed this recommendation so we can learn your preferences.",
+      "yesWoreIt": "Yes, I wore it",
+      "rateHowItWent": "Rate how it went",
+      "noWoreSomethingElse": "No, I wore something else",
+      "tellUsWhatYouWore": "Tell us what you wore",
+      "rateThisOutfit": "Rate This Outfit",
+      "howDidItWork": "How did this outfit work out for you?",
+      "overallRating": "Overall Rating",
+      "commentsOptional": "Comments (optional)",
+      "commentsPlaceholder": "Any thoughts about this outfit?",
+      "back": "Back",
+      "cancel": "Cancel",
+      "submitting": "Submitting...",
+      "submit": "Submit",
+      "whatDidYouWear": "What did you wear instead?",
+      "whatDidYouWearDesc": "Select the items you actually wore. This helps us learn your preferences.",
+      "searchWardrobe": "Search your wardrobe...",
+      "itemsSelected": "{count} item(s) selected",
+      "loadingMore": "Loading more...",
+      "noMatch": "No items match your search",
+      "noItemsInWardrobe": "No items in wardrobe",
+      "showingAll": "Showing all {count} items",
+      "skip": "Skip",
+      "submitWithCount": "Submit ({count})",
+      "submitted": "Feedback submitted",
+      "submitError": "Failed to submit feedback"
+    },
+    "outfitPreview": {
+      "title": "{occasion} Outfit",
+      "noImage": "No image",
+      "viewItemDetails": "View item details",
+      "close": "Close",
+      "tip": "Tip:",
+      "imageRotated": "Image rotated",
+      "rotateFailed": "Failed to rotate image",
+      "rotateLeft": "Rotate left",
+      "rotateRight": "Rotate right",
+      "familyRatings": {
+        "title": "Family Ratings",
+        "noRatings": "No family ratings yet.",
+        "noRatingsPrompt": "No family ratings yet. Be the first to rate!",
+        "rate": "Rate"
+      }
+    },
+    "cloneToLookbook": {
+      "title": "Save to lookbook",
+      "description": "Give this look a name so you can find it later and wear it again.",
+      "name": "Name",
+      "namePlaceholder": "Friday brunch",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save",
+      "errorEmpty": "Please enter a name",
+      "saved": "Saved to lookbook",
+      "saveError": "Failed to save to lookbook"
+    },
+    "colorEyedropper": {
+      "title": "Pick Color from Image",
+      "description": "Click anywhere on the image to sample a color",
+      "buttonTitle": "Pick color from image",
+      "picked": "Picked",
+      "clear": "Clear",
+      "useColor": "Use {color}",
+      "noColorSelected": "No color selected yet"
+    }
+  },
+  "cards": {
+    "pairing": {
+      "badge": "Pairing",
+      "builtAround": "Built around:",
+      "updateRating": "Update Rating",
+      "rateThisPairing": "Rate This Pairing",
+      "deleted": "Pairing deleted",
+      "deleteError": "Failed to delete pairing",
+      "tip": "Tip:"
+    },
+    "outfitHistory": {
+      "sourceBadges": {
+        "scheduled": "Scheduled",
+        "onDemand": "On Demand",
+        "manual": "Manual",
+        "pairing": "Pairing"
+      },
+      "didntWearThis": "Didn't wear this",
+      "woreInstead": "Wore instead:",
+      "reject": "Reject",
+      "accept": "Accept",
+      "update": "Update",
+      "rate": "Rate",
+      "viewItemDetails": "View item details",
+      "outfitAccepted": "Outfit accepted",
+      "acceptFailed": "Failed to accept outfit",
+      "outfitRejected": "Outfit rejected",
+      "rejectFailed": "Failed to reject outfit",
+      "tip": "Tip:",
+      "familyLabel": "Family:"
+    },
+    "familyRatings": {
+      "yourRating": "Your rating:",
+      "addComment": "Add a comment (optional)",
+      "submitRating": "Submit Rating",
+      "updateRating": "Update Rating",
+      "selectRating": "Please select a rating",
+      "ratingUpdated": "Rating updated!",
+      "ratingSubmitted": "Rating submitted!",
+      "submitError": "Failed to submit rating",
+      "ratingRemoved": "Rating removed",
+      "removeError": "Failed to remove rating"
+    }
+  },
+  "studio": {
+    "canvas": {
+      "empty": "Tap items below to start building your outfit",
+      "removeItem": "Remove {name}"
+    },
+    "details": {
+      "name": "Name",
+      "nameRequired": "(required for lookbook)",
+      "namePlaceholder": "Friday brunch",
+      "occasion": "Occasion",
+      "pickOccasion": "Pick an occasion before saving.",
+      "warnings": {
+        "noBottoms": "No bottoms selected.",
+        "noTop": "No top selected.",
+        "multipleBottoms": "Multiple bottoms selected.",
+        "noFootwear": "No footwear selected."
+      },
+      "aiThinking": "AI is thinking...",
+      "letAiFinish": "Let AI finish this",
+      "aiAssistError": "Pick at least one item and an occasion first",
+      "skippedItem": "Skipped {name}: {reason}",
+      "addedItems": "Added {count} item(s) from AI",
+      "aiNoSuggestions": "AI had no new items to suggest",
+      "aiFailed": "AI assist failed"
+    },
+    "lineage": {
+      "replaces": "Replaces {occasion} suggestion",
+      "replacesWithDate": "Replaces {occasion} suggestion from {date}",
+      "fromLookbook": "From your {name} lookbook entry"
+    }
+  },
+  "shared": {
+    "localeSwitcher": {
+      "label": "Change language"
+    },
+    "pagination": {
+      "pageOfTotal": "Page {current} of {total}",
+      "firstPage": "First page",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "lastPage": "Last page"
+    },
+    "bulkAction": {
+      "all": "All",
+      "selectAll": "Select all",
+      "noneSelected": "None selected",
+      "allExcept": "All except {count}",
+      "allSelected": "All {count} selected",
+      "selected": "{count} selected",
+      "deleteConfirm": {
+        "title": "Delete {count} items?",
+        "description": "This will permanently delete the selected items and their images. This action cannot be undone."
+      }
+    },
+    "itemPicker": {
+      "search": "Search wardrobe...",
+      "loadingMore": "Loading more...",
+      "noMatch": "No items match your search",
+      "noItems": "No items found",
+      "showingAll": "Showing all {count} items"
+    },
+    "lightbox": {
+      "openInWardrobe": "Open in Wardrobe"
+    },
+    "offlineIndicator": {
+      "message": "You're offline"
+    },
+    "wornAgo": {
+      "today": "Worn today",
+      "yesterday": "Worn yesterday",
+      "daysAgo": "Worn {days}d ago"
+    }
+  },
+  "types": {
+    "clothingTypes": {
+      "shirt": "Shirt",
+      "t-shirt": "T-Shirt",
+      "top": "Top",
+      "polo": "Polo",
+      "blouse": "Blouse",
+      "tank-top": "Tank Top",
+      "sweater": "Sweater",
+      "hoodie": "Hoodie",
+      "cardigan": "Cardigan",
+      "vest": "Vest",
+      "pants": "Pants",
+      "jeans": "Jeans",
+      "shorts": "Shorts",
+      "skirt": "Skirt",
+      "dress": "Dress",
+      "jumpsuit": "Jumpsuit",
+      "jacket": "Jacket",
+      "blazer": "Blazer",
+      "coat": "Coat",
+      "suit": "Suit",
+      "shoes": "Shoes",
+      "sneakers": "Sneakers",
+      "boots": "Boots",
+      "sandals": "Sandals",
+      "socks": "Socks",
+      "tie": "Tie",
+      "hat": "Hat",
+      "scarf": "Scarf",
+      "belt": "Belt",
+      "bag": "Bag",
+      "accessories": "Accessories"
+    },
+    "clothingColors": {
+      "black": "Black",
+      "charcoal": "Charcoal",
+      "gray": "Gray",
+      "white": "White",
+      "cream": "Cream",
+      "beige": "Beige",
+      "tan": "Tan",
+      "khaki": "Khaki",
+      "olive": "Olive",
+      "army-green": "Army Green",
+      "green": "Green",
+      "teal": "Teal",
+      "navy": "Navy",
+      "blue": "Blue",
+      "brown": "Brown",
+      "dark-brown": "Dark Brown",
+      "burgundy": "Burgundy",
+      "red": "Red",
+      "pink": "Pink",
+      "purple": "Purple",
+      "yellow": "Yellow",
+      "orange": "Orange"
+    },
+    "occasions": {
+      "casual": "Casual",
+      "office": "Office",
+      "formal": "Formal",
+      "date": "Date",
+      "sporty": "Sporty",
+      "outdoor": "Outdoor"
+    }
+  }
+}

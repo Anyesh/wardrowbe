@@ -58,10 +58,12 @@ import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
-import { Item, CLOTHING_TYPES, CLOTHING_COLORS } from '@/lib/types';
+import { Item } from '@/lib/types';
+import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
 import { ColorEyedropper } from '@/components/color-eyedropper';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
 import { useFeatures } from '@/lib/hooks/use-features';
+import { useTranslations } from 'next-intl';
 
 interface ItemDetailDialogProps {
   item: Item | null;
@@ -72,6 +74,9 @@ interface ItemDetailDialogProps {
 // Images now use signed URLs from backend (item.image_url, item.thumbnail_url)
 
 export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogProps) {
+  const t = useTranslations('dialogs.itemDetail');
+  const clothingTypes = useClothingTypes();
+  const clothingColors = useClothingColors();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPairingsDialog, setShowPairingsDialog] = useState(false);
@@ -147,10 +152,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const handleMarkWashed = async () => {
     try {
       await logWash.mutateAsync({ id: item.id });
-      toast.success('Marked as washed');
+      toast.success(t('actions.washed'));
     } catch (error) {
       console.error('Failed to log wash:', error);
-      toast.error('Failed to mark as washed');
+      toast.error(t('actions.washError'));
     }
   };
 
@@ -159,13 +164,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       await deleteItem.mutateAsync(item.id);
       setShowDeleteConfirm(false);
       onOpenChange(false);
-      toast.success('Item deleted', {
-        description: item.name ? `"${item.name}" has been removed.` : 'Item removed from your wardrobe.',
+      toast.success(t('actions.deleted'), {
+        description: item.name ? t('actions.deletedWithName', { name: item.name }) : t('actions.deletedFallback'),
       });
     } catch (error) {
       console.error('Failed to delete item:', error);
-      toast.error('Failed to delete', {
-        description: 'Something went wrong. Please try again.',
+      toast.error(t('actions.deleteError'), {
+        description: t('actions.deleteErrorDescription'),
       });
     }
   };
@@ -194,10 +199,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     try {
       await rotateImage.mutateAsync({ id: item.id, direction });
       setImageKey((k) => k + 1);
-      toast.success('Image rotated');
+      toast.success(t('actions.imageRotated'));
     } catch (error) {
       console.error('Failed to rotate image:', error);
-      toast.error('Failed to rotate image');
+      toast.error(t('actions.imageRotateError'));
     }
   };
 
@@ -205,10 +210,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     try {
       await removeBackground.mutateAsync({ id: item.id });
       setImageKey((k) => k + 1);
-      toast.success('Background removed');
+      toast.success(t('actions.backgroundRemoved'));
     } catch (error) {
       console.error('Failed to remove background:', error);
-      toast.error('Failed to remove background');
+      toast.error(t('actions.backgroundRemoveError'));
     }
   };
 
@@ -216,8 +221,8 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
   // Use signed URL from backend for better quality in detail view
   const imageUrl = item.image_url || item.image_path;
-  const colorInfo = CLOTHING_COLORS.find((c) => c.value === item.primary_color);
-  const typeInfo = CLOTHING_TYPES.find((t) => t.value === item.type);
+  const colorInfo = clothingColors.find((c) => c.value === item.primary_color);
+  const typeInfo = clothingTypes.find((type) => type.value === item.type);
 
   // AI-generated tags
   const tags = item.tags || {};
@@ -232,7 +237,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           {/* Header - sticky */}
           <DialogHeader className="flex flex-row items-center justify-between space-y-0 p-4 border-b flex-shrink-0">
             <DialogTitle className="text-xl min-w-0 truncate">
-              {item.name || typeInfo?.label || item.type}
+              {item.name || (typeInfo ? typeInfo.label : item.type)}
             </DialogTitle>
             <div className="flex items-center gap-1">
               <Button
@@ -240,7 +245,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 size="icon"
                 onClick={handleToggleFavorite}
                 disabled={updateItem.isPending}
-                title="Toggle favorite"
+                title={t('titles.toggleFavorite')}
               >
                 <Heart
                   className={`h-5 w-5 ${
@@ -253,7 +258,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 size="icon"
                 onClick={() => setShowPairingsDialog(true)}
                 disabled={item.status !== 'ready'}
-                title="Find matching outfits"
+                title={t('titles.findMatchingOutfits')}
               >
                 <Layers className="h-5 w-5" />
               </Button>
@@ -262,7 +267,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 size="icon"
                 onClick={handleReanalyze}
                 disabled={isAnalyzing}
-                title={isAnalyzing ? 'Analysis in progress...' : 'Re-analyze with AI'}
+                title={isAnalyzing ? t('titles.analysisInProgress') : t('titles.reanalyzeWithAI')}
               >
                 <RefreshCw
                   className={`h-5 w-5 ${isAnalyzing ? 'animate-spin text-primary' : ''}`}
@@ -273,7 +278,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 size="icon"
                 onClick={() => handleRotate('ccw')}
                 disabled={rotateImage.isPending}
-                title="Rotate left"
+                title={t('titles.rotateLeft')}
               >
                 {rotateImage.isPending ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -286,7 +291,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 size="icon"
                 onClick={() => handleRotate('cw')}
                 disabled={rotateImage.isPending}
-                title="Rotate right"
+                title={t('titles.rotateRight')}
               >
                 {rotateImage.isPending ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -300,7 +305,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   size="icon"
                   onClick={handleRemoveBackground}
                   disabled={removeBackground.isPending || !item.image_url}
-                  title="Remove background"
+                  title={t('titles.removeBackground')}
                 >
                   {removeBackground.isPending ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -313,7 +318,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsEditing(!isEditing)}
-                title={isEditing ? 'Cancel editing' : 'Edit item'}
+                title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
               >
                 {isEditing ? (
                   <X className="h-5 w-5" />
@@ -321,7 +326,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   <Pencil className="h-5 w-5" />
                 )}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full" title="Close">
+              <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full" title={t('titles.close')}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -380,7 +385,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 {isAnalyzing && (
                   <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
                     <Loader2 className="h-8 w-8 text-white animate-spin" />
-                    <span className="text-white text-sm font-medium">AI Analyzing...</span>
+                    <span className="text-white text-sm font-medium">{t('view.aiAnalyzing')}</span>
                   </div>
                 )}
               </div>
@@ -391,7 +396,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     className={`relative w-12 h-12 rounded border-2 overflow-hidden flex-shrink-0 ${activeImageIndex === 0 ? 'border-primary' : 'border-transparent'}`}
                     onClick={() => setActiveImageIndex(0)}
                   >
-                    <Image src={imageUrl} alt="Primary" fill className="object-cover" sizes="48px" />
+                    <Image src={imageUrl} alt={t('view.primaryImage')} fill className="object-cover" sizes="48px" />
                   </button>
                   {(item.additional_images || []).map((img, idx) => (
                     <div key={img.id} className="relative flex-shrink-0">
@@ -405,7 +410,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         <div className="absolute -top-1 -right-1 flex gap-0.5">
                           <button
                             className="bg-primary text-primary-foreground rounded-full p-0.5 hover:bg-primary/90"
-                            title="Set as primary"
+                            title={t('titles.setAsPrimary')}
                             onClick={() => {
                               setPrimary.mutate({ itemId: item.id, imageId: img.id });
                               setActiveImageIndex(0);
@@ -415,7 +420,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                           </button>
                           <button
                             className="bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/90"
-                            title="Delete image"
+                            title={t('titles.deleteImage')}
                             onClick={() => {
                               deleteImage.mutate({ itemId: item.id, imageId: img.id });
                               if (activeImageIndex > idx) setActiveImageIndex((i) => i - 1);
@@ -460,15 +465,15 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 // Edit form
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label>Name</Label>
+                    <Label>{t('name')}</Label>
                     <Input
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      placeholder="Item name"
+                      placeholder={t('placeholders.itemName')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Type</Label>
+                    <Label>{t('type')}</Label>
                     <Select
                       value={editForm.type}
                       onValueChange={(v) => setEditForm({ ...editForm, type: v })}
@@ -477,34 +482,34 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {CLOTHING_TYPES.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.label}
+                        {clothingTypes.map((ct) => (
+                          <SelectItem key={ct.value} value={ct.value}>
+                            {ct.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Brand</Label>
+                    <Label>{t('brand')}</Label>
                     <Input
                       value={editForm.brand}
                       onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })}
-                      placeholder="Brand name"
+                      placeholder={t('placeholders.brandName')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Primary Color</Label>
+                    <Label>{t('primaryColor')}</Label>
                     <div className="flex gap-2">
                       <Select
                         value={editForm.primary_color}
                         onValueChange={(v) => setEditForm({ ...editForm, primary_color: v })}
                       >
                         <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Select color" />
+                          <SelectValue placeholder={t('placeholders.selectColor')} />
                         </SelectTrigger>
                         <SelectContent>
-                          {CLOTHING_COLORS.map((c) => (
+                          {clothingColors.map((c) => (
                             <SelectItem key={c.value} value={c.value}>
                               <div className="flex items-center gap-2">
                                 <div
@@ -524,26 +529,26 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Notes</Label>
+                    <Label>{t('notes')}</Label>
                     <Textarea
                       value={editForm.notes}
                       onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                      placeholder="Additional notes..."
+                      placeholder={t('placeholders.additionalNotes')}
                       rows={3}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Wash Interval (wears)</Label>
+                    <Label>{t('washInterval')} ({t('view.wears')})</Label>
                     <Input
                       type="number"
                       min={1}
                       max={100}
                       value={editForm.wash_interval ?? ''}
                       onChange={(e) => setEditForm({ ...editForm, wash_interval: e.target.value ? parseInt(e.target.value) : undefined })}
-                      placeholder={`Default: ${item.effective_wash_interval}`}
+                      placeholder={t('placeholders.washIntervalDefault', { count: item.effective_wash_interval })}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Number of wears before this item needs washing. Leave blank for default.
+                      {t('view.washIntervalHint')}
                     </p>
                   </div>
                   <div className="flex gap-2 pt-2">
@@ -552,7 +557,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       className="flex-1"
                       onClick={() => setIsEditing(false)}
                     >
-                      Cancel
+                      {t('actions.cancel')}
                     </Button>
                     <Button
                       className="flex-1"
@@ -562,7 +567,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       {updateItem.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : null}
-                      Save
+                      {t('actions.save')}
                     </Button>
                   </div>
                 </div>
@@ -573,7 +578,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm">
                       <Shirt className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{typeInfo?.label || item.type}</span>
+                      <span className="font-medium">{typeInfo ? typeInfo.label : item.type}</span>
                       {item.subtype && (
                         <span className="text-muted-foreground">• {item.subtype}</span>
                       )}
@@ -598,10 +603,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span>
-                          Worn {item.wear_count} time{item.wear_count !== 1 ? 's' : ''}
+                          {t('view.wornCount', { count: item.wear_count })}
                           {item.last_worn_at && (
                             <span className="text-muted-foreground">
-                              {' '}• Last: {new Date(item.last_worn_at).toLocaleDateString()}
+                              {' '}{t('view.lastWornDate', { date: new Date(item.last_worn_at).toLocaleDateString() })}
                             </span>
                           )}
                         </span>
@@ -614,7 +619,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm font-medium">
                         <Droplets className={`h-4 w-4 ${item.needs_wash ? 'text-amber-500' : 'text-muted-foreground'}`} />
-                        Wash Status
+                        {t('view.washStatus')}
                       </div>
                       <Button
                         variant="outline"
@@ -628,14 +633,14 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         ) : (
                           <Droplets className="h-3 w-3 mr-1" />
                         )}
-                        Mark Washed
+                        {t('actions.markWashed')}
                       </Button>
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Wears since wash: {item.wears_since_wash}/{item.effective_wash_interval}</span>
+                        <span>{t('view.wearsSinceWash', { current: item.wears_since_wash, max: item.effective_wash_interval })}</span>
                         {item.needs_wash && (
-                          <span className="text-amber-500 font-medium">Needs washing</span>
+                          <span className="text-amber-500 font-medium">{t('view.needsWashing')}</span>
                         )}
                       </div>
                       <Progress
@@ -644,7 +649,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       />
                       {item.last_washed_at && (
                         <p className="text-xs text-muted-foreground">
-                          Last washed: {new Date(item.last_washed_at).toLocaleDateString()}
+                          {t('view.lastWashed', { date: new Date(item.last_washed_at).toLocaleDateString() })}
                         </p>
                       )}
                     </div>
@@ -654,7 +659,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       <Collapsible open={showWashHistory} onOpenChange={setShowWashHistory}>
                         <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                           <ChevronDown className={`h-3 w-3 transition-transform ${showWashHistory ? 'rotate-180' : ''}`} />
-                          Wash history ({washHistory.length})
+                          {t('view.washHistory', { count: washHistory.length })}
                         </CollapsibleTrigger>
                         <CollapsibleContent className="mt-1.5 space-y-1">
                           {washHistory.map((wash) => (
@@ -674,30 +679,30 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     <div className="space-y-2 pt-2 border-t">
                       <div className="flex items-center gap-2 text-sm font-medium">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        Wear History
+                        {t('view.wearHistory')}
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="bg-muted/50 rounded-md p-2">
-                          <p className="text-muted-foreground">Total wears</p>
+                          <p className="text-muted-foreground">{t('view.totalWears')}</p>
                           <p className="font-medium text-sm">{wearStats.total_wears}</p>
                         </div>
                         <div className="bg-muted/50 rounded-md p-2">
-                          <p className="text-muted-foreground">Last worn</p>
+                          <p className="text-muted-foreground">{t('view.lastWorn')}</p>
                           <p className="font-medium text-sm">
                             {wearStats.days_since_last_worn === null
-                              ? 'Never'
+                              ? t('view.never')
                               : wearStats.days_since_last_worn === 0
-                              ? 'Today'
-                              : `${wearStats.days_since_last_worn}d ago`}
+                              ? t('view.today')
+                              : t('view.daysAgo', { count: wearStats.days_since_last_worn })}
                           </p>
                         </div>
                         <div className="bg-muted/50 rounded-md p-2">
-                          <p className="text-muted-foreground">Avg/month</p>
+                          <p className="text-muted-foreground">{t('view.avgPerMonth')}</p>
                           <p className="font-medium text-sm">{wearStats.average_wears_per_month}</p>
                         </div>
                         {wearStats.most_common_occasion && (
                           <div className="bg-muted/50 rounded-md p-2">
-                            <p className="text-muted-foreground">Usual occasion</p>
+                            <p className="text-muted-foreground">{t('view.usualOccasion')}</p>
                             <p className="font-medium text-sm capitalize">{wearStats.most_common_occasion}</p>
                           </div>
                         )}
@@ -706,13 +711,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       {/* Mini bar chart - wear by month */}
                       {Object.keys(wearStats.wear_by_month).length > 0 && (
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Last 6 months</p>
+                          <p className="text-xs text-muted-foreground">{t('view.last6Months')}</p>
                           <div className="flex items-end gap-1 h-12">
                             {Object.entries(wearStats.wear_by_month).map(([month, count]) => {
                               const maxCount = Math.max(...Object.values(wearStats.wear_by_month), 1);
                               const height = (count / maxCount) * 100;
                               return (
-                                <div key={month} className="flex-1 flex flex-col items-center gap-0.5" title={`${month}: ${count} wears`}>
+                                <div key={month} className="flex-1 flex flex-col items-center gap-0.5" title={t('view.monthWears', { month, count })}>
                                   <div
                                     className="w-full bg-primary/70 rounded-t-sm min-h-[2px]"
                                     style={{ height: `${Math.max(height, 4)}%` }}
@@ -730,7 +735,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         <Collapsible open={showWearHistory} onOpenChange={setShowWearHistory}>
                           <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                             <ChevronDown className={`h-3 w-3 transition-transform ${showWearHistory ? 'rotate-180' : ''}`} />
-                            Timeline ({wearHistory.length} events)
+                            {t('view.timeline', { count: wearHistory.length })}
                           </CollapsibleTrigger>
                           <CollapsibleContent className="mt-1.5 space-y-1.5">
                             {wearHistory.map((entry) => (
@@ -775,15 +780,15 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     <div className="space-y-2 pt-2 border-t">
                       <div className="flex items-center gap-2 text-sm font-medium">
                         <Sparkles className="h-4 w-4 text-primary" />
-                        AI Analysis
+                        {t('view.aiAnalysis')}
                         {item.ai_confidence !== undefined && item.ai_confidence > 0 && (
                           <Badge variant="secondary" className="text-xs">
-                            {Math.round(item.ai_confidence * 100)}% complete
+                            {t('view.complete', { percent: Math.round(item.ai_confidence * 100) })}
                           </Badge>
                         )}
                         {item.tags?.logprobs_confidence != null && (
                           <Badge variant="outline" className="text-xs">
-                            {Math.round(item.tags.logprobs_confidence * 100)}% confident
+                            {t('view.confident', { percent: Math.round(item.tags.logprobs_confidence * 100) })}
                           </Badge>
                         )}
                       </div>
@@ -825,7 +830,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         )}
                         {tags.fit && (
                           <Badge variant="outline" className="text-xs">
-                            {tags.fit} fit
+                            {tags.fit ? t('view.fitBadge', { fit: tags.fit }) : null}
                           </Badge>
                         )}
                         {tags.occasion?.map((o: string) => (
@@ -850,14 +855,14 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   {/* Notes */}
                   {item.notes && (
                     <div className="space-y-1 pt-2 border-t">
-                      <p className="text-sm font-medium">Notes</p>
+                      <p className="text-sm font-medium">{t('notes')}</p>
                       <p className="text-sm text-muted-foreground">{item.notes}</p>
                     </div>
                   )}
 
                   {/* Metadata */}
                   <div className="text-xs text-muted-foreground pt-2 border-t">
-                    Added {new Date(item.created_at).toLocaleDateString()}
+                    {t('view.addedDate', { date: new Date(item.created_at).toLocaleDateString() })}
                   </div>
                 </div>
               )}
@@ -874,7 +879,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   onClick={() => setShowDeleteConfirm(true)}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete this item
+                  {t('actions.deleteItem')}
                 </Button>
               </div>
             )}
@@ -886,14 +891,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this item?</AlertDialogTitle>
+            <AlertDialogTitle>{t('actions.deleteConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete &ldquo;{item.name || item.type}&rdquo; from your
-              wardrobe. This action cannot be undone.
+              {t('actions.deleteDescription', { name: item.name || item.type })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -902,7 +906,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
               {deleteItem.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
-              Delete
+              {t('actions.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
