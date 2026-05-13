@@ -2,7 +2,6 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from json import JSONDecodeError
 
 import httpx
 import redis.asyncio as aioredis
@@ -120,10 +119,10 @@ class WeatherService:
                 response = await client.get("https://nominatim.openstreetmap.org/search", params=params)
                 response.raise_for_status()
                 data = response.json()
-            except (httpx.HTTPError, ValueError) as e:
+            except httpx.HTTPError as e:
                 logger.error(f"Geocoding error for {query!r}: {e}")
                 raise GeocodingServiceError(f"Failed to geocode location {query!r}: {e}") from None
-            except (JSONDecodeError, ValueError) as e:
+            except ValueError as e:
                 logger.error(f"Geocoding returned invalid JSON for {query!r}: {e}")
                 raise GeocodingServiceError(
                     f"Failed to decode geocoding response for location {query!r}: {e}"
