@@ -508,7 +508,7 @@ function AddScheduleDialog({
           <DialogHeader>
             <DialogTitle>{t('schedule.addSchedule')}</DialogTitle>
             <DialogDescription>
-              {t('schedule.description').split('.')[0]}.
+              {t('schedule.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

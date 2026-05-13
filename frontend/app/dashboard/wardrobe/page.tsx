@@ -179,7 +179,7 @@ function ItemCard({
         </div>
         {item.last_worn_at ? (
           <p className={`text-xs mt-1 ${getWornAgoColorClass(item.last_worn_at, userTimezone)}`}>
-            {formatWornAgo(item.last_worn_at, userTimezone, tShared.raw)}
+            {formatWornAgo(item.last_worn_at, userTimezone, tShared)}
           </p>
         ) : item.wear_count > 0 ? (
           <p className="text-xs text-muted-foreground mt-1">

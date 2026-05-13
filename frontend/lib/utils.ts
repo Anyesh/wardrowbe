@@ -65,7 +65,7 @@ export function getDaysSinceDateInTimezone(dateStr: string, timezone: string = '
 export function formatWornAgo(
   dateStr: string,
   timezone: string = 'UTC',
-  t: (key: string, params?: Record<string, unknown>) => string = (key, params) =>
+  t: (key: string, params?: Record<string, string | number | Date>) => string = (key, params) =>
     params ? `${key}:${JSON.stringify(params)}` : key
 ): string {
   const days = getDaysSinceDateInTimezone(dateStr, timezone);

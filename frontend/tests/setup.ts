@@ -23,11 +23,23 @@ vi.mock('next-auth/react', () => ({
 }))
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => {
+    const t = (key: string) => key;
+    t.raw = (key: string) => key;
+    t.rich = (key: string) => key;
+    t.markup = (key: string) => key;
+    return t;
+  },
 }))
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: async () => (key: string) => key,
+  getTranslations: async () => {
+    const t = (key: string) => key;
+    t.raw = (key: string) => key;
+    t.rich = (key: string) => key;
+    t.markup = (key: string) => key;
+    return t;
+  },
   getMessages: async () => ({}),
 }))
 

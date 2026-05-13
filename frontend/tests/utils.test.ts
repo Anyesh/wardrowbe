@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { cn, formatWornAgo, getDaysSinceDateInTimezone } from '@/lib/utils'
+import { cn, formatWornAgo } from '@/lib/utils'
 
 // Mock translation function that returns the key (with params appended if provided)
 const mockT = vi.fn((key: string, params?: Record<string, unknown>) =>

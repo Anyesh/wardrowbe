@@ -245,8 +245,8 @@
       "leastRecentlyWorn": "Least recently worn",
       "mostWorn": "Most worn",
       "leastWorn": "Least worn",
-      "nameAZ": "Name A\u2013Z",
-      "nameZA": "Name Z\u2013A"
+      "nameAZ": "Name A–Z",
+      "nameZA": "Name Z–A"
     },
     "bulkActions": {
       "deleteSuccess": "{count} items deleted",
@@ -389,7 +389,8 @@
       "discardChanges": "Discard changes",
       "nameRequired": "Give your lookbook entry a name before saving",
       "outfitUpdated": "Outfit updated",
-      "savedAndMarkedWorn": "Saved and marked worn"
+      "savedAndMarkedWorn": "Saved and marked worn",
+      "saveError": "Failed to save outfit"
     },
     "cards": {
       "replacement": "Replacement",
@@ -893,7 +894,8 @@
         "description": "This will remove this delivery schedule."
       },
       "deleted": "Schedule deleted",
-      "deleteError": "Failed to delete schedule"
+      "deleteError": "Failed to delete schedule",
+      "dialogDescription": "Set up when you want to receive outfit recommendations."
     },
     "channelAdded": "Channel added",
     "channelAddFailed": "Failed to add channel",

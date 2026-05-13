@@ -321,7 +321,7 @@ function FamilyView() {
                   {leaveFamily.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
-                  {t('leaveFamily').split(' ')[0]}
+                  {t('confirmLeave')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

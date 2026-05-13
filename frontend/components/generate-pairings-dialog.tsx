@@ -134,7 +134,7 @@ export function GeneratePairingsDialog({
             </div>
             <div>
               <p className="font-medium text-lg">
-                {generatedPairings.length} outfit{generatedPairings.length !== 1 ? 's' : ''} {t('success').replace(/\d+ outfit\(s\) /, '')}
+                {t('success', { count: generatedPairings.length })}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
                 {t('successDesc')}
