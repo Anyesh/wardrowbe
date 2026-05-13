@@ -98,6 +98,44 @@ class WeatherService:
     def __init__(self):
         self.base_url = settings.openmeteo_url
 
+    async def geocode_location_name(self, location_name: str) -> tuple[float, float, str | None] | None:
+        """Resolve a free-form location name to coordinates using Nominatim."""
+        query = location_name.strip()
+        if not query:
+            return None
+
+        params = {
+            "q": query,
+            "format": "jsonv2",
+            "limit": 1,
+        }
+
+        headers = {
+            "User-Agent": "Wardrowbe/1.0 (local-docker-geocoding)",
+        }
+
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, headers=headers) as client:
+            try:
+                response = await client.get("https://nominatim.openstreetmap.org/search", params=params)
+                response.raise_for_status()
+                data = response.json()
+            except httpx.HTTPError as e:
+                logger.error(f"Geocoding error for {query!r}: {e}")
+                return None
+
+        if not data:
+            return None
+
+        first = data[0]
+        try:
+            latitude = float(first["lat"])
+            longitude = float(first["lon"])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+        display_name = first.get("display_name")
+        return latitude, longitude, display_name
+
     @staticmethod
     def _cache_key(lat: float, lon: float) -> str:
         return f"{CACHE_PREFIX}{round(lat, 2)},{round(lon, 2)}"
