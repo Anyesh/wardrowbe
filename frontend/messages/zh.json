@@ -1,0 +1,1347 @@
+{
+  "nav": {
+    "dashboard": "仪表盘",
+    "wardrobe": "衣橱",
+    "suggestOutfit": "推荐穿搭",
+    "outfits": "穿搭",
+    "pairings": "搭配",
+    "history": "历史",
+    "familyFeed": "家庭动态",
+    "analytics": "数据分析",
+    "aiLearning": "AI 学习",
+    "settingsLabel": "设置",
+    "family": "家庭",
+    "notifications": "通知",
+    "home": "首页",
+    "suggest": "推荐",
+    "brandAlt": "Wardrowbe",
+    "brandName": "wardrowbe",
+    "openSidebar": "打开侧边栏",
+    "closeSidebar": "关闭侧边栏",
+    "toggleTheme": "切换主题",
+    "signOut": "退出登录",
+    "userFallback": "用户"
+  },
+  "landing": {
+    "brandName": "wardrowbe",
+    "tagline": "AI 驱动的衣橱管理和穿搭推荐",
+    "getStarted": "开始使用"
+  },
+  "notFound": {
+    "title": "404",
+    "heading": "页面未找到",
+    "description": "您查找的页面不存在或已被移动。",
+    "backToDashboard": "返回仪表盘"
+  },
+  "errorPage": {
+    "title": "出了点问题",
+    "description": "发生了一个意外错误。请重试，如果问题持续存在，请联系客服。",
+    "goHome": "返回首页",
+    "tryAgain": "重试"
+  },
+  "login": {
+    "title": "登录",
+    "subtitle": "登录以管理您的衣橱",
+    "devMode": "开发模式 - 接受任意凭据",
+    "email": "电子邮箱",
+    "displayName": "显示名称",
+    "signingIn": "登录中...",
+    "termsAgreement": "登录即表示您同意我们的服务条款和隐私政策。",
+    "errors": {
+      "OAuthSignin": "OAuth 登录出错，请重试。",
+      "OAuthCallback": "OAuth 回调出错，请重试。",
+      "OAuthCreateAccount": "创建账号出错，请重试。",
+      "Callback": "认证回调出错，请重试。",
+      "CredentialsSignin": "邮箱或密码无效，请重试。",
+      "AccessDenied": "访问被拒绝。您没有登录权限。",
+      "default": "登录过程中发生错误，请重试。"
+    },
+    "backendError": {
+      "title": "后端配置错误",
+      "description": "无法连接后端服务器。请检查后端是否正在运行。"
+    }
+  },
+  "onboarding": {
+    "steps": {
+      "welcome": "欢迎",
+      "family": "家庭",
+      "location": "位置",
+      "style": "风格",
+      "firstItem": "第一件单品"
+    },
+    "welcome": {
+      "greeting": "欢迎来到 Wardrowbe{name}！",
+      "description": "只需几步，即可完成您的数字衣橱设置。",
+      "feature1": "拍摄您的衣物",
+      "feature2": "获取个性化穿搭",
+      "feature3": "与家人分享",
+      "getStarted": "开始使用"
+    },
+    "family": {
+      "title": "家庭设置",
+      "description": "创建或加入家庭，分享衣橱体验",
+      "createFamily": "创建家庭",
+      "createFamilyDesc": "创建一个新家庭",
+      "joinFamily": "加入家庭",
+      "joinFamilyDesc": "使用邀请码",
+      "familyName": "家庭名称",
+      "familyNamePlaceholder": "例如，史密斯一家",
+      "inviteCode": "邀请码",
+      "inviteCodePlaceholder": "例如，ABC123XY",
+      "skipForNow": "暂时跳过",
+      "success": "家庭创建成功！",
+      "joinSuccess": "成功加入家庭！",
+      "error": "家庭设置失败，请重试。"
+    },
+    "location": {
+      "title": "您的位置",
+      "description": "我们使用位置信息为您提供适合天气的穿搭建议",
+      "detectLocation": "检测我的位置",
+      "orManual": "或手动输入",
+      "cityLabel": "城市/位置名称",
+      "cityPlaceholder": "例如，北京市",
+      "continue": "继续",
+      "locationSuccess": "位置设置成功！",
+      "locationError": "位置检测失败，请手动输入。",
+      "saveError": "保存位置失败，请重试。"
+    },
+    "style": {
+      "title": "您的风格",
+      "description": "帮助我们了解您的风格偏好",
+      "favoriteColors": "喜欢的颜色",
+      "favoriteColorsDesc": "点击您喜欢穿的颜色",
+      "colorsToAvoid": "避免的颜色",
+      "colorsToAvoidDesc": "点击您不想穿的颜色",
+      "styleProfile": "风格档案",
+      "styleProfileDesc": "调整您对每种风格的偏好程度",
+      "saveSuccess": "风格偏好已保存！",
+      "saveError": "保存风格偏好失败。"
+    },
+    "firstItem": {
+      "title": "添加您的第一件单品",
+      "description": "拍照或上传一张衣物图片",
+      "uploadPrompt": "点击上传或拍照",
+      "formatHint": "PNG、JPG 或 HEIC",
+      "typeLabel": "这是什么类型的衣物？",
+      "typePlaceholder": "选择类型...",
+      "addToWardrobe": "添加到衣橱",
+      "chooseDifferentPhoto": "选择其他照片",
+      "uploadError": "上传失败，请重试。",
+      "analyzing": "AI 正在分析您的单品..."
+    },
+    "complete": {
+      "title": "一切就绪！",
+      "description": "您的衣橱已准备就绪。开始添加衣物，获取个性化穿搭建议！",
+      "goToDashboard": "前往仪表盘",
+      "finishing": "完成中..."
+    },
+    "back": "返回"
+  },
+  "invite": {
+    "title": "家庭邀请",
+    "description": "您已被邀请加入 Wardrowbe 上的一个家庭",
+    "acceptButton": "接受邀请",
+    "joinedFamily": "已加入 {name}！",
+    "errors": {
+      "invalidLink": "此邀请链接无效或已过期。",
+      "wrongEmail": "此邀请发送到了不同的电子邮箱。",
+      "alreadyInFamily": "您已在一个家庭中。",
+      "default": "出了点问题，请重试。"
+    }
+  },
+  "dashboard": {
+    "layout": {
+      "loading": "正在加载您的衣橱..."
+    },
+    "welcomeBack": "欢迎回来，{name}",
+    "subtitle": "以下是您衣橱的最新动态",
+    "weather": {
+      "title": "今日天气",
+      "locationNotSet": "未设置位置",
+      "setLocation": "设置位置",
+      "feelsLike": "体感温度 {temp}",
+      "rainChance": "降雨概率 {percent}%",
+      "getOutfitSuggestion": "获取穿搭建议"
+    },
+    "pendingOutfits": {
+      "title": "待处理穿搭",
+      "allCaughtUp": "全部已处理",
+      "noPending": "没有等待您回复的穿搭",
+      "accepted": "穿搭已接受",
+      "acceptFailed": "接受穿搭失败",
+      "rejected": "穿搭已拒绝",
+      "rejectFailed": "拒绝穿搭失败",
+      "viewAll": "查看全部"
+    },
+    "nextScheduled": {
+      "title": "下一次计划",
+      "noSchedules": "没有设置计划",
+      "setUpSchedule": "设置计划",
+      "today": "今天",
+      "tomorrow": "明天",
+      "comingUp": "即将到来"
+    },
+    "notifications": {
+      "title": "通知",
+      "noChannels": "未配置通知渠道",
+      "addChannel": "添加渠道",
+      "configure": "配置",
+      "activeCount": "{total} 个中 {active} 个活跃"
+    },
+    "weeklySummary": {
+      "title": "本周",
+      "outfits": "套穿搭",
+      "accepted": "已接受",
+      "avgRating": "平均评分"
+    },
+    "insights": {
+      "title": "洞察",
+      "empty": "添加更多单品并生成穿搭以查看个性化洞察！"
+    },
+    "quickActions": {
+      "title": "快捷操作",
+      "description": "常用任务，助您快速开始",
+      "addNewItem": "添加新单品",
+      "getOutfitSuggestion": "获取穿搭建议"
+    },
+    "familyFeed": {
+      "title": "家庭穿搭",
+      "description": "查看家人的穿搭并评分",
+      "browse": "浏览家庭穿搭",
+      "memberCount": "{name} 共 {count} 位成员"
+    }
+  },
+  "wardrobe": {
+    "title": "我的衣橱",
+    "itemCount": "您的衣橱中有 {count} 件单品",
+    "search": "搜索单品...",
+    "allTypes": "所有类型",
+    "needsWash": "需要清洗",
+    "favorites": "收藏",
+    "clearFilters": "清除筛选",
+    "empty": {
+      "title": "您的衣橱是空的",
+      "description": "添加您的第一件衣物，开始获取个性化穿搭建议。",
+      "addFirstItem": "添加第一件单品"
+    },
+    "ai": {
+      "analyzing": "AI 分析中...",
+      "analysisFailed": "分析失败",
+      "retry": "重试",
+      "completeness": "AI 完成度：{percent}%",
+      "analyzingCount": "{count} 件分析中",
+      "failedCount": "{count} 件失败"
+    },
+    "wearCount": "已穿 {count} 次",
+    "errors": {
+      "loadFailed": "加载单品失败，请重试。",
+      "noItemsFound": "没有找到符合筛选条件的单品。",
+      "clearFilters": "清除筛选"
+    },
+    "sort": {
+      "newestFirst": "最新优先",
+      "oldestFirst": "最早优先",
+      "recentlyWorn": "最近穿过",
+      "leastRecentlyWorn": "最久没穿",
+      "mostWorn": "穿着最多",
+      "leastWorn": "穿着最少",
+      "nameAZ": "名称 A\u2013Z",
+      "nameZA": "名称 Z\u2013A"
+    },
+    "bulkActions": {
+      "deleteSuccess": "已删除 {count} 件单品",
+      "deleteError": "删除单品失败"
+    },
+    "itemDeleted": "单品已删除",
+    "itemDeleteFailed": "删除单品失败",
+    "itemUpdated": "单品已更新",
+    "itemUpdateFailed": "更新单品失败",
+    "reanalysisQueued": "已排队等待重新分析",
+    "reanalysisFailed": "排队重新分析失败"
+  },
+  "suggest": {
+    "greeting": {
+      "morning": "早上好",
+      "afternoon": "下午好",
+      "evening": "晚上好"
+    },
+    "subtitle": "为您找到今日完美穿搭",
+    "weatherHints": {
+      "rainy": "带把雨伞或穿件雨衣",
+      "cold": "注意保暖 - 天气很冷",
+      "mild": "一件薄外套会很合适",
+      "hot": "穿得轻薄透气一些",
+      "windy": "考虑穿防风的衣物",
+      "nice": "天气不错，适合任何风格"
+    },
+    "location": {
+      "notSet": "未设置位置",
+      "setDescription": "在设置中设置您的位置以获取天气感知建议"
+    },
+    "weatherOverride": {
+      "active": "天气覆盖已激活",
+      "overrideWeather": "覆盖天气",
+      "condition": "天气状况",
+      "reset": "重置",
+      "temperature": "温度",
+      "sunny": "晴天",
+      "cloudy": "多云",
+      "rainy": "下雨"
+    },
+    "occasionPrompt": "什么场合？",
+    "yourOutfit": "您的穿搭",
+    "tryAnother": "换一套",
+    "loveIt": "很喜欢",
+    "startOver": "重新开始",
+    "getSuggestion": "获取建议",
+    "generating": "正在为您搭配...",
+    "error": "生成穿搭建议失败，请重试。",
+    "tip": "提示："
+  },
+  "outfits": {
+    "title": "穿搭",
+    "subtitle": "您的造型、穿着记录和 AI 建议",
+    "viewList": "列表",
+    "viewCalendar": "日历",
+    "newOutfit": "新建穿搭",
+    "filters": {
+      "all": "全部",
+      "myLooks": "我的造型",
+      "worn": "已穿着",
+      "pairings": "搭配",
+      "replacements": "替换",
+      "ai": "AI"
+    },
+    "empty": {
+      "all": "还没有穿搭。创建您的第一个造型吧！",
+      "myLooks": "还没有造型册模板。",
+      "worn": "还没有穿着记录。",
+      "pairings": "还没有搭配。",
+      "replacements": "还没有替换穿搭。",
+      "ai": "还没有 AI 建议。"
+    },
+    "search": "搜索造型册...",
+    "totalCount": "共 {count} 套",
+    "loadMore": "加载更多",
+    "loadError": "加载穿搭失败",
+    "calendar": {
+      "noOutfitsOnDay": "这天没有穿搭",
+      "outfitCount": "{count} 套穿搭",
+      "monthlyCount": "本月 {count} 套穿搭",
+      "legendScheduled": "已计划",
+      "legendOnDemand": "按需"
+    },
+    "detail": {
+      "backToOutfits": "返回穿搭列表",
+      "lookbookTemplate": "造型册模板",
+      "items": "单品 ({count})",
+      "wearToday": "今天穿",
+      "saveToLookbook": "保存到造型册",
+      "edit": "编辑",
+      "delete": "删除",
+      "deleteConfirm": "删除这套穿搭？此操作不可撤销。",
+      "deleted": "穿搭已删除",
+      "addedToToday": "已添加到今天",
+      "notWornYet": "这套造型还没有穿过。点击\u201c今天穿\u201d来记录。",
+      "wornCount": "已穿 {count} 次",
+      "undated": "未设日期",
+      "seeAll": "查看全部"
+    },
+    "new": {
+      "cancel": "取消",
+      "editOutfit": "编辑穿搭",
+      "studio": "工作室",
+      "wearToday": "今天穿",
+      "saveChanges": "保存更改",
+      "saveToLookbook": "保存到造型册",
+      "validation": {
+        "needItemAndOccasion": "请选择至少一件单品和一个场合",
+        "needItem": "请选择至少一件单品",
+        "needOccasion": "请选择一个场合"
+      },
+      "draft": {
+        "found": "您上次有未保存的草稿。是否继续编辑？",
+        "startFresh": "重新开始",
+        "resume": "继续编辑"
+      },
+      "errors": {
+        "notFound": "未找到穿搭",
+        "notFoundDesc": "这套穿搭已不存在。它可能已在其他标签页或设备上被删除。",
+        "cannotEdit": "您无法编辑这套穿搭",
+        "couldNotLoad": "无法加载这套穿搭",
+        "couldNotLoadDesc": "您的会话可能已过期，或这套穿搭属于其他账号。",
+        "genericError": "加载穿搭时出现问题。请检查网络连接后重试。",
+        "tryAgain": "重试",
+        "backToOutfits": "返回穿搭列表"
+      },
+      "worn": {
+        "title": "这套穿搭已穿过",
+        "description": "已穿着的穿搭无法编辑，因为它们是您穿着历史的一部分。",
+        "saveAsNew": "另存为新穿搭",
+        "backToOutfit": "返回穿搭"
+      },
+      "tabs": {
+        "canvas": "画布",
+        "details": "详情",
+        "yourWardrobe": "您的衣橱",
+        "emptyWardrobe": "您的衣橱中还没有单品。请先添加单品。"
+      },
+      "discardChanges": "放弃更改",
+      "nameRequired": "保存前请为造型册条目命名",
+      "outfitUpdated": "穿搭已更新",
+      "savedAndMarkedWorn": "已保存并标记为已穿"
+    },
+    "cards": {
+      "replacement": "替换",
+      "worn": "已穿着",
+      "studio": "工作室",
+      "pairing": "搭配",
+      "ai": "AI",
+      "lookbookTemplate": "造型册模板",
+      "outfitFallback": "{occasion} 穿搭"
+    }
+  },
+  "pairings": {
+    "title": "搭配",
+    "subtitle": "围绕您的单品生成的 AI 穿搭组合",
+    "empty": {
+      "title": "还没有搭配",
+      "description": "从衣橱中选择一件单品，使用“查找搭配“发现搭配效果好的穿搭组合。",
+      "goToWardrobe": "前往衣橱"
+    },
+    "allItemTypes": "所有单品类型",
+    "pairingCount": "{count} 组搭配",
+    "loadMore": "加载更多",
+    "loadError": "加载搭配失败，请重试。"
+  },
+  "history": {
+    "title": "历史",
+    "subtitle": "查看您过去的穿搭推荐",
+    "empty": {
+      "title": "没有推荐历史",
+      "description": "您开始接收建议后，穿搭推荐历史将显示在这里。",
+      "getFirstSuggestion": "获取第一个建议"
+    },
+    "noOutfitsForDate": "{date} 没有穿搭",
+    "filters": {
+      "allOccasions": "所有场合",
+      "casual": "休闲",
+      "office": "办公",
+      "formal": "正式",
+      "date": "约会",
+      "workout": "运动",
+      "allStatus": "所有状态",
+      "accepted": "已接受",
+      "rejected": "已拒绝",
+      "pending": "待处理",
+      "viewed": "已查看"
+    },
+    "outfitCount": "{count} 套穿搭",
+    "loadError": "加载历史记录失败，请重试。",
+    "sourceBadges": {
+      "scheduled": "已计划",
+      "onDemand": "按需",
+      "manual": "手动",
+      "pairing": "搭配"
+    }
+  },
+  "family": {
+    "title": "家庭",
+    "description": "创建或加入家庭，分享您的衣橱体验",
+    "createFamily": "创建家庭",
+    "createFamilyDesc": "创建一个新家庭",
+    "joinFamily": "加入家庭",
+    "joinFamilyDesc": "使用邀请码加入已有家庭",
+    "cardCreateDesc": "创建新家庭并邀请成员",
+    "cardJoinDesc": "使用邀请码",
+    "familyName": "家庭名称",
+    "inviteCode": "邀请码",
+    "create": "创建",
+    "join": "加入",
+    "cancel": "取消",
+    "invalidInviteCode": "邀请码无效，请检查后重试。",
+    "leaveFamily": "离开家庭",
+    "leaveConfirm": {
+      "title": "离开家庭？",
+      "description": "确定要离开 {name} 吗？您可以稍后使用邀请码重新加入。"
+    },
+    "leftSuccess": "已成功离开家庭",
+    "editName": "编辑名称",
+    "save": "保存",
+    "inviteCodeSection": {
+      "title": "邀请码",
+      "description": "将此代码分享给家庭成员，让他们加入"
+    },
+    "sendInvite": "发送邀请",
+    "sendInviteDesc": "通过电子邮箱邀请他人",
+    "roles": {
+      "member": "成员",
+      "admin": "管理员"
+    },
+    "members": {
+      "title": "成员",
+      "description": "您家庭中的人员",
+      "you": "您",
+      "admin": "管理员",
+      "removeConfirm": {
+        "title": "移除成员？",
+        "description": "确定要将 {name} 从家庭中移除吗？"
+      },
+      "removed": "成员已移除",
+      "removeError": "移除成员失败"
+    },
+    "pendingInvites": {
+      "title": "待处理邀请",
+      "description": "尚未被接受的邀请",
+      "expires": "{date} 过期"
+    },
+    "familyOutfits": {
+      "title": "家庭穿搭",
+      "description": "浏览并评价家人的穿搭",
+      "openFeed": "打开家庭动态"
+    },
+    "nameUpdated": "家庭名称已更新",
+    "nameUpdateError": "更新家庭名称失败",
+    "familyCreated": "家庭创建成功！",
+    "inviteSent": "邀请已发送！",
+    "inviteError": "发送邀请失败",
+    "joinedFamily": "已加入 {name}！",
+    "joinError": "加入家庭失败",
+    "removed": "成员已移除",
+    "removeMemberFailed": "移除成员失败",
+    "confirmLeave": "确定要离开家庭吗？",
+    "inviteCodeCopied": "邀请码已复制！"
+  },
+  "familyFeed": {
+    "title": "家庭动态",
+    "subtitle": "浏览并评价家人的穿搭",
+    "sourceBadges": {
+      "scheduled": "已计划",
+      "onDemand": "按需",
+      "manual": "手动",
+      "pairing": "搭配"
+    },
+    "lookbook": "造型册",
+    "noMembers": {
+      "title": "还没有其他成员",
+      "description": "邀请家庭成员，开始浏览和评价彼此的穿搭。",
+      "inviteMembers": "邀请成员",
+      "manageFamily": "管理家庭"
+    },
+    "noOutfits": {
+      "title": "还没有穿搭",
+      "description": "{member} 还没有收到任何穿搭推荐。稍后再来看看吧！"
+    },
+    "rateOutfit": "为 {member} 的穿搭评分",
+    "edit": "编辑",
+    "ratingCount": "{count} 条评分",
+    "toasts": {
+      "ratingUpdated": "评分已更新！",
+      "ratingSubmitted": "评分已提交！",
+      "ratingFailed": "评分提交失败",
+      "ratingRemoved": "评分已移除",
+      "removeFailed": "移除评分失败"
+    },
+    "familyRatings": {
+      "noRatings": "还没有家庭评分。成为第一个评分的人吧！",
+      "noRatingsShort": "还没有家庭评分。"
+    },
+    "yourRating": "您的评分：",
+    "noFamily": {
+      "title": "请先加入家庭",
+      "description": "创建或加入家庭，浏览和评价彼此的穿搭。",
+      "setUpFamily": "设置家庭"
+    }
+  },
+  "analytics": {
+    "title": "数据分析",
+    "subtitle": "您的衣橱洞察和统计数据",
+    "stats": {
+      "totalItems": {
+        "title": "单品总数",
+        "description": "{count} 件可穿"
+      },
+      "outfitsGenerated": {
+        "title": "生成的穿搭",
+        "description": "本周 {count} 套"
+      },
+      "acceptanceRate": {
+        "title": "接受率",
+        "description": "建议被接受的比例"
+      },
+      "totalWears": {
+        "title": "穿着总次数",
+        "noData": "暂无数据",
+        "description": "追踪您的穿搭"
+      },
+      "avgRating": "平均评分：{rating}/5"
+    },
+    "insights": {
+      "title": "洞察",
+      "colorDistribution": {
+        "title": "颜色分布",
+        "description": "您衣橱中最常见的颜色",
+        "noData": "暂无颜色数据"
+      },
+      "itemTypes": {
+        "title": "单品类型",
+        "description": "按衣物类型的分布",
+        "noData": "暂无单品"
+      },
+      "mostWorn": {
+        "title": "穿着最多",
+        "description": "您的最爱",
+        "noData": "开始追踪您的穿搭吧！"
+      },
+      "leastWorn": {
+        "title": "穿着最少",
+        "description": "考虑穿穿这些",
+        "noData": "继续追踪吧！"
+      },
+      "neverWorn": {
+        "title": "从未穿过",
+        "description": "是时候试试这些了？",
+        "noData": "所有单品都穿过啦！"
+      },
+      "acceptanceTrend": {
+        "title": "接受率趋势",
+        "description": "您对建议的反馈随时间的变化"
+      }
+    },
+    "loadError": "加载分析数据失败，请重试。"
+  },
+  "learning": {
+    "title": "AI 学习",
+    "subtitle": "AI 如何从您的反馈中学习",
+    "subtitleEmpty": "开始为穿搭评分，帮助 AI 学习您的偏好",
+    "recompute": "重新计算",
+    "stats": {
+      "feedbackGiven": "已给反馈",
+      "acceptanceRate": "接受率",
+      "averageRating": "平均评分",
+      "styleRating": "风格评分"
+    },
+    "styleInsights": {
+      "title": "风格洞察",
+      "description": "我们对您偏好的了解",
+      "noData": "新洞察"
+    },
+    "colorPreferences": {
+      "title": "学习到的颜色偏好",
+      "description": "您倾向于接受或拒绝的颜色",
+      "noData": "反馈不足，尚无法确定颜色偏好。"
+    },
+    "stylePreferences": {
+      "title": "学习到的风格偏好",
+      "description": "符合您品味的风格",
+      "noData": "反馈不足，尚无法确定风格偏好。"
+    },
+    "bestCombinations": {
+      "title": "您的最佳搭配",
+      "description": "您一直喜欢的单品组合"
+    },
+    "occasionPatterns": {
+      "title": "场合模式",
+      "description": "不同场合的适用搭配"
+    },
+    "preferredColors": "偏好的颜色：",
+    "weatherPreferences": {
+      "title": "天气偏好",
+      "description": "您在不同天气条件下的穿着方式",
+      "layers": "约 {count} 层",
+      "success": "{percent}% 成功率"
+    },
+    "suggestedUpdates": {
+      "title": "建议的偏好更新",
+      "description": "根据您的反馈，我们建议更新您的偏好",
+      "addToFavorites": "添加到喜欢的颜色：",
+      "addToAvoid": "添加到避免的颜色：",
+      "updatePreferences": "更新偏好"
+    },
+    "noData": {
+      "title": "还没有学习数据",
+      "description": "从接受或拒绝穿搭建议并评分开始。",
+      "getOutfitSuggestions": "获取穿搭建议",
+      "computeNow": "立即计算",
+      "computing": "计算中...",
+      "alreadyGaveFeedback": "已经给出反馈了？点击“立即计算“来处理。"
+    },
+    "lastUpdated": "学习档案上次更新：",
+    "paired": "次搭配",
+    "confident": "% 置信度",
+    "dismiss": "忽略",
+    "loadError": "加载学习数据失败，请重试。",
+    "stats": {
+      "feedbackGiven": "已给反馈",
+      "acceptanceRate": "接受率",
+      "averageRating": "平均评分",
+      "styleRating": "风格评分",
+      "outfitsRated": "{count} 套穿搭已评分",
+      "suggestionsAccepted": "建议被接受",
+      "notEnoughData": "数据不足",
+      "outOf5Stars": "满分 5 星",
+      "rateMoreOutfits": "为更多穿搭评分",
+      "styleSatisfaction": "风格满意度",
+      "rateOutfitStyles": "评价穿搭风格"
+    },
+    "styleInsights": {
+      "title": "风格洞察",
+      "description": "我们对您偏好的了解",
+      "noData": "新洞察"
+    },
+    "colorPreferences": {
+      "title": "学习到的颜色偏好",
+      "description": "您倾向于接受或拒绝的颜色",
+      "noData": "反馈不足，尚无法确定颜色偏好。"
+    },
+    "stylePreferences": {
+      "title": "学习到的风格偏好",
+      "description": "符合您品味的风格",
+      "noData": "反馈不足，尚无法确定风格偏好。"
+    },
+    "bestCombinations": {
+      "title": "您的最佳搭配",
+      "description": "您一直喜欢的单品组合"
+    },
+    "occasionPatterns": {
+      "title": "场合模式",
+      "description": "不同场合的适用搭配"
+    },
+    "preferredColors": "偏好的颜色：",
+    "weatherPreferences": {
+      "title": "天气偏好",
+      "description": "您在不同天气条件下的穿着方式",
+      "layers": "约 {count} 层",
+      "success": "{percent}% 成功率"
+    },
+    "suggestedUpdates": {
+      "title": "建议的偏好更新",
+      "description": "根据您的反馈，我们建议更新您的偏好",
+      "addToFavorites": "添加到喜欢的颜色：",
+      "addToAvoid": "添加到避免的颜色：",
+      "updatePreferences": "更新偏好"
+    },
+    "noData": {
+      "title": "还没有学习数据",
+      "description": "从接受或拒绝穿搭建议并评分开始。",
+      "getOutfitSuggestions": "获取穿搭建议",
+      "computeNow": "立即计算",
+      "computing": "计算中...",
+      "alreadyGaveFeedback": "已经给出反馈了？点击\"立即计算\"来处理。"
+    },
+    "lastUpdated": "学习档案上次更新：",
+    "paired": "次搭配",
+    "confident": "% 置信度",
+    "dismiss": "忽略",
+    "loadError": "加载学习数据失败，请重试。"
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "管理您的偏好和账号设置",
+    "reset": "重置",
+    "save": "保存",
+    "unsavedChanges": "您有未保存的更改。确定离开此页面？",
+    "account": {
+      "title": "账号",
+      "description": "您的个人资料信息",
+      "name": "姓名",
+      "email": "电子邮箱"
+    },
+    "location": {
+      "title": "位置",
+      "description": "设置您的位置以获取基于天气的穿搭推荐",
+      "cityLabel": "城市/位置名称（可选）",
+      "latitude": "纬度",
+      "longitude": "经度",
+      "timezone": "时区",
+      "useMyLocation": "使用我的位置",
+      "saveLocation": "保存位置",
+      "detected": "位置已检测到。请确认后保存。",
+      "saved": "位置和时区已保存",
+      "selectTimezone": "选择时区",
+      "required": "基于天气的穿搭推荐需要设置位置。",
+      "errors": {
+        "detectFailed": "位置检测失败，请手动输入。",
+        "saveFailed": "保存位置失败，请重试。",
+        "fetchFailed": "无法获取该位置的坐标。请尝试更具体的城市名称。",
+        "geolocationDenied": "位置访问被拒绝。",
+        "geolocationUnavailable": "位置当前不可用。",
+        "geolocationTimeout": "位置请求超时。",
+        "geolocationFailed": "获取精确位置失败：{message}",
+        "geolocationFailedGeneric": "获取精确位置失败。"
+      }
+    },
+    "body": {
+      "title": "身体尺寸",
+      "description": "帮助 AI 推荐更合身的穿搭",
+      "unitSystem": "单位制",
+      "metric": "公制（cm/kg）",
+      "imperial": "英制（in/lbs）",
+      "bodyLabel": "身体",
+      "sizesLabel": "尺码",
+      "fields": {
+        "height": "身高",
+        "weight": "体重",
+        "chest": "胸围",
+        "waist": "腰围",
+        "hips": "臀围",
+        "inseam": "内缝"
+      },
+      "sizeFields": {
+        "shirtSize": "衬衫尺码",
+        "pantsSize": "裤子尺码",
+        "dressSize": "连衣裙尺码",
+        "shoeSize": "鞋码"
+      },
+      "saveMeasurements": "保存尺寸",
+      "saving": "保存中...",
+      "sizePlaceholders": {
+        "shirt_size": "例如 M、L、XL",
+        "pants_size": "例如 32、34",
+        "dress_size": "例如 8、10",
+        "shoe_size": "例如 10、42"
+      }
+    },
+    "colors": {
+      "favoriteColors": "喜欢的颜色",
+      "colorsToAvoid": "避免的颜色",
+      "description": "选择您喜欢和想要避免的颜色"
+    },
+    "styleProfile": {
+      "title": "风格档案",
+      "description": "调整穿搭推荐中每种风格的偏好程度",
+      "styles": {
+        "casual": "休闲",
+        "formal": "正式",
+        "sporty": "运动",
+        "minimalist": "极简",
+        "bold": "大胆"
+      }
+    },
+    "temperature": {
+      "title": "温度与舒适度",
+      "description": "调整推荐如何适应天气",
+      "unit": "温度单位",
+      "celsius": "摄氏度",
+      "fahrenheit": "华氏度",
+      "sensitivity": "温度敏感度",
+      "sensitivityOptions": {
+        "low": "我容易觉得热",
+        "normal": "正常",
+        "high": "我容易觉得冷"
+      },
+      "layering": "层次偏好",
+      "layeringOptions": {
+        "minimal": "少量层次",
+        "moderate": "适量层次",
+        "heavy": "大量层次"
+      },
+      "coldThreshold": "寒冷阈值",
+      "hotThreshold": "炎热阈值"
+    },
+    "recommendations": {
+      "title": "推荐设置",
+      "description": "自定义穿搭推荐的生成方式",
+      "defaultOccasion": "默认场合",
+      "varietyLevel": "多样程度",
+      "varietyOptions": {
+        "low": "低（坚持偏好）",
+        "moderate": "中等",
+        "high": "高（尝试新组合）"
+      },
+      "avoidRepeatDays": "避免重复单品的间隔天数",
+      "preferUnderused": "优先使用低频单品",
+      "yes": "是",
+      "no": "否"
+    },
+    "aiEndpoints": {
+      "title": "AI 端点",
+      "description": "配置用于图像分析的 AI 端点。端点按从上到下的顺序依次尝试。",
+      "noEndpoints": "未配置自定义端点。使用默认服务器设置。",
+      "fields": {
+        "name": "名称",
+        "url": "URL",
+        "visionModel": "视觉模型",
+        "textModel": "文本模型"
+      },
+      "active": "活跃",
+      "disabled": "已禁用",
+      "connected": "已连接",
+      "error": "错误",
+      "testConnection": "测试连接",
+      "modelsAvailable": "个可用模型",
+      "vision": "视觉：",
+      "text": "文本：",
+      "addEndpoint": "添加端点",
+      "testFailed": "测试端点失败"
+    },
+    "preferencesSaved": "偏好已保存",
+    "preferencesSaveError": "保存偏好失败",
+    "preferencesReset": "偏好已重置",
+    "preferencesResetError": "重置偏好失败",
+    "confirmReset": "确定要将所有偏好恢复为默认值吗？"
+  },
+  "notifications": {
+    "title": "通知",
+    "subtitle": "配置您接收穿搭推荐的方式和时间",
+    "days": {
+      "monday": "星期一",
+      "tuesday": "星期二",
+      "wednesday": "星期三",
+      "thursday": "星期四",
+      "friday": "星期五",
+      "saturday": "星期六",
+      "sunday": "星期日"
+    },
+    "channels": {
+      "title": "通知渠道",
+      "description": "添加渠道以接收每日穿搭推荐",
+      "noChannels": "未配置通知渠道",
+      "noChannelsDesc": "添加渠道以开始接收穿搭建议",
+      "addChannel": "添加渠道",
+      "dialog": {
+        "title": "通知渠道",
+        "description": "配置一种新的方式来接收穿搭推荐。"
+      },
+      "types": {
+        "ntfy": "ntfy 推送通知",
+        "mattermost": "Mattermost",
+        "email": "电子邮件"
+      },
+      "fields": {
+        "serverUrl": "服务器 URL",
+        "topic": "主题 *",
+        "accessToken": "访问令牌",
+        "webhookUrl": "Webhook URL *",
+        "emailAddress": "电子邮件地址 *"
+      },
+      "helpers": {
+        "topicSubscribe": "在您的 ntfy 应用中订阅此主题",
+        "accessTokenOptional": "如果您的 ntfy 服务器使用认证则必填",
+        "mattermostWebhook": "在 Mattermost 设置中创建传入 Webhook"
+      },
+      "adding": "添加中...",
+      "test": "测试",
+      "priority": "优先级 {level}",
+      "deleteConfirm": {
+        "title": "删除通知渠道？",
+        "description": "这将移除此通知渠道并停止通过它发送的所有通知。"
+      },
+      "deleting": "删除中...",
+      "deleted": "渠道已删除",
+      "deleteError": "删除渠道失败",
+      "toggle": {
+        "enabled": "渠道已启用",
+        "disabled": "渠道已禁用"
+      }
+    },
+    "schedule": {
+      "title": "推送时间表",
+      "description": "设置每天接收穿搭推荐的时间",
+      "addSchedule": "添加时间表",
+      "notifyDayBefore": "提前一天通知",
+      "notifyDayBeforeDesc": "前一天晚上收到包含次日天气预报的通知",
+      "preview": "您将在 {day} 的 {time} 收到 {occasion} 场合的穿搭建议",
+      "noSchedules": "未配置时间表",
+      "noSchedulesDesc": "添加时间表以接收每日穿搭建议",
+      "deleteConfirm": {
+        "title": "删除时间表？",
+        "description": "这将移除此推送时间表。"
+      },
+      "deleted": "时间表已删除",
+      "deleteError": "删除时间表失败"
+    },
+    "channelAdded": "渠道已添加",
+    "channelAddFailed": "添加渠道失败",
+    "channelTestSent": "测试通知已发送",
+    "channelTestFailed": "发送测试通知失败",
+    "scheduleAdded": "时间表已添加",
+    "scheduleAddFailed": "添加时间表失败"
+  },
+  "dialogs": {
+    "addItem": {
+      "title": "添加单品",
+      "subtitle": "上传您的衣物照片",
+      "singleItem": "单件上传",
+      "bulkUpload": "批量上传",
+      "dropzone": "拖放图片，或点击选择",
+      "formatHint": "PNG、JPG 或 HEIC",
+      "typeLabel": "类型（留空则由 AI 检测）",
+      "letAiDetect": "让 AI 检测...",
+      "namePlaceholder": "名称（可选）",
+      "brandPlaceholder": "品牌",
+      "primaryColor": "主要颜色",
+      "selectPlaceholder": "选择...",
+      "notesPlaceholder": "备注",
+      "addItem": "添加单品",
+      "uploading": "上传中...",
+      "previewAlt": "预览",
+      "nameInputPlaceholder": "例如，蓝色牛津衬衫",
+      "brandInputPlaceholder": "例如，J.Crew",
+      "notesInputPlaceholder": "其他备注...",
+      "dropzoneActive": "将图片拖放到这里",
+      "bulk": {
+        "hint": "所有单品将由 AI 自动标记。您可以稍后编辑详情。",
+        "resultSuccess": "{total} 件中 {success} 件上传成功",
+        "resultFailed": "{count} 件上传失败",
+        "uploadMore": "继续上传",
+        "done": "完成",
+        "imageCount": "{count, plural, one {已选择 # 张图片} other {已选择 # 张图片}}",
+        "uploadingCount": "正在上传 {count} 件单品...",
+        "uploadButton": "{count, plural, one {上传 # 件单品} other {上传 # 件单品}}",
+        "clearAll": "全部清除",
+        "discardConfirm": {
+          "title": "放弃选中的图片？",
+          "keepEditing": "继续编辑",
+          "discard": "放弃",
+          "singleImage": "已选择 1 张图片，关闭此对话框将会丢失。",
+          "imageCount": "{count, plural, one {已选择 # 张图片} other {已选择 # 张图片}}，关闭此对话框将会丢失。"
+        }
+      }
+    },
+    "itemDetail": {
+      "name": "名称",
+      "type": "类型",
+      "brand": "品牌",
+      "primaryColor": "主要颜色",
+      "notes": "备注",
+      "washInterval": "清洗间隔",
+      "titles": {
+        "toggleFavorite": "切换收藏",
+        "findMatchingOutfits": "查找搭配穿搭",
+        "analysisInProgress": "分析中...",
+        "reanalyzeWithAI": "重新用 AI 分析",
+        "rotateLeft": "向左旋转",
+        "rotateRight": "向右旋转",
+        "removeBackground": "移除背景",
+        "close": "关闭",
+        "setAsPrimary": "设为主图",
+        "deleteImage": "删除图片"
+      },
+      "placeholders": {
+        "itemName": "单品名称",
+        "brandName": "品牌名称",
+        "selectColor": "选择颜色",
+        "additionalNotes": "其他备注...",
+        "washIntervalDefault": "默认：{count}"
+      },
+      "view": {
+        "washStatus": "清洗状态",
+        "washHistory": "清洗历史 ({count})",
+        "wearHistory": "穿着历史",
+        "totalWears": "穿着总次数",
+        "lastWorn": "上次穿着",
+        "avgPerMonth": "月均穿着",
+        "usualOccasion": "常用场合",
+        "last6Months": "近 6 个月",
+        "timeline": "时间线 ({count} 条记录)",
+        "aiAnalysis": "AI 分析",
+        "aiAnalyzing": "AI 分析中...",
+        "complete": "{percent}% 已完成",
+        "confident": "{percent}% 置信度",
+        "primaryImage": "主图",
+        "wears": "次穿着",
+        "washIntervalHint": "此单品需要清洗前的穿着次数。留空使用默认值。",
+        "wornCount": "已穿 {count} 次",
+        "lastWornDate": "上次：{date}",
+        "wearsSinceWash": "清洗后穿着次数：{current}/{max}",
+        "needsWashing": "需要清洗",
+        "lastWashed": "上次清洗：{date}",
+        "never": "从未",
+        "today": "今天",
+        "daysAgo": "{count} 天前",
+        "monthWears": "{month}：{count} 次穿着",
+        "fitBadge": "{fit} 版型",
+        "addedDate": "添加于 {date}"
+      },
+      "actions": {
+        "markWashed": "标记为已清洗",
+        "save": "保存",
+        "saved": "单品已保存",
+        "saveError": "保存单品失败",
+        "deleteConfirm": "删除此单品？",
+        "deleted": "单品已删除",
+        "deleteError": "删除单品失败",
+        "washed": "单品已标记为已清洗",
+        "washError": "标记为已清洗失败",
+        "deletedWithName": "\"{name}\" 已被移除。",
+        "deletedFallback": "单品已从您的衣橱中移除。",
+        "deleteErrorDescription": "出了点问题，请重试。",
+        "imageRotated": "图片已旋转",
+        "imageRotateError": "旋转图片失败",
+        "backgroundRemoved": "背景已移除",
+        "backgroundRemoveError": "移除背景失败",
+        "cancelEditing": "取消编辑",
+        "editItem": "编辑单品",
+        "deleteItem": "删除单品",
+        "delete": "删除",
+        "deleteDescription": "这将永久从您的衣橱中删除 \"{name}\"。此操作不可撤销。",
+        "cancel": "取消"
+      }
+    },
+    "generatePairings": {
+      "title": "查找搭配穿搭",
+      "description": "AI 将创建以此单品为核心的完整穿搭",
+      "numOutfits": "穿搭数量",
+      "numOutfitsDesc": "数量越多，搭配越多样，但生成时间越长",
+      "generate": "生成穿搭",
+      "generating": "生成中...",
+      "success": "已创建 {count} 套穿搭！",
+      "successDesc": "在搭配部分查看",
+      "cancel": "取消",
+      "close": "关闭",
+      "viewPairings": "查看搭配"
+    },
+    "feedback": {
+      "didYouWear": "您穿了这套穿搭吗？",
+      "didYouWearDesc": "告诉我们您是否遵循了此推荐，以便我们学习您的偏好。",
+      "yesWoreIt": "是的，我穿了",
+      "rateHowItWent": "评价穿着体验",
+      "noWoreSomethingElse": "没有，我穿了别的",
+      "tellUsWhatYouWore": "告诉我们您穿了什么",
+      "rateThisOutfit": "评价这套穿搭",
+      "howDidItWork": "这套穿搭效果如何？",
+      "overallRating": "总体评分",
+      "commentsOptional": "评论（可选）",
+      "commentsPlaceholder": "对这套穿搭有什么想法？",
+      "back": "返回",
+      "cancel": "取消",
+      "submitting": "提交中...",
+      "submit": "提交",
+      "whatDidYouWear": "您穿了什么？",
+      "whatDidYouWearDesc": "选择您实际穿的单品。这有助于我们学习您的偏好。",
+      "searchWardrobe": "搜索您的衣橱...",
+      "itemsSelected": "已选择 {count} 件单品",
+      "loadingMore": "加载更多...",
+      "noMatch": "没有匹配的单品",
+      "noItemsInWardrobe": "衣橱中没有单品",
+      "showingAll": "显示全部 {count} 件单品",
+      "skip": "跳过",
+      "submitWithCount": "提交 ({count})",
+      "submitted": "反馈已提交",
+      "submitError": "提交反馈失败"
+    },
+    "outfitPreview": {
+      "title": "{occasion} 穿搭",
+      "noImage": "无图片",
+      "viewItemDetails": "查看单品详情",
+      "close": "关闭",
+      "tip": "提示：",
+      "imageRotated": "图片已旋转",
+      "rotateFailed": "旋转图片失败",
+      "rotateLeft": "向左旋转",
+      "rotateRight": "向右旋转",
+      "familyRatings": {
+        "title": "家庭评分",
+        "noRatings": "还没有家庭评分。",
+        "noRatingsPrompt": "还没有家庭评分。成为第一个评分的人吧！",
+        "rate": "评分"
+      }
+    },
+    "cloneToLookbook": {
+      "title": "保存到造型册",
+      "description": "为这套造型命名，方便日后查找和再次穿着。",
+      "name": "名称",
+      "namePlaceholder": "周五早午餐",
+      "cancel": "取消",
+      "saving": "保存中...",
+      "save": "保存",
+      "errorEmpty": "请输入名称",
+      "saved": "已保存到造型册",
+      "saveError": "保存到造型册失败"
+    },
+    "colorEyedropper": {
+      "title": "从图片中选取颜色",
+      "description": "点击图片任意位置来选取颜色",
+      "buttonTitle": "从图片中选取颜色",
+      "picked": "已选取",
+      "clear": "清除",
+      "useColor": "使用 {color}",
+      "noColorSelected": "尚未选择颜色"
+    }
+  },
+  "cards": {
+    "pairing": {
+      "badge": "搭配",
+      "builtAround": "核心单品：",
+      "updateRating": "更新评分",
+      "rateThisPairing": "评价此搭配",
+      "deleted": "搭配已删除",
+      "deleteError": "删除搭配失败",
+      "tip": "提示："
+    },
+    "outfitHistory": {
+      "sourceBadges": {
+        "scheduled": "已计划",
+        "onDemand": "按需",
+        "manual": "手动",
+        "pairing": "搭配"
+      },
+      "didntWearThis": "没穿这套",
+      "woreInstead": "实际穿了：",
+      "reject": "拒绝",
+      "accept": "接受",
+      "update": "更新",
+      "rate": "评分",
+      "viewItemDetails": "查看单品详情",
+      "outfitAccepted": "穿搭已接受",
+      "acceptFailed": "接受穿搭失败",
+      "outfitRejected": "穿搭已拒绝",
+      "rejectFailed": "拒绝穿搭失败",
+      "tip": "提示：",
+      "familyLabel": "家庭："
+    },
+    "familyRatings": {
+      "yourRating": "您的评分：",
+      "addComment": "添加评论（可选）",
+      "submitRating": "提交评分",
+      "updateRating": "更新评分",
+      "selectRating": "请选择评分",
+      "ratingUpdated": "评分已更新！",
+      "ratingSubmitted": "评分已提交！",
+      "submitError": "提交评分失败",
+      "ratingRemoved": "评分已移除",
+      "removeError": "移除评分失败"
+    }
+  },
+  "studio": {
+    "canvas": {
+      "empty": "点击下方的单品开始搭配您的穿搭",
+      "removeItem": "移除 {name}"
+    },
+    "details": {
+      "name": "名称",
+      "nameRequired": "（造型册必填）",
+      "namePlaceholder": "周五早午餐",
+      "occasion": "场合",
+      "pickOccasion": "保存前请选择一个场合。",
+      "warnings": {
+        "noBottoms": "未选择下装。",
+        "noTop": "未选择上装。",
+        "multipleBottoms": "选择了多件下装。",
+        "noFootwear": "未选择鞋履。"
+      },
+      "aiThinking": "AI 正在思考...",
+      "letAiFinish": "让 AI 完成",
+      "aiAssistError": "请先选择至少一件单品和一个场合",
+      "skippedItem": "已跳过 {name}：{reason}",
+      "addedItems": "AI 添加了 {count} 件单品",
+      "aiNoSuggestions": "AI 没有新单品建议",
+      "aiFailed": "AI 辅助失败"
+    },
+    "lineage": {
+      "replaces": "替换 {occasion} 建议",
+      "replacesWithDate": "替换来自 {date} 的 {occasion} 建议",
+      "fromLookbook": "来自您的造型册条目 {name}"
+    }
+  },
+  "shared": {
+    "localeSwitcher": {
+      "label": "切换语言"
+    },
+    "pagination": {
+      "pageOfTotal": "第 {current} 页，共 {total} 页",
+      "firstPage": "第一页",
+      "previousPage": "上一页",
+      "nextPage": "下一页",
+      "lastPage": "最后一页"
+    },
+    "bulkAction": {
+      "all": "全部",
+      "selectAll": "全选",
+      "noneSelected": "未选择",
+      "allExcept": "除 {count} 项外全选",
+      "allSelected": "已全选 {count} 项",
+      "selected": "已选择 {count} 项",
+      "deleteConfirm": {
+        "title": "删除 {count} 件单品？",
+        "description": "这将永久删除所选单品及其图片。此操作不可撤销。"
+      }
+    },
+    "itemPicker": {
+      "search": "搜索衣橱...",
+      "loadingMore": "加载更多...",
+      "noMatch": "没有匹配的单品",
+      "noItems": "未找到单品",
+      "showingAll": "显示全部 {count} 件单品"
+    },
+    "lightbox": {
+      "openInWardrobe": "在衣橱中打开"
+    },
+    "offlineIndicator": {
+      "message": "您已离线"
+    },
+    "wornAgo": {
+      "today": "今天穿过",
+      "yesterday": "昨天穿过",
+      "daysAgo": "{days} 天前穿过"
+    }
+  },
+  "types": {
+    "clothingTypes": {
+      "shirt": "衬衫",
+      "t-shirt": "T恤",
+      "top": "上装",
+      "polo": "Polo 衫",
+      "blouse": "女士衬衫",
+      "tank-top": "背心",
+      "sweater": "毛衣",
+      "hoodie": "连帽衫",
+      "cardigan": "开衫",
+      "vest": "马甲",
+      "pants": "长裤",
+      "jeans": "牛仔裤",
+      "shorts": "短裤",
+      "skirt": "半身裙",
+      "dress": "连衣裙",
+      "jumpsuit": "连体裤",
+      "jacket": "夹克",
+      "blazer": "西装外套",
+      "coat": "大衣",
+      "suit": "西装",
+      "shoes": "鞋子",
+      "sneakers": "运动鞋",
+      "boots": "靴子",
+      "sandals": "凉鞋",
+      "socks": "袜子",
+      "tie": "领带",
+      "hat": "帽子",
+      "scarf": "围巾",
+      "belt": "腰带",
+      "bag": "包",
+      "accessories": "配饰"
+    },
+    "clothingColors": {
+      "black": "黑色",
+      "charcoal": "炭灰色",
+      "gray": "灰色",
+      "white": "白色",
+      "cream": "奶油色",
+      "beige": "米色",
+      "tan": "棕褐色",
+      "khaki": "卡其色",
+      "olive": "橄榄色",
+      "army-green": "军绿色",
+      "green": "绿色",
+      "teal": "蓝绿色",
+      "navy": "藏青色",
+      "blue": "蓝色",
+      "brown": "棕色",
+      "dark-brown": "深棕色",
+      "burgundy": "酒红色",
+      "red": "红色",
+      "pink": "粉色",
+      "purple": "紫色",
+      "yellow": "黄色",
+      "orange": "橙色"
+    },
+    "occasions": {
+      "casual": "休闲",
+      "office": "办公",
+      "formal": "正式",
+      "date": "约会",
+      "sporty": "运动",
+      "outdoor": "户外"
+    }
+  }
+}

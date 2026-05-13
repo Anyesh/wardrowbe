@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useTranslations } from 'next-intl';
 
 export interface BulkSelection {
   mode: 'none' | 'some' | 'all';
@@ -50,6 +51,7 @@ export function BulkActionToolbar({
   pageSize,
   onPageChange,
 }: BulkActionToolbarProps) {
+  const t = useTranslations('shared.bulkAction');
   // Calculate selected count
   const selectedCount = selection.mode === 'all'
     ? totalItems - selection.excludedIds.size
@@ -81,7 +83,7 @@ export function BulkActionToolbar({
           <Square className="h-5 w-5 text-muted-foreground" />
         )}
         <span className="text-sm font-medium whitespace-nowrap hidden sm:inline">
-          {isAllSelected ? 'All' : 'Select all'}
+          {isAllSelected ? t('all') : t('selectAll')}
         </span>
       </div>
 
@@ -89,21 +91,21 @@ export function BulkActionToolbar({
 
       <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
         {selectedCount === 0 ? (
-          <span className="hidden sm:inline">None selected</span>
+          <span className="hidden sm:inline">{t('noneSelected')}</span>
         ) : selection.mode === 'all' && selection.excludedIds.size > 0 ? (
           <>
             <span className="sm:hidden">{totalItems - selection.excludedIds.size}</span>
-            <span className="hidden sm:inline">All except {selection.excludedIds.size}</span>
+            <span className="hidden sm:inline">{t('allExcept', { count: selection.excludedIds.size })}</span>
           </>
         ) : selection.mode === 'all' ? (
           <>
             <span className="sm:hidden">All ({totalItems})</span>
-            <span className="hidden sm:inline">All {totalItems} selected</span>
+            <span className="hidden sm:inline">{t('allSelected', { count: totalItems })}</span>
           </>
         ) : (
           <>
             <span className="sm:hidden">{selectedCount}</span>
-            <span className="hidden sm:inline">{selectedCount} selected</span>
+            <span className="hidden sm:inline">{t('selected', { count: selectedCount })}</span>
           </>
         )}
       </span>
@@ -147,13 +149,10 @@ export function BulkActionToolbar({
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  Delete {selection.mode === 'all' && selection.excludedIds.size === 0
-                    ? `all ${totalItems}`
-                    : selectedCount} items?
+                  {t('deleteConfirm.title', { count: selection.mode === 'all' && selection.excludedIds.size === 0 ? totalItems : selectedCount })}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete the selected items and their images.
-                  This action cannot be undone.
+                  {t('deleteConfirm.description')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

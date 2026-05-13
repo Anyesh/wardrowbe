@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Sparkles, Layers } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,19 +21,18 @@ import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import { Pairing } from '@/lib/types';
 import { Outfit } from '@/lib/hooks/use-outfits';
 
-function EmptyPairings() {
+function EmptyPairings({ t }: { t: (key: string) => string }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       <div className="rounded-full bg-muted p-6 mb-4">
         <Layers className="h-12 w-12 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-semibold mb-2">No pairings yet</h3>
+      <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
       <p className="text-muted-foreground mb-6 max-w-sm">
-        Select an item from your wardrobe and use &ldquo;Find Pairings&rdquo; to discover
-        outfit combinations that work well together.
+        {t('empty.description')}
       </p>
       <Button variant="outline" asChild>
-        <a href="/dashboard/wardrobe">Go to Wardrobe</a>
+        <a href="/dashboard/wardrobe">{t('empty.goToWardrobe')}</a>
       </Button>
     </div>
   );
@@ -68,6 +68,7 @@ function LoadingSkeleton() {
 }
 
 export default function PairingsPage() {
+  const t = useTranslations('pairings');
   const [page, setPage] = useState(1);
   const [sourceType, setSourceType] = useState<string | undefined>(undefined);
   const [feedbackOutfit, setFeedbackOutfit] = useState<Outfit | null>(null);
@@ -84,7 +85,7 @@ export default function PairingsPage() {
   if (isError) {
     return (
       <div className="text-center py-8 text-red-500">
-        Failed to load pairings. Please try again.
+        {t('loadError')}
       </div>
     );
   }
@@ -96,10 +97,10 @@ export default function PairingsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
-            Pairings
+            {t('title')}
           </h1>
           <p className="text-muted-foreground">
-            AI-generated outfit combinations built around your items
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -108,10 +109,10 @@ export default function PairingsPage() {
       <div className="flex gap-3 flex-wrap items-center">
         <Select value={sourceType || 'all'} onValueChange={handleSourceTypeChange}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All item types" />
+            <SelectValue placeholder={t('allItemTypes')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All item types</SelectItem>
+            <SelectItem value="all">{t('allItemTypes')}</SelectItem>
             {itemTypes?.map((type) => (
               <SelectItem key={type.type} value={type.type}>
                 {type.type} ({type.count})
@@ -121,7 +122,7 @@ export default function PairingsPage() {
         </Select>
         {data && (
           <p className="text-sm text-muted-foreground">
-            {data.total} pairing{data.total !== 1 ? 's' : ''}
+            {t('pairingCount', { count: data.total })}
           </p>
         )}
       </div>
@@ -130,7 +131,7 @@ export default function PairingsPage() {
       {isLoading ? (
         <LoadingSkeleton />
       ) : !data || data.pairings.length === 0 ? (
-        <EmptyPairings />
+        <EmptyPairings t={t} />
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -151,7 +152,7 @@ export default function PairingsPage() {
                 variant="outline"
                 onClick={() => setPage((p) => p + 1)}
               >
-                Load More
+                {t('loadMore')}
               </Button>
             </div>
           )}

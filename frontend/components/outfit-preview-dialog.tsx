@@ -16,6 +16,7 @@ import { useRotateImage } from '@/lib/hooks/use-items';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 interface OutfitPreviewDialogProps {
   outfit: Outfit;
@@ -25,6 +26,7 @@ interface OutfitPreviewDialogProps {
 }
 
 export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: OutfitPreviewDialogProps) {
+  const t = useTranslations('dialogs.outfitPreview');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageKey, setImageKey] = useState(0); // Force image reload after rotation
   const [showRatingForm, setShowRatingForm] = useState(false);
@@ -53,9 +55,9 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
     try {
       await rotateImage.mutateAsync({ id: currentItem.id, direction });
       setImageKey((k) => k + 1); // Force image reload
-      toast.success('Image rotated');
+      toast.success(t('imageRotated'));
     } catch {
-      toast.error('Failed to rotate image');
+      toast.error(t('rotateFailed'));
     }
   };
 
@@ -67,7 +69,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
         {/* Header - sticky */}
         <div className="flex items-center justify-between p-4 pb-2 border-b flex-shrink-0">
           <div>
-            <h2 className="text-lg font-semibold capitalize">{outfit.occasion} Outfit</h2>
+            <h2 className="text-lg font-semibold capitalize">{t('title', { occasion: outfit.occasion })}</h2>
             <div className="flex items-center gap-2 mt-0.5">
               {outfit.scheduled_for && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -104,7 +106,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    No image
+                    {t('noImage')}
                   </div>
                 )}
               </div>
@@ -165,7 +167,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                   size="icon"
                   onClick={() => handleRotate('ccw')}
                   disabled={rotateImage.isPending}
-                  title="Rotate left"
+                  title={t('rotateLeft')}
                   className="h-8 w-8"
                 >
                   {rotateImage.isPending ? (
@@ -179,7 +181,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                   size="icon"
                   onClick={() => handleRotate('cw')}
                   disabled={rotateImage.isPending}
-                  title="Rotate right"
+                  title={t('rotateRight')}
                   className="h-8 w-8"
                 >
                   {rotateImage.isPending ? (
@@ -196,7 +198,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5 mt-1" asChild>
               <Link href={`/dashboard/wardrobe?item=${currentItem.id}`}>
                 <ExternalLink className="h-3 w-3" />
-                View item details
+                {t('viewItemDetails')}
               </Link>
             </Button>
           </div>
@@ -254,7 +256,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
               {outfit.style_notes && (
                 <div className="p-3 bg-muted rounded-lg border">
                   <p className="text-sm text-muted-foreground break-words">
-                    <span className="font-medium text-foreground">Tip:</span> {outfit.style_notes}
+                    <span className="font-medium text-foreground">{t('tip')}</span> {outfit.style_notes}
                   </p>
                 </div>
               )}
@@ -267,7 +269,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Family Ratings
+                  {t('familyRatings.title')}
                   {outfit.family_rating_count != null && outfit.family_rating_count > 0 && (
                     <span className="text-muted-foreground font-normal">
                       ({outfit.family_rating_average?.toFixed(1)}{' '}
@@ -283,7 +285,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                     className="h-7 text-xs"
                   >
                     <Star className="h-3 w-3 mr-1" />
-                    Rate
+                    {t('familyRatings.rate')}
                   </Button>
                 )}
               </div>
@@ -306,12 +308,12 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
 
               {(!outfit.family_ratings || outfit.family_ratings.length === 0) && !canRate && (
                 <p className="text-xs text-muted-foreground">
-                  No family ratings yet.
+                  {t('familyRatings.noRatings')}
                 </p>
               )}
               {(!outfit.family_ratings || outfit.family_ratings.length === 0) && canRate && !showRatingForm && !myRating && (
                 <p className="text-xs text-muted-foreground">
-                  No family ratings yet. Be the first to rate!
+                  {t('familyRatings.noRatingsPrompt')}
                 </p>
               )}
             </div>
@@ -321,7 +323,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
         {/* Close button at bottom - always visible */}
         <div className="border-t p-3 flex-shrink-0">
           <Button variant="outline" className="w-full" onClick={onClose}>
-            Close
+            {t('close')}
           </Button>
         </div>
       </DialogContent>

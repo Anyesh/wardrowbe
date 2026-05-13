@@ -22,6 +22,15 @@ vi.mock('next-auth/react', () => ({
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}))
+
+vi.mock('next-intl/server', () => ({
+  getTranslations: async () => (key: string) => key,
+  getMessages: async () => ({}),
+}))
+
 global.fetch = vi.fn()
 
 Object.defineProperty(window, 'matchMedia', {

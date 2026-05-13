@@ -24,6 +24,7 @@ import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-rati
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 function getInitials(name: string) {
   return name
@@ -35,25 +36,26 @@ function getInitials(name: string) {
 }
 
 function SourceBadge({ source }: { source: OutfitSource }) {
+  const t = useTranslations('familyFeed');
   const config: Record<OutfitSource, { icon: typeof Calendar; label: string; className: string }> = {
     scheduled: {
       icon: Calendar,
-      label: 'Scheduled',
+      label: t('sourceBadges.scheduled'),
       className: 'bg-primary/10 text-primary border-primary/20',
     },
     on_demand: {
       icon: Zap,
-      label: 'On Demand',
+      label: t('sourceBadges.onDemand'),
       className: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
     },
     manual: {
       icon: Edit3,
-      label: 'Manual',
+      label: t('sourceBadges.manual'),
       className: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
     },
     pairing: {
       icon: Zap,
-      label: 'Pairing',
+      label: t('sourceBadges.pairing'),
       className: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
     },
   };
@@ -79,6 +81,7 @@ function FeedOutfitCard({
   memberName: string;
   onPreview: () => void;
 }) {
+  const t = useTranslations('familyFeed');
   const [showRatingForm, setShowRatingForm] = useState(false);
   const myRating = outfit.family_ratings?.find((r) => r.user_id === currentMemberId);
 
@@ -98,7 +101,7 @@ function FeedOutfitCard({
               month: 'short',
               day: 'numeric',
               year: 'numeric',
-            }) : 'Lookbook'}
+            }) : t('lookbook')}
           </span>
         </div>
 
@@ -152,7 +155,7 @@ function FeedOutfitCard({
               ))}
             </div>
             <span className="text-muted-foreground text-xs">
-              ({outfit.family_rating_count} rating{outfit.family_rating_count !== 1 ? 's' : ''})
+              {t('ratingCount', { count: outfit.family_rating_count })}
             </span>
           </div>
         )}
@@ -183,13 +186,13 @@ function FeedOutfitCard({
               onClick={() => setShowRatingForm(true)}
             >
               <Star className="h-4 w-4 mr-2" />
-              Rate {memberName}&apos;s outfit
+              {t('rateOutfit', { member: memberName })}
             </Button>
           )
         ) : (
           <div className="flex items-center justify-between pt-2 border-t">
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Your rating:</span>
+              <span className="text-muted-foreground">{t('yourRating')}</span>
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
@@ -214,7 +217,7 @@ function FeedOutfitCard({
               className="text-xs"
               onClick={() => setShowRatingForm(!showRatingForm)}
             >
-              Edit
+              {t('edit')}
             </Button>
           </div>
         )}
@@ -235,12 +238,13 @@ function FeedOutfitCard({
 }
 
 function NoFamilyState() {
+  const t = useTranslations('familyFeed');
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Family Feed</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">
-          Browse and rate your family members&apos; outfits
+          {t('subtitle')}
         </p>
       </div>
 
@@ -248,14 +252,14 @@ function NoFamilyState() {
         <div className="rounded-full bg-muted p-6 mb-4">
           <Users className="h-12 w-12 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">Join a family first</h3>
+        <h3 className="text-lg font-semibold mb-2">{t('noFamily.title')}</h3>
         <p className="text-muted-foreground mb-6 max-w-sm">
-          Create or join a family to browse and rate each other&apos;s outfits.
+          {t('noFamily.description')}
         </p>
         <Button asChild>
           <Link href="/dashboard/family">
             <Users className="mr-2 h-4 w-4" />
-            Set Up Family
+            {t('noFamily.setUpFamily')}
           </Link>
         </Button>
       </div>
@@ -264,6 +268,7 @@ function NoFamilyState() {
 }
 
 function FeedContent() {
+  const t = useTranslations('familyFeed');
   const { data: session } = useSession();
   const { data: family, isLoading: familyLoading } = useFamily();
   const currentEmail = session?.user?.email;
@@ -296,15 +301,15 @@ function FeedContent() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Family Feed</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
             <p className="text-muted-foreground">
-              Browse and rate your family members&apos; outfits
+              {t('subtitle')}
             </p>
           </div>
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/family">
               <Settings className="h-4 w-4 mr-2" />
-              Manage Family
+              {t('noMembers.manageFamily')}
             </Link>
           </Button>
         </div>
@@ -313,13 +318,13 @@ function FeedContent() {
           <div className="rounded-full bg-muted p-6 mb-4">
             <Users className="h-12 w-12 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">No other members yet</h3>
+          <h3 className="text-lg font-semibold mb-2">{t('noMembers.title')}</h3>
           <p className="text-muted-foreground mb-6 max-w-sm">
-            Invite family members to start browsing and rating each other&apos;s outfits.
+            {t('noMembers.description')}
           </p>
           <Button asChild>
             <Link href="/dashboard/family">
-              Invite Members
+              {t('noMembers.inviteMembers')}
             </Link>
           </Button>
         </div>
@@ -332,15 +337,15 @@ function FeedContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Family Feed</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">
-            Browse and rate your family members&apos; outfits
+            {t('subtitle')}
           </p>
         </div>
         <Button variant="outline" size="sm" asChild>
           <Link href="/dashboard/family">
             <Settings className="h-4 w-4 mr-2" />
-            Manage Family
+            {t('noMembers.manageFamily')}
           </Link>
         </Button>
       </div>
@@ -394,10 +399,9 @@ function FeedContent() {
       ) : !data || data.outfits.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
           <Shirt className="h-10 w-10 text-muted-foreground mb-3" />
-          <h3 className="text-base font-semibold mb-1">No outfits yet</h3>
+          <h3 className="text-base font-semibold mb-1">{t('noOutfits.title')}</h3>
           <p className="text-sm text-muted-foreground max-w-xs">
-            {selectedMemberInfo?.display_name ?? 'This member'} hasn&apos;t received any outfit recommendations yet.
-            Check back later!
+            {t('noOutfits.description', { member: selectedMemberInfo?.display_name ?? 'This member' })}
           </p>
         </div>
       ) : (

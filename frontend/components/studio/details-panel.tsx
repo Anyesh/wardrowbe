@@ -14,6 +14,7 @@ import { ITEM_ROLE } from '@/lib/studio/canonical-order';
 import { mergeAiAssist } from '@/lib/studio/ai-assist-merge';
 import type { StudioItem } from '@/lib/studio/editor-state';
 import type { Outfit, OutfitItem } from '@/lib/hooks/use-outfits';
+import { useTranslations } from 'next-intl';
 
 interface DetailsPanelProps {
   items: StudioItem[];
@@ -24,7 +25,7 @@ interface DetailsPanelProps {
   onAiMerge: (merged: StudioItem[]) => void;
 }
 
-function computeWarnings(items: StudioItem[]): string[] {
+function computeWarnings(items: StudioItem[], t: any): string[] {
   const warnings: string[] = [];
   const roles = items.map((i) => ITEM_ROLE[i.type] ?? '');
 
@@ -35,20 +36,20 @@ function computeWarnings(items: StudioItem[]): string[] {
 
   if (!hasFullBody) {
     if (hasTop && !hasBottom) {
-      warnings.push('No bottoms selected.');
+      warnings.push(t('warnings.noBottoms'));
     }
     if (hasBottom && !hasTop) {
-      warnings.push('No top selected.');
+      warnings.push(t('warnings.noTop'));
     }
   }
 
   const bottomCount = roles.filter((r) => r === 'bottom').length;
   if (bottomCount > 1) {
-    warnings.push('Multiple bottoms selected.');
+    warnings.push(t('warnings.multipleBottoms'));
   }
 
   if (items.length >= 3 && !hasFootwear) {
-    warnings.push('No footwear selected.');
+    warnings.push(t('warnings.noFootwear'));
   }
 
   return warnings;
@@ -73,12 +74,13 @@ export function DetailsPanel({
   onOccasionChange,
   onAiMerge,
 }: DetailsPanelProps) {
+  const t = useTranslations('studio.details');
   const [aiLoading, setAiLoading] = useState(false);
-  const warnings = computeWarnings(items);
+  const warnings = computeWarnings(items, t);
 
   const handleAiAssist = async () => {
     if (items.length === 0 || !occasion) {
-      toast.error('Pick at least one item and an occasion first');
+      toast.error(t('aiAssistError'));
       return;
     }
     setAiLoading(true);
@@ -96,20 +98,18 @@ export function DetailsPanel({
       if (skipped.length > 0) {
         for (const { item, reason } of skipped) {
           toast.info(
-            `Skipped ${item.name || item.type}: ${reason}`
+            t('skippedItem', { name: item.name || item.type, reason })
           );
         }
       } else if (merged.length > items.length) {
         toast.success(
-          `Added ${merged.length - items.length} item${
-            merged.length - items.length === 1 ? '' : 's'
-          } from AI`
+          t('addedItems', { count: merged.length - items.length })
         );
       } else {
-        toast.info('AI had no new items to suggest');
+        toast.info(t('aiNoSuggestions'));
       }
     } catch (error) {
-      toast.error(getErrorMessage(error, 'AI assist failed'));
+      toast.error(getErrorMessage(error, t('aiFailed')));
     } finally {
       setAiLoading(false);
     }
@@ -119,29 +119,29 @@ export function DetailsPanel({
     <div className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="studio-name" className="flex items-center gap-1">
-          Name
+          {t('name')}
           <span className="text-xs text-muted-foreground font-normal ml-1">
-            (required for lookbook)
+            {t('nameRequired')}
           </span>
         </Label>
         <Input
           id="studio-name"
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
-          placeholder="Friday brunch"
+          placeholder={t('namePlaceholder')}
           maxLength={100}
         />
       </div>
 
       <div className="space-y-2">
         <Label className="flex items-center gap-1">
-          Occasion
+          {t('occasion')}
           <span className="text-destructive" aria-label="required">*</span>
         </Label>
         <OccasionChips selected={occasion} onSelect={onOccasionChange} />
         {!occasion && (
           <p className="text-xs text-muted-foreground mt-1">
-            Pick an occasion before saving.
+            {t('pickOccasion')}
           </p>
         )}
       </div>
@@ -171,12 +171,12 @@ export function DetailsPanel({
         {aiLoading ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            AI is thinking...
+            {t('aiThinking')}
           </>
         ) : (
           <>
             <Sparkles className="h-4 w-4 mr-2" />
-            Let AI finish this
+            {t('letAiFinish')}
           </>
         )}
       </Button>

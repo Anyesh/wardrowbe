@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCloneToLookbook } from '@/lib/hooks/use-studio';
 import { getErrorMessage } from '@/lib/api';
+import { useTranslations } from 'next-intl';
 
 interface CloneToLookbookDialogProps {
   open: boolean;
@@ -40,20 +41,21 @@ export function CloneToLookbookDialog({
 }: CloneToLookbookDialogProps) {
   const [name, setName] = useState(() => defaultCloneName(sourceOccasion));
   const clone = useCloneToLookbook(sourceOutfitId);
+  const t = useTranslations('dialogs.cloneToLookbook');
 
   const handleConfirm = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      toast.error('Please enter a name');
+      toast.error(t('errorEmpty'));
       return;
     }
     try {
       const result = await clone.mutateAsync({ name: trimmed });
-      toast.success('Saved to lookbook');
+      toast.success(t('saved'));
       onSuccess?.(result.id);
       onClose();
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to save to lookbook'));
+      toast.error(getErrorMessage(error, t('saveError')));
     }
   };
 
@@ -61,31 +63,31 @@ export function CloneToLookbookDialog({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Save to lookbook</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            Give this look a name so you can find it later and wear it again.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2 py-2">
-          <Label htmlFor="lookbook-name">Name</Label>
+          <Label htmlFor="lookbook-name">{t('name')}</Label>
           <Input
             id="lookbook-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={100}
-            placeholder="Friday brunch"
+            placeholder={t('namePlaceholder')}
             autoFocus
           />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={clone.isPending}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={clone.isPending || !name.trim()}
           >
-            {clone.isPending ? 'Saving...' : 'Save'}
+            {clone.isPending ? t('saving') : t('save')}
           </Button>
         </DialogFooter>
       </DialogContent>

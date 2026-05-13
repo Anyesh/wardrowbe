@@ -1,0 +1,1347 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "wardrobe": "Garde-robe",
+    "suggestOutfit": "Sugg\u00e9rer une tenue",
+    "outfits": "Tenues",
+    "pairings": "Associations",
+    "history": "Historique",
+    "familyFeed": "Flux familial",
+    "analytics": "Analytique",
+    "aiLearning": "Apprentissage IA",
+    "settingsLabel": "Param\u00e8tres",
+    "family": "Famille",
+    "notifications": "Notifications",
+    "home": "Accueil",
+    "suggest": "Sugg\u00e9rer",
+    "brandAlt": "Wardrowbe",
+    "brandName": "wardrowbe",
+    "openSidebar": "Ouvrir la barre lat\u00e9rale",
+    "closeSidebar": "Fermer la barre lat\u00e9rale",
+    "toggleTheme": "Changer le th\u00e8me",
+    "signOut": "D\u00e9connexion",
+    "userFallback": "Utilisateur"
+  },
+  "landing": {
+    "brandName": "wardrowbe",
+    "tagline": "Gestion de garde-robe et recommandations de tenues propuls\u00e9es par l'IA",
+    "getStarted": "Commencer"
+  },
+  "notFound": {
+    "title": "404",
+    "heading": "Page non trouv\u00e9e",
+    "description": "La page que vous recherchez n'existe pas ou a \u00e9t\u00e9 d\u00e9plac\u00e9e.",
+    "backToDashboard": "Retour au tableau de bord"
+  },
+  "errorPage": {
+    "title": "Un probl\u00e8me est survenu",
+    "description": "Une erreur inattendue s'est produite. Veuillez r\u00e9essayer ou contacter le support si le probl\u00e8me persiste.",
+    "goHome": "Retour \u00e0 l'accueil",
+    "tryAgain": "R\u00e9essayer"
+  },
+  "login": {
+    "title": "Connexion",
+    "subtitle": "Connectez-vous pour g\u00e9rer votre garde-robe",
+    "devMode": "Mode d\u00e9veloppement - Tous les identifiants sont accept\u00e9s",
+    "email": "E-mail",
+    "displayName": "Nom affich\u00e9",
+    "signingIn": "Connexion en cours...",
+    "termsAgreement": "En vous connectant, vous acceptez nos conditions d'utilisation et notre politique de confidentialit\u00e9.",
+    "errors": {
+      "OAuthSignin": "Erreur de connexion avec le fournisseur OAuth. Veuillez r\u00e9essayer.",
+      "OAuthCallback": "Erreur lors du rappel OAuth. Veuillez r\u00e9essayer.",
+      "OAuthCreateAccount": "Erreur lors de la cr\u00e9ation du compte. Veuillez r\u00e9essayer.",
+      "Callback": "Erreur lors du rappel d'authentification. Veuillez r\u00e9essayer.",
+      "CredentialsSignin": "E-mail ou mot de passe invalide. Veuillez r\u00e9essayer.",
+      "AccessDenied": "Acc\u00e8s refus\u00e9. Vous n'avez pas la permission de vous connecter.",
+      "default": "Une erreur s'est produite lors de la connexion. Veuillez r\u00e9essayer."
+    },
+    "backendError": {
+      "title": "Erreur de configuration du backend",
+      "description": "Impossible de se connecter au serveur backend. Veuillez v\u00e9rifier que le backend est en cours d'ex\u00e9cution."
+    }
+  },
+  "onboarding": {
+    "steps": {
+      "welcome": "Bienvenue",
+      "family": "Famille",
+      "location": "Localisation",
+      "style": "Style",
+      "firstItem": "Premier article"
+    },
+    "welcome": {
+      "greeting": "Bienvenue sur Wardrowbe{name}\u00a0!",
+      "description": "Configurez votre garde-robe num\u00e9rique en quelques \u00e9tapes.",
+      "feature1": "Photographiez vos v\u00eatements",
+      "feature2": "Obtenez des tenues personnalis\u00e9es",
+      "feature3": "Partagez avec votre famille",
+      "getStarted": "Commencer"
+    },
+    "family": {
+      "title": "Configuration de la famille",
+      "description": "Cr\u00e9ez ou rejoignez une famille pour partager l'exp\u00e9rience de la garde-robe",
+      "createFamily": "Cr\u00e9er une famille",
+      "createFamilyDesc": "Cr\u00e9er une nouvelle famille",
+      "joinFamily": "Rejoindre une famille",
+      "joinFamilyDesc": "Utiliser un code d'invitation",
+      "familyName": "Nom de la famille",
+      "familyNamePlaceholder": "ex., La famille Dupont",
+      "inviteCode": "Code d'invitation",
+      "inviteCodePlaceholder": "ex., ABC123XY",
+      "skipForNow": "Passer pour l'instant",
+      "success": "Famille cr\u00e9\u00e9e avec succ\u00e8s\u00a0!",
+      "joinSuccess": "Famille rejointe avec succ\u00e8s\u00a0!",
+      "error": "\u00c9chec de la configuration de la famille. Veuillez r\u00e9essayer."
+    },
+    "location": {
+      "title": "Votre localisation",
+      "description": "Nous l'utilisons pour vous fournir des suggestions de tenues adapt\u00e9es \u00e0 la m\u00e9t\u00e9o",
+      "detectLocation": "D\u00e9tecter ma localisation",
+      "orManual": "Ou saisir manuellement",
+      "cityLabel": "Ville / Nom du lieu",
+      "cityPlaceholder": "ex., Paris",
+      "continue": "Continuer",
+      "locationSuccess": "Localisation d\u00e9finie avec succ\u00e8s\u00a0!",
+      "locationError": "\u00c9chec de la d\u00e9tection de la localisation. Veuillez la saisir manuellement.",
+      "saveError": "\u00c9chec de l'enregistrement de la localisation. Veuillez r\u00e9essayer."
+    },
+    "style": {
+      "title": "Votre style",
+      "description": "Aidez-nous \u00e0 comprendre vos pr\u00e9f\u00e9rences de style",
+      "favoriteColors": "Couleurs pr\u00e9f\u00e9r\u00e9es",
+      "favoriteColorsDesc": "Appuyez sur les couleurs que vous aimez porter",
+      "colorsToAvoid": "Couleurs \u00e0 \u00e9viter",
+      "colorsToAvoidDesc": "Appuyez sur les couleurs que vous pr\u00e9f\u00e9rez ne pas porter",
+      "styleProfile": "Profil de style",
+      "styleProfileDesc": "Ajustez votre pr\u00e9f\u00e9rence pour chaque style",
+      "saveSuccess": "Pr\u00e9f\u00e9rences de style enregistr\u00e9es\u00a0!",
+      "saveError": "\u00c9chec de l'enregistrement des pr\u00e9f\u00e9rences de style."
+    },
+    "firstItem": {
+      "title": "Ajoutez votre premier article",
+      "description": "Prenez une photo ou t\u00e9l\u00e9chargez une image d'un v\u00eatement",
+      "uploadPrompt": "Cliquez pour t\u00e9l\u00e9charger ou prendre une photo",
+      "formatHint": "PNG, JPG ou HEIC",
+      "typeLabel": "Quel type de v\u00eatement est-ce\u00a0?",
+      "typePlaceholder": "S\u00e9lectionner le type...",
+      "addToWardrobe": "Ajouter \u00e0 la garde-robe",
+      "chooseDifferentPhoto": "Choisir une autre photo",
+      "uploadError": "\u00c9chec du t\u00e9l\u00e9chargement de l'article. Veuillez r\u00e9essayer.",
+      "analyzing": "L'IA analyse votre article..."
+    },
+    "complete": {
+      "title": "Vous \u00eates pr\u00eat\u00a0!",
+      "description": "Votre garde-robe est pr\u00eate. Commencez \u00e0 ajouter des v\u00eatements et obtenez des suggestions de tenues personnalis\u00e9es\u00a0!",
+      "goToDashboard": "Aller au tableau de bord",
+      "finishing": "Finalisation..."
+    },
+    "back": "Retour"
+  },
+  "invite": {
+    "title": "Invitation familiale",
+    "description": "Vous avez \u00e9t\u00e9 invit\u00e9 \u00e0 rejoindre une famille sur Wardrowbe",
+    "acceptButton": "Accepter l'invitation",
+    "joinedFamily": "Rejoint {name}\u00a0!",
+    "errors": {
+      "invalidLink": "Ce lien d'invitation est invalide ou a expir\u00e9.",
+      "wrongEmail": "Cette invitation a \u00e9t\u00e9 envoy\u00e9e \u00e0 une adresse e-mail diff\u00e9rente.",
+      "alreadyInFamily": "Vous \u00eates d\u00e9j\u00e0 dans une famille.",
+      "default": "Un probl\u00e8me est survenu. Veuillez r\u00e9essayer."
+    }
+  },
+  "dashboard": {
+    "layout": {
+      "loading": "Chargement de votre garde-robe..."
+    },
+    "welcomeBack": "Bon retour, {name}",
+    "subtitle": "Voici ce qui se passe avec votre garde-robe",
+    "weather": {
+      "title": "M\u00e9t\u00e9o du jour",
+      "locationNotSet": "Localisation non d\u00e9finie",
+      "setLocation": "D\u00e9finir la localisation",
+      "feelsLike": "ressenti {temp}",
+      "rainChance": "{percent}\u00a0% de chances de pluie",
+      "getOutfitSuggestion": "Obtenir une suggestion de tenue"
+    },
+    "pendingOutfits": {
+      "title": "Tenues en attente",
+      "allCaughtUp": "Tout est \u00e0 jour",
+      "noPending": "Aucune tenue en attente de votre r\u00e9ponse",
+      "accepted": "Tenue accept\u00e9e",
+      "acceptFailed": "\u00c9chec de l'acceptation de la tenue",
+      "rejected": "Tenue rejet\u00e9e",
+      "rejectFailed": "\u00c9chec du rejet de la tenue",
+      "viewAll": "Voir tout"
+    },
+    "nextScheduled": {
+      "title": "Prochain planifi\u00e9",
+      "noSchedules": "Aucun planning configur\u00e9",
+      "setUpSchedule": "Configurer un planning",
+      "today": "Aujourd'hui",
+      "tomorrow": "Demain",
+      "comingUp": "\u00c0 venir"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "noChannels": "Aucun canal configur\u00e9",
+      "addChannel": "Ajouter un canal",
+      "configure": "Configurer",
+      "activeCount": "{active} sur {total} actifs"
+    },
+    "weeklySummary": {
+      "title": "Cette semaine",
+      "outfits": "tenues",
+      "accepted": "accept\u00e9es",
+      "avgRating": "Note moyenne"
+    },
+    "insights": {
+      "title": "Analyses",
+      "empty": "Ajoutez plus d'articles et g\u00e9n\u00e9rez des tenues pour voir des analyses personnalis\u00e9es\u00a0!"
+    },
+    "quickActions": {
+      "title": "Actions rapides",
+      "description": "T\u00e2ches courantes pour vous aider \u00e0 d\u00e9marrer",
+      "addNewItem": "Ajouter un article",
+      "getOutfitSuggestion": "Obtenir une suggestion de tenue"
+    },
+    "familyFeed": {
+      "title": "Tenues familiales",
+      "description": "D\u00e9couvrez ce que porte votre famille et notez leurs tenues",
+      "browse": "Parcourir les tenues familiales",
+      "memberCount": "{count} membres dans {name}"
+    }
+  },
+  "wardrobe": {
+    "title": "Ma garde-robe",
+    "itemCount": "{count} articles dans votre garde-robe",
+    "search": "Rechercher des articles...",
+    "allTypes": "Tous les types",
+    "needsWash": "N\u00e9cessite un lavage",
+    "favorites": "Favoris",
+    "clearFilters": "Effacer les filtres",
+    "empty": {
+      "title": "Votre garde-robe est vide",
+      "description": "Ajoutez votre premier v\u00eatement pour commencer \u00e0 recevoir des suggestions de tenues personnalis\u00e9es.",
+      "addFirstItem": "Ajouter le premier article"
+    },
+    "ai": {
+      "analyzing": "Analyse IA en cours...",
+      "analysisFailed": "Analyse \u00e9chou\u00e9e",
+      "retry": "R\u00e9essayer",
+      "completeness": "Compl\u00e9tude IA\u00a0: {percent}\u00a0%",
+      "analyzingCount": "{count} en cours d'analyse",
+      "failedCount": "{count} \u00e9chou\u00e9(s)"
+    },
+    "wearCount": "Port\u00e9 {count} fois",
+    "errors": {
+      "loadFailed": "\u00c9chec du chargement des articles. Veuillez r\u00e9essayer.",
+      "noItemsFound": "Aucun article ne correspond \u00e0 vos filtres.",
+      "clearFilters": "Effacer les filtres"
+    },
+    "sort": {
+      "newestFirst": "Plus r\u00e9cents d'abord",
+      "oldestFirst": "Plus anciens d'abord",
+      "recentlyWorn": "R\u00e9cemment port\u00e9s",
+      "leastRecentlyWorn": "Moins r\u00e9cemment port\u00e9s",
+      "mostWorn": "Les plus port\u00e9s",
+      "leastWorn": "Les moins port\u00e9s",
+      "nameAZ": "Nom A\u2013Z",
+      "nameZA": "Nom Z\u2013A"
+    },
+    "bulkActions": {
+      "deleteSuccess": "{count} articles supprim\u00e9s",
+      "deleteError": "\u00c9chec de la suppression des articles"
+    },
+    "itemDeleted": "Article supprim\u00e9",
+    "itemDeleteFailed": "\u00c9chec de la suppression de l'article",
+    "itemUpdated": "Article mis \u00e0 jour",
+    "itemUpdateFailed": "\u00c9chec de la mise \u00e0 jour de l'article",
+    "reanalysisQueued": "Mis en file pour r\u00e9analyse",
+    "reanalysisFailed": "\u00c9chec de la mise en file pour r\u00e9analyse"
+  },
+  "suggest": {
+    "greeting": {
+      "morning": "Bonjour",
+      "afternoon": "Bon apr\u00e8s-midi",
+      "evening": "Bonsoir"
+    },
+    "subtitle": "Trouvons la tenue parfaite pour votre journ\u00e9e",
+    "weatherHints": {
+      "rainy": "Prenez un parapluie ou un imperm\u00e9able",
+      "cold": "Couvrez-vous - il fait plut\u00f4t froid",
+      "mild": "Une veste l\u00e9g\u00e8re serait parfaite",
+      "hot": "Restez l\u00e9ger et respirant",
+      "windy": "Envisagez quelque chose de coupe-vent",
+      "nice": "Belle m\u00e9t\u00e9o pour tous les styles"
+    },
+    "location": {
+      "notSet": "Localisation non d\u00e9finie",
+      "setDescription": "D\u00e9finissez votre localisation dans les param\u00e8tres pour des suggestions adapt\u00e9es \u00e0 la m\u00e9t\u00e9o"
+    },
+    "weatherOverride": {
+      "active": "Remplacement m\u00e9t\u00e9o actif",
+      "overrideWeather": "Remplacer la m\u00e9t\u00e9o",
+      "condition": "Conditions",
+      "reset": "R\u00e9initialiser",
+      "temperature": "Temp\u00e9rature",
+      "sunny": "Ensoleill\u00e9",
+      "cloudy": "Nuageux",
+      "rainy": "Pluvieux"
+    },
+    "occasionPrompt": "Quelle est l'occasion\u00a0?",
+    "yourOutfit": "Votre tenue",
+    "tryAnother": "Essayer une autre",
+    "loveIt": "J'adore",
+    "startOver": "Recommencer",
+    "getSuggestion": "Obtenir une suggestion",
+    "generating": "Cr\u00e9ation de votre look...",
+    "error": "\u00c9chec de la g\u00e9n\u00e9ration de la suggestion de tenue. Veuillez r\u00e9essayer.",
+    "tip": "Conseil\u00a0:"
+  },
+  "outfits": {
+    "title": "Tenues",
+    "subtitle": "Vos looks, tenues port\u00e9es et suggestions IA",
+    "viewList": "Liste",
+    "viewCalendar": "Calendrier",
+    "newOutfit": "Nouvelle tenue",
+    "filters": {
+      "all": "Toutes",
+      "myLooks": "Mes looks",
+      "worn": "Port\u00e9es",
+      "pairings": "Associations",
+      "replacements": "Remplacements",
+      "ai": "IA"
+    },
+    "empty": {
+      "all": "Pas encore de tenues. Cr\u00e9ez votre premier look\u00a0!",
+      "myLooks": "Pas encore de mod\u00e8les dans le lookbook.",
+      "worn": "Pas encore de tenues port\u00e9es.",
+      "pairings": "Pas encore d'associations.",
+      "replacements": "Pas encore de tenues de remplacement.",
+      "ai": "Pas encore de suggestions IA."
+    },
+    "search": "Rechercher dans le lookbook...",
+    "totalCount": "{count} au total",
+    "loadMore": "Charger plus",
+    "loadError": "\u00c9chec du chargement des tenues",
+    "calendar": {
+      "noOutfitsOnDay": "Aucune tenue ce jour-l\u00e0",
+      "outfitCount": "{count} tenue(s)",
+      "monthlyCount": "{count} tenue(s) ce mois-ci",
+      "legendScheduled": "Planifi\u00e9",
+      "legendOnDemand": "\u00c0 la demande"
+    },
+    "detail": {
+      "backToOutfits": "Retour aux tenues",
+      "lookbookTemplate": "Mod\u00e8le de lookbook",
+      "items": "Articles ({count})",
+      "wearToday": "Porter aujourd'hui",
+      "saveToLookbook": "Sauvegarder dans le lookbook",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "deleteConfirm": "Supprimer cette tenue\u00a0? Cette action est irr\u00e9versible.",
+      "deleted": "Tenue supprim\u00e9e",
+      "addedToToday": "Ajout\u00e9e \u00e0 aujourd'hui",
+      "notWornYet": "Ce look n'a pas encore \u00e9t\u00e9 port\u00e9. Cliquez sur \u00ab\u00a0Porter aujourd'hui\u00a0\u00bb pour l'enregistrer.",
+      "wornCount": "Port\u00e9 {count} fois",
+      "undated": "Non dat\u00e9",
+      "seeAll": "Voir tout"
+    },
+    "new": {
+      "cancel": "Annuler",
+      "editOutfit": "Modifier la tenue",
+      "studio": "Studio",
+      "wearToday": "Porter aujourd'hui",
+      "saveChanges": "Enregistrer les modifications",
+      "saveToLookbook": "Sauvegarder dans le lookbook",
+      "validation": {
+        "needItemAndOccasion": "Choisissez au moins un article et une occasion",
+        "needItem": "Choisissez au moins un article",
+        "needOccasion": "Choisissez une occasion"
+      },
+      "draft": {
+        "found": "Vous avez un brouillon non enregistr\u00e9 de votre derni\u00e8re session. Le reprendre\u00a0?",
+        "startFresh": "Recommencer",
+        "resume": "Reprendre"
+      },
+      "errors": {
+        "notFound": "Tenue introuvable",
+        "notFoundDesc": "Cette tenue n'existe plus. Elle a peut-\u00eatre \u00e9t\u00e9 supprim\u00e9e depuis un autre onglet ou appareil.",
+        "cannotEdit": "Vous ne pouvez pas modifier cette tenue",
+        "couldNotLoad": "Impossible de charger cette tenue",
+        "couldNotLoadDesc": "Votre session a peut-\u00eatre expir\u00e9 ou cette tenue appartient \u00e0 un autre compte.",
+        "genericError": "Un probl\u00e8me est survenu lors du chargement de cette tenue. V\u00e9rifiez votre connexion et r\u00e9essayez.",
+        "tryAgain": "R\u00e9essayer",
+        "backToOutfits": "Retour aux tenues"
+      },
+      "worn": {
+        "title": "Cette tenue a \u00e9t\u00e9 port\u00e9e",
+        "description": "Les tenues port\u00e9es ne peuvent pas \u00eatre modifi\u00e9es car elles font partie de votre historique.",
+        "saveAsNew": "Enregistrer comme nouvelle",
+        "backToOutfit": "Retour \u00e0 la tenue"
+      },
+      "tabs": {
+        "canvas": "Canevas",
+        "details": "D\u00e9tails",
+        "yourWardrobe": "Votre garde-robe",
+        "emptyWardrobe": "Aucun article dans votre garde-robe. Ajoutez d'abord des articles."
+      },
+      "discardChanges": "Annuler les modifications",
+      "nameRequired": "Donnez un nom \u00e0 votre entr\u00e9e de lookbook avant de sauvegarder",
+      "outfitUpdated": "Tenue mise \u00e0 jour",
+      "savedAndMarkedWorn": "Enregistr\u00e9e et marqu\u00e9e comme port\u00e9e"
+    },
+    "cards": {
+      "replacement": "Remplacement",
+      "worn": "Port\u00e9e",
+      "studio": "Studio",
+      "pairing": "Association",
+      "ai": "IA",
+      "lookbookTemplate": "Mod\u00e8le de lookbook",
+      "outfitFallback": "Tenue {occasion}"
+    }
+  },
+  "pairings": {
+    "title": "Associations",
+    "subtitle": "Combinations de tenues g\u00e9n\u00e9r\u00e9es par l'IA autour de vos articles",
+    "empty": {
+      "title": "Pas encore d'associations",
+      "description": "S\u00e9lectionnez un article de votre garde-robe et utilisez \u00ab\u00a0Trouver des associations\u00a0\u00bb pour d\u00e9couvrir des combinations qui fonctionnent bien ensemble.",
+      "goToWardrobe": "Aller \u00e0 la garde-robe"
+    },
+    "allItemTypes": "Tous les types d'articles",
+    "pairingCount": "{count} association(s)",
+    "loadMore": "Charger plus",
+    "loadError": "\u00c9chec du chargement des associations. Veuillez r\u00e9essayer."
+  },
+  "history": {
+    "title": "Historique",
+    "subtitle": "Consultez vos recommandations de tenues pass\u00e9es",
+    "empty": {
+      "title": "Aucun historique de recommandation",
+      "description": "Votre historique de recommandations de tenues appara\u00eetra ici une fois que vous commencerez \u00e0 recevoir des suggestions.",
+      "getFirstSuggestion": "Obtenir votre premi\u00e8re suggestion"
+    },
+    "noOutfitsForDate": "Aucune tenue pour le {date}",
+    "filters": {
+      "allOccasions": "Toutes les occasions",
+      "casual": "D\u00e9contract\u00e9",
+      "office": "Bureau",
+      "formal": "Formel",
+      "date": "Rendez-vous",
+      "workout": "Sport",
+      "allStatus": "Tous les statuts",
+      "accepted": "Accept\u00e9es",
+      "rejected": "Rejet\u00e9es",
+      "pending": "En attente",
+      "viewed": "Vues"
+    },
+    "outfitCount": "{count} tenue(s)",
+    "loadError": "\u00c9chec du chargement de l'historique. Veuillez r\u00e9essayer.",
+    "sourceBadges": {
+      "scheduled": "Planifi\u00e9",
+      "onDemand": "\u00c0 la demande",
+      "manual": "Manuel",
+      "pairing": "Association"
+    }
+  },
+  "family": {
+    "title": "Famille",
+    "description": "Cr\u00e9ez ou rejoignez une famille pour partager votre exp\u00e9rience de garde-robe",
+    "createFamily": "Cr\u00e9er une famille",
+    "createFamilyDesc": "Cr\u00e9er une nouvelle famille",
+    "joinFamily": "Rejoindre une famille",
+    "joinFamilyDesc": "Rejoindre une famille existante avec un code d'invitation",
+    "cardCreateDesc": "Cr\u00e9er une nouvelle famille et inviter des membres",
+    "cardJoinDesc": "Utiliser un code d'invitation",
+    "familyName": "Nom de la famille",
+    "inviteCode": "Code d'invitation",
+    "create": "Cr\u00e9er",
+    "join": "Rejoindre",
+    "cancel": "Annuler",
+    "invalidInviteCode": "Code d'invitation invalide. Veuillez v\u00e9rifier et r\u00e9essayer.",
+    "leaveFamily": "Quitter la famille",
+    "leaveConfirm": {
+      "title": "Quitter la famille\u00a0?",
+      "description": "\u00cates-vous s\u00fbr de vouloir quitter {name}\u00a0? Vous pourrez rejoindre \u00e0 nouveau plus tard avec un code d'invitation."
+    },
+    "leftSuccess": "Famille quitt\u00e9e avec succ\u00e8s",
+    "editName": "Modifier le nom",
+    "save": "Enregistrer",
+    "inviteCodeSection": {
+      "title": "Code d'invitation",
+      "description": "Partagez ce code avec les membres de la famille pour les laisser rejoindre"
+    },
+    "sendInvite": "Envoyer une invitation",
+    "sendInviteDesc": "Inviter quelqu'un par e-mail",
+    "roles": {
+      "member": "Membre",
+      "admin": "Administrateur"
+    },
+    "members": {
+      "title": "Membres",
+      "description": "Les personnes de votre famille",
+      "you": "Vous",
+      "admin": "Administrateur",
+      "removeConfirm": {
+        "title": "Supprimer le membre\u00a0?",
+        "description": "\u00cates-vous s\u00fbr de vouloir supprimer {name} de la famille\u00a0?"
+      },
+      "removed": "Membre supprim\u00e9",
+      "removeError": "\u00c9chec de la suppression du membre"
+    },
+    "pendingInvites": {
+      "title": "Invitations en attente",
+      "description": "Invitations qui n'ont pas encore \u00e9t\u00e9 accept\u00e9es",
+      "expires": "Expire le {date}"
+    },
+    "familyOutfits": {
+      "title": "Tenues familiales",
+      "description": "Parcourez et notez les tenues des membres de votre famille",
+      "openFeed": "Ouvrir le flux familial"
+    },
+    "nameUpdated": "Nom de la famille mis \u00e0 jour",
+    "nameUpdateError": "\u00c9chec de la mise \u00e0 jour du nom de la famille",
+    "familyCreated": "Famille cr\u00e9\u00e9e\u00a0!",
+    "inviteSent": "Invitation envoy\u00e9e\u00a0!",
+    "inviteError": "\u00c9chec de l'envoi de l'invitation",
+    "joinedFamily": "Rejoint {name}\u00a0!",
+    "joinError": "\u00c9chec de l'adh\u00e9sion \u00e0 la famille",
+    "removed": "Membre supprim\u00e9",
+    "removeMemberFailed": "\u00c9chec de la suppression du membre",
+    "confirmLeave": "\u00cates-vous s\u00fbr de vouloir quitter la famille\u00a0?",
+    "inviteCodeCopied": "Code d'invitation copi\u00e9\u00a0!"
+  },
+  "familyFeed": {
+    "title": "Flux familial",
+    "subtitle": "Parcourez et notez les tenues des membres de votre famille",
+    "sourceBadges": {
+      "scheduled": "Planifi\u00e9",
+      "onDemand": "\u00c0 la demande",
+      "manual": "Manuel",
+      "pairing": "Association"
+    },
+    "lookbook": "Lookbook",
+    "noMembers": {
+      "title": "Pas encore d'autres membres",
+      "description": "Invitez des membres de la famille pour commencer \u00e0 parcourir et noter les tenues de chacun.",
+      "inviteMembers": "Inviter des membres",
+      "manageFamily": "G\u00e9rer la famille"
+    },
+    "noOutfits": {
+      "title": "Pas encore de tenues",
+      "description": "{member} n'a pas encore re\u00e7u de recommandations de tenues. Revenez plus tard\u00a0!"
+    },
+    "rateOutfit": "Noter la tenue de {member}",
+    "edit": "Modifier",
+    "ratingCount": "{count} note(s)",
+    "toasts": {
+      "ratingUpdated": "Note mise \u00e0 jour\u00a0!",
+      "ratingSubmitted": "Note soumise\u00a0!",
+      "ratingFailed": "\u00c9chec de la soumission de la note",
+      "ratingRemoved": "Note supprim\u00e9e",
+      "removeFailed": "\u00c9chec de la suppression de la note"
+    },
+    "familyRatings": {
+      "noRatings": "Pas encore de notes familiales. Soyez le premier \u00e0 noter\u00a0!",
+      "noRatingsShort": "Pas encore de notes familiales."
+    },
+    "yourRating": "Votre note\u00a0:",
+    "noFamily": {
+      "title": "Rejoignez d'abord une famille",
+      "description": "Cr\u00e9ez ou rejoignez une famille pour parcourir et noter les tenues de chacun.",
+      "setUpFamily": "Configurer la famille"
+    }
+  },
+  "analytics": {
+    "title": "Analytique",
+    "subtitle": "Analyses et statistiques de votre garde-robe",
+    "stats": {
+      "totalItems": {
+        "title": "Total des articles",
+        "description": "{count} pr\u00eats \u00e0 porter"
+      },
+      "outfitsGenerated": {
+        "title": "Tenues g\u00e9n\u00e9r\u00e9es",
+        "description": "{count} cette semaine"
+      },
+      "acceptanceRate": {
+        "title": "Taux d'acceptation",
+        "description": "des suggestions accept\u00e9es"
+      },
+      "totalWears": {
+        "title": "Total des ports",
+        "noData": "Pas encore de donn\u00e9es",
+        "description": "Suivez vos tenues"
+      },
+      "avgRating": "Note moyenne\u00a0: {rating}/5"
+    },
+    "insights": {
+      "title": "Analyses",
+      "colorDistribution": {
+        "title": "Distribution des couleurs",
+        "description": "Couleurs les plus courantes dans votre garde-robe",
+        "noData": "Pas encore de donn\u00e9es de couleurs"
+      },
+      "itemTypes": {
+        "title": "Types d'articles",
+        "description": "R\u00e9partition par type de v\u00eatement",
+        "noData": "Pas encore d'articles"
+      },
+      "mostWorn": {
+        "title": "Les plus port\u00e9s",
+        "description": "Vos favoris",
+        "noData": "Commencez \u00e0 suivre vos tenues\u00a0!"
+      },
+      "leastWorn": {
+        "title": "Les moins port\u00e9s",
+        "description": "Envisagez de porter ceux-ci",
+        "noData": "Continuez le suivi\u00a0!"
+      },
+      "neverWorn": {
+        "title": "Jamais port\u00e9s",
+        "description": "Il est temps d'essayer ceux-ci\u00a0?",
+        "noData": "Tous les articles ont \u00e9t\u00e9 port\u00e9s\u00a0!"
+      },
+      "acceptanceTrend": {
+        "title": "Tendance du taux d'acceptation",
+        "description": "Comment vous avez r\u00e9agi aux suggestions au fil du temps"
+      }
+    },
+    "loadError": "\u00c9chec du chargement des analyses. Veuillez r\u00e9essayer."
+  },
+  "learning": {
+    "title": "Apprentissage IA",
+    "subtitle": "Comment l'IA apprend de vos retours",
+    "subtitleEmpty": "Commencez \u00e0 noter les tenues pour aider l'IA \u00e0 apprendre vos pr\u00e9f\u00e9rences",
+    "recompute": "Recalculer",
+    "stats": {
+      "feedbackGiven": "Retours donn\u00e9s",
+      "acceptanceRate": "Taux d'acceptation",
+      "averageRating": "Note moyenne",
+      "styleRating": "Note de style"
+    },
+    "styleInsights": {
+      "title": "Analyses de style",
+      "description": "Ce que nous avons appris sur vos pr\u00e9f\u00e9rences",
+      "noData": "Nouvelles analyses"
+    },
+    "colorPreferences": {
+      "title": "Pr\u00e9f\u00e9rences de couleurs apprises",
+      "description": "Couleurs que vous tendez \u00e0 accepter ou rejeter",
+      "noData": "Pas assez de retours pour d\u00e9terminer les pr\u00e9f\u00e9rences de couleurs."
+    },
+    "stylePreferences": {
+      "title": "Pr\u00e9f\u00e9rences de style apprises",
+      "description": "Styles qui correspondent \u00e0 vos go\u00fbts",
+      "noData": "Pas assez de retours pour d\u00e9terminer les pr\u00e9f\u00e9rences de style."
+    },
+    "bestCombinations": {
+      "title": "Vos meilleures combinaisons",
+      "description": "Paires d'articles que vous aimez constamment ensemble"
+    },
+    "occasionPatterns": {
+      "title": "Habitudes par occasion",
+      "description": "Ce qui fonctionne pour diff\u00e9rentes occasions"
+    },
+    "preferredColors": "Couleurs pr\u00e9f\u00e9r\u00e9es\u00a0:",
+    "weatherPreferences": {
+      "title": "Pr\u00e9f\u00e9rences m\u00e9t\u00e9o",
+      "description": "Comment vous vous habillez selon les conditions",
+      "layers": "~{count} couches",
+      "success": "{percent}\u00a0% de succ\u00e8s"
+    },
+    "suggestedUpdates": {
+      "title": "Mises \u00e0 jour de pr\u00e9f\u00e9rences sugg\u00e9r\u00e9es",
+      "description": "Bas\u00e9 sur vos retours, nous vous sugg\u00e9rons de mettre \u00e0 jour vos pr\u00e9f\u00e9rences",
+      "addToFavorites": "Ajouter aux couleurs pr\u00e9f\u00e9r\u00e9es\u00a0:",
+      "addToAvoid": "Ajouter aux couleurs \u00e0 \u00e9viter\u00a0:",
+      "updatePreferences": "Mettre \u00e0 jour les pr\u00e9f\u00e9rences"
+    },
+    "noData": {
+      "title": "Pas encore de donn\u00e9es d'apprentissage",
+      "description": "Commencez par accepter ou rejeter des suggestions de tenues et les noter.",
+      "getOutfitSuggestions": "Obtenir des suggestions de tenues",
+      "computeNow": "Calculer maintenant",
+      "computing": "Calcul en cours...",
+      "alreadyGaveFeedback": "D\u00e9j\u00e0 donn\u00e9 des retours\u00a0? Cliquez sur \u00ab\u00a0Calculer maintenant\u00a0\u00bb pour les traiter."
+    },
+    "lastUpdated": "Profil d'apprentissage derni\u00e8re mise \u00e0 jour\u00a0:",
+    "paired": "x associ\u00e9",
+    "confident": "% de confiance",
+    "dismiss": "Ignorer",
+    "loadError": "\u00c9chec du chargement des donn\u00e9es d'apprentissage. Veuillez r\u00e9essayer.",
+    "stats": {
+      "feedbackGiven": "Retours donn\u00e9s",
+      "acceptanceRate": "Taux d'acceptation",
+      "averageRating": "Note moyenne",
+      "styleRating": "Note de style",
+      "outfitsRated": "{count} tenues not\u00e9es",
+      "suggestionsAccepted": "de suggestions accept\u00e9es",
+      "notEnoughData": "Pas assez de donn\u00e9es",
+      "outOf5Stars": "sur 5 \u00e9toiles",
+      "rateMoreOutfits": "Noter plus de tenues",
+      "styleSatisfaction": "satisfaction de style",
+      "rateOutfitStyles": "Noter les styles de tenues"
+    },
+    "styleInsights": {
+      "title": "Analyses de style",
+      "description": "Ce que nous avons appris sur vos pr\u00e9f\u00e9rences",
+      "noData": "Nouvelles analyses"
+    },
+    "colorPreferences": {
+      "title": "Pr\u00e9f\u00e9rences de couleurs apprises",
+      "description": "Couleurs que vous tendez \u00e0 accepter ou rejeter",
+      "noData": "Pas assez de retours pour d\u00e9terminer les pr\u00e9f\u00e9rences de couleurs."
+    },
+    "stylePreferences": {
+      "title": "Pr\u00e9f\u00e9rences de style apprises",
+      "description": "Styles qui correspondent \u00e0 vos go\u00fbts",
+      "noData": "Pas assez de retours pour d\u00e9terminer les pr\u00e9f\u00e9rences de style."
+    },
+    "bestCombinations": {
+      "title": "Vos meilleures combinaisons",
+      "description": "Paires d'articles que vous aimez constamment ensemble"
+    },
+    "occasionPatterns": {
+      "title": "Habitudes par occasion",
+      "description": "Ce qui fonctionne pour diff\u00e9rentes occasions"
+    },
+    "preferredColors": "Couleurs pr\u00e9f\u00e9r\u00e9es\u00a0:",
+    "weatherPreferences": {
+      "title": "Pr\u00e9f\u00e9rences m\u00e9t\u00e9o",
+      "description": "Comment vous vous habillez selon les conditions",
+      "layers": "~{count} couches",
+      "success": "{percent}\u00a0% de succ\u00e8s"
+    },
+    "suggestedUpdates": {
+      "title": "Mises \u00e0 jour de pr\u00e9f\u00e9rences sugg\u00e9r\u00e9es",
+      "description": "D'apr\u00e8s vos retours, nous sugg\u00e9rons de mettre \u00e0 jour vos pr\u00e9f\u00e9rences",
+      "addToFavorites": "Ajouter aux couleurs pr\u00e9f\u00e9r\u00e9es\u00a0:",
+      "addToAvoid": "Ajouter aux couleurs \u00e0 \u00e9viter\u00a0:",
+      "updatePreferences": "Mettre \u00e0 jour les pr\u00e9f\u00e9rences"
+    },
+    "noData": {
+      "title": "Pas encore de donn\u00e9es d'apprentissage",
+      "description": "Commencez par accepter ou rejeter des suggestions de tenues et en les notant.",
+      "getOutfitSuggestions": "Obtenir des suggestions de tenues",
+      "computeNow": "Calculer maintenant",
+      "computing": "Calcul en cours...",
+      "alreadyGaveFeedback": "Vous avez d\u00e9j\u00e0 donn\u00e9 des retours\u00a0? Cliquez sur \u00ab\u00a0Calculer maintenant\u00a0\u00bb pour les traiter."
+    },
+    "lastUpdated": "Profil d'apprentissage derni\u00e8re mise \u00e0 jour\u00a0:",
+    "paired": "x associ\u00e9",
+    "confident": "% de confiance",
+    "dismiss": "Ignorer",
+    "loadError": "\u00c9chec du chargement des donn\u00e9es d'apprentissage. Veuillez r\u00e9essayer."
+  },
+  "settings": {
+    "title": "Param\u00e8tres",
+    "subtitle": "G\u00e9rez vos pr\u00e9f\u00e9rences et param\u00e8tres de compte",
+    "reset": "R\u00e9initialiser",
+    "save": "Enregistrer",
+    "unsavedChanges": "Vous avez des modifications non enregistr\u00e9es. Quitter cette page\u00a0?",
+    "account": {
+      "title": "Compte",
+      "description": "Vos informations de profil",
+      "name": "Nom",
+      "email": "E-mail"
+    },
+    "location": {
+      "title": "Localisation",
+      "description": "D\u00e9finissez votre localisation pour des recommandations de tenues bas\u00e9es sur la m\u00e9t\u00e9o",
+      "cityLabel": "Ville / Nom du lieu (facultatif)",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "timezone": "Fuseau horaire",
+      "useMyLocation": "Utiliser ma localisation",
+      "saveLocation": "Enregistrer la localisation",
+      "detected": "Localisation d\u00e9tect\u00e9e. V\u00e9rifiez-la puis enregistrez.",
+      "saved": "Localisation et fuseau horaire enregistr\u00e9s",
+      "selectTimezone": "S\u00e9lectionner le fuseau horaire",
+      "required": "La localisation est requise pour les recommandations de tenues bas\u00e9es sur la m\u00e9t\u00e9o.",
+      "errors": {
+        "detectFailed": "\u00c9chec de la d\u00e9tection de la localisation. Veuillez la saisir manuellement.",
+        "saveFailed": "\u00c9chec de l'enregistrement de la localisation. Veuillez r\u00e9essayer.",
+        "fetchFailed": "\u00c9chec de la r\u00e9cup\u00e9ration des coordonn\u00e9es pour cette localisation. Essayez un nom de ville plus pr\u00e9cis.",
+        "geolocationDenied": "L'acc\u00e8s \u00e0 la localisation a \u00e9t\u00e9 refus\u00e9.",
+        "geolocationUnavailable": "La localisation est actuellement indisponible.",
+        "geolocationTimeout": "La demande de localisation a expir\u00e9.",
+        "geolocationFailed": "\u00c9chec de l'obtention de la localisation exacte\u00a0: {message}",
+        "geolocationFailedGeneric": "\u00c9chec de l'obtention de la localisation exacte."
+      }
+    },
+    "body": {
+      "title": "Mensurations",
+      "description": "Aidez l'IA \u00e0 recommander des tenues mieux ajust\u00e9es",
+      "unitSystem": "Syst\u00e8me d'unit\u00e9s",
+      "metric": "M\u00e9trique (cm/kg)",
+      "imperial": "Imp\u00e9rial (in/lbs)",
+      "bodyLabel": "Corps",
+      "sizesLabel": "Tailles",
+      "fields": {
+        "height": "Taille",
+        "weight": "Poids",
+        "chest": "Tour de poitrine",
+        "waist": "Tour de taille",
+        "hips": "Tour de hanches",
+        "inseam": "Entrejambe"
+      },
+      "sizeFields": {
+        "shirtSize": "Taille de chemise",
+        "pantsSize": "Taille de pantalon",
+        "dressSize": "Taille de robe",
+        "shoeSize": "Pointure"
+      },
+      "saveMeasurements": "Enregistrer les mensurations",
+      "saving": "Enregistrement...",
+      "sizePlaceholders": {
+        "shirt_size": "ex. M, L, XL",
+        "pants_size": "ex. 32, 34",
+        "dress_size": "ex. 8, 10",
+        "shoe_size": "ex. 10, 42"
+      }
+    },
+    "colors": {
+      "favoriteColors": "Couleurs pr\u00e9f\u00e9r\u00e9es",
+      "colorsToAvoid": "Couleurs \u00e0 \u00e9viter",
+      "description": "S\u00e9lectionnez les couleurs que vous aimez et celles \u00e0 \u00e9viter dans les recommandations"
+    },
+    "styleProfile": {
+      "title": "Profil de style",
+      "description": "Ajustez votre pr\u00e9f\u00e9rence pour chaque style dans les recommandations de tenues",
+      "styles": {
+        "casual": "D\u00e9contract\u00e9",
+        "formal": "Formel",
+        "sporty": "Sportif",
+        "minimalist": "Minimaliste",
+        "bold": "Audacieux"
+      }
+    },
+    "temperature": {
+      "title": "Temp\u00e9rature et confort",
+      "description": "Ajustez la fa\u00e7on dont les recommandations s'adaptent \u00e0 la m\u00e9t\u00e9o",
+      "unit": "Unit\u00e9 de temp\u00e9rature",
+      "celsius": "Celsius",
+      "fahrenheit": "Fahrenheit",
+      "sensitivity": "Sensibilit\u00e9 \u00e0 la temp\u00e9rature",
+      "sensitivityOptions": {
+        "low": "J'ai facilement chaud",
+        "normal": "Normal",
+        "high": "J'ai facilement froid"
+      },
+      "layering": "Pr\u00e9f\u00e9rence de superposition",
+      "layeringOptions": {
+        "minimal": "Superposition minimale",
+        "moderate": "Superposition mod\u00e9r\u00e9e",
+        "heavy": "Superposition importante"
+      },
+      "coldThreshold": "Seuil de froid",
+      "hotThreshold": "Seuil de chaleur"
+    },
+    "recommendations": {
+      "title": "Param\u00e8tres de recommandation",
+      "description": "Personnalisez la fa\u00e7on dont les recommandations de tenues sont g\u00e9n\u00e9r\u00e9es",
+      "defaultOccasion": "Occasion par d\u00e9faut",
+      "varietyLevel": "Niveau de vari\u00e9t\u00e9",
+      "varietyOptions": {
+        "low": "Faible (rester sur les favoris)",
+        "moderate": "Mod\u00e9r\u00e9",
+        "high": "\u00c9lev\u00e9 (essayer de nouvelles combinaisons)"
+      },
+      "avoidRepeatDays": "\u00c9viter les r\u00e9p\u00e9titions d'articles dans (jours)",
+      "preferUnderused": "Pr\u00e9f\u00e9rer les articles sous-utilis\u00e9s",
+      "yes": "Oui",
+      "no": "Non"
+    },
+    "aiEndpoints": {
+      "title": "Points de terminaison IA",
+      "description": "Configurez les points de terminaison IA pour l'analyse d'images. Les points de terminaison sont essay\u00e9s dans l'ordre, de haut en bas.",
+      "noEndpoints": "Aucun point de terminaison personnalis\u00e9 configur\u00e9. Utilisation des param\u00e8tres serveur par d\u00e9faut.",
+      "fields": {
+        "name": "Nom",
+        "url": "URL",
+        "visionModel": "Mod\u00e8le de vision",
+        "textModel": "Mod\u00e8le de texte"
+      },
+      "active": "Actif",
+      "disabled": "D\u00e9sactiv\u00e9",
+      "connected": "Connect\u00e9",
+      "error": "Erreur",
+      "testConnection": "Tester la connexion",
+      "modelsAvailable": "mod\u00e8les disponibles",
+      "vision": "Vision\u00a0:",
+      "text": "Texte\u00a0:",
+      "addEndpoint": "Ajouter un point de terminaison",
+      "testFailed": "\u00c9chec du test du point de terminaison"
+    },
+    "preferencesSaved": "Pr\u00e9f\u00e9rences enregistr\u00e9es",
+    "preferencesSaveError": "\u00c9chec de l'enregistrement des pr\u00e9f\u00e9rences",
+    "preferencesReset": "Pr\u00e9f\u00e9rences r\u00e9initialis\u00e9es",
+    "preferencesResetError": "\u00c9chec de la r\u00e9initialisation des pr\u00e9f\u00e9rences",
+    "confirmReset": "\u00cates-vous s\u00fbr de vouloir r\u00e9initialiser toutes les pr\u00e9f\u00e9rences aux valeurs par d\u00e9faut\u00a0?"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Configurez comment et quand vous recevez les recommandations de tenues",
+    "days": {
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi",
+      "sunday": "Dimanche"
+    },
+    "channels": {
+      "title": "Canaux de notification",
+      "description": "Ajoutez des canaux pour recevoir vos recommandations de tenues quotidiennes",
+      "noChannels": "Aucun canal de notification configur\u00e9",
+      "noChannelsDesc": "Ajoutez un canal pour commencer \u00e0 recevoir des suggestions de tenues",
+      "addChannel": "Ajouter un canal",
+      "dialog": {
+        "title": "Canal de notification",
+        "description": "Configurez un nouveau moyen de recevoir des recommandations de tenues."
+      },
+      "types": {
+        "ntfy": "Notifications push ntfy",
+        "mattermost": "Mattermost",
+        "email": "E-mail"
+      },
+      "fields": {
+        "serverUrl": "URL du serveur",
+        "topic": "Sujet *",
+        "accessToken": "Jeton d'acc\u00e8s",
+        "webhookUrl": "URL du webhook *",
+        "emailAddress": "Adresse e-mail *"
+      },
+      "helpers": {
+        "topicSubscribe": "Abonnez-vous \u00e0 ce sujet dans votre application ntfy",
+        "accessTokenOptional": "Requis si votre serveur ntfy utilise l'authentification",
+        "mattermostWebhook": "Cr\u00e9ez un webhook entrant dans les param\u00e8tres Mattermost"
+      },
+      "adding": "Ajout en cours...",
+      "test": "Tester",
+      "priority": "Priorit\u00e9 {level}",
+      "deleteConfirm": {
+        "title": "Supprimer le canal de notification\u00a0?",
+        "description": "Cela supprimera ce canal de notification et arr\u00eatera toutes les notifications envoy\u00e9es via celui-ci."
+      },
+      "deleting": "Suppression...",
+      "deleted": "Canal supprim\u00e9",
+      "deleteError": "\u00c9chec de la suppression du canal",
+      "toggle": {
+        "enabled": "Canal activ\u00e9",
+        "disabled": "Canal d\u00e9sactiv\u00e9"
+      }
+    },
+    "schedule": {
+      "title": "Programme de livraison",
+      "description": "D\u00e9finissez \u00e0 quelle heure vous souhaitez recevoir les recommandations de tenues chaque jour",
+      "addSchedule": "Ajouter un programme",
+      "notifyDayBefore": "Notifier la veille",
+      "notifyDayBeforeDesc": "Recevez une notification la veille au soir avec les pr\u00e9visions du lendemain",
+      "preview": "Vous recevrez une suggestion de tenue \u00e0 {time} le {day} pour {occasion}",
+      "noSchedules": "Aucun programme configur\u00e9",
+      "noSchedulesDesc": "Ajoutez un programme pour recevoir des suggestions de tenues quotidiennes",
+      "deleteConfirm": {
+        "title": "Supprimer le programme\u00a0?",
+        "description": "Cela supprimera ce programme de livraison."
+      },
+      "deleted": "Programme supprim\u00e9",
+      "deleteError": "\u00c9chec de la suppression du programme"
+    },
+    "channelAdded": "Canal ajout\u00e9",
+    "channelAddFailed": "\u00c9chec de l'ajout du canal",
+    "channelTestSent": "Notification de test envoy\u00e9e",
+    "channelTestFailed": "\u00c9chec de l'envoi de la notification de test",
+    "scheduleAdded": "Programme ajout\u00e9",
+    "scheduleAddFailed": "\u00c9chec de l'ajout du programme"
+  },
+  "dialogs": {
+    "addItem": {
+      "title": "Ajouter des articles",
+      "subtitle": "T\u00e9l\u00e9chargez des photos de vos v\u00eatements",
+      "singleItem": "Article unique",
+      "bulkUpload": "T\u00e9l\u00e9chargement group\u00e9",
+      "dropzone": "Glissez-d\u00e9posez une image, ou appuyez pour s\u00e9lectionner",
+      "formatHint": "PNG, JPG ou HEIC",
+      "typeLabel": "Type (l'IA d\u00e9tectera si vide)",
+      "letAiDetect": "Laisser l'IA d\u00e9tecter...",
+      "namePlaceholder": "Nom (facultatif)",
+      "brandPlaceholder": "Marque",
+      "primaryColor": "Couleur principale",
+      "selectPlaceholder": "S\u00e9lectionner...",
+      "notesPlaceholder": "Notes",
+      "addItem": "Ajouter l'article",
+      "uploading": "T\u00e9l\u00e9chargement en cours...",
+      "previewAlt": "Aper\u00e7u",
+      "nameInputPlaceholder": "ex., Chemise Oxford bleue",
+      "brandInputPlaceholder": "ex., J.Crew",
+      "notesInputPlaceholder": "Notes suppl\u00e9mentaires...",
+      "dropzoneActive": "D\u00e9posez l'image ici",
+      "bulk": {
+        "hint": "Tous les articles seront automatiquement \u00e9tiquet\u00e9s par l'IA. Vous pourrez modifier les d\u00e9tails plus tard.",
+        "resultSuccess": "{success} sur {total} t\u00e9l\u00e9charg\u00e9s avec succ\u00e8s",
+        "resultFailed": "{count} article(s) \u00e9chou\u00e9(s)",
+        "uploadMore": "T\u00e9l\u00e9charger plus",
+        "done": "Termin\u00e9",
+        "imageCount": "{count, plural, one {# image s\u00e9lectionn\u00e9e} other {# images s\u00e9lectionn\u00e9es}}",
+        "uploadingCount": "T\u00e9l\u00e9chargement de {count} articles...",
+        "uploadButton": "{count, plural, one {T\u00e9l\u00e9charger # article} other {T\u00e9l\u00e9charger # articles}}",
+        "clearAll": "Tout effacer",
+        "discardConfirm": {
+          "title": "Ignorer les images s\u00e9lectionn\u00e9es\u00a0?",
+          "keepEditing": "Continuer l'\u00e9dition",
+          "discard": "Ignorer",
+          "singleImage": "1 image s\u00e9lectionn\u00e9e qui sera perdue si vous fermez cette bo\u00eete de dialogue.",
+          "imageCount": "{count, plural, one {# image s\u00e9lectionn\u00e9e} other {# images s\u00e9lectionn\u00e9es}} qui seront perdues si vous fermez cette bo\u00eete de dialogue."
+        }
+      }
+    },
+    "itemDetail": {
+      "name": "Nom",
+      "type": "Type",
+      "brand": "Marque",
+      "primaryColor": "Couleur principale",
+      "notes": "Notes",
+      "washInterval": "Intervalle de lavage",
+      "titles": {
+        "toggleFavorite": "Basculer en favori",
+        "findMatchingOutfits": "Trouver des tenues assorties",
+        "analysisInProgress": "Analyse en cours...",
+        "reanalyzeWithAI": "R\u00e9analyser avec l'IA",
+        "rotateLeft": "Pivoter \u00e0 gauche",
+        "rotateRight": "Pivoter \u00e0 droite",
+        "removeBackground": "Supprimer l'arri\u00e8re-plan",
+        "close": "Fermer",
+        "setAsPrimary": "D\u00e9finir comme principal",
+        "deleteImage": "Supprimer l'image"
+      },
+      "placeholders": {
+        "itemName": "Nom de l'article",
+        "brandName": "Nom de la marque",
+        "selectColor": "S\u00e9lectionner une couleur",
+        "additionalNotes": "Notes suppl\u00e9mentaires...",
+        "washIntervalDefault": "Par d\u00e9faut\u00a0: {count}"
+      },
+      "view": {
+        "washStatus": "\u00c9tat de lavage",
+        "washHistory": "Historique de lavage ({count})",
+        "wearHistory": "Historique de port",
+        "totalWears": "Total des ports",
+        "lastWorn": "Dernier port",
+        "avgPerMonth": "Moyenne/mois",
+        "usualOccasion": "Occasion habituelle",
+        "last6Months": "6 derniers mois",
+        "timeline": "Chronologie ({count} \u00e9v\u00e9nements)",
+        "aiAnalysis": "Analyse IA",
+        "aiAnalyzing": "Analyse IA en cours...",
+        "complete": "{percent}\u00a0% termin\u00e9",
+        "confident": "{percent}\u00a0% de confiance",
+        "primaryImage": "Principal",
+        "wears": "ports",
+        "washIntervalHint": "Nombre de ports avant que cet article n\u00e9cessite un lavage. Laissez vide pour la valeur par d\u00e9faut.",
+        "wornCount": "Port\u00e9 {count} fois",
+        "lastWornDate": "Dernier\u00a0: {date}",
+        "wearsSinceWash": "Ports depuis le lavage\u00a0: {current}/{max}",
+        "needsWashing": "N\u00e9cessite un lavage",
+        "lastWashed": "Dernier lavage\u00a0: {date}",
+        "never": "Jamais",
+        "today": "Aujourd'hui",
+        "daysAgo": "Il y a {count}j",
+        "monthWears": "{month}\u00a0: {count} ports",
+        "fitBadge": "Coupe {fit}",
+        "addedDate": "Ajout\u00e9 le {date}"
+      },
+      "actions": {
+        "markWashed": "Marquer comme lav\u00e9",
+        "save": "Enregistrer",
+        "saved": "Article enregistr\u00e9",
+        "saveError": "\u00c9chec de l'enregistrement de l'article",
+        "deleteConfirm": "Supprimer cet article\u00a0?",
+        "deleted": "Article supprim\u00e9",
+        "deleteError": "\u00c9chec de la suppression de l'article",
+        "washed": "Article marqu\u00e9 comme lav\u00e9",
+        "washError": "\u00c9chec du marquage comme lav\u00e9",
+        "deletedWithName": "\u00ab\u00a0{name}\u00a0\u00bb a \u00e9t\u00e9 supprim\u00e9.",
+        "deletedFallback": "Article retir\u00e9 de votre garde-robe.",
+        "deleteErrorDescription": "Un probl\u00e8me est survenu. Veuillez r\u00e9essayer.",
+        "imageRotated": "Image pivot\u00e9e",
+        "imageRotateError": "\u00c9chec de la rotation de l'image",
+        "backgroundRemoved": "Arri\u00e8re-plan supprim\u00e9",
+        "backgroundRemoveError": "\u00c9chec de la suppression de l'arri\u00e8re-plan",
+        "cancelEditing": "Annuler la modification",
+        "editItem": "Modifier l'article",
+        "deleteItem": "Supprimer l'article",
+        "delete": "Supprimer",
+        "deleteDescription": "Cela supprimera d\u00e9finitivement \u00ab\u00a0{name}\u00a0\u00bb de votre garde-robe. Cette action est irr\u00e9versible.",
+        "cancel": "Annuler"
+      }
+    },
+    "generatePairings": {
+      "title": "Trouver des tenues assorties",
+      "description": "L'IA cr\u00e9era des tenues compl\u00e8tes mettant en vedette cet article",
+      "numOutfits": "Nombre de tenues",
+      "numOutfitsDesc": "Plus de tenues = plus de vari\u00e9t\u00e9, mais prend plus de temps \u00e0 g\u00e9n\u00e9rer",
+      "generate": "G\u00e9n\u00e9rer des tenues",
+      "generating": "G\u00e9n\u00e9ration en cours...",
+      "success": "{count} tenue(s) cr\u00e9\u00e9e(s)\u00a0!",
+      "successDesc": "Consultez-les dans la section Associations",
+      "cancel": "Annuler",
+      "close": "Fermer",
+      "viewPairings": "Voir les associations"
+    },
+    "feedback": {
+      "didYouWear": "Avez-vous port\u00e9 cette tenue\u00a0?",
+      "didYouWearDesc": "Dites-nous si vous avez suivi cette recommandation pour que nous puissions apprendre vos pr\u00e9f\u00e9rences.",
+      "yesWoreIt": "Oui, je l'ai port\u00e9e",
+      "rateHowItWent": "Notez comment c'\u00e9tait",
+      "noWoreSomethingElse": "Non, j'ai port\u00e9 autre chose",
+      "tellUsWhatYouWore": "Dites-nous ce que vous avez port\u00e9",
+      "rateThisOutfit": "Noter cette tenue",
+      "howDidItWork": "Comment cette tenue a-t-elle fonctionn\u00e9 pour vous\u00a0?",
+      "overallRating": "Note globale",
+      "commentsOptional": "Commentaires (facultatif)",
+      "commentsPlaceholder": "Des remarques sur cette tenue\u00a0?",
+      "back": "Retour",
+      "cancel": "Annuler",
+      "submitting": "Soumission en cours...",
+      "submit": "Soumettre",
+      "whatDidYouWear": "Qu'avez-vous port\u00e9 \u00e0 la place\u00a0?",
+      "whatDidYouWearDesc": "S\u00e9lectionnez les articles que vous avez effectivement port\u00e9s. Cela nous aide \u00e0 apprendre vos pr\u00e9f\u00e9rences.",
+      "searchWardrobe": "Rechercher dans votre garde-robe...",
+      "itemsSelected": "{count} article(s) s\u00e9lectionn\u00e9(s)",
+      "loadingMore": "Chargement suppl\u00e9mentaire...",
+      "noMatch": "Aucun article ne correspond \u00e0 votre recherche",
+      "noItemsInWardrobe": "Aucun article dans la garde-robe",
+      "showingAll": "Affichage des {count} articles",
+      "skip": "Passer",
+      "submitWithCount": "Soumettre ({count})",
+      "submitted": "Retour soumis",
+      "submitError": "\u00c9chec de la soumission du retour"
+    },
+    "outfitPreview": {
+      "title": "Tenue {occasion}",
+      "noImage": "Pas d'image",
+      "viewItemDetails": "Voir les d\u00e9tails de l'article",
+      "close": "Fermer",
+      "tip": "Conseil\u00a0:",
+      "imageRotated": "Image pivot\u00e9e",
+      "rotateFailed": "\u00c9chec de la rotation de l'image",
+      "rotateLeft": "Pivoter \u00e0 gauche",
+      "rotateRight": "Pivoter \u00e0 droite",
+      "familyRatings": {
+        "title": "Notes familiales",
+        "noRatings": "Pas encore de notes familiales.",
+        "noRatingsPrompt": "Pas encore de notes familiales. Soyez le premier \u00e0 noter\u00a0!",
+        "rate": "Noter"
+      }
+    },
+    "cloneToLookbook": {
+      "title": "Sauvegarder dans le lookbook",
+      "description": "Donnez un nom \u00e0 ce look pour le retrouver et le porter \u00e0 nouveau.",
+      "name": "Nom",
+      "namePlaceholder": "Brunch du vendredi",
+      "cancel": "Annuler",
+      "saving": "Enregistrement...",
+      "save": "Enregistrer",
+      "errorEmpty": "Veuillez entrer un nom",
+      "saved": "Sauvegard\u00e9 dans le lookbook",
+      "saveError": "\u00c9chec de la sauvegarde dans le lookbook"
+    },
+    "colorEyedropper": {
+      "title": "Choisir une couleur depuis l'image",
+      "description": "Cliquez n'importe o\u00f9 sur l'image pour \u00e9chantillonner une couleur",
+      "buttonTitle": "Choisir une couleur depuis l'image",
+      "picked": "Choisie",
+      "clear": "Effacer",
+      "useColor": "Utiliser {color}",
+      "noColorSelected": "Aucune couleur s\u00e9lectionn\u00e9e"
+    }
+  },
+  "cards": {
+    "pairing": {
+      "badge": "Association",
+      "builtAround": "Construit autour de\u00a0:",
+      "updateRating": "Mettre \u00e0 jour la note",
+      "rateThisPairing": "Noter cette association",
+      "deleted": "Association supprim\u00e9e",
+      "deleteError": "\u00c9chec de la suppression de l'association",
+      "tip": "Conseil\u00a0:"
+    },
+    "outfitHistory": {
+      "sourceBadges": {
+        "scheduled": "Planifi\u00e9",
+        "onDemand": "\u00c0 la demande",
+        "manual": "Manuel",
+        "pairing": "Association"
+      },
+      "didntWearThis": "Pas port\u00e9 celle-ci",
+      "woreInstead": "Port\u00e9 \u00e0 la place\u00a0:",
+      "reject": "Rejeter",
+      "accept": "Accepter",
+      "update": "Mettre \u00e0 jour",
+      "rate": "Noter",
+      "viewItemDetails": "Voir les d\u00e9tails de l'article",
+      "outfitAccepted": "Tenue accept\u00e9e",
+      "acceptFailed": "\u00c9chec de l'acceptation de la tenue",
+      "outfitRejected": "Tenue rejet\u00e9e",
+      "rejectFailed": "\u00c9chec du rejet de la tenue",
+      "tip": "Conseil\u00a0:",
+      "familyLabel": "Famille\u00a0:"
+    },
+    "familyRatings": {
+      "yourRating": "Votre note\u00a0:",
+      "addComment": "Ajouter un commentaire (facultatif)",
+      "submitRating": "Soumettre la note",
+      "updateRating": "Mettre \u00e0 jour la note",
+      "selectRating": "Veuillez s\u00e9lectionner une note",
+      "ratingUpdated": "Note mise \u00e0 jour\u00a0!",
+      "ratingSubmitted": "Note soumise\u00a0!",
+      "submitError": "\u00c9chec de la soumission de la note",
+      "ratingRemoved": "Note supprim\u00e9e",
+      "removeError": "\u00c9chec de la suppression de la note"
+    }
+  },
+  "studio": {
+    "canvas": {
+      "empty": "Appuyez sur les articles ci-dessous pour commencer \u00e0 composer votre tenue",
+      "removeItem": "Supprimer {name}"
+    },
+    "details": {
+      "name": "Nom",
+      "nameRequired": "(requis pour le lookbook)",
+      "namePlaceholder": "Brunch du vendredi",
+      "occasion": "Occasion",
+      "pickOccasion": "Choisissez une occasion avant de sauvegarder.",
+      "warnings": {
+        "noBottoms": "Aucun bas s\u00e9lectionn\u00e9.",
+        "noTop": "Aucun haut s\u00e9lectionn\u00e9.",
+        "multipleBottoms": "Plusieurs bas s\u00e9lectionn\u00e9s.",
+        "noFootwear": "Aucune chaussure s\u00e9lectionn\u00e9e."
+      },
+      "aiThinking": "L'IA r\u00e9fl\u00e9chit...",
+      "letAiFinish": "Laisser l'IA terminer",
+      "aiAssistError": "Choisissez au moins un article et une occasion d'abord",
+      "skippedItem": "{name} ignor\u00e9\u00a0: {reason}",
+      "addedItems": "{count} article(s) ajout\u00e9(s) par l'IA",
+      "aiNoSuggestions": "L'IA n'avait pas de nouveaux articles \u00e0 sugg\u00e9rer",
+      "aiFailed": "\u00c9chec de l'assistance IA"
+    },
+    "lineage": {
+      "replaces": "Remplace la suggestion {occasion}",
+      "replacesWithDate": "Remplace la suggestion {occasion} du {date}",
+      "fromLookbook": "De votre entr\u00e9e de lookbook {name}"
+    }
+  },
+  "shared": {
+    "localeSwitcher": {
+      "label": "Changer la langue"
+    },
+    "pagination": {
+      "pageOfTotal": "Page {current} sur {total}",
+      "firstPage": "Premi\u00e8re page",
+      "previousPage": "Page pr\u00e9c\u00e9dente",
+      "nextPage": "Page suivante",
+      "lastPage": "Derni\u00e8re page"
+    },
+    "bulkAction": {
+      "all": "Tout",
+      "selectAll": "Tout s\u00e9lectionner",
+      "noneSelected": "Aucune s\u00e9lection",
+      "allExcept": "Tout sauf {count}",
+      "allSelected": "Tous les {count} s\u00e9lectionn\u00e9s",
+      "selected": "{count} s\u00e9lectionn\u00e9(s)",
+      "deleteConfirm": {
+        "title": "Supprimer {count} articles\u00a0?",
+        "description": "Cela supprimera d\u00e9finitivement les articles s\u00e9lectionn\u00e9s et leurs images. Cette action est irr\u00e9versible."
+      }
+    },
+    "itemPicker": {
+      "search": "Rechercher dans la garde-robe...",
+      "loadingMore": "Chargement suppl\u00e9mentaire...",
+      "noMatch": "Aucun article ne correspond \u00e0 votre recherche",
+      "noItems": "Aucun article trouv\u00e9",
+      "showingAll": "Affichage des {count} articles"
+    },
+    "lightbox": {
+      "openInWardrobe": "Ouvrir dans la garde-robe"
+    },
+    "offlineIndicator": {
+      "message": "Vous \u00eates hors ligne"
+    },
+    "wornAgo": {
+      "today": "Port\u00e9 aujourd'hui",
+      "yesterday": "Port\u00e9 hier",
+      "daysAgo": "Port\u00e9 il y a {days}\u00a0j"
+    }
+  },
+  "types": {
+    "clothingTypes": {
+      "shirt": "Chemise",
+      "t-shirt": "T-shirt",
+      "top": "Haut",
+      "polo": "Polo",
+      "blouse": "Chemisier",
+      "tank-top": "D\u00e9bardeur",
+      "sweater": "Pull",
+      "hoodie": "Sweat \u00e0 capuche",
+      "cardigan": "Gilet",
+      "vest": "Gilet sans manches",
+      "pants": "Pantalon",
+      "jeans": "Jean",
+      "shorts": "Short",
+      "skirt": "Jupe",
+      "dress": "Robe",
+      "jumpsuit": "Combinaison",
+      "jacket": "Veste",
+      "blazer": "Blazer",
+      "coat": "Manteau",
+      "suit": "Costume",
+      "shoes": "Chaussures",
+      "sneakers": "Baskets",
+      "boots": "Bottes",
+      "sandals": "Sandales",
+      "socks": "Chaussettes",
+      "tie": "Cravate",
+      "hat": "Chapeau",
+      "scarf": "\u00c9charpe",
+      "belt": "Ceinture",
+      "bag": "Sac",
+      "accessories": "Accessoires"
+    },
+    "clothingColors": {
+      "black": "Noir",
+      "charcoal": "Anthracite",
+      "gray": "Gris",
+      "white": "Blanc",
+      "cream": "Cr\u00e8me",
+      "beige": "Beige",
+      "tan": "Camel",
+      "khaki": "Kaki",
+      "olive": "Olive",
+      "army-green": "Vert arm\u00e9e",
+      "green": "Vert",
+      "teal": "Bleu canard",
+      "navy": "Bleu marine",
+      "blue": "Bleu",
+      "brown": "Marron",
+      "dark-brown": "Brun fonc\u00e9",
+      "burgundy": "Bordeaux",
+      "red": "Rouge",
+      "pink": "Rose",
+      "purple": "Violet",
+      "yellow": "Jaune",
+      "orange": "Orange"
+    },
+    "occasions": {
+      "casual": "D\u00e9contract\u00e9",
+      "office": "Bureau",
+      "formal": "Formel",
+      "date": "Rendez-vous",
+      "sporty": "Sportif",
+      "outdoor": "Plein air"
+    }
+  }
+}
