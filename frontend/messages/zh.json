@@ -245,8 +245,8 @@
       "leastRecentlyWorn": "最久没穿",
       "mostWorn": "穿着最多",
       "leastWorn": "穿着最少",
-      "nameAZ": "名称 A\u2013Z",
-      "nameZA": "名称 Z\u2013A"
+      "nameAZ": "名称 A–Z",
+      "nameZA": "名称 Z–A"
     },
     "bulkActions": {
       "deleteSuccess": "已删除 {count} 件单品",
@@ -342,7 +342,7 @@
       "deleteConfirm": "删除这套穿搭？此操作不可撤销。",
       "deleted": "穿搭已删除",
       "addedToToday": "已添加到今天",
-      "notWornYet": "这套造型还没有穿过。点击\u201c今天穿\u201d来记录。",
+      "notWornYet": "这套造型还没有穿过。点击“今天穿”来记录。",
       "wornCount": "已穿 {count} 次",
       "undated": "未设日期",
       "seeAll": "查看全部"
@@ -389,7 +389,8 @@
       "discardChanges": "放弃更改",
       "nameRequired": "保存前请为造型册条目命名",
       "outfitUpdated": "穿搭已更新",
-      "savedAndMarkedWorn": "已保存并标记为已穿"
+      "savedAndMarkedWorn": "已保存并标记为已穿",
+      "saveError": "保存穿搭失败"
     },
     "cards": {
       "replacement": "替换",
@@ -615,62 +616,6 @@
     "subtitle": "AI 如何从您的反馈中学习",
     "subtitleEmpty": "开始为穿搭评分，帮助 AI 学习您的偏好",
     "recompute": "重新计算",
-    "stats": {
-      "feedbackGiven": "已给反馈",
-      "acceptanceRate": "接受率",
-      "averageRating": "平均评分",
-      "styleRating": "风格评分"
-    },
-    "styleInsights": {
-      "title": "风格洞察",
-      "description": "我们对您偏好的了解",
-      "noData": "新洞察"
-    },
-    "colorPreferences": {
-      "title": "学习到的颜色偏好",
-      "description": "您倾向于接受或拒绝的颜色",
-      "noData": "反馈不足，尚无法确定颜色偏好。"
-    },
-    "stylePreferences": {
-      "title": "学习到的风格偏好",
-      "description": "符合您品味的风格",
-      "noData": "反馈不足，尚无法确定风格偏好。"
-    },
-    "bestCombinations": {
-      "title": "您的最佳搭配",
-      "description": "您一直喜欢的单品组合"
-    },
-    "occasionPatterns": {
-      "title": "场合模式",
-      "description": "不同场合的适用搭配"
-    },
-    "preferredColors": "偏好的颜色：",
-    "weatherPreferences": {
-      "title": "天气偏好",
-      "description": "您在不同天气条件下的穿着方式",
-      "layers": "约 {count} 层",
-      "success": "{percent}% 成功率"
-    },
-    "suggestedUpdates": {
-      "title": "建议的偏好更新",
-      "description": "根据您的反馈，我们建议更新您的偏好",
-      "addToFavorites": "添加到喜欢的颜色：",
-      "addToAvoid": "添加到避免的颜色：",
-      "updatePreferences": "更新偏好"
-    },
-    "noData": {
-      "title": "还没有学习数据",
-      "description": "从接受或拒绝穿搭建议并评分开始。",
-      "getOutfitSuggestions": "获取穿搭建议",
-      "computeNow": "立即计算",
-      "computing": "计算中...",
-      "alreadyGaveFeedback": "已经给出反馈了？点击“立即计算“来处理。"
-    },
-    "lastUpdated": "学习档案上次更新：",
-    "paired": "次搭配",
-    "confident": "% 置信度",
-    "dismiss": "忽略",
-    "loadError": "加载学习数据失败，请重试。",
     "stats": {
       "feedbackGiven": "已给反馈",
       "acceptanceRate": "接受率",
@@ -949,7 +894,8 @@
         "description": "这将移除此推送时间表。"
       },
       "deleted": "时间表已删除",
-      "deleteError": "删除时间表失败"
+      "deleteError": "删除时间表失败",
+      "dialogDescription": "设置您希望收到穿搭推荐的时间。"
     },
     "channelAdded": "渠道已添加",
     "channelAddFailed": "添加渠道失败",

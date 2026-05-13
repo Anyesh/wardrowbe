@@ -25,7 +25,7 @@ interface DetailsPanelProps {
   onAiMerge: (merged: StudioItem[]) => void;
 }
 
-function computeWarnings(items: StudioItem[], t: any): string[] {
+function computeWarnings(items: StudioItem[], t: (key: string) => string): string[] {
   const warnings: string[] = [];
   const roles = items.map((i) => ITEM_ROLE[i.type] ?? '');
 

@@ -204,7 +204,7 @@ export default function StudioEditorPage() {
           setWornConflictOpen(true);
           return;
         }
-        toast.error(getErrorMessage(error, t('new.outfitUpdated')));
+        toast.error(getErrorMessage(error, t('new.saveError')));
       }
       return;
     }
