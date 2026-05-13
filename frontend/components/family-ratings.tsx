@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { useSubmitFamilyRating, useDeleteFamilyRating } from '@/lib/hooks/use-outfits';
 import { FamilyRating } from '@/lib/types';
+import { useTranslations } from 'next-intl';
 
 function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hovered, setHovered] = useState(0);
@@ -42,13 +43,14 @@ interface FamilyRatingFormProps {
 }
 
 export function FamilyRatingForm({ outfitId, existingRating, onSuccess }: FamilyRatingFormProps) {
+  const t = useTranslations('cards.familyRatings');
   const [rating, setRating] = useState(existingRating?.rating ?? 0);
   const [comment, setComment] = useState(existingRating?.comment ?? '');
   const submitRating = useSubmitFamilyRating();
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      toast.error('Please select a rating');
+      toast.error(t('selectRating'));
       return;
     }
     try {
@@ -57,21 +59,21 @@ export function FamilyRatingForm({ outfitId, existingRating, onSuccess }: Family
         rating,
         comment: comment.trim() || undefined,
       });
-      toast.success(existingRating ? 'Rating updated!' : 'Rating submitted!');
+      toast.success(existingRating ? t('ratingUpdated') : t('ratingSubmitted'));
       onSuccess?.();
     } catch {
-      toast.error('Failed to submit rating');
+      toast.error(t('submitError'));
     }
   };
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <span className="text-sm font-medium">Your rating:</span>
+        <span className="text-sm font-medium">{t('yourRating')}</span>
         <StarPicker value={rating} onChange={setRating} />
       </div>
       <Textarea
-        placeholder="Add a comment (optional)"
+        placeholder={t('addComment')}
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         rows={2}
@@ -84,7 +86,7 @@ export function FamilyRatingForm({ outfitId, existingRating, onSuccess }: Family
         disabled={rating === 0 || submitRating.isPending}
       >
         {submitRating.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {existingRating ? 'Update Rating' : 'Submit Rating'}
+        {existingRating ? t('updateRating') : t('submitRating')}
       </Button>
     </div>
   );
@@ -106,6 +108,7 @@ interface FamilyRatingsDisplayProps {
 }
 
 export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: FamilyRatingsDisplayProps) {
+  const t = useTranslations('cards.familyRatings');
   const deleteRating = useDeleteFamilyRating();
 
   if (ratings.length === 0) return null;
@@ -113,9 +116,9 @@ export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: Famil
   const handleDelete = async () => {
     try {
       await deleteRating.mutateAsync(outfitId);
-      toast.success('Rating removed');
+      toast.success(t('ratingRemoved'));
     } catch {
-      toast.error('Failed to remove rating');
+      toast.error(t('removeError'));
     }
   };
 

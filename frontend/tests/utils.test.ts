@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest'
-import { cn } from '@/lib/utils'
+import { describe, it, expect, vi } from 'vitest'
+import { cn, formatWornAgo, getDaysSinceDateInTimezone } from '@/lib/utils'
+
+// Mock translation function that returns the key (with params appended if provided)
+const mockT = vi.fn((key: string, params?: Record<string, unknown>) =>
+  params ? `${key}:${JSON.stringify(params)}` : key
+)
 
 describe('cn utility', () => {
   it('should merge class names', () => {
@@ -41,5 +46,51 @@ describe('cn utility', () => {
       'visible': true,
     })
     expect(result).toBe('active visible')
+  })
+})
+
+describe('formatWornAgo', () => {
+  // Helper: get YYYY-MM-DD in a specific timezone
+  const dateStrInTimezone = (timezone: string, offsetDays = 0) => {
+    const d = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const date = new Date(d);
+    date.setDate(date.getDate() + offsetDays);
+    return formatter.format(date);
+  };
+
+  it('should return "wornAgo.today" when days is 0', () => {
+    const dateStr = dateStrInTimezone('UTC');
+    mockT.mockClear()
+    const result = formatWornAgo(dateStr, 'UTC', mockT)
+    expect(result).toBe('wornAgo.today')
+    expect(mockT).toHaveBeenCalledWith('wornAgo.today')
+  })
+
+  it('should return "wornAgo.yesterday" when days is 1', () => {
+    const dateStr = dateStrInTimezone('UTC', -1);
+    mockT.mockClear()
+    const result = formatWornAgo(dateStr, 'UTC', mockT)
+    expect(result).toBe('wornAgo.yesterday')
+    expect(mockT).toHaveBeenCalledWith('wornAgo.yesterday')
+  })
+
+  it('should return "wornAgo.daysAgo" with days param when days > 1', () => {
+    const dateStr = dateStrInTimezone('UTC', -5);
+    mockT.mockClear()
+    const result = formatWornAgo(dateStr, 'UTC', mockT)
+    expect(result).toBe('wornAgo.daysAgo:{"days":5}')
+    expect(mockT).toHaveBeenCalledWith('wornAgo.daysAgo', { days: 5 })
+  })
+
+  it('should use default translation function when t is not provided', () => {
+    const dateStr = dateStrInTimezone('UTC');
+    const result = formatWornAgo(dateStr)
+    expect(result).toBe('wornAgo.today')
   })
 })

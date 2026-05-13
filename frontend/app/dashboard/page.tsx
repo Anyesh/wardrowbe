@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +41,7 @@ import { toast } from 'sonner';
 function WeatherCard() {
   const { data: weather, isLoading, isError } = useWeather();
   const { data: prefs } = usePreferences();
+  const t = useTranslations('dashboard');
   const unit: TempUnit = prefs?.temperature_unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
 
   if (isLoading) {
@@ -48,7 +50,7 @@ function WeatherCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Cloud className="h-4 w-4" />
-            Today&apos;s Weather
+            {t('weather.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -65,15 +67,15 @@ function WeatherCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Cloud className="h-4 w-4" />
-            Today&apos;s Weather
+            {t('weather.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-3">
-            Location not set
+            {t('weather.locationNotSet')}
           </p>
           <Button size="sm" variant="outline" asChild>
-            <Link href="/dashboard/settings">Set Location</Link>
+            <Link href="/dashboard/settings">{t('weather.setLocation')}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -85,14 +87,14 @@ function WeatherCard() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Cloud className="h-4 w-4" />
-          Today&apos;s Weather
+          {t('weather.title')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-baseline gap-2 mb-1">
           <span className="text-3xl font-bold">{displayValue(weather.temperature, unit)}{tempSymbol(unit)}</span>
           <span className="text-muted-foreground text-sm">
-            feels {displayValue(weather.feels_like, unit)}°
+            {t('weather.feelsLike', { temp: `${displayValue(weather.feels_like, unit)}°` })}
           </span>
         </div>
         <p className="text-sm text-muted-foreground capitalize mb-1">
@@ -101,13 +103,13 @@ function WeatherCard() {
         {weather.precipitation_chance > 0 && (
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Droplets className="h-3 w-3" />
-            {weather.precipitation_chance}% chance of rain
+            {t('weather.rainChance', { percent: weather.precipitation_chance })}
           </p>
         )}
         <Button size="sm" className="w-full mt-3" asChild>
           <Link href="/dashboard/suggest">
             <Sparkles className="h-4 w-4 mr-1" />
-            Get Outfit Suggestion
+            {t('weather.getOutfitSuggestion')}
           </Link>
         </Button>
       </CardContent>
@@ -119,22 +121,23 @@ function PendingOutfitsCard() {
   const { data, isLoading } = usePendingOutfits(2);
   const acceptOutfit = useAcceptOutfit();
   const rejectOutfit = useRejectOutfit();
+  const t = useTranslations('dashboard');
 
   const handleAccept = async (id: string) => {
     try {
       await acceptOutfit.mutateAsync(id);
-      toast.success('Outfit accepted');
+      toast.success(t('pendingOutfits.accepted'));
     } catch {
-      toast.error('Failed to accept outfit');
+      toast.error(t('pendingOutfits.acceptFailed'));
     }
   };
 
   const handleReject = async (id: string) => {
     try {
       await rejectOutfit.mutateAsync(id);
-      toast.success('Outfit rejected');
+      toast.success(t('pendingOutfits.rejected'));
     } catch {
-      toast.error('Failed to reject outfit');
+      toast.error(t('pendingOutfits.rejectFailed'));
     }
   };
 
@@ -144,7 +147,7 @@ function PendingOutfitsCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Pending Outfits
+            {t('pendingOutfits.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -163,12 +166,12 @@ function PendingOutfitsCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            All Caught Up
+            {t('pendingOutfits.allCaughtUp')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            No outfits waiting for your response
+            {t('pendingOutfits.noPending')}
           </p>
         </CardContent>
       </Card>
@@ -181,12 +184,12 @@ function PendingOutfitsCard() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Clock className="h-4 w-4 text-orange-500" />
-            Pending Outfits
+            {t('pendingOutfits.title')}
             <Badge variant="secondary" className="ml-1">{data?.total || pendingOutfits.length}</Badge>
           </CardTitle>
           {(data?.total ?? 0) > 2 && (
             <Link href="/dashboard/history" className="text-xs text-muted-foreground hover:text-foreground">
-              View all
+              {t('pendingOutfits.viewAll')}
             </Link>
           )}
         </div>
@@ -255,6 +258,8 @@ function PendingOutfitsCard() {
 
 function NextScheduledCard() {
   const { data: schedules, isLoading } = useSchedules();
+  const t = useTranslations('dashboard');
+  const tDays = useTranslations('notifications');
 
   const nextSchedule = useMemo(() => {
     if (!schedules || schedules.length === 0) return null;
@@ -288,15 +293,13 @@ function NextScheduledCard() {
     return closest;
   }, [schedules]);
 
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
   if (isLoading) {
     return (
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Next Scheduled
+            {t('nextScheduled.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -313,13 +316,13 @@ function NextScheduledCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Next Scheduled
+            {t('nextScheduled.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-2">No schedules set up</p>
+          <p className="text-sm text-muted-foreground mb-2">{t('nextScheduled.noSchedules')}</p>
           <Button size="sm" variant="outline" asChild>
-            <Link href="/dashboard/notifications">Set Up Schedule</Link>
+            <Link href="/dashboard/notifications">{t('nextScheduled.setUpSchedule')}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -328,14 +331,19 @@ function NextScheduledCard() {
 
   const { schedule, daysUntil } = nextSchedule;
   const timeStr = schedule.notification_time.slice(0, 5);
-  const dayStr = daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : dayNames[schedule.day_of_week];
+  const dayNames = [
+    tDays('days.sunday'), tDays('days.monday'), tDays('days.tuesday'),
+    tDays('days.wednesday'), tDays('days.thursday'), tDays('days.friday'),
+    tDays('days.saturday'),
+  ];
+  const dayStr = daysUntil === 0 ? t('nextScheduled.today') : daysUntil === 1 ? t('nextScheduled.tomorrow') : dayNames[schedule.day_of_week];
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Calendar className="h-4 w-4" />
-          Next Scheduled
+          {t('nextScheduled.title')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -346,7 +354,7 @@ function NextScheduledCard() {
           {schedule.occasion} outfit
         </p>
         {daysUntil === 0 && (
-          <Badge variant="secondary" className="mt-2">Coming up</Badge>
+          <Badge variant="secondary" className="mt-2">{t('nextScheduled.comingUp')}</Badge>
         )}
       </CardContent>
     </Card>
@@ -355,6 +363,7 @@ function NextScheduledCard() {
 
 function NotificationStatusCard() {
   const { data: settings, isLoading } = useNotificationSettings();
+  const t = useTranslations('dashboard');
 
   if (isLoading) {
     return (
@@ -362,7 +371,7 @@ function NotificationStatusCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Bell className="h-4 w-4" />
-            Notifications
+            {t('notifications.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -382,13 +391,13 @@ function NotificationStatusCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <BellOff className="h-4 w-4 text-muted-foreground" />
-            Notifications
+            {t('notifications.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-2">No channels configured</p>
+          <p className="text-sm text-muted-foreground mb-2">{t('notifications.noChannels')}</p>
           <Button size="sm" variant="outline" asChild>
-            <Link href="/dashboard/notifications">Add Channel</Link>
+            <Link href="/dashboard/notifications">{t('notifications.addChannel')}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -401,10 +410,10 @@ function NotificationStatusCard() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Bell className="h-4 w-4" />
-            Notifications
+            {t('notifications.title')}
           </CardTitle>
           <Link href="/dashboard/notifications" className="text-xs text-muted-foreground hover:text-foreground">
-            Configure
+            {t('notifications.configure')}
           </Link>
         </div>
       </CardHeader>
@@ -426,7 +435,7 @@ function NotificationStatusCard() {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {enabledChannels.length} of {channels.length} active
+          {t('notifications.activeCount', { active: enabledChannels.length, total: channels.length })}
         </p>
       </CardContent>
     </Card>
@@ -435,6 +444,7 @@ function NotificationStatusCard() {
 
 function WeeklySummaryCard() {
   const { data: analytics, isLoading } = useAnalytics();
+  const t = useTranslations('dashboard');
 
   if (isLoading) {
     return (
@@ -442,7 +452,7 @@ function WeeklySummaryCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            This Week
+            {t('weeklySummary.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -464,25 +474,25 @@ function WeeklySummaryCard() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <TrendingUp className="h-4 w-4" />
-          This Week
+          {t('weeklySummary.title')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-2xl font-bold">{wardrobe.outfits_this_week}</p>
-            <p className="text-xs text-muted-foreground">outfits</p>
+            <p className="text-xs text-muted-foreground">{t('weeklySummary.outfits')}</p>
           </div>
           <div>
             <p className="text-2xl font-bold">
               {wardrobe.acceptance_rate ? `${wardrobe.acceptance_rate}%` : '-'}
             </p>
-            <p className="text-xs text-muted-foreground">accepted</p>
+            <p className="text-xs text-muted-foreground">{t('weeklySummary.accepted')}</p>
           </div>
         </div>
         {wardrobe.average_rating && (
           <p className="text-xs text-muted-foreground mt-2">
-            Avg rating: {wardrobe.average_rating}/5
+            {t('weeklySummary.avgRating')}: {wardrobe.average_rating}/5
           </p>
         )}
       </CardContent>
@@ -492,6 +502,7 @@ function WeeklySummaryCard() {
 
 function InsightsCard() {
   const { data: analytics, isLoading } = useAnalytics();
+  const t = useTranslations('dashboard');
 
   if (isLoading) {
     return (
@@ -499,7 +510,7 @@ function InsightsCard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lightbulb className="h-5 w-5" />
-            Insights
+            {t('insights.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -520,7 +531,7 @@ function InsightsCard() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Lightbulb className="h-5 w-5" />
-            Insights
+            {t('insights.title')}
           </CardTitle>
           {insights.length > 3 && (
             <Link href="/dashboard/analytics" className="text-sm text-muted-foreground hover:text-foreground flex items-center">
@@ -541,7 +552,7 @@ function InsightsCard() {
           </ul>
         ) : (
           <p className="text-muted-foreground text-sm">
-            Add more items and generate outfits to see personalized insights!
+            {t('insights.empty')}
           </p>
         )}
       </CardContent>
@@ -551,6 +562,7 @@ function InsightsCard() {
 
 function FamilyFeedCard() {
   const { data: family, isLoading } = useFamily();
+  const t = useTranslations('dashboard');
 
   if (isLoading) return null;
 
@@ -564,20 +576,20 @@ function FamilyFeedCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <HeartHandshake className="h-5 w-5" />
-          Family Outfits
+          {t('familyFeed.title')}
         </CardTitle>
         <CardDescription>
-          See what your family is wearing and rate their outfits
+          {t('familyFeed.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Users className="h-4 w-4" />
-          <span>{memberCount} member{memberCount !== 1 ? 's' : ''} in {family.name}</span>
+          <span>{t('familyFeed.memberCount', { count: memberCount, name: family.name })}</span>
         </div>
         <Button asChild className="w-full">
           <Link href="/dashboard/family/feed">
-            Browse Family Outfits
+            {t('familyFeed.browse')}
             <ChevronRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -587,23 +599,25 @@ function FamilyFeedCard() {
 }
 
 function QuickActionsCard() {
+  const t = useTranslations('dashboard');
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quick Actions</CardTitle>
-        <CardDescription>Common tasks to get you started</CardDescription>
+        <CardTitle>{t('quickActions.title')}</CardTitle>
+        <CardDescription>{t('quickActions.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <Button asChild className="w-full justify-start">
           <Link href="/dashboard/wardrobe">
             <Plus className="mr-2 h-4 w-4" />
-            Add New Item
+            {t('quickActions.addNewItem')}
           </Link>
         </Button>
         <Button asChild variant="outline" className="w-full justify-start">
           <Link href="/dashboard/suggest">
             <Sparkles className="mr-2 h-4 w-4" />
-            Get Outfit Suggestion
+            {t('quickActions.getOutfitSuggestion')}
           </Link>
         </Button>
       </CardContent>
@@ -613,15 +627,16 @@ function QuickActionsCard() {
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const t = useTranslations('dashboard');
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Welcome back, {session?.user?.name?.split(' ')[0] || 'User'}
+          {t('welcomeBack', { name: session?.user?.name?.split(' ')[0] || 'User' })}
         </h1>
         <p className="text-muted-foreground">
-          Here&apos;s what&apos;s happening with your wardrobe
+          {t('subtitle')}
         </p>
       </div>
 

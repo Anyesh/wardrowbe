@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { List as ListIcon, CalendarDays, Plus, Search } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -88,13 +89,22 @@ const CHIP_ORDER: FilterChip[] = [
   'ai',
 ];
 
-const CHIP_LABELS: Record<FilterChip, string> = {
-  all: 'All',
-  'my-looks': 'My Looks',
-  worn: 'Worn',
-  pairings: 'Pairings',
-  replacements: 'Replacements',
-  ai: 'AI',
+const CHIP_KEYS: Record<FilterChip, string> = {
+  all: 'filters.all',
+  'my-looks': 'filters.myLooks',
+  worn: 'filters.worn',
+  pairings: 'filters.pairings',
+  replacements: 'filters.replacements',
+  ai: 'filters.ai',
+};
+
+const EMPTY_KEYS: Record<FilterChip, string> = {
+  all: 'empty.all',
+  'my-looks': 'empty.myLooks',
+  worn: 'empty.worn',
+  pairings: 'empty.pairings',
+  replacements: 'empty.replacements',
+  ai: 'empty.ai',
 };
 
 function chipToFilters(chip: FilterChip, search: string): OutfitFilters {
@@ -123,16 +133,8 @@ function chipToFilters(chip: FilterChip, search: string): OutfitFilters {
   }
 }
 
-const EMPTY_MESSAGES: Record<FilterChip, string> = {
-  all: 'No outfits yet. Create your first look in the Studio!',
-  'my-looks': 'No saved looks yet. Create one with the Studio editor.',
-  worn: 'No worn outfits recorded.',
-  pairings: 'No pairing outfits generated.',
-  replacements: 'No replacement outfits.',
-  ai: 'No AI-generated outfits.',
-};
-
 function OutfitsPageContent() {
+  const t = useTranslations('outfits');
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawFilter = (searchParams.get('filter') as FilterChip) || 'all';
@@ -293,8 +295,8 @@ function OutfitsPageContent() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Outfits</h1>
-          <p className="text-muted-foreground">Your looks, worn outfits, and AI suggestions</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div
@@ -314,7 +316,7 @@ function OutfitsPageContent() {
               )}
             >
               <ListIcon className="h-3.5 w-3.5" />
-              List
+              {t('viewList')}
             </button>
             <button
               type="button"
@@ -328,13 +330,13 @@ function OutfitsPageContent() {
               )}
             >
               <CalendarDays className="h-3.5 w-3.5" />
-              Calendar
+              {t('viewCalendar')}
             </button>
           </div>
           <Button asChild>
             <Link href="/dashboard/outfits/new">
               <Plus className="h-4 w-4 mr-2" />
-              New Outfit
+              {t('newOutfit')}
             </Link>
           </Button>
         </div>
@@ -355,7 +357,7 @@ function OutfitsPageContent() {
                   : 'border-muted bg-background hover:border-muted-foreground/50',
               )}
             >
-              {CHIP_LABELS[c]}
+              {t(CHIP_KEYS[c])}
             </button>
           ))}
         </div>
@@ -364,7 +366,7 @@ function OutfitsPageContent() {
           <div className="relative ml-auto min-w-[220px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search lookbook..."
+              placeholder={t('search')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9"
@@ -374,7 +376,7 @@ function OutfitsPageContent() {
 
         {listQuery.data && (
           <Badge variant="outline" className="ml-auto">
-            {listQuery.data.total} total
+            {t('totalCount', { count: listQuery.data.total })}
           </Badge>
         )}
       </div>
@@ -383,7 +385,7 @@ function OutfitsPageContent() {
       {view === 'list' ? (
         <>
           {listError ? (
-            <div className="text-center py-8 text-destructive">Failed to load outfits</div>
+            <div className="text-center py-8 text-destructive">{t('loadError')}</div>
           ) : listLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -392,7 +394,7 @@ function OutfitsPageContent() {
             </div>
           ) : outfits.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-              <p className="text-muted-foreground mb-6 max-w-sm">{EMPTY_MESSAGES[chip]}</p>
+              <p className="text-muted-foreground mb-6 max-w-sm">{t(EMPTY_KEYS[chip])}</p>
               {chip === 'my-looks' && (
                 <Button asChild>
                   <Link href="/dashboard/outfits/new">
@@ -412,7 +414,7 @@ function OutfitsPageContent() {
               {hasMore && (
                 <div className="flex justify-center pt-4">
                   <Button variant="outline" onClick={() => setPage((p) => p + 1)}>
-                    Load more
+                    {t('loadMore')}
                   </Button>
                 </div>
               )}
@@ -453,7 +455,7 @@ function OutfitsPageContent() {
 
           <div className="space-y-4">
             {calendarError ? (
-              <div className="text-center py-8 text-destructive">Failed to load outfits</div>
+              <div className="text-center py-8 text-destructive">{t('loadError')}</div>
             ) : calendarLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -464,7 +466,7 @@ function OutfitsPageContent() {
               <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
                 <CalendarDays className="h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  No outfits on this day
+                  {t('calendar.noOutfitsOnDay')}
                 </p>
               </div>
             ) : (
@@ -475,13 +477,13 @@ function OutfitsPageContent() {
                       {formatReadableDate(selectedDate)}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      {selectedDayOutfits.length} outfit{selectedDayOutfits.length === 1 ? '' : 's'}
+                      {t('calendar.outfitCount', { count: selectedDayOutfits.length })}
                     </p>
                   </div>
                 )}
                 {!selectedDate && (
                   <p className="text-sm text-muted-foreground">
-                    {calendarOutfits.length} outfit{calendarOutfits.length === 1 ? '' : 's'} this month
+                    {t('calendar.monthlyCount', { count: calendarOutfits.length })}
                   </p>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

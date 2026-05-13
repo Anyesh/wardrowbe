@@ -8,6 +8,9 @@ import {
   resolveNetworkLocation,
 } from '@/lib/location'
 
+const mockT = (key: string, params?: Record<string, string | number>) =>
+  params ? `${key}:${JSON.stringify(params)}` : key
+
 describe('location helpers', () => {
   it('uses the default network provider URL when no env override is set', () => {
     const original = process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL
@@ -99,11 +102,12 @@ describe('location helpers', () => {
   })
 
   it('maps geolocation failure reasons to user-facing messages', () => {
-    expect(getGeolocationFailureMessage({ code: 1 })).toBe('Location access was denied.')
-    expect(getGeolocationFailureMessage({ code: 2 })).toBe('Location is currently unavailable.')
-    expect(getGeolocationFailureMessage({ code: 3 })).toBe('Location request timed out.')
-    expect(getGeolocationFailureMessage({ message: 'Permission prompt dismissed' })).toBe(
-      'Failed to get exact location: Permission prompt dismissed'
+    expect(getGeolocationFailureMessage({ code: 1 }, mockT)).toBe('location.errors.geolocationDenied')
+    expect(getGeolocationFailureMessage({ code: 2 }, mockT)).toBe('location.errors.geolocationUnavailable')
+    expect(getGeolocationFailureMessage({ code: 3 }, mockT)).toBe('location.errors.geolocationTimeout')
+    expect(getGeolocationFailureMessage({ message: 'Permission prompt dismissed' }, mockT)).toBe(
+      'location.errors.geolocationFailed:{"message":"Permission prompt dismissed"}'
     )
+    expect(getGeolocationFailureMessage({}, mockT)).toBe('location.errors.geolocationFailedGeneric')
   })
 })

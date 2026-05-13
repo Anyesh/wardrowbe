@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 interface PaginationProps {
   page: number;
@@ -11,6 +12,7 @@ interface PaginationProps {
 }
 
 export function Pagination({ page, total, pageSize, onPageChange }: PaginationProps) {
+  const t = useTranslations('shared.pagination');
   const totalPages = Math.ceil(total / pageSize);
 
   if (totalPages <= 1) {
@@ -24,7 +26,7 @@ export function Pagination({ page, total, pageSize, onPageChange }: PaginationPr
         size="icon"
         disabled={page === 1}
         onClick={() => onPageChange(1)}
-        aria-label="First page"
+        aria-label={t('firstPage')}
       >
         <ChevronsLeft className="h-4 w-4" />
       </Button>
@@ -33,19 +35,19 @@ export function Pagination({ page, total, pageSize, onPageChange }: PaginationPr
         size="icon"
         disabled={page === 1}
         onClick={() => onPageChange(page - 1)}
-        aria-label="Previous page"
+        aria-label={t('previousPage')}
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <span className="px-4 text-sm text-muted-foreground">
-        Page {page} of {totalPages}
+        {t('pageOfTotal', { current: page, total: totalPages })}
       </span>
       <Button
         variant="outline"
         size="icon"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
-        aria-label="Next page"
+        aria-label={t('nextPage')}
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
@@ -54,7 +56,7 @@ export function Pagination({ page, total, pageSize, onPageChange }: PaginationPr
         size="icon"
         disabled={page >= totalPages}
         onClick={() => onPageChange(totalPages)}
-        aria-label="Last page"
+        aria-label={t('lastPage')}
       >
         <ChevronsRight className="h-4 w-4" />
       </Button>

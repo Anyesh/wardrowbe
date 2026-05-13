@@ -34,17 +34,21 @@ import { useUpdatePreferences } from '@/lib/hooks/use-preferences';
 import { useCreateItem } from '@/lib/hooks/use-items';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { api, setAccessToken } from '@/lib/api';
-import { CLOTHING_COLORS, CLOTHING_TYPES, StyleProfile } from '@/lib/types';
-
-const STEPS = [
-  { id: 'welcome', title: 'Welcome', icon: Shirt },
-  { id: 'family', title: 'Family', icon: Users },
-  { id: 'location', title: 'Location', icon: MapPin },
-  { id: 'preferences', title: 'Style', icon: Palette },
-  { id: 'upload', title: 'First Item', icon: Camera },
-];
+import { StyleProfile } from '@/lib/types';
+import { useClothingColors, useClothingTypes } from '@/lib/hooks/use-translated-constants';
+import { useTranslations } from 'next-intl';
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
+  const t = useTranslations('onboarding');
+
+  const STEPS = [
+    { id: 'welcome', title: t('steps.welcome'), icon: Shirt },
+    { id: 'family', title: t('steps.family'), icon: Users },
+    { id: 'location', title: t('steps.location'), icon: MapPin },
+    { id: 'preferences', title: t('steps.style'), icon: Palette },
+    { id: 'upload', title: t('steps.firstItem'), icon: Camera },
+  ];
+
   return (
     <div className="flex items-center justify-center gap-2 mb-8">
       {STEPS.map((step, index) => {
@@ -80,8 +84,8 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 }
 
 function WelcomeStep({ onNext }: { onNext: () => void }) {
-  // Use unified auth hook to get user name (works in both auth modes)
   const { user } = useAuth();
+  const t = useTranslations('onboarding');
 
   return (
     <div className="text-center space-y-6">
@@ -92,10 +96,10 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
       </div>
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          Welcome to Wardrowbe{user?.display_name ? `, ${user.display_name.split(' ')[0]}` : ''}!
+          {t('welcome.greeting', { name: user?.display_name ? `, ${user.display_name.split(' ')[0]}` : '' })}
         </h1>
         <p className="text-muted-foreground mt-2 text-lg">
-          Let&apos;s get your digital wardrobe set up in just a few steps.
+          {t('welcome.description')}
         </p>
       </div>
       <div className="grid gap-4 text-left max-w-md mx-auto">
@@ -104,9 +108,9 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
             <Camera className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="font-medium">Photograph your clothes</p>
+            <p className="font-medium">{t('welcome.feature1')}</p>
             <p className="text-sm text-muted-foreground">
-              Our AI will automatically tag colors, styles, and more
+              {t('welcome.feature1Desc')}
             </p>
           </div>
         </div>
@@ -115,9 +119,9 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
             <Palette className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="font-medium">Get personalized outfits</p>
+            <p className="font-medium">{t('welcome.feature2')}</p>
             <p className="text-sm text-muted-foreground">
-              Daily recommendations based on weather and your style
+              {t('welcome.feature2Desc')}
             </p>
           </div>
         </div>
@@ -126,15 +130,15 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
             <Users className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="font-medium">Share with family</p>
+            <p className="font-medium">{t('welcome.feature3')}</p>
             <p className="text-sm text-muted-foreground">
-              Everyone can have their own personalized wardrobe
+              {t('welcome.feature3Desc')}
             </p>
           </div>
         </div>
       </div>
       <Button size="lg" onClick={onNext}>
-        Get Started
+        {t('welcome.getStarted')}
         <ArrowRight className="ml-2 w-5 h-5" />
       </Button>
     </div>
@@ -145,6 +149,7 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
   const [mode, setMode] = useState<'create' | 'join' | null>(null);
   const [familyName, setFamilyName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const t = useTranslations('onboarding');
 
   const createFamily = useCreateFamily();
   const joinFamily = useJoinFamily();
@@ -153,10 +158,10 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
     if (!familyName.trim()) return;
     try {
       await createFamily.mutateAsync(familyName.trim());
-      toast.success('Family created!');
+      toast.success(t('family.success'));
       onNext();
     } catch (error) {
-      toast.error('Failed to create family. Please try again.');
+      toast.error(t('family.error'));
     }
   };
 
@@ -164,19 +169,19 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
     if (!inviteCode.trim()) return;
     try {
       await joinFamily.mutateAsync(inviteCode.trim().toUpperCase());
-      toast.success('Joined family!');
+      toast.success(t('family.joinSuccess'));
       onNext();
     } catch (error) {
-      toast.error('Invalid invite code. Please check and try again.');
+      toast.error(t('family.error'));
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight">Family Setup</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('family.title')}</h2>
         <p className="text-muted-foreground mt-1">
-          Create or join a family to share the wardrobe experience
+          {t('family.description')}
         </p>
       </div>
 
@@ -188,17 +193,17 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
           onClick={() => setMode('create')}
         >
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Create Family</CardTitle>
-            <CardDescription>Start a new family</CardDescription>
+            <CardTitle className="text-lg">{t('family.createFamily')}</CardTitle>
+            <CardDescription>{t('family.createFamilyDesc')}</CardDescription>
           </CardHeader>
           {mode === 'create' && (
             <CardContent>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="family-name">Family Name</Label>
+                  <Label htmlFor="family-name">{t('family.familyName')}</Label>
                   <Input
                     id="family-name"
-                    placeholder="e.g., The Smith Family"
+                    placeholder={t('family.familyNamePlaceholder')}
                     value={familyName}
                     onChange={(e) => setFamilyName(e.target.value)}
                   />
@@ -209,7 +214,7 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
                   disabled={!familyName.trim() || createFamily.isPending}
                 >
                   {createFamily.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Family
+                  {t('family.createFamily')}
                 </Button>
               </div>
             </CardContent>
@@ -223,17 +228,17 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
           onClick={() => setMode('join')}
         >
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Join Family</CardTitle>
-            <CardDescription>Use an invite code</CardDescription>
+            <CardTitle className="text-lg">{t('family.joinFamily')}</CardTitle>
+            <CardDescription>{t('family.joinFamilyDesc')}</CardDescription>
           </CardHeader>
           {mode === 'join' && (
             <CardContent>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="invite-code">Invite Code</Label>
+                  <Label htmlFor="invite-code">{t('family.inviteCode')}</Label>
                   <Input
                     id="invite-code"
-                    placeholder="e.g., ABC123XY"
+                    placeholder={t('family.inviteCodePlaceholder')}
                     value={inviteCode}
                     onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                     className="font-mono uppercase"
@@ -245,10 +250,10 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
                   disabled={!inviteCode.trim() || joinFamily.isPending}
                 >
                   {joinFamily.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Join Family
+                  {t('family.joinFamily')}
                 </Button>
                 {joinFamily.isError && (
-                  <p className="text-sm text-destructive">Invalid invite code</p>
+                  <p className="text-sm text-destructive">{t('family.error')}</p>
                 )}
               </div>
             </CardContent>
@@ -258,7 +263,7 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
 
       <div className="text-center">
         <Button variant="ghost" onClick={onSkip}>
-          Skip for now
+          {t('family.skipForNow')}
         </Button>
       </div>
     </div>
@@ -278,10 +283,11 @@ function LocationStep({
   const [detecting, setDetecting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const t = useTranslations('onboarding');
 
   const detectLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
+      toast.error(t('location.locationError'));
       return;
     }
 
@@ -315,7 +321,7 @@ function LocationStep({
       },
       (error) => {
         setDetecting(false);
-        toast.error('Could not detect location. Please enter manually.');
+        toast.error(t('location.locationError'));
       }
     );
   };
@@ -340,10 +346,10 @@ function LocationStep({
       }
 
       await api.patch('/users/me', updateData);
-      toast.success('Location saved!');
+      toast.success(t('location.locationSuccess'));
       onNext();
     } catch (error) {
-      toast.error('Failed to save location. Please try again.');
+      toast.error(t('location.saveError'));
     } finally {
       setSaving(false);
     }
@@ -352,9 +358,9 @@ function LocationStep({
   return (
     <div className="space-y-6 max-w-md mx-auto">
       <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight">Your Location</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('location.title')}</h2>
         <p className="text-muted-foreground mt-1">
-          We use this to provide weather-appropriate outfit suggestions
+          {t('location.description')}
         </p>
       </div>
 
@@ -371,7 +377,7 @@ function LocationStep({
             ) : (
               <MapPin className="mr-2 h-4 w-4" />
             )}
-            Detect My Location
+            {t('location.detectLocation')}
           </Button>
 
           <div className="relative">
@@ -379,15 +385,15 @@ function LocationStep({
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or enter manually</span>
+              <span className="bg-background px-2 text-muted-foreground">{t('location.orManual')}</span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="location">City/Location Name</Label>
+            <Label htmlFor="location">{t('location.cityLabel')}</Label>
             <Input
               id="location"
-              placeholder="e.g., New York, NY"
+              placeholder={t('location.cityPlaceholder')}
               value={locationName}
               onChange={(e) => setLocationName(e.target.value)}
             />
@@ -399,14 +405,14 @@ function LocationStep({
             disabled={!locationName.trim() || saving}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Continue
+            {t('location.continue')}
           </Button>
         </CardContent>
       </Card>
 
       <div className="text-center">
         <Button variant="ghost" onClick={onSkip}>
-          Skip for now
+          {t('family.skipForNow')}
         </Button>
       </div>
     </div>
@@ -425,6 +431,8 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
   });
   const [saving, setSaving] = useState(false);
   const updatePreferences = useUpdatePreferences();
+  const t = useTranslations('onboarding');
+  const clothingColors = useClothingColors();
 
   const toggleColor = (color: string, list: 'favorite' | 'avoid') => {
     if (list === 'favorite') {
@@ -454,10 +462,10 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
         color_avoid: avoidColors,
         style_profile: styleProfile,
       });
-      toast.success('Style preferences saved!');
+      toast.success(t('style.saveSuccess'));
       onNext();
     } catch (error) {
-      toast.error('Failed to save preferences. Please try again.');
+      toast.error(t('style.saveError'));
     } finally {
       setSaving(false);
     }
@@ -466,20 +474,20 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight">Your Style</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('style.title')}</h2>
         <p className="text-muted-foreground mt-1">
-          Help us understand your style preferences
+          {t('style.description')}
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Favorite Colors</CardTitle>
-          <CardDescription>Tap colors you love wearing</CardDescription>
+          <CardTitle className="text-lg">{t('style.favoriteColors')}</CardTitle>
+          <CardDescription>{t('style.favoriteColorsDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {CLOTHING_COLORS.map((color) => {
+            {clothingColors.map((color) => {
               const isSelected = favoriteColors.includes(color.value);
               return (
                 <button
@@ -512,12 +520,12 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Colors to Avoid</CardTitle>
-          <CardDescription>Tap colors you prefer not to wear</CardDescription>
+          <CardTitle className="text-lg">{t('style.colorsToAvoid')}</CardTitle>
+          <CardDescription>{t('style.colorsToAvoidDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {CLOTHING_COLORS.map((color) => {
+            {clothingColors.map((color) => {
               const isSelected = avoidColors.includes(color.value);
               return (
                 <button
@@ -540,7 +548,7 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
                           : 'text-white'
                       }`}
                     >
-                      ×
+                      &times;
                     </span>
                   )}
                 </button>
@@ -552,8 +560,8 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Style Profile</CardTitle>
-          <CardDescription>Adjust how much you prefer each style</CardDescription>
+          <CardTitle className="text-lg">{t('style.styleProfile')}</CardTitle>
+          <CardDescription>{t('style.styleProfileDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {Object.entries(styleProfile).map(([key, value]) => (
@@ -578,11 +586,11 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
 
       <div className="flex justify-between">
         <Button variant="ghost" onClick={onSkip}>
-          Skip for now
+          {t('family.skipForNow')}
         </Button>
         <Button onClick={handleContinue} disabled={saving}>
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Continue
+          {t('location.continue')}
         </Button>
       </div>
     </div>
@@ -594,8 +602,10 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
   const [preview, setPreview] = useState<string | null>(null);
   const [itemType, setItemType] = useState('');
   const createItem = useCreateItem();
+  const t = useTranslations('onboarding');
+  const clothingTypes = useClothingTypes();
 
-  // Clean up blob URL on unmount or when preview changes
+  // Clean up blob URL on unmount or when preview changes on unmount or when preview changes
   useEffect(() => {
     return () => {
       if (preview) {
@@ -633,19 +643,19 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
 
     try {
       await createItem.mutateAsync(formData);
-      toast.success('Item added to your wardrobe!');
+      toast.success(t('firstItem.addToWardrobe'));
       onNext();
     } catch (error) {
-      toast.error('Failed to upload item. Please try again.');
+      toast.error(t('firstItem.uploadError'));
     }
   };
 
   return (
     <div className="space-y-6 max-w-md mx-auto">
       <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight">Add Your First Item</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('firstItem.title')}</h2>
         <p className="text-muted-foreground mt-1">
-          Take a photo or upload an image of a clothing item
+          {t('firstItem.description')}
         </p>
       </div>
 
@@ -657,7 +667,7 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={preview}
-                  alt="Preview"
+                  alt={t('firstItem.previewAlt')}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -666,15 +676,15 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
                 className="w-full"
                 onClick={clearFile}
               >
-                Choose Different Photo
+                {t('firstItem.chooseDifferentPhoto')}
               </Button>
             </div>
           ) : (
             <label className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <Camera className="w-12 h-12 text-muted-foreground mb-4" />
-                <p className="mb-2 text-sm font-medium">Click to upload or take photo</p>
-                <p className="text-xs text-muted-foreground">PNG, JPG, or HEIC</p>
+                <p className="mb-2 text-sm font-medium">{t('firstItem.uploadPrompt')}</p>
+                <p className="text-xs text-muted-foreground">{t('firstItem.formatHint')}</p>
               </div>
               <input
                 type="file"
@@ -688,13 +698,13 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
 
           {file && (
             <div className="space-y-2">
-              <Label htmlFor="item-type">What type of clothing is this?</Label>
+              <Label htmlFor="item-type">{t('firstItem.typeLabel')}</Label>
               <Select value={itemType} onValueChange={setItemType}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select type..." />
+                  <SelectValue placeholder={t('firstItem.typePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {CLOTHING_TYPES.map((type) => (
+                  {clothingTypes.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
                     </SelectItem>
@@ -710,14 +720,14 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
             disabled={!file || !itemType || createItem.isPending}
           >
             {createItem.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Add to Wardrobe
+            {t('firstItem.addToWardrobe')}
           </Button>
         </CardContent>
       </Card>
 
       <div className="text-center">
         <Button variant="ghost" onClick={onSkip}>
-          Skip for now
+          {t('family.skipForNow')}
         </Button>
       </div>
     </div>
@@ -725,6 +735,8 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
 }
 
 function CompleteStep({ onFinish, completing }: { onFinish: () => void; completing: boolean }) {
+  const t = useTranslations('onboarding');
+
   return (
     <div className="text-center space-y-6">
       <div className="flex justify-center">
@@ -733,20 +745,20 @@ function CompleteStep({ onFinish, completing }: { onFinish: () => void; completi
         </div>
       </div>
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">You&apos;re All Set!</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('complete.title')}</h1>
         <p className="text-muted-foreground mt-2 text-lg">
-          Your wardrobe is ready. Start adding clothes and get personalized outfit suggestions!
+          {t('complete.description')}
         </p>
       </div>
       <Button size="lg" onClick={onFinish} disabled={completing}>
         {completing ? (
           <>
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Finishing...
+            {t('complete.finishing')}
           </>
         ) : (
           <>
-            Go to Dashboard
+            {t('complete.goToDashboard')}
             <ArrowRight className="ml-2 w-5 h-5" />
           </>
         )}
@@ -761,8 +773,9 @@ export default function OnboardingPage() {
   const { user, isAuthenticated, isLoading, session } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [completing, setCompleting] = useState(false);
+  const t = useTranslations('onboarding');
 
-  const nextStep = () => setCurrentStep((s) => Math.min(s + 1, STEPS.length));
+  const nextStep = () => setCurrentStep((s) => Math.min(s + 1, 5));
   const prevStep = () => setCurrentStep((s) => Math.max(s - 1, 0));
 
   const completeOnboarding = async () => {
@@ -778,7 +791,7 @@ export default function OnboardingPage() {
       router.push('/dashboard');
     } catch (error) {
       setCompleting(false);
-      toast.error('Failed to complete setup. Please try again.');
+      toast.error(t('complete.setupFailed'));
     }
   };
 
@@ -810,7 +823,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        {currentStep < STEPS.length && <StepIndicator currentStep={currentStep} />}
+        {currentStep < 5 && <StepIndicator currentStep={currentStep} />}
 
         <div className="py-8">
           {currentStep === 0 && <WelcomeStep onNext={nextStep} />}
@@ -823,15 +836,15 @@ export default function OnboardingPage() {
           )}
           {currentStep === 3 && <PreferencesStep onNext={nextStep} onSkip={nextStep} />}
           {currentStep === 4 && <UploadStep onNext={nextStep} onSkip={nextStep} />}
-          {currentStep === STEPS.length && <CompleteStep onFinish={handleFinish} completing={completing} />}
+          {currentStep === 5 && <CompleteStep onFinish={handleFinish} completing={completing} />}
         </div>
 
         {/* Navigation */}
-        {currentStep > 0 && currentStep < STEPS.length && (
+        {currentStep > 0 && currentStep < 5 && (
           <div className="flex justify-center mt-4">
             <Button variant="ghost" onClick={prevStep}>
               <ChevronLeft className="mr-2 h-4 w-4" />
-              Back
+              {t('back')}
             </Button>
           </div>
         )}
