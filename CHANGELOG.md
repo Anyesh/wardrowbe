@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.4...wardrowbe-v1.2.5) (2026-05-14)
+
+
+### 🐛 Bug Fixes
+
+* align .env.example SECRET_KEY with dev-mode sentinel ([a8f9f5e](https://github.com/Anyesh/wardrowbe/commit/a8f9f5e5a8c66da81084e49b18fa8c47f82e11ef)), closes [#72](https://github.com/Anyesh/wardrowbe/issues/72)
+* update cognitive cache thresh ([9170644](https://github.com/Anyesh/wardrowbe/commit/9170644a47140af7fb1e485c42af2688d9b95cde))
+
+
+### 🔧 Maintenance
+
+* add cognitive cache ([886e65f](https://github.com/Anyesh/wardrowbe/commit/886e65f43d5fa89365bb10f122a3066ce7b81551))
+* **deps:** bump astral-sh/setup-uv from 4 to 7 ([84ceb98](https://github.com/Anyesh/wardrowbe/commit/84ceb98defc5c87b7322d4d26469d9fd65238e3f))
+* **deps:** bump googleapis/release-please-action from 4 to 5 ([8a31d2c](https://github.com/Anyesh/wardrowbe/commit/8a31d2c379805284feb4e4d746d340262791b529))
+
+
+### 👷 CI/CD
+
+* install cognitive-cache via uv tool install ([6ede4f2](https://github.com/Anyesh/wardrowbe/commit/6ede4f237567de29c250936f4bc05ff6b896f99e))
+
+
+### 📦 Build
+
+* **deps:** bump codecov/codecov-action from 4 to 6 ([436997e](https://github.com/Anyesh/wardrowbe/commit/436997e8a4ff461a6336c442f6872da441dce1f7))
+
 ## [1.2.4](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.3...wardrowbe-v1.2.4) (2026-04-17)
 
 
