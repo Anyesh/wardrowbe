@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
 from typing import Annotated
+from urllib.parse import urlencode
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import DEFAULT_SECRET_KEY, get_settings
@@ -45,6 +47,18 @@ def _is_dev_mode() -> bool:
 
 def _oidc_configured() -> bool:
     return bool(settings.oidc_issuer_url and settings.oidc_client_id)
+
+
+MOBILE_APP_SCHEME = "wardrowbe"
+
+
+@router.get("/mobile-callback")
+async def mobile_oidc_callback(request: Request) -> RedirectResponse:
+    params = dict(request.query_params)
+    target = f"{MOBILE_APP_SCHEME}://auth/callback"
+    if params:
+        target = f"{target}?{urlencode(params)}"
+    return RedirectResponse(url=target, status_code=302)
 
 
 @router.get("/config", response_model=AuthConfigResponse)
