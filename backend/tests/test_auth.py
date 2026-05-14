@@ -104,6 +104,54 @@ class TestAuthSync:
         assert response.status_code == 422
 
 
+class TestMobileCallback:
+    @pytest.mark.asyncio
+    async def test_mobile_callback_redirects_with_params(self, client: AsyncClient):
+        response = await client.get(
+            "/api/v1/auth/mobile-callback",
+            params={"code": "test-auth-code", "state": "test-state"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 302
+        location = response.headers["location"]
+        assert location.startswith("wardrowbe://auth/callback?")
+        assert "code=test-auth-code" in location
+        assert "state=test-state" in location
+
+    @pytest.mark.asyncio
+    async def test_mobile_callback_redirects_without_params(self, client: AsyncClient):
+        response = await client.get(
+            "/api/v1/auth/mobile-callback",
+            follow_redirects=False,
+        )
+        assert response.status_code == 302
+        assert response.headers["location"] == "wardrowbe://auth/callback"
+
+    @pytest.mark.asyncio
+    async def test_mobile_callback_preserves_error_params(self, client: AsyncClient):
+        response = await client.get(
+            "/api/v1/auth/mobile-callback",
+            params={"error": "access_denied", "error_description": "User cancelled"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 302
+        location = response.headers["location"]
+        assert "error=access_denied" in location
+        assert "error_description=User+cancelled" in location
+
+    @pytest.mark.asyncio
+    async def test_mobile_callback_only_redirects_to_app_scheme(self, client: AsyncClient):
+        response = await client.get(
+            "/api/v1/auth/mobile-callback",
+            params={"code": "x", "redirect": "https://evil.com"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 302
+        location = response.headers["location"]
+        assert location.startswith("wardrowbe://")
+        assert not location.startswith("https://evil.com")
+
+
 class TestProtectedRoutes:
     """Tests for authentication requirement on protected routes."""
 
