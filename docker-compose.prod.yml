@@ -38,9 +38,7 @@ services:
 
   # FastAPI Backend
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/anyesh/wardrowbe-backend:latest
     container_name: wardrobe_backend
     restart: unless-stopped
     extra_hosts:
@@ -91,9 +89,7 @@ services:
 
   # arq Worker for background jobs
   worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/anyesh/wardrowbe-backend:latest
     container_name: wardrobe_worker
     restart: unless-stopped
     command: arq app.workers.worker.WorkerSettings
@@ -130,11 +126,7 @@ services:
 
   # Next.js Frontend
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ""
+    image: ghcr.io/anyesh/wardrowbe-frontend:latest
     container_name: wardrobe_frontend
     restart: unless-stopped
     extra_hosts:

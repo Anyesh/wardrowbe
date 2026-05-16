@@ -35,9 +35,7 @@ services:
 
   # FastAPI Backend
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/anyesh/wardrowbe-backend:latest
     container_name: wardrobe-backend
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -78,9 +76,7 @@ services:
 
   # Next.js Frontend
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/anyesh/wardrowbe-frontend:latest
     container_name: wardrobe-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://backend:8000
@@ -95,9 +91,7 @@ services:
 
 # Background Worker for AI Tagging
   worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/anyesh/wardrowbe-backend:latest
     container_name: wardrobe-worker
     command: arq app.workers.worker.WorkerSettings
     extra_hosts:

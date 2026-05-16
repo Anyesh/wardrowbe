@@ -204,8 +204,8 @@ jobs:
           context: ./backend
           push: false
           tags: wardrowbe/backend:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
       - name: Build frontend image
         uses: docker/build-push-action@v7
@@ -213,5 +213,5 @@ jobs:
           context: ./frontend
           push: false
           tags: wardrowbe/frontend:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
