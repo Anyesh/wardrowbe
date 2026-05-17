@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from app.schemas.notification import EmailConfig, ExpoPushConfig, MattermostConfig, NtfyConfig
+from app.schemas.notification import DiscordConfig, EmailConfig, ExpoPushConfig, MattermostConfig, NtfyConfig
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +151,74 @@ class MattermostProvider:
         try:
             result = await self.send(
                 MattermostMessage(text="This is a test message from Wardrowbe.")
+            )
+            if result.get("success"):
+                return True, "Test notification sent successfully"
+            return False, result.get("error", "Unknown error")
+        except Exception as e:
+            return False, str(e)
+
+
+# Discord Provider
+@dataclass
+class DiscordEmbed:
+    title: str
+    description: str = ""
+    color: int = 0x3B82F6
+    fields: list[dict] = field(default_factory=list)
+    footer: str | None = None
+
+
+@dataclass
+class DiscordMessage:
+    embeds: list[DiscordEmbed]
+    username: str = "Wardrowbe"
+
+
+class DiscordProvider:
+    def __init__(self, config: DiscordConfig):
+        self.webhook_url = config.webhook_url
+
+    async def send(self, message: DiscordMessage) -> dict:
+        payload: dict = {
+            "username": message.username,
+            "embeds": [
+                {
+                    "title": e.title,
+                    "description": e.description,
+                    "color": e.color,
+                    "fields": e.fields,
+                    **({"footer": {"text": e.footer}} if e.footer else {}),
+                }
+                for e in message.embeds
+            ],
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+                response = await client.post(self.webhook_url, json=payload)
+
+                if response.status_code in (200, 204):
+                    return {"success": True}
+                else:
+                    error = f"HTTP {response.status_code}: {response.text}"
+                    logger.warning("Discord request failed: %s", error)
+                    return {"success": False, "error": error}
+        except Exception as e:
+            logger.exception("Discord send failed")
+            return {"success": False, "error": str(e)}
+
+    async def test_connection(self) -> tuple[bool, str]:
+        try:
+            result = await self.send(
+                DiscordMessage(
+                    embeds=[
+                        DiscordEmbed(
+                            title="Wardrowbe Test",
+                            description="This is a test notification from Wardrowbe.",
+                        )
+                    ]
+                )
             )
             if result.get("success"):
                 return True, "Test notification sent successfully"
