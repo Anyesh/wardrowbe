@@ -38,7 +38,7 @@ services:
 
   # FastAPI Backend
   backend:
-    image: ghcr.io/sirkitboard/wardrowbe:backend-latest
+    image: ghcr.io/anyesh/wardrowbe:backend-latest
     container_name: wardrobe_backend
     restart: unless-stopped
     extra_hosts:
@@ -89,7 +89,7 @@ services:
 
   # arq Worker for background jobs
   worker:
-    image: ghcr.io/sirkitboard/wardrowbe:backend-latest
+    image: ghcr.io/anyesh/wardrowbe:backend-latest
     container_name: wardrobe_worker
     restart: unless-stopped
     command: arq app.workers.worker.WorkerSettings
@@ -126,7 +126,7 @@ services:
 
   # Next.js Frontend
   frontend:
-    image: ghcr.io/sirkitboard/wardrowbe:frontend-latest
+    image: ghcr.io/anyesh/wardrowbe:frontend-latest
     container_name: wardrobe_frontend
     restart: unless-stopped
     extra_hosts:
