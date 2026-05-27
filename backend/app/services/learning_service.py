@@ -272,69 +272,77 @@ class LearningService:
         for item1, item2 in combinations(items, 2):
             id1, id2 = (item1.id, item2.id) if item1.id < item2.id else (item2.id, item1.id)
 
-            # Get or create pair score
-            result = await self.db.execute(
-                select(ItemPairScore).where(
-                    and_(
-                        ItemPairScore.user_id == outfit.user_id,
-                        ItemPairScore.item1_id == id1,
-                        ItemPairScore.item2_id == id2,
+            try:
+                # Get or create pair score
+                result = await self.db.execute(
+                    select(ItemPairScore).where(
+                        and_(
+                            ItemPairScore.user_id == outfit.user_id,
+                            ItemPairScore.item1_id == id1,
+                            ItemPairScore.item2_id == id2,
+                        )
                     )
                 )
-            )
-            pair_score = result.scalar_one_or_none()
+                pair_score = result.scalar_one_or_none()
 
-            if not pair_score:
-                pair_score = ItemPairScore(
-                    user_id=outfit.user_id,
-                    item1_id=id1,
-                    item2_id=id2,
-                )
-                self.db.add(pair_score)
-
-            # Update counts
-            pair_score.times_paired += 1
-
-            if feedback.accepted is True:
-                pair_score.times_accepted += 1
-            elif feedback.accepted is False:
-                pair_score.times_rejected += 1
-
-            if feedback.rating is not None:
-                pair_score.total_rating_sum += feedback.rating
-                pair_score.rating_count += 1
-
-            # Update occasion performance
-            occasion = outfit.occasion
-            occasion_perf = (
-                dict(pair_score.occasion_performance) if pair_score.occasion_performance else {}
-            )
-            if occasion not in occasion_perf:
-                occasion_perf[occasion] = {"count": 0, "positive": 0}
-            occasion_perf[occasion]["count"] += 1
-            if is_positive:
-                occasion_perf[occasion]["positive"] += 1
-            pair_score.occasion_performance = occasion_perf
-
-            # Update weather performance
-            if outfit.weather_data:
-                temp = outfit.weather_data.get("temperature")
-                if temp is not None:
-                    temp_bucket = self._get_temp_bucket(temp)
-                    weather_perf = (
-                        dict(pair_score.weather_performance)
-                        if pair_score.weather_performance
-                        else {}
+                if not pair_score:
+                    pair_score = ItemPairScore(
+                        user_id=outfit.user_id,
+                        item1_id=id1,
+                        item2_id=id2,
                     )
-                    if temp_bucket not in weather_perf:
-                        weather_perf[temp_bucket] = {"count": 0, "positive": 0}
-                    weather_perf[temp_bucket]["count"] += 1
+                    self.db.add(pair_score)
+
+                # Update counts
+                pair_score.times_paired = (pair_score.times_paired or 0) + 1
+
+                if feedback.accepted is True:
+                    pair_score.times_accepted = (pair_score.times_accepted or 0) + 1
+                elif feedback.accepted is False:
+                    pair_score.times_rejected = (pair_score.times_rejected or 0) + 1
+
+                if feedback.rating is not None:
+                    pair_score.total_rating_sum = (pair_score.total_rating_sum or 0) + feedback.rating
+                    pair_score.rating_count = (pair_score.rating_count or 0) + 1
+
+                    # Update occasion performance
+                    occasion = outfit.occasion
+                    occasion_perf = (
+                        dict(pair_score.occasion_performance) if pair_score.occasion_performance else {}
+                    )
+                    if occasion not in occasion_perf:
+                        occasion_perf[occasion] = {"count": 0, "positive": 0}
+                    occasion_perf[occasion]["count"] += 1
                     if is_positive:
-                        weather_perf[temp_bucket]["positive"] += 1
-                    pair_score.weather_performance = weather_perf
+                        occasion_perf[occasion]["positive"] += 1
+                    pair_score.occasion_performance = occasion_perf
 
-            # Recompute compatibility score
-            pair_score.compatibility_score = self._compute_pair_compatibility(pair_score)
+                    # Update weather performance
+                    if outfit.weather_data:
+                        temp = outfit.weather_data.get("temperature")
+                        if temp is not None:
+                            temp_bucket = self._get_temp_bucket(temp)
+                            weather_perf = (
+                                dict(pair_score.weather_performance)
+                                if pair_score.weather_performance
+                                else {}
+                            )
+                            if temp_bucket not in weather_perf:
+                                weather_perf[temp_bucket] = {"count": 0, "positive": 0}
+                            weather_perf[temp_bucket]["count"] += 1
+                            if is_positive:
+                                weather_perf[temp_bucket]["positive"] += 1
+                            pair_score.weather_performance = weather_perf
+
+                    # Recompute compatibility score
+                    pair_score.compatibility_score = self._compute_pair_compatibility(pair_score)
+
+            except Exception:
+                logger.exception(
+                    f"[_update_item_pair_scores] Exception processing pair {id1} + {id2} "
+                    f"for outfit {outfit.id}, user {outfit.user_id}"
+                )
+                raise
 
     async def _process_wore_instead(self, outfit: Outfit) -> None:
         """
@@ -394,12 +402,12 @@ class LearningService:
                 self.db.add(pair_score)
 
             # Strong positive signal - user chose this over our recommendation
-            pair_score.times_paired += 1
-            pair_score.times_accepted += 1  # Treat as accepted since user chose it
+            pair_score.times_paired = (pair_score.times_paired or 0) + 1
+            pair_score.times_accepted = (pair_score.times_accepted or 0) + 1  # Treat as accepted since user chose it
 
             # Give a strong rating boost (equivalent to 5-star rating)
-            pair_score.total_rating_sum += 5
-            pair_score.rating_count += 1
+            pair_score.total_rating_sum = (pair_score.total_rating_sum or 0) + 5
+            pair_score.rating_count = (pair_score.rating_count or 0) + 1
 
             # Recompute compatibility
             pair_score.compatibility_score = self._compute_pair_compatibility(pair_score)

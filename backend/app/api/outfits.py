@@ -672,6 +672,7 @@ async def submit_feedback(
         feedback = outfit.feedback
     else:
         feedback = UserFeedback(outfit_id=outfit.id)
+        outfit.feedback = feedback
         db.add(feedback)
 
     if request.accepted is not None:
