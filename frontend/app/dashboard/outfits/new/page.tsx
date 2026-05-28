@@ -99,12 +99,13 @@ export default function StudioEditorPage() {
     setDraftPrompted(true);
   }, [draftPrompted, isEditMode]);
 
+  const draftItemCount = pendingDraft?.items.length ?? 0;
   const { data: draftItemsData } = useItems(
     pendingDraft
       ? { ids: pendingDraft.items.join(','), is_archived: false }
       : { is_archived: false },
     1,
-    50
+    draftItemCount > 0 ? draftItemCount : 50
   );
 
   const handleResumeDraft = useCallback(() => {
