@@ -302,40 +302,39 @@ class LearningService:
                     pair_score.times_rejected = (pair_score.times_rejected or 0) + 1
 
                 if feedback.rating is not None:
-                    pair_score.total_rating_sum = (pair_score.total_rating_sum or 0) + feedback.rating
+                    pair_score.total_rating_sum = (
+                        pair_score.total_rating_sum or 0
+                    ) + feedback.rating
                     pair_score.rating_count = (pair_score.rating_count or 0) + 1
 
-                    # Update occasion performance
-                    occasion = outfit.occasion
-                    occasion_perf = (
-                        dict(pair_score.occasion_performance) if pair_score.occasion_performance else {}
-                    )
-                    if occasion not in occasion_perf:
-                        occasion_perf[occasion] = {"count": 0, "positive": 0}
-                    occasion_perf[occasion]["count"] += 1
-                    if is_positive:
-                        occasion_perf[occasion]["positive"] += 1
-                    pair_score.occasion_performance = occasion_perf
+                occasion = outfit.occasion
+                occasion_perf = (
+                    dict(pair_score.occasion_performance) if pair_score.occasion_performance else {}
+                )
+                if occasion not in occasion_perf:
+                    occasion_perf[occasion] = {"count": 0, "positive": 0}
+                occasion_perf[occasion]["count"] += 1
+                if is_positive:
+                    occasion_perf[occasion]["positive"] += 1
+                pair_score.occasion_performance = occasion_perf
 
-                    # Update weather performance
-                    if outfit.weather_data:
-                        temp = outfit.weather_data.get("temperature")
-                        if temp is not None:
-                            temp_bucket = self._get_temp_bucket(temp)
-                            weather_perf = (
-                                dict(pair_score.weather_performance)
-                                if pair_score.weather_performance
-                                else {}
-                            )
-                            if temp_bucket not in weather_perf:
-                                weather_perf[temp_bucket] = {"count": 0, "positive": 0}
-                            weather_perf[temp_bucket]["count"] += 1
-                            if is_positive:
-                                weather_perf[temp_bucket]["positive"] += 1
-                            pair_score.weather_performance = weather_perf
+                if outfit.weather_data:
+                    temp = outfit.weather_data.get("temperature")
+                    if temp is not None:
+                        temp_bucket = self._get_temp_bucket(temp)
+                        weather_perf = (
+                            dict(pair_score.weather_performance)
+                            if pair_score.weather_performance
+                            else {}
+                        )
+                        if temp_bucket not in weather_perf:
+                            weather_perf[temp_bucket] = {"count": 0, "positive": 0}
+                        weather_perf[temp_bucket]["count"] += 1
+                        if is_positive:
+                            weather_perf[temp_bucket]["positive"] += 1
+                        pair_score.weather_performance = weather_perf
 
-                    # Recompute compatibility score
-                    pair_score.compatibility_score = self._compute_pair_compatibility(pair_score)
+                pair_score.compatibility_score = self._compute_pair_compatibility(pair_score)
 
             except Exception:
                 logger.exception(
@@ -403,7 +402,9 @@ class LearningService:
 
             # Strong positive signal - user chose this over our recommendation
             pair_score.times_paired = (pair_score.times_paired or 0) + 1
-            pair_score.times_accepted = (pair_score.times_accepted or 0) + 1  # Treat as accepted since user chose it
+            pair_score.times_accepted = (
+                pair_score.times_accepted or 0
+            ) + 1  # Treat as accepted since user chose it
 
             # Give a strong rating boost (equivalent to 5-star rating)
             pair_score.total_rating_sum = (pair_score.total_rating_sum or 0) + 5
