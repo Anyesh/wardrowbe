@@ -38,6 +38,12 @@ export function getNetworkLocationUrl(): string {
   return process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL || DEFAULT_NETWORK_LOCATION_URL;
 }
 
+// Off by default: the IP fallback sends the user's address to a third-party service,
+// so operators must opt in explicitly.
+export function isNetworkLocationFallbackEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK === 'true';
+}
+
 export function resolveNetworkLocation(
   data: NetworkLocationApiResponse,
   fallbackTimezone?: string

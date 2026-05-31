@@ -5,6 +5,7 @@ import {
   formatReverseGeocodedLocation,
   getNetworkLocationUrl,
   getGeolocationFailureMessage,
+  isNetworkLocationFallbackEnabled,
   resolveNetworkLocation,
 } from '@/lib/location'
 
@@ -19,6 +20,25 @@ describe('location helpers', () => {
       delete process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL
     } else {
       process.env.NEXT_PUBLIC_NETWORK_LOCATION_URL = original
+    }
+  })
+
+  it('keeps the IP location fallback disabled unless explicitly enabled', () => {
+    const original = process.env.NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK
+
+    delete process.env.NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK
+    expect(isNetworkLocationFallbackEnabled()).toBe(false)
+
+    process.env.NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK = 'false'
+    expect(isNetworkLocationFallbackEnabled()).toBe(false)
+
+    process.env.NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK = 'true'
+    expect(isNetworkLocationFallbackEnabled()).toBe(true)
+
+    if (original === undefined) {
+      delete process.env.NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK
+    } else {
+      process.env.NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK = original
     }
   })
 

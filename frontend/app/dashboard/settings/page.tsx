@@ -23,6 +23,7 @@ import {
   getNetworkLocationUrl,
   formatReverseGeocodedLocation,
   getGeolocationFailureMessage,
+  isNetworkLocationFallbackEnabled,
   resolveNetworkLocation,
 } from '@/lib/location';
 import { CLOTHING_COLORS, OCCASIONS, Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
@@ -275,6 +276,11 @@ export default function SettingsPage() {
     };
 
     const fallbackToNetworkLocation = async (reason?: string) => {
+      if (!isNetworkLocationFallbackEnabled()) {
+        toast.error(reason || 'Unable to detect your location.');
+        setIsGettingLocation(false);
+        return;
+      }
       try {
         await detectLocationFromNetwork();
         toast.success(
