@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.4...wardrowbe-v1.3.0) (2026-05-31)
+
+
+### ✨ Features
+
+* add mobile callback [#58](https://github.com/Anyesh/wardrowbe/issues/58) ([44cf285](https://github.com/Anyesh/wardrowbe/commit/44cf285d3d612d1e1e97d1af110c284b716cb398))
+
+
+### 🐛 Bug Fixes
+
+* align .env.example SECRET_KEY with dev-mode sentinel ([a8f9f5e](https://github.com/Anyesh/wardrowbe/commit/a8f9f5e5a8c66da81084e49b18fa8c47f82e11ef)), closes [#72](https://github.com/Anyesh/wardrowbe/issues/72)
+* Item pair score initialization for learning service ([9f7de07](https://github.com/Anyesh/wardrowbe/commit/9f7de07deb7216c55c2a091b481fc98be71d4ad2))
+* select wardrobe items beyond the first page in studio ([c73c571](https://github.com/Anyesh/wardrowbe/commit/c73c5717ff23fd849154f5e44569d854400bb600))
+* update cognitive cache thresh ([9170644](https://github.com/Anyesh/wardrowbe/commit/9170644a47140af7fb1e485c42af2688d9b95cde))
+* update pair context for feedback without a rating ([3764dec](https://github.com/Anyesh/wardrowbe/commit/3764dec0c6462aad253bed6ea3bf4a834b31e2b7))
+
+
+### 🔧 Maintenance
+
+* add cognitive cache ([886e65f](https://github.com/Anyesh/wardrowbe/commit/886e65f43d5fa89365bb10f122a3066ce7b81551))
+* **deps:** bump astral-sh/setup-uv from 4 to 7 ([84ceb98](https://github.com/Anyesh/wardrowbe/commit/84ceb98defc5c87b7322d4d26469d9fd65238e3f))
+* **deps:** bump googleapis/release-please-action from 4 to 5 ([8a31d2c](https://github.com/Anyesh/wardrowbe/commit/8a31d2c379805284feb4e4d746d340262791b529))
+
+
+### 👷 CI/CD
+
+* install cognitive-cache via uv tool install ([6ede4f2](https://github.com/Anyesh/wardrowbe/commit/6ede4f237567de29c250936f4bc05ff6b896f99e))
+
+
+### 📦 Build
+
+* **deps:** bump codecov/codecov-action from 4 to 6 ([436997e](https://github.com/Anyesh/wardrowbe/commit/436997e8a4ff461a6336c442f6872da441dce1f7))
+
 ## [1.2.4](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.3...wardrowbe-v1.2.4) (2026-04-17)
 
 
