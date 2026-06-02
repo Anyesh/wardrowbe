@@ -67,6 +67,7 @@ function getSourceBadge(outfit: Outfit): {
 
 function getCardTitle(outfit: Outfit): string {
   if (outfit.name) return outfit.name;
+  if (outfit.reasoning) return outfit.reasoning;
   if (outfit.highlights && outfit.highlights.length > 0) {
     return outfit.highlights[0];
   }

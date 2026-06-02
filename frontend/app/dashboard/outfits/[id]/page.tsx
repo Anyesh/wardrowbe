@@ -78,7 +78,7 @@ export default function OutfitDetailPage() {
     }
   };
 
-  const title = outfit.name || `${outfit.occasion} outfit`;
+  const title = outfit.name || outfit.reasoning || `${outfit.occasion} outfit`;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -108,6 +108,35 @@ export default function OutfitDetailPage() {
               : 'Lookbook template'}
           </span>
         </div>
+
+        {/* AI reasoning */}
+        {(outfit.reasoning || outfit.highlights) && (
+          <div className="mt-2 space-y-1.5 text-xs flex-1">
+            {outfit.reasoning && (
+              <p className="font-medium text-foreground break-words">{outfit.reasoning}</p>
+            )}
+            {outfit.highlights && outfit.highlights.length > 0 && (
+              <ul className="space-y-0.5">
+                {outfit.highlights.slice(0, 3).map((highlight, index) => (
+                  <li key={index} className="flex items-start gap-1.5 text-muted-foreground">
+                    <span className="text-primary">•</span>
+                    <span>{highlight}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* Styling tip */}
+        {outfit.style_notes && (
+          <div className="mt-2 p-2 bg-muted rounded border text-xs">
+            <p className="text-muted-foreground">
+              <span className="font-medium text-foreground">Tip:</span> {outfit.style_notes}
+            </p>
+          </div>
+        )}
+
       </div>
 
       <LineageCard outfit={outfit} />

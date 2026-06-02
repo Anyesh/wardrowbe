@@ -155,8 +155,8 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
               <ul className="space-y-0.5">
                 {pairing.highlights.slice(0, 3).map((highlight, index) => (
                   <li key={index} className="flex items-start gap-1.5 text-muted-foreground">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span className="line-clamp-2">{highlight}</span>
+                    <span className="text-primary">•</span>
+                    <span>{highlight}</span>
                   </li>
                 ))}
               </ul>
