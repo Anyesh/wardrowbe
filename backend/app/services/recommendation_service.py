@@ -250,6 +250,31 @@ class RecommendationService:
 
         return "\n".join(lines), number_map
 
+    def _format_mandatory_items_section(
+        self,
+        mandatory_item_ids: list[UUID] | None,
+        id_to_number: dict[int, UUID],
+    ) -> str:
+        if not mandatory_item_ids:
+            return ""
+
+        uuid_to_number = {v: k for k, v in id_to_number.items()}
+        mandatory_numbers = []
+        for item_id in mandatory_item_ids:
+            if item_id in uuid_to_number:
+                mandatory_numbers.append(uuid_to_number[item_id])
+
+        if not mandatory_numbers:
+            return ""
+
+        mandatory_numbers_sorted = sorted(mandatory_numbers)
+        mandatory_refs = ", ".join(f"[{n}]" for n in mandatory_numbers_sorted)
+        return (
+            f"MANDATORY ITEMS (MUST include in every outfit):\n"
+            f"The following items are already selected and MUST appear in all 3 outfit suggestions: {mandatory_refs}\n\n"
+            f"Complete each outfit with complementary pieces from the available items above."
+        )
+
     def _format_preferences_for_prompt(
         self,
         preferences: UserPreference | None,
@@ -738,10 +763,12 @@ class RecommendationService:
             learned_prefs=learned_prefs,
             good_pairs=good_pairs,
             recently_worn_dates=recently_worn_dates,
+            mandatory_item_ids=set(include_items) if include_items else None,
         )
 
         # Format enriched prompt
         items_text, number_map = self._format_items_for_prompt(scored, good_pairs, user_today)
+        mandatory_items_section = self._format_mandatory_items_section(include_items, number_map)
 
         worn_combinations = await self._get_recently_worn_outfit_combinations(user, days=7)
 
@@ -763,6 +790,7 @@ class RecommendationService:
             precipitation_chance=weather.precipitation_chance,
             preferences_text=preferences_text,
             items_text=items_text,
+            mandatory_items_section=mandatory_items_section,
         )
 
         # For single_outfit mode (notifications), replace multi-outfit format

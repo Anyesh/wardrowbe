@@ -242,6 +242,16 @@ def _usage_score(item: ClothingItem, median_wear: float) -> float:
         return 0.9
 
 
+def _sort_mandatory_first(
+    scored: list[ScoredItem],
+    mandatory_item_ids: set[UUID] | None,
+) -> list[ScoredItem]:
+    if not mandatory_item_ids:
+        return scored
+
+    return sorted(scored, key=lambda s: s.item.id not in mandatory_item_ids)
+
+
 def _pair_bonus(
     item: ClothingItem,
     top_items: list[ClothingItem],
@@ -269,9 +279,11 @@ def score_items(
     learned_prefs: dict | None,
     good_pairs: dict[UUID, list[UUID]],
     recently_worn_dates: dict[UUID, date],
+    mandatory_item_ids: set[UUID] | None = None,
 ) -> list[ScoredItem]:
     if len(items) < MIN_ITEMS_FOR_SCORING:
-        return [ScoredItem(item=item) for item in items]
+        scored = [ScoredItem(item=item) for item in items]
+        return _sort_mandatory_first(scored, mandatory_item_ids)
 
     avoid_days = 7
     if preferences and preferences.avoid_repeat_days is not None:
@@ -319,4 +331,5 @@ def score_items(
         si.score += si.pair_bonus
 
     scored.sort(key=lambda s: s.score, reverse=True)
+    scored = _sort_mandatory_first(scored, mandatory_item_ids)
     return scored[:TOP_N]
