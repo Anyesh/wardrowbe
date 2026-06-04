@@ -13,6 +13,7 @@ import {
   Calendar,
   Mail,
   MessageSquare,
+  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,12 +78,14 @@ const CHANNEL_ICONS: Record<string, React.ReactNode> = {
   ntfy: <Bell className="h-5 w-5" />,
   mattermost: <MessageSquare className="h-5 w-5" />,
   email: <Mail className="h-5 w-5" />,
+  discord: <Hash className="h-5 w-5" />,
 };
 
 const CHANNEL_LABELS: Record<string, string> = {
   ntfy: 'ntfy Push',
   mattermost: 'Mattermost',
   email: 'Email',
+  discord: 'Discord',
 };
 
 function ChannelCard({
@@ -112,6 +115,7 @@ function ChannelCard({
                 {setting.channel === 'ntfy' && setting.config.topic}
                 {setting.channel === 'mattermost' && 'Webhook configured'}
                 {setting.channel === 'email' && setting.config.address}
+                {setting.channel === 'discord' && 'Webhook configured'}
               </p>
             </div>
           </div>
@@ -147,7 +151,7 @@ function ChannelCard({
 }
 
 interface ChannelFormData {
-  channel: 'ntfy' | 'mattermost' | 'email';
+  channel: 'ntfy' | 'mattermost' | 'email' | 'discord';
   enabled: boolean;
   priority: number;
   config: Record<string, string>;
@@ -165,7 +169,7 @@ function AddChannelDialog({
   userEmail?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [channel, setChannel] = useState<'ntfy' | 'mattermost' | 'email'>('ntfy');
+  const [channel, setChannel] = useState<'ntfy' | 'mattermost' | 'email' | 'discord'>('ntfy');
   const [config, setConfig] = useState<Record<string, string>>({});
   const [ntfyDefaults, setNtfyDefaults] = useState<{ server: string; token: string } | null>(null);
 
@@ -211,6 +215,10 @@ function AddChannelDialog({
       toast.error('Webhook URL is required for Mattermost');
       return;
     }
+    if (channel === 'discord' && !config.webhook_url?.trim()) {
+      toast.error('Webhook URL is required for Discord');
+      return;
+    }
     if (channel === 'email' && !config.address?.trim()) {
       toast.error('Email address is required');
       return;
@@ -236,7 +244,7 @@ function AddChannelDialog({
   const closeAndReset = () => {
     setOpen(false);
     setConfig({});
-    setChannel('ntfy');
+    setChannel('ntfy' as const);
   };
 
   return (
@@ -260,7 +268,7 @@ function AddChannelDialog({
               <Label>Channel Type</Label>
               <Select
                 value={channel}
-                onValueChange={(v: 'ntfy' | 'mattermost' | 'email') => {
+                onValueChange={(v: 'ntfy' | 'mattermost' | 'email' | 'discord') => {
                   setChannel(v);
                   setConfig({});
                 }}
@@ -272,6 +280,7 @@ function AddChannelDialog({
                   <SelectItem value="ntfy">ntfy Push Notifications</SelectItem>
                   <SelectItem value="mattermost">Mattermost</SelectItem>
                   <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="discord">Discord</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -343,6 +352,22 @@ function AddChannelDialog({
                   placeholder="you@example.com"
                   required
                 />
+              </div>
+            )}
+
+            {channel === 'discord' && (
+              <div className="space-y-2">
+                <Label htmlFor="discord-webhook">Webhook URL *</Label>
+                <Input
+                  id="discord-webhook"
+                  value={config.webhook_url || ''}
+                  onChange={(e) => setConfig({ ...config, webhook_url: e.target.value })}
+                  placeholder="https://discord.com/api/webhooks/..."
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Create a webhook in your Discord channel settings under Integrations
+                </p>
               </div>
             )}
           </div>

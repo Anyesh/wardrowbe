@@ -13,8 +13,11 @@ from app.models.notification import Notification, NotificationSettings, Notifica
 from app.models.outfit import Outfit, OutfitItem
 from app.models.schedule import Schedule
 from app.models.user import User
-from app.schemas.notification import EmailConfig, ExpoPushConfig, MattermostConfig, NtfyConfig
+from app.schemas.notification import DiscordConfig, EmailConfig, ExpoPushConfig, MattermostConfig, NtfyConfig
 from app.services.notification_providers import (
+    DiscordEmbed,
+    DiscordMessage,
+    DiscordProvider,
     EmailMessage,
     EmailProvider,
     ExpoPushMessage,
@@ -151,6 +154,10 @@ class NotificationService:
             elif setting.channel == "expo_push":
                 success, message = await ExpoPushProvider(
                     ExpoPushConfig(**setting.config)
+                ).test_connection()
+            elif setting.channel == "discord":
+                success, message = await DiscordProvider(
+                    DiscordConfig(**setting.config)
                 ).test_connection()
             else:
                 return False, f"Unknown channel: {setting.channel}"
@@ -414,6 +421,11 @@ class NotificationDispatcher:
                 message = self._build_expo_push_message(outfit, user, for_tomorrow)
                 result = await provider.send(message)
 
+            elif channel_config.channel == "discord":
+                provider = DiscordProvider(DiscordConfig(**channel_config.config))
+                message = self._build_discord_message(outfit, user, for_tomorrow)
+                result = await provider.send(message)
+
             else:
                 return NotificationResult(
                     channel=channel_config.channel,
@@ -442,6 +454,19 @@ class NotificationDispatcher:
                 error=str(e),
             )
 
+    @staticmethod
+    def _get_highlights(outfit: Outfit) -> list[str]:
+        if outfit.ai_raw_response and isinstance(outfit.ai_raw_response, dict):
+            return outfit.ai_raw_response.get("highlights", [])[:3]
+        return []
+
+    @staticmethod
+    def _weather_text(outfit: Outfit) -> str:
+        if outfit.weather_data:
+            weather = outfit.weather_data
+            return f" | {weather.get('temperature', '?')}°C {weather.get('condition', '')}"
+        return ""
+
     def _build_ntfy_notification(
         self, outfit: Outfit, user: User, for_tomorrow: bool = False
     ) -> NtfyNotification:
@@ -466,15 +491,9 @@ class NotificationDispatcher:
         if outfit.reasoning:
             parts.append(outfit.reasoning)
 
-        # Add highlights from ai_raw_response if available
-        highlights = []
-        if outfit.ai_raw_response and isinstance(outfit.ai_raw_response, dict):
-            highlights = outfit.ai_raw_response.get("highlights", [])
-
-        if highlights and isinstance(highlights, list):
-            # Format highlights as bullet points
-            highlight_lines = [f"* {h}" for h in highlights[:3]]  # Limit to 3
-            parts.append("\n".join(highlight_lines))
+        highlights = self._get_highlights(outfit)
+        if highlights:
+            parts.append("\n".join(f"* {h}" for h in highlights))
 
         # Add styling tip if available
         if outfit.style_notes:
@@ -508,38 +527,24 @@ class NotificationDispatcher:
     def _build_mattermost_message(
         self, outfit: Outfit, user: User, for_tomorrow: bool = False
     ) -> MattermostMessage:
-        weather_text = ""
-        if outfit.weather_data:
-            weather = outfit.weather_data
-            weather_text = f" | {weather.get('temperature', '?')}C {weather.get('condition', '')}"
-
         day_label = "Tomorrow" if for_tomorrow else "Today"
         greeting = "Good evening" if for_tomorrow else "Good morning"
 
-        # Build message text with structured data
         text_parts = []
-
-        # Add headline (stored in reasoning)
         if outfit.reasoning:
             text_parts.append(f"**{outfit.reasoning}**")
 
-        # Add highlights from ai_raw_response as markdown list
-        highlights = []
-        if outfit.ai_raw_response and isinstance(outfit.ai_raw_response, dict):
-            highlights = outfit.ai_raw_response.get("highlights", [])
+        highlights = self._get_highlights(outfit)
+        if highlights:
+            text_parts.append("\n".join(f"- {h}" for h in highlights))
 
-        if highlights and isinstance(highlights, list):
-            highlight_lines = [f"- {h}" for h in highlights[:3]]
-            text_parts.append("\n".join(highlight_lines))
-
-        # Add styling tip
         if outfit.style_notes:
             text_parts.append(f"_Tip: {outfit.style_notes}_")
 
         attachment_text = "\n\n".join(text_parts) if text_parts else "Your outfit is ready!"
 
         attachment = MattermostAttachment(
-            title=f"{day_label}'s Outfit: {outfit.occasion.title()}{weather_text}",
+            title=f"{day_label}'s Outfit: {outfit.occasion.title()}{self._weather_text(outfit)}",
             text=attachment_text,
             color="#3B82F6",
         )
@@ -548,6 +553,39 @@ class NotificationDispatcher:
             text=f"{greeting}, {user.display_name}! Here's your outfit suggestion for {day_label.lower()}:",
             attachments=[attachment],
         )
+
+    def _build_discord_message(
+        self, outfit: Outfit, user: User, for_tomorrow: bool = False
+    ) -> DiscordMessage:
+        day_label = "Tomorrow" if for_tomorrow else "Today"
+        greeting = "Good evening" if for_tomorrow else "Good morning"
+
+        description_parts = [f"{greeting}, {user.display_name}!"]
+        if outfit.reasoning:
+            description_parts.append(outfit.reasoning)
+        description = "\n\n".join(description_parts)
+
+        fields = []
+        highlights = self._get_highlights(outfit)
+        if highlights:
+            fields.append({
+                "name": "Highlights",
+                "value": "\n".join(f"• {h}" for h in highlights),
+                "inline": False,
+            })
+
+        if outfit.style_notes:
+            fields.append({"name": "Tip", "value": outfit.style_notes, "inline": False})
+
+        embed = DiscordEmbed(
+            title=f"{day_label}'s Outfit: {outfit.occasion.title()}{self._weather_text(outfit)}",
+            description=description,
+            color=0x3B82F6,
+            fields=fields,
+            footer=f"View outfit → {self.app_url}/dashboard/history",
+        )
+
+        return DiscordMessage(embeds=[embed])
 
     def _build_email_message(
         self, outfit: Outfit, user: User, to: str, for_tomorrow: bool = False
@@ -566,16 +604,12 @@ class NotificationDispatcher:
         day_label = "Tomorrow" if for_tomorrow else "Today"
         occasion_escaped = html_mod.escape(outfit.occasion.title())
 
-        # Build highlights HTML
+        highlights = self._get_highlights(outfit)
         highlights_html = ""
-        highlights = []
-        if outfit.ai_raw_response and isinstance(outfit.ai_raw_response, dict):
-            highlights = outfit.ai_raw_response.get("highlights", [])
-
-        if highlights and isinstance(highlights, list):
+        if highlights:
             items_html = "".join(
                 f'<li style="color: #4B5563; margin: 5px 0;">{html_mod.escape(str(h))}</li>'
-                for h in highlights[:3]
+                for h in highlights
             )
             highlights_html = f"""
             <ul style="margin: 15px 0; padding-left: 20px;">
@@ -656,7 +690,7 @@ class NotificationDispatcher:
 
         if highlights:
             text_parts.append("")
-            for h in highlights[:3]:
+            for h in highlights:
                 text_parts.append(f"- {h}")
 
         if outfit.style_notes:
