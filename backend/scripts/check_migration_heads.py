@@ -16,7 +16,7 @@ def main() -> int:
     errors = 0
 
     for path in sorted(VERSIONS_DIR.glob("*.py")):
-        content = path.read_text()
+        content = path.read_text(encoding='utf-8')
         rev_match = REV_RE.search(content)
         down_match = DOWN_RE.search(content)
 

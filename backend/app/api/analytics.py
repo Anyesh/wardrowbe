@@ -76,11 +76,44 @@ class AnalyticsResponse(BaseModel):
     insights: list[str]
 
 
+INSIGHT_TRANSLATIONS: dict[str, dict[str, str]] = {
+    "en": {
+        "no_items": "Start by adding some items to your wardrobe!",
+        "never_worn": "You have {n} items you've never worn. Consider styling them!",
+        "heavy_color": "Your wardrobe is heavy on {color} ({pct}%). Consider adding variety!",
+        "limited_colors": "Your wardrobe has limited color variety. Explore new colors!",
+        "more_tops": "You have many more tops than bottoms. Consider adding pants or skirts!",
+        "more_bottoms": "You have more bottoms than tops. Consider adding some shirts!",
+        "great_taste": "Great taste! You accept {pct}% of suggestions.",
+        "many_rejects": "You reject many suggestions. Consider updating your style preferences.",
+        "no_outfits_week": "You haven't generated any outfits this week. Try getting a suggestion!",
+    },
+    "zh": {
+        "no_items": "先往衣橱里添加几件衣物吧！",
+        "never_worn": "你有 {n} 件从未穿过的衣物，试试搭配它们！",
+        "heavy_color": "你的衣橱以 {color} 为主（{pct}%），建议增加一些颜色变化！",
+        "limited_colors": "你的衣橱颜色种类较少，试试探索新的颜色！",
+        "more_tops": "你的上衣远多于下装，考虑添置裤子或裙子！",
+        "more_bottoms": "你的下装多于上衣，考虑添置几件衬衫！",
+        "great_taste": "品味不错！你接受了 {pct}% 的穿搭建议。",
+        "many_rejects": "你拒绝了很多建议，考虑更新你的风格偏好。",
+        "no_outfits_week": "本周还没有生成穿搭，快来获取一个推荐吧！",
+    },
+}
+
+
+def _t(key: str, lang: str, **kwargs: object) -> str:
+    """Translate an insight message."""
+    template = INSIGHT_TRANSLATIONS.get(lang, INSIGHT_TRANSLATIONS["en"]).get(key, key)
+    return template.format(**kwargs) if kwargs else template
+
+
 @router.get("", response_model=AnalyticsResponse)
 async def get_analytics(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
     days: int = Query(30, ge=7, le=365, description="Number of days for trends"),
+    lang: str = Query("en", description="Language for insight messages (en/zh)"),
 ) -> AnalyticsResponse:
     # Calculate date ranges
     now = datetime.utcnow()
@@ -318,12 +351,12 @@ async def get_analytics(
     insights = []
 
     if total_items == 0:
-        insights.append("Start by adding some items to your wardrobe!")
+        insights.append(_t("no_items", lang))
     else:
         # Wardrobe insights
         if len(never_worn) > 0:
             insights.append(
-                f"You have {len(never_worn)} items you've never worn. Consider styling them!"
+                _t("never_worn", lang, n=len(never_worn))
             )
 
         # Color insights
@@ -331,10 +364,10 @@ async def get_analytics(
             top_color = color_distribution[0].color
             if color_distribution[0].percentage > 40:
                 insights.append(
-                    f"Your wardrobe is heavy on {top_color} ({color_distribution[0].percentage}%). Consider adding variety!"
+                    _t("heavy_color", lang, color=top_color, pct=color_distribution[0].percentage)
                 )
             elif len(color_distribution) <= 3 and ready_items > 10:
-                insights.append("Your wardrobe has limited color variety. Explore new colors!")
+                insights.append(_t("limited_colors", lang))
 
         # Type insights
         if type_distribution:
@@ -352,23 +385,23 @@ async def get_analytics(
                 ratio = tops / bottoms
                 if ratio > 3:
                     insights.append(
-                        "You have many more tops than bottoms. Consider adding pants or skirts!"
+                        _t("more_tops", lang)
                     )
                 elif ratio < 0.5:
-                    insights.append("You have more bottoms than tops. Consider adding some shirts!")
+                    insights.append(_t("more_bottoms", lang))
 
         # Outfit insights
         if acceptance_rate is not None:
             if acceptance_rate > 80:
-                insights.append(f"Great taste! You accept {acceptance_rate:.0f}% of suggestions.")
+                insights.append(_t("great_taste", lang, pct=f"{acceptance_rate:.0f}"))
             elif acceptance_rate < 50:
                 insights.append(
-                    "You reject many suggestions. Consider updating your style preferences."
+                    _t("many_rejects", lang)
                 )
 
         if outfits_this_week == 0 and total_outfits > 0:
             insights.append(
-                "You haven't generated any outfits this week. Try getting a suggestion!"
+                _t("no_outfits_week", lang)
             )
 
     return AnalyticsResponse(

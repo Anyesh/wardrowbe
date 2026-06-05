@@ -29,6 +29,7 @@ import {
   type StyleInsight,
   type LearnedColorScore,
 } from '@/lib/hooks/use-learning';
+import { useI18n } from '@/lib/i18n';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -42,7 +43,7 @@ function StatCard({
 }: {
   title: string;
   value: string | number;
-  description: string;
+  description: React.ReactNode;
   icon: React.ComponentType<{ className?: string }>;
   trend?: 'up' | 'down' | 'neutral';
 }) {
@@ -166,6 +167,7 @@ function ColorPreferenceBar({ colorScore }: { colorScore: LearnedColorScore }) {
 }
 
 function ItemPairCard({ pair }: { pair: ItemPair }) {
+  const { t } = useI18n();
   const successRate = pair.times_paired > 0
     ? Math.round((pair.times_accepted / pair.times_paired) * 100)
     : 0;
@@ -223,7 +225,7 @@ function ItemPairCard({ pair }: { pair: ItemPair }) {
           <span className="font-medium">{successRate}%</span>
         </div>
         <div className="text-xs text-muted-foreground">
-          {pair.times_paired}x paired
+          {pair.times_paired}{t('learning.paired')}
         </div>
       </div>
     </div>
@@ -237,6 +239,8 @@ function InsightCard({
   insight: StyleInsight;
   onAcknowledge: (id: string) => void;
 }) {
+  const { t } = useI18n();
+
   const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
     color: Sparkles,
     style: Heart,
@@ -260,7 +264,7 @@ function InsightCard({
       <button
         onClick={() => onAcknowledge(insight.id)}
         className="absolute top-2 right-2 p-1 rounded hover:bg-muted transition-colors"
-        title="Dismiss"
+        title={t('learning.dismiss')}
       >
         <X className="h-4 w-4 text-muted-foreground" />
       </button>
@@ -274,7 +278,7 @@ function InsightCard({
               {insight.category}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              {Math.round(insight.confidence * 100)}% confidence
+              {Math.round(insight.confidence * 100)}{t('learning.confidence')}
             </span>
           </div>
         </div>
@@ -284,20 +288,20 @@ function InsightCard({
 }
 
 function NoLearningData({ onRecompute, isRefreshing }: { onRecompute: () => void; isRefreshing: boolean }) {
+  const { t } = useI18n();
   return (
     <Card className="col-span-full">
       <CardContent className="flex flex-col items-center justify-center py-12 text-center">
         <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No Learning Data Yet</h3>
+        <h3 className="text-lg font-semibold mb-2">{t('learning.empty')}</h3>
         <p className="text-muted-foreground max-w-md mb-4">
-          Start by accepting or rejecting outfit suggestions and rating them.
-          The AI will learn from your feedback to make better recommendations.
+          {t('learning.getStarted')}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Link href="/dashboard/suggest" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto">
               <Sparkles className="h-4 w-4 mr-2" />
-              Get Outfit Suggestions
+              {t('learning.getSuggestions')}
             </Button>
           </Link>
           <Button
@@ -307,11 +311,11 @@ function NoLearningData({ onRecompute, isRefreshing }: { onRecompute: () => void
             className="w-full sm:w-auto"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Computing...' : 'Compute Now'}
+            {isRefreshing ? t('learning.computing') : t('learning.computeNow')}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-4">
-          Already gave feedback? Click &quot;Compute Now&quot; to process it.
+          {t('learning.alreadyFed')}
         </p>
       </CardContent>
     </Card>
@@ -319,6 +323,7 @@ function NoLearningData({ onRecompute, isRefreshing }: { onRecompute: () => void
 }
 
 export default function LearningPage() {
+  const { t } = useI18n();
   const { data, isLoading, isError } = useLearning();
   const recompute = useRecomputeLearning();
   const generateInsights = useGenerateInsights();
@@ -347,8 +352,8 @@ export default function LearningPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">AI Learning</h1>
-            <p className="text-muted-foreground">How the AI learns from your feedback</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t('learning.title')}</h1>
+            <p className="text-muted-foreground">{t('learning.loadingSubtitle')}</p>
           </div>
         </div>
         <LoadingSkeleton />
@@ -359,7 +364,7 @@ export default function LearningPage() {
   if (isError || !data) {
     return (
       <div className="text-center py-8 text-red-500">
-        Failed to load learning data. Please try again.
+        {t('learning.loadFailed')}
       </div>
     );
   }
@@ -370,11 +375,11 @@ export default function LearningPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">AI Learning</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('learning.title')}</h1>
           <p className="text-muted-foreground">
             {profile.has_learning_data
-              ? 'The AI learns from your feedback to improve recommendations'
-              : 'Start rating outfits to help the AI learn your preferences'}
+              ? t('learning.subtitle')
+              : t('learning.subtitleEmpty')}
           </p>
         </div>
         {profile.has_learning_data && (
@@ -384,7 +389,7 @@ export default function LearningPage() {
             disabled={isRefreshing}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Recompute
+            {t('learning.recompute')}
           </Button>
         )}
       </div>
@@ -396,32 +401,32 @@ export default function LearningPage() {
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
-              title="Feedback Given"
+              title={t('learning.feedbackGiven')}
               value={profile.feedback_count}
-              description={`${profile.outfits_rated} outfits rated`}
+              description={<>{profile.outfits_rated} {t('learning.outfitsRated')}</>}
               icon={Activity}
             />
             <StatCard
-              title="Acceptance Rate"
+              title={t('learning.acceptanceRate')}
               value={profile.overall_acceptance_rate
                 ? `${Math.round(profile.overall_acceptance_rate * 100)}%`
                 : '-'}
               description={profile.overall_acceptance_rate
-                ? 'of suggestions accepted'
-                : 'Not enough data'}
+                ? t('learning.ofAccepted')
+                : t('learning.notEnoughData')}
               icon={TrendingUp}
               trend={profile.overall_acceptance_rate && profile.overall_acceptance_rate > 0.5 ? 'up' : undefined}
             />
             <StatCard
-              title="Average Rating"
+              title={t('learning.avgRating')}
               value={profile.average_rating ? profile.average_rating.toFixed(1) : '-'}
-              description={profile.average_rating ? 'out of 5 stars' : 'Rate more outfits'}
+              description={profile.average_rating ? t('learning.outOf5') : t('learning.rateMore')}
               icon={Sparkles}
             />
             <StatCard
-              title="Style Rating"
+              title={t('learning.styleRating')}
               value={profile.average_style_rating ? profile.average_style_rating.toFixed(1) : '-'}
-              description={profile.average_style_rating ? 'style satisfaction' : 'Rate outfit styles'}
+              description={profile.average_style_rating ? t('learning.styleSatisfaction') : t('learning.rateStyles')}
               icon={Heart}
             />
           </div>
@@ -433,13 +438,13 @@ export default function LearningPage() {
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Lightbulb className="h-5 w-5" />
-                    Style Insights
+                    {t('learning.styleInsights')}
                   </CardTitle>
-                  <CardDescription>What we&apos;ve learned about your preferences</CardDescription>
+                  <CardDescription>{t('learning.whatLearned')}</CardDescription>
                 </div>
                 <Button variant="ghost" size="sm" onClick={handleGenerateInsights}>
                   <RefreshCw className="h-4 w-4 mr-1" />
-                  New Insights
+                  {t('learning.newInsights')}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -462,14 +467,14 @@ export default function LearningPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5" />
-                  Learned Color Preferences
+                  {t('learning.colorPrefs')}
                 </CardTitle>
-                <CardDescription>Colors you tend to accept or reject</CardDescription>
+                <CardDescription>{t('learning.colorPrefsDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {profile.color_preferences.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
-                    Not enough feedback to determine color preferences yet.
+                    {t('learning.colorNotEnough')}
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -486,14 +491,14 @@ export default function LearningPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Heart className="h-5 w-5" />
-                  Learned Style Preferences
+                  {t('learning.stylePrefs')}
                 </CardTitle>
-                <CardDescription>Styles that match your taste</CardDescription>
+                <CardDescription>{t('learning.stylePrefsDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {profile.style_preferences.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
-                    Not enough feedback to determine style preferences yet.
+                    {t('learning.styleNotEnough')}
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -527,9 +532,9 @@ export default function LearningPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Heart className="h-5 w-5 text-red-500" />
-                  Your Best Combinations
+                  {t('learning.bestCombos')}
                 </CardTitle>
-                <CardDescription>Item pairs that you consistently love together</CardDescription>
+                <CardDescription>{t('learning.bestCombosDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -547,9 +552,9 @@ export default function LearningPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
-                  Occasion Patterns
+                  {t('learning.occasionPatterns')}
                 </CardTitle>
-                <CardDescription>What works for different occasions</CardDescription>
+                <CardDescription>{t('learning.occasionPatternsDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -558,12 +563,12 @@ export default function LearningPage() {
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium capitalize">{pattern.occasion}</h4>
                         <Badge variant="outline">
-                          {Math.round(pattern.success_rate * 100)}% success
+                          {Math.round(pattern.success_rate * 100)}{t('learning.success')}
                         </Badge>
                       </div>
                       {pattern.preferred_colors.length > 0 && (
                         <div className="flex items-center gap-2 mt-2">
-                          <span className="text-xs text-muted-foreground">Preferred colors:</span>
+                          <span className="text-xs text-muted-foreground">{t('learning.preferredColors')}</span>
                           <div className="flex gap-1">
                             {pattern.preferred_colors.map((color) => (
                               <div
@@ -588,9 +593,9 @@ export default function LearningPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Cloud className="h-5 w-5" />
-                  Weather Preferences
+                  {t('learning.weatherPrefs')}
                 </CardTitle>
-                <CardDescription>How you dress for different conditions</CardDescription>
+                <CardDescription>{t('learning.weatherPrefsDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -604,10 +609,10 @@ export default function LearningPage() {
                       </div>
                       <h4 className="font-medium capitalize">{pref.weather_type}</h4>
                       <p className="text-sm text-muted-foreground mt-1">
-                        ~{pref.preferred_layers.toFixed(1)} layers
+                        ~{pref.preferred_layers.toFixed(1)} {t('learning.layers')}
                       </p>
                       <Badge variant="outline" className="mt-2">
-                        {Math.round(pref.success_rate * 100)}% success
+                        {Math.round(pref.success_rate * 100)}{t('learning.success')}
                       </Badge>
                     </div>
                   ))}
@@ -622,17 +627,17 @@ export default function LearningPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Lightbulb className="h-5 w-5 text-primary" />
-                  Suggested Preference Updates
+                  {t('learning.suggestedUpdates')}
                 </CardTitle>
                 <CardDescription>
-                  Based on your feedback, we suggest updating your preferences
+                  {t('learning.suggestedUpdatesDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {preference_suggestions.suggestions.suggested_favorite_colors && (
                     <div className="flex items-center gap-3">
-                      <span className="text-sm">Add to favorite colors:</span>
+                      <span className="text-sm">{t('learning.addFavColors')}</span>
                       <div className="flex gap-2">
                         {preference_suggestions.suggestions.suggested_favorite_colors.map((color) => (
                           <Badge key={color} variant="secondary" className="capitalize">
@@ -645,7 +650,7 @@ export default function LearningPage() {
                   )}
                   {preference_suggestions.suggestions.suggested_avoid_colors && (
                     <div className="flex items-center gap-3">
-                      <span className="text-sm">Add to colors to avoid:</span>
+                      <span className="text-sm">{t('learning.addAvoidColors')}</span>
                       <div className="flex gap-2">
                         {preference_suggestions.suggestions.suggested_avoid_colors.map((color) => (
                           <Badge key={color} variant="destructive" className="capitalize">
@@ -660,7 +665,7 @@ export default function LearningPage() {
                 <div className="mt-4">
                   <Link href="/dashboard/settings">
                     <Button variant="outline" size="sm">
-                      Update Preferences
+                      {t('learning.updatePrefs')}
                     </Button>
                   </Link>
                 </div>
@@ -671,7 +676,7 @@ export default function LearningPage() {
           {/* Last Updated */}
           {profile.last_computed_at && (
             <p className="text-xs text-muted-foreground text-center">
-              Learning profile last updated: {new Date(profile.last_computed_at).toLocaleString()}
+              {t('learning.lastUpdated')} {new Date(profile.last_computed_at).toLocaleString()}
             </p>
           )}
         </>

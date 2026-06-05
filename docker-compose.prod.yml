@@ -48,8 +48,8 @@ services:
       - "${OIDC_HOST:-localhost}:${OIDC_HOST_IP:-127.0.0.1}"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wardrobe}
-      REDIS_URL: redis://redis:6379
-      STORAGE_PATH: /data/uploads
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_PATH: /data/wardrobe
       AI_BASE_URL: ${AI_BASE_URL:-http://host.docker.internal:4141/v1}
       AI_VISION_MODEL: ${AI_VISION_MODEL:-gpt-4o}
       AI_TEXT_MODEL: ${AI_TEXT_MODEL:-gpt-4o}
@@ -64,6 +64,7 @@ services:
       # Auth header from TinyAuth
       AUTH_TRUST_HEADER: ${AUTH_TRUST_HEADER:-true}
       AUTH_HEADER_NAME: "Remote-User"
+      CORS_ORIGINS: ${CORS_ORIGINS:-'["http://localhost:3000","http://localhost:8080"]'}
       # Notifications (default ntfy for form pre-fill)
       NTFY_SERVER: ${NTFY_SERVER:-}
       NTFY_TOPIC: ${NTFY_TOPIC:-}
@@ -71,7 +72,7 @@ services:
       APP_URL: ${APP_URL:-https://localhost:3000}
       OIDC_SKIP_SSL_VERIFY: ${OIDC_SKIP_SSL_VERIFY:-false}
     volumes:
-      - uploads_data:/data/uploads
+      - wardrobe_data:/data/wardrobe
     dns:
       - ${LOCAL_DNS:-8.8.8.8}
       - 8.8.8.8
@@ -101,21 +102,22 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wardrobe}
-      REDIS_URL: redis://redis:6379
-      STORAGE_PATH: /data/uploads
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_PATH: /data/wardrobe
       AI_BASE_URL: ${AI_BASE_URL:-http://host.docker.internal:4141/v1}
       AI_VISION_MODEL: ${AI_VISION_MODEL:-gpt-4o}
       AI_TEXT_MODEL: ${AI_TEXT_MODEL:-gpt-4o}
       AI_TIMEOUT: ${AI_TIMEOUT:-120}
       AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      AI_API_KEY: ${AI_API_KEY:-}
       # Notifications
       NTFY_SERVER: ${NTFY_SERVER:-}
       NTFY_TOPIC: ${NTFY_TOPIC:-}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
       APP_URL: ${APP_URL:-https://localhost:3000}
     volumes:
-      - uploads_data:/data/uploads
+      - wardrobe_data:/data/wardrobe
     dns:
       - ${LOCAL_DNS:-8.8.8.8}
       - 8.8.8.8
@@ -186,7 +188,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  uploads_data:
+  wardrobe_data:
 
 networks:
   wardrobe_net:

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { toast, Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/components/auth-provider';
+import { LanguageProvider } from '@/lib/i18n';
 import { ApiError, NetworkError } from '@/lib/api';
 
 function handleError(error: unknown) {
@@ -66,8 +67,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
             enableSystem
             disableTransitionOnChange
           >
-            {children}
-            <Toaster richColors position="top-center" />
+            <LanguageProvider>
+              {children}
+              <Toaster richColors position="top-center" />
+            </LanguageProvider>
           </ThemeProvider>
         </QueryClientProvider>
       </AuthProvider>

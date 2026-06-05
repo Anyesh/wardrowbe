@@ -11,6 +11,7 @@ import { OfflineIndicator } from '@/components/offline-indicator';
 import { ImageLightbox } from '@/components/image-lightbox';
 import { LightboxProvider } from '@/lib/lightbox-context';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { useI18n } from '@/lib/i18n';
 
 export default function DashboardLayout({
   children,
@@ -19,17 +20,15 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
+  const { t } = useI18n();
   const { user, isAuthenticated, isLoading, error } = useAuth();
 
   useEffect(() => {
-    // If auth check completed and user is not authenticated, redirect to login
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Check onboarding status from API user
   useEffect(() => {
     if (user && user.onboarding_completed === false) {
       router.push('/onboarding');
@@ -41,7 +40,7 @@ export default function DashboardLayout({
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading your wardrobe...</p>
+          <p className="text-sm text-muted-foreground">{t('dashboard.loading')}</p>
         </div>
       </div>
     );

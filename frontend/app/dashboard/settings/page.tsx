@@ -21,6 +21,7 @@ import { usePreferences, useUpdatePreferences, useResetPreferences, useTestAIEnd
 import { useUserProfile, useUpdateUserProfile } from '@/lib/hooks/use-user';
 import { CLOTHING_COLORS, OCCASIONS, Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
 import { toF, toCelsius } from '@/lib/temperature';
+import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 
 const CM_TO_IN = 0.393701;
@@ -38,19 +39,19 @@ function convertMeasurement(value: number, key: string, from: string, to: string
 }
 
 const BODY_MEASUREMENT_FIELDS = [
-  { key: 'height', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 178', placeholderImperial: 'e.g. 70' },
-  { key: 'weight', unitMetric: 'kg', unitImperial: 'lbs', placeholderMetric: 'e.g. 75', placeholderImperial: 'e.g. 165' },
-  { key: 'chest', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 96', placeholderImperial: 'e.g. 38' },
-  { key: 'waist', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 82', placeholderImperial: 'e.g. 32' },
-  { key: 'hips', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 98', placeholderImperial: 'e.g. 39' },
-  { key: 'inseam', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 81', placeholderImperial: 'e.g. 32' },
+  { key: 'height', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '178', exampleImperial: '70' },
+  { key: 'weight', unitMetric: 'kg', unitImperial: 'lbs', exampleMetric: '75', exampleImperial: '165' },
+  { key: 'chest', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '96', exampleImperial: '38' },
+  { key: 'waist', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '82', exampleImperial: '32' },
+  { key: 'hips', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '98', exampleImperial: '39' },
+  { key: 'inseam', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '81', exampleImperial: '32' },
 ] as const;
 
 const SIZE_FIELDS = [
-  { key: 'shirt_size', label: 'Shirt Size', placeholder: 'e.g. M, L, XL' },
-  { key: 'pants_size', label: 'Pants Size', placeholder: 'e.g. 32, 34' },
-  { key: 'dress_size', label: 'Dress Size', placeholder: 'e.g. 8, 10' },
-  { key: 'shoe_size', label: 'Shoe Size', placeholder: 'e.g. 10, 42' },
+  { key: 'shirt_size', label: 'settings.body.shirtSize', placeholder: 'settings.body.shirtSizePlaceholder' },
+  { key: 'pants_size', label: 'settings.body.pantsSize', placeholder: 'settings.body.pantsSizePlaceholder' },
+  { key: 'dress_size', label: 'settings.body.dressSize', placeholder: 'settings.body.dressSizePlaceholder' },
+  { key: 'shoe_size', label: 'settings.body.shoeSize', placeholder: 'settings.body.shoeSizePlaceholder' },
 ] as const;
 
 function getErrorMessage(e: unknown, fallback: string): string {
@@ -163,6 +164,7 @@ function StyleSlider({
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const { t } = useI18n();
   const { data: preferences, isLoading } = usePreferences();
   const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
   const updatePreferences = useUpdatePreferences();
@@ -174,14 +176,12 @@ export default function SettingsPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [endpointTests, setEndpointTests] = useState<Record<number, EndpointTestResult>>({});
 
-  // Location and timezone state
   const [locationName, setLocationName] = useState('');
   const [locationLat, setLocationLat] = useState('');
   const [locationLon, setLocationLon] = useState('');
   const [timezone, setTimezone] = useState('UTC');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
-  // Body measurements state
   type UnitSystem = 'metric' | 'imperial';
   const [measurements, setMeasurements] = useState<Record<string, string>>({});
   const [measurementsDirty, setMeasurementsDirty] = useState(false);
@@ -191,7 +191,6 @@ export default function SettingsPage() {
     }
     return 'metric';
   });
-
 
   useEffect(() => {
     if (userProfile) {
@@ -218,7 +217,7 @@ export default function SettingsPage() {
 
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
+      toast.error(t('settings.location.geoNotSupported'));
       return;
     }
 
@@ -230,7 +229,6 @@ export default function SettingsPage() {
         setLocationLat(lat);
         setLocationLon(lon);
 
-        // Reverse geocode to get city name
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
@@ -245,20 +243,19 @@ export default function SettingsPage() {
             } else if (city) {
               setLocationName(city);
             } else if (data.display_name) {
-              // Fallback to first part of display name
               setLocationName(data.display_name.split(',').slice(0, 2).join(',').trim());
             }
           }
         } catch {
-          // Ignore geocoding errors, we still have coordinates
+          // Ignore geocoding errors
         }
 
         setIsGettingLocation(false);
-        toast.success('Location detected');
+        toast.success(t('settings.locationDetected'));
       },
       (error) => {
         setIsGettingLocation(false);
-        toast.error(`Failed to get location: ${error.message}`);
+        toast.error(`${t('settings.location.geoFailed')}: ${error.message}`);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -269,17 +266,17 @@ export default function SettingsPage() {
     const lon = parseFloat(locationLon);
 
     if (isNaN(lat) || isNaN(lon)) {
-      toast.error('Please enter valid latitude and longitude values');
+      toast.error(t('settings.location.invalidLatLon'));
       return;
     }
 
     if (lat < -90 || lat > 90) {
-      toast.error('Latitude must be between -90 and 90');
+      toast.error(t('settings.location.latRange'));
       return;
     }
 
     if (lon < -180 || lon > 180) {
-      toast.error('Longitude must be between -180 and 180');
+      toast.error(t('settings.location.lonRange'));
       return;
     }
 
@@ -290,9 +287,9 @@ export default function SettingsPage() {
         location_name: locationName || undefined,
         timezone: timezone,
       });
-      toast.success('Location and timezone saved');
+      toast.success(t('settings.locationSaved'));
     } catch {
-      toast.error('Failed to save location');
+      toast.error(t('settings.locationFailed'));
     }
   };
 
@@ -313,7 +310,7 @@ export default function SettingsPage() {
 
     const origPush = history.pushState.bind(history);
     history.pushState = function (...args) {
-      if (window.confirm('You have unsaved changes. Leave this page?')) {
+      if (window.confirm(t('settings.unsavedConfirm'))) {
         origPush(...args);
       }
     };
@@ -322,7 +319,7 @@ export default function SettingsPage() {
       window.removeEventListener('beforeunload', onBeforeUnload);
       history.pushState = origPush;
     };
-  }, [isDirty]);
+  }, [isDirty, t]);
 
   const handleToggleUnits = () => {
     const newSystem: UnitSystem = unitSystem === 'metric' ? 'imperial' : 'metric';
@@ -359,7 +356,7 @@ export default function SettingsPage() {
       if (numericKeys.includes(key)) {
         const num = parseFloat(trimmed);
         if (isNaN(num) || num <= 0) {
-          toast.error(`${key.charAt(0).toUpperCase() + key.slice(1)} must be a positive number`);
+          toast.error(`${t(`settings.body.${key}`)} ${t('settings.bodyPositive')}`);
           return;
         }
         parsed[key] = convertMeasurement(num, key, unitSystem, 'metric');
@@ -372,9 +369,9 @@ export default function SettingsPage() {
         body_measurements: Object.keys(parsed).length > 0 ? parsed : null,
       });
       setMeasurementsDirty(false);
-      toast.success('Measurements saved');
+      toast.success(t('settings.bodySaved'));
     } catch (e) {
-      toast.error(getErrorMessage(e, 'Failed to save measurements'));
+      toast.error(getErrorMessage(e, t('settings.bodyFailed')));
     }
   };
 
@@ -395,7 +392,7 @@ export default function SettingsPage() {
     } catch (error) {
       setEndpointTests((prev) => ({
         ...prev,
-        [index]: { status: 'error', error: 'Failed to test endpoint' },
+        [index]: { status: 'error', error: t('settings.ai.failedTest') },
       }));
     }
   };
@@ -451,7 +448,7 @@ export default function SettingsPage() {
   };
 
   const handleReset = async () => {
-    if (confirm('Reset all preferences to defaults?')) {
+    if (confirm(t('settings.resetConfirm'))) {
       try {
         await resetPreferences.mutateAsync();
       } catch (error) {
@@ -472,15 +469,15 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('settings.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            Manage your preferences and account settings
+            {t('settings.subtitle')}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleReset} disabled={resetPreferences.isPending}>
             <RotateCcw className="mr-2 h-4 w-4" />
-            Reset
+            {t('common.reset')}
           </Button>
           <Button size="sm" onClick={handleSave} disabled={!hasChanges || updatePreferences.isPending}>
             {updatePreferences.isPending ? (
@@ -488,7 +485,7 @@ export default function SettingsPage() {
             ) : (
               <Save className="mr-2 h-4 w-4" />
             )}
-            Save
+            {t('common.save')}
           </Button>
         </div>
       </div>
@@ -497,17 +494,17 @@ export default function SettingsPage() {
         {/* Account Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Account</CardTitle>
-            <CardDescription>Your profile information</CardDescription>
+            <CardTitle>{t('settings.account')}</CardTitle>
+            <CardDescription>{t('settings.accountDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>{t('settings.account.name')}</Label>
                 <Input value={userProfile?.display_name || ''} disabled />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>{t('settings.account.email')}</Label>
                 <Input value={userProfile?.email || ''} disabled />
               </div>
             </div>
@@ -519,48 +516,48 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              Location
+              {t('settings.location')}
             </CardTitle>
             <CardDescription>
-              Set your location for weather-based outfit recommendations
+              {t('settings.locationDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>City / Location Name (optional)</Label>
+              <Label>{t('settings.location.city')}</Label>
               <Input
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
-                placeholder="e.g., London, UK"
+                placeholder={t('settings.location.cityPlaceholder')}
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Latitude</Label>
+                <Label>{t('settings.location.latitude')}</Label>
                 <Input
                   type="number"
                   step="0.000001"
                   value={locationLat}
                   onChange={(e) => setLocationLat(e.target.value)}
-                  placeholder="e.g., 51.5074"
+                  placeholder={t('settings.location.latPlaceholder')}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Longitude</Label>
+                <Label>{t('settings.location.longitude')}</Label>
                 <Input
                   type="number"
                   step="0.000001"
                   value={locationLon}
                   onChange={(e) => setLocationLon(e.target.value)}
-                  placeholder="e.g., -0.1278"
+                  placeholder={t('settings.location.lonPlaceholder')}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Timezone</Label>
+              <Label>{t('settings.location.timezone')}</Label>
               <Select value={timezone} onValueChange={setTimezone}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select timezone" />
+                  <SelectValue placeholder={t('settings.location.selectTimezone')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="UTC">UTC</SelectItem>
@@ -592,7 +589,7 @@ export default function SettingsPage() {
                 ) : (
                   <Navigation className="h-4 w-4 mr-2" />
                 )}
-                Use My Location
+                {t('settings.location.useMyLocation')}
               </Button>
               <Button
                 onClick={handleSaveLocation}
@@ -603,12 +600,12 @@ export default function SettingsPage() {
                 ) : (
                   <Save className="h-4 w-4 mr-2" />
                 )}
-                Save Location
+                {t('settings.location.saveLocation')}
               </Button>
             </div>
             {!locationLat && !locationLon && (
               <p className="text-sm text-amber-600 dark:text-amber-400">
-                Location is required for weather-based outfit recommendations.
+                {t('settings.locationRequired')}
               </p>
             )}
           </CardContent>
@@ -619,27 +616,27 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Ruler className="h-5 w-5" />
-              Body Measurements
+              {t('settings.bodyMeasurements')}
             </CardTitle>
-            <CardDescription>Help AI recommend better-fitting outfits</CardDescription>
+            <CardDescription>{t('settings.bodyMeasurementsDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
-              <Label>Unit System</Label>
+              <Label>{t('settings.location.unitSystem')}</Label>
               <Button variant="outline" size="sm" onClick={handleToggleUnits}>
-                {unitSystem === 'metric' ? 'Metric (cm/kg)' : 'Imperial (in/lbs)'}
+                {unitSystem === 'metric' ? t('settings.body.unitMetric') : t('settings.body.unitImperial')}
               </Button>
             </div>
 
             <div>
-              <Label className="text-muted-foreground mb-3 block">Body</Label>
+              <Label className="text-muted-foreground mb-3 block">{t('settings.body.body')}</Label>
               <div className="grid gap-3 sm:grid-cols-2">
                 {BODY_MEASUREMENT_FIELDS.map((field) => {
                   const unit = unitSystem === 'metric' ? field.unitMetric : field.unitImperial;
-                  const placeholder = unitSystem === 'metric' ? field.placeholderMetric : field.placeholderImperial;
+                  const example = unitSystem === 'metric' ? field.exampleMetric : field.exampleImperial;
                   return (
                     <div key={field.key} className="space-y-1">
-                      <Label className="text-sm capitalize">{field.key}</Label>
+                      <Label className="text-sm capitalize">{t(`settings.body.${field.key}`)}</Label>
                       <div className="flex items-center gap-2">
                         <Input
                           type="number"
@@ -647,7 +644,7 @@ export default function SettingsPage() {
                           min="0"
                           value={measurements[field.key] ?? ''}
                           onChange={(e) => handleMeasurementChange(field.key, e.target.value)}
-                          placeholder={placeholder}
+                          placeholder={t('settings.eg', { value: example })}
                           className="flex-1"
                         />
                         <span className="text-sm text-muted-foreground min-w-[2rem] text-center">{unit}</span>
@@ -659,15 +656,15 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <Label className="text-muted-foreground mb-3 block">Sizes</Label>
+              <Label className="text-muted-foreground mb-3 block">{t('settings.body.sizes')}</Label>
               <div className="grid gap-3 sm:grid-cols-2">
                 {SIZE_FIELDS.map((field) => (
                   <div key={field.key} className="space-y-1">
-                    <Label className="text-sm">{field.label}</Label>
+                    <Label className="text-sm">{t(field.label)}</Label>
                     <Input
                       value={measurements[field.key] ?? ''}
                       onChange={(e) => handleMeasurementChange(field.key, e.target.value)}
-                      placeholder={field.placeholder}
+                      placeholder={t(field.placeholder)}
                     />
                   </div>
                 ))}
@@ -681,9 +678,9 @@ export default function SettingsPage() {
                 size="sm"
               >
                 {updateUserProfile.isPending ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('settings.body.saving')}</>
                 ) : (
-                  <><Save className="mr-2 h-4 w-4" />Save Measurements</>
+                  <><Save className="mr-2 h-4 w-4" />{t('settings.body.saveMeasurements')}</>
                 )}
               </Button>
             )}
@@ -693,19 +690,19 @@ export default function SettingsPage() {
         {/* Color Preferences */}
         <Card>
           <CardHeader>
-            <CardTitle>Color Preferences</CardTitle>
+            <CardTitle>{t('settings.colorPrefs')}</CardTitle>
             <CardDescription>
-              Select colors you love and colors to avoid in recommendations
+              {t('settings.colorPrefsDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <ColorPicker
-              label="Favorite Colors"
+              label={t('settings.colors.favorite')}
               selected={formData.color_favorites || []}
               onChange={(colors) => updateField('color_favorites', colors)}
             />
             <ColorPicker
-              label="Colors to Avoid"
+              label={t('settings.colors.avoid')}
               selected={formData.color_avoid || []}
               onChange={(colors) => updateField('color_avoid', colors)}
             />
@@ -715,34 +712,34 @@ export default function SettingsPage() {
         {/* Style Profile */}
         <Card>
           <CardHeader>
-            <CardTitle>Style Profile</CardTitle>
+            <CardTitle>{t('settings.styleProfile')}</CardTitle>
             <CardDescription>
-              Adjust how much you prefer each style in outfit recommendations
+              {t('settings.styleProfileDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <StyleSlider
-              label="Casual"
+              label={t('settings.style.casual')}
               value={formData.style_profile?.casual ?? 50}
               onChange={(v) => updateStyleProfile('casual', v)}
             />
             <StyleSlider
-              label="Formal"
+              label={t('settings.style.formal')}
               value={formData.style_profile?.formal ?? 50}
               onChange={(v) => updateStyleProfile('formal', v)}
             />
             <StyleSlider
-              label="Sporty"
+              label={t('settings.style.sporty')}
               value={formData.style_profile?.sporty ?? 50}
               onChange={(v) => updateStyleProfile('sporty', v)}
             />
             <StyleSlider
-              label="Minimalist"
+              label={t('settings.style.minimalist')}
               value={formData.style_profile?.minimalist ?? 50}
               onChange={(v) => updateStyleProfile('minimalist', v)}
             />
             <StyleSlider
-              label="Bold"
+              label={t('settings.style.bold')}
               value={formData.style_profile?.bold ?? 50}
               onChange={(v) => updateStyleProfile('bold', v)}
             />
@@ -752,15 +749,15 @@ export default function SettingsPage() {
         {/* Temperature & Comfort */}
         <Card>
           <CardHeader>
-            <CardTitle>Temperature & Comfort</CardTitle>
+            <CardTitle>{t('settings.tempComfort')}</CardTitle>
             <CardDescription>
-              Adjust how recommendations adapt to weather
+              {t('settings.tempComfortDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Temperature Unit</Label>
+                <Label>{t('settings.temp.unit')}</Label>
                 <Select
                   value={formData.temperature_unit || 'celsius'}
                   onValueChange={(v) =>
@@ -771,13 +768,13 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="celsius">Celsius (°C)</SelectItem>
-                    <SelectItem value="fahrenheit">Fahrenheit (°F)</SelectItem>
+                    <SelectItem value="celsius">{t('settings.temp.celsius')}</SelectItem>
+                    <SelectItem value="fahrenheit">{t('settings.temp.fahrenheit')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Temperature Sensitivity</Label>
+                <Label>{t('settings.temp.sensitivity')}</Label>
                 <Select
                   value={formData.temperature_sensitivity || 'normal'}
                   onValueChange={(v) =>
@@ -788,16 +785,16 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">I feel warm easily</SelectItem>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="high">I feel cold easily</SelectItem>
+                    <SelectItem value="low">{t('settings.temp.warmEasily')}</SelectItem>
+                    <SelectItem value="normal">{t('settings.temp.normal')}</SelectItem>
+                    <SelectItem value="high">{t('settings.temp.coldEasily')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Layering Preference</Label>
+                <Label>{t('settings.temp.layering')}</Label>
                 <Select
                   value={formData.layering_preference || 'moderate'}
                   onValueChange={(v) =>
@@ -808,9 +805,9 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="minimal">Minimal layers</SelectItem>
-                    <SelectItem value="moderate">Moderate layers</SelectItem>
-                    <SelectItem value="heavy">Heavy layers</SelectItem>
+                    <SelectItem value="minimal">{t('settings.temp.minimalLayers')}</SelectItem>
+                    <SelectItem value="moderate">{t('settings.temp.moderateLayers')}</SelectItem>
+                    <SelectItem value="heavy">{t('settings.temp.heavyLayers')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -824,7 +821,7 @@ export default function SettingsPage() {
                 return (
                   <>
                     <div className="space-y-2">
-                      <Label>Cold Threshold ({isFahrenheit ? '°F' : '°C'})</Label>
+                      <Label>{t('settings.temp.coldThreshold', { unit: isFahrenheit ? '°F' : '°C' })}</Label>
                       <Input
                         type="number"
                         value={isFahrenheit ? Math.round(toF(coldC)) : coldC}
@@ -837,7 +834,7 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Hot Threshold ({isFahrenheit ? '°F' : '°C'})</Label>
+                      <Label>{t('settings.temp.hotThreshold', { unit: isFahrenheit ? '°F' : '°C' })}</Label>
                       <Input
                         type="number"
                         value={isFahrenheit ? Math.round(toF(hotC)) : hotC}
@@ -859,15 +856,15 @@ export default function SettingsPage() {
         {/* Recommendation Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Recommendation Settings</CardTitle>
+            <CardTitle>{t('settings.recommendation')}</CardTitle>
             <CardDescription>
-              Customize how outfit recommendations are generated
+              {t('settings.recommendationDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Default Occasion</Label>
+                <Label>{t('settings.rec.defaultOccasion')}</Label>
                 <Select
                   value={formData.default_occasion || 'casual'}
                   onValueChange={(v) => updateField('default_occasion', v)}
@@ -878,14 +875,14 @@ export default function SettingsPage() {
                   <SelectContent>
                     {OCCASIONS.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
-                        {o.label}
+                        {t(`suggest.occasion.${o.value}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Variety Level</Label>
+                <Label>{t('settings.rec.variety')}</Label>
                 <Select
                   value={formData.variety_level || 'moderate'}
                   onValueChange={(v) =>
@@ -896,16 +893,16 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low (stick to favorites)</SelectItem>
-                    <SelectItem value="moderate">Moderate</SelectItem>
-                    <SelectItem value="high">High (try new combinations)</SelectItem>
+                    <SelectItem value="low">{t('settings.rec.lowVariety')}</SelectItem>
+                    <SelectItem value="moderate">{t('settings.rec.moderateVariety')}</SelectItem>
+                    <SelectItem value="high">{t('settings.rec.highVariety')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Avoid Repeat Items Within (days)</Label>
+                <Label>{t('settings.rec.avoidRepeat')}</Label>
                 <Input
                   type="number"
                   value={formData.avoid_repeat_days ?? 7}
@@ -915,7 +912,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Prefer Underused Items</Label>
+                <Label>{t('settings.rec.preferUnderused')}</Label>
                 <Select
                   value={formData.prefer_underused_items ? 'yes' : 'no'}
                   onValueChange={(v) => updateField('prefer_underused_items', v === 'yes')}
@@ -924,8 +921,8 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="yes">{t('settings.rec.yes')}</SelectItem>
+                    <SelectItem value="no">{t('settings.rec.no')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -938,16 +935,16 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Server className="h-5 w-5" />
-              AI Endpoints
+              {t('settings.aiEndpoints')}
             </CardTitle>
             <CardDescription>
-              Configure AI endpoints for image analysis. Endpoints are tried in order from top to bottom.
+              {t('settings.aiEndpointsDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {(formData.ai_endpoints || []).length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No custom endpoints configured. Using default server settings.
+                {t('settings.noEndpoints')}
               </p>
             ) : (
               <div className="space-y-3">
@@ -991,7 +988,7 @@ export default function SettingsPage() {
                             </Button>
                           </div>
                           <span className="font-medium text-sm truncate">
-                            {endpoint.name || `Endpoint ${index + 1}`}
+                            {endpoint.name || `${t('settings.endpointDefault')} ${index + 1}`}
                           </span>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
@@ -1024,16 +1021,16 @@ export default function SettingsPage() {
                       {/* Status badges and test button */}
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant={endpoint.enabled ? 'default' : 'secondary'} className="text-xs">
-                          {endpoint.enabled ? 'Active' : 'Disabled'}
+                          {endpoint.enabled ? t('settings.active') : t('settings.disabled')}
                         </Badge>
                         {endpointTests[index]?.status === 'connected' && (
                           <Badge variant="outline" className="text-xs text-green-600 border-green-600">
-                            Connected
+                            {t('settings.connected')}
                           </Badge>
                         )}
                         {endpointTests[index]?.status === 'error' && (
                           <Badge variant="outline" className="text-xs text-red-600 border-red-600">
-                            Error
+                            {t('settings.error')}
                           </Badge>
                         )}
                         <Button
@@ -1046,7 +1043,7 @@ export default function SettingsPage() {
                           {endpointTests[index]?.status === 'testing' ? (
                             <Loader2 className="h-3 w-3 animate-spin mr-1" />
                           ) : null}
-                          Test Connection
+                          {t('settings.ai.testConnection')}
                         </Button>
                       </div>
                     </div>
@@ -1054,17 +1051,17 @@ export default function SettingsPage() {
                     {endpointTests[index]?.status === 'connected' && endpointTests[index]?.models && (
                       <div className="text-xs space-y-1 p-2 bg-green-50 dark:bg-green-950 rounded overflow-hidden">
                         <p className="font-medium text-green-700 dark:text-green-300">
-                          {endpointTests[index].models?.length} models available
+                          {endpointTests[index].models?.length} {t('settings.models')}
                         </p>
                         {endpointTests[index].visionModels && endpointTests[index].visionModels!.length > 0 && (
                           <p className="text-green-600 dark:text-green-400 truncate" title={endpointTests[index].visionModels?.join(', ')}>
-                            Vision: {endpointTests[index].visionModels?.slice(0, 3).join(', ')}
+                            {t('settings.ai.vision')}: {endpointTests[index].visionModels?.slice(0, 3).join(', ')}
                             {(endpointTests[index].visionModels?.length || 0) > 3 && '...'}
                           </p>
                         )}
                         {endpointTests[index].textModels && endpointTests[index].textModels!.length > 0 && (
                           <p className="text-green-600 dark:text-green-400 truncate" title={endpointTests[index].textModels?.join(', ')}>
-                            Text: {endpointTests[index].textModels?.slice(0, 3).join(', ')}
+                            {t('settings.ai.text')}: {endpointTests[index].textModels?.slice(0, 3).join(', ')}
                             {(endpointTests[index].textModels?.length || 0) > 3 && '...'}
                           </p>
                         )}
@@ -1077,7 +1074,7 @@ export default function SettingsPage() {
                     )}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1">
-                        <Label className="text-xs">Name</Label>
+                        <Label className="text-xs">{t('settings.ai.name')}</Label>
                         <Input
                           value={endpoint.name}
                           onChange={(e) => {
@@ -1085,12 +1082,12 @@ export default function SettingsPage() {
                             updated[index] = { ...updated[index], name: e.target.value };
                             updateField('ai_endpoints', updated);
                           }}
-                          placeholder="e.g., Local Ollama"
+                          placeholder={t('settings.ai.namePlaceholder')}
                           className="h-8"
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">URL</Label>
+                        <Label className="text-xs">{t('settings.ai.url')}</Label>
                         <Input
                           value={endpoint.url}
                           onChange={(e) => {
@@ -1103,7 +1100,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Vision Model</Label>
+                        <Label className="text-xs">{t('settings.ai.visionModel')}</Label>
                         <Input
                           value={endpoint.vision_model}
                           onChange={(e) => {
@@ -1116,7 +1113,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Text Model</Label>
+                        <Label className="text-xs">{t('settings.ai.textModel')}</Label>
                         <Input
                           value={endpoint.text_model}
                           onChange={(e) => {
@@ -1139,7 +1136,7 @@ export default function SettingsPage() {
                 className="flex-1"
                 onClick={() => {
                   const newEndpoint: AIEndpoint = {
-                    name: `Endpoint ${(formData.ai_endpoints || []).length + 1}`,
+                    name: `${t('settings.endpointDefault')} ${(formData.ai_endpoints || []).length + 1}`,
                     url: 'http://localhost:11434/v1',
                     vision_model: 'moondream',
                     text_model: 'phi3:mini',
@@ -1149,7 +1146,7 @@ export default function SettingsPage() {
                 }}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Endpoint
+                {t('settings.ai.addEndpoint')}
               </Button>
               {hasChanges && (
                 <Button onClick={handleSave} disabled={updatePreferences.isPending}>
@@ -1158,7 +1155,7 @@ export default function SettingsPage() {
                   ) : (
                     <Save className="h-4 w-4 mr-2" />
                   )}
-                  Save
+                  {t('common.save')}
                 </Button>
               )}
             </div>

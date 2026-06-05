@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 import {
   startOfMonth,
   endOfMonth,
@@ -17,6 +18,7 @@ import {
   addMonths,
   subMonths,
 } from 'date-fns';
+import { enUS, zhCN } from 'date-fns/locale';
 import type { Outfit, OutfitSource } from '@/lib/hooks/use-outfits';
 
 interface OutfitCalendarProps {
@@ -28,6 +30,8 @@ interface OutfitCalendarProps {
   onMonthChange: (year: number, month: number) => void;
 }
 
+const WEEKDAY_KEYS = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa'] as const;
+
 export function OutfitCalendar({
   year,
   month,
@@ -36,7 +40,9 @@ export function OutfitCalendar({
   onSelectDate,
   onMonthChange,
 }: OutfitCalendarProps) {
+  const { t, lang } = useI18n();
   const currentMonth = new Date(year, month - 1, 1);
+  const locale = lang === 'zh' ? zhCN : enUS;
 
   // Build a map of date -> outfit sources for quick lookup
   const outfitsByDate = useMemo(() => {
@@ -72,8 +78,6 @@ export function OutfitCalendar({
     onMonthChange(next.getFullYear(), next.getMonth() + 1);
   };
 
-  const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
   return (
     <div className="w-full">
       {/* Month navigation */}
@@ -82,7 +86,7 @@ export function OutfitCalendar({
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h3 className="font-semibold text-lg">
-          {format(currentMonth, 'MMMM yyyy')}
+          {format(currentMonth, 'LLLL yyyy', { locale })}
         </h3>
         <Button variant="ghost" size="icon" onClick={handleNextMonth}>
           <ChevronRight className="h-4 w-4" />
@@ -91,12 +95,12 @@ export function OutfitCalendar({
 
       {/* Weekday headers */}
       <div className="grid grid-cols-7 mb-2">
-        {weekDays.map((day) => (
+        {WEEKDAY_KEYS.map((key) => (
           <div
-            key={day}
+            key={key}
             className="text-center text-xs text-muted-foreground font-medium py-1"
           >
-            {day}
+            {t(`calendar.day.${key}`)}
           </div>
         ))}
       </div>
@@ -157,11 +161,11 @@ export function OutfitCalendar({
       <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-primary" />
-          <span>Scheduled</span>
+          <span>{t('calendar.scheduled')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-orange-500" />
-          <span>On-demand</span>
+          <span>{t('calendar.onDemand')}</span>
         </div>
       </div>
     </div>

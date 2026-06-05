@@ -4,17 +4,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Shirt, Sparkles, LayoutGrid, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 const navigation = [
-  { name: 'Home', href: '/dashboard', icon: Home },
-  { name: 'Wardrobe', href: '/dashboard/wardrobe', icon: Shirt },
-  { name: 'Suggest', href: '/dashboard/suggest', icon: Sparkles },
-  { name: 'Outfits', href: '/dashboard/outfits', icon: LayoutGrid },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { key: 'nav.home', href: '/dashboard', icon: Home },
+  { key: 'nav.wardrobe', href: '/dashboard/wardrobe', icon: Shirt },
+  { key: 'nav.suggest', href: '/dashboard/suggest', icon: Sparkles },
+  { key: 'nav.outfits', href: '/dashboard/outfits', icon: LayoutGrid },
+  { key: 'nav.settings', href: '/dashboard/settings', icon: Settings },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background lg:hidden">
@@ -35,7 +37,7 @@ export function MobileNav() {
               )}
             >
               <item.icon className="h-5 w-5" aria-hidden="true" />
-              <span>{item.name}</span>
+              <span>{t(item.key)}</span>
             </Link>
           );
         })}

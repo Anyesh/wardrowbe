@@ -18,6 +18,7 @@ import {
   type Outfit,
   type OutfitFilters,
 } from '@/lib/hooks/use-outfits';
+import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 interface MonthRef {
@@ -88,14 +89,17 @@ const CHIP_ORDER: FilterChip[] = [
   'ai',
 ];
 
-const CHIP_LABELS: Record<FilterChip, string> = {
-  all: 'All',
-  'my-looks': 'My Looks',
-  worn: 'Worn',
-  pairings: 'Pairings',
-  replacements: 'Replacements',
-  ai: 'AI',
-};
+function useChipLabels(): Record<FilterChip, string> {
+  const { t } = useI18n();
+  return useMemo(() => ({
+    all: t('outfits.tab.all'),
+    'my-looks': t('outfits.tab.myLooks'),
+    worn: t('outfits.tab.worn'),
+    pairings: t('outfits.tab.pairings'),
+    replacements: t('outfits.tab.replacements'),
+    ai: t('outfits.tab.ai'),
+  }), [t]);
+}
 
 function chipToFilters(chip: FilterChip, search: string): OutfitFilters {
   const filters: OutfitFilters = {};
@@ -123,16 +127,22 @@ function chipToFilters(chip: FilterChip, search: string): OutfitFilters {
   }
 }
 
-const EMPTY_MESSAGES: Record<FilterChip, string> = {
-  all: 'No outfits yet. Create your first look in the Studio!',
-  'my-looks': 'No saved looks yet. Create one with the Studio editor.',
-  worn: 'No worn outfits recorded.',
-  pairings: 'No pairing outfits generated.',
-  replacements: 'No replacement outfits.',
-  ai: 'No AI-generated outfits.',
-};
+function useEmptyMessages(): Record<FilterChip, string> {
+  const { t } = useI18n();
+  return useMemo(() => ({
+    all: t('outfits.empty.all'),
+    'my-looks': t('outfits.empty.myLooks'),
+    worn: t('outfits.empty.worn'),
+    pairings: t('outfits.empty.pairings'),
+    replacements: t('outfits.empty.replacements'),
+    ai: t('outfits.empty.ai'),
+  }), [t]);
+}
 
 function OutfitsPageContent() {
+  const { t } = useI18n();
+  const CHIP_LABELS = useChipLabels();
+  const EMPTY_MESSAGES = useEmptyMessages();
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawFilter = (searchParams.get('filter') as FilterChip) || 'all';
@@ -293,8 +303,8 @@ function OutfitsPageContent() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Outfits</h1>
-          <p className="text-muted-foreground">Your looks, worn outfits, and AI suggestions</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('outfits.title')}</h1>
+          <p className="text-muted-foreground">{t('outfits.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div
@@ -314,7 +324,7 @@ function OutfitsPageContent() {
               )}
             >
               <ListIcon className="h-3.5 w-3.5" />
-              List
+              {t('outfits.list')}
             </button>
             <button
               type="button"
@@ -328,13 +338,13 @@ function OutfitsPageContent() {
               )}
             >
               <CalendarDays className="h-3.5 w-3.5" />
-              Calendar
+              {t('outfits.calendar')}
             </button>
           </div>
           <Button asChild>
             <Link href="/dashboard/outfits/new">
               <Plus className="h-4 w-4 mr-2" />
-              New Outfit
+              {t('outfits.new')}
             </Link>
           </Button>
         </div>
@@ -364,7 +374,7 @@ function OutfitsPageContent() {
           <div className="relative ml-auto min-w-[220px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search lookbook..."
+              placeholder={t('outfits.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9"
@@ -374,7 +384,7 @@ function OutfitsPageContent() {
 
         {listQuery.data && (
           <Badge variant="outline" className="ml-auto">
-            {listQuery.data.total} total
+            {listQuery.data.total} {t('outfits.totalCount')}
           </Badge>
         )}
       </div>
@@ -383,7 +393,7 @@ function OutfitsPageContent() {
       {view === 'list' ? (
         <>
           {listError ? (
-            <div className="text-center py-8 text-destructive">Failed to load outfits</div>
+            <div className="text-center py-8 text-destructive">{t('outfits.loadFailed')}</div>
           ) : listLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -397,7 +407,7 @@ function OutfitsPageContent() {
                 <Button asChild>
                   <Link href="/dashboard/outfits/new">
                     <Plus className="h-4 w-4 mr-2" />
-                    New Outfit
+                    {t('outfits.new')}
                   </Link>
                 </Button>
               )}
@@ -412,7 +422,7 @@ function OutfitsPageContent() {
               {hasMore && (
                 <div className="flex justify-center pt-4">
                   <Button variant="outline" onClick={() => setPage((p) => p + 1)}>
-                    Load more
+                    {t('common.loadMore')}
                   </Button>
                 </div>
               )}
@@ -453,7 +463,7 @@ function OutfitsPageContent() {
 
           <div className="space-y-4">
             {calendarError ? (
-              <div className="text-center py-8 text-destructive">Failed to load outfits</div>
+              <div className="text-center py-8 text-destructive">{t('outfits.loadFailed')}</div>
             ) : calendarLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -464,7 +474,7 @@ function OutfitsPageContent() {
               <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
                 <CalendarDays className="h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  No outfits on this day
+                  {t('outfits.noOnDay')}
                 </p>
               </div>
             ) : (
@@ -475,13 +485,13 @@ function OutfitsPageContent() {
                       {formatReadableDate(selectedDate)}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      {selectedDayOutfits.length} outfit{selectedDayOutfits.length === 1 ? '' : 's'}
+                      {selectedDayOutfits.length} {t('outfits.counts')}
                     </p>
                   </div>
                 )}
                 {!selectedDate && (
                   <p className="text-sm text-muted-foreground">
-                    {calendarOutfits.length} outfit{calendarOutfits.length === 1 ? '' : 's'} this month
+                    {calendarOutfits.length} {t('outfits.counts')} {t('outfits.thisMonth')}
                   </p>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

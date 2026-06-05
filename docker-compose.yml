@@ -57,6 +57,7 @@ services:
       AI_TEXT_MODEL: ${AI_TEXT_MODEL:-gpt-4o}
       AI_TIMEOUT: ${AI_TIMEOUT:-120}
       AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
+      AI_API_KEY: ${AI_API_KEY:-}
       NTFY_SERVER: ${NTFY_SERVER:-}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
       MATTERMOST_WEBHOOK_URL: ${MATTERMOST_WEBHOOK_URL:-}
@@ -87,6 +88,10 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
       DEV_MODE: ${DEBUG:-false}
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_END_SESSION_URL: ${OIDC_END_SESSION_URL:-}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
@@ -110,6 +115,7 @@ services:
       AI_TEXT_MODEL: ${AI_TEXT_MODEL:-gpt-4o}
       AI_TIMEOUT: ${AI_TIMEOUT:-120}
       AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
+      AI_API_KEY: ${AI_API_KEY:-}
       STORAGE_PATH: /data/wardrobe
     volumes:
       - wardrobe_data:/data/wardrobe

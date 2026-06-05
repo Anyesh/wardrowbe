@@ -61,28 +61,15 @@ import {
   Schedule,
 } from '@/lib/hooks/use-notifications';
 import { useUserProfile } from '@/lib/hooks/use-user';
+import { useI18n } from '@/lib/i18n';
 import { OCCASIONS } from '@/lib/types';
 
-const DAYS = [
-  { value: 0, label: 'Monday' },
-  { value: 1, label: 'Tuesday' },
-  { value: 2, label: 'Wednesday' },
-  { value: 3, label: 'Thursday' },
-  { value: 4, label: 'Friday' },
-  { value: 5, label: 'Saturday' },
-  { value: 6, label: 'Sunday' },
-];
+const DAY_VALUES = [0, 1, 2, 3, 4, 5, 6] as const;
 
 const CHANNEL_ICONS: Record<string, React.ReactNode> = {
   ntfy: <Bell className="h-5 w-5" />,
   mattermost: <MessageSquare className="h-5 w-5" />,
   email: <Mail className="h-5 w-5" />,
-};
-
-const CHANNEL_LABELS: Record<string, string> = {
-  ntfy: 'ntfy Push',
-  mattermost: 'Mattermost',
-  email: 'Email',
 };
 
 function ChannelCard({
@@ -98,6 +85,17 @@ function ChannelCard({
   onDelete: () => void;
   testing: boolean;
 }) {
+  const { t } = useI18n();
+
+  const getChannelLabel = (channel: string) => {
+    const labels: Record<string, string> = {
+      ntfy: t('notifications.channelNtfy'),
+      mattermost: t('notifications.channelMattermost'),
+      email: t('notifications.channelEmail'),
+    };
+    return labels[channel] || channel;
+  };
+
   return (
     <Card>
       <CardContent className="pt-6">
@@ -107,10 +105,10 @@ function ChannelCard({
               {CHANNEL_ICONS[setting.channel]}
             </div>
             <div>
-              <p className="font-medium">{CHANNEL_LABELS[setting.channel]}</p>
+              <p className="font-medium">{getChannelLabel(setting.channel)}</p>
               <p className="text-sm text-muted-foreground">
                 {setting.channel === 'ntfy' && setting.config.topic}
-                {setting.channel === 'mattermost' && 'Webhook configured'}
+                {setting.channel === 'mattermost' && t('notifications.webhookConfigured')}
                 {setting.channel === 'email' && setting.config.address}
               </p>
             </div>
@@ -129,9 +127,11 @@ function ChannelCard({
             ) : (
               <Send className="h-4 w-4 mr-1" />
             )}
-            Test
+            {t('notifications.test')}
           </Button>
-          <Badge variant="secondary">Priority {setting.priority}</Badge>
+          <Badge variant="secondary">
+            {t('notifications.priority')} {setting.priority}
+          </Badge>
           <Button
             variant="ghost"
             size="sm"
@@ -164,6 +164,7 @@ function AddChannelDialog({
   onSuccess?: () => void;
   userEmail?: string;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState<'ntfy' | 'mattermost' | 'email'>('ntfy');
   const [config, setConfig] = useState<Record<string, string>>({});
@@ -176,13 +177,11 @@ function AddChannelDialog({
         .then((res) => res.json())
         .then((data) => {
           setNtfyDefaults(data);
-          // Pre-fill server and token if ntfy is selected (user only sets topic)
           if (channel === 'ntfy' && !config.server) {
             setConfig({ server: data.server, token: data.token || '' });
           }
         })
         .catch(() => {
-          // Fallback defaults
           setNtfyDefaults({ server: 'https://ntfy.sh', token: '' });
         });
     }
@@ -204,15 +203,15 @@ function AddChannelDialog({
 
     // Frontend validation
     if (channel === 'ntfy' && !config.topic?.trim()) {
-      toast.error('Topic is required for ntfy');
+      toast.error(t('notifications.ntfyTopicRequired'));
       return;
     }
     if (channel === 'mattermost' && !config.webhook_url?.trim()) {
-      toast.error('Webhook URL is required for Mattermost');
+      toast.error(t('notifications.mattermostWebhookRequired'));
       return;
     }
     if (channel === 'email' && !config.address?.trim()) {
-      toast.error('Email address is required');
+      toast.error(t('notifications.emailRequired'));
       return;
     }
 
@@ -223,7 +222,6 @@ function AddChannelDialog({
         priority: 1,
         config,
       });
-      // Close and reset on success
       setOpen(false);
       setConfig({});
       setChannel('ntfy');
@@ -244,20 +242,20 @@ function AddChannelDialog({
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Add Channel
+          {t('notifications.addChannel')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add Notification Channel</DialogTitle>
+            <DialogTitle>{t('notifications.addChannelTitle')}</DialogTitle>
             <DialogDescription>
-              Configure a new way to receive outfit recommendations.
+              {t('notifications.addChannelDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Channel Type</Label>
+              <Label>{t('notifications.channelType')}</Label>
               <Select
                 value={channel}
                 onValueChange={(v: 'ntfy' | 'mattermost' | 'email') => {
@@ -269,9 +267,9 @@ function AddChannelDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ntfy">ntfy Push Notifications</SelectItem>
-                  <SelectItem value="mattermost">Mattermost</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="ntfy">{t('notifications.channelNtfyFull')}</SelectItem>
+                  <SelectItem value="mattermost">{t('notifications.channelMattermost')}</SelectItem>
+                  <SelectItem value="email">{t('notifications.channelEmail')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -279,7 +277,7 @@ function AddChannelDialog({
             {channel === 'ntfy' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="server">Server URL</Label>
+                  <Label htmlFor="server">{t('notifications.serverUrl')}</Label>
                   <Input
                     id="server"
                     value={config.server || 'https://ntfy.sh'}
@@ -288,7 +286,7 @@ function AddChannelDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="topic">Topic *</Label>
+                  <Label htmlFor="topic">{t('notifications.topicLabel')}</Label>
                   <Input
                     id="topic"
                     value={config.topic || ''}
@@ -297,11 +295,11 @@ function AddChannelDialog({
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Subscribe to this topic in your ntfy app
+                    {t('notifications.topicHint')}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="token">Access Token</Label>
+                  <Label htmlFor="token">{t('notifications.accessToken')}</Label>
                   <Input
                     id="token"
                     type="password"
@@ -310,7 +308,7 @@ function AddChannelDialog({
                     placeholder="tk_..."
                   />
                   <p className="text-xs text-muted-foreground">
-                    Required if your ntfy server uses authentication
+                    {t('notifications.tokenHint')}
                   </p>
                 </div>
               </>
@@ -318,7 +316,7 @@ function AddChannelDialog({
 
             {channel === 'mattermost' && (
               <div className="space-y-2">
-                <Label htmlFor="webhook">Webhook URL *</Label>
+                <Label htmlFor="webhook">{t('notifications.webhookUrl')}</Label>
                 <Input
                   id="webhook"
                   value={config.webhook_url || ''}
@@ -327,14 +325,14 @@ function AddChannelDialog({
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Create an incoming webhook in Mattermost settings
+                  {t('notifications.webhookHint')}
                 </p>
               </div>
             )}
 
             {channel === 'email' && (
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
+                <Label htmlFor="email">{t('notifications.emailAddress')}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -348,16 +346,16 @@ function AddChannelDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={closeAndReset} disabled={isLoading}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Adding...
+                  {t('notifications.adding')}
                 </>
               ) : (
-                'Add Channel'
+                t('notifications.addChannel')
               )}
             </Button>
           </DialogFooter>
@@ -378,13 +376,40 @@ function ScheduleCard({
   onToggleDayBefore: (notify_day_before: boolean) => void;
   onDelete: () => void;
 }) {
-  const day = DAYS.find((d) => d.value === schedule.day_of_week);
-  const occasion = OCCASIONS.find((o) => o.value === schedule.occasion);
+  const { t } = useI18n();
+
+  const getDayLabel = (dayValue: number) => {
+    const labels: Record<number, string> = {
+      0: t('dashboard.day.monday'),
+      1: t('dashboard.day.tuesday'),
+      2: t('dashboard.day.wednesday'),
+      3: t('dashboard.day.thursday'),
+      4: t('dashboard.day.friday'),
+      5: t('dashboard.day.saturday'),
+      6: t('dashboard.day.sunday'),
+    };
+    return labels[dayValue];
+  };
+
+  const getOccasionLabel = (val: string) => {
+    const labels: Record<string, string> = {
+      casual: t('notifications.occasion.casual'),
+      office: t('notifications.occasion.office'),
+      formal: t('notifications.occasion.formal'),
+      date: t('notifications.occasion.date'),
+      sporty: t('notifications.occasion.sporty'),
+    };
+    return labels[val] || OCCASIONS.find((o) => o.value === val)?.label || val;
+  };
+
+  const dayLabel = getDayLabel(schedule.day_of_week);
+  const occasionLabel = getOccasionLabel(schedule.occasion);
 
   // Calculate which day the notification actually comes
-  const notifyDay = schedule.notify_day_before
-    ? DAYS[(schedule.day_of_week + 6) % 7] // Previous day
-    : day;
+  const notifyDayValue = schedule.notify_day_before
+    ? (schedule.day_of_week + 6) % 7
+    : schedule.day_of_week;
+  const notifyDayLabel = getDayLabel(notifyDayValue);
 
   return (
     <div className="p-4 border rounded-lg space-y-3">
@@ -395,9 +420,9 @@ function ScheduleCard({
             <Calendar className="h-4 w-4" />
           </div>
           <div>
-            <p className="font-medium">{day?.label}</p>
+            <p className="font-medium">{dayLabel}</p>
             <p className="text-sm text-muted-foreground">
-              {schedule.notification_time} - {occasion?.label || schedule.occasion}
+              {schedule.notification_time} - {occasionLabel}
             </p>
           </div>
         </div>
@@ -417,12 +442,12 @@ function ScheduleCard({
             onCheckedChange={onToggleDayBefore}
           />
           <Label htmlFor={`daybefore-${schedule.id}`} className="text-sm cursor-pointer">
-            Notify day before
+            {t('notifications.notifyDayBefore')}
           </Label>
         </div>
         {schedule.notify_day_before && (
           <span className="text-xs text-muted-foreground">
-            {notifyDay?.label} evening
+            {notifyDayLabel} {t('notifications.evening')}
           </span>
         )}
       </div>
@@ -445,16 +470,43 @@ function AddScheduleDialog({
   onAdd: (data: ScheduleFormData) => Promise<void>;
   isLoading: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [time, setTime] = useState('07:00');
   const [occasion, setOccasion] = useState('casual');
   const [notifyDayBefore, setNotifyDayBefore] = useState(false);
   const [dayOfWeek, setDayOfWeek] = useState<number>(0);
 
+  const getDayLabel = (dayValue: number) => {
+    const labels: Record<number, string> = {
+      0: t('dashboard.day.monday'),
+      1: t('dashboard.day.tuesday'),
+      2: t('dashboard.day.wednesday'),
+      3: t('dashboard.day.thursday'),
+      4: t('dashboard.day.friday'),
+      5: t('dashboard.day.saturday'),
+      6: t('dashboard.day.sunday'),
+    };
+    return labels[dayValue];
+  };
+
+  const getOccasionLabel = (val: string) => {
+    const labels: Record<string, string> = {
+      casual: t('notifications.occasion.casual'),
+      office: t('notifications.occasion.office'),
+      formal: t('notifications.occasion.formal'),
+      date: t('notifications.occasion.date'),
+      sporty: t('notifications.occasion.sporty'),
+    };
+    return labels[val] || OCCASIONS.find((o) => o.value === val)?.label || val;
+  };
+
   // Calculate which day notification comes on
-  const notifyDay = notifyDayBefore
-    ? DAYS[(dayOfWeek + 6) % 7] // Previous day
-    : DAYS.find((d) => d.value === dayOfWeek);
+  const notifyDayValue = notifyDayBefore
+    ? (dayOfWeek + 6) % 7
+    : dayOfWeek;
+  const notifyDayLabel = getDayLabel(notifyDayValue);
+  const targetDayLabel = getDayLabel(dayOfWeek);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -466,7 +518,6 @@ function AddScheduleDialog({
         enabled: true,
         notify_day_before: notifyDayBefore,
       });
-      // Close and reset on success
       setOpen(false);
       setTime('07:00');
       setOccasion('casual');
@@ -488,20 +539,20 @@ function AddScheduleDialog({
       <DialogTrigger asChild>
         <Button variant="outline">
           <Plus className="h-4 w-4 mr-2" />
-          Add Schedule
+          {t('notifications.addSchedule')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add Schedule</DialogTitle>
+            <DialogTitle>{t('notifications.addScheduleTitle')}</DialogTitle>
             <DialogDescription>
-              Set up when you want to receive outfit recommendations.
+              {t('notifications.addScheduleDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Day</Label>
+              <Label>{t('notifications.day')}</Label>
               <Select
                 value={String(dayOfWeek)}
                 onValueChange={(v) => setDayOfWeek(parseInt(v))}
@@ -510,16 +561,16 @@ function AddScheduleDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {DAYS.map((day) => (
-                    <SelectItem key={day.value} value={String(day.value)}>
-                      {day.label}
+                  {DAY_VALUES.map((day) => (
+                    <SelectItem key={day} value={String(day)}>
+                      {getDayLabel(day)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="time">Time</Label>
+              <Label htmlFor="time">{t('notifications.time')}</Label>
               <Input
                 id="time"
                 type="time"
@@ -528,7 +579,7 @@ function AddScheduleDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Occasion</Label>
+              <Label>{t('notifications.occasion')}</Label>
               <Select value={occasion} onValueChange={setOccasion}>
                 <SelectTrigger>
                   <SelectValue />
@@ -536,7 +587,7 @@ function AddScheduleDialog({
                 <SelectContent>
                   {OCCASIONS.map((o) => (
                     <SelectItem key={o.value} value={o.value}>
-                      {o.label}
+                      {getOccasionLabel(o.value)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -544,9 +595,9 @@ function AddScheduleDialog({
             </div>
             <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
               <div className="space-y-0.5">
-                <Label htmlFor="notify-day-before">Notify day before</Label>
+                <Label htmlFor="notify-day-before">{t('notifications.notifyDayBefore')}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Get notification the evening before with tomorrow&apos;s forecast
+                  {t('notifications.notifyDayBeforeDesc')}
                 </p>
               </div>
               <Switch
@@ -557,22 +608,22 @@ function AddScheduleDialog({
             </div>
             {notifyDayBefore && (
               <p className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">
-                You&apos;ll receive the notification on <strong>{notifyDay?.label}</strong> at {time} for your <strong>{DAYS.find(d => d.value === dayOfWeek)?.label}</strong> outfit.
+                {t('notifications.receiveNotifOn')} <strong>{notifyDayLabel}</strong> {t('notifications.atTime')} {time} {t('notifications.forYourOutfit')} <strong>{targetDayLabel}</strong> {t('notifications.outfitSuffix')}
               </p>
             )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={closeAndReset} disabled={isLoading}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Adding...
+                  {t('notifications.adding')}
                 </>
               ) : (
-                'Add Schedule'
+                t('notifications.addSchedule')
               )}
             </Button>
           </DialogFooter>
@@ -583,6 +634,7 @@ function AddScheduleDialog({
 }
 
 export default function NotificationsPage() {
+  const { t } = useI18n();
   const { data: settings, isLoading: loadingSettings } = useNotificationSettings();
   const { data: schedules, isLoading: loadingSchedules } = useSchedules();
   const { data: userProfile } = useUserProfile();
@@ -602,22 +654,22 @@ export default function NotificationsPage() {
   const handleCreateChannel = async (data: ChannelFormData): Promise<void> => {
     try {
       await createSetting.mutateAsync(data);
-      toast.success('Notification channel added');
+      toast.success(t('notifications.channelAdded'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to add channel';
+      const message = error instanceof Error ? error.message : t('notifications.channelAddError');
       toast.error(message);
-      throw error; // Re-throw so dialog knows it failed
+      throw error;
     }
   };
 
   const handleCreateSchedule = async (data: ScheduleFormData): Promise<void> => {
     try {
       await createSchedule.mutateAsync(data);
-      toast.success('Schedule added');
+      toast.success(t('notifications.scheduleAdded'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to add schedule';
+      const message = error instanceof Error ? error.message : t('notifications.scheduleAddError');
       toast.error(message);
-      throw error; // Re-throw so dialog knows it failed
+      throw error;
     }
   };
 
@@ -625,9 +677,9 @@ export default function NotificationsPage() {
     setTestingId(id);
     try {
       const result = await testSetting.mutateAsync(id);
-      toast.success(result.message || 'Test notification sent');
+      toast.success(result.message || t('notifications.testSuccess'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Test failed';
+      const message = error instanceof Error ? error.message : t('notifications.testFailed');
       toast.error(message);
     } finally {
       setTestingId(null);
@@ -637,9 +689,9 @@ export default function NotificationsPage() {
   const handleToggleChannel = async (id: string, enabled: boolean) => {
     try {
       await updateSetting.mutateAsync({ id, data: { enabled } });
-      toast.success(enabled ? 'Channel enabled' : 'Channel disabled');
+      toast.success(enabled ? t('notifications.channelEnabled') : t('notifications.channelDisabled'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to update';
+      const message = error instanceof Error ? error.message : t('notifications.updateFailed');
       toast.error(message);
     }
   };
@@ -647,9 +699,9 @@ export default function NotificationsPage() {
   const handleToggleSchedule = async (id: string, enabled: boolean) => {
     try {
       await updateSchedule.mutateAsync({ id, data: { enabled } });
-      toast.success(enabled ? 'Schedule enabled' : 'Schedule disabled');
+      toast.success(enabled ? t('notifications.scheduleEnabled') : t('notifications.scheduleDisabled'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to update';
+      const message = error instanceof Error ? error.message : t('notifications.updateFailed');
       toast.error(message);
     }
   };
@@ -657,9 +709,9 @@ export default function NotificationsPage() {
   const handleToggleDayBefore = async (id: string, notify_day_before: boolean) => {
     try {
       await updateSchedule.mutateAsync({ id, data: { notify_day_before } });
-      toast.success(notify_day_before ? 'Will notify day before' : 'Will notify same day');
+      toast.success(notify_day_before ? t('notifications.willNotifyDayBefore') : t('notifications.willNotifySameDay'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to update';
+      const message = error instanceof Error ? error.message : t('notifications.updateFailed');
       toast.error(message);
     }
   };
@@ -670,13 +722,13 @@ export default function NotificationsPage() {
     try {
       if (deleteConfirm.type === 'channel') {
         await deleteSetting.mutateAsync(deleteConfirm.id);
-        toast.success('Channel deleted');
+        toast.success(t('notifications.channelDeleted'));
       } else {
         await deleteSchedule.mutateAsync(deleteConfirm.id);
-        toast.success('Schedule deleted');
+        toast.success(t('notifications.scheduleDeleted'));
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to delete';
+      const message = error instanceof Error ? error.message : t('notifications.deleteFailed');
       toast.error(message);
     } finally {
       setDeleteConfirm(null);
@@ -686,9 +738,9 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('notifications.title')}</h1>
         <p className="text-muted-foreground">
-          Configure how and when you receive outfit recommendations
+          {t('notifications.subtitle')}
         </p>
       </div>
 
@@ -699,10 +751,10 @@ export default function NotificationsPage() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Settings2 className="h-5 w-5" />
-                Notification Channels
+                {t('notifications.channelSection')}
               </CardTitle>
               <CardDescription>
-                Add channels to receive your daily outfit recommendations
+                {t('notifications.channelSectionDesc')}
               </CardDescription>
             </div>
             <AddChannelDialog onAdd={handleCreateChannel} isLoading={createSetting.isPending} userEmail={userProfile?.email} />
@@ -717,8 +769,8 @@ export default function NotificationsPage() {
           ) : settings?.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No notification channels configured</p>
-              <p className="text-sm">Add a channel to start receiving outfit suggestions</p>
+              <p>{t('notifications.noChannels')}</p>
+              <p className="text-sm">{t('notifications.noChannelsHint')}</p>
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -744,10 +796,10 @@ export default function NotificationsPage() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Delivery Schedule
+                {t('notifications.scheduleSection')}
               </CardTitle>
               <CardDescription>
-                Set when you want to receive outfit recommendations each day
+                {t('notifications.scheduleSectionDesc')}
               </CardDescription>
             </div>
             <AddScheduleDialog
@@ -765,13 +817,13 @@ export default function NotificationsPage() {
           ) : schedules?.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No schedules configured</p>
-              <p className="text-sm">Add a schedule to receive daily outfit suggestions</p>
+              <p>{t('notifications.noSchedules')}</p>
+              <p className="text-sm">{t('notifications.noSchedulesHint')}</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {DAYS.map((day) => {
-                const daySchedules = schedules?.filter((s) => s.day_of_week === day.value) || [];
+              {DAY_VALUES.map((dayVal) => {
+                const daySchedules = schedules?.filter((s) => s.day_of_week === dayVal) || [];
                 if (daySchedules.length === 0) return null;
                 return daySchedules.map((schedule) => (
                   <ScheduleCard
@@ -793,16 +845,18 @@ export default function NotificationsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete {deleteConfirm?.type === 'channel' ? 'Notification Channel' : 'Schedule'}?
+              {deleteConfirm?.type === 'channel'
+                ? t('notifications.deleteChannelTitle')
+                : t('notifications.deleteScheduleTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteConfirm?.type === 'channel'
-                ? 'This will remove the notification channel. You can add it back later.'
-                : 'This will remove the schedule. You can create a new one later.'}
+                ? t('notifications.deleteChannelDesc')
+                : t('notifications.deleteScheduleDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirmed}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -810,10 +864,10 @@ export default function NotificationsPage() {
               {deleteSetting.isPending || deleteSchedule.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Deleting...
+                  {t('notifications.deleting')}
                 </>
               ) : (
-                'Delete'
+                t('common.delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -63,14 +63,14 @@ export interface AnalyticsData {
   insights: string[];
 }
 
-export function useAnalytics(days = 30) {
+export function useAnalytics(days = 30, lang = 'en') {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['analytics', days],
+    queryKey: ['analytics', days, lang],
     queryFn: () => api.get<AnalyticsData>('/analytics', {
-      params: { days: String(days) },
+      params: { days: String(days), lang },
     }),
     enabled: status !== 'loading',
     staleTime: 5 * 60 * 1000, // 5 minutes

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, Search, Heart, Grid3X3, Loader2, AlertCircle, RefreshCw, Droplets, ArrowUpDown, SlidersHorizontal, X } from 'lucide-react';
@@ -29,19 +29,23 @@ import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolb
 import { useItems, useItem, useItemTypes, useReanalyzeItem, useBulkDeleteItems, useBulkReanalyzeItems, BulkOperationParams } from '@/lib/hooks/use-items';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { CLOTHING_TYPES, CLOTHING_COLORS, Item } from '@/lib/types';
+import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { formatWornAgo, getWornAgoColorClass } from '@/lib/utils';
 
-const SORT_OPTIONS = [
-  { label: 'Newest first', value: 'created_at', order: 'desc' as const },
-  { label: 'Oldest first', value: 'created_at', order: 'asc' as const },
-  { label: 'Recently worn', value: 'last_worn', order: 'desc' as const },
-  { label: 'Least recently worn', value: 'last_worn', order: 'asc' as const },
-  { label: 'Most worn', value: 'wear_count', order: 'desc' as const },
-  { label: 'Least worn', value: 'wear_count', order: 'asc' as const },
-  { label: 'Name A–Z', value: 'name', order: 'asc' as const },
-  { label: 'Name Z–A', value: 'name', order: 'desc' as const },
-] as const;
+function useSortOptions() {
+  const { t } = useI18n();
+  return useMemo(() => [
+    { label: t('wardrobe.sort.newest'), value: 'created_at', order: 'desc' as const },
+    { label: t('wardrobe.sort.oldest'), value: 'created_at', order: 'asc' as const },
+    { label: t('wardrobe.sort.recentlyWorn'), value: 'last_worn', order: 'desc' as const },
+    { label: t('wardrobe.sort.leastRecentlyWorn'), value: 'last_worn', order: 'asc' as const },
+    { label: t('wardrobe.sort.mostWorn'), value: 'wear_count', order: 'desc' as const },
+    { label: t('wardrobe.sort.leastWorn'), value: 'wear_count', order: 'asc' as const },
+    { label: t('wardrobe.sort.nameAz'), value: 'name', order: 'asc' as const },
+    { label: t('wardrobe.sort.nameZa'), value: 'name', order: 'desc' as const },
+  ], [t]);
+}
 
 function ItemCard({
   item,
@@ -58,6 +62,7 @@ function ItemCard({
   onClick?: () => void;
   userTimezone: string;
 }) {
+  const { t } = useI18n();
   const colorInfo = CLOTHING_COLORS.find((c) => c.value === item.primary_color);
   const isProcessing = item.status === 'processing';
   const isError = item.status === 'error';
@@ -87,7 +92,6 @@ function ItemCard({
             {item.type}
           </div>
         )}
-        {/* Checkbox in top-left */}
         <div
           className={`absolute top-2 left-2 z-10 transition-opacity ${
             selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
@@ -107,7 +111,7 @@ function ItemCard({
         )}
         {item.needs_wash && (
           <div className="absolute bottom-2 right-2 z-10">
-            <div className="bg-amber-500/90 text-white rounded-full p-1" title="Needs washing">
+            <div className="bg-amber-500/90 text-white rounded-full p-1" title={t('wardrobe.needsWashing')}>
               <Droplets className="h-3.5 w-3.5" />
             </div>
           </div>
@@ -115,13 +119,13 @@ function ItemCard({
         {isProcessing && (
           <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
             <Loader2 className="h-6 w-6 text-white animate-spin" />
-            <span className="text-white text-xs font-medium">AI Analyzing...</span>
+            <span className="text-white text-xs font-medium">{t('wardrobe.aiAnalyzing')}</span>
           </div>
         )}
         {isError && (
           <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-2">
             <AlertCircle className="h-6 w-6 text-red-400" />
-            <span className="text-white text-xs font-medium text-center">Analysis Failed</span>
+            <span className="text-white text-xs font-medium text-center">{t('wardrobe.analysisFailed')}</span>
             {onRetry && (
               <Button
                 size="sm"
@@ -133,7 +137,7 @@ function ItemCard({
                 }}
               >
                 <RefreshCw className="h-3 w-3 mr-1" />
-                Retry
+                {t('wardrobe.retry')}
               </Button>
             )}
           </div>
@@ -173,12 +177,12 @@ function ItemCard({
           </p>
         ) : item.wear_count > 0 ? (
           <p className="text-xs text-muted-foreground mt-1">
-            Worn {item.wear_count} time{item.wear_count !== 1 ? 's' : ''}
+            {t('wardrobe.wornPrefix')} {item.wear_count} {t('wardrobe.timeUnit')}
           </p>
         ) : null}
         {item.ai_confidence !== undefined && item.ai_confidence > 0 && item.status === 'ready' && (
           <p className="text-xs text-muted-foreground mt-1">
-            AI completeness: {Math.round(item.ai_confidence * 100)}%
+            {t('wardrobe.aiCompleteness')} {Math.round(item.ai_confidence * 100)}%
           </p>
         )}
       </CardContent>
@@ -199,25 +203,27 @@ function ItemCardSkeleton() {
 }
 
 function EmptyWardrobe({ onAddClick }: { onAddClick: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       <div className="rounded-full bg-muted p-6 mb-4">
         <Grid3X3 className="h-12 w-12 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-semibold mb-2">Your wardrobe is empty</h3>
+      <h3 className="text-lg font-semibold mb-2">{t('wardrobe.empty')}</h3>
       <p className="text-muted-foreground mb-6 max-w-sm">
-        Add your first clothing item to start getting personalized outfit
-        suggestions.
+        {t('wardrobe.emptyHint')}
       </p>
       <Button onClick={onAddClick}>
         <Plus className="mr-2 h-4 w-4" />
-        Add First Item
+        {t('wardrobe.addFirstItem')}
       </Button>
     </div>
   );
 }
 
 export default function WardrobePage() {
+  const { t } = useI18n();
+  const SORT_OPTIONS = useSortOptions();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: userProfile } = useUserProfile();
@@ -237,7 +243,6 @@ export default function WardrobePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
 
-  // Open item detail dialog from URL param (e.g. ?item=uuid from outfit pages)
   useEffect(() => {
     const itemParam = searchParams.get('item');
     if (itemParam && !detailItemId) {
@@ -263,7 +268,6 @@ export default function WardrobePage() {
     typeFilter !== 'all',
   ].filter(Boolean).length;
 
-  // Fetch items with automatic polling (faster when items are processing)
   const { data, isLoading, error } = useItems(filters, page, 20);
   const { data: itemTypes } = useItemTypes();
   const reanalyze = useReanalyzeItem();
@@ -273,16 +277,13 @@ export default function WardrobePage() {
   const items = data?.items || [];
   const total = data?.total || 0;
 
-  // Get selected item: try from list first, then fetch individually (for deep-link from outfit pages)
   const listItem = detailItemId ? items.find((i) => i.id === detailItemId) || null : null;
   const { data: fetchedItem } = useItem(detailItemId && !listItem ? detailItemId : '');
   const detailItem = listItem || fetchedItem || null;
 
-  // Count items being processed or with errors
   const processingCount = items.filter((i) => i.status === 'processing').length;
   const errorCount = items.filter((i) => i.status === 'error').length;
 
-  // Clear selection when filters change (but not page - allow cross-page selection)
   useEffect(() => {
     setSelection({ mode: 'none', selectedIds: new Set(), excludedIds: new Set() });
   }, [search, typeFilter, needsWash, favoriteFilter, sortIndex]);
@@ -294,16 +295,14 @@ export default function WardrobePage() {
   const handleSelect = (id: string, checked: boolean) => {
     setSelection((prev) => {
       if (prev.mode === 'all') {
-        // In "select all" mode, toggle exclusion
         const next = new Set(prev.excludedIds);
         if (checked) {
-          next.delete(id); // Remove from excluded = selected
+          next.delete(id);
         } else {
-          next.add(id); // Add to excluded = deselected
+          next.add(id);
         }
         return { ...prev, excludedIds: next };
       } else {
-        // In "some" or "none" mode, toggle selection
         const next = new Set(prev.selectedIds);
         if (checked) {
           next.add(id);
@@ -318,10 +317,8 @@ export default function WardrobePage() {
   const handleSelectAll = () => {
     setSelection((prev) => {
       if (prev.mode === 'all' && prev.excludedIds.size === 0) {
-        // Already all selected, clear
         return { mode: 'none', selectedIds: new Set(), excludedIds: new Set() };
       } else {
-        // Select all
         return { mode: 'all', selectedIds: new Set(), excludedIds: new Set() };
       }
     });
@@ -331,7 +328,6 @@ export default function WardrobePage() {
     setSelection({ mode: 'none', selectedIds: new Set(), excludedIds: new Set() });
   };
 
-  // Build bulk operation params from selection state
   const getBulkParams = (): BulkOperationParams => {
     if (selection.mode === 'all') {
       return {
@@ -356,13 +352,13 @@ export default function WardrobePage() {
     const params = getBulkParams();
     try {
       const result = await bulkDelete.mutateAsync(params);
-      toast.success(`Deleted ${result.deleted} items`);
+      toast.success(`${t('wardrobe.bulkDeleteSuccess')} (${result.deleted})`);
       if (result.failed > 0) {
-        toast.error(`Failed to delete ${result.failed} items`);
+        toast.error(`${t('wardrobe.bulkDeletePartialFail')} (${result.failed})`);
       }
       handleClearSelection();
     } catch {
-      toast.error('Failed to delete items');
+      toast.error(t('wardrobe.bulkDeleteFailed'));
     }
   };
 
@@ -371,16 +367,16 @@ export default function WardrobePage() {
     try {
       const result = await bulkReanalyze.mutateAsync(params);
       if (result.queued > 20) {
-        toast.success(`Queued ${result.queued} items for re-analysis. This may take a while.`);
+        toast.success(`${t('wardrobe.bulkReanalyzeSuccessLong')} (${result.queued})`);
       } else {
-        toast.success(`Queued ${result.queued} items for re-analysis`);
+        toast.success(`${t('wardrobe.bulkReanalyzeSuccess')} (${result.queued})`);
       }
       if (result.failed > 0) {
-        toast.error(`Failed to queue ${result.failed} items`);
+        toast.error(`${t('wardrobe.bulkReanalyzePartialFail')} (${result.failed})`);
       }
       handleClearSelection();
     } catch {
-      toast.error('Failed to queue items for re-analysis');
+      toast.error(t('wardrobe.bulkReanalyzeFailed'));
     }
   };
 
@@ -393,26 +389,26 @@ export default function WardrobePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center justify-between sm:justify-start gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">My Wardrobe</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('wardrobe.title')}</h1>
             <Button onClick={() => setAddDialogOpen(true)} className="sm:hidden" size="sm">
               <Plus className="h-4 w-4" />
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            {total} item{total !== 1 ? 's' : ''} in your wardrobe
+            {total} {t('wardrobe.itemCount')}
           </p>
           {(processingCount > 0 || errorCount > 0) && (
             <div className="flex items-center gap-2 mt-2">
               {processingCount > 0 && (
                 <Badge variant="secondary" className="gap-1 text-xs">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  {processingCount} analyzing
+                  {processingCount} {t('wardrobe.analyzing')}
                 </Badge>
               )}
               {errorCount > 0 && (
                 <Badge variant="destructive" className="gap-1 text-xs">
                   <AlertCircle className="h-3 w-3" />
-                  {errorCount} failed
+                  {errorCount} {t('wardrobe.failed')}
                 </Badge>
               )}
             </div>
@@ -420,17 +416,16 @@ export default function WardrobePage() {
         </div>
         <Button onClick={() => setAddDialogOpen(true)} className="hidden sm:flex">
           <Plus className="mr-2 h-4 w-4" />
-          Add Item
+          {t('wardrobe.addItem')}
         </Button>
       </div>
 
       <div className="space-y-3">
-        {/* Main row: search + sort + filter toggle */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search items..."
+              placeholder={t('wardrobe.searchPlaceholder')}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -475,7 +470,6 @@ export default function WardrobePage() {
           </div>
         </div>
 
-        {/* Expandable filter row */}
         {showFilters && (
           <div className="flex flex-wrap gap-2 items-center p-3 rounded-lg border bg-muted/30">
             <Select
@@ -486,13 +480,13 @@ export default function WardrobePage() {
               }}
             >
               <SelectTrigger className="w-[150px] h-8 text-xs">
-                <SelectValue placeholder="All types" />
+                <SelectValue placeholder={t('wardrobe.allTypes')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                {CLOTHING_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>
-                    {t.label}
+                <SelectItem value="all">{t('wardrobe.allTypes')}</SelectItem>
+                {CLOTHING_TYPES.map((tp) => (
+                  <SelectItem key={tp.value} value={tp.value}>
+                    {tp.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -508,7 +502,7 @@ export default function WardrobePage() {
               }}
             >
               <Droplets className="h-3.5 w-3.5" />
-              Needs wash
+              {t('wardrobe.needsWashing')}
             </Button>
 
             <Button
@@ -521,7 +515,7 @@ export default function WardrobePage() {
               }}
             >
               <Heart className="h-3.5 w-3.5" />
-              Favorites
+              {t('wardrobe.favorites')}
             </Button>
 
             {activeFilterCount > 0 && (
@@ -537,7 +531,7 @@ export default function WardrobePage() {
                 }}
               >
                 <X className="h-3 w-3" />
-                Clear filters
+                {t('wardrobe.clearFilters')}
               </Button>
             )}
           </div>
@@ -547,14 +541,14 @@ export default function WardrobePage() {
       {error ? (
         <div className="text-center py-8">
           <p className="text-destructive">
-            Failed to load items. Please try again.
+            {t('wardrobe.loadFailed')}
           </p>
           <Button
             variant="outline"
             className="mt-4"
             onClick={() => window.location.reload()}
           >
-            Retry
+            {t('common.retry')}
           </Button>
         </div>
       ) : isLoading ? (
@@ -567,7 +561,7 @@ export default function WardrobePage() {
         search || typeFilter !== 'all' || needsWash !== undefined || favoriteFilter !== undefined ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">
-              No items found matching your filters.
+              {t('wardrobe.noFilterResults')}
             </p>
             <Button
               variant="outline"
@@ -579,7 +573,7 @@ export default function WardrobePage() {
                 setFavoriteFilter(undefined);
               }}
             >
-              Clear Filters
+              {t('wardrobe.clearFilters')}
             </Button>
           </div>
         ) : (
@@ -588,7 +582,6 @@ export default function WardrobePage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-20">
           {items.map((item) => {
-            // Determine if item is selected based on selection mode
             const isSelected = selection.mode === 'all'
               ? !selection.excludedIds.has(item.id)
               : selection.selectedIds.has(item.id);
@@ -629,7 +622,6 @@ export default function WardrobePage() {
         onOpenChange={(open) => {
           if (!open) {
             setDetailItemId(null);
-            // Clear the ?item= param from URL without navigation
             if (searchParams.has('item')) {
               router.replace('/dashboard/wardrobe', { scroll: false });
             }

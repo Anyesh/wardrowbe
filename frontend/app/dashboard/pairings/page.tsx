@@ -17,22 +17,23 @@ import { useItemTypes } from '@/lib/hooks/use-items';
 import { PairingCard } from '@/components/pairing-card';
 import { FeedbackDialog } from '@/components/feedback-dialog';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
+import { useI18n } from '@/lib/i18n';
 import { Pairing } from '@/lib/types';
 import { Outfit } from '@/lib/hooks/use-outfits';
 
 function EmptyPairings() {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       <div className="rounded-full bg-muted p-6 mb-4">
         <Layers className="h-12 w-12 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-semibold mb-2">No pairings yet</h3>
+      <h3 className="text-lg font-semibold mb-2">{t('pairings.empty')}</h3>
       <p className="text-muted-foreground mb-6 max-w-sm">
-        Select an item from your wardrobe and use &ldquo;Find Pairings&rdquo; to discover
-        outfit combinations that work well together.
+        {t('pairings.emptyHint')}
       </p>
       <Button variant="outline" asChild>
-        <a href="/dashboard/wardrobe">Go to Wardrobe</a>
+        <a href="/dashboard/wardrobe">{t('pairings.goToWardrobe')}</a>
       </Button>
     </div>
   );
@@ -68,6 +69,7 @@ function LoadingSkeleton() {
 }
 
 export default function PairingsPage() {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
   const [sourceType, setSourceType] = useState<string | undefined>(undefined);
   const [feedbackOutfit, setFeedbackOutfit] = useState<Outfit | null>(null);
@@ -84,34 +86,30 @@ export default function PairingsPage() {
   if (isError) {
     return (
       <div className="text-center py-8 text-red-500">
-        Failed to load pairings. Please try again.
+        {t('pairings.loadFailed')}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
-            Pairings
+            {t('pairings.title')}
           </h1>
-          <p className="text-muted-foreground">
-            AI-generated outfit combinations built around your items
-          </p>
+          <p className="text-muted-foreground">{t('pairings.subtitle')}</p>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex gap-3 flex-wrap items-center">
         <Select value={sourceType || 'all'} onValueChange={handleSourceTypeChange}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All item types" />
+            <SelectValue placeholder={t('pairings.allTypes')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All item types</SelectItem>
+            <SelectItem value="all">{t('pairings.allTypes')}</SelectItem>
             {itemTypes?.map((type) => (
               <SelectItem key={type.type} value={type.type}>
                 {type.type} ({type.count})
@@ -126,7 +124,6 @@ export default function PairingsPage() {
         )}
       </div>
 
-      {/* Pairings grid */}
       {isLoading ? (
         <LoadingSkeleton />
       ) : !data || data.pairings.length === 0 ? (
@@ -144,21 +141,19 @@ export default function PairingsPage() {
             ))}
           </div>
 
-          {/* Pagination */}
           {data.has_more && (
             <div className="flex justify-center pt-4">
               <Button
                 variant="outline"
                 onClick={() => setPage((p) => p + 1)}
               >
-                Load More
+                {t('common.loadMore')}
               </Button>
             </div>
           )}
         </>
       )}
 
-      {/* Feedback dialog */}
       {feedbackOutfit && (
         <FeedbackDialog
           outfit={feedbackOutfit}
@@ -167,7 +162,6 @@ export default function PairingsPage() {
         />
       )}
 
-      {/* Preview dialog */}
       {previewOutfit && (
         <OutfitPreviewDialog
           outfit={previewOutfit}

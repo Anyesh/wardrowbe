@@ -14,20 +14,6 @@
 
 services:
   # Caddy reverse proxy with automatic HTTPS
-  caddy:
-    image: caddy:2-alpine
-    container_name: wardrobe-caddy
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - frontend
-      - backend
-    restart: unless-stopped
 
   backend:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

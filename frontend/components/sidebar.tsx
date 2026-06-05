@@ -17,27 +17,29 @@ import {
   HeartHandshake,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Wardrobe', href: '/dashboard/wardrobe', icon: Shirt },
-  { name: 'Suggest Outfit', href: '/dashboard/suggest', icon: Sparkles },
-  { name: 'Outfits', href: '/dashboard/outfits', icon: LayoutGrid },
-  { name: 'Pairings', href: '/dashboard/pairings', icon: Layers },
-  { name: 'History', href: '/dashboard/history', icon: History },
-  { name: 'Family Feed', href: '/dashboard/family/feed', icon: HeartHandshake },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'AI Learning', href: '/dashboard/learning', icon: Brain },
+  { key: 'nav.dashboard', href: '/dashboard', icon: Home },
+  { key: 'nav.wardrobe', href: '/dashboard/wardrobe', icon: Shirt },
+  { key: 'nav.suggestOutfit', href: '/dashboard/suggest', icon: Sparkles },
+  { key: 'nav.outfits', href: '/dashboard/outfits', icon: LayoutGrid },
+  { key: 'nav.pairings', href: '/dashboard/pairings', icon: Layers },
+  { key: 'nav.history', href: '/dashboard/history', icon: History },
+  { key: 'nav.familyFeed', href: '/dashboard/family/feed', icon: HeartHandshake },
+  { key: 'nav.analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { key: 'nav.learning', href: '/dashboard/learning', icon: Brain },
 ];
 
 const secondaryNavigation = [
-  { name: 'Family', href: '/dashboard/family', icon: Users },
-  { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { key: 'nav.family', href: '/dashboard/family', icon: Users },
+  { key: 'nav.notifications', href: '/dashboard/notifications', icon: Bell },
+  { key: 'nav.settings', href: '/dashboard/settings', icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
     <aside className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
@@ -69,7 +71,7 @@ export function Sidebar() {
                         )}
                       >
                         <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
-                        {item.name}
+                        {t(item.key)}
                       </Link>
                     </li>
                   );
@@ -78,7 +80,7 @@ export function Sidebar() {
             </li>
             <li>
               <div className="text-xs font-semibold leading-6 text-muted-foreground">
-                Settings
+                {t('nav.setting')}
               </div>
               <ul role="list" className="-mx-2 mt-2 space-y-1">
                 {secondaryNavigation.map((item) => {
@@ -99,7 +101,7 @@ export function Sidebar() {
                         )}
                       >
                         <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
-                        {item.name}
+                        {t(item.key)}
                       </Link>
                     </li>
                   );
