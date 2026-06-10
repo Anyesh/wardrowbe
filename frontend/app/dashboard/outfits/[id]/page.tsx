@@ -110,9 +110,10 @@ export default function OutfitDetailPage() {
         </div>
 
         {/* AI reasoning */}
-        {(outfit.reasoning || outfit.highlights) && (
+        {((outfit.name && outfit.reasoning) ||
+          (outfit.highlights && outfit.highlights.length > 0)) && (
           <div className="mt-2 space-y-1.5 text-xs flex-1">
-            {outfit.reasoning && (
+            {outfit.name && outfit.reasoning && (
               <p className="font-medium text-foreground break-words">{outfit.reasoning}</p>
             )}
             {outfit.highlights && outfit.highlights.length > 0 && (
