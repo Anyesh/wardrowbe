@@ -128,8 +128,11 @@ cp .env.example .env
 
 #### Step 3: Start Services
 
+`docker-compose.yml` pulls pre-built multi-arch images (`linux/amd64` and `linux/arm64`, so Raspberry Pi and other ARM hosts work) from GitHub Container Registry. No local build tooling is required on the host.
+
 ```bash
-# Start all containers
+# Pull the latest published images, then start all containers
+docker compose pull
 docker compose up -d
 
 # Wait for services to be healthy (30 seconds)
@@ -142,6 +145,8 @@ docker compose exec backend alembic upgrade head
 curl http://localhost:8000/api/v1/health
 # Should return: {"status":"healthy"}
 ```
+
+To build the images from source instead of pulling them, use the development stack below (`docker-compose.dev.yml`), which builds locally and enables hot reload.
 
 #### Step 4: Access the App
 
@@ -268,9 +273,10 @@ AI_TEXT_MODEL=llama3.2-vision:11b  # Same model for both tasks
 
 ### Docker Compose (Production)
 
-See [docker-compose.prod.yml](docker-compose.prod.yml) for production configuration.
+See [docker-compose.prod.yml](docker-compose.prod.yml) for production configuration. Like the default stack, it pulls pre-built images from GHCR rather than building on the host.
 
 ```bash
+docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
 docker compose exec backend alembic upgrade head
 ```
