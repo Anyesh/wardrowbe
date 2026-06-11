@@ -30,6 +30,9 @@ services:
     restart: unless-stopped
 
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
@@ -54,6 +57,9 @@ services:
       WATCHPACK_POLLING: "true"
 
   worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     command: watchfiles --filter python "arq app.workers.worker.WorkerSettings" /app
     volumes:
       - ./backend:/app

@@ -28,6 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -38,13 +41,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # GHCR rejects non-lowercase repository names, and GITHUB_REPOSITORY_OWNER
+      # can contain capitals (e.g. "Anyesh"), so lowercase it before tagging.
+      - name: Compute image base
+        id: image
+        run: echo "base=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/wardrowbe" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/wardrowbe:${{ matrix.tag_prefix }}-latest
-            ghcr.io/${{ github.repository_owner }}/wardrowbe:${{ matrix.tag_prefix }}-${{ github.sha }}
+            ${{ steps.image.outputs.base }}:${{ matrix.tag_prefix }}-latest
+            ${{ steps.image.outputs.base }}:${{ matrix.tag_prefix }}-${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
