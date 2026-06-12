@@ -1,10 +1,22 @@
 name: Docker Publish
 
 on:
-  push:
-    branches: [main]
   release:
     types: [published]
+  workflow_call:
+    inputs:
+      version:
+        description: Semantic version to tag images with, e.g. 1.3.1
+        type: string
+        required: false
+        default: ""
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional semantic version to tag images with, e.g. 1.3.1
+        type: string
+        required: false
+        default: ""
 
 jobs:
   publish:
@@ -42,14 +54,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve release version
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || inputs.version != ''
         env:
           TAG: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          # release-please tags look like wardrowbe-v1.3.0; strip the component
-          # prefix and leading v so that metadata-action can parse plain semver.
-          version="${TAG#*-}"
-          version="${version#v}"
+          # workflow_call/dispatch pass a clean semver, but a manually published
+          # release arrives as wardrowbe-vX.Y.Z and must be stripped to plain
+          # semver so that metadata-action can parse it.
+          if [ -n "$INPUT_VERSION" ]; then
+            version="$INPUT_VERSION"
+          else
+            version="${TAG#*-}"
+            version="${version#v}"
+          fi
           echo "RELEASE_VERSION=${version}" >> "$GITHUB_ENV"
 
       # metadata-action lowercases the image because GHCR rejects capitalized
@@ -64,8 +82,8 @@ jobs:
             prefix=${{ matrix.tag_prefix }}-,onlatest=true
           tags: |
             type=sha,format=long
-            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ github.event_name == 'release' }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ github.event_name == 'release' }}
+            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }}
 
       - name: Build and push
         uses: docker/build-push-action@v7
