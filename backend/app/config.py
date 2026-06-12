@@ -52,6 +52,7 @@ class Settings(BaseSettings):
 
     # Weather
     openmeteo_url: str = Field(default="https://api.open-meteo.com/v1")
+    geocoding_user_agent: str | None = Field(default=None)
 
     # Notifications - default ntfy channel (used when user has none configured)
     ntfy_server: str | None = None
@@ -109,6 +110,9 @@ class Settings(BaseSettings):
         if self.oidc_issuer_url and self.oidc_client_id:
             return "oidc"
         return "unknown"
+
+    def get_geocoding_user_agent(self) -> str:
+        return self.geocoding_user_agent or "Wardrowbe/1.0"
 
 
 @lru_cache
