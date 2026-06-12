@@ -7,12 +7,14 @@ import { format, parseISO } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { useOutfit } from '@/lib/hooks/use-outfits';
 import type { Outfit } from '@/lib/hooks/use-outfits';
+import { useTranslations } from 'next-intl';
 
 interface LineageCardProps {
   outfit: Outfit;
 }
 
 export function LineageCard({ outfit }: LineageCardProps) {
+  const t = useTranslations('studio.lineage');
   const replacesId = outfit.replaces_outfit_id;
   const clonedFromId = outfit.cloned_from_outfit_id;
 
@@ -25,12 +27,10 @@ export function LineageCard({ outfit }: LineageCardProps) {
   const Icon = isReplacement ? ArrowRight : BookmarkCheck;
 
   const label = isReplacement
-    ? `Replaces ${referenced.occasion} suggestion${
-        referenced.scheduled_for
-          ? ` from ${format(parseISO(referenced.scheduled_for), 'MMM d')}`
-          : ''
-      }`
-    : `From your ${referenced.name || referenced.occasion} lookbook entry`;
+    ? referenced.scheduled_for
+      ? t('replacesWithDate', { occasion: referenced.occasion, date: format(parseISO(referenced.scheduled_for), 'MMM d') })
+      : t('replaces', { occasion: referenced.occasion })
+    : t('fromLookbook', { name: referenced.name || referenced.occasion });
 
   return (
     <Card className="border-muted bg-muted/30">

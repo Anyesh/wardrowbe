@@ -22,6 +22,27 @@ vi.mock('next-auth/react', () => ({
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => {
+    const t = (key: string) => key;
+    t.raw = (key: string) => key;
+    t.rich = (key: string) => key;
+    t.markup = (key: string) => key;
+    return t;
+  },
+}))
+
+vi.mock('next-intl/server', () => ({
+  getTranslations: async () => {
+    const t = (key: string) => key;
+    t.raw = (key: string) => key;
+    t.rich = (key: string) => key;
+    t.markup = (key: string) => key;
+    return t;
+  },
+  getMessages: async () => ({}),
+}))
+
 global.fetch = vi.fn()
 
 Object.defineProperty(window, 'matchMedia', {

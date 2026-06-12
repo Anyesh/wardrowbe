@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { ITEM_ROLE } from '@/lib/studio/canonical-order';
 import { cn } from '@/lib/utils';
 import type { StudioItem } from '@/lib/studio/editor-state';
+import { useTranslations } from 'next-intl';
 
 interface CanvasPanelProps {
   items: StudioItem[];
@@ -19,11 +20,12 @@ function roleLabel(type: string): string {
 }
 
 export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
+  const t = useTranslations('studio.canvas');
   if (items.length === 0) {
     return (
       <div className="min-h-[240px] rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 flex items-center justify-center p-6">
         <p className="text-sm text-muted-foreground text-center">
-          Tap items below to start building your outfit
+          {t('empty')}
         </p>
       </div>
     );
@@ -41,7 +43,7 @@ export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
                 'absolute -top-2 -right-2 z-10 rounded-full bg-destructive text-destructive-foreground',
                 'p-1 shadow-md hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-destructive/50'
               )}
-              aria-label={`Remove ${item.name || item.type}`}
+              aria-label={t('removeItem', { name: item.name || item.type })}
             >
               <X className="h-3 w-3" />
             </button>
