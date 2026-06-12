@@ -281,6 +281,11 @@ docker compose -f docker-compose.prod.yml up -d
 docker compose exec backend alembic upgrade head
 ```
 
+Images are tagged `backend-latest` / `frontend-latest`, and each release also
+publishes `backend-<version>` / `frontend-<version>` (e.g. `backend-1.3.0`). To
+pin a deployment to a specific release, replace the `-latest` tags in the
+compose file with the version, e.g. `ghcr.io/anyesh/wardrowbe:backend-1.3.0`.
+
 ### Kubernetes
 
 See the [k8s/](k8s/) directory for Kubernetes manifests including:
