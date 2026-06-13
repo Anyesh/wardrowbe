@@ -41,7 +41,12 @@ async def validate_oidc_id_token(
         ) as client:
             disc_resp = await client.get(discovery_url)
             disc_resp.raise_for_status()
-            jwks_uri = disc_resp.json()["jwks_uri"]
+            discovery = disc_resp.json()
+            jwks_uri = discovery["jwks_uri"]
+            # Validate the token's iss claim against the provider's canonical issuer
+            # (the discovery metadata) rather than the configured env var, so a
+            # trailing slash on OIDC_ISSUER_URL cannot cause a false issuer mismatch.
+            expected_issuer = discovery.get("issuer", issuer_url.rstrip("/"))
     except httpx.HTTPError as e:
         logger.error("Failed to fetch OIDC discovery from %s: %s", issuer_url, e)
         raise ValueError("Failed to contact OIDC provider") from None
@@ -56,7 +61,7 @@ async def validate_oidc_id_token(
             signing_key.key,
             algorithms=["RS256", "ES256"],
             audience=audience,
-            issuer=issuer_url,
+            issuer=expected_issuer,
             options={"verify_exp": True},
         )
     except jwt.PyJWTError:

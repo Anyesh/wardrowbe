@@ -14,7 +14,7 @@ const OIDCProvider: OAuthConfig<OIDCProfile> = {
   id: 'oidc',
   name: 'SSO',
   type: 'oauth',
-  wellKnown: `${process.env.OIDC_ISSUER_URL}/.well-known/openid-configuration`,
+  wellKnown: `${process.env.OIDC_ISSUER_URL?.replace(/\/+$/, '')}/.well-known/openid-configuration`,
   clientId: process.env.OIDC_CLIENT_ID!,
   clientSecret: process.env.OIDC_CLIENT_SECRET!,
   authorization: {
