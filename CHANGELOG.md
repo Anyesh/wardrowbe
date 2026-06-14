@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.3.0...wardrowbe-v1.3.1) (2026-06-14)
+
+
+### 🐛 Bug Fixes
+
+* make OIDC issuer URL trailing-slash agnostic ([#107](https://github.com/Anyesh/wardrowbe/issues/107)) ([152f175](https://github.com/Anyesh/wardrowbe/commit/152f17572488bb63bc5f65a0c1a3240752db12c1))
+
+
+### 👷 CI/CD
+
+* publish Docker images to GHCR on main and releases ([#83](https://github.com/Anyesh/wardrowbe/issues/83)) ([af22e84](https://github.com/Anyesh/wardrowbe/commit/af22e8410d37f04800dafa4cbc09a94e7fddd6bc))
+
 ## [1.3.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.4...wardrowbe-v1.3.0) (2026-05-31)
 
 
