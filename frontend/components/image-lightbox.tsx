@@ -9,9 +9,11 @@ import "yet-another-react-lightbox/plugins/counter.css";
 import Link from "next/link";
 import { Shirt, ChevronRight } from "lucide-react";
 import { useLightbox } from "@/lib/lightbox-context";
+import { useTranslations } from 'next-intl';
 
 export function ImageLightbox() {
   const { visible, images, index, currentItemId, close, setIndex } = useLightbox();
+  const t = useTranslations('shared.lightbox');
 
   const slides = images.map((img) => ({
     src: img.uri,
@@ -63,7 +65,7 @@ export function ImageLightbox() {
               }}
             >
               <Shirt size={16} />
-              Open in Wardrobe
+              {t('openInWardrobe')}
               <ChevronRight size={16} />
             </Link>
           ) : null,

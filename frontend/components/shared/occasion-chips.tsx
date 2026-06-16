@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { OCCASIONS } from '@/lib/types';
+import { useOccasions } from '@/lib/hooks/use-translated-constants';
+import { useTranslations } from 'next-intl';
 
 export const OCCASION_CONFIG: Record<
   string,
@@ -55,9 +56,10 @@ interface OccasionChipsProps {
 }
 
 export function OccasionChips({ selected, onSelect }: OccasionChipsProps) {
+  const occasions = useOccasions();
   return (
     <div className="flex flex-wrap gap-2">
-      {OCCASIONS.map((occasion) => {
+      {occasions.map((occasion) => {
         const config = OCCASION_CONFIG[occasion.value];
         return (
           <button
