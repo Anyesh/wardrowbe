@@ -56,7 +56,7 @@ jobs:
       # owners (e.g. "Anyesh") and derives the full tag set from the event.
       - name: Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/wardrowbe
           flavor: |
