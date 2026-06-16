@@ -8,7 +8,9 @@ import redis.asyncio as aioredis
 
 from app.services.weather_service import (
     CACHE_PREFIX,
+    GEOCODE_CACHE_PREFIX,
     WMO_CODES,
+    GeocodingServiceError,
     WeatherData,
     WeatherService,
     WeatherServiceError,
@@ -235,6 +237,47 @@ class TestGetCurrentWeather:
             result = await weather_service.get_current_weather(40.71, -74.01)
 
         assert result.precipitation_chance == 0
+
+
+class TestGeocodeLocationName:
+    @pytest.mark.asyncio
+    async def test_raises_on_invalid_json_response(self, weather_service):
+        request = httpx.Request("GET", "https://nominatim.openstreetmap.org/search")
+        mock_response = httpx.Response(200, text="<html>rate limited</html>", request=request)
+
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            with pytest.raises(GeocodingServiceError, match="Failed to decode geocoding response"):
+                await weather_service.geocode_location_name("New York City")
+
+    @pytest.mark.asyncio
+    async def test_caches_result_after_lookup(self, weather_service, mock_redis):
+        request = httpx.Request("GET", "https://nominatim.openstreetmap.org/search")
+        mock_response = httpx.Response(
+            200,
+            json=[{"lat": "51.5074", "lon": "-0.1278", "display_name": "London, England, UK"}],
+            request=request,
+        )
+
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            result = await weather_service.geocode_location_name("London")
+
+        assert result == (51.5074, -0.1278, "London, England, UK")
+        mock_redis.set.assert_awaited_once()
+        assert mock_redis.set.call_args[0][0] == f"{GEOCODE_CACHE_PREFIX}london"
+
+    @pytest.mark.asyncio
+    async def test_uses_cache_without_http(self, weather_service, mock_redis):
+        mock_redis.get.return_value = json.dumps(
+            {"lat": 51.5074, "lon": -0.1278, "display_name": "London, England, UK"}
+        )
+
+        with patch(
+            "httpx.AsyncClient.get", side_effect=AssertionError("must not call HTTP")
+        ) as get:
+            result = await weather_service.geocode_location_name("London")
+
+        assert result == (51.5074, -0.1278, "London, England, UK")
+        get.assert_not_called()
 
 
 class TestGetDailyForecast:

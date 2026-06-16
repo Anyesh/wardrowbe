@@ -3,14 +3,17 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-
 from app.models.user import User
-from app.services.weather_service import WeatherService, WeatherServiceError
+from app.services.weather_service import GeocodingServiceError, WeatherService, WeatherServiceError
 from app.utils.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/weather", tags=["Weather"])
+
+GEOCODING_FAILURE_DETAIL = (
+    "Unable to geocode saved location name. Please try again later or update your location in settings."
+)
 
 
 class WeatherResponse(BaseModel):
@@ -54,17 +57,27 @@ async def get_current_weather(
     latitude: float | None = Query(None, ge=-90, le=90),
     longitude: float | None = Query(None, ge=-180, le=180),
 ) -> WeatherResponse:
-    # Use provided coordinates or fall back to user's location
+    weather_service = WeatherService()
     lat = latitude if latitude is not None else current_user.location_lat
     lon = longitude if longitude is not None else current_user.location_lon
+
+    if (lat is None or lon is None) and current_user.location_name:
+        try:
+            geocoded = await weather_service.geocode_location_name(current_user.location_name)
+        except GeocodingServiceError as e:
+            logger.error(f"Geocoding service error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=GEOCODING_FAILURE_DETAIL,
+            ) from None
+        if geocoded:
+            lat, lon, _ = geocoded
 
     if lat is None or lon is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Location not set. Please provide coordinates or set your location in settings.",
         )
-
-    weather_service = WeatherService()
 
     try:
         weather = await weather_service.get_current_weather(float(lat), float(lon))
@@ -97,17 +110,27 @@ async def get_weather_forecast(
     longitude: float | None = Query(None, ge=-180, le=180),
     days: int = Query(7, ge=1, le=16),
 ) -> ForecastResponse:
-    # Use provided coordinates or fall back to user's location
+    weather_service = WeatherService()
     lat = latitude if latitude is not None else current_user.location_lat
     lon = longitude if longitude is not None else current_user.location_lon
+
+    if (lat is None or lon is None) and current_user.location_name:
+        try:
+            geocoded = await weather_service.geocode_location_name(current_user.location_name)
+        except GeocodingServiceError as e:
+            logger.error(f"Geocoding service error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=GEOCODING_FAILURE_DETAIL,
+            ) from None
+        if geocoded:
+            lat, lon, _ = geocoded
 
     if lat is None or lon is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Location not set. Please provide coordinates or set your location in settings.",
         )
-
-    weather_service = WeatherService()
 
     try:
         forecast = await weather_service.get_daily_forecast(float(lat), float(lon), days)
