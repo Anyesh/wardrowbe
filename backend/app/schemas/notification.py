@@ -44,6 +44,19 @@ class MattermostConfig(BaseModel):
         return v
 
 
+class DiscordConfig(BaseModel):
+    webhook_url: str
+
+    @field_validator("webhook_url")
+    @classmethod
+    def validate_webhook(cls, v: str) -> str:
+        if not v.startswith("https://"):
+            raise ValueError("Webhook URL must use HTTPS")
+        if "discord.com/api/webhooks/" not in v and "discordapp.com/api/webhooks/" not in v:
+            raise ValueError("Invalid Discord webhook URL format")
+        return v
+
+
 class EmailConfig(BaseModel):
     address: str
 
@@ -69,7 +82,7 @@ class ExpoPushConfig(BaseModel):
 
 # Notification settings schemas
 class NotificationSettingsBase(BaseModel):
-    channel: Literal["ntfy", "mattermost", "email", "expo_push"]
+    channel: Literal["ntfy", "mattermost", "email", "expo_push", "discord"]
     enabled: bool = True
     priority: int = 1
     config: dict
