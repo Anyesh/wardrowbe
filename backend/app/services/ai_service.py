@@ -5,6 +5,7 @@ import logging
 import math
 import re
 from pathlib import Path
+from typing import Literal
 
 import httpx
 from PIL import Image, ImageOps
@@ -257,8 +258,14 @@ class AIService:
         Args:
             endpoints: List of endpoint configs from user preferences.
                       If None or empty, uses default from settings.
+
+        Raises:
+            AIDisabledError: backstop when internal AI is disabled; call sites
+                should guard with require_internal_ai() first.
         """
         self.settings = get_settings()
+        if not self.settings.ai_enabled:
+            raise AIDisabledError("Internal AI is disabled; defer to an external agent.")
         self.timeout = self.settings.ai_timeout
         self.api_key = self.settings.ai_api_key
 
@@ -683,12 +690,38 @@ class AIService:
         raise RuntimeError("Failed to generate text - no endpoints available")
 
 
+class AIDisabledError(RuntimeError):
+    """Raised when an internal AI client is requested while that capability is off."""
+
+
+def require_internal_ai(capability: Literal["vision", "text"]) -> None:
+    """Raise AIDisabledError if the given internal-AI capability is disabled.
+
+    Call before constructing AIService directly so deferred work never builds a
+    client or reaches a provider.
+    """
+    settings = get_settings()
+    enabled = (
+        settings.effective_ai_vision_enabled
+        if capability == "vision"
+        else settings.effective_ai_text_enabled
+    )
+    if not enabled:
+        raise AIDisabledError(
+            f"Internal AI {capability} is disabled "
+            f"(AI_INTERNAL_ENABLED / AI_{capability.upper()}_ENABLED=false). "
+            "Defer this work to an external agent."
+        )
+
+
 # Singleton instance
 _ai_service: AIService | None = None
 
 
 def get_ai_service() -> AIService:
-    """Get or create AI service instance."""
+    """Return the shared AIService, or raise AIDisabledError if internal AI is off."""
+    if not get_settings().ai_enabled:
+        raise AIDisabledError("Internal AI is disabled; defer to an external agent.")
     global _ai_service
     if _ai_service is None:
         _ai_service = AIService()
