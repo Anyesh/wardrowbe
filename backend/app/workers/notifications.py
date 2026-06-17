@@ -13,6 +13,7 @@ from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.schemas.notification import EmailConfig, ExpoPushConfig, NtfyConfig
+from app.services.ai_service import AIDisabledError
 from app.services.learning_service import LearningService
 from app.services.notification_providers import (
     EmailProvider,
@@ -234,6 +235,10 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
         )
         return {"status": "sent", "outfit_id": str(outfit.id)}
 
+    except AIDisabledError:
+        # Internal text is off — defer to the external agent; skip, don't retry.
+        logger.info(f"Skipping schedule {schedule_id}: internal AI text disabled")
+        return {"status": "skipped", "reason": "internal_ai_disabled"}
     except ValueError as e:
         logger.warning(f"Cannot generate outfit for schedule {schedule_id}: {e}")
         return {"status": "skipped", "reason": str(e)}

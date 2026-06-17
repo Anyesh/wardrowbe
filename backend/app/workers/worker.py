@@ -44,9 +44,13 @@ async def recover_stale_processing_items(ctx: dict) -> None:
 async def startup(ctx: dict) -> None:
     logger.info("Worker starting up...")
     await init_db(ctx)
-    ctx["ai_service"] = AIService()
-    health = await ctx["ai_service"].check_health()
-    logger.info(f"AI service health: {health}")
+    if get_settings().ai_enabled:
+        ctx["ai_service"] = AIService()
+        health = await ctx["ai_service"].check_health()
+        logger.info(f"AI service health: {health}")
+    else:
+        ctx["ai_service"] = None
+        logger.info("Internal AI disabled; skipping AI client init and health check")
     await recover_stale_processing_items(ctx)
 
 
