@@ -53,6 +53,9 @@ services:
       AI_TEXT_MODEL: ${AI_TEXT_MODEL:-gpt-4o}
       AI_TIMEOUT: ${AI_TIMEOUT:-120}
       AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
+      AI_INTERNAL_ENABLED: ${AI_INTERNAL_ENABLED:-true}
+      AI_VISION_ENABLED: ${AI_VISION_ENABLED:-true}
+      AI_TEXT_ENABLED: ${AI_TEXT_ENABLED:-true}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       # OIDC (set these if using OIDC instead of forward auth)
@@ -104,6 +107,9 @@ services:
       AI_TEXT_MODEL: ${AI_TEXT_MODEL:-gpt-4o}
       AI_TIMEOUT: ${AI_TIMEOUT:-120}
       AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
+      AI_INTERNAL_ENABLED: ${AI_INTERNAL_ENABLED:-true}
+      AI_VISION_ENABLED: ${AI_VISION_ENABLED:-true}
+      AI_TEXT_ENABLED: ${AI_TEXT_ENABLED:-true}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       # Notifications
       NTFY_SERVER: ${NTFY_SERVER:-}

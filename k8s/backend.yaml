@@ -89,6 +89,24 @@ spec:
                 configMapKeyRef:
                   name: wardrobe-config
                   key: AI_MAX_RETRIES
+            - name: AI_INTERNAL_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: AI_INTERNAL_ENABLED
+                  optional: true
+            - name: AI_VISION_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: AI_VISION_ENABLED
+                  optional: true
+            - name: AI_TEXT_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: AI_TEXT_ENABLED
+                  optional: true
             - name: LOG_LEVEL
               valueFrom:
                 configMapKeyRef:
