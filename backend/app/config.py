@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     oidc_client_secret: str | None = None
     oidc_mobile_client_id: str | None = None
 
+    # AI capability switches.
+    # ai_internal_enabled is the master switch; ai_vision_enabled / ai_text_enabled
+    # inherit it when left unset (None). Defaults preserve current behavior
+    # (internal AI on). When a capability is disabled, no AI client is constructed
+    # for it and the corresponding work is deferred to an external agent.
+    ai_internal_enabled: bool = Field(default=True)
+    ai_vision_enabled: bool | None = Field(default=None)
+    ai_text_enabled: bool | None = Field(default=None)
+
     # AI Service (OpenAI-compatible API - supports Ollama, OpenAI, etc.)
     ai_base_url: str = Field(default="")
     ai_api_key: str | None = Field(default=None)
@@ -78,6 +87,33 @@ class Settings(BaseSettings):
     medium_size: int = 800
     original_max_size: int = 2400
     image_quality: int = 90
+
+    @property
+    def effective_ai_vision_enabled(self) -> bool:
+        """Whether internal vision (auto-tagging) is active.
+
+        vision = ai_internal_enabled AND ai_vision_enabled, where ai_vision_enabled
+        inherits the master switch when unset (None).
+        """
+        if not self.ai_internal_enabled:
+            return False
+        return True if self.ai_vision_enabled is None else self.ai_vision_enabled
+
+    @property
+    def effective_ai_text_enabled(self) -> bool:
+        """Whether internal text (suggestions/pairings) is active.
+
+        text = ai_internal_enabled AND ai_text_enabled, where ai_text_enabled
+        inherits the master switch when unset (None).
+        """
+        if not self.ai_internal_enabled:
+            return False
+        return True if self.ai_text_enabled is None else self.ai_text_enabled
+
+    @property
+    def ai_enabled(self) -> bool:
+        """True if any internal AI capability is active."""
+        return self.effective_ai_vision_enabled or self.effective_ai_text_enabled
 
     def validate_security(self) -> str | None:
         if self.secret_key == DEFAULT_SECRET_KEY and not self.debug:

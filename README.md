@@ -175,6 +175,17 @@ Wardrowbe works with any OpenAI-compatible API. You need two types of models:
 - **Vision model**: Analyzes clothing images to extract colors, patterns, styles
 - **Text model**: Generates outfit recommendations and descriptions
 
+### Running without internal AI
+
+Internal AI is optional. Set `AI_INTERNAL_ENABLED=false` to run the backend with
+no internal AI provider at all — it boots and serves without `AI_BASE_URL`,
+`AI_API_KEY`, or model names configured, and defers tagging/suggestions/pairings
+to an external agent. You can also disable a single capability with
+`AI_VISION_ENABLED=false` (auto-tagging) or `AI_TEXT_ENABLED=false`
+(suggestions/pairings); unset switches inherit the master. The effective state is
+reported at `GET /api/v1/capabilities`. Defaults keep internal AI **on**, so
+existing deployments are unaffected.
+
 ### Using Ollama (Recommended for Self-Hosting)
 
 **Free, runs locally, no API key needed, works offline**

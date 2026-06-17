@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.database import get_db
 from app.services.ai_service import get_ai_service
 
@@ -13,6 +14,26 @@ router = APIRouter()
 @router.get("/health")
 async def health_check() -> dict[str, str]:
     return {"status": "healthy"}
+
+
+@router.get("/capabilities")
+async def capabilities() -> dict[str, Any]:
+    """Report effective AI capabilities so external agents (e.g. the MCP server)
+    can decide whether to route tagging/suggestions/pairings to themselves or
+    trust the backend. Public/no-auth: leaks no user data."""
+    settings = get_settings()
+    return {
+        "ai": {
+            "vision": settings.effective_ai_vision_enabled,
+            "text": settings.effective_ai_text_enabled,
+        },
+        "features": {
+            "external_tagging": True,
+            "external_suggestions": True,
+            "external_pairings": True,
+        },
+        "version": "1.0.0",
+    }
 
 
 @router.get("/health/ready")
@@ -50,6 +71,9 @@ async def feature_check() -> dict[str, Any]:
 
 @router.get("/health/ai")
 async def ai_health_check() -> dict[str, Any]:
+    if not get_settings().ai_enabled:
+        return {"status": "disabled", "endpoints": []}
+
     ai_service = get_ai_service()
     raw = await ai_service.check_health()
 
