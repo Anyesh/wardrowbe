@@ -57,10 +57,8 @@ k8s/*.secret.yaml
 .claude/
 CLAUDE.md
 deploy.sh
-graphify*
-.graphify*
 screenshots/
 .scope.md
-testing/authelia/db.sqlite3
-testing/authelia/notifications.txt
-testing/authelia/oidc_private.pem
+testing/
+.playwright-mcp
+*.review.yml
