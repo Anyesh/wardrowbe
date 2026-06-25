@@ -98,6 +98,7 @@ function LoginContent() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const error = searchParams.get('error');
+  const syncErrorParam = searchParams.get('syncError');
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const [backendError, setBackendError] = useState<string | null>(null);
 
@@ -121,8 +122,7 @@ function LoginContent() {
       });
   }, []);
 
-  // Show sync error from session (e.g. backend returned 503 during login)
-  const syncError = session?.syncError;
+  const syncError = syncErrorParam || session?.syncError;
 
   // Detect auth mode based on available providers
   const [authMode, setAuthMode] = useState<'loading' | 'oidc' | 'dev'>('loading');
