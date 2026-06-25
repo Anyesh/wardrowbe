@@ -98,3 +98,52 @@ class TestValidateOidcIdToken:
             pytest.raises(ValueError, match="Failed to contact OIDC provider"),
         ):
             await oidc.validate_oidc_id_token(token, CONFIGURED_ISSUER_NO_SLASH, CLIENT_ID)
+
+
+class TestGetJwkClient:
+    def test_cache_hit_returns_same_instance(self):
+        oidc._jwk_clients.clear()
+        oidc._jwks_cache_times.clear()
+
+        uri = "https://auth.example.com/jwks/"
+        with patch("app.utils.oidc.PyJWKClient") as mock_cls:
+            mock_cls.return_value = MagicMock()
+            c1 = oidc._get_jwk_client(uri, ca_bundle=None)
+            c2 = oidc._get_jwk_client(uri, ca_bundle=None)
+
+        assert c1 is c2
+        assert mock_cls.call_count == 1
+
+    def test_different_ca_bundles_produce_separate_cache_entries(self):
+        oidc._jwk_clients.clear()
+        oidc._jwks_cache_times.clear()
+
+        import ssl
+
+        uri = "https://auth.example.com/jwks/"
+        with (
+            patch("app.utils.oidc.PyJWKClient") as mock_cls,
+            patch("app.utils.oidc._build_ssl_context", return_value=MagicMock(spec=ssl.SSLContext)),
+        ):
+            mock_cls.side_effect = lambda *a, **kw: MagicMock()
+            c_no_bundle = oidc._get_jwk_client(uri, ca_bundle=None)
+            c_with_bundle = oidc._get_jwk_client(uri, ca_bundle="/certs/ca.pem")
+
+        assert c_no_bundle is not c_with_bundle
+        assert mock_cls.call_count == 2
+
+    def test_ca_bundle_passed_to_pyjwkclient(self):
+        oidc._jwk_clients.clear()
+        oidc._jwks_cache_times.clear()
+
+        import ssl
+
+        uri = "https://auth.example.com/jwks/"
+        with patch("app.utils.oidc.PyJWKClient") as mock_cls:
+            mock_cls.return_value = MagicMock()
+            with patch("app.utils.oidc._build_ssl_context") as mock_ssl:
+                mock_ssl.return_value = MagicMock(spec=ssl.SSLContext)
+                oidc._get_jwk_client(uri, ca_bundle="/certs/ca.pem")
+                mock_ssl.assert_called_once_with("/certs/ca.pem")
+                _, kwargs = mock_cls.call_args
+                assert kwargs["ssl_context"] is mock_ssl.return_value
