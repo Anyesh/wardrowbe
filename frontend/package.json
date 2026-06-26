@@ -60,7 +60,7 @@
     "jsdom": "^27.4.0",
     "postcss": "^8.4.35",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "5.3.3",
+    "typescript": "^5.7",
     "vitest": "^4.0.17"
   }
 }
