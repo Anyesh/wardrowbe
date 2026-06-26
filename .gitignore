@@ -57,5 +57,8 @@ k8s/*.secret.yaml
 .claude/
 CLAUDE.md
 deploy.sh
-graphify*
-.graphify*
+screenshots/
+.scope.md
+testing/
+.playwright-mcp
+*.review.yml

@@ -93,15 +93,39 @@ class TestAuthSync:
 
     @pytest.mark.asyncio
     async def test_sync_missing_required_fields(self, client: AsyncClient):
-        """Test sync with missing required fields fails."""
         response = await client.post(
             "/api/v1/auth/sync",
             json={
                 "external_id": "test-123",
-                # Missing email and display_name
+                # display_name still required; email is now optional
             },
         )
         assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_sync_null_email_dev_mode_returns_400(self, client: AsyncClient):
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={
+                "external_id": "test-123",
+                "email": None,
+                "display_name": "Test User",
+            },
+        )
+        assert response.status_code == 400
+        assert "email" in response.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_sync_omitted_email_dev_mode_returns_400(self, client: AsyncClient):
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={
+                "external_id": "test-123",
+                "display_name": "Test User",
+            },
+        )
+        assert response.status_code == 400
+        assert "email" in response.json()["detail"].lower()
 
 
 class TestMobileCallback:

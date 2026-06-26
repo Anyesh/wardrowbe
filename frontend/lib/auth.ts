@@ -22,13 +22,35 @@ const OIDCProvider: OAuthConfig<OIDCProfile> = {
       scope: 'openid email profile',
     },
   },
-  idToken: true,
   checks: ['pkce', 'state'],
-  profile(profile) {
+  async profile(profile, tokens) {
+    let email = profile.email;
+    let name = profile.name || profile.preferred_username;
+
+    if (!email && tokens.access_token && process.env.OIDC_ISSUER_URL) {
+      try {
+        const issuer = process.env.OIDC_ISSUER_URL.replace(/\/+$/, '');
+        const discoveryRes = await fetch(`${issuer}/.well-known/openid-configuration`);
+        if (discoveryRes.ok) {
+          const discovery = await discoveryRes.json() as { userinfo_endpoint?: string };
+          if (discovery.userinfo_endpoint) {
+            const infoRes = await fetch(discovery.userinfo_endpoint, {
+              headers: { Authorization: `Bearer ${tokens.access_token}` },
+            });
+            if (infoRes.ok) {
+              const info = await infoRes.json() as { email?: string; name?: string; preferred_username?: string };
+              email = info.email;
+              name = name || info.name || info.preferred_username;
+            }
+          }
+        }
+      } catch {}
+    }
+
     return {
       id: profile.sub,
-      name: profile.name || profile.preferred_username,
-      email: profile.email,
+      name,
+      email,
       image: profile.picture,
     };
   },

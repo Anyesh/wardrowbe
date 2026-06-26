@@ -15,8 +15,8 @@ export function useAuth() {
     setAccessToken(session.accessToken as string);
   }
 
-  // Try to fetch user profile - only when we have a valid token
   const hasToken = !!session?.accessToken;
+  const syncError = session?.syncError;
 
   const userQuery = useQuery({
     queryKey: ['auth-user'],
@@ -41,11 +41,14 @@ export function useAuth() {
 
     if (status === 'authenticated' && !hasToken) {
       signingOut.current = true;
-      signOut({ redirect: false }).then(() => {
+      const callbackUrl = syncError
+        ? `/login?syncError=${encodeURIComponent(syncError)}`
+        : '/login';
+      signOut({ callbackUrl }).then(() => {
         signingOut.current = false;
       });
     }
-  }, [userQuery.error, status, hasToken]);
+  }, [userQuery.error, status, hasToken, syncError]);
 
   const isAuthenticated = userQuery.isSuccess && !!userQuery.data;
  
