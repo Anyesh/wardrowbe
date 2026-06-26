@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
-from app.services.ai_service import AIService
+from app.services.ai_service import AIService, require_internal_ai
 from app.utils.clothing import deduplicate_by_body_slot
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_today
@@ -166,6 +166,9 @@ class PairingService:
         source_item_id: UUID,
         num_pairings: int = 3,
     ) -> list[Outfit]:
+        # Guard first so deferral is unconditional, before any item lookup.
+        require_internal_ai("text")
+
         num_pairings = max(1, min(5, num_pairings))
 
         # Get source item

@@ -22,6 +22,7 @@ from app.models.outfit import (
 )
 from app.models.user import User
 from app.schemas.item import DEFAULT_WASH_INTERVALS
+from app.services.ai_service import AIDisabledError
 from app.services.item_service import ItemService
 from app.services.learning_service import LearningService
 from app.services.outfit_service import OutfitListFilters, OutfitService
@@ -425,6 +426,11 @@ async def suggest_outfit(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
+        ) from None
+    except AIDisabledError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Internal AI is disabled; outfit suggestions are deferred to an external agent.",
         ) from None
     except AIRecommendationError as e:
         logger.error(f"AI recommendation error: {e}")

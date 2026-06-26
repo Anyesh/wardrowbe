@@ -27,6 +27,13 @@ data:
   AI_TIMEOUT: "120"
   AI_MAX_RETRIES: "3"
 
+  # Capability switches. Defaults keep internal AI on. Set AI_INTERNAL_ENABLED
+  # to "false" to run with no internal AI and defer to an external agent; the
+  # per-capability switches inherit the master when unset.
+  AI_INTERNAL_ENABLED: "true"
+  AI_VISION_ENABLED: "true"
+  AI_TEXT_ENABLED: "true"
+
   # Logging
   LOG_LEVEL: "INFO"
 

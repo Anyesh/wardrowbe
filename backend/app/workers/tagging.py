@@ -5,6 +5,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus
 from app.services.ai_service import AIService, ClothingTags
 from app.workers.db import get_db_session
@@ -52,6 +53,22 @@ def tags_to_item_fields(tags: ClothingTags, raw_response: str | None = None) -> 
     return fields
 
 
+async def mark_item_tagging_skipped(ctx: dict, item_id: str) -> None:
+    """Promote an item still in 'processing' to 'ready' (untagged) when vision is off."""
+    try:
+        db = get_db_session(ctx)
+        try:
+            result = await db.execute(select(ClothingItem).where(ClothingItem.id == UUID(item_id)))
+            item = result.scalar_one_or_none()
+            if item and item.status == ItemStatus.processing:
+                item.status = ItemStatus.ready
+                await db.commit()
+        finally:
+            await db.close()
+    except Exception as e:
+        logger.error(f"Failed to mark item {item_id} ready (untagged): {e}")
+
+
 async def update_item_status_to_error(ctx: dict, item_id: str, error_msg: str) -> None:
     """Update item status to error in database."""
     try:
@@ -82,6 +99,12 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         Dict with status and tags
     """
     logger.info(f"Starting AI tagging for item {item_id}")
+
+    # Vision off — leave the item ready (untagged) for an external agent to tag.
+    if not get_settings().effective_ai_vision_enabled:
+        logger.info(f"Internal vision disabled; skipping AI tagging for item {item_id}")
+        await mark_item_tagging_skipped(ctx, item_id)
+        return {"status": "skipped", "reason": "vision disabled", "item_id": item_id}
 
     try:
         # Verify image exists

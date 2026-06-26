@@ -22,7 +22,7 @@ from app.models.outfit import (
 )
 from app.models.preference import UserPreference
 from app.models.user import User
-from app.services.ai_service import AIService
+from app.services.ai_service import AIService, require_internal_ai
 from app.services.item_scorer import get_season, score_items
 from app.services.suggestion_cache import pop_suggestion, push_suggestions
 from app.services.weather_service import WeatherData, WeatherService, WeatherServiceError
@@ -639,6 +639,9 @@ class RecommendationService:
         single_outfit: bool = False,
         scheduled_date: date | None = None,
     ) -> Outfit:
+        # Guard first so deferral is unconditional, before any location/weather work.
+        require_internal_ai("text")
+
         exclude_items = exclude_items or []
         include_items = include_items or []
 

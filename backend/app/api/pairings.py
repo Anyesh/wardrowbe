@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.outfit import Outfit, OutfitSource
 from app.models.user import User
+from app.services.ai_service import AIDisabledError
 from app.services.pairing_service import (
     AIGenerationError,
     InsufficientItemsError,
@@ -231,6 +232,11 @@ async def generate_pairings(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
+        ) from None
+    except AIDisabledError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Internal AI is disabled; pairings are deferred to an external agent.",
         ) from None
     except AIGenerationError as e:
         logger.error(f"AI pairing generation error: {e}")
