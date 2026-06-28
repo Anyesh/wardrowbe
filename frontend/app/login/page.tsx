@@ -124,19 +124,16 @@ function LoginContent() {
 
   const syncError = syncErrorParam || session?.syncError;
 
-  // Detect auth mode based on available providers
-  const [authMode, setAuthMode] = useState<'loading' | 'oidc' | 'dev'>('loading');
+  const [authMode, setAuthMode] = useState<'loading' | 'oidc' | 'dev' | 'unconfigured'>('loading');
 
   useEffect(() => {
     getProviders().then((providers) => {
-
       if (providers?.['oidc']) {
         setAuthMode('oidc');
       } else if (providers?.['dev-credentials']) {
         setAuthMode('dev');
       } else {
-        // Fallback to dev mode
-        setAuthMode('dev');
+        setAuthMode('unconfigured');
       }
     });
   }, []);
@@ -163,14 +160,24 @@ function LoginContent() {
           {error === 'Callback' && 'Error during callback'}
           {error === 'CredentialsSignin' && 'Invalid credentials'}
           {error === 'AccessDenied' && 'Access denied'}
-          {!['OAuthSignin', 'OAuthCallback', 'OAuthCreateAccount', 'Callback', 'CredentialsSignin', 'AccessDenied'].includes(error) && 'An error occurred during sign in'}
+          {error === 'undefined' && 'No authentication provider is configured. Set OIDC_ISSUER_URL or enable DEV_MODE.'}
+          {!['OAuthSignin', 'OAuthCallback', 'OAuthCreateAccount', 'Callback', 'CredentialsSignin', 'AccessDenied', 'undefined'].includes(error) && 'An error occurred during sign in'}
         </div>
       )}
 
       <div className="space-y-4">
         {authMode === 'oidc' && <OIDCLoginButton callbackUrl={callbackUrl} />}
         {authMode === 'dev' && <DevLogin callbackUrl={callbackUrl} />}
-
+        {authMode === 'unconfigured' && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm space-y-2">
+            <p className="font-medium text-destructive">No authentication method configured</p>
+            <p className="text-destructive/90">
+              Set <code className="font-mono">OIDC_ISSUER_URL</code> +{' '}
+              <code className="font-mono">OIDC_CLIENT_ID</code> for SSO, or add{' '}
+              <code className="font-mono">DEV_MODE=true</code> to the frontend service for local use.
+            </p>
+          </div>
+        )}
       </div>
     </>
   );
