@@ -28,9 +28,9 @@ async def capabilities() -> dict[str, Any]:
             "text": settings.effective_ai_text_enabled,
         },
         "features": {
-            "external_tagging": True,
-            "external_suggestions": True,
-            "external_pairings": True,
+            "external_tagging": False,
+            "external_suggestions": False,
+            "external_pairings": False,
         },
         "version": "1.0.0",
     }
