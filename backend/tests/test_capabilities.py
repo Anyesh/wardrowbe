@@ -70,8 +70,9 @@ def test_get_ai_service_constructs_when_enabled(monkeypatch):
         "app.services.ai_service.get_settings",
         lambda: Settings(ai_internal_enabled=True),
     )
+    monkeypatch.setattr("app.services.ai_service._ai_service", None)
     service = get_ai_service()
-    assert service is not None
+    assert isinstance(service, AIService)
 
 
 # --- /capabilities endpoint -------------------------------------------------
@@ -329,9 +330,7 @@ async def test_generate_recommendation_defers_before_location_check(
 
 
 @pytest.mark.asyncio
-async def test_generate_pairings_defers_before_item_lookup(
-    db_session, test_user, monkeypatch
-):
+async def test_generate_pairings_defers_before_item_lookup(db_session, test_user, monkeypatch):
     from uuid import uuid4
 
     from app.services.pairing_service import PairingService
