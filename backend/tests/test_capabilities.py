@@ -45,12 +45,23 @@ def test_effective_flag_resolution(internal, vision, text, exp_vision, exp_text)
 
 
 def test_defaults_keep_internal_ai_on():
-    """Regression: an unconfigured Settings keeps internal AI fully on."""
     settings = Settings()
     assert settings.ai_internal_enabled is True
     assert settings.effective_ai_vision_enabled is True
     assert settings.effective_ai_text_enabled is True
     assert settings.ai_enabled is True
+
+
+def test_empty_string_env_var_inherits_master(monkeypatch):
+    # env_ignore_empty=True: compose :-  default sends "" which must map to None,
+    # so the sub-switch inherits the master rather than clamping to True.
+    monkeypatch.setenv("AI_VISION_ENABLED", "")
+    monkeypatch.setenv("AI_TEXT_ENABLED", "")
+    settings = Settings(ai_internal_enabled=True)
+    assert settings.ai_vision_enabled is None
+    assert settings.ai_text_enabled is None
+    assert settings.effective_ai_vision_enabled is True
+    assert settings.effective_ai_text_enabled is True
 
 
 # --- AI-disabled guard ------------------------------------------------------

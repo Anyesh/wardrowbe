@@ -18,15 +18,21 @@ async def health_check() -> dict[str, str]:
 
 @router.get("/capabilities")
 async def capabilities() -> dict[str, Any]:
-    """Report effective AI capabilities so external agents (e.g. the MCP server)
-    can decide whether to route tagging/suggestions/pairings to themselves or
-    trust the backend. Public/no-auth: leaks no user data."""
+    """Report effective AI capabilities for external agents.
+
+    `ai.*` — whether the internal AI capability is active. `false` means the backend
+    is deferring that work to an external agent.
+    `features.*` — whether the write-back endpoint for that capability exists and
+    accepts agent-authored results. `false` until the endpoint lands.
+    Public / no-auth: leaks no user data.
+    """
     settings = get_settings()
     return {
         "ai": {
             "vision": settings.effective_ai_vision_enabled,
             "text": settings.effective_ai_text_enabled,
         },
+        # Set to True in PR 2-3 when agent write-back endpoints exist.
         "features": {
             "external_tagging": False,
             "external_suggestions": False,
