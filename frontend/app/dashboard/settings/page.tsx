@@ -258,7 +258,8 @@ export default function SettingsPage() {
       // Reverse geocode to get city name
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+          { headers: { 'User-Agent': 'WardrobeAI/1.0' } }
         );
         if (response.ok) {
           const data = await response.json();

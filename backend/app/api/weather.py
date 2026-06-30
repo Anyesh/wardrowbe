@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
+
 from app.models.user import User
 from app.services.weather_service import GeocodingServiceError, WeatherService, WeatherServiceError
 from app.utils.auth import get_current_user
@@ -11,9 +12,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/weather", tags=["Weather"])
 
-GEOCODING_FAILURE_DETAIL = (
-    "Unable to geocode saved location name. Please try again later or update your location in settings."
-)
+GEOCODING_FAILURE_DETAIL = "Unable to geocode saved location name. Please try again later or update your location in settings."
 
 
 class WeatherResponse(BaseModel):
@@ -61,7 +60,7 @@ async def get_current_weather(
     lat = latitude if latitude is not None else current_user.location_lat
     lon = longitude if longitude is not None else current_user.location_lon
 
-    if (lat is None or lon is None) and current_user.location_name:
+    if (lat is None and lon is None) and current_user.location_name:
         try:
             geocoded = await weather_service.geocode_location_name(current_user.location_name)
         except GeocodingServiceError as e:
@@ -114,7 +113,7 @@ async def get_weather_forecast(
     lat = latitude if latitude is not None else current_user.location_lat
     lon = longitude if longitude is not None else current_user.location_lon
 
-    if (lat is None or lon is None) and current_user.location_name:
+    if (lat is None and lon is None) and current_user.location_name:
         try:
             geocoded = await weather_service.geocode_location_name(current_user.location_name)
         except GeocodingServiceError as e:

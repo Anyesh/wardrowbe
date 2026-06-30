@@ -9,7 +9,7 @@ export interface NetworkLocationApiResponse {
   timezone?: {
     id?: string;
   } | string;
-  error?: boolean;
+  error?: boolean | string;
   reason?: string;
   message?: string;
 }
@@ -50,7 +50,7 @@ export function resolveNetworkLocation(
 ): ResolvedLocation {
   if (
     data.success === false ||
-    data.error === true ||
+    !!data.error ||
     typeof data.latitude !== 'number' ||
     typeof data.longitude !== 'number'
   ) {

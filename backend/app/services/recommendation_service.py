@@ -25,7 +25,12 @@ from app.models.user import User
 from app.services.ai_service import AIService
 from app.services.item_scorer import get_season, score_items
 from app.services.suggestion_cache import pop_suggestion, push_suggestions
-from app.services.weather_service import WeatherData, WeatherService, WeatherServiceError
+from app.services.weather_service import (
+    GeocodingServiceError,
+    WeatherData,
+    WeatherService,
+    WeatherServiceError,
+)
 from app.utils.clothing import deduplicate_by_body_slot
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_today
@@ -629,16 +634,27 @@ class RecommendationService:
             exclude_items = list(set(exclude_items) | rejected_ids)
             logger.info(f"Auto-excluding {len(rejected_ids)} rejected items for user {user.id}")
 
-        # Get weather
         if weather_override:
             weather = weather_override
         else:
-            if user.location_lat is None or user.location_lon is None:
+            lat = float(user.location_lat) if user.location_lat is not None else None
+            lon = float(user.location_lon) if user.location_lon is not None else None
+
+            if (lat is None and lon is None) and user.location_name:
+                try:
+                    geocoded = await self.weather_service.geocode_location_name(user.location_name)
+                except GeocodingServiceError as e:
+                    logger.error(f"Geocoding failed for outfit generation: {e}")
+                    raise ValueError(
+                        "Could not resolve location. Please update your location in settings."
+                    ) from e
+                if geocoded:
+                    lat, lon, _ = geocoded
+
+            if lat is None or lon is None:
                 raise ValueError("User location not set. Please set location in settings.")
             try:
-                weather = await self.weather_service.get_current_weather(
-                    float(user.location_lat), float(user.location_lon)
-                )
+                weather = await self.weather_service.get_current_weather(lat, lon)
             except WeatherServiceError as e:
                 logger.error(f"Weather service failed: {e}")
                 raise ValueError(

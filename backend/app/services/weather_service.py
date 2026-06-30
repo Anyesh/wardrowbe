@@ -94,6 +94,7 @@ CACHE_TTL = 3600  # 1 hour
 CACHE_PREFIX = "weather:"
 
 GEOCODE_CACHE_TTL = 60 * 60 * 24 * 30  # 30 days; geocoding a place name rarely changes
+GEOCODE_NEGATIVE_CACHE_TTL = 3600  # 1 hour for not-found results; avoids hammering Nominatim
 GEOCODE_CACHE_PREFIX = "geocode:"
 
 
@@ -104,13 +105,14 @@ class WeatherService:
     async def geocode_location_name(
         self, location_name: str
     ) -> tuple[float, float, str | None] | None:
-        """Resolve a free-form location name to coordinates using Nominatim."""
         query = location_name.strip()
         if not query:
             return None
 
         cached = await self._geocode_cache_get(query)
         if cached is not None:
+            if not cached:
+                return None
             return cached
 
         params = {
@@ -141,7 +143,8 @@ class WeatherService:
                     f"Failed to decode geocoding response for location {query!r}: {e}"
                 ) from None
 
-        if not data:
+        if not data or not isinstance(data, list):
+            await self._geocode_cache_set_miss(query)
             return None
 
         first = data[0]
@@ -160,7 +163,9 @@ class WeatherService:
     def _geocode_cache_key(query: str) -> str:
         return f"{GEOCODE_CACHE_PREFIX}{query.strip().lower()}"
 
-    async def _geocode_cache_get(self, query: str) -> tuple[float, float, str | None] | None:
+    async def _geocode_cache_get(
+        self, query: str
+    ) -> tuple[float, float, str | None] | tuple[()] | None:
         try:
             redis = await get_redis()
             raw = await redis.get(self._geocode_cache_key(query))
@@ -169,8 +174,25 @@ class WeatherService:
             return None
         if raw is None:
             return None
-        data = json.loads(raw)
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            logger.debug(f"Geocode cache value for {query!r} could not be decoded; discarding")
+            return None
+        if data is None:
+            return ()
         return data["lat"], data["lon"], data.get("display_name")
+
+    async def _geocode_cache_set_miss(self, query: str) -> None:
+        try:
+            redis = await get_redis()
+            await redis.set(
+                self._geocode_cache_key(query),
+                json.dumps(None),
+                ex=GEOCODE_NEGATIVE_CACHE_TTL,
+            )
+        except aioredis.RedisError:
+            logger.debug(f"Redis unavailable for geocode cache write ({query!r})")
 
     async def _geocode_cache_set(self, query: str, result: tuple[float, float, str | None]) -> None:
         lat, lon, display_name = result
