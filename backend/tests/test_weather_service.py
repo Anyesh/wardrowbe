@@ -241,7 +241,7 @@ class TestGetCurrentWeather:
 
 class TestGeocodeLocationName:
     @pytest.mark.asyncio
-    async def test_raises_on_invalid_json_response(self, weather_service):
+    async def test_raises_on_invalid_json_response(self, weather_service, mock_redis):
         request = httpx.Request("GET", "https://nominatim.openstreetmap.org/search")
         mock_response = httpx.Response(200, text="<html>rate limited</html>", request=request)
 
