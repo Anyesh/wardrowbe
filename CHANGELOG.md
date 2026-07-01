@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.3.1...wardrowbe-v1.4.0) (2026-07-01)
+
+
+### ✨ Features
+
+* make internal AI optional and add capabilities endpoint ([#113](https://github.com/Anyesh/wardrowbe/issues/113)) ([376f9a6](https://github.com/Anyesh/wardrowbe/commit/376f9a6a1e846d3de7853f55ac76447f204c8529))
+
+
+### 🐛 Bug Fixes
+
+* add weather location fallbacks ([#75](https://github.com/Anyesh/wardrowbe/issues/75)) ([7426d6d](https://github.com/Anyesh/wardrowbe/commit/7426d6d8444769dd34263373ebf551ecaaf79b59))
+* show config error on login when no auth provider is registered ([22e73ad](https://github.com/Anyesh/wardrowbe/commit/22e73ade5a9999fba2fb303a0533569d38294286))
+
 ## [1.3.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.3.0...wardrowbe-v1.3.1) (2026-06-26)
 
 
