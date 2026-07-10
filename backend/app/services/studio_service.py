@@ -141,6 +141,10 @@ class StudioService:
         scheduled_for: date | None,
         mark_worn: bool,
         source_item_id: UUID | None,
+        season: str | None = None,
+        formality: str | None = None,
+        palette: list[str] | None = None,
+        notes: str | None = None,
     ) -> Outfit:
         items = await validate_item_ownership(self.db, user.id, item_ids)
         ordered = self._order_items_canonically(items)
@@ -155,6 +159,10 @@ class StudioService:
             status=OutfitStatus.pending,
             name=name,
             source_item_id=source_item_id,
+            season=season,
+            formality=formality,
+            palette=palette,
+            notes=notes,
         )
         self.db.add(outfit)
         await self.db.flush()

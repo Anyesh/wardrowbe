@@ -455,3 +455,33 @@ async def test_delete_external_pairing(
 
     listed = await client.get("/api/v1/pairings", headers=auth_headers)
     assert pairing_id not in [p["id"] for p in listed.json()["pairings"]]
+
+
+# --- POST /outfits/studio ----------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_studio_accepts_authoring_attributes(
+    client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+):
+    shirt, jeans = await _make_wardrobe(db_session, test_user, ["shirt", "jeans"])
+
+    resp = await client.post(
+        "/api/v1/outfits/studio",
+        json={
+            "items": [str(shirt.id), str(jeans.id)],
+            "occasion": "casual",
+            "season": "spring",
+            "formality": "casual",
+            "palette": ["green"],
+            "notes": "Studio compose with attributes",
+        },
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["source"] == "manual"
+    assert body["season"] == "spring"
+    assert body["formality"] == "casual"
+    assert body["palette"] == ["green"]
+    assert body["notes"] == "Studio compose with attributes"

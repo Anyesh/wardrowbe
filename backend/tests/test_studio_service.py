@@ -80,6 +80,59 @@ async def test_create_from_scratch(db_session, studio_user, wardrobe_items):
 
 
 @pytest.mark.asyncio
+async def test_create_from_scratch_with_authoring_attributes(
+    db_session, studio_user, wardrobe_items
+):
+    service = StudioService(db_session)
+    shirt, jeans = wardrobe_items[0], wardrobe_items[1]
+
+    outfit = await service.create_from_scratch(
+        user=studio_user,
+        item_ids=[shirt.id, jeans.id],
+        occasion="casual",
+        name=None,
+        scheduled_for=None,
+        mark_worn=False,
+        source_item_id=None,
+        season="summer",
+        formality="smart-casual",
+        palette=["blue", "white"],
+        notes="Composed for the lake trip",
+    )
+    await db_session.commit()
+
+    assert outfit.source == OutfitSource.manual
+    assert outfit.season == "summer"
+    assert outfit.formality == "smart-casual"
+    assert outfit.palette == ["blue", "white"]
+    assert outfit.notes == "Composed for the lake trip"
+
+
+@pytest.mark.asyncio
+async def test_create_from_scratch_leaves_authoring_attributes_unset(
+    db_session, studio_user, wardrobe_items
+):
+    service = StudioService(db_session)
+    shirt, jeans = wardrobe_items[0], wardrobe_items[1]
+
+    outfit = await service.create_from_scratch(
+        user=studio_user,
+        item_ids=[shirt.id, jeans.id],
+        occasion="casual",
+        name=None,
+        scheduled_for=None,
+        mark_worn=False,
+        source_item_id=None,
+    )
+    await db_session.commit()
+
+    assert outfit.season is None
+    assert outfit.formality is None
+    assert outfit.palette is None
+    assert outfit.notes is None
+
+
+@pytest.mark.asyncio
 async def test_create_from_scratch_mark_worn(db_session, studio_user, wardrobe_items):
     service = StudioService(db_session)
     shirt, jeans, sneakers = wardrobe_items[0], wardrobe_items[1], wardrobe_items[2]

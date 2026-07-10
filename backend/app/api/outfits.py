@@ -1126,7 +1126,7 @@ def _check_studio_kill_switch() -> None:
         )
 
 
-class StudioCreateRequest(BaseModel):
+class StudioCreateRequest(OutfitAttributeFields):
     model_config = ConfigDict(extra="forbid")
 
     items: list[UUID] = Field(min_length=1, max_length=20)
@@ -1203,6 +1203,10 @@ async def create_studio_outfit(
             scheduled_for=request.scheduled_for,
             mark_worn=request.mark_worn,
             source_item_id=request.source_item_id,
+            season=request.season,
+            formality=request.formality,
+            palette=request.palette,
+            notes=request.notes,
         )
     except ItemOwnershipError:
         raise HTTPException(
