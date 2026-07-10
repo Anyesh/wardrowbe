@@ -3,7 +3,7 @@ import logging
 import re
 from uuid import UUID
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -18,6 +18,14 @@ from app.utils.timezone import get_user_today
 logger = logging.getLogger(__name__)
 
 PAIRING_PROMPT_TEMPLATE = load_prompt("item_pairing")
+
+# A pairing is an internally-generated row, or an externally-authored one still
+# anchored to its source item (external rows without one are suggestions).
+# Internal rows stay pairings even after their source item is deleted (SET NULL).
+PAIRING_SOURCE_CLAUSE = or_(
+    Outfit.source == OutfitSource.pairing,
+    and_(Outfit.source == OutfitSource.external, Outfit.source_item_id.is_not(None)),
+)
 
 
 class PairingService:
@@ -317,7 +325,7 @@ class PairingService:
         base_query = select(Outfit).where(
             and_(
                 Outfit.user_id == user_id,
-                Outfit.source == OutfitSource.pairing,
+                PAIRING_SOURCE_CLAUSE,
                 Outfit.source_item_id == source_item_id,
             )
         )
@@ -327,7 +335,7 @@ class PairingService:
             select(Outfit.id).where(
                 and_(
                     Outfit.user_id == user_id,
-                    Outfit.source == OutfitSource.pairing,
+                    PAIRING_SOURCE_CLAUSE,
                     Outfit.source_item_id == source_item_id,
                 )
             )
@@ -362,7 +370,7 @@ class PairingService:
         # Base conditions
         conditions = [
             Outfit.user_id == user_id,
-            Outfit.source == OutfitSource.pairing,
+            PAIRING_SOURCE_CLAUSE,
         ]
 
         # Filter by source item type if specified
