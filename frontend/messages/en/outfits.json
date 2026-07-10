@@ -32,6 +32,7 @@
   },
   "cards": {
     "ai": "AI",
+    "external": "External",
     "lookbookTemplate": "Lookbook template",
     "outfitFallback": "{occasion} outfit",
     "pairing": "Pairing",

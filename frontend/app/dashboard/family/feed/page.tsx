@@ -12,6 +12,7 @@ import {
   Calendar,
   Zap,
   Edit3,
+  Bot,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +58,11 @@ function SourceBadge({ source }: { source: OutfitSource }) {
       icon: Zap,
       label: t('feed.sourceBadges.pairing'),
       className: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
+    },
+    external: {
+      icon: Bot,
+      label: t('feed.sourceBadges.external'),
+      className: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
     },
   };
 

@@ -30,6 +30,7 @@
     "rateOutfit": "{member}의 코디 평가하기",
     "ratingCount": "({count, plural, other {평가 {count}개}})",
     "sourceBadges": {
+      "external": "외부",
       "manual": "수동",
       "onDemand": "즉시",
       "pairing": "페어링",

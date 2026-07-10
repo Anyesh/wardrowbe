@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Zap, Edit3, ThumbsUp, ThumbsDown, Clock, Eye, Star, ArrowRight, Shirt, Users, ExternalLink } from 'lucide-react';
+import { Calendar, Zap, Edit3, ThumbsUp, ThumbsDown, Clock, Eye, Star, ArrowRight, Shirt, Users, ExternalLink, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -75,6 +75,11 @@ function SourceBadge({ source }: { source: OutfitSource }) {
       icon: Zap,
       label: t('sourceBadges.pairing'),
       className: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
+    },
+    external: {
+      icon: Bot,
+      label: t('sourceBadges.external'),
+      className: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
     },
   };
 

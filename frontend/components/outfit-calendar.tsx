@@ -111,7 +111,8 @@ export function OutfitCalendar({
           const dateKey = format(day, 'yyyy-MM-dd');
           const sources = outfitsByDate.get(dateKey);
           const hasScheduled = sources?.has('scheduled');
-          const hasOnDemand = sources?.has('on_demand') || sources?.has('manual');
+          const hasOnDemand =
+            sources?.has('on_demand') || sources?.has('manual') || sources?.has('external');
           const isSelected = selectedDate && isSameDay(day, selectedDate);
           const isCurrentMonth = isSameMonth(day, currentMonth);
           const isDayToday = isToday(day);

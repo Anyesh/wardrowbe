@@ -30,6 +30,7 @@
     "rateOutfit": "Outfit von {member} bewerten",
     "ratingCount": "({count, plural, one {{count} Bewertung} other {{count} Bewertungen}})",
     "sourceBadges": {
+      "external": "Extern",
       "manual": "Manuell",
       "onDemand": "Auf Anfrage",
       "pairing": "Kombination",

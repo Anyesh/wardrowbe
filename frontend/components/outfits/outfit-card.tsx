@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import {
   BookmarkCheck,
+  Bot,
   Layers,
   RefreshCw,
   Shirt,
@@ -61,6 +62,13 @@ function getSourceBadge(outfit: Outfit, t: any): {
       label: t('pairing'),
       icon: <Layers className="h-3 w-3" />,
       className: 'bg-amber-100 text-amber-700 border-amber-200',
+    };
+  }
+  if (outfit.source === 'external') {
+    return {
+      label: t('external'),
+      icon: <Bot className="h-3 w-3" />,
+      className: 'bg-teal-100 text-teal-700 border-teal-200',
     };
   }
   return {

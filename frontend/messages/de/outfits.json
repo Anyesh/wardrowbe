@@ -32,6 +32,7 @@
   },
   "cards": {
     "ai": "KI",
+    "external": "Extern",
     "lookbookTemplate": "Lookbook-Vorlage",
     "outfitFallback": "{occasion}-Outfit",
     "pairing": "Kombination",

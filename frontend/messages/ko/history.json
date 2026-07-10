@@ -29,6 +29,7 @@
   "noOutfitsForDate": "{date}에 코디가 없어요",
   "outfitCount": "{count, plural, other {코디 #개}}",
   "sourceBadges": {
+    "external": "외부",
     "manual": "수동",
     "onDemand": "즉시",
     "pairing": "페어링",

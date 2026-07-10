@@ -30,6 +30,7 @@
     "rateOutfit": "为 {member} 的穿搭评分",
     "ratingCount": "（{count, plural, one {{count} 条评分} other {{count} 条评分}}）",
     "sourceBadges": {
+      "external": "外部",
       "manual": "手动",
       "onDemand": "即时获取",
       "pairing": "搭配",
