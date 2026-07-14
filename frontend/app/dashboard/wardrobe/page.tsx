@@ -32,6 +32,8 @@ import { CLOTHING_TYPES, CLOTHING_COLORS, Item } from '@/lib/types';
 import { toast } from 'sonner';
 import { formatWornAgo, getWornAgoColorClass } from '@/lib/utils';
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
 const SORT_OPTIONS = [
   { label: 'Newest first', value: 'created_at', order: 'desc' as const },
   { label: 'Oldest first', value: 'created_at', order: 'asc' as const },
@@ -236,6 +238,7 @@ export default function WardrobePage() {
   const [favoriteFilter, setFavoriteFilter] = useState<boolean | undefined>(undefined);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Open item detail dialog from URL param (e.g. ?item=uuid from outfit pages)
   useEffect(() => {
@@ -264,7 +267,7 @@ export default function WardrobePage() {
   ].filter(Boolean).length;
 
   // Fetch items with automatic polling (faster when items are processing)
-  const { data, isLoading, error } = useItems(filters, page, 20);
+  const { data, isLoading, error } = useItems(filters, page, pageSize);
   const { data: itemTypes } = useItemTypes();
   const reanalyze = useReanalyzeItem();
   const bulkDelete = useBulkDeleteItems();
@@ -315,16 +318,20 @@ export default function WardrobePage() {
     });
   };
 
-  const handleSelectAll = () => {
+  const handleSelectPage = () => {
     setSelection((prev) => {
-      if (prev.mode === 'all' && prev.excludedIds.size === 0) {
-        // Already all selected, clear
+      const pageFullySelected =
+        (prev.mode === 'all' && prev.excludedIds.size === 0) ||
+        (prev.mode === 'some' && prev.selectedIds.size === items.length && items.length > 0);
+      if (pageFullySelected) {
         return { mode: 'none', selectedIds: new Set(), excludedIds: new Set() };
-      } else {
-        // Select all
-        return { mode: 'all', selectedIds: new Set(), excludedIds: new Set() };
       }
+      return { mode: 'some', selectedIds: new Set(items.map((i) => i.id)), excludedIds: new Set() };
     });
+  };
+
+  const handleSelectAllMatching = () => {
+    setSelection({ mode: 'all', selectedIds: new Set(), excludedIds: new Set() });
   };
 
   const handleClearSelection = () => {
@@ -498,6 +505,25 @@ export default function WardrobePage() {
               </SelectContent>
             </Select>
 
+            <Select
+              value={String(pageSize)}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[130px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size} per page
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Button
               variant={needsWash === true ? 'default' : 'outline'}
               size="sm"
@@ -611,14 +637,15 @@ export default function WardrobePage() {
         selection={selection}
         totalItems={total}
         pageItems={items.length}
-        onSelectAll={handleSelectAll}
+        onSelectAll={handleSelectPage}
+        onSelectAllMatching={handleSelectAllMatching}
         onClear={handleClearSelection}
         onDelete={handleBulkDelete}
         onReanalyze={handleBulkReanalyze}
         isDeleting={bulkDelete.isPending}
         isReanalyzing={bulkReanalyze.isPending}
         page={page}
-        pageSize={20}
+        pageSize={pageSize}
         onPageChange={handlePageChange}
       />
 

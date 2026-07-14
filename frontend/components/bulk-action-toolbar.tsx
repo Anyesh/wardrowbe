@@ -25,6 +25,7 @@ interface BulkActionToolbarProps {
   totalItems: number;
   pageItems: number;
   onSelectAll: () => void;
+  onSelectAllMatching: () => void;
   onClear: () => void;
   onDelete: () => void;
   onReanalyze: () => void;
@@ -41,6 +42,7 @@ export function BulkActionToolbar({
   totalItems,
   pageItems,
   onSelectAll,
+  onSelectAllMatching,
   onClear,
   onDelete,
   onReanalyze,
@@ -56,11 +58,15 @@ export function BulkActionToolbar({
     : selection.selectedIds.size;
 
   // Determine checkbox state
-  const isAllSelected = selection.mode === 'all' && selection.excludedIds.size === 0;
+  const isAllSelected =
+    (selection.mode === 'all' && selection.excludedIds.size === 0) ||
+    (selection.mode === 'some' && selection.selectedIds.size === pageItems && pageItems > 0);
   const isPartiallySelected = selection.mode === 'all'
     ? selection.excludedIds.size > 0
     : selection.selectedIds.size > 0 && selection.selectedIds.size < pageItems;
   const hasSelection = selectedCount > 0;
+  const canSelectAllMatching =
+    selection.mode === 'some' && selection.selectedIds.size === pageItems && pageItems > 0 && pageItems < totalItems;
 
   // Pagination
   const totalPages = Math.ceil(totalItems / pageSize);
@@ -107,6 +113,17 @@ export function BulkActionToolbar({
           </>
         )}
       </span>
+
+      {canSelectAllMatching && (
+        <Button
+          variant="link"
+          size="sm"
+          className="h-8 px-0 text-xs shrink-0 hidden sm:inline-flex"
+          onClick={onSelectAllMatching}
+        >
+          Select all {totalItems} matching
+        </Button>
+      )}
 
       {hasSelection && (
         <>
