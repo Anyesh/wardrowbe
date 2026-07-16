@@ -460,6 +460,23 @@ export function useReanalyzeItem() {
   });
 }
 
+export function useCancelAnalysis() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (session?.accessToken) {
+        setAccessToken(session.accessToken as string);
+      }
+      return api.post<Item>(`/items/${id}/cancel-analysis`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+}
+
 export interface BulkUploadResult {
   filename: string;
   success: boolean;

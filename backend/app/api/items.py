@@ -6,12 +6,14 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from arq import create_pool
+from arq.jobs import Job
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.database import get_db
-from app.models.item import ItemStatus
+from app.models.item import ClothingItem, ItemStatus
 from app.models.user import User
 from app.schemas.item import (
     ArchiveRequest,
@@ -174,12 +176,15 @@ async def create_item(
         redis = await create_pool(get_redis_settings())
         try:
             full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
-            await redis.enqueue_job(
+            job = await redis.enqueue_job(
                 "tag_item_image",
                 str(item.id),
                 full_image_path,
                 _queue_name="arq:tagging",
             )
+            item.ai_job_id = job.job_id
+            await db.commit()
+            await db.refresh(item, attribute_names=["updated_at"])
             logger.info(f"Queued AI tagging job for item {item.id}")
         finally:
             await redis.aclose()
@@ -284,12 +289,15 @@ async def bulk_create_items(
                 elif redis:
                     try:
                         full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
-                        await redis.enqueue_job(
+                        job = await redis.enqueue_job(
                             "tag_item_image",
                             str(item.id),
                             full_image_path,
                             _queue_name="arq:tagging",
                         )
+                        item.ai_job_id = job.job_id
+                        await db.flush()
+                        await db.refresh(item, attribute_names=["updated_at"])
                         logger.info(f"Queued AI tagging for bulk item {item.id}")
                     except Exception as e:
                         logger.error(f"Failed to queue AI tagging for {item.id}: {e}")
@@ -809,6 +817,8 @@ async def trigger_ai_analysis(
                 full_image_path,
                 _queue_name="arq:tagging",
             )
+            item.ai_job_id = job.job_id
+            await db.commit()
             logger.info(f"Queued AI re-analysis job for item {item.id}")
             return {"status": "queued", "job_id": job.job_id}
         finally:
@@ -819,6 +829,53 @@ async def trigger_ai_analysis(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to queue AI analysis",
         ) from None
+
+
+@router.post("/{item_id}/cancel-analysis", response_model=ItemResponse)
+async def cancel_item_analysis(
+    item_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> ItemResponse:
+    item_service = ItemService(db)
+    item = await item_service.get_by_id(item_id, current_user.id)
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found",
+        )
+
+    if item.status != ItemStatus.processing:
+        return ItemResponse.model_validate(item)
+
+    if item.ai_job_id:
+        redis = None
+        try:
+            redis = await create_pool(get_redis_settings())
+            job = Job(item.ai_job_id, redis, _queue_name="arq:tagging")
+            await job.abort(timeout=5)
+        except Exception as e:
+            # abort failing or timing out must not block the status flip below;
+            # the guarded UPDATE in update_item_status_to_error protects against
+            # a stray worker finishing this job after we've already flipped it.
+            logger.warning(f"Failed to abort AI job for item {item_id}: {e}")
+        finally:
+            if redis:
+                await redis.aclose()
+
+    await db.execute(
+        update(ClothingItem)
+        .where(ClothingItem.id == item.id, ClothingItem.status == ItemStatus.processing)
+        .values(status=ItemStatus.ready, ai_job_id=None)
+    )
+    await db.commit()
+    # updated_at is recomputed by a DB-side trigger on UPDATE, so the Core update()
+    # above leaves the in-memory value stale; refresh it explicitly alongside the
+    # columns we changed instead of a bare refresh(), which would also expire the
+    # already eager-loaded additional_images relationship and blow up serialization.
+    await db.refresh(item, attribute_names=["status", "ai_job_id", "updated_at"])
+    return ItemResponse.model_validate(item)
 
 
 @router.post("/{item_id}/rotate", response_model=ItemResponse)
