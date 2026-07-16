@@ -45,6 +45,8 @@ services:
       - "host.docker.internal:host-gateway"
       - "${OIDC_HOST:-localhost}:${OIDC_HOST_IP:-127.0.0.1}"
     environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wardrobe}
       REDIS_URL: redis://redis:6379
       STORAGE_PATH: /data/uploads
@@ -99,6 +101,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wardrobe}
       REDIS_URL: redis://redis:6379
       STORAGE_PATH: /data/uploads
@@ -141,6 +145,8 @@ services:
     dns:
       - ${LOCAL_DNS:-8.8.8.8}
     environment:
+      PUID: ${PUID:-1001}
+      PGID: ${PGID:-1001}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-https://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env}
       NEXT_PUBLIC_API_URL: ""

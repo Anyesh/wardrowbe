@@ -30,6 +30,7 @@ export interface Item {
   image_path: string;
   thumbnail_path?: string;
   medium_path?: string;
+  original_image_path?: string | null;
   image_url?: string;
   thumbnail_url?: string;
   medium_url?: string;

@@ -1,3 +1,4 @@
+import shutil
 import uuid
 from datetime import datetime
 from io import BytesIO
@@ -7,6 +8,7 @@ import imagehash
 from PIL import Image
 
 from app.config import get_settings
+from app.services import background_removal
 
 settings = get_settings()
 
@@ -233,45 +235,23 @@ class ImageService:
         """
         return ImageService.hash_distance(hash1, hash2) <= threshold
 
-    def remove_background(
-        self,
-        image_path: str,
-        bg_color: tuple[int, int, int] = (255, 255, 255),
-    ) -> dict[str, str]:
-        from app.services.background_removal import get_provider
-
+    def _save_all_sizes(self, image: Image.Image, image_path: str) -> dict[str, str]:
         base_path = image_path.rsplit(".", 1)[0]
-
-        original_full = self.storage_path / image_path
         medium_path = f"{base_path}_medium.jpg"
-        medium_full = self.storage_path / medium_path
         thumb_path = f"{base_path}_thumb.jpg"
-        thumb_full = self.storage_path / thumb_path
-
-        if not original_full.exists():
-            raise ValueError(f"Image not found: {image_path}")
-
-        image = Image.open(original_full).convert("RGB")
-        provider = get_provider()
-        result = provider.remove(image)
-
-        # Composite onto solid color background
-        background = Image.new("RGBA", result.size, (*bg_color, 255))
-        background.paste(result, mask=result.split()[3])
-        final = background.convert("RGB")
 
         for size_name, max_size in SIZES.items():
             if size_name == "original":
-                file_path = original_full
+                file_path = self.storage_path / image_path
                 quality = 95
             elif size_name == "medium":
-                file_path = medium_full
+                file_path = self.storage_path / medium_path
                 quality = 90
             else:
-                file_path = thumb_full
+                file_path = self.storage_path / thumb_path
                 quality = 88
 
-            img_copy = final.copy()
+            img_copy = image.copy()
             img_copy.thumbnail(max_size, Image.Resampling.LANCZOS)
 
             output = BytesIO()
@@ -283,6 +263,47 @@ class ImageService:
             "medium_path": medium_path,
             "thumbnail_path": thumb_path,
         }
+
+    def remove_background(
+        self,
+        image_path: str,
+        bg_color: tuple[int, int, int] = (255, 255, 255),
+    ) -> dict[str, str]:
+        base_path = image_path.rsplit(".", 1)[0]
+        original_full = self.storage_path / image_path
+
+        if not original_full.exists():
+            raise ValueError(f"Image not found: {image_path}")
+
+        backup_path = f"{base_path}_orig.jpg"
+        backup_full = self.storage_path / backup_path
+        # First removal wins: a second removal must not overwrite the true
+        # original with an already-processed image
+        if not backup_full.exists():
+            shutil.copy2(original_full, backup_full)
+
+        image = Image.open(original_full).convert("RGB")
+        provider = background_removal.get_provider()
+        result = provider.remove(image)
+
+        # Composite onto solid color background
+        background = Image.new("RGBA", result.size, (*bg_color, 255))
+        background.paste(result, mask=result.split()[3])
+        final = background.convert("RGB")
+
+        paths = self._save_all_sizes(final, image_path)
+        paths["original_backup_path"] = backup_path
+        return paths
+
+    def restore_original(self, image_path: str, backup_path: str) -> dict[str, str]:
+        backup_full = self.storage_path / backup_path
+        if not backup_full.exists():
+            raise ValueError(f"Backup not found: {backup_path}")
+
+        image = Image.open(backup_full).convert("RGB")
+        paths = self._save_all_sizes(image, image_path)
+        backup_full.unlink()
+        return paths
 
     def rotate_image(self, image_path: str, direction: str = "cw") -> dict[str, str]:
         """
@@ -295,28 +316,15 @@ class ImageService:
         Returns:
             dict with updated paths (same as input since we overwrite)
         """
-        # Parse paths from original
-        # Original: user_id/filename.jpg
-        # Medium: user_id/filename_medium.jpg
-        # Thumbnail: user_id/filename_thumb.jpg
-        base_path = image_path.rsplit(".", 1)[0]  # Remove extension
-
         original_full = self.storage_path / image_path
-        medium_path = f"{base_path}_medium.jpg"
-        medium_full = self.storage_path / medium_path
-        thumb_path = f"{base_path}_thumb.jpg"
-        thumb_full = self.storage_path / thumb_path
 
         if not original_full.exists():
             raise ValueError(f"Image not found: {image_path}")
 
-        # Determine rotation angle
         angle = -90 if direction == "cw" else 90  # PIL rotates counter-clockwise by default
 
-        # Load and rotate original
         image = Image.open(original_full)
 
-        # Convert to RGB if necessary
         if image.mode in ("RGBA", "P", "LA"):
             background = Image.new("RGB", image.size, (255, 255, 255))
             if image.mode == "P":
@@ -326,32 +334,6 @@ class ImageService:
         elif image.mode != "RGB":
             image = image.convert("RGB")
 
-        # Rotate
         rotated = image.rotate(angle, expand=True)
 
-        # Save all sizes
-        for size_name, max_size in SIZES.items():
-            if size_name == "original":
-                file_path = original_full
-                quality = 95
-            elif size_name == "medium":
-                file_path = medium_full
-                quality = 90
-            else:
-                file_path = thumb_full
-                quality = 88
-
-            # Resize
-            img_copy = rotated.copy()
-            img_copy.thumbnail(max_size, Image.Resampling.LANCZOS)
-
-            # Save
-            output = BytesIO()
-            img_copy.save(output, format="JPEG", quality=quality, optimize=True)
-            file_path.write_bytes(output.getvalue())
-
-        return {
-            "image_path": image_path,
-            "medium_path": medium_path,
-            "thumbnail_path": thumb_path,
-        }
+        return self._save_all_sizes(rotated, image_path)

@@ -1,10 +1,11 @@
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
 from PIL import Image
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.item import ClothingItem, ItemStatus
@@ -362,6 +363,7 @@ class TestBulkCreateSkipAI:
         files = [("images", ("shirt.jpg", _make_test_image_bytes(), "image/jpeg"))]
         with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
             mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
             mock_create_pool.return_value = mock_redis
             response = await client.post(
                 "/api/v1/items/bulk",
@@ -374,3 +376,165 @@ class TestBulkCreateSkipAI:
         assert data["successful"] == 1
         assert data["results"][0]["item"]["status"] == "processing"
         mock_redis.enqueue_job.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_default_queues_persists_ai_job_id(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession
+    ):
+        files = [("images", ("shirt.jpg", _make_test_image_bytes(), "image/jpeg"))]
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
+            mock_create_pool.return_value = mock_redis
+            response = await client.post(
+                "/api/v1/items/bulk",
+                files=files,
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 201
+        item_id = UUID(response.json()["results"][0]["item"]["id"])
+        result = await db_session.execute(select(ClothingItem).where(ClothingItem.id == item_id))
+        assert result.scalar_one().ai_job_id == "fake-job-id"
+
+
+class TestCancelAnalysis:
+    async def _create_item(
+        self,
+        db_session: AsyncSession,
+        test_user,
+        status: ItemStatus = ItemStatus.processing,
+        ai_job_id: str | None = None,
+    ) -> ClothingItem:
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path="test/cancel.jpg",
+            status=status,
+            ai_job_id=ai_job_id,
+        )
+        db_session.add(item)
+        await db_session.commit()
+        await db_session.refresh(item)
+        return item
+
+    @pytest.mark.asyncio
+    async def test_cancel_flips_processing_item_to_ready_and_aborts_job(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await self._create_item(db_session, test_user, ai_job_id="job-123")
+
+        with (
+            patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool,
+            patch("app.api.items.Job") as mock_job_cls,
+        ):
+            mock_redis = AsyncMock()
+            mock_create_pool.return_value = mock_redis
+            mock_job = mock_job_cls.return_value
+            mock_job.abort = AsyncMock(return_value=True)
+
+            response = await client.post(
+                f"/api/v1/items/{item.id}/cancel-analysis", headers=auth_headers
+            )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "ready"
+        mock_job_cls.assert_called_once_with("job-123", mock_redis, _queue_name="arq:tagging")
+        mock_job.abort.assert_awaited_once_with(timeout=5)
+        mock_redis.aclose.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_cancel_without_job_id_skips_job_construction(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await self._create_item(db_session, test_user, ai_job_id=None)
+
+        with (
+            patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool,
+            patch("app.api.items.Job") as mock_job_cls,
+        ):
+            response = await client.post(
+                f"/api/v1/items/{item.id}/cancel-analysis", headers=auth_headers
+            )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "ready"
+        mock_create_pool.assert_not_called()
+        mock_job_cls.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cancel_still_flips_to_ready_when_abort_raises(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await self._create_item(db_session, test_user, ai_job_id="job-456")
+
+        with (
+            patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool,
+            patch("app.api.items.Job") as mock_job_cls,
+        ):
+            mock_create_pool.return_value = AsyncMock()
+            mock_job_cls.return_value.abort = AsyncMock(side_effect=Exception("job gone"))
+
+            response = await client.post(
+                f"/api/v1/items/{item.id}/cancel-analysis", headers=auth_headers
+            )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "ready"
+
+    @pytest.mark.asyncio
+    async def test_cancel_still_flips_to_ready_when_abort_times_out(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await self._create_item(db_session, test_user, ai_job_id="job-789")
+
+        with (
+            patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool,
+            patch("app.api.items.Job") as mock_job_cls,
+        ):
+            mock_create_pool.return_value = AsyncMock()
+            mock_job_cls.return_value.abort = AsyncMock(side_effect=TimeoutError())
+
+            response = await client.post(
+                f"/api/v1/items/{item.id}/cancel-analysis", headers=auth_headers
+            )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "ready"
+
+    @pytest.mark.asyncio
+    async def test_cancel_unknown_item_404(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            f"/api/v1/items/{uuid4()}/cancel-analysis", headers=auth_headers
+        )
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_cancel_already_ready_item_is_noop(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await self._create_item(
+            db_session, test_user, status=ItemStatus.ready, ai_job_id="job-stale"
+        )
+
+        with patch("app.api.items.Job") as mock_job_cls:
+            response = await client.post(
+                f"/api/v1/items/{item.id}/cancel-analysis", headers=auth_headers
+            )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "ready"
+        mock_job_cls.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cancel_already_error_item_stays_error(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await self._create_item(db_session, test_user, status=ItemStatus.error)
+
+        response = await client.post(
+            f"/api/v1/items/{item.id}/cancel-analysis", headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "error"

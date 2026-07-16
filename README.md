@@ -314,6 +314,8 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 |----------|-------------|----------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
 | `SECRET_KEY` | Backend secret for JWT | Yes |
+| `PUID` | Uid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
+| `PGID` | Gid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
 | `NEXTAUTH_SECRET` | NextAuth session encryption | Yes |
 | `AI_BASE_URL` | AI service URL | Yes |
 | `AI_API_KEY` | AI API key (if required) | Depends |

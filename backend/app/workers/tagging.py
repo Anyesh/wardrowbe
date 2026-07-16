@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus
@@ -66,16 +66,20 @@ async def mark_item_tagging_skipped(ctx: dict, item_id: str) -> None:
 
 
 async def update_item_status_to_error(ctx: dict, item_id: str, error_msg: str) -> None:
-    """Update item status to error in database."""
     try:
         db = get_db_session(ctx)
         try:
-            result = await db.execute(select(ClothingItem).where(ClothingItem.id == UUID(item_id)))
-            item = result.scalar_one_or_none()
-            if item:
-                item.status = ItemStatus.error
-                item.ai_raw_response = {"error": error_msg}
-                await db.commit()
+            # Guarded: only flip status if still processing, because an orphaned job
+            # (worker crash, or a job the user already cancelled) must not un-ready or
+            # re-error an item the user has already moved past.
+            await db.execute(
+                update(ClothingItem)
+                .where(
+                    ClothingItem.id == UUID(item_id), ClothingItem.status == ItemStatus.processing
+                )
+                .values(status=ItemStatus.error, ai_raw_response={"error": error_msg})
+            )
+            await db.commit()
         finally:
             await db.close()
     except Exception as e:
@@ -151,6 +155,8 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                 logger.error(f"Item not found: {item_id}")
                 return {"status": "error", "error": "Item not found"}
 
+            # Unguarded by design: worst case after a cancel this backfills tags onto an
+            # item the user already moved past, which is harmless (unlike the error path).
             # Update item fields - only update if user hasn't already set a value
             # Always update: ai_processed, ai_confidence, status, ai_raw_response
             # Conditionally update: type, subtype, primary_color, colors, pattern, material, style, formality, season

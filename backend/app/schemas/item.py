@@ -79,6 +79,7 @@ class ItemResponse(ItemBase):
     image_path: str
     thumbnail_path: str | None = None
     medium_path: str | None = None
+    original_image_path: str | None = None
     tags: dict = Field(default_factory=dict)
     colors: list[str] = Field(default_factory=list)
     primary_color: str | None = None

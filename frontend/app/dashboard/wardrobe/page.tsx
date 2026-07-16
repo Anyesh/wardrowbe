@@ -26,7 +26,7 @@ import {
 import { AddItemDialog } from '@/components/add-item-dialog';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
-import { useItems, useItem, useItemTypes, useReanalyzeItem, useBulkDeleteItems, useBulkReanalyzeItems, BulkOperationParams } from '@/lib/hooks/use-items';
+import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, BulkOperationParams } from '@/lib/hooks/use-items';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { CLOTHING_TYPES, CLOTHING_COLORS, Item } from '@/lib/types';
 import { toast } from 'sonner';
@@ -50,6 +50,7 @@ function ItemCard({
   selected,
   onSelect,
   onRetry,
+  onCancelAnalysis,
   onClick,
   userTimezone,
 }: {
@@ -57,6 +58,7 @@ function ItemCard({
   selected: boolean;
   onSelect: (id: string, checked: boolean) => void;
   onRetry?: (id: string) => void;
+  onCancelAnalysis?: (id: string) => void;
   onClick?: () => void;
   userTimezone: string;
 }) {
@@ -118,6 +120,20 @@ function ItemCard({
           <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
             <Loader2 className="h-6 w-6 text-white animate-spin" />
             <span className="text-white text-xs font-medium">AI Analyzing...</span>
+            {onCancelAnalysis && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCancelAnalysis(item.id);
+                }}
+              >
+                <X className="h-3 w-3 mr-1" />
+                Cancel
+              </Button>
+            )}
           </div>
         )}
         {isError && (
@@ -270,6 +286,7 @@ export default function WardrobePage() {
   const { data, isLoading, error } = useItems(filters, page, pageSize);
   const { data: itemTypes } = useItemTypes();
   const reanalyze = useReanalyzeItem();
+  const cancelAnalysis = useCancelAnalysis();
   const bulkDelete = useBulkDeleteItems();
   const bulkReanalyze = useBulkReanalyzeItems();
 
@@ -292,6 +309,10 @@ export default function WardrobePage() {
 
   const handleRetry = (itemId: string) => {
     reanalyze.mutate(itemId);
+  };
+
+  const handleCancelAnalysis = (itemId: string) => {
+    cancelAnalysis.mutate(itemId);
   };
 
   const handleSelect = (id: string, checked: boolean) => {
@@ -625,6 +646,7 @@ export default function WardrobePage() {
                 selected={isSelected}
                 onSelect={handleSelect}
                 onRetry={handleRetry}
+                onCancelAnalysis={handleCancelAnalysis}
                 onClick={() => setDetailItemId(item.id)}
                 userTimezone={userTimezone}
               />

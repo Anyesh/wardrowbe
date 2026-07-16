@@ -87,5 +87,6 @@ class WorkerSettings:
     job_timeout = max(get_settings().ai_timeout * get_settings().ai_max_retries + 60, 600)
     max_tries = 3
     health_check_interval = 30
+    allow_abort_jobs = True
 
     queue_name = "arq:tagging"

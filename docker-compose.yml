@@ -41,6 +41,8 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       DEBUG: ${DEBUG:-false}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD:-wardrobe}@postgres:5432/${POSTGRES_DB:-wardrobe}
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
@@ -86,6 +88,8 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
       DEV_MODE: ${DEBUG:-false}
+      PUID: ${PUID:-1001}
+      PGID: ${PGID:-1001}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
@@ -100,6 +104,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD:-wardrobe}@postgres:5432/${POSTGRES_DB:-wardrobe}
       REDIS_URL: redis://redis:6379/0
       AI_BASE_URL: ${AI_BASE_URL:-http://host.docker.internal:11434/v1}

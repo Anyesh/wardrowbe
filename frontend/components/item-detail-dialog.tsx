@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import {
   Heart,
@@ -17,6 +17,8 @@ import {
   RotateCcw,
   RotateCw,
   Eraser,
+  Undo2,
+  ImagePlus,
   Layers,
   Droplets,
   ChevronDown,
@@ -57,7 +59,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
+import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { Item, CLOTHING_TYPES, CLOTHING_COLORS } from '@/lib/types';
 import { ColorEyedropper } from '@/components/color-eyedropper';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
@@ -95,6 +97,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const reanalyzeItem = useReanalyzeItem();
   const rotateImage = useRotateImage();
   const removeBackground = useRemoveBackground();
+  const restoreOriginal = useRestoreOriginal();
+  const replaceImage = useReplaceItemImage();
+  const replaceImageInputRef = useRef<HTMLInputElement>(null);
   const { data: features } = useFeatures();
   const logWash = useLogWash();
   const { data: washHistory } = useWashHistory(item?.id || '');
@@ -212,6 +217,29 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     }
   };
 
+  const handleRestoreOriginal = async () => {
+    try {
+      await restoreOriginal.mutateAsync(item.id);
+      setImageKey((k) => k + 1);
+      toast.success('Original image restored');
+    } catch (error) {
+      console.error('Failed to restore original image:', error);
+      toast.error('Failed to restore original image');
+    }
+  };
+
+  const handleReplaceImage = async (file: File) => {
+    try {
+      await replaceImage.mutateAsync({ itemId: item.id, file });
+      setImageKey((k) => k + 1);
+      setActiveImageIndex(0);
+      toast.success('Image replaced');
+    } catch (error) {
+      console.error('Failed to replace image:', error);
+      toast.error('Failed to replace image');
+    }
+  };
+
   const isAnalyzing = reanalyzeItem.isPending || item.status === 'processing';
 
   // Use signed URL from backend for better quality in detail view
@@ -309,6 +337,47 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   )}
                 </Button>
               )}
+              {item.original_image_path && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRestoreOriginal}
+                  disabled={restoreOriginal.isPending}
+                  title="Undo background removal"
+                >
+                  {restoreOriginal.isPending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Undo2 className="h-5 w-5" />
+                  )}
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => replaceImageInputRef.current?.click()}
+                disabled={replaceImage.isPending}
+                title="Replace image"
+              >
+                {replaceImage.isPending ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-5 w-5" />
+                )}
+              </Button>
+              <input
+                ref={replaceImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleReplaceImage(file);
+                  }
+                  e.target.value = '';
+                }}
+              />
               <Button
                 variant="ghost"
                 size="icon"

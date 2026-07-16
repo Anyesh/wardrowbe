@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     curl \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -22,7 +23,12 @@ COPY . .
 # Create non-root user and storage directory
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 RUN mkdir -p /data/wardrobe /data/uploads && chown -R appuser:appuser /data
-USER appuser
+
+# Entrypoint drops to appuser (remapped to PUID/PGID when set); when the
+# container is started as a non-root uid (e.g. k8s runAsUser) it execs directly
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Expose port
 EXPOSE 8000
