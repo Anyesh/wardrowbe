@@ -110,7 +110,7 @@ async def create_item(
     colors: str | None = Form(None),
     primary_color: str | None = Form(None),
     favorite: bool = Form(False),
-    auto_tag: bool | None = Form(None),
+    skip_ai: bool = Form(False),
 ) -> ItemResponse:
     # Validate and process image
     image_service = ImageService()
@@ -174,7 +174,7 @@ async def create_item(
         image_paths=image_paths,
     )
 
-    do_auto_tag = settings.effective_ai_vision_enabled and auto_tag is not False
+    do_auto_tag = settings.effective_ai_vision_enabled and not skip_ai
     if do_auto_tag:
         try:
             redis = await create_pool(get_redis_settings())
@@ -225,9 +225,9 @@ async def bulk_create_items(
     failed = 0
 
     # Create Redis pool once for all jobs
-    do_auto_tag = settings.effective_ai_vision_enabled
+    do_auto_tag = settings.effective_ai_vision_enabled and not skip_ai
     redis = None
-    if do_auto_tag and not skip_ai:
+    if do_auto_tag:
         try:
             redis = await create_pool(get_redis_settings())
         except Exception as e:
@@ -288,8 +288,7 @@ async def bulk_create_items(
                     image_paths=image_paths,
                 )
 
-                # Queue AI tagging job unless skipped per-request or disabled
-                if skip_ai or not do_auto_tag:
+                if not do_auto_tag:
                     item = await item_service.mark_pending(item, set_ready=True)
                 elif redis:
                     try:
@@ -824,10 +823,7 @@ async def trigger_ai_analysis(
         )
 
     if not settings.effective_ai_vision_enabled:
-        item.status = ItemStatus.ready
-        item.tagging_status = TaggingStatus.pending
-        item.tagged_by = None
-        item.tagged_at = None
+        await item_service.mark_pending(item, set_ready=True)
         await db.commit()
         return {"status": "deferred", "detail": "Internal vision disabled; item marked pending"}
 

@@ -1,5 +1,5 @@
 """Tests for the item tagging lifecycle: tagging_status/tagged_by/tagged_at, the
-auto_tag / vision enqueue guards, the pending work-queue filter, the PATCH
+skip_ai / vision enqueue guards, the pending work-queue filter, the PATCH
 write-back origin, and the retag reset.
 
 Covers AI-on and AI-off paths and asserts defaults preserve current behavior
@@ -75,7 +75,7 @@ def test_auto_tag_records_auto_origin():
     assert isinstance(fields["tagged_at"], datetime)
 
 
-# --- create_item: auto_tag / vision enqueue guard ---------------------------
+# --- create_item / bulk: skip_ai / vision enqueue guard ----------------------
 
 
 @pytest.mark.asyncio
@@ -95,15 +95,13 @@ async def test_create_enqueues_when_vision_on(client: AsyncClient, auth_headers,
 
 
 @pytest.mark.asyncio
-async def test_create_with_auto_tag_false_leaves_pending(
-    client: AsyncClient, auth_headers, monkeypatch
-):
+async def test_create_with_skip_ai_leaves_pending(client: AsyncClient, auth_headers, monkeypatch):
     fake = _patch_redis(monkeypatch)
     resp = await client.post(
         "/api/v1/items",
         headers=auth_headers,
         files={"image": ("x.png", _png_bytes(), "image/png")},
-        data={"type": "shirt", "auto_tag": "false"},
+        data={"type": "shirt", "skip_ai": "true"},
     )
     assert resp.status_code == 201, resp.text
     body = resp.json()
@@ -128,6 +126,25 @@ async def test_create_leaves_pending_when_vision_disabled(
     body = resp.json()
     assert body["status"] == "ready"
     assert body["tagging_status"] == "pending"
+    assert fake.jobs == []
+
+
+@pytest.mark.asyncio
+async def test_bulk_create_with_skip_ai_leaves_pending(
+    client: AsyncClient, auth_headers, monkeypatch
+):
+    fake = _patch_redis(monkeypatch)
+    resp = await client.post(
+        "/api/v1/items/bulk",
+        headers=auth_headers,
+        files=[("images", ("x.png", _png_bytes(), "image/png"))],
+        data={"skip_ai": "true"},
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()["results"][0]["item"]
+    assert body["status"] == "ready"
+    assert body["tagging_status"] == "pending"
+    assert body["tagged_by"] is None
     assert fake.jobs == []
 
 
