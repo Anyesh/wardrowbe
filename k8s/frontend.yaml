@@ -43,8 +43,8 @@ spec:
                 secretKeyRef:
                   name: wardrobe-secrets
                   key: nextauth-secret
-            - name: NEXT_PUBLIC_API_URL
-              value: ""
+            - name: BACKEND_URL
+              value: "http://backend:8000"
             - name: OIDC_ISSUER_URL
               valueFrom:
                 configMapKeyRef:

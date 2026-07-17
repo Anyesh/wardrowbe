@@ -149,7 +149,7 @@ services:
       PGID: ${PGID:-1001}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-https://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000}
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
       # OIDC
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
@@ -176,11 +176,13 @@ services:
       - "127.0.0.1:8080:80"
     environment:
       NGINX_AI_TIMEOUT: ${NGINX_AI_TIMEOUT:-600}
+      BACKEND_HOST: ${BACKEND_HOST:-backend}
+      BACKEND_INTERNAL_PORT: ${BACKEND_INTERNAL_PORT:-8000}
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/templates:/etc/nginx/templates:ro
     command: >
-      /bin/sh -c "envsubst '$${NGINX_AI_TIMEOUT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"
+      /bin/sh -c "envsubst '$${NGINX_AI_TIMEOUT} $${BACKEND_HOST} $${BACKEND_INTERNAL_PORT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"
     depends_on:
       - frontend
       - backend
