@@ -28,7 +28,17 @@ def _get_jwk_client(jwks_uri: str, ca_bundle: str | None) -> PyJWKClient:
     if cache_key in _jwk_clients and (now - cached_time) < JWKS_CACHE_TTL:
         return _jwk_clients[cache_key]
 
-    client = PyJWKClient(jwks_uri, ssl_context=_build_ssl_context(ca_bundle))
+    # Masks the request to prevent firewalls (like Cloudflare) from blocking urllib as a bot
+    custom_headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; WardrowbeBackend/1.0)"
+    }
+
+    client = PyJWKClient(
+        jwks_uri, 
+        ssl_context=_build_ssl_context(ca_bundle),
+        headers=custom_headers
+    )
+
     _jwk_clients[cache_key] = client
     _jwks_cache_times[cache_key] = now
     return client
