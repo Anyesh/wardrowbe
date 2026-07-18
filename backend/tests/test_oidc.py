@@ -147,3 +147,16 @@ class TestGetJwkClient:
                 mock_ssl.assert_called_once_with("/certs/ca.pem")
                 _, kwargs = mock_cls.call_args
                 assert kwargs["ssl_context"] is mock_ssl.return_value
+
+    def test_custom_user_agent_passed_to_pyjwkclient(self):
+        oidc._jwk_clients.clear()
+        oidc._jwks_cache_times.clear()
+
+        uri = "https://auth.example.com/jwks/"
+        with patch("app.utils.oidc.PyJWKClient") as mock_cls:
+            mock_cls.return_value = MagicMock()
+            oidc._get_jwk_client(uri, ca_bundle=None)
+            _, kwargs = mock_cls.call_args
+            assert kwargs["headers"] == {
+                "User-Agent": "Mozilla/5.0 (compatible; WardrowbeBackend/1.0)"
+            }
