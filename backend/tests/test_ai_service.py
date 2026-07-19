@@ -1,4 +1,15 @@
-from app.services.ai_service import AIService, ClothingTags
+from unittest.mock import patch
+
+import httpx
+import pytest
+
+from app.services.ai_service import AIResponseTruncatedError, AIService, ClothingTags
+
+FAKE_REQUEST = httpx.Request("POST", "http://ai-endpoint.test/chat/completions")
+
+
+def _mock_response(json_data: dict, status_code: int = 200) -> httpx.Response:
+    return httpx.Response(status_code, json=json_data, request=FAKE_REQUEST)
 
 
 class TestTagParsing:
@@ -166,3 +177,77 @@ class TestClothingTags:
         assert tags.primary_color == "navy"
         assert len(tags.colors) == 2
         assert tags.confidence == 0.92
+
+
+class TestGenerateTextTruncatedResponse:
+    """Regression tests for issue #139: reasoning-capable models (e.g. Qwen3 via
+
+    LM Studio) can exhaust the entire completion token budget on their
+    ``reasoning_content`` chain-of-thought, leaving ``message.content`` empty with
+    ``finish_reason == "length"``. That used to surface as an opaque "Could not parse
+    AI response as JSON: " error, further masked upstream as a generic "AI service is
+    not available" message. It should now raise AIResponseTruncatedError with the real
+    cause, every retry attempt, so callers can tell the user what actually happened.
+    """
+
+    @staticmethod
+    def _truncated_reasoning_response() -> dict:
+        # Mirrors the exact shape reported in the issue's attached LM Studio /
+        # backend logs: assistant content is empty, the model's chain-of-thought
+        # landed in reasoning_content instead, and finish_reason is "length".
+        return {
+            "id": "chatcmpl-j0ue2a2xp0kziw0f8gof",
+            "object": "chat.completion",
+            "model": "qwen/qwen3.5-9b",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": "",
+                        "reasoning_content": "The user wants me to create 3 outfits...",
+                        "tool_calls": [],
+                    },
+                    "finish_reason": "length",
+                }
+            ],
+            "usage": {"prompt_tokens": 3417, "completion_tokens": 4775, "total_tokens": 8192},
+        }
+
+    @pytest.mark.asyncio
+    async def test_empty_content_with_reasoning_raises_truncated_error(self):
+        service = AIService()
+        mock_response = _mock_response(self._truncated_reasoning_response())
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response):
+            with pytest.raises(AIResponseTruncatedError) as exc_info:
+                await service.generate_text("suggest an outfit")
+
+        message = str(exc_info.value)
+        assert "reasoning" in message
+        assert "AI_MAX_TOKENS" in message
+
+    @pytest.mark.asyncio
+    async def test_empty_content_without_reasoning_still_raises_truncated_error(self):
+        service = AIService()
+        payload = self._truncated_reasoning_response()
+        del payload["choices"][0]["message"]["reasoning_content"]
+        mock_response = _mock_response(payload)
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response):
+            with pytest.raises(AIResponseTruncatedError):
+                await service.generate_text("suggest an outfit")
+
+    @pytest.mark.asyncio
+    async def test_normal_response_is_unaffected(self):
+        service = AIService()
+        payload = self._truncated_reasoning_response()
+        payload["choices"][0]["message"]["content"] = '{"outfits": []}'
+        payload["choices"][0]["message"]["reasoning_content"] = ""
+        payload["choices"][0]["finish_reason"] = "stop"
+        mock_response = _mock_response(payload)
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response):
+            content = await service.generate_text("suggest an outfit")
+
+        assert content == '{"outfits": []}'
