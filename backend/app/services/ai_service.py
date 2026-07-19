@@ -661,7 +661,33 @@ class AIService:
 
                         data = response.json()
                         used_model = data.get("model", endpoint.text_model)
-                        content = data["choices"][0]["message"]["content"]
+                        choice = data["choices"][0]
+                        message = choice["message"]
+                        content = message["content"]
+
+                        if not content or not content.strip():
+                            finish_reason = choice.get("finish_reason")
+                            reasoning = message.get("reasoning_content")
+                            if finish_reason == "length" and reasoning:
+                                detail = (
+                                    "its reasoning/thinking output consumed the entire "
+                                    "completion token budget before it produced a response"
+                                )
+                            elif finish_reason == "length":
+                                detail = "the response was cut off before any content was generated"
+                            else:
+                                detail = f"finish_reason={finish_reason!r}"
+                            last_error = AIResponseTruncatedError(
+                                f"{endpoint.name} (model: {used_model}) returned an empty "
+                                f"response: {detail}. Try raising AI_MAX_TOKENS (currently "
+                                f"{self.settings.ai_max_tokens}) or disabling extended "
+                                "thinking/reasoning mode for this model."
+                            )
+                            logger.warning(str(last_error))
+                            if attempt < self.settings.ai_max_retries - 1:
+                                continue
+                            break
+
                         logger.info(
                             f"Text generation successful via {endpoint.name} (model: {used_model})"
                         )
@@ -688,6 +714,19 @@ class AIService:
         if last_error:
             raise last_error
         raise RuntimeError("Failed to generate text - no endpoints available")
+
+
+class AIResponseTruncatedError(RuntimeError):
+    """Raised when a model's response was cut off before it produced any output content.
+
+    Reasoning-capable models (e.g. Qwen3, DeepSeek-R1) return their chain-of-thought in a
+    separate ``reasoning_content`` field, distinct from ``content``. If that reasoning
+    consumes the entire completion token budget, the API reports ``finish_reason ==
+    "length"`` with an empty ``content`` string. Downstream JSON parsing of an empty
+    string then fails with an unhelpful message, which used to get swallowed into a
+    generic "AI service is not available" error even though the endpoint responded
+    successfully. This error preserves the real cause so callers can surface it.
+    """
 
 
 class AIDisabledError(RuntimeError):

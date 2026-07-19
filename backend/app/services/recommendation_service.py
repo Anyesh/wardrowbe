@@ -22,7 +22,7 @@ from app.models.outfit import (
 )
 from app.models.preference import UserPreference
 from app.models.user import User
-from app.services.ai_service import AIService, require_internal_ai
+from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
 from app.services.item_scorer import get_season, score_items
 from app.services.suggestion_cache import pop_suggestion, push_suggestions
 from app.services.weather_service import (
@@ -884,6 +884,12 @@ class RecommendationService:
 
         except AIRecommendationError:
             raise
+        except AIResponseTruncatedError as e:
+            # Preserve the specific, actionable cause instead of the generic message
+            # below — the AI endpoint responded successfully, it just didn't produce
+            # any output content (see AIResponseTruncatedError for why).
+            logger.error(f"AI recommendation failed: {e}")
+            raise AIRecommendationError(str(e)) from e
         except Exception as e:
             logger.error(f"AI recommendation failed: {e}")
             raise AIRecommendationError(
