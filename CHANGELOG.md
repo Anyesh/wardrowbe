@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.5.1...wardrowbe-v1.6.0) (2026-07-19)
+
+
+### ✨ Features
+
+* add custom User-Agent header to JWKS client ([#134](https://github.com/Anyesh/wardrowbe/issues/134)) ([c18fa75](https://github.com/Anyesh/wardrowbe/commit/c18fa75a8fa70342466b7c84bf8cefbd0e4a51a7))
+* defer item tagging to an external agent (phase 2) ([c63ced9](https://github.com/Anyesh/wardrowbe/commit/c63ced9caf4d4241fe53f7b164a886e45979547c))
+
 ## [1.5.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.5.0...wardrowbe-v1.5.1) (2026-07-17)
 
 
