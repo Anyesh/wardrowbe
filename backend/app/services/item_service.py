@@ -99,9 +99,9 @@ class ItemService:
         }
         sort_col = sort_columns.get(filters.sort_by or "", ClothingItem.created_at)
         if filters.sort_order == "asc":
-            query = query.order_by(sort_col.asc().nulls_last())
+            query = query.order_by(sort_col.asc().nulls_last(), ClothingItem.id.asc())
         else:
-            query = query.order_by(sort_col.desc().nulls_last())
+            query = query.order_by(sort_col.desc().nulls_last(), ClothingItem.id.asc())
         query = query.offset((page - 1) * page_size).limit(page_size)
 
         result = await self.db.execute(query)

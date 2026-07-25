@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
@@ -9,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.item import ClothingItem, ItemStatus
+from app.schemas.item import ItemFilter
 from app.services.item_service import ItemService
 
 
@@ -334,6 +336,32 @@ class TestItemService:
         # Black should be most common
         assert color_dist[0]["color"] == "black"
         assert color_dist[0]["count"] == 3
+
+    @pytest.mark.asyncio
+    async def test_get_list_orders_ties_deterministically(
+        self, db_session: AsyncSession, test_user
+    ):
+        tied_created_at = datetime(2026, 1, 1, tzinfo=UTC)
+        items = [
+            ClothingItem(
+                user_id=test_user.id,
+                type="shirt",
+                image_path=f"test/{uuid4()}.jpg",
+                status=ItemStatus.ready,
+                created_at=tied_created_at,
+            )
+            for _ in range(5)
+        ]
+        db_session.add_all(items)
+        await db_session.commit()
+
+        service = ItemService(db_session)
+        filters = ItemFilter(sort_by="created_at", sort_order="desc")
+
+        first_ids = [item.id for item in (await service.get_list(test_user.id, filters))[0]]
+        second_ids = [item.id for item in (await service.get_list(test_user.id, filters))[0]]
+
+        assert first_ids == second_ids == sorted(first_ids)
 
 
 class TestBulkCreateSkipAI:
