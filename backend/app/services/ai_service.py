@@ -663,7 +663,7 @@ class AIService:
                         used_model = data.get("model", endpoint.text_model)
                         choice = data["choices"][0]
                         message = choice["message"]
-                        content = message["content"]
+                        content = message.get("content")
 
                         if not content or not content.strip():
                             finish_reason = choice.get("finish_reason")

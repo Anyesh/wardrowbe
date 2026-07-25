@@ -239,6 +239,20 @@ class TestGenerateTextTruncatedResponse:
                 await service.generate_text("suggest an outfit")
 
     @pytest.mark.asyncio
+    async def test_missing_content_key_raises_truncated_error(self):
+        # Some providers omit the "content" key entirely instead of returning ""
+        # when the response is truncated; bracket access would raise KeyError
+        # instead of the actionable AIResponseTruncatedError.
+        service = AIService()
+        payload = self._truncated_reasoning_response()
+        del payload["choices"][0]["message"]["content"]
+        mock_response = _mock_response(payload)
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response):
+            with pytest.raises(AIResponseTruncatedError):
+                await service.generate_text("suggest an outfit")
+
+    @pytest.mark.asyncio
     async def test_normal_response_is_unaffected(self):
         service = AIService()
         payload = self._truncated_reasoning_response()
