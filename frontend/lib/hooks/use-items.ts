@@ -119,7 +119,50 @@ export function useUpdateItem() {
       }
       return api.patch<Item>(`/items/${id}`, data);
     },
-    onSuccess: (_, variables) => {
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: ['item', id] });
+
+      const previousListData = queryClient.getQueriesData({ queryKey: ['items'] });
+      const previousItemData = queryClient.getQueryData<Item>(['item', id]);
+
+      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.map((item) => (item.id === id ? { ...item, ...data } : item)),
+        };
+      });
+
+      if (previousItemData) {
+        queryClient.setQueryData<Item>(['item', id], { ...previousItemData, ...data });
+      }
+
+      return { previousListData, previousItemData };
+    },
+    onError: (_err, variables, context) => {
+      if (context?.previousListData) {
+        context.previousListData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      if (context?.previousItemData) {
+        queryClient.setQueryData(['item', variables.id], context.previousItemData);
+      }
+    },
+    onSuccess: (updatedItem, variables) => {
+      // Use the server's authoritative copy (server-derived fields like updated_at)
+      // rather than the optimistic merge, since the response is already in hand.
+      queryClient.setQueryData(['item', variables.id], updatedItem);
+      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.map((item) => (item.id === variables.id ? updatedItem : item)),
+        };
+      });
+    },
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
       queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
     },
