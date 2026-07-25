@@ -265,3 +265,81 @@ class TestGenerateTextTruncatedResponse:
             content = await service.generate_text("suggest an outfit")
 
         assert content == '{"outfits": []}'
+
+
+class TestLogprobsRejection:
+    """Regression tests for issue #143: providers like Gemini reject the
+
+    logprobs/top_logprobs request params with a 400, which used to burn every
+    retry attempt and leave tags empty (while the separate, logprobs-free
+    description call succeeded silently, giving no indication of the failure).
+    """
+
+    _TAGS_CONTENT = '{"type": "shirt", "primary_color": "blue", "colors": ["blue"]}'
+
+    @staticmethod
+    def _logprobs_rejected_response() -> httpx.Response:
+        # Mirrors Gemini's OpenAI-compat error shape from the issue report.
+        return _mock_response(
+            {"error": {"message": 'Unknown name "logprobs": Cannot find field.'}},
+            status_code=400,
+        )
+
+    @staticmethod
+    def _success_response(content: str) -> httpx.Response:
+        return _mock_response(
+            {
+                "model": "gemini-2.0-flash",
+                "choices": [{"message": {"content": content}}],
+            }
+        )
+
+    @pytest.mark.asyncio
+    async def test_retries_without_logprobs_after_rejection(self):
+        service = AIService()
+        responses = [self._logprobs_rejected_response(), self._success_response(self._TAGS_CONTENT)]
+
+        with patch("httpx.AsyncClient.post", side_effect=responses) as mock_post:
+            content, err, logprobs_content = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert err is None
+        assert content == self._TAGS_CONTENT
+        assert logprobs_content is None
+        assert mock_post.call_count == 2
+        first_body = mock_post.call_args_list[0].kwargs["json"]
+        second_body = mock_post.call_args_list[1].kwargs["json"]
+        assert first_body["logprobs"] is True
+        assert "logprobs" not in second_body
+        assert "top_logprobs" not in second_body
+
+    @pytest.mark.asyncio
+    async def test_logprobs_rejection_does_not_consume_retry_budget(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        responses = [self._logprobs_rejected_response(), self._success_response(self._TAGS_CONTENT)]
+
+        with patch("httpx.AsyncClient.post", side_effect=responses) as mock_post:
+            content, err, _ = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert err is None
+        assert content == self._TAGS_CONTENT
+        assert mock_post.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_unrelated_400_is_not_treated_as_logprobs_rejection(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        unrelated_400 = _mock_response({"error": {"message": "invalid model"}}, status_code=400)
+
+        with patch("httpx.AsyncClient.post", return_value=unrelated_400) as mock_post:
+            content, err, _ = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert content is None
+        assert err is not None
+        assert mock_post.call_count == 1
