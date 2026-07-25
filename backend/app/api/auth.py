@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import DEFAULT_SECRET_KEY, get_settings
+from app.config import get_settings
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user import (
@@ -42,7 +42,7 @@ def create_access_token(external_id: str, expires_delta: timedelta | None = None
 
 
 def _is_dev_mode() -> bool:
-    return settings.debug and settings.secret_key == DEFAULT_SECRET_KEY
+    return settings.debug and not _oidc_configured()
 
 
 def _oidc_configured() -> bool:

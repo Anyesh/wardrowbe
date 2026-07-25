@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pydantic import ValidationError
 
+from app.api.auth import _is_dev_mode
+from app.config import Settings
 from app.schemas.notification import NtfyConfig, ScheduleBase, ScheduleUpdate
 
 
@@ -323,3 +325,36 @@ class TestProviderMigrationRequiresVerifiedEmail:
                 },
             )
             assert response.status_code == 200
+
+
+class TestDevModeAuthDecoupledFromSecretKey:
+    def test_get_auth_mode_dev_with_custom_secret_key(self):
+        settings = Settings(debug=True, secret_key="a-strong-custom-secret")
+        assert settings.get_auth_mode() == "dev"
+        assert settings.validate_security() is None
+
+    def test_get_auth_mode_oidc_takes_precedence_over_debug(self):
+        settings = Settings(
+            debug=True,
+            secret_key="a-strong-custom-secret",
+            oidc_issuer_url="https://auth.example.com",
+            oidc_client_id="test-client",
+        )
+        assert settings.get_auth_mode() == "oidc"
+        assert settings.validate_security() is None
+
+    def test_is_dev_mode_true_with_custom_secret_and_no_oidc(self):
+        with patch("app.api.auth.settings") as mock_settings:
+            mock_settings.debug = True
+            mock_settings.oidc_issuer_url = None
+            mock_settings.oidc_client_id = None
+
+            assert _is_dev_mode() is True
+
+    def test_is_dev_mode_false_when_oidc_configured_even_with_debug(self):
+        with patch("app.api.auth.settings") as mock_settings:
+            mock_settings.debug = True
+            mock_settings.oidc_issuer_url = "https://auth.example.com"
+            mock_settings.oidc_client_id = "test-client"
+
+            assert _is_dev_mode() is False
