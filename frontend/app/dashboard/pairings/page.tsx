@@ -28,8 +28,9 @@ function EmptyPairings() {
       </div>
       <h3 className="text-lg font-semibold mb-2">No pairings yet</h3>
       <p className="text-muted-foreground mb-6 max-w-sm">
-        Select an item from your wardrobe and use &ldquo;Find Pairings&rdquo; to discover
-        outfit combinations that work well together.
+        Open an item in your Wardrobe (once it has finished analyzing) and use its
+        &ldquo;Find matching outfits&rdquo; button to discover outfit combinations that work
+        well together.
       </p>
       <Button variant="outline" asChild>
         <a href="/dashboard/wardrobe">Go to Wardrobe</a>
