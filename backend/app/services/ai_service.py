@@ -169,6 +169,10 @@ def compute_tag_completeness(tags: "ClothingTags") -> float:
     return round(score, 2)
 
 
+def _response_rejects_logprobs(response: httpx.Response) -> bool:
+    return response.status_code == 400 and "logprobs" in response.text.lower()
+
+
 _CONFIDENCE_FIELDS = {"type", "primary_color", "pattern", "material", "formality"}
 
 
@@ -451,9 +455,11 @@ class AIService:
         for endpoint in self._endpoints:
             logger.info(f"Trying AI endpoint for {task_name}: {endpoint.name}")
             model = endpoint.vision_model if use_vision_model else endpoint.text_model
+            use_logprobs = request_logprobs
 
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-                for attempt in range(self.settings.ai_max_retries):
+                attempt = 0
+                while attempt < self.settings.ai_max_retries:
                     try:
                         request_body = {
                             "model": model,
@@ -461,7 +467,7 @@ class AIService:
                             "stream": False,
                             "max_tokens": self.settings.ai_max_tokens,
                         }
-                        if request_logprobs:
+                        if use_logprobs:
                             request_body["logprobs"] = True
                             request_body["top_logprobs"] = 3
 
@@ -476,7 +482,7 @@ class AIService:
                         choice = data["choices"][0]
                         content = choice["message"]["content"]
                         logprobs_content = None
-                        if request_logprobs:
+                        if use_logprobs:
                             lp = choice.get("logprobs")
                             if lp:
                                 logprobs_content = lp.get("content")
@@ -488,15 +494,26 @@ class AIService:
                         return content, None, logprobs_content
 
                     except httpx.HTTPStatusError as e:
+                        # Some providers (e.g. Gemini's OpenAI-compat endpoint, or Gemini
+                        # native without the paid tier) reject the logprobs param outright.
+                        # Retry the same attempt without it instead of burning the retry
+                        # budget or losing the tags entirely - this doesn't count against
+                        # ai_max_retries since it's a capability mismatch, not a transient
+                        # failure.
+                        if use_logprobs and _response_rejects_logprobs(e.response):
+                            logger.warning(
+                                f"{endpoint.name} rejected logprobs for {task_name}, "
+                                f"retrying without it: {e}"
+                            )
+                            use_logprobs = False
+                            continue
                         last_error = e
                         logger.warning(f"HTTP error from {endpoint.name}: {e}")
-                        if attempt < self.settings.ai_max_retries - 1:
-                            continue
                     except httpx.RequestError as e:
                         last_error = e
                         logger.warning(f"Request error from {endpoint.name}: {e}")
-                        if attempt < self.settings.ai_max_retries - 1:
-                            continue
+
+                    attempt += 1
 
         return None, last_error, None
 
