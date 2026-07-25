@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.5.1...wardrowbe-v1.6.0) (2026-07-25)
+
+
+### ✨ Features
+
+* add custom User-Agent header to JWKS client ([#134](https://github.com/Anyesh/wardrowbe/issues/134)) ([c18fa75](https://github.com/Anyesh/wardrowbe/commit/c18fa75a8fa70342466b7c84bf8cefbd0e4a51a7))
+* defer item tagging to an external agent (phase 2) ([c63ced9](https://github.com/Anyesh/wardrowbe/commit/c63ced9caf4d4241fe53f7b164a886e45979547c))
+
+
+### 🐛 Bug Fixes
+
+* retry AI tagging without logprobs when the provider rejects it ([2fbf38f](https://github.com/Anyesh/wardrowbe/commit/2fbf38fe2d0f3811edef385fabe4b168ee12e84e))
+* retry AI tagging without logprobs when the provider rejects it ([b39815d](https://github.com/Anyesh/wardrowbe/commit/b39815d52c666be445b6feb52d7f1f51abedefa3))
+* surface real cause when outfit suggestion AI response is truncated ([#139](https://github.com/Anyesh/wardrowbe/issues/139)) ([#142](https://github.com/Anyesh/wardrowbe/issues/142)) ([7af8472](https://github.com/Anyesh/wardrowbe/commit/7af84720f1f6932d61fde8504edcf4b281f350fa))
+
 ## [1.5.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.5.0...wardrowbe-v1.5.1) (2026-07-17)
 
 
