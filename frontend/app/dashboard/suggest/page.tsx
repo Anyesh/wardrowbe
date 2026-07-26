@@ -422,7 +422,7 @@ function OutfitResult({
           <ThumbsUp className="h-4 w-4" />
           Love it
         </Button>
-        <Button variant="ghost" size="lg" onClick={onReject} className="px-3">
+        <Button variant="ghost" size="lg" onClick={onReject} className="px-3" aria-label="Dismiss outfit">
           <ThumbsDown className="h-4 w-4" />
         </Button>
       </div>

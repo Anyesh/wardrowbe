@@ -132,9 +132,9 @@ function PendingOutfitsCard() {
   const handleReject = async (id: string) => {
     try {
       await rejectOutfit.mutateAsync(id);
-      toast.success('Outfit rejected');
+      toast.success('Outfit dismissed');
     } catch {
-      toast.error('Failed to reject outfit');
+      toast.error('Failed to dismiss outfit');
     }
   };
 
@@ -233,6 +233,7 @@ function PendingOutfitsCard() {
                 className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                 onClick={() => handleReject(outfit.id)}
                 disabled={rejectOutfit.isPending}
+                aria-label="Dismiss outfit"
               >
                 <ThumbsDown className="h-4 w-4" />
               </Button>
