@@ -207,6 +207,42 @@ class OutfitListResponse(BaseModel):
     has_more: bool
 
 
+class BulkOutfitFilters(BaseModel):
+    status_filter: str | None = None
+    occasion: str | None = None
+    date_from: date | None = None
+    date_to: date | None = None
+    source: str | None = None
+    is_lookbook: bool | None = None
+    is_replacement: bool | None = None
+    has_source_item: bool | None = None
+    item_type: str | None = None
+    search: str | None = None
+    cloned_from_outfit_id: UUID | None = None
+
+
+class BulkDeleteOutfitsRequest(BaseModel):
+    # Explicit selection
+    outfit_ids: list[UUID] | None = None
+
+    # Select all with exceptions
+    select_all: bool = False
+    excluded_ids: list[UUID] | None = None
+    filters: BulkOutfitFilters | None = None
+
+    def model_post_init(self, __context):
+        if not self.select_all and not self.outfit_ids:
+            raise ValueError("Either outfit_ids or select_all=True must be provided")
+        if self.select_all and self.outfit_ids:
+            raise ValueError("Cannot use both outfit_ids and select_all")
+
+
+class BulkDeleteOutfitsResponse(BaseModel):
+    deleted: int
+    failed: int
+    errors: list[str] = Field(default_factory=list)
+
+
 class FeedbackRequest(BaseModel):
     accepted: bool | None = Field(None, description="Whether outfit was accepted")
     rating: int | None = Field(None, ge=1, le=5, description="Overall rating 1-5")
@@ -511,6 +547,67 @@ async def list_outfits(
         page_size=page_size,
         has_more=(page * page_size) < total,
     )
+
+
+@router.post("/bulk/delete", response_model=BulkDeleteOutfitsResponse)
+async def bulk_delete_outfits(
+    request: BulkDeleteOutfitsRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> BulkDeleteOutfitsResponse:
+    service = OutfitService(db)
+    deleted = 0
+    failed = 0
+    errors: list[str] = []
+
+    if request.select_all:
+        list_filters = OutfitListFilters(
+            user_id=current_user.id,
+            status_filter=request.filters.status_filter if request.filters else None,
+            occasion=request.filters.occasion if request.filters else None,
+            date_from=request.filters.date_from if request.filters else None,
+            date_to=request.filters.date_to if request.filters else None,
+            source=request.filters.source if request.filters else None,
+            is_lookbook=request.filters.is_lookbook if request.filters else None,
+            is_replacement=request.filters.is_replacement if request.filters else None,
+            has_source_item=request.filters.has_source_item if request.filters else None,
+            item_type=request.filters.item_type if request.filters else None,
+            search=request.filters.search if request.filters else None,
+            cloned_from_outfit_id=request.filters.cloned_from_outfit_id
+            if request.filters
+            else None,
+        )
+        outfit_ids = await service.get_ids_by_filter(
+            list_filters,
+            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
+        )
+        logger.info(f"Bulk delete select_all: {len(outfit_ids)} outfits to delete")
+    else:
+        outfit_ids = request.outfit_ids or []
+
+    for outfit_id in outfit_ids:
+        try:
+            result = await db.execute(
+                select(Outfit).where(
+                    and_(Outfit.id == outfit_id, Outfit.user_id == current_user.id)
+                )
+            )
+            outfit = result.scalar_one_or_none()
+            if not outfit:
+                errors.append(f"Outfit {outfit_id} not found or not owned by user")
+                failed += 1
+                continue
+
+            await db.delete(outfit)
+            deleted += 1
+        except Exception as e:
+            logger.error(f"Failed to delete outfit {outfit_id}: {e}")
+            errors.append(f"Failed to delete outfit {outfit_id}")
+            failed += 1
+
+    await db.commit()
+
+    return BulkDeleteOutfitsResponse(deleted=deleted, failed=failed, errors=errors)
 
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
