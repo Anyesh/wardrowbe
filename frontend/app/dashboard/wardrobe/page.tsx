@@ -748,6 +748,8 @@ export default function WardrobePage() {
         onReanalyze={handleBulkReanalyze}
         isDeleting={bulkDelete.isPending}
         isReanalyzing={bulkReanalyze.isPending}
+        itemLabel="items"
+        deleteWarningSuffix=" and their images"
         page={page}
         pageSize={pageSize}
         onPageChange={handlePageChange}

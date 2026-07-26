@@ -13,12 +13,16 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import type { Outfit } from '@/lib/hooks/use-outfits';
 
 interface OutfitCardProps {
   outfit: Outfit;
   onClick?: () => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string, checked: boolean) => void;
 }
 
 function getSourceBadge(outfit: Outfit): {
@@ -87,21 +91,42 @@ function getMetaLabel(outfit: Outfit): string {
   }
 }
 
-export function OutfitCard({ outfit, onClick }: OutfitCardProps) {
+export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: OutfitCardProps) {
   const badge = getSourceBadge(outfit);
   const visibleItems = outfit.items.slice(0, 4);
   const overflow = outfit.items.length - visibleItems.length;
+
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  const handleCardClick = selectMode
+    ? () => onSelect?.(outfit.id, !selected)
+    : onClick;
 
   const content = (
     <Card
       className={cn(
         'overflow-hidden transition-all hover:shadow-md',
-        onClick && 'cursor-pointer'
+        handleCardClick && 'cursor-pointer',
+        selectMode && selected && 'ring-2 ring-primary shadow-md'
       )}
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       <CardContent className="p-0">
         <div className="relative aspect-[5/4] bg-muted">
+          {selectMode && (
+            <div
+              className="absolute top-2 left-2 z-10"
+              onClick={handleCheckboxClick}
+            >
+              <Checkbox
+                checked={!!selected}
+                onCheckedChange={(checked) => onSelect?.(outfit.id, checked === true)}
+                className="bg-background/80 backdrop-blur-sm"
+              />
+            </div>
+          )}
           <div className="absolute inset-0 grid grid-cols-4 gap-0.5 p-2">
             {visibleItems.map((item, idx) => (
               <div
@@ -161,7 +186,7 @@ export function OutfitCard({ outfit, onClick }: OutfitCardProps) {
     </Card>
   );
 
-  if (onClick) return content;
+  if (selectMode || onClick) return content;
   return (
     <Link href={`/dashboard/outfits/${outfit.id}`} className="block">
       {content}

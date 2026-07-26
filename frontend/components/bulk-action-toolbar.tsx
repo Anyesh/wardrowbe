@@ -28,9 +28,11 @@ interface BulkActionToolbarProps {
   onSelectAllMatching: () => void;
   onClear: () => void;
   onDelete: () => void;
-  onReanalyze: () => void;
+  onReanalyze?: () => void;
   isDeleting?: boolean;
   isReanalyzing?: boolean;
+  itemLabel?: string;
+  deleteWarningSuffix?: string;
   // Pagination props
   page: number;
   pageSize: number;
@@ -48,6 +50,8 @@ export function BulkActionToolbar({
   onReanalyze,
   isDeleting = false,
   isReanalyzing = false,
+  itemLabel = 'items',
+  deleteWarningSuffix = '',
   page,
   pageSize,
   onPageChange,
@@ -137,20 +141,22 @@ export function BulkActionToolbar({
             <X className="h-4 w-4" />
           </Button>
           <div className="h-4 w-px bg-border shrink-0" />
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={onReanalyze}
-            disabled={isReanalyzing}
-            aria-label="Re-analyze"
-          >
-            {isReanalyzing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-          </Button>
+          {onReanalyze && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={onReanalyze}
+              disabled={isReanalyzing}
+              aria-label="Re-analyze"
+            >
+              {isReanalyzing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
+          )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="icon" className="h-8 w-8 shrink-0" disabled={isDeleting} aria-label="Delete">
@@ -166,10 +172,10 @@ export function BulkActionToolbar({
                 <AlertDialogTitle>
                   Delete {selection.mode === 'all' && selection.excludedIds.size === 0
                     ? `all ${totalItems}`
-                    : selectedCount} items?
+                    : selectedCount} {itemLabel}?
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete the selected items and their images.
+                  This will permanently delete the selected {itemLabel}{deleteWarningSuffix}.
                   This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>

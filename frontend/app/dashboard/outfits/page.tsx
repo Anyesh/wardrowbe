@@ -3,7 +3,8 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { List as ListIcon, CalendarDays, Plus, Search } from 'lucide-react';
+import { List as ListIcon, CalendarDays, Plus, Search, CheckSquare } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,9 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { OutfitCard } from '@/components/outfits/outfit-card';
 import { OutfitCalendar } from '@/components/outfit-calendar';
+import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
 import {
+  useBulkDeleteOutfits,
   useCalendarOutfits,
   useOutfits,
+  type BulkOutfitOperationParams,
   type Outfit,
   type OutfitFilters,
 } from '@/lib/hooks/use-outfits';
@@ -90,7 +94,7 @@ const CHIP_ORDER: FilterChip[] = [
 
 const CHIP_LABELS: Record<FilterChip, string> = {
   all: 'All',
-  'my-looks': 'My Looks',
+  'my-looks': 'Lookbook',
   worn: 'Worn',
   pairings: 'Pairings',
   replacements: 'Replacements',
@@ -149,6 +153,12 @@ function OutfitsPageContent() {
   const [defaultChecked, setDefaultChecked] = useState(false);
   const [monthRef, setMonthRef] = useState<MonthRef>(urlMonth ?? currentMonthRef());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selection, setSelection] = useState<BulkSelection>({
+    mode: 'none',
+    selectedIds: new Set(),
+    excludedIds: new Set(),
+  });
 
   useEffect(() => {
     if (urlMonth && (urlMonth.year !== monthRef.year || urlMonth.month !== monthRef.month)) {
@@ -167,6 +177,18 @@ function OutfitsPageContent() {
   );
 
   const listQuery = useOutfits(filters, page, 24);
+  const bulkDeleteOutfits = useBulkDeleteOutfits();
+
+  // Clear selection when filters change (but not page - allow cross-page selection)
+  useEffect(() => {
+    setSelection({ mode: 'none', selectedIds: new Set(), excludedIds: new Set() });
+  }, [chip, debouncedSearch]);
+
+  useEffect(() => {
+    if (view === 'calendar') {
+      setSelectMode(false);
+    }
+  }, [view]);
 
   const calendarQuery = useCalendarOutfits(
     monthRef.year,
@@ -283,11 +305,87 @@ function OutfitsPageContent() {
     : [];
 
   const outfits = listQuery.data?.outfits ?? [];
+  const total = listQuery.data?.total ?? 0;
   const hasMore = listQuery.data?.has_more ?? false;
   const listLoading = listQuery.isLoading;
   const listError = listQuery.isError;
   const calendarLoading = calendarQuery.isLoading;
   const calendarError = calendarQuery.isError;
+
+  const handleToggleSelectMode = () => {
+    setSelectMode((prev) => {
+      if (prev) {
+        setSelection({ mode: 'none', selectedIds: new Set(), excludedIds: new Set() });
+      }
+      return !prev;
+    });
+  };
+
+  const handleSelect = (id: string, checked: boolean) => {
+    setSelection((prev) => {
+      if (prev.mode === 'all') {
+        const next = new Set(prev.excludedIds);
+        if (checked) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return { ...prev, excludedIds: next };
+      }
+      const next = new Set(prev.selectedIds);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return { mode: next.size > 0 ? 'some' : 'none', selectedIds: next, excludedIds: new Set() };
+    });
+  };
+
+  const handleSelectPage = () => {
+    setSelection((prev) => {
+      const pageFullySelected =
+        (prev.mode === 'all' && prev.excludedIds.size === 0) ||
+        (prev.mode === 'some' && prev.selectedIds.size === outfits.length && outfits.length > 0);
+      if (pageFullySelected) {
+        return { mode: 'none', selectedIds: new Set(), excludedIds: new Set() };
+      }
+      return { mode: 'some', selectedIds: new Set(outfits.map((o) => o.id)), excludedIds: new Set() };
+    });
+  };
+
+  const handleSelectAllMatching = () => {
+    setSelection({ mode: 'all', selectedIds: new Set(), excludedIds: new Set() });
+  };
+
+  const handleClearSelection = () => {
+    setSelection({ mode: 'none', selectedIds: new Set(), excludedIds: new Set() });
+  };
+
+  const getBulkParams = (): BulkOutfitOperationParams => {
+    if (selection.mode === 'all') {
+      return {
+        select_all: true,
+        excluded_ids: Array.from(selection.excludedIds),
+        filters,
+      };
+    }
+    return { outfit_ids: Array.from(selection.selectedIds) };
+  };
+
+  const handleBulkDelete = async () => {
+    const params = getBulkParams();
+    try {
+      const result = await bulkDeleteOutfits.mutateAsync(params);
+      toast.success(`Deleted ${result.deleted} outfits`);
+      if (result.failed > 0) {
+        toast.error(`Failed to delete ${result.failed} outfits`);
+      }
+      handleClearSelection();
+    } catch {
+      toast.error('Failed to delete outfits');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -331,6 +429,15 @@ function OutfitsPageContent() {
               Calendar
             </button>
           </div>
+          {view === 'list' && (
+            <Button
+              variant={selectMode ? 'secondary' : 'outline'}
+              onClick={handleToggleSelectMode}
+            >
+              <CheckSquare className="h-4 w-4 mr-2" />
+              {selectMode ? 'Cancel' : 'Select'}
+            </Button>
+          )}
           <Button asChild>
             <Link href="/dashboard/outfits/new">
               <Plus className="h-4 w-4 mr-2" />
@@ -405,9 +512,20 @@ function OutfitsPageContent() {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {outfits.map((outfit) => (
-                  <OutfitCard key={outfit.id} outfit={outfit} />
-                ))}
+                {outfits.map((outfit) => {
+                  const isSelected = selection.mode === 'all'
+                    ? !selection.excludedIds.has(outfit.id)
+                    : selection.selectedIds.has(outfit.id);
+                  return (
+                    <OutfitCard
+                      key={outfit.id}
+                      outfit={outfit}
+                      selectMode={selectMode}
+                      selected={isSelected}
+                      onSelect={handleSelect}
+                    />
+                  );
+                })}
               </div>
               {hasMore && (
                 <div className="flex justify-center pt-4">
@@ -493,6 +611,23 @@ function OutfitsPageContent() {
             )}
           </div>
         </div>
+      )}
+
+      {selectMode && (
+        <BulkActionToolbar
+          selection={selection}
+          totalItems={total}
+          pageItems={outfits.length}
+          onSelectAll={handleSelectPage}
+          onSelectAllMatching={handleSelectAllMatching}
+          onClear={handleClearSelection}
+          onDelete={handleBulkDelete}
+          isDeleting={bulkDeleteOutfits.isPending}
+          itemLabel="outfits"
+          page={page}
+          pageSize={24}
+          onPageChange={setPage}
+        />
       )}
     </div>
   );

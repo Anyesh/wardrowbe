@@ -217,6 +217,77 @@ export function useDeleteOutfit() {
   });
 }
 
+export interface BulkDeleteOutfitsResponse {
+  deleted: number;
+  failed: number;
+  errors: string[];
+}
+
+export interface BulkOutfitOperationParams {
+  // Either provide explicit outfit_ids, or use select_all with excluded_ids
+  outfit_ids?: string[];
+  select_all?: boolean;
+  excluded_ids?: string[];
+  // Filters to apply when using select_all (to match the current view)
+  filters?: OutfitFilters;
+}
+
+export function useBulkDeleteOutfits() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (params: BulkOutfitOperationParams) => {
+      if (session?.accessToken) {
+        setAccessToken(session.accessToken as string);
+      }
+      return api.post<BulkDeleteOutfitsResponse>('/outfits/bulk/delete', params);
+    },
+    onMutate: async (params) => {
+      await queryClient.cancelQueries({ queryKey: ['outfits'] });
+
+      const previousData = queryClient.getQueriesData({ queryKey: ['outfits'] });
+
+      if (params.select_all) {
+        const excludedSet = new Set(params.excluded_ids || []);
+        queryClient.setQueriesData({ queryKey: ['outfits'] }, (old: OutfitListResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            outfits: old.outfits.filter((outfit) => excludedSet.has(outfit.id)),
+            total: excludedSet.size,
+          };
+        });
+      } else if (params.outfit_ids) {
+        const deletedSet = new Set(params.outfit_ids);
+        queryClient.setQueriesData({ queryKey: ['outfits'] }, (old: OutfitListResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            outfits: old.outfits.filter((outfit) => !deletedSet.has(outfit.id)),
+            total: old.total - params.outfit_ids!.length,
+          };
+        });
+      }
+
+      return { previousData };
+    },
+    onError: (_err, _params, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['outfits'] });
+      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingOutfits'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    },
+  });
+}
+
 export function useCalendarOutfits(year: number, month: number, filters: OutfitFilters = {}) {
   const { status } = useSession();
   useSetTokenIfAvailable();
