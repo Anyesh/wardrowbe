@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import io
 import json
@@ -15,6 +16,8 @@ from app.config import get_settings
 from app.utils.prompts import load_prompt
 
 logger = logging.getLogger(__name__)
+
+AI_RETRY_MAX_BACKOFF_S = 30
 
 
 class TextGenerationResult(BaseModel):
@@ -514,6 +517,12 @@ class AIService:
                         logger.warning(f"Request error from {endpoint.name}: {e}")
 
                     attempt += 1
+                    if attempt < self.settings.ai_max_retries:
+                        # Without this the retries fire back to back in milliseconds,
+                        # so a rate-limited or restarting endpoint is hit three times
+                        # in the same instant and the user's manual retry reproduces
+                        # the identical failure.
+                        await asyncio.sleep(min(2**attempt, AI_RETRY_MAX_BACKOFF_S))
 
         return None, last_error, None
 

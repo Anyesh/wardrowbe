@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from arq import create_pool
 from arq.jobs import Job
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
-from sqlalchemy import update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -33,6 +33,7 @@ from app.schemas.item import (
     LogWearRequest,
     RemoveBackgroundRequest,
     ReorderImagesRequest,
+    TaggingProgressResponse,
     WashHistoryResponse,
 )
 from app.services.image_service import ImageService
@@ -186,6 +187,10 @@ async def create_item(
     do_auto_tag = settings.effective_ai_vision_enabled and not skip_ai
 
     if do_auto_tag:
+        # Commit before enqueuing: the worker runs in another process on its own
+        # connection, so a job handed over while this transaction is still open
+        # dequeues against a row it cannot see.
+        await db.commit()
         try:
             redis = await create_pool(get_redis_settings())
             try:
@@ -302,6 +307,11 @@ async def bulk_create_items(
                 if not do_auto_tag:
                     item = await item_service.mark_pending(item, set_ready=True)
                 elif redis:
+                    # Commit per item before handing the job over. Batching the
+                    # commit to the end of the loop leaves every row invisible to
+                    # the worker for the whole upload, which strands the batch in
+                    # `processing` whenever the AI is fast enough to win the race.
+                    await db.commit()
                     try:
                         full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
                         job = await redis.enqueue_job(
@@ -311,7 +321,7 @@ async def bulk_create_items(
                             _queue_name="arq:tagging",
                         )
                         item.ai_job_id = job.job_id
-                        await db.flush()
+                        await db.commit()
                         await db.refresh(item, attribute_names=["updated_at"])
                         logger.info(f"Queued AI tagging for bulk item {item.id}")
                     except Exception as e:
@@ -518,6 +528,30 @@ async def get_color_distribution(
 ) -> list[dict]:
     item_service = ItemService(db)
     return await item_service.get_color_distribution(current_user.id)
+
+
+@router.get("/tagging-progress", response_model=TaggingProgressResponse)
+async def get_tagging_progress(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> TaggingProgressResponse:
+    # Wardrobe-wide, not page-scoped: the client can only see the page it asked
+    # for, so a 100-image upload showed at most "20 analyzing".
+    result = await db.execute(
+        select(ClothingItem.status, func.count())
+        .where(ClothingItem.user_id == current_user.id, ClothingItem.is_archived.is_(False))
+        .group_by(ClothingItem.status)
+    )
+    counts = {str(getattr(status_value, "value", status_value)): n for status_value, n in result}
+    processing = counts.get(ItemStatus.processing.value, 0)
+    failed = counts.get(ItemStatus.error.value, 0)
+    total = sum(counts.values())
+    return TaggingProgressResponse(
+        processing=processing,
+        failed=failed,
+        completed=total - processing - failed,
+        total=total,
+    )
 
 
 @router.get("/{item_id}", response_model=ItemResponse)

@@ -2,7 +2,11 @@
 guard. Covers the AI-off and AI-on paths and asserts defaults preserve current
 behavior (internal AI on)."""
 
+from types import SimpleNamespace
+from uuid import uuid4
+
 import pytest
+from arq import Retry
 from httpx import AsyncClient
 
 from app.config import Settings
@@ -247,10 +251,29 @@ async def test_tag_item_image_runs_ai_when_enabled(monkeypatch):
 
     monkeypatch.setattr(tagging, "update_item_status_to_error", _err)
 
+    # The prefs lookup now runs before the AI client is built, so stub the session
+    # out to let the run reach the AI path at all.
+    class _Result:
+        def scalar_one_or_none(self):
+            return SimpleNamespace(user_id=uuid4(), ai_endpoints=None)
+
+    class _Session:
+        async def execute(self, *args, **kwargs):
+            return _Result()
+
+        async def close(self):
+            return None
+
+    monkeypatch.setattr(tagging, "get_db_session", lambda ctx: _Session())
+
     # Missing image short-circuits before construction, so point at this file.
-    result = await tagging.tag_item_image({}, "1", __file__)
-    # It did NOT take the "skipped" branch — it proceeded into the AI path.
-    assert result["status"] != "skipped"
+    # The failure comes back as Retry because attempts remain; what matters here
+    # is that the AI client was built at all.
+    with pytest.raises(Retry):
+        await tagging.tag_item_image({}, str(uuid4()), __file__)
+
+    # It did NOT take the "skipped" branch, it proceeded into the AI path.
+    assert constructed["called"] is True
 
 
 # --- Worker startup: no AI client when fully disabled -----------------------

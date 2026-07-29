@@ -4,14 +4,37 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from arq import Retry
 from sqlalchemy import select, update
 
 from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus, TaggedBy, TaggingStatus
+from app.models.preference import UserPreference
 from app.services.ai_service import AIService, ClothingTags
 from app.workers.db import get_db_session
 
 logger = logging.getLogger(__name__)
+
+TAGGING_MAX_TRIES = 3
+
+
+class ItemVanishedError(Exception):
+    """The item row is not visible to this worker's connection.
+
+    Almost always means the producing request has not committed yet, so the job
+    must be retried rather than dropped: returning here would leave the item
+    stuck in `processing` until the stale sweep condemns it.
+    """
+
+
+def _is_final_attempt(ctx: dict) -> bool:
+    return int(ctx.get("job_try") or 1) >= TAGGING_MAX_TRIES
+
+
+def retry_delay_seconds(ctx: dict) -> int:
+    # Exponential, so a provider that is rate limiting or restarting gets room to
+    # recover instead of being hit again immediately.
+    return min(2 ** int(ctx.get("job_try") or 1) * 5, 120)
 
 
 def tags_to_item_fields(tags: ClothingTags, raw_response: str | None = None) -> dict[str, Any]:
@@ -126,19 +149,18 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
             # Get the item to find user_id
             result = await db.execute(select(ClothingItem).where(ClothingItem.id == UUID(item_id)))
             item = result.scalar_one_or_none()
-            if item:
-                # Get user's preferences for AI endpoints
-                from app.models.preference import UserPreference
+            if item is None:
+                raise ItemVanishedError(f"Item {item_id} not visible to worker")
 
-                pref_result = await db.execute(
-                    select(UserPreference).where(UserPreference.user_id == item.user_id)
+            pref_result = await db.execute(
+                select(UserPreference).where(UserPreference.user_id == item.user_id)
+            )
+            prefs = pref_result.scalar_one_or_none()
+            if prefs and prefs.ai_endpoints:
+                ai_endpoints = prefs.ai_endpoints
+                logger.info(
+                    f"Using {len(ai_endpoints)} custom AI endpoints for user {item.user_id}"
                 )
-                prefs = pref_result.scalar_one_or_none()
-                if prefs and prefs.ai_endpoints:
-                    ai_endpoints = prefs.ai_endpoints
-                    logger.info(
-                        f"Using {len(ai_endpoints)} custom AI endpoints for user {item.user_id}"
-                    )
         finally:
             await db.close()
 
@@ -157,8 +179,7 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
             item = result.scalar_one_or_none()
 
             if item is None:
-                logger.error(f"Item not found: {item_id}")
-                return {"status": "error", "error": "Item not found"}
+                raise ItemVanishedError(f"Item {item_id} not visible to worker")
 
             # Unguarded by design: worst case after a cancel this backfills tags onto an
             # item the user already moved past, which is harmless (unlike the error path).
@@ -221,5 +242,10 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
     except Exception as e:
         error_msg = str(e)
         logger.exception(f"Error tagging item {item_id}: {error_msg}")
-        await update_item_status_to_error(ctx, item_id, error_msg)
-        return {"status": "error", "error": error_msg}
+        # Returning normally here made max_tries dead: arq books a returned value
+        # as success. arq only reschedules on Retry, so a plain re-raise would
+        # surface the failure but still never retry.
+        if _is_final_attempt(ctx):
+            await update_item_status_to_error(ctx, item_id, error_msg)
+            raise
+        raise Retry(defer=retry_delay_seconds(ctx)) from e
