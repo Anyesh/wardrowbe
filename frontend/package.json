@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "i18n:keys": "node scripts/i18n-keys.mjs",
+    "i18n:parity": "node scripts/i18n-check.mjs",
+    "i18n:scan": "node scripts/i18n-scan.mjs",
+    "i18n:check": "npm run i18n:keys && npm run i18n:parity && npm run i18n:scan"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
