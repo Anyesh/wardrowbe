@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta
 from typing import Annotated
+from urllib.parse import urlencode
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import DEFAULT_SECRET_KEY, get_settings
+from app.config import get_settings
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user import (
@@ -40,11 +42,23 @@ def create_access_token(external_id: str, expires_delta: timedelta | None = None
 
 
 def _is_dev_mode() -> bool:
-    return settings.debug and settings.secret_key == DEFAULT_SECRET_KEY
+    return settings.debug and not _oidc_configured()
 
 
 def _oidc_configured() -> bool:
     return bool(settings.oidc_issuer_url and settings.oidc_client_id)
+
+
+MOBILE_APP_SCHEME = "wardrowbe"
+
+
+@router.get("/mobile-callback")
+async def mobile_oidc_callback(request: Request) -> RedirectResponse:
+    params = dict(request.query_params)
+    target = f"{MOBILE_APP_SCHEME}://auth/callback"
+    if params:
+        target = f"{target}?{urlencode(params)}"
+    return RedirectResponse(url=target, status_code=302)
 
 
 @router.get("/config", response_model=AuthConfigResponse)
@@ -85,7 +99,11 @@ async def sync_user(
 ) -> UserSyncResponse:
     await rate_limit_by_ip(request, "auth_sync", 10, 60)
     if _is_dev_mode():
-        pass
+        if not sync_data.email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="email is required",
+            )
     elif _oidc_configured():
         if not sync_data.id_token:
             raise HTTPException(
@@ -119,16 +137,27 @@ async def sync_user(
             )
 
         claims_email = oidc_claims.get("email", "").lower().strip()
-        request_email = sync_data.email.lower().strip()
-        if claims_email and request_email and claims_email != request_email:
+        if sync_data.email:
+            request_email = sync_data.email.lower().strip()
+            if claims_email and claims_email != request_email:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token email does not match request email",
+                )
+            effective_email = request_email
+        elif claims_email:
+            effective_email = claims_email
+        else:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token email does not match request email",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No email provided by OIDC provider. Configure your provider to include the email claim.",
             )
+
+        sync_data = sync_data.model_copy(update={"email": effective_email})
 
         # Check provider migration: different external_id, same email requires verified email
         user_service_check = UserService(db)
-        existing_user = await user_service_check.get_by_email(request_email)
+        existing_user = await user_service_check.get_by_email(effective_email)
         if existing_user and existing_user.external_id != sync_data.external_id:
             if oidc_claims.get("email_verified") is not True:
                 raise HTTPException(

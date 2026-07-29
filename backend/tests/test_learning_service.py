@@ -7,7 +7,7 @@ import pytest_asyncio
 from sqlalchemy import select
 
 from app.models.item import ClothingItem
-from app.models.learning import UserLearningProfile
+from app.models.learning import ItemPairScore, UserLearningProfile
 from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus, UserFeedback
 from app.models.user import User
 from app.services.learning_service import LearningService
@@ -193,3 +193,63 @@ class TestIncrementalEMA:
         profile = result.scalar_one_or_none()
         assert profile is not None
         assert profile.feedback_count >= 1
+
+
+class TestItemPairScores:
+    async def _seed_two_item_outfit(self, db_session, user_id, *, accepted, rating):
+        items = []
+        for color in ("blue", "black"):
+            item = ClothingItem(
+                id=uuid4(),
+                user_id=user_id,
+                type="shirt",
+                image_path="test.jpg",
+                primary_color=color,
+                style=["casual"],
+            )
+            db_session.add(item)
+            items.append(item)
+
+        outfit = Outfit(
+            id=uuid4(),
+            user_id=user_id,
+            occasion="casual",
+            status=OutfitStatus.accepted if accepted else OutfitStatus.rejected,
+            source=OutfitSource.on_demand,
+            weather_data={"temperature": 20, "condition": "clear"},
+        )
+        db_session.add(outfit)
+        await db_session.flush()
+
+        for pos, item in enumerate(items):
+            db_session.add(OutfitItem(outfit_id=outfit.id, item_id=item.id, position=pos))
+        db_session.add(UserFeedback(outfit_id=outfit.id, accepted=accepted, rating=rating))
+        await db_session.commit()
+        return outfit.id
+
+    @pytest.mark.asyncio
+    async def test_accept_without_rating_creates_pair_and_context(
+        self, db_session, test_user_for_learning
+    ):
+        user_id = test_user_for_learning.id
+        outfit_id = await self._seed_two_item_outfit(
+            db_session, user_id, accepted=True, rating=None
+        )
+
+        await LearningService(db_session).process_feedback(outfit_id, user_id)
+
+        rows = (
+            (
+                await db_session.execute(
+                    select(ItemPairScore).where(ItemPairScore.user_id == user_id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(rows) == 1
+        pair = rows[0]
+        assert pair.times_paired == 1
+        assert pair.times_accepted == 1
+        assert "casual" in (pair.occasion_performance or {})
+        assert pair.occasion_performance["casual"]["count"] == 1

@@ -128,8 +128,11 @@ cp .env.example .env
 
 #### Step 3: Start Services
 
+`docker-compose.yml` pulls pre-built multi-arch images (`linux/amd64` and `linux/arm64`, so Raspberry Pi and other ARM hosts work) from GitHub Container Registry. No local build tooling is required on the host.
+
 ```bash
-# Start all containers
+# Pull the latest published images, then start all containers
+docker compose pull
 docker compose up -d
 
 # Wait for services to be healthy (30 seconds)
@@ -142,6 +145,8 @@ docker compose exec backend alembic upgrade head
 curl http://localhost:8000/api/v1/health
 # Should return: {"status":"healthy"}
 ```
+
+To build the images from source instead of pulling them, use the development stack below (`docker-compose.dev.yml`), which builds locally and enables hot reload.
 
 #### Step 4: Access the App
 
@@ -169,6 +174,17 @@ docker compose logs -f frontend backend
 Wardrowbe works with any OpenAI-compatible API. You need two types of models:
 - **Vision model**: Analyzes clothing images to extract colors, patterns, styles
 - **Text model**: Generates outfit recommendations and descriptions
+
+### Running without internal AI
+
+Internal AI is optional. Set `AI_INTERNAL_ENABLED=false` to run the backend with
+no internal AI provider at all — it boots and serves without `AI_BASE_URL`,
+`AI_API_KEY`, or model names configured, and defers tagging/suggestions/pairings
+to an external agent. You can also disable a single capability with
+`AI_VISION_ENABLED=false` (auto-tagging) or `AI_TEXT_ENABLED=false`
+(suggestions/pairings); unset switches inherit the master. The effective state is
+reported at `GET /api/v1/capabilities`. Defaults keep internal AI **on**, so
+existing deployments are unaffected.
 
 ### Using Ollama (Recommended for Self-Hosting)
 
@@ -268,12 +284,18 @@ AI_TEXT_MODEL=llama3.2-vision:11b  # Same model for both tasks
 
 ### Docker Compose (Production)
 
-See [docker-compose.prod.yml](docker-compose.prod.yml) for production configuration.
+See [docker-compose.prod.yml](docker-compose.prod.yml) for production configuration. Like the default stack, it pulls pre-built images from GHCR rather than building on the host.
 
 ```bash
+docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
 docker compose exec backend alembic upgrade head
 ```
+
+Images are tagged `backend-latest` / `frontend-latest`, and each release also
+publishes `backend-<version>` / `frontend-<version>` (e.g. `backend-1.3.0`). To
+pin a deployment to a specific release, replace the `-latest` tags in the
+compose file with the version, e.g. `ghcr.io/anyesh/wardrowbe:backend-1.3.0`.
 
 ### Kubernetes
 
@@ -292,6 +314,8 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 |----------|-------------|----------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
 | `SECRET_KEY` | Backend secret for JWT | Yes |
+| `PUID` | Uid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
+| `PGID` | Gid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
 | `NEXTAUTH_SECRET` | NextAuth session encryption | Yes |
 | `AI_BASE_URL` | AI service URL | Yes |
 | `AI_API_KEY` | AI API key (if required) | Depends |
@@ -308,8 +332,14 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 | `BG_REMOVAL_MODEL` | rembg model name (default: `u2net`) | No |
 | `BG_REMOVAL_URL` | URL for HTTP bg removal provider | If http |
 | `BG_REMOVAL_API_KEY` | API key for HTTP bg removal provider | No |
+| `NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK` | Enable IP-based approximate location when browser geolocation is denied/unavailable. Off by default (sends the user's IP to a third party). Set to `true` to enable | No |
+| `NEXT_PUBLIC_NETWORK_LOCATION_URL` | Override the IP geolocation provider (default: `https://ipapi.co/json/`). Only used when the fallback above is enabled | No |
 
 See [.env.example](.env.example) for all options.
+
+### Location Detection (Privacy Note)
+
+The Settings page can fill in your coordinates from the browser's Geolocation API. If that is denied or unavailable, an optional fallback can approximate your location from your IP address via a third-party service (`ipapi.co` by default). This fallback is **disabled by default** because it sends the user's IP to an external provider; enable it with `NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK=true` and optionally point `NEXT_PUBLIC_NETWORK_LOCATION_URL` at a provider you trust. These are build-time frontend variables, so set them before building the frontend image. Geocoding a location name you type yourself still uses OpenStreetMap Nominatim regardless of this setting.
 
 ### Background Removal (Optional)
 
@@ -544,21 +574,16 @@ If you're still stuck:
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## Star History
-
-<a href="https://www.star-history.com/?repos=Anyesh%2Fwardrowbe&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Anyesh/wardrowbe&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Anyesh/wardrowbe&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Anyesh/wardrowbe&type=date&legend=top-left" />
- </picture>
-</a>
- 
 ## Support
 
 If you find wardrowbe useful, consider supporting its development:
 
 <a href="https://buymeacoffee.com/anyesh"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee"></a>
+
+Thanks to our supporters:
+
+- [@aaratisharma-star](https://github.com/aaratisharma-star)
+- [@zkhcohen](https://github.com/zkhcohen)
 
 ## License
 

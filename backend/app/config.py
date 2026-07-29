@@ -15,6 +15,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        env_ignore_empty=True,
     )
 
     # Application
@@ -40,6 +41,16 @@ class Settings(BaseSettings):
     oidc_client_id: str | None = Field(default=None)
     oidc_client_secret: str | None = None
     oidc_mobile_client_id: str | None = None
+    oidc_ca_bundle: str | None = Field(default=None)
+
+    # AI capability switches.
+    # ai_internal_enabled is the master switch; ai_vision_enabled / ai_text_enabled
+    # inherit it when left unset (None). Defaults preserve current behavior
+    # (internal AI on). When a capability is disabled, no AI client is constructed
+    # for it and the corresponding work is deferred to an external agent.
+    ai_internal_enabled: bool = Field(default=True)
+    ai_vision_enabled: bool | None = Field(default=None)
+    ai_text_enabled: bool | None = Field(default=None)
 
     # AI Service (OpenAI-compatible API - supports Ollama, OpenAI, etc.)
     ai_base_url: str = Field(default="")
@@ -52,6 +63,7 @@ class Settings(BaseSettings):
 
     # Weather
     openmeteo_url: str = Field(default="https://api.open-meteo.com/v1")
+    geocoding_user_agent: str | None = Field(default=None)
 
     # Notifications - default ntfy channel (used when user has none configured)
     ntfy_server: str | None = None
@@ -66,6 +78,7 @@ class Settings(BaseSettings):
     # Storage
     storage_path: str = Field(default="/data/wardrobe")
     max_upload_size_mb: int = Field(default=10)
+    max_bulk_upload_count: int = Field(default=20)
 
     # Background removal
     bg_removal_provider: str = Field(default="rembg")  # "rembg" or "http"
@@ -78,6 +91,33 @@ class Settings(BaseSettings):
     medium_size: int = 800
     original_max_size: int = 2400
     image_quality: int = 90
+
+    @property
+    def effective_ai_vision_enabled(self) -> bool:
+        """Whether internal vision (auto-tagging) is active.
+
+        vision = ai_internal_enabled AND ai_vision_enabled, where ai_vision_enabled
+        inherits the master switch when unset (None).
+        """
+        if not self.ai_internal_enabled:
+            return False
+        return True if self.ai_vision_enabled is None else self.ai_vision_enabled
+
+    @property
+    def effective_ai_text_enabled(self) -> bool:
+        """Whether internal text (suggestions/pairings) is active.
+
+        text = ai_internal_enabled AND ai_text_enabled, where ai_text_enabled
+        inherits the master switch when unset (None).
+        """
+        if not self.ai_internal_enabled:
+            return False
+        return True if self.ai_text_enabled is None else self.ai_text_enabled
+
+    @property
+    def ai_enabled(self) -> bool:
+        """True if any internal AI capability is active."""
+        return self.effective_ai_vision_enabled or self.effective_ai_text_enabled
 
     def validate_security(self) -> str | None:
         if self.secret_key == DEFAULT_SECRET_KEY and not self.debug:
@@ -94,7 +134,7 @@ class Settings(BaseSettings):
             )
 
         oidc_configured = oidc_issuer and oidc_client
-        is_dev = self.debug and self.secret_key == DEFAULT_SECRET_KEY
+        is_dev = self.debug and not oidc_configured
         if not oidc_configured and not is_dev:
             return (
                 "No authentication method configured. "
@@ -104,11 +144,14 @@ class Settings(BaseSettings):
         return None
 
     def get_auth_mode(self) -> str:
-        if self.debug and self.secret_key == DEFAULT_SECRET_KEY:
-            return "dev"
         if self.oidc_issuer_url and self.oidc_client_id:
             return "oidc"
+        if self.debug:
+            return "dev"
         return "unknown"
+
+    def get_geocoding_user_agent(self) -> str:
+        return self.geocoding_user_agent or "Wardrowbe/1.0"
 
 
 @lru_cache

@@ -30,6 +30,7 @@ export interface Item {
   image_path: string;
   thumbnail_path?: string;
   medium_path?: string;
+  original_image_path?: string | null;
   image_url?: string;
   thumbnail_url?: string;
   medium_url?: string;
@@ -40,6 +41,9 @@ export interface Item {
   ai_processed: boolean;
   ai_confidence?: number;
   ai_description?: string;
+  tagging_status: 'pending' | 'tagged';
+  tagged_by?: 'auto' | 'manual' | null;
+  tagged_at?: string | null;
   wear_count: number;
   last_worn_at?: string;
   last_suggested_at?: string;
@@ -139,39 +143,40 @@ export const CLOTHING_COLORS = [
   { name: 'Orange', value: 'orange', hex: '#D2691E' },
 ] as const;
 
-// Clothing types — must match the TYPE vocabulary in clothing_analysis.txt
+// Clothing types (alphabetized by label). Must match the TYPE vocabulary set in
+// clothing_analysis.txt, order carries no meaning there.
 export const CLOTHING_TYPES = [
-  { label: 'Shirt', value: 'shirt' },
-  { label: 'T-Shirt', value: 't-shirt' },
-  { label: 'Top', value: 'top' },
-  { label: 'Polo', value: 'polo' },
+  { label: 'Accessories', value: 'accessories' },
+  { label: 'Bag', value: 'bag' },
+  { label: 'Belt', value: 'belt' },
+  { label: 'Blazer', value: 'blazer' },
   { label: 'Blouse', value: 'blouse' },
-  { label: 'Tank Top', value: 'tank-top' },
-  { label: 'Sweater', value: 'sweater' },
-  { label: 'Hoodie', value: 'hoodie' },
+  { label: 'Boots', value: 'boots' },
   { label: 'Cardigan', value: 'cardigan' },
-  { label: 'Vest', value: 'vest' },
-  { label: 'Pants', value: 'pants' },
+  { label: 'Coat', value: 'coat' },
+  { label: 'Dress', value: 'dress' },
+  { label: 'Hat', value: 'hat' },
+  { label: 'Hoodie', value: 'hoodie' },
+  { label: 'Jacket', value: 'jacket' },
   { label: 'Jeans', value: 'jeans' },
+  { label: 'Jumpsuit', value: 'jumpsuit' },
+  { label: 'Pants', value: 'pants' },
+  { label: 'Polo', value: 'polo' },
+  { label: 'Sandals', value: 'sandals' },
+  { label: 'Scarf', value: 'scarf' },
+  { label: 'Shirt', value: 'shirt' },
+  { label: 'Shoes', value: 'shoes' },
   { label: 'Shorts', value: 'shorts' },
   { label: 'Skirt', value: 'skirt' },
-  { label: 'Dress', value: 'dress' },
-  { label: 'Jumpsuit', value: 'jumpsuit' },
-  { label: 'Jacket', value: 'jacket' },
-  { label: 'Blazer', value: 'blazer' },
-  { label: 'Coat', value: 'coat' },
-  { label: 'Suit', value: 'suit' },
-  { label: 'Shoes', value: 'shoes' },
   { label: 'Sneakers', value: 'sneakers' },
-  { label: 'Boots', value: 'boots' },
-  { label: 'Sandals', value: 'sandals' },
   { label: 'Socks', value: 'socks' },
+  { label: 'Suit', value: 'suit' },
+  { label: 'Sweater', value: 'sweater' },
+  { label: 'T-Shirt', value: 't-shirt' },
+  { label: 'Tank Top', value: 'tank-top' },
   { label: 'Tie', value: 'tie' },
-  { label: 'Hat', value: 'hat' },
-  { label: 'Scarf', value: 'scarf' },
-  { label: 'Belt', value: 'belt' },
-  { label: 'Bag', value: 'bag' },
-  { label: 'Accessories', value: 'accessories' },
+  { label: 'Top', value: 'top' },
+  { label: 'Vest', value: 'vest' },
 ] as const;
 
 export const OCCASIONS = [

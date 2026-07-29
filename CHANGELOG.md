@@ -5,6 +5,107 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.5.1...wardrowbe-v1.6.0) (2026-07-25)
+
+
+### ✨ Features
+
+* add custom User-Agent header to JWKS client ([#134](https://github.com/Anyesh/wardrowbe/issues/134)) ([c18fa75](https://github.com/Anyesh/wardrowbe/commit/c18fa75a8fa70342466b7c84bf8cefbd0e4a51a7))
+* defer item tagging to an external agent (phase 2) ([c63ced9](https://github.com/Anyesh/wardrowbe/commit/c63ced9caf4d4241fe53f7b164a886e45979547c))
+
+
+### 🐛 Bug Fixes
+
+* retry AI tagging without logprobs when the provider rejects it ([2fbf38f](https://github.com/Anyesh/wardrowbe/commit/2fbf38fe2d0f3811edef385fabe4b168ee12e84e))
+* retry AI tagging without logprobs when the provider rejects it ([b39815d](https://github.com/Anyesh/wardrowbe/commit/b39815d52c666be445b6feb52d7f1f51abedefa3))
+* surface real cause when outfit suggestion AI response is truncated ([#139](https://github.com/Anyesh/wardrowbe/issues/139)) ([#142](https://github.com/Anyesh/wardrowbe/issues/142)) ([7af8472](https://github.com/Anyesh/wardrowbe/commit/7af84720f1f6932d61fde8504edcf4b281f350fa))
+
+## [1.5.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.5.0...wardrowbe-v1.5.1) (2026-07-17)
+
+
+### 🐛 Bug Fixes
+
+* [#124](https://github.com/Anyesh/wardrowbe/issues/124) fix prod compose file well ([3cded21](https://github.com/Anyesh/wardrowbe/commit/3cded21db36b877ef2a0a90815a620be2cc4bdf5))
+* keep honoring NEXT_PUBLIC_API_URL when resolving the backend ([#124](https://github.com/Anyesh/wardrowbe/issues/124)) ([d8cca73](https://github.com/Anyesh/wardrowbe/commit/d8cca73dd5c20315e2d7d256b112663b84894c11))
+* proxy /api/v1 through a route handler so BACKEND_URL applies ([#124](https://github.com/Anyesh/wardrowbe/issues/124)) ([2fff9c3](https://github.com/Anyesh/wardrowbe/commit/2fff9c399e0feae14266c36a1afb5ff46c437207))
+
+## [1.5.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.4.0...wardrowbe-v1.5.0) (2026-07-16)
+
+
+### ✨ Features
+
+* add page-size control and scope select-all to current page ([#127](https://github.com/Anyesh/wardrowbe/issues/127)) ([7430a4f](https://github.com/Anyesh/wardrowbe/commit/7430a4f910a65d6db810a5381f362e91f902694f))
+* allow bulk upload without forced AI analysis ([#128](https://github.com/Anyesh/wardrowbe/issues/128)) ([7984e26](https://github.com/Anyesh/wardrowbe/commit/7984e26f4fa233a1a40d95805e74e6444ffa2bc6))
+* allow cancelling AI analysis on processing items ([#95](https://github.com/Anyesh/wardrowbe/issues/95)) ([05f3578](https://github.com/Anyesh/wardrowbe/commit/05f357808d55a74de1394b5ec36cf5472370ba21))
+* support PUID/PGID overrides on app containers ([#123](https://github.com/Anyesh/wardrowbe/issues/123)) ([14674cb](https://github.com/Anyesh/wardrowbe/commit/14674cbbfd79e371b08d9761f02542aafe040cc3))
+* undo background removal and replace primary image ([#126](https://github.com/Anyesh/wardrowbe/issues/126)) ([c1c10b2](https://github.com/Anyesh/wardrowbe/commit/c1c10b2803b90104d5323ef112e66f786af75baa))
+
+
+### 🐛 Bug Fixes
+
+* allow overriding backend URL for renamed compose services ([#124](https://github.com/Anyesh/wardrowbe/issues/124)) ([2a813d6](https://github.com/Anyesh/wardrowbe/commit/2a813d60d711aa31c45ae7c024f1389b345be170))
+* chunk bulk uploads so batches over the limit no longer fail ([#125](https://github.com/Anyesh/wardrowbe/issues/125)) ([a4df578](https://github.com/Anyesh/wardrowbe/commit/a4df578b187b0343eff5091c49b7e02b76ec0546))
+
+## [1.4.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.3.1...wardrowbe-v1.4.0) (2026-07-01)
+
+
+### ✨ Features
+
+* make internal AI optional and add capabilities endpoint ([#113](https://github.com/Anyesh/wardrowbe/issues/113)) ([376f9a6](https://github.com/Anyesh/wardrowbe/commit/376f9a6a1e846d3de7853f55ac76447f204c8529))
+
+
+### 🐛 Bug Fixes
+
+* add weather location fallbacks ([#75](https://github.com/Anyesh/wardrowbe/issues/75)) ([7426d6d](https://github.com/Anyesh/wardrowbe/commit/7426d6d8444769dd34263373ebf551ecaaf79b59))
+* show config error on login when no auth provider is registered ([22e73ad](https://github.com/Anyesh/wardrowbe/commit/22e73ade5a9999fba2fb303a0533569d38294286))
+
+## [1.3.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.3.0...wardrowbe-v1.3.1) (2026-06-26)
+
+
+### 🐛 Bug Fixes
+
+* make OIDC issuer URL trailing-slash agnostic ([#107](https://github.com/Anyesh/wardrowbe/issues/107)) ([152f175](https://github.com/Anyesh/wardrowbe/commit/152f17572488bb63bc5f65a0c1a3240752db12c1))
+* OIDC issue [#114](https://github.com/Anyesh/wardrowbe/issues/114) ([7354232](https://github.com/Anyesh/wardrowbe/commit/73542322e0d56913d5e3f249f4679c05efd0eb74))
+
+
+### 👷 CI/CD
+
+* publish Docker images to GHCR on main and releases ([#83](https://github.com/Anyesh/wardrowbe/issues/83)) ([af22e84](https://github.com/Anyesh/wardrowbe/commit/af22e8410d37f04800dafa4cbc09a94e7fddd6bc))
+* publish versioned images on release ([#112](https://github.com/Anyesh/wardrowbe/issues/112)) ([9677b39](https://github.com/Anyesh/wardrowbe/commit/9677b3918728355046d3d8f306b11b9a0d61bc6e))
+
+## [1.3.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.4...wardrowbe-v1.3.0) (2026-05-31)
+
+
+### ✨ Features
+
+* add mobile callback [#58](https://github.com/Anyesh/wardrowbe/issues/58) ([44cf285](https://github.com/Anyesh/wardrowbe/commit/44cf285d3d612d1e1e97d1af110c284b716cb398))
+
+
+### 🐛 Bug Fixes
+
+* align .env.example SECRET_KEY with dev-mode sentinel ([a8f9f5e](https://github.com/Anyesh/wardrowbe/commit/a8f9f5e5a8c66da81084e49b18fa8c47f82e11ef)), closes [#72](https://github.com/Anyesh/wardrowbe/issues/72)
+* Item pair score initialization for learning service ([9f7de07](https://github.com/Anyesh/wardrowbe/commit/9f7de07deb7216c55c2a091b481fc98be71d4ad2))
+* select wardrobe items beyond the first page in studio ([c73c571](https://github.com/Anyesh/wardrowbe/commit/c73c5717ff23fd849154f5e44569d854400bb600))
+* update cognitive cache thresh ([9170644](https://github.com/Anyesh/wardrowbe/commit/9170644a47140af7fb1e485c42af2688d9b95cde))
+* update pair context for feedback without a rating ([3764dec](https://github.com/Anyesh/wardrowbe/commit/3764dec0c6462aad253bed6ea3bf4a834b31e2b7))
+
+
+### 🔧 Maintenance
+
+* add cognitive cache ([886e65f](https://github.com/Anyesh/wardrowbe/commit/886e65f43d5fa89365bb10f122a3066ce7b81551))
+* **deps:** bump astral-sh/setup-uv from 4 to 7 ([84ceb98](https://github.com/Anyesh/wardrowbe/commit/84ceb98defc5c87b7322d4d26469d9fd65238e3f))
+* **deps:** bump googleapis/release-please-action from 4 to 5 ([8a31d2c](https://github.com/Anyesh/wardrowbe/commit/8a31d2c379805284feb4e4d746d340262791b529))
+
+
+### 👷 CI/CD
+
+* install cognitive-cache via uv tool install ([6ede4f2](https://github.com/Anyesh/wardrowbe/commit/6ede4f237567de29c250936f4bc05ff6b896f99e))
+
+
+### 📦 Build
+
+* **deps:** bump codecov/codecov-action from 4 to 6 ([436997e](https://github.com/Anyesh/wardrowbe/commit/436997e8a4ff461a6336c442f6872da441dce1f7))
+
 ## [1.2.4](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.2.3...wardrowbe-v1.2.4) (2026-04-17)
 
 

@@ -281,6 +281,27 @@ class TestScoreItems:
         )
         assert len(result) <= 70
 
+    def test_prioritizes_mandatory_items_into_top_n(self):
+        items = [_item(type="shirt") for _ in range(100)]
+        mandatory_item = _item(type="shorts")
+        items.append(mandatory_item)
+
+        result = score_items(
+            items=items,
+            weather=_weather(temp=5),
+            occasion="casual",
+            preferences=None,
+            user_today=date(2026, 3, 8),
+            current_season="spring",
+            learned_prefs=None,
+            good_pairs={},
+            recently_worn_dates={},
+            mandatory_item_ids={mandatory_item.id},
+        )
+
+        assert result[0].item.id == mandatory_item.id
+        assert mandatory_item.id in {s.item.id for s in result}
+
     def test_small_wardrobe_skips_scoring(self):
         items = [_item() for _ in range(10)]
         result = score_items(

@@ -5,6 +5,7 @@ import logging
 import math
 import re
 from pathlib import Path
+from typing import Literal
 
 import httpx
 from PIL import Image, ImageOps
@@ -168,6 +169,10 @@ def compute_tag_completeness(tags: "ClothingTags") -> float:
     return round(score, 2)
 
 
+def _response_rejects_logprobs(response: httpx.Response) -> bool:
+    return response.status_code == 400 and "logprobs" in response.text.lower()
+
+
 _CONFIDENCE_FIELDS = {"type", "primary_color", "pattern", "material", "formality"}
 
 
@@ -257,8 +262,14 @@ class AIService:
         Args:
             endpoints: List of endpoint configs from user preferences.
                       If None or empty, uses default from settings.
+
+        Raises:
+            AIDisabledError: backstop when internal AI is disabled; call sites
+                should guard with require_internal_ai() first.
         """
         self.settings = get_settings()
+        if not self.settings.ai_enabled:
+            raise AIDisabledError("Internal AI is disabled; defer to an external agent.")
         self.timeout = self.settings.ai_timeout
         self.api_key = self.settings.ai_api_key
 
@@ -444,9 +455,11 @@ class AIService:
         for endpoint in self._endpoints:
             logger.info(f"Trying AI endpoint for {task_name}: {endpoint.name}")
             model = endpoint.vision_model if use_vision_model else endpoint.text_model
+            use_logprobs = request_logprobs
 
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-                for attempt in range(self.settings.ai_max_retries):
+                attempt = 0
+                while attempt < self.settings.ai_max_retries:
                     try:
                         request_body = {
                             "model": model,
@@ -454,7 +467,7 @@ class AIService:
                             "stream": False,
                             "max_tokens": self.settings.ai_max_tokens,
                         }
-                        if request_logprobs:
+                        if use_logprobs:
                             request_body["logprobs"] = True
                             request_body["top_logprobs"] = 3
 
@@ -469,7 +482,7 @@ class AIService:
                         choice = data["choices"][0]
                         content = choice["message"]["content"]
                         logprobs_content = None
-                        if request_logprobs:
+                        if use_logprobs:
                             lp = choice.get("logprobs")
                             if lp:
                                 logprobs_content = lp.get("content")
@@ -481,15 +494,26 @@ class AIService:
                         return content, None, logprobs_content
 
                     except httpx.HTTPStatusError as e:
+                        # Some providers (e.g. Gemini's OpenAI-compat endpoint, or Gemini
+                        # native without the paid tier) reject the logprobs param outright.
+                        # Retry the same attempt without it instead of burning the retry
+                        # budget or losing the tags entirely - this doesn't count against
+                        # ai_max_retries since it's a capability mismatch, not a transient
+                        # failure.
+                        if use_logprobs and _response_rejects_logprobs(e.response):
+                            logger.warning(
+                                f"{endpoint.name} rejected logprobs for {task_name}, "
+                                f"retrying without it: {e}"
+                            )
+                            use_logprobs = False
+                            continue
                         last_error = e
                         logger.warning(f"HTTP error from {endpoint.name}: {e}")
-                        if attempt < self.settings.ai_max_retries - 1:
-                            continue
                     except httpx.RequestError as e:
                         last_error = e
                         logger.warning(f"Request error from {endpoint.name}: {e}")
-                        if attempt < self.settings.ai_max_retries - 1:
-                            continue
+
+                    attempt += 1
 
         return None, last_error, None
 
@@ -654,7 +678,33 @@ class AIService:
 
                         data = response.json()
                         used_model = data.get("model", endpoint.text_model)
-                        content = data["choices"][0]["message"]["content"]
+                        choice = data["choices"][0]
+                        message = choice["message"]
+                        content = message.get("content")
+
+                        if not content or not content.strip():
+                            finish_reason = choice.get("finish_reason")
+                            reasoning = message.get("reasoning_content")
+                            if finish_reason == "length" and reasoning:
+                                detail = (
+                                    "its reasoning/thinking output consumed the entire "
+                                    "completion token budget before it produced a response"
+                                )
+                            elif finish_reason == "length":
+                                detail = "the response was cut off before any content was generated"
+                            else:
+                                detail = f"finish_reason={finish_reason!r}"
+                            last_error = AIResponseTruncatedError(
+                                f"{endpoint.name} (model: {used_model}) returned an empty "
+                                f"response: {detail}. Try raising AI_MAX_TOKENS (currently "
+                                f"{self.settings.ai_max_tokens}) or disabling extended "
+                                "thinking/reasoning mode for this model."
+                            )
+                            logger.warning(str(last_error))
+                            if attempt < self.settings.ai_max_retries - 1:
+                                continue
+                            break
+
                         logger.info(
                             f"Text generation successful via {endpoint.name} (model: {used_model})"
                         )
@@ -683,12 +733,51 @@ class AIService:
         raise RuntimeError("Failed to generate text - no endpoints available")
 
 
+class AIResponseTruncatedError(RuntimeError):
+    """Raised when a model's response was cut off before it produced any output content.
+
+    Reasoning-capable models (e.g. Qwen3, DeepSeek-R1) return their chain-of-thought in a
+    separate ``reasoning_content`` field, distinct from ``content``. If that reasoning
+    consumes the entire completion token budget, the API reports ``finish_reason ==
+    "length"`` with an empty ``content`` string. Downstream JSON parsing of an empty
+    string then fails with an unhelpful message, which used to get swallowed into a
+    generic "AI service is not available" error even though the endpoint responded
+    successfully. This error preserves the real cause so callers can surface it.
+    """
+
+
+class AIDisabledError(RuntimeError):
+    """Raised when an internal AI client is requested while that capability is off."""
+
+
+def require_internal_ai(capability: Literal["vision", "text"]) -> None:
+    """Raise AIDisabledError if the given internal-AI capability is disabled.
+
+    Call before constructing AIService directly so deferred work never builds a
+    client or reaches a provider.
+    """
+    settings = get_settings()
+    enabled = (
+        settings.effective_ai_vision_enabled
+        if capability == "vision"
+        else settings.effective_ai_text_enabled
+    )
+    if not enabled:
+        raise AIDisabledError(
+            f"Internal AI {capability} is disabled "
+            f"(AI_INTERNAL_ENABLED / AI_{capability.upper()}_ENABLED=false). "
+            "Defer this work to an external agent."
+        )
+
+
 # Singleton instance
 _ai_service: AIService | None = None
 
 
 def get_ai_service() -> AIService:
-    """Get or create AI service instance."""
+    """Return the shared AIService, or raise AIDisabledError if internal AI is off."""
+    if not get_settings().ai_enabled:
+        raise AIDisabledError("Internal AI is disabled; defer to an external agent.")
     global _ai_service
     if _ai_service is None:
         _ai_service = AIService()

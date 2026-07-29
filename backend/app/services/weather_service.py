@@ -93,10 +93,118 @@ WMO_CODES = {
 CACHE_TTL = 3600  # 1 hour
 CACHE_PREFIX = "weather:"
 
+GEOCODE_CACHE_TTL = 60 * 60 * 24 * 30  # 30 days; geocoding a place name rarely changes
+GEOCODE_NEGATIVE_CACHE_TTL = 3600  # 1 hour for not-found results; avoids hammering Nominatim
+GEOCODE_CACHE_PREFIX = "geocode:"
+
 
 class WeatherService:
     def __init__(self):
         self.base_url = settings.openmeteo_url
+
+    async def geocode_location_name(
+        self, location_name: str
+    ) -> tuple[float, float, str | None] | None:
+        query = location_name.strip()
+        if not query:
+            return None
+
+        cached = await self._geocode_cache_get(query)
+        if cached is not None:
+            if not cached:
+                return None
+            return cached
+
+        params = {
+            "q": query,
+            "format": "jsonv2",
+            "limit": 1,
+        }
+
+        headers = {
+            "User-Agent": settings.get_geocoding_user_agent(),
+        }
+
+        async with httpx.AsyncClient(
+            timeout=10.0, follow_redirects=True, headers=headers
+        ) as client:
+            try:
+                response = await client.get(
+                    "https://nominatim.openstreetmap.org/search", params=params
+                )
+                response.raise_for_status()
+                data = response.json()
+            except httpx.HTTPError as e:
+                logger.error(f"Geocoding error for {query!r}: {e}")
+                raise GeocodingServiceError(f"Failed to geocode location {query!r}: {e}") from None
+            except ValueError as e:
+                logger.error(f"Geocoding returned invalid JSON for {query!r}: {e}")
+                raise GeocodingServiceError(
+                    f"Failed to decode geocoding response for location {query!r}: {e}"
+                ) from None
+
+        if not data or not isinstance(data, list):
+            await self._geocode_cache_set_miss(query)
+            return None
+
+        first = data[0]
+        try:
+            latitude = float(first["lat"])
+            longitude = float(first["lon"])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+        display_name = first.get("display_name")
+        result = (latitude, longitude, display_name)
+        await self._geocode_cache_set(query, result)
+        return result
+
+    @staticmethod
+    def _geocode_cache_key(query: str) -> str:
+        return f"{GEOCODE_CACHE_PREFIX}{query.strip().lower()}"
+
+    async def _geocode_cache_get(
+        self, query: str
+    ) -> tuple[float, float, str | None] | tuple[()] | None:
+        try:
+            redis = await get_redis()
+            raw = await redis.get(self._geocode_cache_key(query))
+        except aioredis.RedisError:
+            logger.debug(f"Redis unavailable for geocode cache read ({query!r})")
+            return None
+        if raw is None:
+            return None
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            logger.debug(f"Geocode cache value for {query!r} could not be decoded; discarding")
+            return None
+        if data is None:
+            return ()
+        return data["lat"], data["lon"], data.get("display_name")
+
+    async def _geocode_cache_set_miss(self, query: str) -> None:
+        try:
+            redis = await get_redis()
+            await redis.set(
+                self._geocode_cache_key(query),
+                json.dumps(None),
+                ex=GEOCODE_NEGATIVE_CACHE_TTL,
+            )
+        except aioredis.RedisError:
+            logger.debug(f"Redis unavailable for geocode cache write ({query!r})")
+
+    async def _geocode_cache_set(self, query: str, result: tuple[float, float, str | None]) -> None:
+        lat, lon, display_name = result
+        try:
+            redis = await get_redis()
+            await redis.set(
+                self._geocode_cache_key(query),
+                json.dumps({"lat": lat, "lon": lon, "display_name": display_name}),
+                ex=GEOCODE_CACHE_TTL,
+            )
+        except aioredis.RedisError:
+            logger.debug(f"Redis unavailable for geocode cache write ({query!r})")
 
     @staticmethod
     def _cache_key(lat: float, lon: float) -> str:
@@ -348,4 +456,8 @@ class WeatherService:
 
 
 class WeatherServiceError(Exception):
+    pass
+
+
+class GeocodingServiceError(WeatherServiceError):
     pass

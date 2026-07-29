@@ -104,6 +104,7 @@ function LoginContent() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const error = searchParams.get('error');
+  const syncErrorParam = searchParams.get('syncError');
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const [backendError, setBackendError] = useState<string | null>(null);
   const t = useTranslations('login');
@@ -128,22 +129,18 @@ function LoginContent() {
       });
   }, [t]);
 
-  // Show sync error from session (e.g. backend returned 503 during login)
-  const syncError = session?.syncError;
+  const syncError = syncErrorParam || session?.syncError;
 
-  // Detect auth mode based on available providers
-  const [authMode, setAuthMode] = useState<'loading' | 'oidc' | 'dev'>('loading');
+  const [authMode, setAuthMode] = useState<'loading' | 'oidc' | 'dev' | 'unconfigured'>('loading');
 
   useEffect(() => {
     getProviders().then((providers) => {
-
       if (providers?.['oidc']) {
         setAuthMode('oidc');
       } else if (providers?.['dev-credentials']) {
         setAuthMode('dev');
       } else {
-        // Fallback to dev mode
-        setAuthMode('dev');
+        setAuthMode('unconfigured');
       }
     });
   }, []);
@@ -170,14 +167,24 @@ function LoginContent() {
           {error === 'Callback' && t('errors.Callback')}
           {error === 'CredentialsSignin' && t('errors.CredentialsSignin')}
           {error === 'AccessDenied' && t('errors.AccessDenied')}
-          {!['OAuthSignin', 'OAuthCallback', 'OAuthCreateAccount', 'Callback', 'CredentialsSignin', 'AccessDenied'].includes(error) && t('errors.default')}
+          {error === 'undefined' && t('errors.notConfigured')}
+          {!['OAuthSignin', 'OAuthCallback', 'OAuthCreateAccount', 'Callback', 'CredentialsSignin', 'AccessDenied', 'undefined'].includes(error) && t('errors.default')}
         </div>
       )}
 
       <div className="space-y-4">
         {authMode === 'oidc' && <OIDCLoginButton callbackUrl={callbackUrl} />}
         {authMode === 'dev' && <DevLogin callbackUrl={callbackUrl} />}
-
+        {authMode === 'unconfigured' && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm space-y-2">
+            <p className="font-medium text-destructive">{t('unconfigured.title')}</p>
+            <p className="text-destructive/90">
+              {t.rich('unconfigured.description', {
+                code: (chunks) => <code className="font-mono">{chunks}</code>,
+              })}
+            </p>
+          </div>
+        )}
       </div>
     </>
   );

@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
@@ -65,6 +66,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   // Bulk upload state
   const [bulkFiles, setBulkFiles] = useState<FileWithPreview[]>([]);
   const [bulkResult, setBulkResult] = useState<BulkUploadResponse | null>(null);
+  const [skipAi, setSkipAi] = useState(false);
   const [activeTab, setActiveTab] = useState('single');
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
@@ -106,11 +108,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
         id: `${file.name}-${Date.now()}-${Math.random()}`,
       };
     });
-    setBulkFiles((prev) => {
-      const combined = [...prev, ...newFiles];
-      // Limit to 20 files
-      return combined
-    });
+    setBulkFiles((prev) => [...prev, ...newFiles]);
   }, []);
 
   const { getRootProps: getSingleRootProps, getInputProps: getSingleInputProps, isDragActive: isSingleDragActive } = useDropzone({
@@ -127,7 +125,6 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic', '.heif'],
     },
-    // maxFiles: 20,
     multiple: true,
   });
 
@@ -157,7 +154,10 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     if (bulkFiles.length === 0) return;
 
     try {
-      const result = await bulkCreateItems.mutateAsync(bulkFiles.map((f) => f.file));
+      const result = await bulkCreateItems.mutateAsync({
+        files: bulkFiles.map((f) => f.file),
+        skipAi,
+      });
       setBulkResult(result);
 
       // Show toast based on results
@@ -203,6 +203,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     });
     setBulkFiles([]);
     setBulkResult(null);
+    setSkipAi(false);
     setActiveTab('single');
     setShowCloseConfirm(false);
 
@@ -232,6 +233,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     });
     setBulkFiles([]);
     setBulkResult(null);
+    setSkipAi(false);
   };
 
   return (
@@ -405,9 +407,6 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                       ? t('dropzoneActive')
                       : t('dropzone')}
                   </p>
-                  {/* <p className="mt-1 text-xs text-muted-foreground">
-                    Up to 20 images (JPEG, PNG, WebP, HEIC)
-                  </p> */}
                 </div>
 
                 {bulkFiles.length > 0 && (
@@ -452,9 +451,21 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                       </div>
                     </ScrollArea>
 
-                    <p className="text-xs text-muted-foreground">
-                      {t('bulk.hint')}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="skip-ai"
+                        checked={skipAi}
+                        onCheckedChange={(checked) => setSkipAi(checked === true)}
+                      />
+                      <Label htmlFor="skip-ai" className="text-xs font-normal text-muted-foreground">
+                        {t('bulk.skipAi')}
+                      </Label>
+                    </div>
+                    {!skipAi && (
+                      <p className="text-xs text-muted-foreground">
+                        {t('bulk.hint')}
+                      </p>
+                    )}
                   </div>
                 )}
 

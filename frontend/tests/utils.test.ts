@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { cn, formatWornAgo } from '@/lib/utils'
+import { cn, chunkArray, formatWornAgo } from '@/lib/utils'
 
-// Mock translation function that returns the key (with params appended if provided)
 const mockT = vi.fn((key: string, params?: Record<string, unknown>) =>
   params ? `${key}:${JSON.stringify(params)}` : key
 )
@@ -50,7 +49,6 @@ describe('cn utility', () => {
 })
 
 describe('formatWornAgo', () => {
-  // Helper: get YYYY-MM-DD in a specific timezone
   const dateStrInTimezone = (timezone: string, offsetDays = 0) => {
     const d = new Date();
     const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -92,5 +90,38 @@ describe('formatWornAgo', () => {
     const dateStr = dateStrInTimezone('UTC');
     const result = formatWornAgo(dateStr)
     expect(result).toBe('wornAgo.today')
+  })
+})
+
+describe('chunkArray utility', () => {
+  it('should split items evenly across chunks', () => {
+    const result = chunkArray([1, 2, 3, 4], 2)
+    expect(result).toEqual([[1, 2], [3, 4]])
+  })
+
+  it('should put remainder items in a final smaller chunk', () => {
+    const result = chunkArray([1, 2, 3, 4, 5], 2)
+    expect(result).toEqual([[1, 2], [3, 4], [5]])
+  })
+
+  it('should return a single chunk when items fit within size', () => {
+    const result = chunkArray([1, 2, 3], 20)
+    expect(result).toEqual([[1, 2, 3]])
+  })
+
+  it('should return an empty array for empty input', () => {
+    const result = chunkArray([], 20)
+    expect(result).toEqual([])
+  })
+
+  it('should not lose or duplicate items across many chunks', () => {
+    const items = Array.from({ length: 45 }, (_, i) => i)
+    const result = chunkArray(items, 20)
+    expect(result).toEqual([
+      items.slice(0, 20),
+      items.slice(20, 40),
+      items.slice(40, 45),
+    ])
+    expect(result.flat()).toEqual(items)
   })
 })

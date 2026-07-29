@@ -26,11 +26,14 @@ interface BulkActionToolbarProps {
   totalItems: number;
   pageItems: number;
   onSelectAll: () => void;
+  onSelectAllMatching: () => void;
   onClear: () => void;
   onDelete: () => void;
-  onReanalyze: () => void;
+  onReanalyze?: () => void;
   isDeleting?: boolean;
   isReanalyzing?: boolean;
+  itemLabel?: string;
+  deleteWarningSuffix?: string;
   // Pagination props
   page: number;
   pageSize: number;
@@ -42,11 +45,14 @@ export function BulkActionToolbar({
   totalItems,
   pageItems,
   onSelectAll,
+  onSelectAllMatching,
   onClear,
   onDelete,
   onReanalyze,
   isDeleting = false,
   isReanalyzing = false,
+  itemLabel = 'items',
+  deleteWarningSuffix = '',
   page,
   pageSize,
   onPageChange,
@@ -58,11 +64,15 @@ export function BulkActionToolbar({
     : selection.selectedIds.size;
 
   // Determine checkbox state
-  const isAllSelected = selection.mode === 'all' && selection.excludedIds.size === 0;
+  const isAllSelected =
+    (selection.mode === 'all' && selection.excludedIds.size === 0) ||
+    (selection.mode === 'some' && selection.selectedIds.size === pageItems && pageItems > 0);
   const isPartiallySelected = selection.mode === 'all'
     ? selection.excludedIds.size > 0
     : selection.selectedIds.size > 0 && selection.selectedIds.size < pageItems;
   const hasSelection = selectedCount > 0;
+  const canSelectAllMatching =
+    selection.mode === 'some' && selection.selectedIds.size === pageItems && pageItems > 0 && pageItems < totalItems;
 
   // Pagination
   const totalPages = Math.ceil(totalItems / pageSize);
@@ -110,6 +120,17 @@ export function BulkActionToolbar({
         )}
       </span>
 
+      {canSelectAllMatching && (
+        <Button
+          variant="link"
+          size="sm"
+          className="h-8 px-0 text-xs shrink-0 hidden sm:inline-flex"
+          onClick={onSelectAllMatching}
+        >
+          {t('selectAllMatching', { count: totalItems })}
+        </Button>
+      )}
+
       {hasSelection && (
         <>
           <Button
@@ -122,20 +143,22 @@ export function BulkActionToolbar({
             <X className="h-4 w-4" />
           </Button>
           <div className="h-4 w-px bg-border shrink-0" />
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={onReanalyze}
-            disabled={isReanalyzing}
-            aria-label="Re-analyze"
-          >
-            {isReanalyzing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-          </Button>
+          {onReanalyze && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={onReanalyze}
+              disabled={isReanalyzing}
+              aria-label="Re-analyze"
+            >
+              {isReanalyzing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
+          )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="icon" className="h-8 w-8 shrink-0" disabled={isDeleting} aria-label="Delete">
@@ -149,10 +172,12 @@ export function BulkActionToolbar({
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  {t('deleteConfirm.title', { count: selection.mode === 'all' && selection.excludedIds.size === 0 ? totalItems : selectedCount })}
+                  {selection.mode === 'all' && selection.excludedIds.size === 0
+                    ? t('deleteConfirm.titleAll', { count: totalItems, itemLabel })
+                    : t('deleteConfirm.title', { count: selectedCount, itemLabel })}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  {t('deleteConfirm.description')}
+                  {t('deleteConfirm.description', { itemLabel, suffix: deleteWarningSuffix })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

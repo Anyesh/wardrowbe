@@ -131,6 +131,17 @@ class OutfitService:
 
         return clauses
 
+    async def get_ids_by_filter(
+        self, filters: OutfitListFilters, excluded_ids: list[UUID] | None = None
+    ) -> list[UUID]:
+        clauses = self._build_filter_clauses(filters)
+        if excluded_ids:
+            clauses.append(Outfit.id.notin_(excluded_ids))
+
+        query = select(Outfit.id).where(and_(*clauses))
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
     async def list_with_filters(
         self, filters: OutfitListFilters, page: int, page_size: int
     ) -> tuple[list[Outfit], int]:

@@ -14,7 +14,7 @@ const PAGE_SIZE = 24;
 
 interface ItemPickerProps {
   selectedIds: Set<string>;
-  onToggle: (itemId: string) => void;
+  onToggle: (item: Item) => void;
   hideNeedsWash?: boolean;
   filterType?: string;
   emptyMessage?: string;
@@ -120,7 +120,7 @@ export function ItemPicker({
               <button
                 key={item.id}
                 type="button"
-                onClick={() => onToggle(item.id)}
+                onClick={() => onToggle(item)}
                 className={cn(
                   'relative aspect-square rounded-lg overflow-hidden border-2 transition-all',
                   isSelected

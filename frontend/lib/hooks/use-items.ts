@@ -5,6 +5,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, getAccessToken, setAccessToken, ApiError, NetworkError } from '@/lib/api';
 import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage } from '@/lib/types';
+import { chunkArray } from '@/lib/utils';
+
+// Must not exceed the backend's MAX_BULK_UPLOAD_COUNT setting, or every chunk
+// larger than the server's limit fails with a 400.
+const BULK_UPLOAD_CHUNK_SIZE = 20;
 
 // Helper to set token if available (for NextAuth mode)
 function useSetTokenIfAvailable() {
@@ -114,7 +119,50 @@ export function useUpdateItem() {
       }
       return api.patch<Item>(`/items/${id}`, data);
     },
-    onSuccess: (_, variables) => {
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: ['item', id] });
+
+      const previousListData = queryClient.getQueriesData({ queryKey: ['items'] });
+      const previousItemData = queryClient.getQueryData<Item>(['item', id]);
+
+      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.map((item) => (item.id === id ? { ...item, ...data } : item)),
+        };
+      });
+
+      if (previousItemData) {
+        queryClient.setQueryData<Item>(['item', id], { ...previousItemData, ...data });
+      }
+
+      return { previousListData, previousItemData };
+    },
+    onError: (_err, variables, context) => {
+      if (context?.previousListData) {
+        context.previousListData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      if (context?.previousItemData) {
+        queryClient.setQueryData(['item', variables.id], context.previousItemData);
+      }
+    },
+    onSuccess: (updatedItem, variables) => {
+      // Use the server's authoritative copy (server-derived fields like updated_at)
+      // rather than the optimistic merge, since the response is already in hand.
+      queryClient.setQueryData(['item', variables.id], updatedItem);
+      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.map((item) => (item.id === variables.id ? updatedItem : item)),
+        };
+      });
+    },
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
       queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
     },
@@ -135,6 +183,64 @@ export function useRemoveBackground() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
       queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['outfits'] });
+      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+    },
+  });
+}
+
+export function useRestoreOriginal() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (session?.accessToken) {
+        setAccessToken(session.accessToken as string);
+      }
+      return api.post<Item>(`/items/${id}/restore-original`);
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['item', id] });
+      queryClient.invalidateQueries({ queryKey: ['outfits'] });
+      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+    },
+  });
+}
+
+export function useReplaceItemImage() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async ({ itemId, file }: { itemId: string; file: File }) => {
+      const token = session?.accessToken || getAccessToken();
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`/api/v1/items/${itemId}/image`, {
+        method: 'PUT',
+        body: formData,
+        credentials: 'include',
+        headers,
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new ApiError(data.detail || 'Failed to replace image', response.status, data);
+      }
+
+      return response.json() as Promise<Item>;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['item', variables.itemId] });
       queryClient.invalidateQueries({ queryKey: ['outfits'] });
       queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
     },
@@ -455,6 +561,23 @@ export function useReanalyzeItem() {
   });
 }
 
+export function useCancelAnalysis() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (session?.accessToken) {
+        setAccessToken(session.accessToken as string);
+      }
+      return api.post<Item>(`/items/${id}/cancel-analysis`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+}
+
 export interface BulkUploadResult {
   filename: string;
   success: boolean;
@@ -617,70 +740,123 @@ export function useBulkReanalyzeItems() {
   });
 }
 
+function uploadBulkItemsChunk(
+  files: File[],
+  skipAi: boolean,
+  token: string | null | undefined,
+  onProgress: (percent: number) => void
+): Promise<BulkUploadResponse> {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append('images', file);
+  });
+  formData.append('skip_ai', String(skipAi));
+
+  return new Promise<BulkUploadResponse>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const response = JSON.parse(xhr.responseText) as BulkUploadResponse;
+          resolve(response);
+        } catch {
+          reject(new ApiError('Invalid response from server', xhr.status, {}));
+        }
+      } else {
+        let errorMessage = 'Failed to upload items';
+        try {
+          const errorData = JSON.parse(xhr.responseText);
+          errorMessage = errorData.detail || errorMessage;
+          reject(new ApiError(errorMessage, xhr.status, errorData));
+        } catch {
+          reject(new ApiError(errorMessage, xhr.status, {}));
+        }
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      if (!navigator.onLine) {
+        reject(new NetworkError('You appear to be offline. Please check your connection.'));
+      } else {
+        reject(new NetworkError('Unable to connect to server. Please try again.'));
+      }
+    });
+
+    xhr.addEventListener('abort', () => {
+      reject(new NetworkError('Upload was cancelled.'));
+    });
+
+    xhr.open('POST', '/api/v1/items/bulk');
+    xhr.withCredentials = true;
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    }
+    xhr.send(formData);
+  });
+}
+
+export function mergeBulkUploadResponses(responses: BulkUploadResponse[]): BulkUploadResponse {
+  return responses.reduce<BulkUploadResponse>(
+    (acc, response) => ({
+      total: acc.total + response.total,
+      successful: acc.successful + response.successful,
+      failed: acc.failed + response.failed,
+      results: [...acc.results, ...response.results],
+    }),
+    { total: 0, successful: 0, failed: 0, results: [] }
+  );
+}
+
+function failedChunkResponse(files: File[], error: unknown): BulkUploadResponse {
+  const message =
+    error instanceof ApiError || error instanceof NetworkError
+      ? error.message
+      : 'Failed to upload items';
+  return {
+    total: files.length,
+    successful: 0,
+    failed: files.length,
+    results: files.map((file) => ({
+      filename: file.name,
+      success: false,
+      error: message,
+    })),
+  };
+}
+
 export function useBulkCreateItems() {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const mutation = useMutation({
-    mutationFn: async (files: File[]) => {
+    mutationFn: async ({ files, skipAi = false }: { files: File[]; skipAi?: boolean }) => {
       const token = session?.accessToken || getAccessToken();
+      const chunks = chunkArray(files, BULK_UPLOAD_CHUNK_SIZE);
+      const responses: BulkUploadResponse[] = [];
 
-      const formData = new FormData();
-      files.forEach((file) => {
-        formData.append('images', file);
-      });
-
-      // Use XMLHttpRequest for upload progress tracking
-      return new Promise<BulkUploadResponse>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-
-        xhr.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            setUploadProgress(progress);
-          }
-        });
-
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const response = JSON.parse(xhr.responseText) as BulkUploadResponse;
-              resolve(response);
-            } catch {
-              reject(new ApiError('Invalid response from server', xhr.status, {}));
-            }
-          } else {
-            let errorMessage = 'Failed to upload items';
-            try {
-              const errorData = JSON.parse(xhr.responseText);
-              errorMessage = errorData.detail || errorMessage;
-              reject(new ApiError(errorMessage, xhr.status, errorData));
-            } catch {
-              reject(new ApiError(errorMessage, xhr.status, {}));
-            }
-          }
-        });
-
-        xhr.addEventListener('error', () => {
-          if (!navigator.onLine) {
-            reject(new NetworkError('You appear to be offline. Please check your connection.'));
-          } else {
-            reject(new NetworkError('Unable to connect to server. Please try again.'));
-          }
-        });
-
-        xhr.addEventListener('abort', () => {
-          reject(new NetworkError('Upload was cancelled.'));
-        });
-
-        xhr.open('POST', '/api/v1/items/bulk');
-        xhr.withCredentials = true;
-        if (token) {
-          xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      for (let i = 0; i < chunks.length; i++) {
+        const chunkFiles = chunks[i];
+        try {
+          const response = await uploadBulkItemsChunk(chunkFiles, skipAi, token, (chunkPercent) => {
+            const overall = ((i + chunkPercent / 100) / chunks.length) * 100;
+            setUploadProgress(Math.round(overall));
+          });
+          responses.push(response);
+        } catch (error) {
+          responses.push(failedChunkResponse(chunkFiles, error));
         }
-        xhr.send(formData);
-      });
+        setUploadProgress(Math.round(((i + 1) / chunks.length) * 100));
+      }
+
+      return mergeBulkUploadResponses(responses);
     },
     onMutate: () => {
       setUploadProgress(0);
@@ -689,7 +865,6 @@ export function useBulkCreateItems() {
       queryClient.invalidateQueries({ queryKey: ['items'] });
     },
     onSettled: () => {
-      // Reset progress when done (success or error)
       setUploadProgress(0);
     },
   });

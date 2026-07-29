@@ -37,6 +37,7 @@ import {
   saveDraft,
   type StudioDraft,
 } from '@/lib/studio/draft-storage';
+import type { Item } from '@/lib/types';
 import { isWornImmutableError } from '@/lib/studio/errors';
 import { computeEditLoadPhase } from '@/lib/studio/edit-load';
 
@@ -101,12 +102,13 @@ export default function StudioEditorPage() {
     setDraftPrompted(true);
   }, [draftPrompted, isEditMode]);
 
+  const draftItemCount = pendingDraft?.items.length ?? 0;
   const { data: draftItemsData } = useItems(
     pendingDraft
       ? { ids: pendingDraft.items.join(','), is_archived: false }
       : { is_archived: false },
     1,
-    50
+    draftItemCount > 0 ? draftItemCount : 50
   );
 
   const handleResumeDraft = useCallback(() => {
@@ -157,26 +159,24 @@ export default function StudioEditorPage() {
     [state.items]
   );
 
-  const handleToggle = useCallback((itemId: string) => {
-    const existing = state.items.find((i) => i.id === itemId);
+  const handleToggle = useCallback((item: Item) => {
+    const existing = state.items.find((i) => i.id === item.id);
     if (existing) {
-      dispatch({ type: 'REMOVE_ITEM', itemId });
+      dispatch({ type: 'REMOVE_ITEM', itemId: item.id });
       return;
     }
-    const fromData = draftItemsData?.items.find((i) => i.id === itemId);
-    if (!fromData) return;
     dispatch({
       type: 'ADD_ITEM',
       item: {
-        id: fromData.id,
-        type: fromData.type,
-        name: fromData.name ?? null,
-        thumbnail_url: fromData.thumbnail_url ?? null,
-        image_url: fromData.image_url ?? null,
-        primary_color: fromData.primary_color ?? null,
+        id: item.id,
+        type: item.type,
+        name: item.name ?? null,
+        thumbnail_url: item.thumbnail_url ?? null,
+        image_url: item.image_url ?? null,
+        primary_color: item.primary_color ?? null,
       },
     });
-  }, [state.items, draftItemsData]);
+  }, [state.items]);
 
   const handleSave = async (markWorn: boolean) => {
     if (state.items.length === 0) {

@@ -135,9 +135,9 @@ function PendingOutfitsCard() {
   const handleReject = async (id: string) => {
     try {
       await rejectOutfit.mutateAsync(id);
-      toast.success(t('pendingOutfits.rejected'));
+      toast.success(t('pendingOutfits.dismissed'));
     } catch {
-      toast.error(t('pendingOutfits.rejectFailed'));
+      toast.error(t('pendingOutfits.dismissFailed'));
     }
   };
 
@@ -236,6 +236,7 @@ function PendingOutfitsCard() {
                 className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                 onClick={() => handleReject(outfit.id)}
                 disabled={rejectOutfit.isPending}
+                aria-label={t('pendingOutfits.dismissLabel')}
               >
                 <ThumbsDown className="h-4 w-4" />
               </Button>

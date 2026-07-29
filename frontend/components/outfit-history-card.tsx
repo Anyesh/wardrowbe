@@ -126,9 +126,9 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
   const handleReject = async () => {
     try {
       await rejectOutfit.mutateAsync(outfit.id);
-      toast.success(t('outfitRejected'));
+      toast.success(t('outfitDismissed'));
     } catch {
-      toast.error(t('rejectFailed'));
+      toast.error(t('dismissFailed'));
     }
   };
 
@@ -286,7 +286,7 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
                 disabled={rejectOutfit.isPending}
               >
                 <ThumbsDown className="h-3 w-3 mr-1" />
-                {t('reject')}
+                {t('dismiss')}
               </Button>
               <Button
                 size="sm"

@@ -7,7 +7,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
-from app.models.item import ClothingItem, ItemHistory, ItemStatus, WashHistory
+from app.models.item import ClothingItem, ItemHistory, ItemStatus, TaggingStatus, WashHistory
 from app.schemas.item import DEFAULT_WASH_INTERVALS, ItemCreate, ItemFilter, ItemUpdate
 
 
@@ -58,6 +58,8 @@ class ItemService:
             query = query.where(ClothingItem.subtype == filters.subtype)
         if filters.status:
             query = query.where(ClothingItem.status == filters.status)
+        if filters.tagging_status:
+            query = query.where(ClothingItem.tagging_status == filters.tagging_status)
         if filters.favorite is not None:
             query = query.where(ClothingItem.favorite == filters.favorite)
         if filters.colors:
@@ -97,9 +99,9 @@ class ItemService:
         }
         sort_col = sort_columns.get(filters.sort_by or "", ClothingItem.created_at)
         if filters.sort_order == "asc":
-            query = query.order_by(sort_col.asc().nulls_last())
+            query = query.order_by(sort_col.asc().nulls_last(), ClothingItem.id.asc())
         else:
-            query = query.order_by(sort_col.desc().nulls_last())
+            query = query.order_by(sort_col.desc().nulls_last(), ClothingItem.id.asc())
         query = query.offset((page - 1) * page_size).limit(page_size)
 
         result = await self.db.execute(query)
@@ -209,9 +211,31 @@ class ItemService:
 
         if "tags" in update_data:
             attributes.flag_modified(item, "tags")
+            tag_data = update_data["tags"] or {}
+            for column in (
+                "colors",
+                "primary_color",
+                "pattern",
+                "material",
+                "style",
+                "season",
+                "formality",
+            ):
+                if column in tag_data:
+                    setattr(item, column, tag_data[column])
 
         await self.db.flush()
         # Re-fetch with eager loading to ensure relationships are properly loaded
+        result = await self.get_by_id(item.id, item.user_id)
+        return result  # type: ignore[return-value]
+
+    async def mark_pending(self, item: ClothingItem, *, set_ready: bool = False) -> ClothingItem:
+        if set_ready:
+            item.status = ItemStatus.ready
+        item.tagging_status = TaggingStatus.pending
+        item.tagged_by = None
+        item.tagged_at = None
+        await self.db.flush()
         result = await self.get_by_id(item.id, item.user_id)
         return result  # type: ignore[return-value]
 

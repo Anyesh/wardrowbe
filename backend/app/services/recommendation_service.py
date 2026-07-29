@@ -22,10 +22,15 @@ from app.models.outfit import (
 )
 from app.models.preference import UserPreference
 from app.models.user import User
-from app.services.ai_service import AIService
+from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
 from app.services.item_scorer import get_season, score_items
 from app.services.suggestion_cache import pop_suggestion, push_suggestions
-from app.services.weather_service import WeatherData, WeatherService, WeatherServiceError
+from app.services.weather_service import (
+    GeocodingServiceError,
+    WeatherData,
+    WeatherService,
+    WeatherServiceError,
+)
 from app.utils.clothing import deduplicate_by_body_slot
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_today
@@ -249,6 +254,31 @@ class RecommendationService:
             lines.append(line)
 
         return "\n".join(lines), number_map
+
+    def _format_mandatory_items_section(
+        self,
+        mandatory_item_ids: list[UUID] | None,
+        id_to_number: dict[int, UUID],
+    ) -> str:
+        if not mandatory_item_ids:
+            return ""
+
+        uuid_to_number = {v: k for k, v in id_to_number.items()}
+        mandatory_numbers = []
+        for item_id in mandatory_item_ids:
+            if item_id in uuid_to_number:
+                mandatory_numbers.append(uuid_to_number[item_id])
+
+        if not mandatory_numbers:
+            return ""
+
+        mandatory_numbers_sorted = sorted(mandatory_numbers)
+        mandatory_refs = ", ".join(f"[{n}]" for n in mandatory_numbers_sorted)
+        return (
+            f"MANDATORY ITEMS (MUST include in every outfit):\n"
+            f"The following items are already selected and MUST appear in all 3 outfit suggestions: {mandatory_refs}\n\n"
+            f"Complete each outfit with complementary pieces from the available items above."
+        )
 
     def _format_preferences_for_prompt(
         self,
@@ -614,6 +644,9 @@ class RecommendationService:
         single_outfit: bool = False,
         scheduled_date: date | None = None,
     ) -> Outfit:
+        # Guard first so deferral is unconditional, before any location/weather work.
+        require_internal_ai("text")
+
         exclude_items = exclude_items or []
         include_items = include_items or []
 
@@ -629,16 +662,27 @@ class RecommendationService:
             exclude_items = list(set(exclude_items) | rejected_ids)
             logger.info(f"Auto-excluding {len(rejected_ids)} rejected items for user {user.id}")
 
-        # Get weather
         if weather_override:
             weather = weather_override
         else:
-            if user.location_lat is None or user.location_lon is None:
+            lat = float(user.location_lat) if user.location_lat is not None else None
+            lon = float(user.location_lon) if user.location_lon is not None else None
+
+            if (lat is None and lon is None) and user.location_name:
+                try:
+                    geocoded = await self.weather_service.geocode_location_name(user.location_name)
+                except GeocodingServiceError as e:
+                    logger.error(f"Geocoding failed for outfit generation: {e}")
+                    raise ValueError(
+                        "Could not resolve location. Please update your location in settings."
+                    ) from e
+                if geocoded:
+                    lat, lon, _ = geocoded
+
+            if lat is None or lon is None:
                 raise ValueError("User location not set. Please set location in settings.")
             try:
-                weather = await self.weather_service.get_current_weather(
-                    float(user.location_lat), float(user.location_lon)
-                )
+                weather = await self.weather_service.get_current_weather(lat, lon)
             except WeatherServiceError as e:
                 logger.error(f"Weather service failed: {e}")
                 raise ValueError(
@@ -738,10 +782,12 @@ class RecommendationService:
             learned_prefs=learned_prefs,
             good_pairs=good_pairs,
             recently_worn_dates=recently_worn_dates,
+            mandatory_item_ids=set(include_items) if include_items else None,
         )
 
         # Format enriched prompt
         items_text, number_map = self._format_items_for_prompt(scored, good_pairs, user_today)
+        mandatory_items_section = self._format_mandatory_items_section(include_items, number_map)
 
         worn_combinations = await self._get_recently_worn_outfit_combinations(user, days=7)
 
@@ -763,6 +809,7 @@ class RecommendationService:
             precipitation_chance=weather.precipitation_chance,
             preferences_text=preferences_text,
             items_text=items_text,
+            mandatory_items_section=mandatory_items_section,
         )
 
         # For single_outfit mode (notifications), replace multi-outfit format
@@ -837,6 +884,12 @@ class RecommendationService:
 
         except AIRecommendationError:
             raise
+        except AIResponseTruncatedError as e:
+            # Preserve the specific, actionable cause instead of the generic message
+            # below — the AI endpoint responded successfully, it just didn't produce
+            # any output content (see AIResponseTruncatedError for why).
+            logger.error(f"AI recommendation failed: {e}")
+            raise AIRecommendationError(str(e)) from e
         except Exception as e:
             logger.error(f"AI recommendation failed: {e}")
             raise AIRecommendationError(

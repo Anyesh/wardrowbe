@@ -1,11 +1,13 @@
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
-from app.models.item import ClothingItem, ItemStatus
+from app.config import get_settings
+from app.models.item import ClothingItem, ItemStatus, TaggedBy, TaggingStatus
 from app.services.ai_service import AIService, ClothingTags
 from app.workers.db import get_db_session
 
@@ -46,23 +48,43 @@ def tags_to_item_fields(tags: ClothingTags, raw_response: str | None = None) -> 
         "ai_confidence": tags.confidence,
         "ai_description": tags.description,  # Human-readable description
         "status": ItemStatus.ready,
+        "tagging_status": TaggingStatus.tagged,
+        "tagged_by": TaggedBy.auto,
+        "tagged_at": datetime.now(UTC),
     }
     if raw_response:
         fields["ai_raw_response"] = {"raw_text": raw_response}
     return fields
 
 
+async def mark_item_tagging_skipped(ctx: dict, item_id: str) -> None:
+    db = get_db_session(ctx)
+    try:
+        result = await db.execute(select(ClothingItem).where(ClothingItem.id == UUID(item_id)))
+        item = result.scalar_one_or_none()
+        if item and item.status == ItemStatus.processing:
+            item.status = ItemStatus.ready
+            item.tagging_status = TaggingStatus.pending
+            await db.commit()
+    finally:
+        await db.close()
+
+
 async def update_item_status_to_error(ctx: dict, item_id: str, error_msg: str) -> None:
-    """Update item status to error in database."""
     try:
         db = get_db_session(ctx)
         try:
-            result = await db.execute(select(ClothingItem).where(ClothingItem.id == UUID(item_id)))
-            item = result.scalar_one_or_none()
-            if item:
-                item.status = ItemStatus.error
-                item.ai_raw_response = {"error": error_msg}
-                await db.commit()
+            # Guarded: only flip status if still processing, because an orphaned job
+            # (worker crash, or a job the user already cancelled) must not un-ready or
+            # re-error an item the user has already moved past.
+            await db.execute(
+                update(ClothingItem)
+                .where(
+                    ClothingItem.id == UUID(item_id), ClothingItem.status == ItemStatus.processing
+                )
+                .values(status=ItemStatus.error, ai_raw_response={"error": error_msg})
+            )
+            await db.commit()
         finally:
             await db.close()
     except Exception as e:
@@ -82,6 +104,11 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         Dict with status and tags
     """
     logger.info(f"Starting AI tagging for item {item_id}")
+
+    if not get_settings().effective_ai_vision_enabled:
+        logger.info(f"Internal vision disabled; skipping AI tagging for item {item_id}")
+        await mark_item_tagging_skipped(ctx, item_id)
+        return {"status": "skipped", "reason": "vision disabled", "item_id": item_id}
 
     try:
         # Verify image exists
@@ -133,10 +160,16 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                 logger.error(f"Item not found: {item_id}")
                 return {"status": "error", "error": "Item not found"}
 
+            # Unguarded by design: worst case after a cancel this backfills tags onto an
+            # item the user already moved past, which is harmless (unlike the error path).
             # Update item fields - only update if user hasn't already set a value
             # Always update: ai_processed, ai_confidence, status, ai_raw_response
             # Conditionally update: type, subtype, primary_color, colors, pattern, material, style, formality, season
             ai_fields = tags_to_item_fields(tags, tags.raw_response)
+            # Snapshotted once: applying tagging_status before tagged_by/tagged_at in the
+            # same loop would otherwise make the guard for the later two fields see the
+            # already-updated status and skip them even outside of a race.
+            was_pending = item.tagging_status == TaggingStatus.pending
 
             for field, value in ai_fields.items():
                 # Always update AI metadata fields (including tags JSONB and description)
@@ -149,6 +182,9 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                     "ai_description",
                 ):
                     setattr(item, field, value)
+                elif field in ("tagging_status", "tagged_by", "tagged_at"):
+                    if was_pending:
+                        setattr(item, field, value)
                 # Only update content fields if user hasn't set them (or they're default/unknown)
                 elif field == "type":
                     if not item.type or item.type == "unknown":

@@ -44,9 +44,13 @@ async def recover_stale_processing_items(ctx: dict) -> None:
 async def startup(ctx: dict) -> None:
     logger.info("Worker starting up...")
     await init_db(ctx)
-    ctx["ai_service"] = AIService()
-    health = await ctx["ai_service"].check_health()
-    logger.info(f"AI service health: {health}")
+    if get_settings().ai_enabled:
+        ctx["ai_service"] = AIService()
+        health = await ctx["ai_service"].check_health()
+        logger.info(f"AI service health: {health}")
+    else:
+        ctx["ai_service"] = None
+        logger.info("Internal AI disabled; skipping AI client init and health check")
     await recover_stale_processing_items(ctx)
 
 
@@ -83,5 +87,6 @@ class WorkerSettings:
     job_timeout = max(get_settings().ai_timeout * get_settings().ai_max_retries + 60, 600)
     max_tries = 3
     health_check_interval = 30
+    allow_abort_jobs = True
 
     queue_name = "arq:tagging"

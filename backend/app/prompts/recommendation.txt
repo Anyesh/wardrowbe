@@ -42,6 +42,8 @@ Time of day:
 AVAILABLE ITEMS:
 {items_text}
 
+{mandatory_items_section}
+
 RULES:
 - Pick exactly ONE top (shirt/blouse/sweater/t-shirt) + ONE bottom (pants/jeans/skirt/shorts) + ONE shoes
 - OR pick ONE dress + ONE shoes

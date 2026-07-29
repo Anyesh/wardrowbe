@@ -1,0 +1,66 @@
+# OIDC integration test harness for issue #114 (Authelia login / null email + CA bundle)
+#
+# Prerequisites:
+#   echo "127.0.0.1 authelia.local" | sudo tee -a /etc/hosts
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.oidc-test.yml up -d
+#   docker compose exec backend alembic upgrade head
+#
+# Test users (password: reviewpass):
+#   alice  — no email attribute  → before the fix: 422; after: logs in, email from ID token
+#   bob    — email bob@example.com → happy path, email from userinfo
+#
+# Authelia runs over HTTPS with a local CA cert (testing/authelia/ca.pem).
+# The CA is mounted into backend/worker as /certs/ca.pem and into frontend
+# as NODE_EXTRA_CA_CERTS so NextAuth trusts it. This validates both bugs:
+# Bug 1 (null email) and Bug 2 (OIDC_CA_BUNDLE) in a single run.
+
+services:
+  authelia:
+    image: authelia/authelia:latest
+    volumes:
+      - ./testing/authelia:/config
+    ports:
+      - "9091:9091"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  backend:
+    volumes:
+      - ./testing/authelia/ca.pem:/certs/ca.pem:ro
+    environment:
+      DEBUG: "false"
+      SECRET_KEY: "review-secret-32charsxxxxxxxxxx"
+      OIDC_ISSUER_URL: "https://authelia.local:9091"
+      OIDC_CLIENT_ID: "wardrowbe"
+      OIDC_CLIENT_SECRET: "review-oidc-secret"
+      OIDC_CA_BUNDLE: "/certs/ca.pem"
+    extra_hosts:
+      - "authelia.local:host-gateway"
+
+  worker:
+    volumes:
+      - ./testing/authelia/ca.pem:/certs/ca.pem:ro
+    environment:
+      DEBUG: "false"
+      SECRET_KEY: "review-secret-32charsxxxxxxxxxx"
+      OIDC_ISSUER_URL: "https://authelia.local:9091"
+      OIDC_CLIENT_ID: "wardrowbe"
+      OIDC_CLIENT_SECRET: "review-oidc-secret"
+      OIDC_CA_BUNDLE: "/certs/ca.pem"
+    extra_hosts:
+      - "authelia.local:host-gateway"
+
+  frontend:
+    volumes:
+      - ./testing/authelia/ca.pem:/certs/ca.pem:ro
+    environment:
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "review-nextauth-secret-xxxxxxxx"
+      OIDC_ISSUER_URL: "https://authelia.local:9091"
+      OIDC_CLIENT_ID: "wardrowbe"
+      OIDC_CLIENT_SECRET: "review-oidc-secret"
+      NODE_EXTRA_CA_CERTS: "/certs/ca.pem"
+    extra_hosts:
+      - "authelia.local:host-gateway"

@@ -1,4 +1,15 @@
-from app.services.ai_service import AIService, ClothingTags
+from unittest.mock import patch
+
+import httpx
+import pytest
+
+from app.services.ai_service import AIResponseTruncatedError, AIService, ClothingTags
+
+FAKE_REQUEST = httpx.Request("POST", "http://ai-endpoint.test/chat/completions")
+
+
+def _mock_response(json_data: dict, status_code: int = 200) -> httpx.Response:
+    return httpx.Response(status_code, json=json_data, request=FAKE_REQUEST)
 
 
 class TestTagParsing:
@@ -166,3 +177,169 @@ class TestClothingTags:
         assert tags.primary_color == "navy"
         assert len(tags.colors) == 2
         assert tags.confidence == 0.92
+
+
+class TestGenerateTextTruncatedResponse:
+    """Regression tests for issue #139: reasoning-capable models (e.g. Qwen3 via
+
+    LM Studio) can exhaust the entire completion token budget on their
+    ``reasoning_content`` chain-of-thought, leaving ``message.content`` empty with
+    ``finish_reason == "length"``. That used to surface as an opaque "Could not parse
+    AI response as JSON: " error, further masked upstream as a generic "AI service is
+    not available" message. It should now raise AIResponseTruncatedError with the real
+    cause, every retry attempt, so callers can tell the user what actually happened.
+    """
+
+    @staticmethod
+    def _truncated_reasoning_response() -> dict:
+        # Mirrors the exact shape reported in the issue's attached LM Studio /
+        # backend logs: assistant content is empty, the model's chain-of-thought
+        # landed in reasoning_content instead, and finish_reason is "length".
+        return {
+            "id": "chatcmpl-j0ue2a2xp0kziw0f8gof",
+            "object": "chat.completion",
+            "model": "qwen/qwen3.5-9b",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": "",
+                        "reasoning_content": "The user wants me to create 3 outfits...",
+                        "tool_calls": [],
+                    },
+                    "finish_reason": "length",
+                }
+            ],
+            "usage": {"prompt_tokens": 3417, "completion_tokens": 4775, "total_tokens": 8192},
+        }
+
+    @pytest.mark.asyncio
+    async def test_empty_content_with_reasoning_raises_truncated_error(self):
+        service = AIService()
+        mock_response = _mock_response(self._truncated_reasoning_response())
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response):
+            with pytest.raises(AIResponseTruncatedError) as exc_info:
+                await service.generate_text("suggest an outfit")
+
+        message = str(exc_info.value)
+        assert "reasoning" in message
+        assert "AI_MAX_TOKENS" in message
+
+    @pytest.mark.asyncio
+    async def test_empty_content_without_reasoning_still_raises_truncated_error(self):
+        service = AIService()
+        payload = self._truncated_reasoning_response()
+        del payload["choices"][0]["message"]["reasoning_content"]
+        mock_response = _mock_response(payload)
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response):
+            with pytest.raises(AIResponseTruncatedError):
+                await service.generate_text("suggest an outfit")
+
+    @pytest.mark.asyncio
+    async def test_missing_content_key_raises_truncated_error(self):
+        # Some providers omit the "content" key entirely instead of returning ""
+        # when the response is truncated; bracket access would raise KeyError
+        # instead of the actionable AIResponseTruncatedError.
+        service = AIService()
+        payload = self._truncated_reasoning_response()
+        del payload["choices"][0]["message"]["content"]
+        mock_response = _mock_response(payload)
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response):
+            with pytest.raises(AIResponseTruncatedError):
+                await service.generate_text("suggest an outfit")
+
+    @pytest.mark.asyncio
+    async def test_normal_response_is_unaffected(self):
+        service = AIService()
+        payload = self._truncated_reasoning_response()
+        payload["choices"][0]["message"]["content"] = '{"outfits": []}'
+        payload["choices"][0]["message"]["reasoning_content"] = ""
+        payload["choices"][0]["finish_reason"] = "stop"
+        mock_response = _mock_response(payload)
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response):
+            content = await service.generate_text("suggest an outfit")
+
+        assert content == '{"outfits": []}'
+
+
+class TestLogprobsRejection:
+    """Regression tests for issue #143: providers like Gemini reject the
+
+    logprobs/top_logprobs request params with a 400, which used to burn every
+    retry attempt and leave tags empty (while the separate, logprobs-free
+    description call succeeded silently, giving no indication of the failure).
+    """
+
+    _TAGS_CONTENT = '{"type": "shirt", "primary_color": "blue", "colors": ["blue"]}'
+
+    @staticmethod
+    def _logprobs_rejected_response() -> httpx.Response:
+        # Mirrors Gemini's OpenAI-compat error shape from the issue report.
+        return _mock_response(
+            {"error": {"message": 'Unknown name "logprobs": Cannot find field.'}},
+            status_code=400,
+        )
+
+    @staticmethod
+    def _success_response(content: str) -> httpx.Response:
+        return _mock_response(
+            {
+                "model": "gemini-2.0-flash",
+                "choices": [{"message": {"content": content}}],
+            }
+        )
+
+    @pytest.mark.asyncio
+    async def test_retries_without_logprobs_after_rejection(self):
+        service = AIService()
+        responses = [self._logprobs_rejected_response(), self._success_response(self._TAGS_CONTENT)]
+
+        with patch("httpx.AsyncClient.post", side_effect=responses) as mock_post:
+            content, err, logprobs_content = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert err is None
+        assert content == self._TAGS_CONTENT
+        assert logprobs_content is None
+        assert mock_post.call_count == 2
+        first_body = mock_post.call_args_list[0].kwargs["json"]
+        second_body = mock_post.call_args_list[1].kwargs["json"]
+        assert first_body["logprobs"] is True
+        assert "logprobs" not in second_body
+        assert "top_logprobs" not in second_body
+
+    @pytest.mark.asyncio
+    async def test_logprobs_rejection_does_not_consume_retry_budget(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        responses = [self._logprobs_rejected_response(), self._success_response(self._TAGS_CONTENT)]
+
+        with patch("httpx.AsyncClient.post", side_effect=responses) as mock_post:
+            content, err, _ = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert err is None
+        assert content == self._TAGS_CONTENT
+        assert mock_post.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_unrelated_400_is_not_treated_as_logprobs_rejection(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        unrelated_400 = _mock_response({"error": {"message": "invalid model"}}, status_code=400)
+
+        with patch("httpx.AsyncClient.post", return_value=unrelated_400) as mock_post:
+            content, err, _ = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert content is None
+        assert err is not None
+        assert mock_post.call_count == 1

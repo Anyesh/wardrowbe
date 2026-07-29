@@ -3,7 +3,7 @@ upstream frontend {
 }
 
 upstream backend {
-    server backend:8000;
+    server ${BACKEND_HOST}:${BACKEND_INTERNAL_PORT};
 }
 
 server {

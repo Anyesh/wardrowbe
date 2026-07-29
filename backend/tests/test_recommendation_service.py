@@ -111,6 +111,7 @@ class TestPromptTemplate:
             precipitation_chance=10,
             preferences_text="",
             items_text="[1] shirt | blue | cotton",
+            mandatory_items_section="",
         )
         assert "evening" in formatted
         assert "casual" in formatted
@@ -129,6 +130,7 @@ class TestPromptTemplate:
                 precipitation_chance=30,
                 preferences_text="",
                 items_text="[1] shirt",
+                mandatory_items_section="",
             )
             assert tod in formatted
 

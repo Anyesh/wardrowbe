@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Loader2, Save, RotateCcw, Check, Plus, Trash2, ChevronUp, ChevronDown, Server, MapPin, Navigation, Ruler } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { usePreferences, useUpdatePreferences, useResetPreferences, useTestAIEndpoint } from '@/lib/hooks/use-preferences';
 import { useUserProfile, useUpdateUserProfile } from '@/lib/hooks/use-user';
+import {
+  getNetworkLocationUrl,
+  formatReverseGeocodedLocation,
+  isNetworkLocationFallbackEnabled,
+  resolveNetworkLocation,
+} from '@/lib/location';
 import { Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
 import { useClothingColors, useOccasions } from '@/lib/hooks/use-translated-constants';
 import { toF, toCelsius } from '@/lib/temperature';
@@ -190,7 +196,11 @@ export default function SettingsPage() {
     }
     return 'metric';
   });
+  const unitSystemRef = useRef(unitSystem);
 
+  useEffect(() => {
+    unitSystemRef.current = unitSystem;
+  }, [unitSystem]);
 
   useEffect(() => {
     if (userProfile) {
@@ -202,9 +212,10 @@ export default function SettingsPage() {
       if (userProfile.body_measurements) {
         const initial: Record<string, string> = {};
         const numericKeys = ['chest', 'waist', 'hips', 'inseam', 'height', 'weight'];
+        const displayUnitSystem = unitSystemRef.current;
         for (const [key, value] of Object.entries(userProfile.body_measurements)) {
           if (numericKeys.includes(key) && typeof value === 'number') {
-            const converted = convertMeasurement(value, key, 'metric', unitSystem);
+            const converted = convertMeasurement(value, key, 'metric', displayUnitSystem);
             initial[key] = String(converted);
           } else {
             initial[key] = String(value);
@@ -215,49 +226,111 @@ export default function SettingsPage() {
     }
   }, [userProfile]);
 
+  const detectLocationFromNetwork = async () => {
+    const response = await fetch(getNetworkLocationUrl(), {
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        t('location.errors.networkLookupFailed', {
+          status: `${response.status}${response.statusText ? ` ${response.statusText}` : ''}`,
+        })
+      );
+    }
+
+    const data = await response.json();
+    const resolved = resolveNetworkLocation(data, timezone);
+    setLocationLat(resolved.lat);
+    setLocationLon(resolved.lon);
+    if (resolved.locationName) {
+      setLocationName(resolved.locationName);
+    }
+    if (resolved.timezone) {
+      setTimezone(resolved.timezone);
+    }
+    return resolved;
+  };
+
+  const describeGeolocationFailure = (error: GeolocationPositionError): string => {
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        return t('location.errors.geolocationDenied');
+      case error.POSITION_UNAVAILABLE:
+        return t('location.errors.geolocationUnavailable');
+      case error.TIMEOUT:
+        return t('location.errors.geolocationTimeout');
+      default:
+        return error.message
+          ? t('location.errors.geolocationFailed', { message: error.message })
+          : t('location.errors.geolocationFailedGeneric');
+    }
+  };
+
   const handleGetCurrentLocation = () => {
+    setIsGettingLocation(true);
+    const finalizeFromCoordinates = async (lat: string, lon: string) => {
+      // Reverse geocode to get city name
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+          { headers: { 'User-Agent': 'WardrobeAI/1.0' } }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          const nextLocationName = formatReverseGeocodedLocation(data);
+          if (nextLocationName) {
+            setLocationName(nextLocationName);
+            return nextLocationName;
+          }
+        }
+      } catch {
+        // Ignore geocoding errors, we still have coordinates
+      }
+
+      return undefined;
+    };
+
+    const fallbackToNetworkLocation = async (reason?: string) => {
+      if (!isNetworkLocationFallbackEnabled()) {
+        toast.error(reason || t('location.errors.unableToDetect'));
+        setIsGettingLocation(false);
+        return;
+      }
+      try {
+        await detectLocationFromNetwork();
+        toast.success(
+          reason
+            ? t('location.approximateDetectedWithReason', { reason })
+            : t('location.approximateDetected')
+        );
+      } catch (fallbackError) {
+        const fallbackMessage = fallbackError instanceof Error
+          ? fallbackError.message
+          : t('location.errors.unableToDetect');
+        toast.error(fallbackMessage);
+      } finally {
+        setIsGettingLocation(false);
+      }
+    };
+
     if (!navigator.geolocation) {
-      toast.error(t('location.errors.geolocationFailedGeneric'));
+      void fallbackToNetworkLocation(t('location.errors.geolocationUnsupported'));
       return;
     }
 
-    setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const lat = position.coords.latitude.toFixed(6);
         const lon = position.coords.longitude.toFixed(6);
         setLocationLat(lat);
         setLocationLon(lon);
-
-        // Reverse geocode to get city name
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-            { headers: { 'User-Agent': 'WardrobeAI/1.0' } }
-          );
-          if (response.ok) {
-            const data = await response.json();
-            const city = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality;
-            const country = data.address?.country;
-            if (city && country) {
-              setLocationName(`${city}, ${country}`);
-            } else if (city) {
-              setLocationName(city);
-            } else if (data.display_name) {
-              // Fallback to first part of display name
-              setLocationName(data.display_name.split(',').slice(0, 2).join(',').trim());
-            }
-          }
-        } catch {
-          // Ignore geocoding errors, we still have coordinates
-        }
-
+        await finalizeFromCoordinates(lat, lon);
         setIsGettingLocation(false);
         toast.success(t('location.detected'));
       },
       (error) => {
-        setIsGettingLocation(false);
-        toast.error(t('location.errors.geolocationFailed', { message: error.message }));
+        void fallbackToNetworkLocation(describeGeolocationFailure(error));
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );

@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
-from app.services.ai_service import AIService
+from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
 from app.utils.clothing import deduplicate_by_body_slot
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_today
@@ -166,6 +166,9 @@ class PairingService:
         source_item_id: UUID,
         num_pairings: int = 3,
     ) -> list[Outfit]:
+        # Guard first so deferral is unconditional, before any item lookup.
+        require_internal_ai("text")
+
         num_pairings = max(1, min(5, num_pairings))
 
         # Get source item
@@ -211,6 +214,11 @@ class PairingService:
             logger.info(f"AI pairings generated (model: {result.model})")
             logger.debug(f"AI raw response: {result.content[:500]}")
             pairings_data = self._parse_ai_response(result.content)
+        except AIResponseTruncatedError as e:
+            # Preserve the specific, actionable cause: the endpoint responded
+            # successfully but produced no content (see AIResponseTruncatedError).
+            logger.error(f"AI pairing generation failed: {e}")
+            raise AIGenerationError(str(e)) from e
         except Exception as e:
             logger.error(f"AI pairing generation failed: {e}")
             raise AIGenerationError(
