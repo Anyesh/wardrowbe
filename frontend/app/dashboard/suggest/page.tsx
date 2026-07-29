@@ -50,6 +50,14 @@ import { usePreferences } from '@/lib/hooks/use-preferences';
 import { cn } from '@/lib/utils';
 import { TempUnit, formatTemp, displayValue, toF, toCelsius } from '@/lib/temperature';
 
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+const OVERRIDE_CONDITION_KEYS: Record<string, string> = {
+  sunny: 'clear',
+  cloudy: 'cloudy',
+  rainy: 'rain',
+};
+
 // Map occasion values to icons and colors
 const OCCASION_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
   casual: { icon: <Shirt className="h-4 w-4" />, color: 'hover:border-blue-400 hover:bg-blue-50 data-[selected=true]:border-blue-500 data-[selected=true]:bg-blue-50 data-[selected=true]:text-blue-700' },
@@ -97,7 +105,7 @@ interface WeatherOverride {
   condition: 'sunny' | 'cloudy' | 'rainy';
 }
 
-function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: Weather; isLoading: boolean; temperatureUnit: TempUnit; t: (key: string) => string }) {
+function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: Weather; isLoading: boolean; temperatureUnit: TempUnit; t: Translator }) {
   if (isLoading) {
     return (
       <Card className="border-muted">
@@ -153,15 +161,15 @@ function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: Wea
           <div className="text-right text-sm text-muted-foreground space-y-1">
             <div className="flex items-center gap-1.5 justify-end">
               <Thermometer className="h-3.5 w-3.5" />
-              <span>Feels {displayValue(weather.feels_like, temperatureUnit)}°</span>
+              <span>{t('weather.feelsLike', { temp: displayValue(weather.feels_like, temperatureUnit) })}</span>
             </div>
             <div className="flex items-center gap-1.5 justify-end">
               <Droplets className="h-3.5 w-3.5" />
-              <span>{weather.precipitation_chance}% rain</span>
+              <span>{t('weather.rainChance', { chance: weather.precipitation_chance })}</span>
             </div>
             <div className="flex items-center gap-1.5 justify-end">
               <Wind className="h-3.5 w-3.5" />
-              <span>{Math.round(weather.wind_speed)} km/h</span>
+              <span>{t('weather.windSpeed', { speed: Math.round(weather.wind_speed) })}</span>
             </div>
           </div>
         </div>
@@ -217,13 +225,14 @@ function WeatherOverrideSection({
   weather: WeatherOverride | null;
   onChange: (weather: WeatherOverride | null) => void;
   temperatureUnit: TempUnit;
-  t: (key: string) => string;
+  t: Translator;
 }) {
+  const tc = useTranslations('constants.weatherConditions');
   const [isOpen, setIsOpen] = useState(false);
   const conditions = [
-    { value: 'sunny', icon: <Sun className="h-4 w-4" />, labelKey: 'weatherOverride.sunny' },
-    { value: 'cloudy', icon: <Cloud className="h-4 w-4" />, labelKey: 'weatherOverride.cloudy' },
-    { value: 'rainy', icon: <CloudRain className="h-4 w-4" />, labelKey: 'weatherOverride.rainy' },
+    { value: 'sunny', icon: <Sun className="h-4 w-4" /> },
+    { value: 'cloudy', icon: <Cloud className="h-4 w-4" /> },
+    { value: 'rainy', icon: <CloudRain className="h-4 w-4" /> },
   ] as const;
 
   return (
@@ -234,7 +243,7 @@ function WeatherOverrideSection({
           <span>{weather ? t('weatherOverride.active') : t('weatherOverride.overrideWeather')}</span>
           {weather && (
             <Badge variant="secondary" className="text-xs">
-              {weather.condition} {formatTemp(weather.temperature, temperatureUnit)}
+              {tc(OVERRIDE_CONDITION_KEYS[weather.condition])} {formatTemp(weather.temperature, temperatureUnit)}
             </Badge>
           )}
         </button>
@@ -267,7 +276,7 @@ function WeatherOverrideSection({
                 )}
               >
                 {c.icon}
-                <span className="text-sm">{t(c.labelKey)}</span>
+                <span className="text-sm">{tc(OVERRIDE_CONDITION_KEYS[c.value])}</span>
               </button>
             ))}
           </div>
@@ -311,7 +320,7 @@ function OutfitResult({
   onReject: () => void;
   onTryAnother: () => void;
   onNewRequest: () => void;
-  t: (key: string) => string;
+  t: Translator;
 }) {
   return (
     <div className="space-y-6">
@@ -339,11 +348,11 @@ function OutfitResult({
           <div className="flex items-center gap-1.5">
             <Thermometer className="h-4 w-4" />
             <span>{formatTemp(outfit.weather.temperature, temperatureUnit)}</span>
-            <span className="text-xs opacity-70">(feels {displayValue(outfit.weather.feels_like, temperatureUnit)}°)</span>
+            <span className="text-xs opacity-70">{t('weather.feelsLikeInline', { temp: displayValue(outfit.weather.feels_like, temperatureUnit) })}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Droplets className="h-4 w-4" />
-            <span>{outfit.weather.precipitation_chance}% rain</span>
+            <span>{t('weather.rainChance', { chance: outfit.weather.precipitation_chance })}</span>
           </div>
           <Badge variant="outline" className="capitalize">
             {outfit.weather.condition}
@@ -429,7 +438,7 @@ function OutfitResult({
           <ThumbsUp className="h-4 w-4" />
           {t('loveIt')}
         </Button>
-        <Button variant="ghost" size="lg" onClick={onReject} className="px-3" aria-label="Dismiss outfit">
+        <Button variant="ghost" size="lg" onClick={onReject} className="px-3" aria-label={t('dismissOutfit')}>
           <ThumbsDown className="h-4 w-4" />
         </Button>
       </div>

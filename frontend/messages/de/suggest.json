@@ -1,0 +1,84 @@
+{
+  "dismissOutfit": "Outfit verwerfen",
+  "error": "Outfit-Vorschlag konnte nicht generiert werden. Bitte versuche es erneut.",
+  "feedback": {
+    "commentsOptional": "Kommentare (optional)",
+    "commentsPlaceholder": "Gedanken zu diesem Outfit?",
+    "didYouWear": "Hast du dieses Outfit getragen?",
+    "didYouWearDesc": "Lass uns wissen, ob du dieser Empfehlung gefolgt bist, damit wir deine Vorlieben lernen können.",
+    "howDidItWork": "Wie hat dir dieses Outfit gefallen?",
+    "itemsSelected": "{count, plural, one {# Stück ausgewählt} other {# Stücke ausgewählt}}",
+    "loadingMore": "Mehr wird geladen...",
+    "noItemsInWardrobe": "Keine Stücke im Kleiderschrank",
+    "noMatch": "Keine Stücke passen zu deiner Suche",
+    "noWoreSomethingElse": "Nein, ich habe etwas anderes getragen",
+    "overallRating": "Gesamtbewertung",
+    "rateHowItWent": "Bewerte, wie es war",
+    "rateThisOutfit": "Dieses Outfit bewerten",
+    "searchWardrobe": "Kleiderschrank durchsuchen...",
+    "showingAll": "{count, plural, one {Alle # Stück angezeigt} other {Alle # Stücke angezeigt}}",
+    "submitError": "Feedback konnte nicht gesendet werden",
+    "submitWithCount": "Absenden ({count})",
+    "submitted": "Feedback gesendet",
+    "submitting": "Wird gesendet...",
+    "tellUsWhatYouWore": "Sag uns, was du getragen hast",
+    "whatDidYouWear": "Was hast du stattdessen getragen?",
+    "whatDidYouWearDesc": "Wähle die Stücke aus, die du tatsächlich getragen hast. Das hilft uns, deine Vorlieben zu lernen.",
+    "yesWoreIt": "Ja, ich habe es getragen"
+  },
+  "generating": "Dein Look wird erstellt...",
+  "getSuggestion": "Vorschlag erhalten",
+  "greeting": {
+    "afternoon": "Guten Nachmittag",
+    "evening": "Guten Abend",
+    "morning": "Guten Morgen"
+  },
+  "location": {
+    "notSet": "Standort nicht festgelegt",
+    "setDescription": "Lege deinen Standort in den Einstellungen fest, um wetterbasierte Vorschläge zu erhalten"
+  },
+  "loveIt": "Gefällt mir",
+  "occasionPrompt": "Was ist der Anlass?",
+  "outfitPreview": {
+    "familyRatings": {
+      "average": "({rating} <star></star> Ø)",
+      "noRatings": "Noch keine Familienbewertungen.",
+      "noRatingsPrompt": "Noch keine Familienbewertungen. Sei der Erste!",
+      "rate": "Bewerten",
+      "title": "Familienbewertungen"
+    },
+    "imageRotated": "Bild gedreht",
+    "noImage": "Kein Bild",
+    "rotateFailed": "Bild konnte nicht gedreht werden",
+    "rotateLeft": "Nach links drehen",
+    "rotateRight": "Nach rechts drehen",
+    "title": "{occasion}-Outfit",
+    "viewItemDetails": "Stückdetails ansehen"
+  },
+  "startOver": "Neu beginnen",
+  "subtitle": "Finden wir das perfekte Outfit für deinen Tag",
+  "tip": "Tipp:",
+  "tryAnother": "Anderes versuchen",
+  "weather": {
+    "feelsLike": "Gefühlt {temp}°",
+    "feelsLikeInline": "(gefühlt {temp}°)",
+    "rainChance": "{chance} % Regen",
+    "windSpeed": "{speed} km/h"
+  },
+  "weatherHints": {
+    "cold": "Zieh dich warm an, es ist ziemlich kalt",
+    "hot": "Halte es leicht und luftig",
+    "mild": "Eine leichte Jacke wäre perfekt",
+    "nice": "Tolles Wetter für jeden Stil",
+    "rainy": "Nimm einen Regenschirm oder eine Regenjacke mit",
+    "windy": "Ziehe etwas Winddichtes in Betracht"
+  },
+  "weatherOverride": {
+    "active": "Wetter-Überschreibung aktiv",
+    "condition": "Bedingungen",
+    "overrideWeather": "Wetter überschreiben",
+    "reset": "Zurücksetzen",
+    "temperature": "Temperatur"
+  },
+  "yourOutfit": "Dein Outfit"
+}

@@ -88,7 +88,8 @@ function findClosestColor(hex: string): ClothingColor {
 }
 
 export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedropperProps) {
-  const t = useTranslations('dialogs.colorEyedropper');
+  const t = useTranslations('wardrobe.colorEyedropper');
+  const tc = useTranslations('common');
   const clothingColors = useClothingColors();
   const [open, setOpen] = useState(false);
   const [pickedColor, setPickedColor] = useState<string | null>(null);
@@ -130,14 +131,14 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
     const timer = setTimeout(() => {
       const canvas = canvasRef.current;
       if (!canvas) {
-        setError('Canvas not available');
+        setError(t('errors.canvasUnavailable'));
         setIsLoading(false);
         return;
       }
 
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        setError('Could not get canvas context');
+        setError(t('errors.canvasContext'));
         setIsLoading(false);
         return;
       }
@@ -145,7 +146,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
       // Fetch image as blob to avoid CORS issues with canvas
       fetch(imageUrl, { credentials: 'include' })
         .then(response => {
-          if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
+          if (!response.ok) throw new Error(t('errors.imageLoadStatus', { status: response.status }));
           return response.blob();
         })
         .then(blob => {
@@ -182,19 +183,19 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
             setImageLoaded(true);
           };
           img.onerror = () => {
-            setError('Failed to load image from blob');
+            setError(t('errors.imageDecodeFailed'));
             setIsLoading(false);
           };
           img.src = blobUrl;
         })
         .catch(err => {
-          setError(err.message || 'Failed to load image');
+          setError(err.message || t('errors.imageLoadFailed'));
           setIsLoading(false);
         });
     }, 100); // Small delay to ensure DOM is ready
 
     return () => clearTimeout(timer);
-  }, [open, imageUrl, imageLoaded]);
+  }, [open, imageUrl, imageLoaded, t]);
 
   const getColorAtPosition = useCallback((x: number, y: number): string | null => {
     const canvas = canvasRef.current;
@@ -353,7 +354,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
                     }}
                   >
                     <X className="h-4 w-4 mr-1" />
-                    {t('clear')}
+                    {tc('clear')}
                   </Button>
                   <Button size="sm" onClick={handleConfirm}>
                     <Check className="h-4 w-4 mr-1" />

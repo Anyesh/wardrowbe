@@ -74,7 +74,7 @@ export function DetailsPanel({
   onOccasionChange,
   onAiMerge,
 }: DetailsPanelProps) {
-  const t = useTranslations('studio.details');
+  const t = useTranslations('outfits.details');
   const [aiLoading, setAiLoading] = useState(false);
   const warnings = computeWarnings(items, t);
 

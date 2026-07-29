@@ -76,7 +76,8 @@ interface ItemDetailDialogProps {
 // Images now use signed URLs from backend (item.image_url, item.thumbnail_url)
 
 export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogProps) {
-  const t = useTranslations('dialogs.itemDetail');
+  const t = useTranslations('wardrobe.itemDetail');
+  const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
   const [isEditing, setIsEditing] = useState(false);
@@ -395,7 +396,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   <Pencil className="h-5 w-5" />
                 )}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full" title={t('titles.close')}>
+              <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full" title={tc('close')}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -626,7 +627,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       className="flex-1"
                       onClick={() => setIsEditing(false)}
                     >
-                      {t('actions.cancel')}
+                      {tc('cancel')}
                     </Button>
                     <Button
                       className="flex-1"
@@ -636,7 +637,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       {updateItem.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : null}
-                      {t('actions.save')}
+                      {tc('save')}
                     </Button>
                   </div>
                 </div>
@@ -966,7 +967,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -975,7 +976,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
               {deleteItem.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
-              {t('actions.delete')}
+              {tc('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

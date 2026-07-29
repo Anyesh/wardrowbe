@@ -1,0 +1,102 @@
+{
+  "createFamily": "创建家庭",
+  "createFamilyDesc": "创建新家庭并邀请成员",
+  "editName": "编辑名称",
+  "familyName": "家庭名称",
+  "familyNameExample": "例如：张家",
+  "familyNamePlaceholder": "家庭名称",
+  "familyOutfits": {
+    "description": "浏览和评价家人的穿搭",
+    "openFeed": "打开家庭动态",
+    "title": "家庭穿搭"
+  },
+  "feed": {
+    "lookbook": "造型册",
+    "noFamily": {
+      "description": "创建或加入家庭来浏览和互评穿搭。",
+      "setUpFamily": "设置家庭",
+      "title": "请先加入家庭"
+    },
+    "noMembers": {
+      "description": "邀请家庭成员来互相浏览和评价穿搭。",
+      "inviteMembers": "邀请成员",
+      "manageFamily": "管理家庭",
+      "title": "还没有其他成员"
+    },
+    "noOutfits": {
+      "description": "{member} 还没有收到任何穿搭推荐。稍后再来看看吧！",
+      "title": "还没有穿搭"
+    },
+    "rateOutfit": "为 {member} 的穿搭评分",
+    "ratingCount": "（{count, plural, one {{count} 条评分} other {{count} 条评分}}）",
+    "sourceBadges": {
+      "manual": "手动",
+      "onDemand": "即时获取",
+      "pairing": "搭配",
+      "scheduled": "定时推送"
+    },
+    "subtitle": "浏览和评价家人的穿搭",
+    "title": "家庭动态",
+    "unknownMember": "这位成员",
+    "unknownMemberShort": "TA"
+  },
+  "invalidInviteCode": "邀请码无效，请检查后重试。",
+  "inviteCode": "邀请码",
+  "inviteCodeExample": "例如：ABC123XY",
+  "inviteCodeSection": {
+    "description": "将此邀请码分享给家人，让他们加入",
+    "title": "邀请码"
+  },
+  "inviteEmailPlaceholder": "email@example.com",
+  "joinFamily": "加入家庭",
+  "joinFamilyDesc": "使用邀请码加入已有家庭",
+  "leaveConfirm": {
+    "description": "确定要离开 {name} 吗？您可以稍后使用邀请码重新加入。",
+    "title": "离开家庭？"
+  },
+  "leaveFamily": "离开家庭",
+  "members": {
+    "description": "你的家庭成员",
+    "removeConfirm": {
+      "description": "确定要将 {name} 从家庭中移除吗？",
+      "title": "移除成员？"
+    },
+    "title": "成员"
+  },
+  "pendingInvites": {
+    "description": "尚未被接受的邀请",
+    "expires": "{date}过期",
+    "title": "待接受的邀请"
+  },
+  "ratings": {
+    "addComment": "添加评论（选填）",
+    "ratingRemoved": "评分已移除",
+    "ratingSubmitted": "评分已提交！",
+    "ratingUpdated": "评分已更新！",
+    "removeError": "移除评分失败",
+    "selectRating": "请选择评分",
+    "submitError": "提交评分失败",
+    "submitRating": "提交评分",
+    "updateRating": "更新评分",
+    "yourRating": "你的评分："
+  },
+  "roles": {
+    "admin": "管理员",
+    "member": "成员"
+  },
+  "sendInvite": "发送邀请",
+  "sendInviteDesc": "通过邮件邀请",
+  "subtitle": "创建或加入家庭，共享衣柜体验",
+  "title": "家庭",
+  "toasts": {
+    "codeRegenerateFailed": "生成新邀请码失败，请重试。",
+    "codeRegenerated": "新邀请码已生成！",
+    "createFailed": "创建家庭失败，请重试。",
+    "created": "家庭创建成功！",
+    "inviteFailed": "发送邀请失败",
+    "inviteSent": "邀请已发送！",
+    "joined": "成功加入家庭！",
+    "nameUpdateFailed": "更新家庭名称失败",
+    "nameUpdated": "家庭名称已更新"
+  }
+}

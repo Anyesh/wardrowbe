@@ -92,6 +92,7 @@ function CalendarSkeleton() {
 
 export default function HistoryPage() {
   const t = useTranslations('history');
+  const tc = useTranslations('constants');
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -157,10 +158,10 @@ export default function HistoryPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('filters.allOccasions')}</SelectItem>
-            <SelectItem value="casual">{t('filters.casual')}</SelectItem>
-            <SelectItem value="office">{t('filters.office')}</SelectItem>
-            <SelectItem value="formal">{t('filters.formal')}</SelectItem>
-            <SelectItem value="date">{t('filters.date')}</SelectItem>
+            <SelectItem value="casual">{tc('occasions.casual')}</SelectItem>
+            <SelectItem value="office">{tc('occasions.office')}</SelectItem>
+            <SelectItem value="formal">{tc('occasions.formal')}</SelectItem>
+            <SelectItem value="date">{tc('occasions.date')}</SelectItem>
             <SelectItem value="workout">{t('filters.workout')}</SelectItem>
           </SelectContent>
         </Select>
@@ -170,10 +171,10 @@ export default function HistoryPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('filters.allStatus')}</SelectItem>
-            <SelectItem value="accepted">{t('filters.accepted')}</SelectItem>
-            <SelectItem value="rejected">{t('filters.rejected')}</SelectItem>
-            <SelectItem value="pending">{t('filters.pending')}</SelectItem>
-            <SelectItem value="viewed">{t('filters.viewed')}</SelectItem>
+            <SelectItem value="accepted">{t('status.accepted')}</SelectItem>
+            <SelectItem value="rejected">{t('status.rejected')}</SelectItem>
+            <SelectItem value="pending">{t('status.pending')}</SelectItem>
+            <SelectItem value="viewed">{t('status.viewed')}</SelectItem>
           </SelectContent>
         </Select>
       </div>

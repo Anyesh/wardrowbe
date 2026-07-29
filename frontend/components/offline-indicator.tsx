@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 
 export function OfflineIndicator() {
   const [isOffline, setIsOffline] = useState(false);
-  const t = useTranslations('shared.offlineIndicator');
+  const t = useTranslations('common');
 
   useEffect(() => {
     // Check initial state
@@ -30,7 +30,7 @@ export function OfflineIndicator() {
     <div className="fixed bottom-20 left-1/2 -translate-x-1/2 lg:bottom-4 z-50">
       <div className="flex items-center gap-2 bg-destructive text-destructive-foreground px-4 py-2 rounded-full shadow-lg">
         <WifiOff className="w-4 h-4" />
-        <span className="text-sm font-medium">{t('message')}</span>
+        <span className="text-sm font-medium">{t('youreOffline')}</span>
       </div>
     </div>
   );

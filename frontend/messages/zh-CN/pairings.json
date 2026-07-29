@@ -1,0 +1,34 @@
+{
+  "allItemTypes": "所有单品类型",
+  "card": {
+    "badge": "搭配",
+    "builtAround": "核心单品：",
+    "deleteError": "删除搭配失败",
+    "deleted": "搭配已删除",
+    "rateThisPairing": "评价这组搭配",
+    "tip": "小贴士：",
+    "updateRating": "更新评分"
+  },
+  "empty": {
+    "description": "从衣柜中选择一件单品，使用「寻找搭配」来发现好看的穿搭组合。",
+    "goToWardrobe": "前往衣柜",
+    "title": "还没有搭配"
+  },
+  "generate": {
+    "description": "AI 将为这件单品创建完整的穿搭",
+    "failed": "生成搭配失败",
+    "generate": "生成穿搭",
+    "generating": "生成中...",
+    "numOutfits": "穿搭数量",
+    "numOutfitsDesc": "数量越多越丰富，但生成时间也更长",
+    "success": "{count, plural, other {创建了{count}套穿搭！}}",
+    "successDesc": "在搭配页面查看",
+    "title": "寻找搭配穿搭",
+    "viewPairings": "查看搭配"
+  },
+  "itemTypeOption": "{type}（{count}）",
+  "loadError": "加载搭配失败，请重试。",
+  "pairingCount": "{count, plural, other {{count}组搭配}}",
+  "subtitle": "AI 为你的单品生成的穿搭组合",
+  "title": "搭配"
+}

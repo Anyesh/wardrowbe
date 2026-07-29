@@ -37,7 +37,8 @@ export function GeneratePairingsDialog({
   const [generatedPairings, setGeneratedPairings] = useState<Pairing[] | null>(null);
   const generatePairings = useGeneratePairings();
   const router = useRouter();
-  const t = useTranslations('dialogs.generatePairings');
+  const t = useTranslations('pairings.generate');
+  const tc = useTranslations('common');
 
   const handleGenerate = async () => {
     if (!item) return;
@@ -50,7 +51,7 @@ export function GeneratePairingsDialog({
       setGeneratedPairings(result.pairings);
       toast.success(t('success', { count: result.generated }));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to generate pairings';
+      const message = error instanceof Error ? error.message : t('failed');
       toast.error(message);
     }
   };
@@ -176,7 +177,7 @@ export function GeneratePairingsDialog({
           {!generatedPairings ? (
             <>
               <Button variant="outline" onClick={handleClose}>
-                {t('cancel')}
+                {tc('cancel')}
               </Button>
               <Button
                 onClick={handleGenerate}
@@ -198,7 +199,7 @@ export function GeneratePairingsDialog({
           ) : (
             <>
               <Button variant="outline" onClick={handleClose}>
-                {t('close')}
+                {tc('close')}
               </Button>
               <Button onClick={handleViewPairings}>
                 {t('viewPairings')}

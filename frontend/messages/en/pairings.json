@@ -1,0 +1,34 @@
+{
+  "allItemTypes": "All item types",
+  "card": {
+    "badge": "Pairing",
+    "builtAround": "Built around:",
+    "deleteError": "Failed to delete pairing",
+    "deleted": "Pairing deleted",
+    "rateThisPairing": "Rate This Pairing",
+    "tip": "Tip:",
+    "updateRating": "Update Rating"
+  },
+  "empty": {
+    "description": "Select an item from your wardrobe and use \"Find Pairings\" to discover outfit combinations that work well together.",
+    "goToWardrobe": "Go to Wardrobe",
+    "title": "No pairings yet"
+  },
+  "generate": {
+    "description": "AI will create complete outfits featuring this item",
+    "failed": "Failed to generate pairings",
+    "generate": "Generate Outfits",
+    "generating": "Generating...",
+    "numOutfits": "Number of outfits",
+    "numOutfitsDesc": "More outfits = more variety, but takes longer to generate",
+    "success": "{count, plural, one {{count} outfit created!} other {{count} outfits created!}}",
+    "successDesc": "View them in the Pairings section",
+    "title": "Find Matching Outfits",
+    "viewPairings": "View Pairings"
+  },
+  "itemTypeOption": "{type} ({count})",
+  "loadError": "Failed to load pairings. Please try again.",
+  "pairingCount": "{count, plural, one {{count} pairing} other {{count} pairings}}",
+  "subtitle": "AI-generated outfit combinations built around your items",
+  "title": "Pairings"
+}

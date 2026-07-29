@@ -4,15 +4,15 @@ import { Button } from '@/components/ui/button';
 import { getTranslations } from 'next-intl/server';
 
 export default async function NotFound() {
-  const t = await getTranslations('notFound');
+  const t = await getTranslations('common');
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="text-center max-w-md">
-        <h1 className="text-8xl font-bold text-muted-foreground mb-4">{t('title')}</h1>
-        <h2 className="text-2xl font-semibold mb-2">{t('heading')}</h2>
+        <h1 className="text-8xl font-bold text-muted-foreground mb-4">{t('notFoundCode')}</h1>
+        <h2 className="text-2xl font-semibold mb-2">{t('notFound')}</h2>
         <p className="text-muted-foreground mb-6">
-          {t('description')}
+          {t('notFoundDescription')}
         </p>
         <Button asChild>
           <Link href="/dashboard">

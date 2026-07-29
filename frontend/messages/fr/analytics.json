@@ -1,0 +1,59 @@
+{
+  "insights": {
+    "acceptanceTrend": {
+      "description": "Comment vous avez répondu aux suggestions au fil du temps",
+      "title": "Tendance du taux d'acceptation"
+    },
+    "colorDistribution": {
+      "description": "Couleurs les plus courantes dans votre garde-robe",
+      "noData": "Pas encore de données de couleur",
+      "title": "Répartition des couleurs"
+    },
+    "itemTypes": {
+      "description": "Répartition par type de vêtement",
+      "noData": "Aucun article pour le moment",
+      "title": "Types d'articles"
+    },
+    "leastWorn": {
+      "description": "Pensez à les porter",
+      "noData": "Continuez le suivi !",
+      "title": "Moins portés"
+    },
+    "mostWorn": {
+      "description": "Vos favoris",
+      "noData": "Commencez à suivre vos tenues !",
+      "title": "Plus portés"
+    },
+    "neverWorn": {
+      "description": "Le moment de les essayer ?",
+      "noData": "Tous les articles ont été portés !",
+      "title": "Jamais portés"
+    },
+    "title": "Aperçus"
+  },
+  "loadError": "Échec du chargement des statistiques. Veuillez réessayer.",
+  "percent": "{value} %",
+  "stats": {
+    "acceptanceRate": {
+      "description": "de suggestions acceptées",
+      "title": "Taux d'acceptation"
+    },
+    "avgRating": "Note moyenne : {rating}/5",
+    "outfitsGenerated": {
+      "description": "{count} cette semaine",
+      "title": "Tenues générées"
+    },
+    "totalItems": {
+      "description": "{count} prêts à porter",
+      "title": "Total des articles"
+    },
+    "totalWears": {
+      "description": "Suivez vos tenues",
+      "noData": "Pas encore de données",
+      "title": "Total des portés"
+    }
+  },
+  "subtitle": "Vos aperçus et statistiques de garde-robe",
+  "title": "Statistiques",
+  "wearCount": "{count}x"
+}

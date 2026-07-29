@@ -222,10 +222,10 @@ function ItemPairCard({ pair }: { pair: ItemPair }) {
       <div className="text-right">
         <div className="flex items-center gap-1 justify-end">
           <Heart className="h-4 w-4 text-red-500" />
-          <span className="font-medium">{successRate}%</span>
+          <span className="font-medium">{t('percent', { value: successRate })}</span>
         </div>
         <div className="text-xs text-muted-foreground">
-          {pair.times_paired}{t('paired')}
+          {t('timesPaired', { count: pair.times_paired })}
         </div>
       </div>
     </div>
@@ -277,7 +277,7 @@ function InsightCard({
               {insight.category}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              {Math.round(insight.confidence * 100)}{t('confident')}
+              {t('confidence', { percent: Math.round(insight.confidence * 100) })}
             </span>
           </div>
         </div>
@@ -408,7 +408,7 @@ export default function LearningPage() {
             <StatCard
               title={t('stats.acceptanceRate')}
               value={profile.overall_acceptance_rate
-                ? `${Math.round(profile.overall_acceptance_rate * 100)}%`
+                ? t('percent', { value: Math.round(profile.overall_acceptance_rate * 100) })
                 : '-'}
               description={profile.overall_acceptance_rate
                 ? t('stats.suggestionsAccepted')
@@ -443,7 +443,7 @@ export default function LearningPage() {
                 </div>
                 <Button variant="ghost" size="sm" onClick={handleGenerateInsights}>
                   <RefreshCw className="h-4 w-4 mr-1" />
-                  {t('styleInsights.noData')}
+                  {t('styleInsights.generate')}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -513,7 +513,9 @@ export default function LearningPage() {
                               className={`w-24 h-2 ${isPositive ? '' : '[&>div]:bg-red-500'}`}
                             />
                             <span className="text-sm text-muted-foreground w-12 text-right">
-                              {isPositive ? '+' : ''}{(styleScore.score * 100).toFixed(0)}%
+                              {t('percent', {
+                                value: `${isPositive ? '+' : ''}${(styleScore.score * 100).toFixed(0)}`,
+                              })}
                             </span>
                           </div>
                         </div>
@@ -562,7 +564,7 @@ export default function LearningPage() {
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium capitalize">{pattern.occasion}</h4>
                         <Badge variant="outline">
-                          {t('weatherPreferences.success', { percent: Math.round(pattern.success_rate * 100) })}
+                          {t('successRate', { percent: Math.round(pattern.success_rate * 100) })}
                         </Badge>
                       </div>
                       {pattern.preferred_colors.length > 0 && (
@@ -611,7 +613,7 @@ export default function LearningPage() {
                         {t('weatherPreferences.layers', { count: pref.preferred_layers.toFixed(1) })}
                       </p>
                       <Badge variant="outline" className="mt-2">
-                        {t('weatherPreferences.success', { percent: Math.round(pref.success_rate * 100) })}
+                        {t('successRate', { percent: Math.round(pref.success_rate * 100) })}
                       </Badge>
                     </div>
                   ))}
@@ -675,7 +677,7 @@ export default function LearningPage() {
           {/* Last Updated */}
           {profile.last_computed_at && (
             <p className="text-xs text-muted-foreground text-center">
-              {t('lastUpdated')} {new Date(profile.last_computed_at).toLocaleString()}
+              {t('lastUpdated', { date: new Date(profile.last_computed_at).toLocaleString() })}
             </p>
           )}
         </>

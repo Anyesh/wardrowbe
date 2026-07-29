@@ -4,10 +4,11 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import './globals.css';
 import { Providers } from './providers';
+import { LOCALE_METADATA, type SupportedLocale } from '@/lib/i18n/locales';
 
 export const dynamic = 'force-dynamic';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin', 'latin-ext'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'Wardrowbe',
@@ -42,8 +43,8 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body className={inter.className}>
+    <html lang={locale} dir={LOCALE_METADATA[locale as SupportedLocale]?.dir ?? 'ltr'} suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans`}>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>

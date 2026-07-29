@@ -1,0 +1,70 @@
+{
+  "bestCombinations": {
+    "description": "你一直很喜欢的搭配组合",
+    "title": "你的最佳组合"
+  },
+  "colorPreferences": {
+    "description": "你倾向于采纳或拒绝的颜色",
+    "noData": "反馈还不够多，暂时无法确定颜色偏好。",
+    "title": "学到的颜色偏好"
+  },
+  "confidence": "{percent}% 置信度",
+  "dismiss": "关闭",
+  "lastUpdated": "学习档案上次更新：{date}",
+  "loadError": "加载学习数据失败，请重试。",
+  "noData": {
+    "alreadyGaveFeedback": "已经给过反馈了？点击「立即计算」来处理。",
+    "computeNow": "立即计算",
+    "computing": "计算中...",
+    "description": "从接受或拒绝穿搭建议并评分开始。",
+    "getOutfitSuggestions": "获取穿搭建议",
+    "title": "暂无学习数据"
+  },
+  "occasionPatterns": {
+    "description": "不同场合的穿搭效果",
+    "title": "场合规律"
+  },
+  "percent": "{value}%",
+  "preferredColors": "偏好颜色：",
+  "recompute": "重新计算",
+  "stats": {
+    "acceptanceRate": "采纳率",
+    "averageRating": "平均评分",
+    "feedbackGiven": "已提交反馈",
+    "notEnoughData": "数据不足",
+    "outOf5Stars": "满分5星",
+    "outfitsRated": "{count, plural, one {已评价 {count} 套穿搭} other {已评价 {count} 套穿搭}}",
+    "rateMoreOutfits": "再多评几套",
+    "rateOutfitStyles": "评价穿搭风格",
+    "styleRating": "风格评分",
+    "styleSatisfaction": "风格满意度",
+    "suggestionsAccepted": "建议被采纳"
+  },
+  "styleInsights": {
+    "description": "我们对你偏好的了解",
+    "generate": "新洞察",
+    "title": "风格洞察"
+  },
+  "stylePreferences": {
+    "description": "符合你品味的风格",
+    "noData": "反馈还不够多，暂时无法确定风格偏好。",
+    "title": "学到的风格偏好"
+  },
+  "subtitle": "AI 如何从你的反馈中学习",
+  "subtitleEmpty": "开始评价穿搭，帮助 AI 了解你的偏好",
+  "successRate": "{percent}% 成功率",
+  "suggestedUpdates": {
+    "addToAvoid": "添加到不喜欢的颜色：",
+    "addToFavorites": "添加到喜欢的颜色：",
+    "description": "根据你的反馈，我们建议更新你的偏好设置",
+    "title": "建议更新偏好",
+    "updatePreferences": "更新偏好"
+  },
+  "timesPaired": "搭配{count}次",
+  "title": "AI 学习",
+  "weatherPreferences": {
+    "description": "你在不同天气下的穿着习惯",
+    "layers": "约 {count} 层",
+    "title": "天气偏好"
+  }
+}

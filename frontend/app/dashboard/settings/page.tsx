@@ -166,6 +166,8 @@ function StyleSlider({
 
 export default function SettingsPage() {
   const t = useTranslations('settings');
+  const tc = useTranslations('common');
+  const tConst = useTranslations('constants');
   const occasions = useOccasions();
   const { data: session } = useSession();
   const { data: preferences, isLoading } = usePreferences();
@@ -341,17 +343,17 @@ export default function SettingsPage() {
     const lon = parseFloat(locationLon);
 
     if (isNaN(lat) || isNaN(lon)) {
-      toast.error(t('location.errors.saveFailed'));
+      toast.error(t('location.errors.invalidCoordinates'));
       return;
     }
 
     if (lat < -90 || lat > 90) {
-      toast.error(t('location.errors.saveFailed'));
+      toast.error(t('location.errors.latitudeRange'));
       return;
     }
 
     if (lon < -180 || lon > 180) {
-      toast.error(t('location.errors.saveFailed'));
+      toast.error(t('location.errors.longitudeRange'));
       return;
     }
 
@@ -431,7 +433,7 @@ export default function SettingsPage() {
       if (numericKeys.includes(key)) {
         const num = parseFloat(trimmed);
         if (isNaN(num) || num <= 0) {
-          toast.error(`${key.charAt(0).toUpperCase() + key.slice(1)} must be a positive number`);
+          toast.error(t('body.errors.positiveNumber', { field: t(`body.fields.${key}`) }));
           return;
         }
         parsed[key] = convertMeasurement(num, key, unitSystem, 'metric');
@@ -444,9 +446,9 @@ export default function SettingsPage() {
         body_measurements: Object.keys(parsed).length > 0 ? parsed : null,
       });
       setMeasurementsDirty(false);
-      toast.success(t('body.saveMeasurements'));
+      toast.success(t('body.saved'));
     } catch (e) {
-      toast.error(getErrorMessage(e, t('preferencesSaveError')));
+      toast.error(getErrorMessage(e, t('body.saveError')));
     }
   };
 
@@ -560,7 +562,7 @@ export default function SettingsPage() {
             ) : (
               <Save className="mr-2 h-4 w-4" />
             )}
-            {t('save')}
+            {tc('save')}
           </Button>
         </div>
       </div>
@@ -603,7 +605,7 @@ export default function SettingsPage() {
               <Input
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
-                placeholder="e.g., London, UK"
+                placeholder={t('location.cityPlaceholder')}
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -635,21 +637,21 @@ export default function SettingsPage() {
                   <SelectValue placeholder={t('location.selectTimezone')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="UTC">UTC</SelectItem>
-                  <SelectItem value="America/New_York">Eastern Time (US)</SelectItem>
-                  <SelectItem value="America/Chicago">Central Time (US)</SelectItem>
-                  <SelectItem value="America/Denver">Mountain Time (US)</SelectItem>
-                  <SelectItem value="America/Los_Angeles">Pacific Time (US)</SelectItem>
-                  <SelectItem value="Europe/London">London (UK)</SelectItem>
-                  <SelectItem value="Europe/Paris">Paris (EU Central)</SelectItem>
-                  <SelectItem value="Europe/Berlin">Berlin (EU Central)</SelectItem>
-                  <SelectItem value="Asia/Tokyo">Tokyo (Japan)</SelectItem>
-                  <SelectItem value="Asia/Shanghai">Shanghai (China)</SelectItem>
-                  <SelectItem value="Asia/Kolkata">India (IST)</SelectItem>
-                  <SelectItem value="Asia/Kathmandu">Nepal (NPT)</SelectItem>
-                  <SelectItem value="Asia/Dubai">Dubai (UAE)</SelectItem>
-                  <SelectItem value="Australia/Sydney">Sydney (Australia)</SelectItem>
-                  <SelectItem value="Pacific/Auckland">Auckland (NZ)</SelectItem>
+                  <SelectItem value="UTC">{tConst('timezones.UTC')}</SelectItem>
+                  <SelectItem value="America/New_York">{tConst('timezones.America/New_York')}</SelectItem>
+                  <SelectItem value="America/Chicago">{tConst('timezones.America/Chicago')}</SelectItem>
+                  <SelectItem value="America/Denver">{tConst('timezones.America/Denver')}</SelectItem>
+                  <SelectItem value="America/Los_Angeles">{tConst('timezones.America/Los_Angeles')}</SelectItem>
+                  <SelectItem value="Europe/London">{tConst('timezones.Europe/London')}</SelectItem>
+                  <SelectItem value="Europe/Paris">{tConst('timezones.Europe/Paris')}</SelectItem>
+                  <SelectItem value="Europe/Berlin">{tConst('timezones.Europe/Berlin')}</SelectItem>
+                  <SelectItem value="Asia/Tokyo">{tConst('timezones.Asia/Tokyo')}</SelectItem>
+                  <SelectItem value="Asia/Shanghai">{tConst('timezones.Asia/Shanghai')}</SelectItem>
+                  <SelectItem value="Asia/Kolkata">{tConst('timezones.Asia/Kolkata')}</SelectItem>
+                  <SelectItem value="Asia/Kathmandu">{tConst('timezones.Asia/Kathmandu')}</SelectItem>
+                  <SelectItem value="Asia/Dubai">{tConst('timezones.Asia/Dubai')}</SelectItem>
+                  <SelectItem value="Australia/Sydney">{tConst('timezones.Australia/Sydney')}</SelectItem>
+                  <SelectItem value="Pacific/Auckland">{tConst('timezones.Pacific/Auckland')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -758,7 +760,7 @@ export default function SettingsPage() {
                 size="sm"
               >
                 {updateUserProfile.isPending ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('body.saving')}</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{tc('saving')}</>
                 ) : (
                   <><Save className="mr-2 h-4 w-4" />{t('body.saveMeasurements')}</>
                 )}
@@ -799,27 +801,27 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <StyleSlider
-              label={t('styleProfile.styles.casual')}
+              label={tConst('styles.casual')}
               value={formData.style_profile?.casual ?? 50}
               onChange={(v) => updateStyleProfile('casual', v)}
             />
             <StyleSlider
-              label={t('styleProfile.styles.formal')}
+              label={tConst('styles.formal')}
               value={formData.style_profile?.formal ?? 50}
               onChange={(v) => updateStyleProfile('formal', v)}
             />
             <StyleSlider
-              label={t('styleProfile.styles.sporty')}
+              label={tConst('styles.sporty')}
               value={formData.style_profile?.sporty ?? 50}
               onChange={(v) => updateStyleProfile('sporty', v)}
             />
             <StyleSlider
-              label={t('styleProfile.styles.minimalist')}
+              label={tConst('styles.minimalist')}
               value={formData.style_profile?.minimalist ?? 50}
               onChange={(v) => updateStyleProfile('minimalist', v)}
             />
             <StyleSlider
-              label={t('styleProfile.styles.bold')}
+              label={tConst('styles.bold')}
               value={formData.style_profile?.bold ?? 50}
               onChange={(v) => updateStyleProfile('bold', v)}
             />
@@ -901,7 +903,7 @@ export default function SettingsPage() {
                 return (
                   <>
                     <div className="space-y-2">
-                      <Label>{t('temperature.coldThreshold')} ({isFahrenheit ? '\u00b0F' : '\u00b0C'})</Label>
+                      <Label>{t('temperature.coldThreshold', { unit: isFahrenheit ? '\u00b0F' : '\u00b0C' })}</Label>
                       <Input
                         type="number"
                         value={isFahrenheit ? Math.round(toF(coldC)) : coldC}
@@ -914,7 +916,7 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>{t('temperature.hotThreshold')} ({isFahrenheit ? '\u00b0F' : '\u00b0C'})</Label>
+                      <Label>{t('temperature.hotThreshold', { unit: isFahrenheit ? '\u00b0F' : '\u00b0C' })}</Label>
                       <Input
                         type="number"
                         value={isFahrenheit ? Math.round(toF(hotC)) : hotC}
@@ -1131,17 +1133,17 @@ export default function SettingsPage() {
                     {endpointTests[index]?.status === 'connected' && endpointTests[index]?.models && (
                       <div className="text-xs space-y-1 p-2 bg-green-50 dark:bg-green-950 rounded overflow-hidden">
                         <p className="font-medium text-green-700 dark:text-green-300">
-                          {endpointTests[index].models?.length} {t('aiEndpoints.modelsAvailable')}
+                          {t('aiEndpoints.modelsAvailable', { count: endpointTests[index].models?.length ?? 0 })}
                         </p>
                         {endpointTests[index].visionModels && endpointTests[index].visionModels!.length > 0 && (
                           <p className="text-green-600 dark:text-green-400 truncate" title={endpointTests[index].visionModels?.join(', ')}>
-                            {t('aiEndpoints.vision')} {endpointTests[index].visionModels?.slice(0, 3).join(', ')}
+                            {t('aiEndpoints.visionModels', { models: endpointTests[index].visionModels?.slice(0, 3).join(', ') ?? '' })}
                             {(endpointTests[index].visionModels?.length || 0) > 3 && '...'}
                           </p>
                         )}
                         {endpointTests[index].textModels && endpointTests[index].textModels!.length > 0 && (
                           <p className="text-green-600 dark:text-green-400 truncate" title={endpointTests[index].textModels?.join(', ')}>
-                            {t('aiEndpoints.text')} {endpointTests[index].textModels?.slice(0, 3).join(', ')}
+                            {t('aiEndpoints.textModels', { models: endpointTests[index].textModels?.slice(0, 3).join(', ') ?? '' })}
                             {(endpointTests[index].textModels?.length || 0) > 3 && '...'}
                           </p>
                         )}
@@ -1162,7 +1164,7 @@ export default function SettingsPage() {
                             updated[index] = { ...updated[index], name: e.target.value };
                             updateField('ai_endpoints', updated);
                           }}
-                          placeholder="e.g., Local Ollama"
+                          placeholder={t('aiEndpoints.placeholders.name')}
                           className="h-8"
                         />
                       </div>
@@ -1235,7 +1237,7 @@ export default function SettingsPage() {
                   ) : (
                     <Save className="h-4 w-4 mr-2" />
                   )}
-                  {t('save')}
+                  {tc('save')}
                 </Button>
               )}
             </div>

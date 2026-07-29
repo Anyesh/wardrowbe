@@ -1,0 +1,59 @@
+{
+  "insights": {
+    "acceptanceTrend": {
+      "description": "시간에 따른 추천 반응 변화",
+      "title": "수락률 추이"
+    },
+    "colorDistribution": {
+      "description": "옷장에서 가장 많은 색상",
+      "noData": "아직 색상 데이터가 없어요",
+      "title": "색상 분포"
+    },
+    "itemTypes": {
+      "description": "의류 유형별 분류",
+      "noData": "아직 아이템이 없어요",
+      "title": "아이템 유형"
+    },
+    "leastWorn": {
+      "description": "이 아이템들을 입어보는 건 어때요",
+      "noData": "계속 기록해 보세요!",
+      "title": "가장 적게 입은"
+    },
+    "mostWorn": {
+      "description": "자주 입는 아이템",
+      "noData": "코디 기록을 시작해 보세요!",
+      "title": "가장 많이 입은"
+    },
+    "neverWorn": {
+      "description": "이 아이템들을 입어볼 때가 됐나요?",
+      "noData": "모든 아이템을 입어봤어요!",
+      "title": "한 번도 안 입은"
+    },
+    "title": "인사이트"
+  },
+  "loadError": "분석 데이터를 불러오지 못했어요. 다시 시도해 주세요.",
+  "percent": "{value}%",
+  "stats": {
+    "acceptanceRate": {
+      "description": "추천 수락 비율",
+      "title": "수락률"
+    },
+    "avgRating": "평균 평점: {rating}/5",
+    "outfitsGenerated": {
+      "description": "이번 주 {count}개",
+      "title": "생성된 코디"
+    },
+    "totalItems": {
+      "description": "바로 입을 수 있는 {count}개",
+      "title": "전체 아이템"
+    },
+    "totalWears": {
+      "description": "코디를 기록하세요",
+      "noData": "아직 데이터가 없어요",
+      "title": "총 착용 횟수"
+    }
+  },
+  "subtitle": "옷장 인사이트와 통계",
+  "title": "분석",
+  "wearCount": "{count}회"
+}

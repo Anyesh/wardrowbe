@@ -1,0 +1,170 @@
+{
+  "bulkActions": {
+    "deleteError": "コーデの削除に失敗しました",
+    "deletePartialFailed": "{count, plural, one {# 件のコーデ} other {# 件のコーデ}}の削除に失敗しました",
+    "deleteSuccess": "{count, plural, one {# 件のコーデ} other {# 件のコーデ}}を削除しました",
+    "select": "選択"
+  },
+  "bulkDelete": {
+    "confirmDescription": "選択したコーデを完全に削除します。この操作は取り消せません。",
+    "confirmTitle": "{count, plural, one {# 件のコーデ} other {# 件のコーデ}}を削除しますか？",
+    "confirmTitleAll": "すべての{count, plural, one {# 件のコーデ} other {# 件のコーデ}}を削除しますか？"
+  },
+  "calendar": {
+    "legendOnDemand": "オンデマンド",
+    "legendScheduled": "スケジュール",
+    "monthlyCount": "今月{count, plural, one {# 件のコーデ} other {# 件のコーデ}}",
+    "noOutfitsOnDay": "この日のコーデはありません",
+    "outfitCount": "{count, plural, one {# 件のコーデ} other {# 件のコーデ}}",
+    "weekDays": {
+      "fri": "金",
+      "mon": "月",
+      "sat": "土",
+      "sun": "日",
+      "thu": "木",
+      "tue": "火",
+      "wed": "水"
+    }
+  },
+  "canvas": {
+    "empty": "下のアイテムをタップしてコーデを作り始めましょう",
+    "removeItem": "{name}を外す"
+  },
+  "cards": {
+    "ai": "AI",
+    "lookbookTemplate": "ルックブック",
+    "outfitFallback": "{occasion}コーデ",
+    "pairing": "ペアリング",
+    "replacement": "差し替え",
+    "studio": "スタジオ",
+    "worn": "着用済み"
+  },
+  "cloneToLookbook": {
+    "description": "このコーデに名前を付けて、後から見つけてまた着られるようにしましょう。",
+    "errorEmpty": "名前を入力してください",
+    "name": "名前",
+    "namePlaceholder": "金曜のブランチ",
+    "saveError": "ルックブックへの保存に失敗しました",
+    "saved": "ルックブックに保存しました",
+    "title": "ルックブックに保存"
+  },
+  "detail": {
+    "addedToToday": "今日のコーデに追加しました",
+    "backToOutfits": "コーデ一覧に戻る",
+    "deleteConfirm": "このコーデを削除しますか？この操作は取り消せません。",
+    "deleteError": "削除に失敗しました",
+    "deleted": "コーデを削除しました",
+    "items": "アイテム（{count}）",
+    "lookbookTemplate": "ルックブック",
+    "notWornYet": "このコーデはまだ着用していません。「今日着る」をクリックして記録しましょう。",
+    "saveToLookbook": "ルックブックに保存",
+    "seeAll": "すべて見る",
+    "stylingTip": "ヒント：",
+    "undated": "日付なし",
+    "wearToday": "今日着る",
+    "wearTodayError": "着用の記録に失敗しました",
+    "wornCount": "{count, plural, one {# 回着用} other {# 回着用}}"
+  },
+  "details": {
+    "addedItems": "AIが{count, plural, one {# 件のアイテム} other {# 件のアイテム}}を追加しました",
+    "aiAssistError": "先にアイテムを1つ以上とシーンを選んでください",
+    "aiFailed": "AIアシストに失敗しました",
+    "aiNoSuggestions": "AIから新たに提案できるアイテムはありませんでした",
+    "aiThinking": "AIが考え中...",
+    "letAiFinish": "AIに仕上げてもらう",
+    "name": "名前",
+    "namePlaceholder": "金曜のブランチ",
+    "nameRequired": "（ルックブックには必須）",
+    "occasion": "シーン",
+    "pickOccasion": "保存する前にシーンを選んでください。",
+    "skippedItem": "{name}をスキップ：{reason}",
+    "warnings": {
+      "multipleBottoms": "ボトムスが複数選択されています。",
+      "noBottoms": "ボトムスが選択されていません。",
+      "noFootwear": "靴が選択されていません。",
+      "noTop": "トップスが選択されていません。"
+    }
+  },
+  "empty": {
+    "ai": "AIの提案はまだありません。",
+    "all": "コーデはまだありません。最初の一着を作りましょう！",
+    "myLooks": "ルックブックのテンプレートはまだありません。",
+    "pairings": "ペアリングはまだありません。",
+    "replacements": "差し替えコーデはまだありません。",
+    "worn": "着用したコーデはまだありません。"
+  },
+  "filters": {
+    "ai": "AI",
+    "all": "すべて",
+    "lookbook": "ルックブック",
+    "pairings": "ペアリング",
+    "replacements": "差し替え",
+    "worn": "着用済み"
+  },
+  "itemPicker": {
+    "loadingMore": "読み込み中...",
+    "noItems": "アイテムが見つかりません",
+    "noMatch": "検索に一致するアイテムがありません",
+    "search": "ワードローブを検索...",
+    "showingAll": "{count, plural, one {# 件のアイテム} other {# 件のアイテム}}をすべて表示中"
+  },
+  "lineage": {
+    "fromLookbook": "ルックブックの「{name}」から作成",
+    "replaces": "{occasion}の提案の差し替え",
+    "replacesWithDate": "{date}の{occasion}の提案の差し替え"
+  },
+  "loadError": "コーデの読み込みに失敗しました",
+  "loadMore": "もっと見る",
+  "new": {
+    "discardChanges": "変更を破棄",
+    "draft": {
+      "found": "前回の未保存の下書きがあります。再開しますか？",
+      "resume": "再開",
+      "startFresh": "新規作成"
+    },
+    "editOutfit": "コーデを編集",
+    "errors": {
+      "backToOutfits": "コーデ一覧に戻る",
+      "cannotEdit": "このコーデは編集できません",
+      "couldNotLoad": "このコーデを読み込めませんでした",
+      "couldNotLoadDesc": "セッションの有効期限が切れたか、このコーデが別のアカウントのものである可能性があります。",
+      "genericError": "このコーデの読み込み中に問題が発生しました。接続を確認してもう一度お試しください。",
+      "notFound": "コーデが見つかりません",
+      "notFoundDesc": "このコーデはすでに存在しません。別のタブやデバイスから削除された可能性があります。"
+    },
+    "nameRequired": "保存する前にルックブックの名前を入力してください",
+    "outfitUpdated": "コーデを更新しました",
+    "saveChanges": "変更を保存",
+    "saveError": "コーデの保存に失敗しました",
+    "saveToLookbook": "ルックブックに保存",
+    "savedAndMarkedWorn": "保存して着用済みにしました",
+    "savedToLookbook": "ルックブックに保存しました",
+    "studio": "スタジオ",
+    "tabs": {
+      "canvas": "キャンバス",
+      "details": "詳細",
+      "emptyWardrobe": "ワードローブにアイテムがありません。先にアイテムを追加してください。",
+      "yourWardrobe": "あなたのワードローブ"
+    },
+    "validation": {
+      "needItem": "アイテムを1つ以上選んでください",
+      "needItemAndOccasion": "アイテムを1つ以上とシーンを選んでください",
+      "needOccasion": "シーンを選んでください"
+    },
+    "wearToday": "今日着る",
+    "worn": {
+      "backToOutfit": "コーデに戻る",
+      "description": "着用済みのコーデは着用履歴の一部のため編集できません。",
+      "saveAsNew": "新規として保存",
+      "title": "このコーデは着用済みです"
+    }
+  },
+  "newOutfit": "新しいコーデ",
+  "search": "ルックブックを検索...",
+  "subtitle": "あなたのコーデ、着用履歴、AIの提案",
+  "title": "コーデ",
+  "totalCount": "合計 {count}",
+  "viewCalendar": "カレンダー",
+  "viewList": "リスト",
+  "viewToggle": "表示切替"
+}

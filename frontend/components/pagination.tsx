@@ -12,7 +12,7 @@ interface PaginationProps {
 }
 
 export function Pagination({ page, total, pageSize, onPageChange }: PaginationProps) {
-  const t = useTranslations('shared.pagination');
+  const t = useTranslations('common');
   const totalPages = Math.ceil(total / pageSize);
 
   if (totalPages <= 1) {
@@ -40,7 +40,7 @@ export function Pagination({ page, total, pageSize, onPageChange }: PaginationPr
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <span className="px-4 text-sm text-muted-foreground">
-        {t('pageOfTotal', { current: page, total: totalPages })}
+        {t('pageOf', { page, totalPages })}
       </span>
       <Button
         variant="outline"

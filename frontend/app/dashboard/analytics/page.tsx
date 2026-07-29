@@ -96,6 +96,7 @@ function LoadingSkeleton() {
 }
 
 function ColorBar({ color, percentage }: { color: string; percentage: number }) {
+  const t = useTranslations('analytics');
   const colorMap: Record<string, string> = {
     black: 'bg-gray-900',
     white: 'bg-gray-100 border',
@@ -129,7 +130,7 @@ function ColorBar({ color, percentage }: { color: string; percentage: number }) 
       <div className="flex-1">
         <div className="flex justify-between text-sm mb-1">
           <span className="capitalize">{color}</span>
-          <span className="text-muted-foreground">{percentage.toFixed(1)}%</span>
+          <span className="text-muted-foreground">{t('percent', { value: percentage.toFixed(1) })}</span>
         </div>
         <Progress value={percentage} className="h-2" />
       </div>
@@ -138,6 +139,7 @@ function ColorBar({ color, percentage }: { color: string; percentage: number }) 
 }
 
 function ItemCard({ item }: { item: { id: string; name: string | null; type: string; thumbnail_url: string | null; wear_count: number } }) {
+  const t = useTranslations('analytics');
   return (
     <Link
       href={`/dashboard/wardrobe?item=${item.id}`}
@@ -162,12 +164,13 @@ function ItemCard({ item }: { item: { id: string; name: string | null; type: str
         <p className="font-medium truncate">{item.name || item.type}</p>
         <p className="text-sm text-muted-foreground capitalize">{item.type}</p>
       </div>
-      <Badge variant="secondary">{item.wear_count}x</Badge>
+      <Badge variant="secondary">{t('wearCount', { count: item.wear_count })}</Badge>
     </Link>
   );
 }
 
 function AcceptanceTrendChart({ data }: { data: { period: string; rate: number; total: number }[] }) {
+  const t = useTranslations('analytics');
   const maxTotal = Math.max(...data.map((d) => d.total), 1);
 
   return (
@@ -186,7 +189,7 @@ function AcceptanceTrendChart({ data }: { data: { period: string; rate: number; 
               />
             </div>
             {week.total > 0 && (
-              <span className="text-xs text-muted-foreground">{week.rate.toFixed(0)}%</span>
+              <span className="text-xs text-muted-foreground">{t('percent', { value: week.rate.toFixed(0) })}</span>
             )}
           </div>
         </div>
@@ -244,7 +247,7 @@ export default function AnalyticsPage() {
         />
         <StatCard
           title={t('stats.acceptanceRate.title')}
-          value={wardrobe.acceptance_rate ? `${wardrobe.acceptance_rate}%` : '-'}
+          value={wardrobe.acceptance_rate ? t('percent', { value: wardrobe.acceptance_rate }) : '-'}
           description={wardrobe.acceptance_rate ? t('stats.acceptanceRate.description') : t('stats.totalWears.noData')}
           icon={TrendingUp}
           trend={wardrobe.acceptance_rate && wardrobe.acceptance_rate > 50 ? 'up' : undefined}

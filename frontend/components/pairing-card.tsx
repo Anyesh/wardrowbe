@@ -32,7 +32,7 @@ interface PairingCardProps {
 }
 
 export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps) {
-  const t = useTranslations('cards.pairing');
+  const t = useTranslations('pairings.card');
   const deletePairing = useDeletePairing();
 
   const handleDelete = async () => {

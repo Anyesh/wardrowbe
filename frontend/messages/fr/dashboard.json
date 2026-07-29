@@ -1,0 +1,66 @@
+{
+  "familyFeed": {
+    "browse": "Parcourir les tenues de la famille",
+    "description": "Voyez ce que votre famille porte et notez leurs tenues",
+    "memberCount": "{count, plural, one {{count} membre dans {name}} other {{count} membres dans {name}}}",
+    "title": "Tenues de la famille"
+  },
+  "insights": {
+    "empty": "Ajoutez plus de vêtements et générez des tenues pour voir des analyses personnalisées !",
+    "title": "Analyses"
+  },
+  "layout": {
+    "loading": "Chargement de votre garde-robe..."
+  },
+  "nextScheduled": {
+    "comingUp": "À venir",
+    "dayAtTime": "{day} à {time}",
+    "noSchedules": "Aucune programmation configurée",
+    "occasionOutfit": "Tenue {occasion}",
+    "setUpSchedule": "Configurer un programme",
+    "title": "Prochaine programmation",
+    "today": "Aujourd'hui",
+    "tomorrow": "Demain"
+  },
+  "notifications": {
+    "activeCount": "{active} sur {total} actifs",
+    "addChannel": "Ajouter un canal",
+    "configure": "Configurer",
+    "noChannels": "Aucun canal configuré",
+    "title": "Notifications"
+  },
+  "pendingOutfits": {
+    "acceptFailed": "Échec de l'acceptation de la tenue",
+    "accepted": "Tenue acceptée",
+    "allCaughtUp": "Tout est à jour",
+    "dismissFailed": "Impossible d’ignorer la tenue",
+    "dismissLabel": "Ignorer la tenue",
+    "dismissed": "Tenue ignorée",
+    "lookbook": "Lookbook",
+    "noPending": "Aucune tenue en attente de votre réponse",
+    "title": "Tenues en attente"
+  },
+  "quickActions": {
+    "addNewItem": "Ajouter un vêtement",
+    "description": "Actions courantes pour bien démarrer",
+    "getOutfitSuggestion": "Obtenir une suggestion de tenue",
+    "title": "Actions rapides"
+  },
+  "subtitle": "Voici les dernières nouvelles de votre garde-robe",
+  "userFallback": "Utilisateur",
+  "weather": {
+    "feelsLike": "ressenti {temp}",
+    "getOutfitSuggestion": "Obtenir une suggestion de tenue",
+    "locationNotSet": "Localisation non définie",
+    "rainChance": "{percent}% de chance de pluie",
+    "setLocation": "Définir la localisation",
+    "title": "Météo du jour"
+  },
+  "weeklySummary": {
+    "accepted": "acceptées",
+    "avgRatingValue": "Note moyenne : {rating}/5",
+    "outfits": "tenues",
+    "title": "Cette semaine"
+  },
+  "welcomeBack": "Bon retour, {name}"
+}

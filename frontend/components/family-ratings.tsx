@@ -43,7 +43,7 @@ interface FamilyRatingFormProps {
 }
 
 export function FamilyRatingForm({ outfitId, existingRating, onSuccess }: FamilyRatingFormProps) {
-  const t = useTranslations('cards.familyRatings');
+  const t = useTranslations('family.ratings');
   const [rating, setRating] = useState(existingRating?.rating ?? 0);
   const [comment, setComment] = useState(existingRating?.comment ?? '');
   const submitRating = useSubmitFamilyRating();
@@ -108,7 +108,7 @@ interface FamilyRatingsDisplayProps {
 }
 
 export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: FamilyRatingsDisplayProps) {
-  const t = useTranslations('cards.familyRatings');
+  const t = useTranslations('family.ratings');
   const deleteRating = useDeleteFamilyRating();
 
   if (ratings.length === 0) return null;

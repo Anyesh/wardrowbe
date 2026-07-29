@@ -1,0 +1,102 @@
+{
+  "createFamily": "Créer une famille",
+  "createFamilyDesc": "Créez une nouvelle famille et invitez des membres",
+  "editName": "Modifier le nom",
+  "familyName": "Nom de la famille",
+  "familyNameExample": "ex. La famille Dupont",
+  "familyNamePlaceholder": "Nom de la famille",
+  "familyOutfits": {
+    "description": "Parcourez et notez les tenues des membres de votre famille",
+    "openFeed": "Ouvrir le fil familial",
+    "title": "Tenues de la famille"
+  },
+  "feed": {
+    "lookbook": "Lookbook",
+    "noFamily": {
+      "description": "Créez ou rejoignez une famille pour parcourir et noter les tenues de chacun.",
+      "setUpFamily": "Configurer la famille",
+      "title": "Rejoignez d'abord une famille"
+    },
+    "noMembers": {
+      "description": "Invitez des membres de votre famille pour commencer à parcourir et noter les tenues de chacun.",
+      "inviteMembers": "Inviter des membres",
+      "manageFamily": "Gérer la famille",
+      "title": "Aucun autre membre pour le moment"
+    },
+    "noOutfits": {
+      "description": "{member} n'a pas encore reçu de recommandations de tenues. Revenez plus tard !",
+      "title": "Aucune tenue pour le moment"
+    },
+    "rateOutfit": "Noter la tenue de {member}",
+    "ratingCount": "({count, plural, one {{count} note} other {{count} notes}})",
+    "sourceBadges": {
+      "manual": "Manuel",
+      "onDemand": "À la demande",
+      "pairing": "Combinaison",
+      "scheduled": "Planifié"
+    },
+    "subtitle": "Parcourez et notez les tenues des membres de votre famille",
+    "title": "Fil familial",
+    "unknownMember": "Ce membre",
+    "unknownMemberShort": "ce membre"
+  },
+  "invalidInviteCode": "Code d'invitation invalide. Veuillez vérifier et réessayer.",
+  "inviteCode": "Code d'invitation",
+  "inviteCodeExample": "ex. ABC123XY",
+  "inviteCodeSection": {
+    "description": "Partagez ce code avec les membres de votre famille pour qu'ils puissent rejoindre",
+    "title": "Code d'invitation"
+  },
+  "inviteEmailPlaceholder": "email@exemple.com",
+  "joinFamily": "Rejoindre une famille",
+  "joinFamilyDesc": "Rejoindre une famille existante avec un code d'invitation",
+  "leaveConfirm": {
+    "description": "Êtes-vous sûr de vouloir quitter {name} ? Vous pourrez rejoindre à nouveau plus tard avec un code d'invitation.",
+    "title": "Quitter la famille ?"
+  },
+  "leaveFamily": "Quitter la famille",
+  "members": {
+    "description": "Personnes dans votre famille",
+    "removeConfirm": {
+      "description": "Êtes-vous sûr de vouloir supprimer {name} de la famille ?",
+      "title": "Retirer le membre ?"
+    },
+    "title": "Membres"
+  },
+  "pendingInvites": {
+    "description": "Invitations qui n'ont pas encore été acceptées",
+    "expires": "Expire le {date}",
+    "title": "Invitations en attente"
+  },
+  "ratings": {
+    "addComment": "Ajouter un commentaire (optionnel)",
+    "ratingRemoved": "Note supprimée",
+    "ratingSubmitted": "Note soumise !",
+    "ratingUpdated": "Note mise à jour !",
+    "removeError": "Échec de la suppression de la note",
+    "selectRating": "Veuillez sélectionner une note",
+    "submitError": "Échec de l'envoi de la note",
+    "submitRating": "Soumettre la note",
+    "updateRating": "Mettre à jour la note",
+    "yourRating": "Votre note :"
+  },
+  "roles": {
+    "admin": "Administrateur",
+    "member": "Membre"
+  },
+  "sendInvite": "Envoyer une invitation",
+  "sendInviteDesc": "Inviter quelqu'un par e-mail",
+  "subtitle": "Créez ou rejoignez une famille pour partager votre expérience garde-robe",
+  "title": "Famille",
+  "toasts": {
+    "codeRegenerateFailed": "Échec de la génération d’un nouveau code. Veuillez réessayer.",
+    "codeRegenerated": "Nouveau code d'invitation généré !",
+    "createFailed": "Échec de la création de la famille. Veuillez réessayer.",
+    "created": "Famille créée !",
+    "inviteFailed": "Échec de l'envoi de l'invitation",
+    "inviteSent": "Invitation envoyée !",
+    "joined": "Famille rejointe !",
+    "nameUpdateFailed": "Échec de la mise à jour du nom de la famille",
+    "nameUpdated": "Nom de la famille mis à jour"
+  }
+}

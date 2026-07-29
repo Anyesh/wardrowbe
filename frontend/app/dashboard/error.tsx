@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useTranslations } from 'next-intl';
 
 export default function DashboardError({
   error,
@@ -12,6 +13,9 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations('errors');
+  const tc = useTranslations('common');
+
   useEffect(() => {
     console.error('Dashboard error:', error);
   }, [error]);
@@ -25,15 +29,14 @@ export default function DashboardError({
               <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
             <h2 className="text-xl font-semibold mb-2">
-              Failed to load this page
+              {t('pageLoad.title')}
             </h2>
             <p className="text-muted-foreground mb-6 max-w-sm">
-              We encountered an error loading this content. This might be a
-              temporary issue.
+              {t('pageLoad.description')}
             </p>
             <Button onClick={reset}>
               <RefreshCw className="w-4 h-4 mr-2" />
-              Try Again
+              {tc('tryAgain')}
             </Button>
             {process.env.NODE_ENV === 'development' && (
               <pre className="mt-6 p-4 bg-muted rounded-lg text-left text-xs overflow-auto max-h-48 w-full">

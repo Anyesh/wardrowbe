@@ -114,7 +114,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
               </li>
               <li>
                 <div className="text-xs font-semibold leading-6 text-muted-foreground">
-                  {t('settingsLabel')}
+                  {t('settingsSection')}
                 </div>
                 <ul role="list" className="-mx-2 mt-2 space-y-1">
                   {secondaryNavigation.map((item) => {

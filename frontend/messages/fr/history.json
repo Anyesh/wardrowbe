@@ -1,0 +1,47 @@
+{
+  "card": {
+    "accept": "Accepter",
+    "acceptFailed": "Échec de l'acceptation de la tenue",
+    "didntWearThis": "Pas porté celle-ci",
+    "dismiss": "Ignorer",
+    "dismissFailed": "Impossible d’ignorer la tenue",
+    "familyLabel": "Famille :",
+    "itemFallback": "Article",
+    "outfitAccepted": "Tenue acceptée",
+    "outfitDismissed": "Tenue ignorée",
+    "rate": "Noter",
+    "tip": "Conseil :",
+    "update": "Mettre à jour",
+    "viewItemDetails": "Voir les détails de l'article",
+    "woreInstead": "Porté à la place :"
+  },
+  "empty": {
+    "description": "Votre historique de recommandations de tenues apparaîtra ici une fois que vous commencerez à recevoir des suggestions.",
+    "getFirstSuggestion": "Obtenir votre première suggestion",
+    "title": "Aucun historique de recommandations"
+  },
+  "filters": {
+    "allOccasions": "Toutes les occasions",
+    "allStatus": "Tous les statuts",
+    "workout": "Sport"
+  },
+  "loadError": "Échec du chargement de l'historique. Veuillez réessayer.",
+  "noOutfitsForDate": "Aucune tenue pour le {date}",
+  "outfitCount": "{count, plural, one {# tenue} other {# tenues}}",
+  "sourceBadges": {
+    "manual": "Manuel",
+    "onDemand": "À la demande",
+    "pairing": "Combinaison",
+    "scheduled": "Planifié"
+  },
+  "status": {
+    "accepted": "Accepté",
+    "expired": "Expiré",
+    "pending": "En attente",
+    "rejected": "Rejeté",
+    "sent": "Envoyé",
+    "viewed": "Consulté"
+  },
+  "subtitle": "Consultez vos recommandations de tenues passées",
+  "title": "Historique"
+}

@@ -1,0 +1,94 @@
+{
+  "channels": {
+    "addChannel": "Ajouter un canal",
+    "addFailed": "Échec de l'ajout du canal",
+    "channelAdded": "Canal ajouté",
+    "channelDeleted": "Canal supprimé",
+    "channelDisabled": "Canal désactivé",
+    "channelEnabled": "Canal activé",
+    "channelType": "Type de canal",
+    "deleteConfirm": {
+      "description": "Cela supprimera ce canal de notification et arrêtera toutes les notifications envoyées via celui-ci.",
+      "title": "Supprimer le canal de notification ?"
+    },
+    "description": "Ajoutez des canaux pour recevoir vos recommandations de tenues quotidiennes",
+    "dialog": {
+      "description": "Configurez une nouvelle façon de recevoir des recommandations de tenues.",
+      "title": "Canal de notification"
+    },
+    "fields": {
+      "accessToken": "Jeton d'accès",
+      "emailAddress": "Adresse e-mail *",
+      "serverUrl": "URL du serveur",
+      "topic": "Sujet *",
+      "webhookUrl": "URL du webhook *"
+    },
+    "helpers": {
+      "accessTokenOptional": "Requis si votre serveur ntfy utilise l'authentification",
+      "mattermostWebhook": "Créez un webhook entrant dans les paramètres Mattermost",
+      "topicSubscribe": "Abonnez-vous à ce sujet dans votre application ntfy"
+    },
+    "noChannels": "Aucun canal de notification configuré",
+    "noChannelsDesc": "Ajoutez un canal pour commencer à recevoir des suggestions de tenues",
+    "placeholders": {
+      "accessToken": "tk_...",
+      "emailAddress": "vous@exemple.com"
+    },
+    "priority": "Priorité {level}",
+    "test": "Tester",
+    "testFailed": "Échec de l'envoi de la notification de test",
+    "testSent": "Notification de test envoyée",
+    "title": "Canaux de notification",
+    "types": {
+      "email": "E-mail",
+      "mattermost": "Mattermost",
+      "ntfy": "Notifications push ntfy"
+    },
+    "validation": {
+      "emailRequired": "L'adresse e-mail est requise",
+      "topicRequired": "Le sujet est requis pour ntfy",
+      "webhookRequired": "L'URL du webhook est requise pour Mattermost"
+    },
+    "webhookConfigured": "Webhook configuré"
+  },
+  "days": {
+    "friday": "Vendredi",
+    "monday": "Lundi",
+    "saturday": "Samedi",
+    "sunday": "Dimanche",
+    "thursday": "Jeudi",
+    "tuesday": "Mardi",
+    "wednesday": "Mercredi"
+  },
+  "deleteFailed": "Échec de la suppression",
+  "schedule": {
+    "addFailed": "Échec de l'ajout de l'horaire",
+    "addSchedule": "Ajouter un horaire",
+    "dayLabel": "Jour",
+    "deleteConfirm": {
+      "description": "Cela supprimera ce programme de livraison.",
+      "title": "Supprimer l'horaire ?"
+    },
+    "description": "Définissez quand vous souhaitez recevoir des recommandations de tenues chaque jour",
+    "dialogDescription": "Configurez quand vous souhaitez recevoir des recommandations.",
+    "noSchedules": "Aucun horaire configuré",
+    "noSchedulesDesc": "Ajoutez un horaire pour recevoir des suggestions de tenues quotidiennes",
+    "notifyDayBefore": "Notifier la veille",
+    "notifyDayBeforeDesc": "Recevez une notification la veille au soir avec les prévisions du lendemain",
+    "notifyDayBeforeInfo": "Vous recevrez la notification {notifyDay} à {time} pour votre tenue de {outfitDay}.",
+    "notifyDayEvening": "{day} soir",
+    "occasionLabel": "Occasion",
+    "scheduleAdded": "Horaire ajouté",
+    "scheduleDeleted": "Horaire supprimé",
+    "scheduleDisabled": "Horaire désactivé",
+    "scheduleEnabled": "Horaire activé",
+    "summary": "{time} - {occasion}",
+    "timeLabel": "Heure",
+    "title": "Horaires de livraison",
+    "willNotifyDayBefore": "Notification la veille",
+    "willNotifySameDay": "Notification le jour même"
+  },
+  "subtitle": "Configurez comment et quand vous recevez des recommandations de tenues",
+  "title": "Notifications",
+  "updateFailed": "Échec de la mise à jour"
+}

@@ -1,0 +1,170 @@
+{
+  "bulkActions": {
+    "deleteError": "Eliminazione outfit fallita",
+    "deletePartialFailed": "Impossibile eliminare {count, plural, one {# outfit} other {# outfit}}",
+    "deleteSuccess": "{count, plural, one {# outfit eliminato} other {# outfit eliminati}}",
+    "select": "Seleziona"
+  },
+  "bulkDelete": {
+    "confirmDescription": "Questo eliminerà definitivamente gli outfit selezionati. Questa azione non può essere annullata.",
+    "confirmTitle": "Eliminare {count, plural, one {# outfit} other {# outfit}}?",
+    "confirmTitleAll": "{count, plural, one {Eliminare # outfit?} other {Eliminare tutti gli outfit (#)?}}"
+  },
+  "calendar": {
+    "legendOnDemand": "Su richiesta",
+    "legendScheduled": "Programmato",
+    "monthlyCount": "{count, plural, one {# outfit} other {# outfit}} questo mese",
+    "noOutfitsOnDay": "Nessun outfit in questo giorno",
+    "outfitCount": "{count, plural, one {# outfit} other {# outfit}}",
+    "weekDays": {
+      "fri": "Ve",
+      "mon": "Lu",
+      "sat": "Sa",
+      "sun": "Do",
+      "thu": "Gi",
+      "tue": "Ma",
+      "wed": "Me"
+    }
+  },
+  "canvas": {
+    "empty": "Tocca i capi qui sotto per iniziare a comporre il tuo outfit",
+    "removeItem": "Rimuovi {name}"
+  },
+  "cards": {
+    "ai": "IA",
+    "lookbookTemplate": "Modello lookbook",
+    "outfitFallback": "Outfit {occasion}",
+    "pairing": "Abbinamento",
+    "replacement": "Sostituzione",
+    "studio": "Studio",
+    "worn": "Indossati"
+  },
+  "cloneToLookbook": {
+    "description": "Dai un nome a questo look per poterlo ritrovare e indossare di nuovo.",
+    "errorEmpty": "Inserisci un nome",
+    "name": "Nome",
+    "namePlaceholder": "Brunch del venerdì",
+    "saveError": "Salvataggio nel lookbook fallito",
+    "saved": "Salvato nel lookbook",
+    "title": "Salva nel lookbook"
+  },
+  "detail": {
+    "addedToToday": "Aggiunto a oggi",
+    "backToOutfits": "Torna agli outfit",
+    "deleteConfirm": "Eliminare questo outfit? Questa azione non può essere annullata.",
+    "deleteError": "Eliminazione fallita",
+    "deleted": "Outfit eliminato",
+    "items": "Capi ({count})",
+    "lookbookTemplate": "Modello lookbook",
+    "notWornYet": "Questo look non è ancora stato indossato. Clicca «Indossa oggi» per registrarlo.",
+    "saveToLookbook": "Salva nel lookbook",
+    "seeAll": "Vedi tutto",
+    "stylingTip": "Suggerimento:",
+    "undated": "Non datato",
+    "wearToday": "Indossa oggi",
+    "wearTodayError": "Impossibile segnare come indossato oggi",
+    "wornCount": "Indossato {count, plural, one {# volta} other {# volte}}"
+  },
+  "details": {
+    "addedItems": "{count, plural, one {# capo aggiunto dall’IA} other {# capi aggiunti dall’IA}}",
+    "aiAssistError": "Scegli almeno un capo e un'occasione prima",
+    "aiFailed": "Assistenza IA fallita",
+    "aiNoSuggestions": "L'IA non aveva nuovi capi da suggerire",
+    "aiThinking": "L'IA sta pensando...",
+    "letAiFinish": "Lascia completare all'IA",
+    "name": "Nome",
+    "namePlaceholder": "Brunch del venerdì",
+    "nameRequired": "(obbligatorio per il lookbook)",
+    "occasion": "Occasione",
+    "pickOccasion": "Scegli un'occasione prima di salvare.",
+    "skippedItem": "{name} saltato: {reason}",
+    "warnings": {
+      "multipleBottoms": "Più bassi selezionati.",
+      "noBottoms": "Nessun basso selezionato.",
+      "noFootwear": "Nessuna calzatura selezionata.",
+      "noTop": "Nessun alto selezionato."
+    }
+  },
+  "empty": {
+    "ai": "Nessun suggerimento IA ancora.",
+    "all": "Nessun outfit ancora. Crea il tuo primo look!",
+    "myLooks": "Nessun modello lookbook ancora.",
+    "pairings": "Nessun abbinamento ancora.",
+    "replacements": "Nessun outfit di sostituzione ancora.",
+    "worn": "Nessun outfit indossato ancora."
+  },
+  "filters": {
+    "ai": "IA",
+    "all": "Tutti",
+    "lookbook": "Lookbook",
+    "pairings": "Abbinamenti",
+    "replacements": "Sostituzioni",
+    "worn": "Indossati"
+  },
+  "itemPicker": {
+    "loadingMore": "Caricamento altro...",
+    "noItems": "Nessun capo trovato",
+    "noMatch": "Nessun capo corrisponde alla tua ricerca",
+    "search": "Cerca nel guardaroba...",
+    "showingAll": "{count, plural, one {Mostrato # capo} other {Mostrati tutti i capi (#)}}"
+  },
+  "lineage": {
+    "fromLookbook": "Dalla tua voce del lookbook {name}",
+    "replaces": "Sostituisce il suggerimento {occasion}",
+    "replacesWithDate": "Sostituisce il suggerimento {occasion} del {date}"
+  },
+  "loadError": "Caricamento outfit fallito",
+  "loadMore": "Carica altro",
+  "new": {
+    "discardChanges": "Scarta modifiche",
+    "draft": {
+      "found": "Hai una bozza non salvata dalla tua ultima sessione. Riprenderla?",
+      "resume": "Riprendi",
+      "startFresh": "Ricomincia da capo"
+    },
+    "editOutfit": "Modifica outfit",
+    "errors": {
+      "backToOutfits": "Torna agli outfit",
+      "cannotEdit": "Non puoi modificare questo outfit",
+      "couldNotLoad": "Impossibile caricare questo outfit",
+      "couldNotLoadDesc": "La tua sessione potrebbe essere scaduta o questo outfit appartiene a un altro account.",
+      "genericError": "Qualcosa è andato storto durante il caricamento di questo outfit. Controlla la connessione e riprova.",
+      "notFound": "Outfit non trovato",
+      "notFoundDesc": "Questo outfit non esiste più. Potrebbe essere stato eliminato da un'altra scheda o dispositivo."
+    },
+    "nameRequired": "Dai un nome alla tua voce del lookbook prima di salvare",
+    "outfitUpdated": "Outfit aggiornato",
+    "saveChanges": "Salva modifiche",
+    "saveError": "Salvataggio dell'outfit non riuscito",
+    "saveToLookbook": "Salva nel lookbook",
+    "savedAndMarkedWorn": "Salvato e segnato come indossato",
+    "savedToLookbook": "Salvato nel lookbook",
+    "studio": "Studio",
+    "tabs": {
+      "canvas": "Canvas",
+      "details": "Dettagli",
+      "emptyWardrobe": "Nessun capo nel tuo guardaroba. Aggiungi prima dei capi.",
+      "yourWardrobe": "Il tuo guardaroba"
+    },
+    "validation": {
+      "needItem": "Scegli almeno un capo",
+      "needItemAndOccasion": "Scegli almeno un capo e un'occasione",
+      "needOccasion": "Scegli un'occasione"
+    },
+    "wearToday": "Indossa oggi",
+    "worn": {
+      "backToOutfit": "Torna all'outfit",
+      "description": "Gli outfit indossati non possono essere modificati perché fanno parte della tua cronologia.",
+      "saveAsNew": "Salva come nuovo",
+      "title": "Questo outfit è stato indossato"
+    }
+  },
+  "newOutfit": "Nuovo outfit",
+  "search": "Cerca nel lookbook...",
+  "subtitle": "I tuoi look, outfit indossati e suggerimenti IA",
+  "title": "Outfit",
+  "totalCount": "{count} totali",
+  "viewCalendar": "Calendario",
+  "viewList": "Elenco",
+  "viewToggle": "Cambia vista"
+}

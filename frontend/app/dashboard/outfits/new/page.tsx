@@ -43,6 +43,7 @@ import { computeEditLoadPhase } from '@/lib/studio/edit-load';
 
 export default function StudioEditorPage() {
   const t = useTranslations('outfits');
+  const tc = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit') || undefined;
@@ -225,14 +226,14 @@ export default function StudioEditorPage() {
         mark_worn: markWorn,
       });
       clearDraft();
-      toast.success(markWorn ? t('new.savedAndMarkedWorn') : t('new.saveToLookbook'));
+      toast.success(markWorn ? t('new.savedAndMarkedWorn') : t('new.savedToLookbook'));
       router.push(
         markWorn
           ? '/dashboard/outfits?filter=worn'
           : '/dashboard/outfits?filter=my-looks'
       );
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to save outfit'));
+      toast.error(getErrorMessage(error, t('new.saveError')));
     }
   };
 
@@ -290,7 +291,7 @@ export default function StudioEditorPage() {
         <div className="flex gap-2">
           {!isAuthError && (
             <Button variant="outline" onClick={() => refetchEdit()}>
-              {t('new.errors.tryAgain')}
+              {tc('tryAgain')}
             </Button>
           )}
           <Button asChild>
@@ -336,7 +337,7 @@ export default function StudioEditorPage() {
         <Button variant="ghost" size="sm" asChild>
           <Link href={cancelHref}>
             <ChevronLeft className="h-4 w-4 mr-1" />
-            {t('new.cancel')}
+            {tc('cancel')}
           </Link>
         </Button>
         <h1 className="text-lg font-semibold">

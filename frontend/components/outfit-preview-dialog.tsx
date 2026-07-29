@@ -26,7 +26,9 @@ interface OutfitPreviewDialogProps {
 }
 
 export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: OutfitPreviewDialogProps) {
-  const t = useTranslations('dialogs.outfitPreview');
+  const t = useTranslations('suggest.outfitPreview');
+  const ts = useTranslations('suggest');
+  const tc = useTranslations('common');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageKey, setImageKey] = useState(0); // Force image reload after rotation
   const [showRatingForm, setShowRatingForm] = useState(false);
@@ -256,7 +258,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
               {outfit.style_notes && (
                 <div className="p-3 bg-muted rounded-lg border">
                   <p className="text-sm text-muted-foreground break-words">
-                    <span className="font-medium text-foreground">{t('tip')}</span> {outfit.style_notes}
+                    <span className="font-medium text-foreground">{ts('tip')}</span> {outfit.style_notes}
                   </p>
                 </div>
               )}
@@ -272,8 +274,12 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                   {t('familyRatings.title')}
                   {outfit.family_rating_count != null && outfit.family_rating_count > 0 && (
                     <span className="text-muted-foreground font-normal">
-                      ({outfit.family_rating_average?.toFixed(1)}{' '}
-                      <Star className="h-3 w-3 inline fill-yellow-400 text-yellow-400" /> avg)
+                      {t.rich('familyRatings.average', {
+                        rating: outfit.family_rating_average?.toFixed(1) ?? '',
+                        star: () => (
+                          <Star className="h-3 w-3 inline fill-yellow-400 text-yellow-400" />
+                        ),
+                      })}
                     </span>
                   )}
                 </h3>
@@ -323,7 +329,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
         {/* Close button at bottom - always visible */}
         <div className="border-t p-3 flex-shrink-0">
           <Button variant="outline" className="w-full" onClick={onClose}>
-            {t('close')}
+            {tc('close')}
           </Button>
         </div>
       </DialogContent>

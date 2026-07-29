@@ -13,7 +13,7 @@ import { useTranslations } from 'next-intl';
 
 export function ImageLightbox() {
   const { visible, images, index, currentItemId, close, setIndex } = useLightbox();
-  const t = useTranslations('shared.lightbox');
+  const t = useTranslations('wardrobe.lightbox');
 
   const slides = images.map((img) => ({
     src: img.uri,

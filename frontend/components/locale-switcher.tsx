@@ -1,8 +1,10 @@
 'use client';
 
 import { useTransition } from 'react';
-import { useLocale } from 'next-intl';
-import { Globe } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { Check, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,49 +12,57 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useTranslations } from 'next-intl';
-
-const LOCALES = [
-  { value: 'en', label: 'English' },
-  { value: 'zh', label: '中文' },
-  { value: 'fr', label: 'Français' },
-  { value: 'it', label: 'Italiano' },
-] as const;
+import { useUpdateUserProfile } from '@/lib/hooks/use-user';
+import {
+  LOCALE_COOKIE,
+  LOCALE_COOKIE_MAX_AGE,
+  LOCALE_METADATA,
+  SUPPORTED_LOCALES,
+  type SupportedLocale,
+} from '@/lib/i18n/locales';
 
 export function LocaleSwitcher() {
-  const t = useTranslations('shared.localeSwitcher');
+  const t = useTranslations('nav');
   const currentLocale = useLocale();
+  const router = useRouter();
+  const { status } = useSession();
+  const updateProfile = useUpdateUserProfile();
   const [isPending, startTransition] = useTransition();
 
-  const handleChange = (nextLocale: string) => {
-    document.cookie = `NEXT_LOCALE=${nextLocale};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
+  const handleChange = (nextLocale: SupportedLocale) => {
+    if (nextLocale === currentLocale) return;
+
+    // The cookie is what the server reads on the next render, so it must be set before the
+    // refresh. Persisting to the profile is best-effort, so the choice follows the user to
+    // another browser, but a failure there must not block the language from actually changing.
+    document.cookie = `${LOCALE_COOKIE}=${nextLocale};path=/;max-age=${LOCALE_COOKIE_MAX_AGE};SameSite=Lax`;
+
+    if (status === 'authenticated') {
+      updateProfile.mutate({ locale: nextLocale });
+    }
+
     startTransition(() => {
-      window.location.reload();
+      router.refresh();
     });
   };
-
-  const currentLabel = LOCALES.find((l) => l.value === currentLocale)?.label ?? currentLocale;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={t('label')}
-          disabled={isPending}
-        >
+        <Button variant="ghost" size="icon" aria-label={t('changeLanguage')} disabled={isPending}>
           <Globe className="h-5 w-5" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {LOCALES.map((locale) => (
+        {SUPPORTED_LOCALES.map((locale) => (
           <DropdownMenuItem
-            key={locale.value}
-            onClick={() => handleChange(locale.value)}
-            className={currentLocale === locale.value ? 'bg-accent' : ''}
+            key={locale}
+            onClick={() => handleChange(locale)}
+            lang={locale}
+            className="flex items-center justify-between gap-3"
           >
-            {locale.label}
+            <span>{LOCALE_METADATA[locale].nativeName}</span>
+            {locale === currentLocale && <Check className="h-4 w-4 shrink-0" aria-hidden="true" />}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

@@ -1,0 +1,34 @@
+{
+  "allItemTypes": "전체 아이템 유형",
+  "card": {
+    "badge": "페어링",
+    "builtAround": "중심 아이템:",
+    "deleteError": "페어링 삭제 실패",
+    "deleted": "페어링이 삭제되었어요",
+    "rateThisPairing": "이 페어링 평가하기",
+    "tip": "팁:",
+    "updateRating": "평점 수정"
+  },
+  "empty": {
+    "description": "옷장에서 아이템을 선택하고 \"어울리는 코디 찾기\"를 사용하면 잘 어울리는 코디 조합을 찾을 수 있어요.",
+    "goToWardrobe": "옷장으로 이동",
+    "title": "아직 페어링이 없어요"
+  },
+  "generate": {
+    "description": "AI가 이 아이템을 포함한 완성된 코디를 만들어요",
+    "failed": "페어링 생성 실패",
+    "generate": "코디 생성",
+    "generating": "생성 중...",
+    "numOutfits": "코디 수",
+    "numOutfitsDesc": "코디가 많을수록 다양하지만 생성에 더 오래 걸려요",
+    "success": "{count, plural, one {{count}개 코디 생성!} other {{count}개 코디 생성!}}",
+    "successDesc": "페어링 섹션에서 확인하세요",
+    "title": "어울리는 코디 찾기",
+    "viewPairings": "페어링 보기"
+  },
+  "itemTypeOption": "{type} ({count})",
+  "loadError": "페어링을 불러오지 못했어요. 다시 시도해 주세요.",
+  "pairingCount": "{count, plural, one {{count}개 페어링} other {{count}개 페어링}}",
+  "subtitle": "AI가 생성한 아이템 중심의 코디 조합",
+  "title": "페어링"
+}

@@ -1,0 +1,170 @@
+{
+  "bulkActions": {
+    "deleteError": "코디 삭제 실패",
+    "deletePartialFailed": "{count, plural, other {코디 #개 삭제 실패}}",
+    "deleteSuccess": "{count, plural, other {코디 #개를 삭제했어요}}",
+    "select": "선택"
+  },
+  "bulkDelete": {
+    "confirmDescription": "선택한 코디가 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
+    "confirmTitle": "{count, plural, other {코디 #개를 삭제하시겠어요?}}",
+    "confirmTitleAll": "{count, plural, other {코디 #개 전체를 삭제하시겠어요?}}"
+  },
+  "calendar": {
+    "legendOnDemand": "즉시",
+    "legendScheduled": "예약됨",
+    "monthlyCount": "이번 달 {count, plural, other {코디 #개}}",
+    "noOutfitsOnDay": "이 날에는 코디가 없어요",
+    "outfitCount": "{count, plural, other {코디 #개}}",
+    "weekDays": {
+      "fri": "금",
+      "mon": "월",
+      "sat": "토",
+      "sun": "일",
+      "thu": "목",
+      "tue": "화",
+      "wed": "수"
+    }
+  },
+  "canvas": {
+    "empty": "아래 아이템을 탭해서 코디를 만들어 보세요",
+    "removeItem": "{name} 제거"
+  },
+  "cards": {
+    "ai": "AI",
+    "lookbookTemplate": "룩북 템플릿",
+    "outfitFallback": "{occasion} 코디",
+    "pairing": "페어링",
+    "replacement": "대체",
+    "studio": "스튜디오",
+    "worn": "착용함"
+  },
+  "cloneToLookbook": {
+    "description": "이 룩에 이름을 붙이면 나중에 찾아서 다시 입을 수 있어요.",
+    "errorEmpty": "이름을 입력해 주세요",
+    "name": "이름",
+    "namePlaceholder": "금요일 브런치",
+    "saveError": "룩북 저장 실패",
+    "saved": "룩북에 저장되었어요",
+    "title": "룩북에 저장"
+  },
+  "detail": {
+    "addedToToday": "오늘 코디에 추가되었어요",
+    "backToOutfits": "코디 목록으로",
+    "deleteConfirm": "이 코디를 삭제하시겠어요? 되돌릴 수 없어요.",
+    "deleteError": "삭제 실패",
+    "deleted": "코디가 삭제되었어요",
+    "items": "아이템 ({count})",
+    "lookbookTemplate": "룩북 템플릿",
+    "notWornYet": "이 룩은 아직 입지 않았어요. \"오늘 입기\"를 클릭하여 기록하세요.",
+    "saveToLookbook": "룩북에 저장",
+    "seeAll": "전체 보기",
+    "stylingTip": "팁:",
+    "undated": "날짜 없음",
+    "wearToday": "오늘 입기",
+    "wearTodayError": "오늘 입기 기록 실패",
+    "wornCount": "{count, plural, other {#회 착용}}"
+  },
+  "details": {
+    "addedItems": "AI가 {count, plural, other {아이템 #개}}를 추가했어요",
+    "aiAssistError": "먼저 아이템을 하나 이상 고르고 상황을 선택하세요",
+    "aiFailed": "AI 도움 실패",
+    "aiNoSuggestions": "AI가 추천할 새 아이템이 없었어요",
+    "aiThinking": "AI가 생각 중이에요...",
+    "letAiFinish": "AI에게 맡기기",
+    "name": "이름",
+    "namePlaceholder": "금요일 브런치",
+    "nameRequired": "(룩북에 필요해요)",
+    "occasion": "상황",
+    "pickOccasion": "저장하기 전에 상황을 선택하세요.",
+    "skippedItem": "{name} 건너뜀: {reason}",
+    "warnings": {
+      "multipleBottoms": "하의가 여러 개 선택되었어요.",
+      "noBottoms": "하의가 선택되지 않았어요.",
+      "noFootwear": "신발이 선택되지 않았어요.",
+      "noTop": "상의가 선택되지 않았어요."
+    }
+  },
+  "empty": {
+    "ai": "아직 AI 추천이 없어요.",
+    "all": "아직 코디가 없어요. 첫 룩을 만들어 보세요!",
+    "myLooks": "아직 룩북 템플릿이 없어요.",
+    "pairings": "아직 페어링이 없어요.",
+    "replacements": "아직 대체 코디가 없어요.",
+    "worn": "아직 착용한 코디가 없어요."
+  },
+  "filters": {
+    "ai": "AI",
+    "all": "전체",
+    "lookbook": "룩북",
+    "pairings": "페어링",
+    "replacements": "대체",
+    "worn": "착용함"
+  },
+  "itemPicker": {
+    "loadingMore": "더 불러오는 중...",
+    "noItems": "아이템이 없어요",
+    "noMatch": "검색 결과가 없어요",
+    "search": "옷장 검색...",
+    "showingAll": "{count, plural, other {전체 아이템 #개 표시 중}}"
+  },
+  "lineage": {
+    "fromLookbook": "{name} 룩북 항목에서 가져왔어요",
+    "replaces": "{occasion} 추천을 대체해요",
+    "replacesWithDate": "{date}의 {occasion} 추천을 대체해요"
+  },
+  "loadError": "코디를 불러오지 못했어요",
+  "loadMore": "더 보기",
+  "new": {
+    "discardChanges": "변경사항 취소",
+    "draft": {
+      "found": "지난 세션에서 저장하지 않은 초안이 있어요. 이어서 작성할까요?",
+      "resume": "이어하기",
+      "startFresh": "새로 시작"
+    },
+    "editOutfit": "코디 편집",
+    "errors": {
+      "backToOutfits": "코디 목록으로",
+      "cannotEdit": "이 코디는 편집할 수 없어요",
+      "couldNotLoad": "이 코디를 불러오지 못했어요",
+      "couldNotLoadDesc": "세션이 만료되었거나 이 코디가 다른 계정의 것일 수 있어요.",
+      "genericError": "이 코디를 불러오는 중 문제가 발생했어요. 연결을 확인하고 다시 시도해 주세요.",
+      "notFound": "코디를 찾을 수 없어요",
+      "notFoundDesc": "이 코디는 더 이상 존재하지 않아요. 다른 탭이나 기기에서 삭제되었을 수 있어요."
+    },
+    "nameRequired": "저장하기 전에 룩북 항목의 이름을 입력하세요",
+    "outfitUpdated": "코디가 수정되었어요",
+    "saveChanges": "변경사항 저장",
+    "saveError": "코디 저장 실패",
+    "saveToLookbook": "룩북에 저장",
+    "savedAndMarkedWorn": "저장하고 착용으로 표시했어요",
+    "savedToLookbook": "룩북에 저장되었어요",
+    "studio": "스튜디오",
+    "tabs": {
+      "canvas": "캔버스",
+      "details": "세부 정보",
+      "emptyWardrobe": "옷장에 아직 아이템이 없어요. 먼저 아이템을 추가하세요.",
+      "yourWardrobe": "내 옷장"
+    },
+    "validation": {
+      "needItem": "아이템을 하나 이상 선택하세요",
+      "needItemAndOccasion": "아이템을 하나 이상 고르고 상황을 선택하세요",
+      "needOccasion": "상황을 선택하세요"
+    },
+    "wearToday": "오늘 입기",
+    "worn": {
+      "backToOutfit": "코디로 돌아가기",
+      "description": "착용한 코디는 착용 기록의 일부라서 편집할 수 없어요.",
+      "saveAsNew": "새로 저장",
+      "title": "이미 착용한 코디예요"
+    }
+  },
+  "newOutfit": "새 코디",
+  "search": "룩북 검색...",
+  "subtitle": "내 룩, 착용한 코디, AI 추천",
+  "title": "코디",
+  "totalCount": "총 {count}개",
+  "viewCalendar": "캘린더",
+  "viewList": "목록",
+  "viewToggle": "보기 전환"
+}

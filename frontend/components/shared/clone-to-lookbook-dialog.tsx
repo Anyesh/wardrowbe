@@ -41,7 +41,8 @@ export function CloneToLookbookDialog({
 }: CloneToLookbookDialogProps) {
   const [name, setName] = useState(() => defaultCloneName(sourceOccasion));
   const clone = useCloneToLookbook(sourceOutfitId);
-  const t = useTranslations('dialogs.cloneToLookbook');
+  const t = useTranslations('outfits.cloneToLookbook');
+  const tc = useTranslations('common');
 
   const handleConfirm = async () => {
     const trimmed = name.trim();
@@ -81,13 +82,13 @@ export function CloneToLookbookDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={clone.isPending}>
-            {t('cancel')}
+            {tc('cancel')}
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={clone.isPending || !name.trim()}
           >
-            {clone.isPending ? t('saving') : t('save')}
+            {clone.isPending ? tc('saving') : tc('save')}
           </Button>
         </DialogFooter>
       </DialogContent>

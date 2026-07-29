@@ -10,6 +10,7 @@ export interface UserProfile {
   display_name: string;
   avatar_url?: string;
   timezone: string;
+  locale: string;
   location_lat?: number;
   location_lon?: number;
   location_name?: string;
@@ -22,6 +23,7 @@ export interface UserProfile {
 export interface UserProfileUpdate {
   display_name?: string;
   timezone?: string;
+  locale?: string;
   location_lat?: number;
   location_lon?: number;
   location_name?: string;

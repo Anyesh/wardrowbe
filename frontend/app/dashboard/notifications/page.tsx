@@ -172,6 +172,7 @@ function AddChannelDialog({
   userEmail?: string;
 }) {
   const t = useTranslations('notifications');
+  const tc = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState<'ntfy' | 'mattermost' | 'email'>('ntfy');
   const [config, setConfig] = useState<Record<string, string>>({});
@@ -315,7 +316,7 @@ function AddChannelDialog({
                     type="password"
                     value={config.token || ''}
                     onChange={(e) => setConfig({ ...config, token: e.target.value })}
-                    placeholder="tk_..."
+                    placeholder={t('channels.placeholders.accessToken')}
                   />
                   <p className="text-xs text-muted-foreground">
                     {t('channels.helpers.accessTokenOptional')}
@@ -348,7 +349,7 @@ function AddChannelDialog({
                   type="email"
                   value={config.address || ''}
                   onChange={(e) => setConfig({ ...config, address: e.target.value })}
-                  placeholder="you@example.com"
+                  placeholder={t('channels.placeholders.emailAddress')}
                   required
                 />
               </div>
@@ -356,13 +357,13 @@ function AddChannelDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={closeAndReset} disabled={isLoading}>
-              {t('cancel')}
+              {tc('cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  {t('channels.adding')}
+                  {tc('adding')}
                 </>
               ) : (
                 t('channels.addChannel')
@@ -407,7 +408,10 @@ function ScheduleCard({
           <div>
             <p className="font-medium">{day ? t(`days.${day.key}`) : ''}</p>
             <p className="text-sm text-muted-foreground">
-              {schedule.notification_time} - {occasion?.label || schedule.occasion}
+              {t('schedule.summary', {
+                time: schedule.notification_time,
+                occasion: occasion?.label || schedule.occasion,
+              })}
             </p>
           </div>
         </div>
@@ -432,7 +436,7 @@ function ScheduleCard({
         </div>
         {schedule.notify_day_before && (
           <span className="text-xs text-muted-foreground">
-            {notifyDay ? t(`days.${notifyDay.key}`) : ''} {t('schedule.evening')}
+            {t('schedule.notifyDayEvening', { day: notifyDay ? t(`days.${notifyDay.key}`) : '' })}
           </span>
         )}
       </div>
@@ -456,6 +460,7 @@ function AddScheduleDialog({
   isLoading: boolean;
 }) {
   const t = useTranslations('notifications');
+  const tc = useTranslations('common');
   const occasions = useOccasions();
   const [open, setOpen] = useState(false);
   const [time, setTime] = useState('07:00');
@@ -575,13 +580,13 @@ function AddScheduleDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={closeAndReset} disabled={isLoading}>
-              {t('cancel')}
+              {tc('cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  {t('channels.adding')}
+                  {tc('adding')}
                 </>
               ) : (
                 t('schedule.addSchedule')
@@ -596,6 +601,7 @@ function AddScheduleDialog({
 
 export default function NotificationsPage() {
   const t = useTranslations('notifications');
+  const tc = useTranslations('common');
   const { data: settings, isLoading: loadingSettings } = useNotificationSettings();
   const { data: schedules, isLoading: loadingSchedules } = useSchedules();
   const { data: userProfile } = useUserProfile();
@@ -652,7 +658,7 @@ export default function NotificationsPage() {
       await updateSetting.mutateAsync({ id, data: { enabled } });
       toast.success(enabled ? t('channels.channelEnabled') : t('channels.channelDisabled'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('channels.updateFailed');
+      const message = error instanceof Error ? error.message : t('updateFailed');
       toast.error(message);
     }
   };
@@ -662,7 +668,7 @@ export default function NotificationsPage() {
       await updateSchedule.mutateAsync({ id, data: { enabled } });
       toast.success(enabled ? t('schedule.scheduleEnabled') : t('schedule.scheduleDisabled'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('channels.updateFailed');
+      const message = error instanceof Error ? error.message : t('updateFailed');
       toast.error(message);
     }
   };
@@ -672,7 +678,7 @@ export default function NotificationsPage() {
       await updateSchedule.mutateAsync({ id, data: { notify_day_before } });
       toast.success(notify_day_before ? t('schedule.willNotifyDayBefore') : t('schedule.willNotifySameDay'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('channels.updateFailed');
+      const message = error instanceof Error ? error.message : t('updateFailed');
       toast.error(message);
     }
   };
@@ -689,7 +695,7 @@ export default function NotificationsPage() {
         toast.success(t('schedule.scheduleDeleted'));
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('channels.deleteFailed');
+      const message = error instanceof Error ? error.message : t('deleteFailed');
       toast.error(message);
     } finally {
       setDeleteConfirm(null);
@@ -815,7 +821,7 @@ export default function NotificationsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirmed}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -823,10 +829,10 @@ export default function NotificationsPage() {
               {deleteSetting.isPending || deleteSchedule.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  {t('channels.deleting')}
+                  {tc('deleting')}
                 </>
               ) : (
-                t('delete')
+                tc('delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

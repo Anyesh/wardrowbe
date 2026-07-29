@@ -14,7 +14,7 @@ interface LineageCardProps {
 }
 
 export function LineageCard({ outfit }: LineageCardProps) {
-  const t = useTranslations('studio.lineage');
+  const t = useTranslations('outfits.lineage');
   const replacesId = outfit.replaces_outfit_id;
   const clonedFromId = outfit.cloned_from_outfit_id;
 

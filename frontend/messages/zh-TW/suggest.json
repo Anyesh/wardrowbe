@@ -1,0 +1,84 @@
+{
+  "dismissOutfit": "關閉穿搭",
+  "error": "產生穿搭建議失敗，請重試。",
+  "feedback": {
+    "commentsOptional": "留言（選填）",
+    "commentsPlaceholder": "對這套穿搭有什麼想法？",
+    "didYouWear": "你穿了這套嗎？",
+    "didYouWearDesc": "讓我們知道你是否採用了這個推薦，以便學習你的偏好。",
+    "howDidItWork": "這套穿搭效果如何？",
+    "itemsSelected": "{count, plural, one {已選擇 # 件單品} other {已選擇 # 件單品}}",
+    "loadingMore": "載入更多...",
+    "noItemsInWardrobe": "衣櫥中沒有單品",
+    "noMatch": "沒有符合搜尋的單品",
+    "noWoreSomethingElse": "不，我穿了別的",
+    "overallRating": "整體評分",
+    "rateHowItWent": "評價穿搭效果",
+    "rateThisOutfit": "為此穿搭評分",
+    "searchWardrobe": "搜尋你的衣櫥...",
+    "showingAll": "{count, plural, one {顯示全部 # 件單品} other {顯示全部 # 件單品}}",
+    "submitError": "提交回饋失敗",
+    "submitWithCount": "送出（{count}）",
+    "submitted": "回饋已提交",
+    "submitting": "送出中...",
+    "tellUsWhatYouWore": "告訴我們你穿了什麼",
+    "whatDidYouWear": "你改穿了什麼？",
+    "whatDidYouWearDesc": "選擇你實際穿的單品，幫助我們學習你的偏好。",
+    "yesWoreIt": "是的，我穿了"
+  },
+  "generating": "正在為你打造穿搭...",
+  "getSuggestion": "取得建議",
+  "greeting": {
+    "afternoon": "午安",
+    "evening": "晚安",
+    "morning": "早安"
+  },
+  "location": {
+    "notSet": "尚未設定位置",
+    "setDescription": "在設定中設定位置以獲得天氣相關建議"
+  },
+  "loveIt": "超喜歡",
+  "occasionPrompt": "什麼場合？",
+  "outfitPreview": {
+    "familyRatings": {
+      "average": "（平均 {rating} <star></star>）",
+      "noRatings": "尚無家庭評分。",
+      "noRatingsPrompt": "尚無家庭評分。搶先評分！",
+      "rate": "評分",
+      "title": "家庭評分"
+    },
+    "imageRotated": "圖片已旋轉",
+    "noImage": "無圖片",
+    "rotateFailed": "旋轉圖片失敗",
+    "rotateLeft": "向左旋轉",
+    "rotateRight": "向右旋轉",
+    "title": "{occasion} 穿搭",
+    "viewItemDetails": "查看單品詳情"
+  },
+  "startOver": "重新開始",
+  "subtitle": "為你的一天找到完美穿搭",
+  "tip": "提示：",
+  "tryAnother": "試試其他",
+  "weather": {
+    "feelsLike": "體感 {temp}°",
+    "feelsLikeInline": "（體感 {temp}°）",
+    "rainChance": "{chance}% 降雨機率",
+    "windSpeed": "{speed} km/h"
+  },
+  "weatherHints": {
+    "cold": "注意保暖 - 天氣很冷",
+    "hot": "穿輕薄透氣的吧",
+    "mild": "一件薄外套剛剛好",
+    "nice": "什麼風格都適合的好天氣",
+    "rainy": "帶把傘或雨衣吧",
+    "windy": "考慮穿防風的衣服"
+  },
+  "weatherOverride": {
+    "active": "天氣覆蓋啟用中",
+    "condition": "狀況",
+    "overrideWeather": "覆蓋天氣",
+    "reset": "重設",
+    "temperature": "溫度"
+  },
+  "yourOutfit": "你的穿搭"
+}

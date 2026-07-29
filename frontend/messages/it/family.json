@@ -1,0 +1,102 @@
+{
+  "createFamily": "Crea famiglia",
+  "createFamilyDesc": "Crea una nuova famiglia e invita membri",
+  "editName": "Modifica nome",
+  "familyName": "Nome famiglia",
+  "familyNameExample": "es., La famiglia Rossi",
+  "familyNamePlaceholder": "Nome famiglia",
+  "familyOutfits": {
+    "description": "Sfoglia e valuta gli outfit dei membri della tua famiglia",
+    "openFeed": "Apri feed famiglia",
+    "title": "Outfit di famiglia"
+  },
+  "feed": {
+    "lookbook": "Lookbook",
+    "noFamily": {
+      "description": "Crea o unisciti a una famiglia per sfogliare e valutare gli outfit di ciascuno.",
+      "setUpFamily": "Configura famiglia",
+      "title": "Unisciti prima a una famiglia"
+    },
+    "noMembers": {
+      "description": "Invita membri della famiglia per iniziare a sfogliare e valutare gli outfit di ciascuno.",
+      "inviteMembers": "Invita membri",
+      "manageFamily": "Gestisci famiglia",
+      "title": "Nessun altro membro ancora"
+    },
+    "noOutfits": {
+      "description": "{member} non ha ancora ricevuto suggerimenti di outfit. Torna più tardi!",
+      "title": "Nessun outfit ancora"
+    },
+    "rateOutfit": "Valuta l'outfit di {member}",
+    "ratingCount": "({count, plural, one {{count} valutazione} other {{count} valutazioni}})",
+    "sourceBadges": {
+      "manual": "Manuale",
+      "onDemand": "Su richiesta",
+      "pairing": "Abbinamento",
+      "scheduled": "Programmato"
+    },
+    "subtitle": "Sfoglia e valuta gli outfit dei membri della tua famiglia",
+    "title": "Feed Famiglia",
+    "unknownMember": "Questo membro",
+    "unknownMemberShort": "questo membro"
+  },
+  "invalidInviteCode": "Codice invito non valido. Verifica e riprova.",
+  "inviteCode": "Codice invito",
+  "inviteCodeExample": "es., ABC123XY",
+  "inviteCodeSection": {
+    "description": "Condividi questo codice con i membri della famiglia per farli unire",
+    "title": "Codice invito"
+  },
+  "inviteEmailPlaceholder": "email@example.com",
+  "joinFamily": "Unisciti alla famiglia",
+  "joinFamilyDesc": "Unisciti a una famiglia esistente con un codice invito",
+  "leaveConfirm": {
+    "description": "Sei sicuro di voler lasciare {name}? Potrai unirti di nuovo in seguito con un codice invito.",
+    "title": "Lasciare la famiglia?"
+  },
+  "leaveFamily": "Lascia la famiglia",
+  "members": {
+    "description": "Le persone della tua famiglia",
+    "removeConfirm": {
+      "description": "Sei sicuro di voler rimuovere {name} dalla famiglia?",
+      "title": "Rimuovere il membro?"
+    },
+    "title": "Membri"
+  },
+  "pendingInvites": {
+    "description": "Inviti che non sono ancora stati accettati",
+    "expires": "Scade {date}",
+    "title": "Inviti in attesa"
+  },
+  "ratings": {
+    "addComment": "Aggiungi un commento (opzionale)",
+    "ratingRemoved": "Valutazione rimossa",
+    "ratingSubmitted": "Valutazione inviata!",
+    "ratingUpdated": "Valutazione aggiornata!",
+    "removeError": "Rimozione valutazione fallita",
+    "selectRating": "Seleziona una valutazione",
+    "submitError": "Invio valutazione fallito",
+    "submitRating": "Invia valutazione",
+    "updateRating": "Aggiorna valutazione",
+    "yourRating": "La tua valutazione:"
+  },
+  "roles": {
+    "admin": "Amministratore",
+    "member": "Membro"
+  },
+  "sendInvite": "Invia invito",
+  "sendInviteDesc": "Invita qualcuno tramite email",
+  "subtitle": "Crea o unisciti a una famiglia per condividere la tua esperienza del guardaroba",
+  "title": "Famiglia",
+  "toasts": {
+    "codeRegenerateFailed": "Generazione del nuovo codice fallita. Riprova.",
+    "codeRegenerated": "Nuovo codice invito generato!",
+    "createFailed": "Creazione della famiglia fallita. Riprova.",
+    "created": "Famiglia creata!",
+    "inviteFailed": "Invio invito fallito",
+    "inviteSent": "Invito inviato!",
+    "joined": "Ti sei unito alla famiglia!",
+    "nameUpdateFailed": "Aggiornamento nome famiglia fallito",
+    "nameUpdated": "Nome famiglia aggiornato"
+  }
+}

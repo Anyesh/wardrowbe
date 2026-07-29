@@ -1,0 +1,12 @@
+{
+  "default": "Something went wrong. Please try again.",
+  "invite": {
+    "alreadyInFamily": "You are already in a family.",
+    "invalidLink": "This invite link is invalid or has expired.",
+    "wrongEmail": "This invite was sent to a different email address."
+  },
+  "pageLoad": {
+    "description": "We encountered an error loading this content. This might be a temporary issue.",
+    "title": "Failed to load this page"
+  }
+}

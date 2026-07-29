@@ -74,7 +74,7 @@ function ItemCard({
   userTimezone: string;
 }) {
   const t = useTranslations('wardrobe');
-  const tShared = useTranslations('shared');
+  const tc = useTranslations('common');
   const clothingColors = useClothingColors();
   const colorInfo = clothingColors.find((c) => c.value === item.primary_color);
   const isProcessing = item.status === 'processing';
@@ -145,7 +145,7 @@ function ItemCard({
                 }}
               >
                 <X className="h-3 w-3 mr-1" />
-                {t('ai.cancel')}
+                {tc('cancel')}
               </Button>
             )}
           </div>
@@ -166,7 +166,7 @@ function ItemCard({
                   }}
                 >
                   <RefreshCw className="h-3 w-3 mr-1" />
-                  {t('ai.retry')}
+                  {tc('retry')}
                 </Button>
               )}
               {onDismissError && (
@@ -196,7 +196,7 @@ function ItemCard({
             <p className="text-xs text-muted-foreground capitalize">
               {item.type}
               {item.subtype && ` • ${item.subtype}`}
-              {item.tags?.logprobs_confidence != null && ` · ${Math.round(item.tags.logprobs_confidence * 100)}% confident`}
+              {item.tags?.logprobs_confidence != null && ` · ${t('ai.confident', { percent: Math.round(item.tags.logprobs_confidence * 100) })}`}
             </p>
           </div>
           {colorInfo && (
@@ -217,7 +217,7 @@ function ItemCard({
         </div>
         {item.last_worn_at ? (
           <p className={`text-xs mt-1 ${getWornAgoColorClass(item.last_worn_at, userTimezone)}`}>
-            {formatWornAgo(item.last_worn_at, userTimezone, tShared)}
+            {formatWornAgo(item.last_worn_at, userTimezone, t)}
           </p>
         ) : item.wear_count > 0 ? (
           <p className="text-xs text-muted-foreground mt-1">
@@ -272,6 +272,7 @@ export default function WardrobePage() {
   const { data: userProfile } = useUserProfile();
   const userTimezone = userProfile?.timezone || 'UTC';
   const t = useTranslations('wardrobe');
+  const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selection, setSelection] = useState<BulkSelection>({
@@ -540,7 +541,7 @@ export default function WardrobePage() {
         </div>
         <Button onClick={() => setAddDialogOpen(true)} className="hidden sm:flex">
           <Plus className="mr-2 h-4 w-4" />
-          {t('addItem')}
+          {t('actions.addItem')}
         </Button>
       </div>
 
@@ -693,7 +694,7 @@ export default function WardrobePage() {
             className="mt-4"
             onClick={() => window.location.reload()}
           >
-            {t('ai.retry')}
+            {tc('retry')}
           </Button>
         </div>
       ) : isLoading ? (
@@ -761,8 +762,7 @@ export default function WardrobePage() {
         onReanalyze={handleBulkReanalyze}
         isDeleting={bulkDelete.isPending}
         isReanalyzing={bulkReanalyze.isPending}
-        itemLabel={t('bulkActions.itemLabel')}
-        deleteWarningSuffix={t('bulkActions.deleteWarningSuffix')}
+        variant="items"
         page={page}
         pageSize={pageSize}
         onPageChange={handlePageChange}

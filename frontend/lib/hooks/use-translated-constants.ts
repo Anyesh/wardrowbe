@@ -1,51 +1,57 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import {
   CLOTHING_TYPES,
   CLOTHING_COLORS,
   OCCASIONS,
 } from '@/lib/types';
 
-/**
- * Returns clothing types with translated labels.
- * The `value` property is preserved for lookups and API calls.
- */
+const STYLE_VALUES = ['bold', 'casual', 'formal', 'minimalist', 'sporty'] as const;
+const WEATHER_CONDITION_VALUES = ['clear', 'cloudy', 'rain', 'snow'] as const;
+
 export function useClothingTypes() {
-  const t = useTranslations('types.clothingTypes');
-  const locale = useLocale();
+  const t = useTranslations('constants.types');
 
   return useMemo(() => CLOTHING_TYPES.map((ct) => ({
     ...ct,
     label: t(ct.value),
-  })), [t, locale]);
+  })), [t]);
 }
 
-/**
- * Returns clothing colors with translated names.
- * The `value` and `hex` properties are preserved.
- */
 export function useClothingColors() {
-  const t = useTranslations('types.clothingColors');
-  const locale = useLocale();
+  const t = useTranslations('constants.colors');
 
   return useMemo(() => CLOTHING_COLORS.map((cc) => ({
     ...cc,
     name: t(cc.value),
-  })), [t, locale]);
+  })), [t]);
 }
 
-/**
- * Returns occasions with translated labels.
- * The `value` property is preserved.
- */
 export function useOccasions() {
-  const t = useTranslations('types.occasions');
-  const locale = useLocale();
+  const t = useTranslations('constants.occasions');
 
   return useMemo(() => OCCASIONS.map((o) => ({
     ...o,
     label: t(o.value),
-  })), [t, locale]);
+  })), [t]);
+}
+
+export function useStyles() {
+  const t = useTranslations('constants.styles');
+
+  return useMemo(() => STYLE_VALUES.map((value) => ({
+    value,
+    label: t(value),
+  })), [t]);
+}
+
+export function useWeatherConditions() {
+  const t = useTranslations('constants.weatherConditions');
+
+  return useMemo(() => WEATHER_CONDITION_VALUES.map((value) => ({
+    value,
+    label: t(value),
+  })), [t]);
 }

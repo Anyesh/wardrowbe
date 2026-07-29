@@ -263,7 +263,7 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
 
       <div className="text-center">
         <Button variant="ghost" onClick={onSkip}>
-          {t('family.skipForNow')}
+          {t('skipForNow')}
         </Button>
       </div>
     </div>
@@ -284,6 +284,7 @@ function LocationStep({
   const [saving, setSaving] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const t = useTranslations('onboarding');
+  const tc = useTranslations('common');
 
   const detectLocation = () => {
     if (!navigator.geolocation) {
@@ -405,14 +406,14 @@ function LocationStep({
             disabled={!locationName.trim() || saving}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t('location.continue')}
+            {tc('continue')}
           </Button>
         </CardContent>
       </Card>
 
       <div className="text-center">
         <Button variant="ghost" onClick={onSkip}>
-          {t('family.skipForNow')}
+          {t('skipForNow')}
         </Button>
       </div>
     </div>
@@ -432,6 +433,8 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
   const [saving, setSaving] = useState(false);
   const updatePreferences = useUpdatePreferences();
   const t = useTranslations('onboarding');
+  const tc = useTranslations('common');
+  const tStyles = useTranslations('constants.styles');
   const clothingColors = useClothingColors();
 
   const toggleColor = (color: string, list: 'favorite' | 'avoid') => {
@@ -567,8 +570,10 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
           {Object.entries(styleProfile).map(([key, value]) => (
             <div key={key} className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label className="capitalize">{key}</Label>
-                <span className="text-sm text-muted-foreground">{value}%</span>
+                <Label className="capitalize">{tStyles(key)}</Label>
+                <span className="text-sm text-muted-foreground">
+                  {t('style.percentValue', { value })}
+                </span>
               </div>
               <Slider
                 value={[value]}
@@ -586,11 +591,11 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
 
       <div className="flex justify-between">
         <Button variant="ghost" onClick={onSkip}>
-          {t('family.skipForNow')}
+          {t('skipForNow')}
         </Button>
         <Button onClick={handleContinue} disabled={saving}>
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {t('location.continue')}
+          {tc('continue')}
         </Button>
       </div>
     </div>
@@ -643,7 +648,7 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
 
     try {
       await createItem.mutateAsync(formData);
-      toast.success(t('firstItem.addToWardrobe'));
+      toast.success(t('firstItem.uploadSuccess'));
       onNext();
     } catch (error) {
       toast.error(t('firstItem.uploadError'));
@@ -727,7 +732,7 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
 
       <div className="text-center">
         <Button variant="ghost" onClick={onSkip}>
-          {t('family.skipForNow')}
+          {t('skipForNow')}
         </Button>
       </div>
     </div>
@@ -774,6 +779,7 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completing, setCompleting] = useState(false);
   const t = useTranslations('onboarding');
+  const tc = useTranslations('common');
 
   const nextStep = () => setCurrentStep((s) => Math.min(s + 1, 5));
   const prevStep = () => setCurrentStep((s) => Math.max(s - 1, 0));
@@ -844,7 +850,7 @@ export default function OnboardingPage() {
           <div className="flex justify-center mt-4">
             <Button variant="ghost" onClick={prevStep}>
               <ChevronLeft className="mr-2 h-4 w-4" />
-              {t('back')}
+              {tc('back')}
             </Button>
           </div>
         )}

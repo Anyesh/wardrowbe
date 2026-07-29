@@ -1,0 +1,12 @@
+{
+  "default": "出了点问题，请重试。",
+  "invite": {
+    "alreadyInFamily": "您已在一个家庭中。",
+    "invalidLink": "此邀请链接无效或已过期。",
+    "wrongEmail": "此邀请发送到了不同的电子邮箱。"
+  },
+  "pageLoad": {
+    "description": "加载此内容时出错，这可能是暂时性问题。",
+    "title": "加载此页面失败"
+  }
+}

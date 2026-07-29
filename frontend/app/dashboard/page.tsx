@@ -122,6 +122,7 @@ function PendingOutfitsCard() {
   const acceptOutfit = useAcceptOutfit();
   const rejectOutfit = useRejectOutfit();
   const t = useTranslations('dashboard');
+  const tc = useTranslations('common');
 
   const handleAccept = async (id: string) => {
     try {
@@ -189,7 +190,7 @@ function PendingOutfitsCard() {
           </CardTitle>
           {(data?.total ?? 0) > 2 && (
             <Link href="/dashboard/history" className="text-xs text-muted-foreground hover:text-foreground">
-              {t('pendingOutfits.viewAll')}
+              {tc('viewAll')}
             </Link>
           )}
         </div>
@@ -226,7 +227,7 @@ function PendingOutfitsCard() {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
-                }) : 'Lookbook'}
+                }) : t('pendingOutfits.lookbook')}
               </p>
             </div>
             <div className="flex gap-1">
@@ -349,10 +350,10 @@ function NextScheduledCard() {
       </CardHeader>
       <CardContent>
         <p className="font-semibold">
-          {dayStr} at {timeStr}
+          {t('nextScheduled.dayAtTime', { day: dayStr, time: timeStr })}
         </p>
         <p className="text-sm text-muted-foreground capitalize">
-          {schedule.occasion} outfit
+          {t('nextScheduled.occasionOutfit', { occasion: schedule.occasion })}
         </p>
         {daysUntil === 0 && (
           <Badge variant="secondary" className="mt-2">{t('nextScheduled.comingUp')}</Badge>
@@ -493,7 +494,7 @@ function WeeklySummaryCard() {
         </div>
         {wardrobe.average_rating && (
           <p className="text-xs text-muted-foreground mt-2">
-            {t('weeklySummary.avgRating')}: {wardrobe.average_rating}/5
+            {t('weeklySummary.avgRatingValue', { rating: wardrobe.average_rating })}
           </p>
         )}
       </CardContent>
@@ -504,6 +505,7 @@ function WeeklySummaryCard() {
 function InsightsCard() {
   const { data: analytics, isLoading } = useAnalytics();
   const t = useTranslations('dashboard');
+  const tc = useTranslations('common');
 
   if (isLoading) {
     return (
@@ -536,7 +538,7 @@ function InsightsCard() {
           </CardTitle>
           {insights.length > 3 && (
             <Link href="/dashboard/analytics" className="text-sm text-muted-foreground hover:text-foreground flex items-center">
-              View all <ChevronRight className="h-4 w-4" />
+              {tc('viewAll')} <ChevronRight className="h-4 w-4" />
             </Link>
           )}
         </div>
@@ -634,7 +636,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          {t('welcomeBack', { name: session?.user?.name?.split(' ')[0] || 'User' })}
+          {t('welcomeBack', { name: session?.user?.name?.split(' ')[0] || t('userFallback') })}
         </h1>
         <p className="text-muted-foreground">
           {t('subtitle')}

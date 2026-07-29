@@ -69,6 +69,7 @@ function LoadingSkeleton() {
 
 export default function PairingsPage() {
   const t = useTranslations('pairings');
+  const tc = useTranslations('common');
   const [page, setPage] = useState(1);
   const [sourceType, setSourceType] = useState<string | undefined>(undefined);
   const [feedbackOutfit, setFeedbackOutfit] = useState<Outfit | null>(null);
@@ -115,7 +116,7 @@ export default function PairingsPage() {
             <SelectItem value="all">{t('allItemTypes')}</SelectItem>
             {itemTypes?.map((type) => (
               <SelectItem key={type.type} value={type.type}>
-                {type.type} ({type.count})
+                {t('itemTypeOption', { type: type.type, count: type.count })}
               </SelectItem>
             ))}
           </SelectContent>
@@ -152,7 +153,7 @@ export default function PairingsPage() {
                 variant="outline"
                 onClick={() => setPage((p) => p + 1)}
               >
-                {t('loadMore')}
+                {tc('loadMore')}
               </Button>
             </div>
           )}

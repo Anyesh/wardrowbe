@@ -1,0 +1,80 @@
+{
+  "complete": {
+    "description": "옷장이 준비되었어요. 옷을 추가하고 맞춤 코디 추천을 받아보세요!",
+    "finishing": "마무리 중...",
+    "goToDashboard": "대시보드로 이동",
+    "setupFailed": "설정을 완료하지 못했어요. 다시 시도해 주세요.",
+    "title": "모든 준비 완료!"
+  },
+  "family": {
+    "createFamily": "가족 만들기",
+    "createFamilyDesc": "새 가족 시작하기",
+    "description": "가족을 만들거나 참여하여 옷장 경험을 공유하세요",
+    "error": "가족 설정에 실패했어요. 다시 시도해 주세요.",
+    "familyName": "가족 이름",
+    "familyNamePlaceholder": "예: 김씨 가족",
+    "inviteCode": "초대 코드",
+    "inviteCodePlaceholder": "예: ABC123XY",
+    "joinFamily": "가족 참여",
+    "joinFamilyDesc": "초대 코드 사용",
+    "joinSuccess": "가족에 참여했어요!",
+    "success": "가족이 생성되었어요!",
+    "title": "가족 설정"
+  },
+  "firstItem": {
+    "addToWardrobe": "옷장에 추가",
+    "chooseDifferentPhoto": "다른 사진 선택",
+    "description": "옷 사진을 찍거나 이미지를 업로드하세요",
+    "formatHint": "PNG, JPG 또는 HEIC",
+    "previewAlt": "미리보기",
+    "title": "첫 아이템 추가",
+    "typeLabel": "어떤 종류의 옷인가요?",
+    "typePlaceholder": "종류 선택...",
+    "uploadError": "아이템 업로드에 실패했어요. 다시 시도해 주세요.",
+    "uploadPrompt": "클릭하여 업로드하거나 사진 찍기",
+    "uploadSuccess": "아이템이 옷장에 추가되었어요!"
+  },
+  "location": {
+    "cityLabel": "도시/지역 이름",
+    "cityPlaceholder": "예: 서울, 한국",
+    "description": "날씨에 맞는 코디를 추천하기 위해 위치를 사용해요",
+    "detectLocation": "내 위치 감지",
+    "locationError": "위치를 감지하지 못했어요. 직접 입력해 주세요.",
+    "locationSuccess": "위치가 설정되었어요!",
+    "orManual": "또는 직접 입력",
+    "saveError": "위치 저장에 실패했어요. 다시 시도해 주세요.",
+    "title": "내 위치"
+  },
+  "skipForNow": "나중에 하기",
+  "steps": {
+    "family": "가족",
+    "firstItem": "첫 아이템",
+    "location": "위치",
+    "style": "스타일",
+    "welcome": "환영해요"
+  },
+  "style": {
+    "colorsToAvoid": "피하고 싶은 색상",
+    "colorsToAvoidDesc": "입지 않는 색상을 선택하세요",
+    "description": "스타일 취향을 알려주세요",
+    "favoriteColors": "좋아하는 색상",
+    "favoriteColorsDesc": "즐겨 입는 색상을 선택하세요",
+    "percentValue": "{value}%",
+    "saveError": "스타일 취향 저장에 실패했어요.",
+    "saveSuccess": "스타일 취향이 저장되었어요!",
+    "styleProfile": "스타일 프로필",
+    "styleProfileDesc": "각 스타일에 대한 선호도를 조정하세요",
+    "title": "내 스타일"
+  },
+  "welcome": {
+    "description": "몇 단계만 거치면 디지털 옷장이 완성돼요.",
+    "feature1": "옷 사진 찍기",
+    "feature1Desc": "AI가 색상, 스타일 등을 자동으로 태그해요",
+    "feature2": "맞춤 코디 받기",
+    "feature2Desc": "날씨와 취향에 맞춘 매일의 추천",
+    "feature3": "가족과 공유하기",
+    "feature3Desc": "모두가 각자의 맞춤 옷장을 가질 수 있어요",
+    "getStarted": "시작하기",
+    "greeting": "Wardrowbe에 오신 것을 환영해요{name}!"
+  }
+}

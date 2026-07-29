@@ -1,0 +1,59 @@
+{
+  "insights": {
+    "acceptanceTrend": {
+      "description": "你对建议的反馈变化",
+      "title": "采纳率趋势"
+    },
+    "colorDistribution": {
+      "description": "衣柜中最常见的颜色",
+      "noData": "暂无颜色数据",
+      "title": "颜色分布"
+    },
+    "itemTypes": {
+      "description": "按服装类型分类",
+      "noData": "暂无单品",
+      "title": "单品类型"
+    },
+    "leastWorn": {
+      "description": "考虑穿穿这些",
+      "noData": "继续记录吧！",
+      "title": "穿着最少"
+    },
+    "mostWorn": {
+      "description": "你的最爱",
+      "noData": "开始记录你的穿搭吧！",
+      "title": "穿着最多"
+    },
+    "neverWorn": {
+      "description": "是时候试试了？",
+      "noData": "所有单品都穿过了！",
+      "title": "从未穿过"
+    },
+    "title": "洞察"
+  },
+  "loadError": "加载分析数据失败，请重试。",
+  "percent": "{value}%",
+  "stats": {
+    "acceptanceRate": {
+      "description": "建议被采纳",
+      "title": "采纳率"
+    },
+    "avgRating": "平均评分：{rating}/5",
+    "outfitsGenerated": {
+      "description": "本周 {count} 套",
+      "title": "已生成穿搭"
+    },
+    "totalItems": {
+      "description": "{count} 件可穿",
+      "title": "单品总数"
+    },
+    "totalWears": {
+      "description": "记录你的穿搭",
+      "noData": "暂无数据",
+      "title": "总穿着次数"
+    }
+  },
+  "subtitle": "你的衣柜洞察与统计",
+  "title": "数据分析",
+  "wearCount": "{count}次"
+}

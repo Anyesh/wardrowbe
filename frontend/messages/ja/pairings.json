@@ -1,0 +1,34 @@
+{
+  "allItemTypes": "すべてのアイテムタイプ",
+  "card": {
+    "badge": "ペアリング",
+    "builtAround": "中心アイテム：",
+    "deleteError": "ペアリングの削除に失敗しました",
+    "deleted": "ペアリングを削除しました",
+    "rateThisPairing": "このペアリングを評価",
+    "tip": "ヒント：",
+    "updateRating": "評価を更新"
+  },
+  "empty": {
+    "description": "ワードローブからアイテムを選んで「ペアリングを探す」で組み合わせを発見しましょう。",
+    "goToWardrobe": "ワードローブへ",
+    "title": "ペアリングはまだありません"
+  },
+  "generate": {
+    "description": "AIがこのアイテムを中心に完全なコーデを作成します",
+    "failed": "ペアリングの生成に失敗しました",
+    "generate": "コーデを生成",
+    "generating": "生成中...",
+    "numOutfits": "コーデ数",
+    "numOutfitsDesc": "コーデが多いほどバリエーション豊富ですが、生成に時間がかかります",
+    "success": "{count, plural, one {{count} コーデ作成！} other {{count} コーデ作成！}}",
+    "successDesc": "組み合わせで見る",
+    "title": "マッチするコーデを探す",
+    "viewPairings": "ペアリングを見る"
+  },
+  "itemTypeOption": "{type}（{count}）",
+  "loadError": "ペアリングの読み込みに失敗しました。もう一度お試しください。",
+  "pairingCount": "{count, plural, one {{count} ペアリング} other {{count} ペアリング}}",
+  "subtitle": "アイテムを中心にAIが生成したコーデの組み合わせ",
+  "title": "組み合わせ"
+}

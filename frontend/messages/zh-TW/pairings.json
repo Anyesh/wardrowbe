@@ -1,0 +1,34 @@
+{
+  "allItemTypes": "所有單品類型",
+  "card": {
+    "badge": "配對",
+    "builtAround": "核心單品：",
+    "deleteError": "刪除配對失敗",
+    "deleted": "配對已刪除",
+    "rateThisPairing": "為此配對評分",
+    "tip": "提示：",
+    "updateRating": "更新評分"
+  },
+  "empty": {
+    "description": "從衣櫥選擇一件單品，使用「尋找配對」來發現搭配組合。",
+    "goToWardrobe": "前往衣櫥",
+    "title": "尚無配對"
+  },
+  "generate": {
+    "description": "AI 將以此單品為基礎建立完整穿搭",
+    "failed": "產生配對失敗",
+    "generate": "產生穿搭",
+    "generating": "產生中...",
+    "numOutfits": "穿搭數量",
+    "numOutfitsDesc": "更多穿搭 = 更多變化，但需要更多時間產生",
+    "success": "{count, plural, one {已建立 {count} 套穿搭！} other {已建立 {count} 套穿搭！}}",
+    "successDesc": "在穿搭組合中查看",
+    "title": "尋找搭配穿搭",
+    "viewPairings": "查看配對"
+  },
+  "itemTypeOption": "{type}（{count}）",
+  "loadError": "載入配對失敗，請重試。",
+  "pairingCount": "{count, plural, one {{count} 個配對} other {{count} 個配對}}",
+  "subtitle": "以你的單品為基礎的 AI 穿搭組合",
+  "title": "穿搭組合"
+}

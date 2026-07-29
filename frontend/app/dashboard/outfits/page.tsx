@@ -139,6 +139,7 @@ function chipToFilters(chip: FilterChip, search: string): OutfitFilters {
 
 function OutfitsPageContent() {
   const t = useTranslations('outfits');
+  const tc = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawFilter = (searchParams.get('filter') as FilterChip) || 'all';
@@ -400,7 +401,7 @@ function OutfitsPageContent() {
           <div
             className="inline-flex rounded-full border-2 border-muted overflow-hidden"
             role="group"
-            aria-label="View toggle"
+            aria-label={t('viewToggle')}
           >
             <button
               type="button"
@@ -437,7 +438,7 @@ function OutfitsPageContent() {
               onClick={handleToggleSelectMode}
             >
               <CheckSquare className="h-4 w-4 mr-2" />
-              {selectMode ? t('bulkActions.cancel') : t('bulkActions.select')}
+              {selectMode ? tc('cancel') : t('bulkActions.select')}
             </Button>
           )}
           <Button asChild>
@@ -506,7 +507,7 @@ function OutfitsPageContent() {
                 <Button asChild>
                   <Link href="/dashboard/outfits/new">
                     <Plus className="h-4 w-4 mr-2" />
-                    New Outfit
+                    {t('newOutfit')}
                   </Link>
                 </Button>
               )}
@@ -625,7 +626,7 @@ function OutfitsPageContent() {
           onClear={handleClearSelection}
           onDelete={handleBulkDelete}
           isDeleting={bulkDeleteOutfits.isPending}
-          itemLabel={t('bulkActions.itemLabel')}
+          variant="outfits"
           page={page}
           pageSize={24}
           onPageChange={setPage}

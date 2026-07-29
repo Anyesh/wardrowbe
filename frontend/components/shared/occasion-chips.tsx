@@ -12,7 +12,6 @@ import {
 
 import { cn } from '@/lib/utils';
 import { useOccasions } from '@/lib/hooks/use-translated-constants';
-import { useTranslations } from 'next-intl';
 
 export const OCCASION_CONFIG: Record<
   string,

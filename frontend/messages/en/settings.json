@@ -1,0 +1,148 @@
+{
+  "account": {
+    "description": "Your profile information",
+    "email": "Email",
+    "name": "Name",
+    "title": "Account"
+  },
+  "aiEndpoints": {
+    "active": "Active",
+    "addEndpoint": "Add Endpoint",
+    "connected": "Connected",
+    "description": "Configure AI endpoints for image analysis. Endpoints are tried in order from top to bottom.",
+    "disabled": "Disabled",
+    "error": "Error",
+    "fields": {
+      "name": "Name",
+      "textModel": "Text Model",
+      "url": "URL",
+      "visionModel": "Vision Model"
+    },
+    "modelsAvailable": "{count, plural, one {{count} model available} other {{count} models available}}",
+    "noEndpoints": "No custom endpoints configured. Using default server settings.",
+    "placeholders": {
+      "name": "e.g., Local Ollama"
+    },
+    "testConnection": "Test Connection",
+    "testFailed": "Failed to test endpoint",
+    "textModels": "Text: {models}",
+    "title": "AI Endpoints",
+    "visionModels": "Vision: {models}"
+  },
+  "body": {
+    "bodyLabel": "Body",
+    "description": "Help AI recommend better-fitting outfits",
+    "errors": {
+      "positiveNumber": "{field} must be a positive number"
+    },
+    "fields": {
+      "chest": "Chest",
+      "height": "Height",
+      "hips": "Hips",
+      "inseam": "Inseam",
+      "waist": "Waist",
+      "weight": "Weight"
+    },
+    "imperial": "Imperial (in/lbs)",
+    "metric": "Metric (cm/kg)",
+    "saveError": "Failed to save measurements",
+    "saveMeasurements": "Save Measurements",
+    "saved": "Measurements saved",
+    "sizeFields": {
+      "dressSize": "Dress Size",
+      "pantsSize": "Pants Size",
+      "shirtSize": "Shirt Size",
+      "shoeSize": "Shoe Size"
+    },
+    "sizePlaceholders": {
+      "dress_size": "e.g. 8, 10",
+      "pants_size": "e.g. 32, 34",
+      "shirt_size": "e.g. M, L, XL",
+      "shoe_size": "e.g. 10, 42"
+    },
+    "sizesLabel": "Sizes",
+    "title": "Body Measurements",
+    "unitSystem": "Unit System"
+  },
+  "colors": {
+    "colorsToAvoid": "Colors to Avoid",
+    "description": "Select colors you love and colors to avoid in recommendations",
+    "favoriteColors": "Favorite Colors"
+  },
+  "confirmReset": "Are you sure you want to reset all preferences to defaults?",
+  "location": {
+    "approximateDetected": "Approximate location filled in. Review it, then save.",
+    "approximateDetectedWithReason": "{reason} Approximate location filled in. Review it, then save.",
+    "cityLabel": "City / Location Name (optional)",
+    "cityPlaceholder": "e.g., London, UK",
+    "description": "Set your location for weather-based outfit recommendations",
+    "detected": "Location detected. Review it, then save.",
+    "errors": {
+      "geolocationDenied": "Location access was denied.",
+      "geolocationFailed": "Failed to get exact location: {message}",
+      "geolocationFailedGeneric": "Failed to get exact location.",
+      "geolocationTimeout": "Location request timed out.",
+      "geolocationUnavailable": "Location is currently unavailable.",
+      "geolocationUnsupported": "Geolocation is not supported by your browser.",
+      "invalidCoordinates": "Please enter valid latitude and longitude values",
+      "latitudeRange": "Latitude must be between -90 and 90",
+      "longitudeRange": "Longitude must be between -180 and 180",
+      "networkLookupFailed": "Network-based location lookup failed ({status})",
+      "saveFailed": "Failed to save location. Please try again.",
+      "unableToDetect": "Unable to detect your location."
+    },
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "required": "Location is required for weather-based outfit recommendations.",
+    "saveLocation": "Save Location",
+    "saved": "Location and timezone saved",
+    "selectTimezone": "Select timezone",
+    "timezone": "Timezone",
+    "title": "Location",
+    "useMyLocation": "Use My Location"
+  },
+  "recommendations": {
+    "avoidRepeatDays": "Avoid Repeat Items Within (days)",
+    "defaultOccasion": "Default Occasion",
+    "description": "Customize how outfit recommendations are generated",
+    "no": "No",
+    "preferUnderused": "Prefer Underused Items",
+    "title": "Recommendation Settings",
+    "varietyLevel": "Variety Level",
+    "varietyOptions": {
+      "high": "High (try new combinations)",
+      "low": "Low (stick to favorites)",
+      "moderate": "Moderate"
+    },
+    "yes": "Yes"
+  },
+  "reset": "Reset",
+  "styleProfile": {
+    "description": "Adjust how much you prefer each style in outfit recommendations",
+    "title": "Style Profile"
+  },
+  "subtitle": "Manage your preferences and account settings",
+  "temperature": {
+    "celsius": "Celsius",
+    "coldThreshold": "Cold Threshold ({unit})",
+    "description": "Adjust how recommendations adapt to weather",
+    "fahrenheit": "Fahrenheit",
+    "hotThreshold": "Hot Threshold ({unit})",
+    "layering": "Layering Preference",
+    "layeringOptions": {
+      "heavy": "Heavy layers",
+      "minimal": "Minimal layers",
+      "moderate": "Moderate layers"
+    },
+    "sensitivity": "Temperature Sensitivity",
+    "sensitivityOptions": {
+      "high": "I feel cold easily",
+      "low": "I feel warm easily",
+      "normal": "Normal"
+    },
+    "title": "Temperature & Comfort",
+    "unit": "Temperature Unit"
+  },
+  "title": "Settings",
+  "unsavedChanges": "You have unsaved changes. Leave this page?"
+}

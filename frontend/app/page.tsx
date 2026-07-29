@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
 export default async function Home() {
-  const t = await getTranslations('landing');
+  const t = await getTranslations('auth');
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">

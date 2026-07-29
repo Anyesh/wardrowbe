@@ -71,7 +71,8 @@ interface AccumulatedItem {
 }
 
 export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
-  const t = useTranslations('dialogs.feedback');
+  const t = useTranslations('suggest.feedback');
+  const tc = useTranslations('common');
   const [step, setStep] = useState<FeedbackStep>('wear-question');
   const [actuallyWorn, setActuallyWorn] = useState<boolean | null>(null);
   const [rating, setRating] = useState(0);
@@ -285,15 +286,15 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
               {!outfit.feedback?.rating && (
                 <Button variant="ghost" onClick={() => setStep('wear-question')}>
                   <ChevronLeft className="h-4 w-4 mr-1" />
-                  {t('back')}
+                  {tc('back')}
                 </Button>
               )}
               <div className="flex gap-2 ml-auto">
                 <Button variant="outline" onClick={onClose}>
-                  {t('cancel')}
+                  {tc('cancel')}
                 </Button>
                 <Button onClick={handleSubmit} disabled={submitFeedback.isPending}>
-                  {submitFeedback.isPending ? t('submitting') : t('submit')}
+                  {submitFeedback.isPending ? t('submitting') : tc('submit')}
                 </Button>
               </div>
             </div>
@@ -406,11 +407,11 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
             <div className="flex justify-between pt-2 border-t">
               <Button variant="ghost" onClick={() => setStep('wear-question')}>
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                {t('back')}
+                {tc('back')}
               </Button>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handleSkipWoreInstead}>
-                  {t('skip')}
+                  {tc('skip')}
                 </Button>
                 <Button
                   onClick={handleSubmit}

@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 function OIDCLoginButton({ callbackUrl }: { callbackUrl: string }) {
-  const t = useTranslations('login');
+  const t = useTranslations('auth');
 
   return (
     <button
@@ -26,7 +26,7 @@ function DevLogin({ callbackUrl }: { callbackUrl: string }) {
   const [email, setEmail] = useState('dev@wardrobe.local');
   const [name, setName] = useState('Dev User');
   const [isLoading, setIsLoading] = useState(false);
-  const t = useTranslations('login');
+  const t = useTranslations('auth');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +67,7 @@ function DevLogin({ callbackUrl }: { callbackUrl: string }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          placeholder="Your Name"
+          placeholder={t('namePlaceholder')}
         />
       </div>
       <button
@@ -89,7 +89,7 @@ function DevLogin({ callbackUrl }: { callbackUrl: string }) {
 }
 
 function BackendError({ message }: { message: string }) {
-  const t = useTranslations('login');
+  const t = useTranslations('auth');
 
   return (
     <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm space-y-2">
@@ -107,7 +107,7 @@ function LoginContent() {
   const syncErrorParam = searchParams.get('syncError');
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const [backendError, setBackendError] = useState<string | null>(null);
-  const t = useTranslations('login');
+  const t = useTranslations('auth');
 
   useEffect(() => {
     if (status === 'authenticated' && session?.accessToken) {
@@ -191,7 +191,7 @@ function LoginContent() {
 }
 
 export default function LoginPage() {
-  const t = useTranslations('login');
+  const t = useTranslations('auth');
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">

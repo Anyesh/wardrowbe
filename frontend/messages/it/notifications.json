@@ -1,0 +1,94 @@
+{
+  "channels": {
+    "addChannel": "Aggiungi canale",
+    "addFailed": "Aggiunta canale fallita",
+    "channelAdded": "Canale aggiunto",
+    "channelDeleted": "Canale eliminato",
+    "channelDisabled": "Canale disabilitato",
+    "channelEnabled": "Canale abilitato",
+    "channelType": "Tipo di canale",
+    "deleteConfirm": {
+      "description": "Questo rimuoverà il canale di notifica e fermerà tutte le notifiche inviate tramite esso.",
+      "title": "Eliminare il canale di notifica?"
+    },
+    "description": "Aggiungi canali per ricevere i tuoi suggerimenti di outfit giornalieri",
+    "dialog": {
+      "description": "Configura un nuovo modo per ricevere suggerimenti di outfit.",
+      "title": "Canale di notifica"
+    },
+    "fields": {
+      "accessToken": "Token di accesso",
+      "emailAddress": "Indirizzo email *",
+      "serverUrl": "URL server",
+      "topic": "Argomento *",
+      "webhookUrl": "URL webhook *"
+    },
+    "helpers": {
+      "accessTokenOptional": "Obbligatorio se il tuo server ntfy usa l'autenticazione",
+      "mattermostWebhook": "Crea un webhook in entrata nelle impostazioni di Mattermost",
+      "topicSubscribe": "Iscriviti a questo argomento nella tua app ntfy"
+    },
+    "noChannels": "Nessun canale di notifica configurato",
+    "noChannelsDesc": "Aggiungi un canale per iniziare a ricevere suggerimenti di outfit",
+    "placeholders": {
+      "accessToken": "tk_...",
+      "emailAddress": "you@example.com"
+    },
+    "priority": "Priorità {level}",
+    "test": "Test",
+    "testFailed": "Invio notifica di test fallito",
+    "testSent": "Notifica di test inviata",
+    "title": "Canali di notifica",
+    "types": {
+      "email": "Email",
+      "mattermost": "Mattermost",
+      "ntfy": "Notifiche push ntfy"
+    },
+    "validation": {
+      "emailRequired": "L’indirizzo email è obbligatorio",
+      "topicRequired": "L’argomento è obbligatorio per ntfy",
+      "webhookRequired": "L’URL webhook è obbligatorio per Mattermost"
+    },
+    "webhookConfigured": "Webhook configurato"
+  },
+  "days": {
+    "friday": "Venerdì",
+    "monday": "Lunedì",
+    "saturday": "Sabato",
+    "sunday": "Domenica",
+    "thursday": "Giovedì",
+    "tuesday": "Martedì",
+    "wednesday": "Mercoledì"
+  },
+  "deleteFailed": "Eliminazione fallita",
+  "schedule": {
+    "addFailed": "Aggiunta programmazione fallita",
+    "addSchedule": "Aggiungi programmazione",
+    "dayLabel": "Giorno",
+    "deleteConfirm": {
+      "description": "Questo rimuoverà la programmazione di consegna.",
+      "title": "Eliminare la programmazione?"
+    },
+    "description": "Imposta a che ora vuoi ricevere i suggerimenti di outfit ogni giorno",
+    "dialogDescription": "Imposta quando vuoi ricevere i consigli di abbigliamento.",
+    "noSchedules": "Nessuna programmazione configurata",
+    "noSchedulesDesc": "Aggiungi una programmazione per ricevere suggerimenti di outfit giornalieri",
+    "notifyDayBefore": "Notifica il giorno prima",
+    "notifyDayBeforeDesc": "Ricevi una notifica la sera prima con le previsioni di domani",
+    "notifyDayBeforeInfo": "Riceverai la notifica {notifyDay} alle {time} per il tuo outfit di {outfitDay}.",
+    "notifyDayEvening": "{day} sera",
+    "occasionLabel": "Occasione",
+    "scheduleAdded": "Programmazione aggiunta",
+    "scheduleDeleted": "Programmazione eliminata",
+    "scheduleDisabled": "Programmazione disabilitata",
+    "scheduleEnabled": "Programmazione abilitata",
+    "summary": "{time} - {occasion}",
+    "timeLabel": "Ora",
+    "title": "Programma di consegna",
+    "willNotifyDayBefore": "Notifica il giorno prima",
+    "willNotifySameDay": "Notifica lo stesso giorno"
+  },
+  "subtitle": "Configura come e quando ricevi i suggerimenti di outfit",
+  "title": "Notifiche",
+  "updateFailed": "Aggiornamento fallito"
+}

@@ -1,0 +1,94 @@
+{
+  "channels": {
+    "addChannel": "Kanal hinzufügen",
+    "addFailed": "Kanal konnte nicht hinzugefügt werden",
+    "channelAdded": "Kanal hinzugefügt",
+    "channelDeleted": "Kanal gelöscht",
+    "channelDisabled": "Kanal deaktiviert",
+    "channelEnabled": "Kanal aktiviert",
+    "channelType": "Kanaltyp",
+    "deleteConfirm": {
+      "description": "Dieser Benachrichtigungskanal wird entfernt und es werden keine Benachrichtigungen mehr darüber gesendet.",
+      "title": "Benachrichtigungskanal löschen?"
+    },
+    "description": "Füge Kanäle hinzu, um deine täglichen Outfit-Empfehlungen zu erhalten",
+    "dialog": {
+      "description": "Konfiguriere einen neuen Weg, um Outfit-Empfehlungen zu erhalten.",
+      "title": "Benachrichtigungskanal"
+    },
+    "fields": {
+      "accessToken": "Zugriffstoken",
+      "emailAddress": "E-Mail-Adresse *",
+      "serverUrl": "Server-URL",
+      "topic": "Thema *",
+      "webhookUrl": "Webhook-URL *"
+    },
+    "helpers": {
+      "accessTokenOptional": "Erforderlich, wenn dein ntfy-Server Authentifizierung benötigt",
+      "mattermostWebhook": "Erstelle einen eingehenden Webhook in den Mattermost-Einstellungen",
+      "topicSubscribe": "Abonniere dieses Thema in deiner ntfy-App"
+    },
+    "noChannels": "Keine Benachrichtigungskanäle konfiguriert",
+    "noChannelsDesc": "Füge einen Kanal hinzu, um Outfit-Vorschläge zu erhalten",
+    "placeholders": {
+      "accessToken": "tk_...",
+      "emailAddress": "du@example.com"
+    },
+    "priority": "Priorität {level}",
+    "test": "Testen",
+    "testFailed": "Testbenachrichtigung konnte nicht gesendet werden",
+    "testSent": "Testbenachrichtigung gesendet",
+    "title": "Benachrichtigungskanäle",
+    "types": {
+      "email": "E-Mail",
+      "mattermost": "Mattermost",
+      "ntfy": "ntfy Push-Benachrichtigungen"
+    },
+    "validation": {
+      "emailRequired": "E-Mail-Adresse ist erforderlich",
+      "topicRequired": "Thema ist für ntfy erforderlich",
+      "webhookRequired": "Webhook-URL ist für Mattermost erforderlich"
+    },
+    "webhookConfigured": "Webhook konfiguriert"
+  },
+  "days": {
+    "friday": "Freitag",
+    "monday": "Montag",
+    "saturday": "Samstag",
+    "sunday": "Sonntag",
+    "thursday": "Donnerstag",
+    "tuesday": "Dienstag",
+    "wednesday": "Mittwoch"
+  },
+  "deleteFailed": "Löschen fehlgeschlagen",
+  "schedule": {
+    "addFailed": "Zeitplan konnte nicht hinzugefügt werden",
+    "addSchedule": "Zeitplan hinzufügen",
+    "dayLabel": "Tag",
+    "deleteConfirm": {
+      "description": "Dieser Zustellungszeitplan wird entfernt.",
+      "title": "Zeitplan löschen?"
+    },
+    "description": "Lege fest, wann du jeden Tag Outfit-Empfehlungen erhalten möchtest",
+    "dialogDescription": "Lege fest, wann du Outfit-Empfehlungen erhalten möchtest.",
+    "noSchedules": "Keine Zeitpläne konfiguriert",
+    "noSchedulesDesc": "Füge einen Zeitplan hinzu, um tägliche Outfit-Vorschläge zu erhalten",
+    "notifyDayBefore": "Am Vortag benachrichtigen",
+    "notifyDayBeforeDesc": "Erhalte die Benachrichtigung am Vorabend mit der Wettervorhersage für morgen",
+    "notifyDayBeforeInfo": "Du erhältst die Benachrichtigung am {notifyDay} um {time} für dein Outfit am {outfitDay}.",
+    "notifyDayEvening": "{day}abend",
+    "occasionLabel": "Anlass",
+    "scheduleAdded": "Zeitplan hinzugefügt",
+    "scheduleDeleted": "Zeitplan gelöscht",
+    "scheduleDisabled": "Zeitplan deaktiviert",
+    "scheduleEnabled": "Zeitplan aktiviert",
+    "summary": "{time} - {occasion}",
+    "timeLabel": "Uhrzeit",
+    "title": "Zeitplan",
+    "willNotifyDayBefore": "Benachrichtigung am Vortag",
+    "willNotifySameDay": "Benachrichtigung am selben Tag"
+  },
+  "subtitle": "Konfiguriere, wie und wann du Outfit-Empfehlungen erhältst",
+  "title": "Benachrichtigungen",
+  "updateFailed": "Aktualisierung fehlgeschlagen"
+}

@@ -30,6 +30,7 @@ import { getErrorMessage } from '@/lib/api';
 
 export default function OutfitDetailPage() {
   const t = useTranslations('outfits');
+  const tc = useTranslations('common');
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const outfitId = params?.id;
@@ -65,7 +66,7 @@ export default function OutfitDetailPage() {
       toast.success(t('detail.addedToToday'));
       router.push(`/dashboard/outfits/${result.id}`);
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to wear today'));
+      toast.error(getErrorMessage(error, t('detail.wearTodayError')));
     }
   };
 
@@ -76,11 +77,14 @@ export default function OutfitDetailPage() {
       toast.success(t('detail.deleted'));
       router.push('/dashboard/outfits');
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to delete'));
+      toast.error(getErrorMessage(error, t('detail.deleteError')));
     }
   };
 
-  const title = outfit.name || outfit.reasoning || `${outfit.occasion} outfit`;
+  const title =
+    outfit.name ||
+    outfit.reasoning ||
+    t('cards.outfitFallback', { occasion: outfit.occasion });
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -135,7 +139,8 @@ export default function OutfitDetailPage() {
         {outfit.style_notes && (
           <div className="mt-2 p-2 bg-muted rounded border text-xs">
             <p className="text-muted-foreground">
-              <span className="font-medium text-foreground">Tip:</span> {outfit.style_notes}
+              <span className="font-medium text-foreground">{t('detail.stylingTip')}</span>{' '}
+              {outfit.style_notes}
             </p>
           </div>
         )}
@@ -203,7 +208,7 @@ export default function OutfitDetailPage() {
           <Button variant="outline" asChild>
             <Link href={`/dashboard/outfits/new?edit=${outfit.id}`}>
               <Pencil className="h-4 w-4 mr-2" />
-              {t('detail.edit')}
+              {tc('edit')}
             </Link>
           </Button>
         )}
@@ -214,7 +219,7 @@ export default function OutfitDetailPage() {
           disabled={deleteMutation.isPending}
         >
           <Trash2 className="h-4 w-4 mr-2" />
-          {t('detail.delete')}
+          {tc('delete')}
         </Button>
       </div>
 

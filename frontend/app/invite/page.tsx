@@ -14,11 +14,11 @@ import { useTranslations } from 'next-intl';
 
 function getErrorMessage(error: unknown, t: (key: string) => string): string {
   if (error instanceof ApiError) {
-    if (error.status === 404) return t('errors.invalidLink');
-    if (error.status === 403) return t('errors.wrongEmail');
-    if (error.status === 409) return t('errors.alreadyInFamily');
+    if (error.status === 404) return t('invite.invalidLink');
+    if (error.status === 403) return t('invite.wrongEmail');
+    if (error.status === 409) return t('invite.alreadyInFamily');
   }
-  return t('errors.default');
+  return t('default');
 }
 
 function InviteContent() {
@@ -27,7 +27,8 @@ function InviteContent() {
   const { status } = useSession();
   const token = searchParams.get('token');
   const joinByToken = useJoinFamilyByToken();
-  const t = useTranslations('invite');
+  const t = useTranslations('auth');
+  const te = useTranslations('errors');
 
   useEffect(() => {
     if (!token) {
@@ -52,7 +53,7 @@ function InviteContent() {
   const handleAccept = async () => {
     try {
       const result = await joinByToken.mutateAsync(token);
-      toast.success(t('joinedFamily', { name: result.family_name }));
+      toast.success(t('invite.joinedFamily', { name: result.family_name }));
       router.push('/dashboard/family');
     } catch {
       // error displayed via joinByToken.error below
@@ -65,15 +66,15 @@ function InviteContent() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            {t('title')}
+            {t('invite.title')}
           </CardTitle>
           <CardDescription>
-            {t('description')}
+            {t('invite.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {joinByToken.isError && (
-            <p className="text-sm text-destructive">{getErrorMessage(joinByToken.error, t)}</p>
+            <p className="text-sm text-destructive">{getErrorMessage(joinByToken.error, te)}</p>
           )}
           <Button
             onClick={handleAccept}
@@ -81,7 +82,7 @@ function InviteContent() {
             disabled={joinByToken.isPending || joinByToken.isSuccess}
           >
             {joinByToken.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t('acceptButton')}
+            {t('invite.acceptButton')}
           </Button>
         </CardContent>
       </Card>

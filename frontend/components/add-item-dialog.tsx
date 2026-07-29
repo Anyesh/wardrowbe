@@ -51,7 +51,8 @@ interface FileWithPreview {
 }
 
 export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
-  const t = useTranslations('dialogs.addItem');
+  const t = useTranslations('wardrobe.addItem');
+  const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
   // Single upload state
@@ -369,7 +370,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={handleCloseRequest}>
-                  {t('bulk.discardConfirm.keepEditing')}
+                  {tc('cancel')}
                 </Button>
                 <Button
                   type="submit"
@@ -381,7 +382,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                       {t('uploading')}
                     </>
                   ) : (
-                    t('addItem')
+                    t('submit')
                   )}
                 </Button>
               </div>
@@ -484,7 +485,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={handleCloseRequest}>
-                    {t('bulk.discardConfirm.keepEditing')}
+                    {tc('cancel')}
                   </Button>
                   <Button
                     onClick={handleBulkSubmit}
@@ -561,7 +562,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                     {t('bulk.uploadMore')}
                   </Button>
                   <Button onClick={handleClose}>
-                    {t('bulk.done')}
+                    {tc('done')}
                   </Button>
                 </div>
               </div>

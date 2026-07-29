@@ -1,0 +1,80 @@
+{
+  "complete": {
+    "description": "Dein Kleiderschrank ist bereit. Füge Kleidung hinzu und erhalte personalisierte Outfit-Vorschläge!",
+    "finishing": "Wird abgeschlossen...",
+    "goToDashboard": "Zum Dashboard",
+    "setupFailed": "Einrichtung konnte nicht abgeschlossen werden. Bitte versuche es erneut.",
+    "title": "Alles eingerichtet!"
+  },
+  "family": {
+    "createFamily": "Familie erstellen",
+    "createFamilyDesc": "Neue Familie gründen",
+    "description": "Erstelle oder tritt einer Familie bei, um das Kleiderschrank-Erlebnis zu teilen",
+    "error": "Familie konnte nicht eingerichtet werden. Bitte versuche es erneut.",
+    "familyName": "Familienname",
+    "familyNamePlaceholder": "z. B. Familie Müller",
+    "inviteCode": "Einladungscode",
+    "inviteCodePlaceholder": "z. B. ABC123XY",
+    "joinFamily": "Familie beitreten",
+    "joinFamilyDesc": "Einladungscode verwenden",
+    "joinSuccess": "Familie erfolgreich beigetreten!",
+    "success": "Familie erfolgreich erstellt!",
+    "title": "Familien-Einrichtung"
+  },
+  "firstItem": {
+    "addToWardrobe": "Zum Kleiderschrank hinzufügen",
+    "chooseDifferentPhoto": "Anderes Foto wählen",
+    "description": "Mach ein Foto oder lade ein Bild eines Kleidungsstücks hoch",
+    "formatHint": "PNG, JPG oder HEIC",
+    "previewAlt": "Vorschau",
+    "title": "Füge dein erstes Stück hinzu",
+    "typeLabel": "Um welche Art von Kleidung handelt es sich?",
+    "typePlaceholder": "Typ auswählen...",
+    "uploadError": "Stück konnte nicht hochgeladen werden. Bitte versuche es erneut.",
+    "uploadPrompt": "Klicken zum Hochladen oder Foto aufnehmen",
+    "uploadSuccess": "Stück zu deinem Kleiderschrank hinzugefügt!"
+  },
+  "location": {
+    "cityLabel": "Stadt/Ortsname",
+    "cityPlaceholder": "z. B. Berlin, DE",
+    "description": "Wir nutzen dies für wetterbasierte Outfit-Vorschläge",
+    "detectLocation": "Meinen Standort erkennen",
+    "locationError": "Standort konnte nicht erkannt werden. Bitte gib ihn manuell ein.",
+    "locationSuccess": "Standort erfolgreich festgelegt!",
+    "orManual": "Oder manuell eingeben",
+    "saveError": "Standort konnte nicht gespeichert werden. Bitte versuche es erneut.",
+    "title": "Dein Standort"
+  },
+  "skipForNow": "Vorerst überspringen",
+  "steps": {
+    "family": "Familie",
+    "firstItem": "Erstes Stück",
+    "location": "Standort",
+    "style": "Stil",
+    "welcome": "Willkommen"
+  },
+  "style": {
+    "colorsToAvoid": "Farben, die du vermeiden möchtest",
+    "colorsToAvoidDesc": "Tippe auf Farben, die du lieber nicht trägst",
+    "description": "Hilf uns, deine Stilvorlieben zu verstehen",
+    "favoriteColors": "Lieblingsfarben",
+    "favoriteColorsDesc": "Tippe auf Farben, die du gerne trägst",
+    "percentValue": "{value} %",
+    "saveError": "Stilvorlieben konnten nicht gespeichert werden.",
+    "saveSuccess": "Stilvorlieben gespeichert!",
+    "styleProfile": "Stilprofil",
+    "styleProfileDesc": "Passe an, wie sehr du jeden Stil bevorzugst",
+    "title": "Dein Stil"
+  },
+  "welcome": {
+    "description": "Richten wir deinen digitalen Kleiderschrank in wenigen Schritten ein.",
+    "feature1": "Fotografiere deine Kleidung",
+    "feature1Desc": "Unsere KI taggt Farben, Stile und mehr automatisch",
+    "feature2": "Erhalte personalisierte Outfits",
+    "feature2Desc": "Tägliche Empfehlungen basierend auf Wetter und deinem Stil",
+    "feature3": "Teile mit der Familie",
+    "feature3Desc": "Jeder kann seinen eigenen personalisierten Kleiderschrank haben",
+    "getStarted": "Los geht's",
+    "greeting": "Willkommen bei Wardrowbe{name}!"
+  }
+}

@@ -20,7 +20,7 @@ function roleLabel(type: string): string {
 }
 
 export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
-  const t = useTranslations('studio.canvas');
+  const t = useTranslations('outfits.canvas');
   if (items.length === 0) {
     return (
       <div className="min-h-[240px] rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 flex items-center justify-center p-6">

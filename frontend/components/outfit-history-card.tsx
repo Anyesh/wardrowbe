@@ -36,6 +36,7 @@ function StatusIcon({ status }: { status: Outfit['status'] }) {
 }
 
 function StatusBadge({ status }: { status: Outfit['status'] }) {
+  const t = useTranslations('history');
   const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     accepted: 'default',
     rejected: 'destructive',
@@ -47,32 +48,32 @@ function StatusBadge({ status }: { status: Outfit['status'] }) {
 
   return (
     <Badge variant={variants[status] || 'outline'} className="capitalize">
-      {status}
+      {t(`status.${status}`)}
     </Badge>
   );
 }
 
 function SourceBadge({ source }: { source: OutfitSource }) {
-  const t = useTranslations('cards.outfitHistory');
+  const t = useTranslations('history');
   const config: Record<OutfitSource, { icon: typeof Calendar; label: string; className: string }> = {
     scheduled: {
       icon: Calendar,
-      label: t('scheduled'),
+      label: t('sourceBadges.scheduled'),
       className: 'bg-primary/10 text-primary border-primary/20',
     },
     on_demand: {
       icon: Zap,
-      label: t('onDemand'),
+      label: t('sourceBadges.onDemand'),
       className: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
     },
     manual: {
       icon: Edit3,
-      label: t('manual'),
+      label: t('sourceBadges.manual'),
       className: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
     },
     pairing: {
       icon: Zap,
-      label: t('pairing'),
+      label: t('sourceBadges.pairing'),
       className: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
     },
   };
@@ -109,7 +110,7 @@ interface OutfitHistoryCardProps {
 }
 
 export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHistoryCardProps) {
-  const t = useTranslations('cards.outfitHistory');
+  const t = useTranslations('history.card');
   const acceptOutfit = useAcceptOutfit();
   const rejectOutfit = useRejectOutfit();
   const [previewItem, setPreviewItem] = useState<WoreInsteadItem | null>(null);
@@ -318,7 +319,7 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
       <Dialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button]:hidden">
           <DialogHeader className="p-4 pb-2">
-            <DialogTitle>{previewItem?.name || previewItem?.type || 'Item'}</DialogTitle>
+            <DialogTitle>{previewItem?.name || previewItem?.type || t('itemFallback')}</DialogTitle>
           </DialogHeader>
           <div className="relative bg-muted">
             <Link href={`/dashboard/wardrobe?item=${previewItem?.id}`} className="block">

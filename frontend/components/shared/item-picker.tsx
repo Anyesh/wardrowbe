@@ -26,10 +26,10 @@ export function ItemPicker({
   onToggle,
   hideNeedsWash = true,
   filterType,
-  emptyMessage = 'No items found',
+  emptyMessage,
   heightClass = 'h-[360px]',
 }: ItemPickerProps) {
-  const t = useTranslations('shared.itemPicker');
+  const t = useTranslations('outfits.itemPicker');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -180,7 +180,7 @@ export function ItemPicker({
           <div className="text-center text-muted-foreground py-8">
             {debouncedSearch
               ? t('noMatch')
-              : emptyMessage}
+              : emptyMessage ?? t('noItems')}
           </div>
         )}
 

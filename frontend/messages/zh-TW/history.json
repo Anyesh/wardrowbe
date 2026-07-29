@@ -1,0 +1,47 @@
+{
+  "card": {
+    "accept": "接受",
+    "acceptFailed": "接受穿搭失敗",
+    "didntWearThis": "沒穿這套",
+    "dismiss": "關閉",
+    "dismissFailed": "關閉穿搭失敗",
+    "familyLabel": "家庭：",
+    "itemFallback": "單品",
+    "outfitAccepted": "穿搭已接受",
+    "outfitDismissed": "穿搭已關閉",
+    "rate": "評分",
+    "tip": "提示：",
+    "update": "更新",
+    "viewItemDetails": "查看單品詳情",
+    "woreInstead": "實際穿了："
+  },
+  "empty": {
+    "description": "開始接收建議後，你的穿搭推薦紀錄將顯示在這裡。",
+    "getFirstSuggestion": "取得你的第一個建議",
+    "title": "沒有推薦紀錄"
+  },
+  "filters": {
+    "allOccasions": "所有場合",
+    "allStatus": "所有狀態",
+    "workout": "運動"
+  },
+  "loadError": "載入歷史紀錄失敗，請重試。",
+  "noOutfitsForDate": "{date} 沒有穿搭",
+  "outfitCount": "{count, plural, one {# 套穿搭} other {# 套穿搭}}",
+  "sourceBadges": {
+    "manual": "手動",
+    "onDemand": "隨選",
+    "pairing": "配對",
+    "scheduled": "排程"
+  },
+  "status": {
+    "accepted": "已接受",
+    "expired": "已過期",
+    "pending": "待處理",
+    "rejected": "已拒絕",
+    "sent": "已傳送",
+    "viewed": "已查看"
+  },
+  "subtitle": "查看你過去的穿搭推薦",
+  "title": "歷史紀錄"
+}
