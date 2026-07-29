@@ -41,6 +41,7 @@ export interface Item {
   ai_processed: boolean;
   ai_confidence?: number;
   ai_description?: string;
+  ai_error?: string | null;
   tagging_status: 'pending' | 'tagged';
   tagged_by?: 'auto' | 'manual' | null;
   tagged_at?: string | null;
@@ -68,6 +69,13 @@ export interface ItemListResponse {
   page: number;
   page_size: number;
   has_more: boolean;
+}
+
+export interface TaggingProgress {
+  processing: number;
+  failed: number;
+  completed: number;
+  total: number;
 }
 
 export interface ItemFilter {
