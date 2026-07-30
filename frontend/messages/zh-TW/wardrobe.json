@@ -1,0 +1,205 @@
+{
+  "actions": {
+    "addItem": "新增單品"
+  },
+  "addItem": {
+    "brandInputPlaceholder": "例如：UNIQLO",
+    "brandPlaceholder": "品牌",
+    "bulk": {
+      "allFailed": "全部 {count, plural, one {# 件單品} other {# 件單品}} 上傳失敗",
+      "allSuccess": "{count, plural, one {# 件單品上傳成功} other {# 件單品上傳成功}}",
+      "clearAll": "清除全部",
+      "discardConfirm": {
+        "discard": "捨棄",
+        "imageCount": "{count, plural, one {已選擇 # 張圖片} other {已選擇 # 張圖片}}，關閉此對話方塊將會遺失。",
+        "keepEditing": "繼續編輯",
+        "singleImage": "已選擇 1 張圖片，關閉此對話方塊將會遺失。",
+        "title": "捨棄已選取的圖片？"
+      },
+      "hint": "所有單品將由 AI 自動標記。你可以稍後編輯詳情。",
+      "imageCount": "{count, plural, one {已選擇 # 張圖片} other {已選擇 # 張圖片}}",
+      "partial": "{success} 件上傳成功，{failed} 件失敗",
+      "resultFailed": "{count, plural, one {# 件單品上傳失敗} other {# 件單品上傳失敗}}",
+      "resultSuccess": "{total} 件中 {success} 件上傳成功",
+      "skipAi": "略過 AI 分析（以預留值新增，稍後編輯詳情）",
+      "uploadButton": "{count, plural, one {上傳 # 件單品} other {上傳 # 件單品}}",
+      "uploadError": "上傳單品失敗，請重試。",
+      "uploadMore": "上傳更多",
+      "uploadingCount": "{count, plural, one {正在上傳 # 件單品...} other {正在上傳 # 件單品...}}"
+    },
+    "bulkUpload": "批次上傳",
+    "dropzone": "拖放圖片，或點擊選擇",
+    "dropzoneActive": "將圖片拖放到這裡",
+    "formatHint": "PNG、JPG 或 HEIC",
+    "letAiDetect": "讓 AI 偵測...",
+    "nameInputPlaceholder": "例如：藍色牛津襯衫",
+    "namePlaceholder": "名稱（選填）",
+    "notesInputPlaceholder": "其他備註...",
+    "notesPlaceholder": "備註",
+    "previewAlt": "預覽",
+    "primaryColor": "主色",
+    "selectPlaceholder": "選擇...",
+    "singleItem": "單件",
+    "submit": "新增單品",
+    "subtitle": "上傳你的衣物照片",
+    "title": "新增單品",
+    "typeLabel": "類型（留空則由 AI 偵測）",
+    "uploading": "上傳中..."
+  },
+  "ai": {
+    "analysisFailed": "分析失敗",
+    "analyzing": "AI 分析中...",
+    "analyzingCount": "{count} 件分析中",
+    "analyzingProgress": "{count} 件分析中 · 已完成 {percent}%",
+    "completeness": "AI 完整度：{percent}%",
+    "confident": "信心 {percent}%",
+    "dismiss": "關閉",
+    "failedCount": "{count} 件失敗"
+  },
+  "allTypes": "所有類型",
+  "bulkActions": {
+    "deleteError": "刪除單品失敗",
+    "deletePartialFailed": "{count, plural, one {刪除 # 件單品失敗} other {刪除 # 件單品失敗}}",
+    "deleteSuccess": "{count, plural, one {已刪除 # 件單品} other {已刪除 # 件單品}}",
+    "reanalyzeError": "排入重新分析失敗",
+    "reanalyzeMany": "已排入 {count} 件重新分析。這可能需要一些時間。",
+    "reanalyzePartialFailed": "{count, plural, one {# 件單品排入佇列失敗} other {# 件單品排入佇列失敗}}",
+    "reanalyzeQueued": "{count, plural, one {已排入 # 件單品重新分析} other {已排入 # 件單品重新分析}}"
+  },
+  "bulkDelete": {
+    "confirmDescription": "這將永久刪除所選單品及其圖片。此操作無法復原。",
+    "confirmTitle": "刪除 {count, plural, one {# 件單品} other {# 件單品}}？",
+    "confirmTitleAll": "刪除全部 {count, plural, one {# 件單品} other {# 件單品}}？"
+  },
+  "clearFilters": "清除篩選",
+  "colorEyedropper": {
+    "buttonTitle": "從圖片取色",
+    "description": "點擊圖片任意位置取色",
+    "errors": {
+      "canvasContext": "無法取得畫布繪圖環境",
+      "canvasUnavailable": "畫布無法使用",
+      "imageDecodeFailed": "無法從 blob 載入圖片",
+      "imageLoadFailed": "載入圖片失敗",
+      "imageLoadStatus": "載入圖片失敗：{status}"
+    },
+    "noColorSelected": "尚未選擇顏色",
+    "picked": "已取色",
+    "title": "從圖片取色",
+    "useColor": "使用 {color}"
+  },
+  "empty": {
+    "addFirstItem": "新增第一件",
+    "description": "新增你的第一件衣物，開始獲得個人化穿搭建議。",
+    "title": "你的衣櫥是空的"
+  },
+  "errors": {
+    "clearFilters": "清除篩選",
+    "loadFailed": "載入單品失敗，請重試。",
+    "noItemsFound": "找不到符合篩選條件的單品。"
+  },
+  "favorites": "收藏",
+  "itemCount": "{count, plural, one {衣櫥中有 # 件單品} other {衣櫥中有 # 件單品}}",
+  "itemDetail": {
+    "actions": {
+      "backgroundRemoveError": "移除背景失敗",
+      "backgroundRemoved": "背景已移除",
+      "cancelEditing": "取消編輯",
+      "deleteConfirm": "刪除此單品？",
+      "deleteDescription": "這將永久刪除衣櫥中的「{name}」。此操作無法復原。",
+      "deleteError": "刪除單品失敗",
+      "deleteErrorDescription": "發生錯誤，請重試。",
+      "deleteItem": "刪除單品",
+      "deleted": "單品已刪除",
+      "deletedFallback": "已從你的衣櫥移除。",
+      "deletedWithName": "「{name}」已被移除。",
+      "editItem": "編輯單品",
+      "imageReplaceError": "替換圖片失敗",
+      "imageReplaced": "圖片已替換",
+      "imageRotateError": "旋轉圖片失敗",
+      "imageRotated": "圖片已旋轉",
+      "markWashed": "標記為已洗",
+      "originalRestoreError": "還原原圖失敗",
+      "originalRestored": "原圖已還原",
+      "washError": "標記為已洗失敗",
+      "washed": "單品已標記為已洗"
+    },
+    "brand": "品牌",
+    "name": "名稱",
+    "notes": "備註",
+    "placeholders": {
+      "additionalNotes": "備註...",
+      "brandName": "品牌名稱",
+      "itemName": "單品名稱",
+      "selectColor": "選擇顏色",
+      "washIntervalDefault": "預設：{count}"
+    },
+    "primaryColor": "主色",
+    "titles": {
+      "analysisInProgress": "分析進行中...",
+      "deleteImage": "刪除圖片",
+      "findMatchingOutfits": "尋找搭配穿搭",
+      "reanalyzeWithAI": "用 AI 重新分析",
+      "removeBackground": "移除背景",
+      "replaceImage": "替換圖片",
+      "rotateLeft": "向左旋轉",
+      "rotateRight": "向右旋轉",
+      "setAsPrimary": "設為主要",
+      "toggleFavorite": "切換收藏",
+      "undoBackgroundRemoval": "復原背景移除"
+    },
+    "type": "類型",
+    "view": {
+      "addedDate": "新增於 {date}",
+      "aiAnalysis": "AI 分析",
+      "aiAnalyzing": "AI 分析中...",
+      "avgPerMonth": "月均",
+      "complete": "完成 {percent}%",
+      "confident": "信心 {percent}%",
+      "daysAgo": "{count} 天前",
+      "fitBadge": "{fit} 版型",
+      "last6Months": "最近 6 個月",
+      "lastWashed": "上次洗滌：{date}",
+      "lastWorn": "上次穿著",
+      "lastWornDate": "上次：{date}",
+      "monthWears": "{month}：{count, plural, one {穿著 # 次} other {穿著 # 次}}",
+      "needsWashing": "需要洗滌",
+      "never": "從未",
+      "primaryImage": "主要",
+      "timeline": "{count, plural, one {時間軸（# 筆紀錄）} other {時間軸（# 筆紀錄）}}",
+      "today": "今天",
+      "totalWears": "總穿著次數",
+      "usualOccasion": "常見場合",
+      "washHistory": "洗滌紀錄（{count}）",
+      "washIntervalHint": "穿幾次後需要洗滌。留空使用預設值。",
+      "washStatus": "洗滌狀態",
+      "wearHistory": "穿著紀錄",
+      "wears": "次穿著",
+      "wearsSinceWash": "洗滌後穿著次數：{current}/{max}",
+      "wornCount": "{count, plural, one {已穿著 # 次} other {已穿著 # 次}}"
+    },
+    "washInterval": "洗滌間隔"
+  },
+  "lightbox": {
+    "openInWardrobe": "在衣櫥中開啟"
+  },
+  "needsWash": "需要洗滌",
+  "pageSize": "每頁 {count} 件",
+  "search": "搜尋單品...",
+  "sort": {
+    "leastRecentlyWorn": "最久沒穿",
+    "leastWorn": "最少穿著",
+    "mostWorn": "最常穿著",
+    "nameAZ": "名稱 A–Z",
+    "nameZA": "名稱 Z–A",
+    "newestFirst": "最新優先",
+    "oldestFirst": "最舊優先",
+    "recentlyWorn": "最近穿過"
+  },
+  "title": "我的衣櫥",
+  "wearCount": "{count, plural, one {已穿著 # 次} other {已穿著 # 次}}",
+  "wornAgo": {
+    "daysAgo": "{days} 天前穿過",
+    "today": "今天穿過",
+    "yesterday": "昨天穿過"
+  }
+}

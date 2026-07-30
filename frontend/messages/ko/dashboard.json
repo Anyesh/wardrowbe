@@ -1,0 +1,66 @@
+{
+  "familyFeed": {
+    "browse": "가족 코디 둘러보기",
+    "description": "가족의 코디를 보고 평가해 보세요",
+    "memberCount": "{count, plural, other {{name}에 {count}명}}",
+    "title": "가족 코디"
+  },
+  "insights": {
+    "empty": "아이템을 더 추가하고 코디를 생성하면 맞춤 인사이트를 볼 수 있어요!",
+    "title": "인사이트"
+  },
+  "layout": {
+    "loading": "옷장을 불러오는 중..."
+  },
+  "nextScheduled": {
+    "comingUp": "예정",
+    "dayAtTime": "{day} {time}",
+    "noSchedules": "설정된 일정이 없어요",
+    "occasionOutfit": "{occasion} 코디",
+    "setUpSchedule": "일정 설정",
+    "title": "다음 일정",
+    "today": "오늘",
+    "tomorrow": "내일"
+  },
+  "notifications": {
+    "activeCount": "{total}개 중 {active}개 활성",
+    "addChannel": "채널 추가",
+    "configure": "설정",
+    "noChannels": "설정된 채널이 없어요",
+    "title": "알림"
+  },
+  "pendingOutfits": {
+    "acceptFailed": "코디 수락에 실패했어요",
+    "accepted": "코디를 수락했어요",
+    "allCaughtUp": "모두 확인 완료",
+    "dismissFailed": "코디 닫기 실패",
+    "dismissLabel": "코디 닫기",
+    "dismissed": "코디를 닫았어요",
+    "lookbook": "룩북",
+    "noPending": "대기 중인 코디가 없어요",
+    "title": "대기 중인 코디"
+  },
+  "quickActions": {
+    "addNewItem": "새 아이템 추가",
+    "description": "시작하기 위한 자주 쓰는 기능",
+    "getOutfitSuggestion": "코디 추천받기",
+    "title": "빠른 작업"
+  },
+  "subtitle": "옷장 현황을 확인해 보세요",
+  "userFallback": "사용자",
+  "weather": {
+    "feelsLike": "체감 {temp}",
+    "getOutfitSuggestion": "코디 추천받기",
+    "locationNotSet": "위치 미설정",
+    "rainChance": "강수 확률 {percent}%",
+    "setLocation": "위치 설정",
+    "title": "오늘의 날씨"
+  },
+  "weeklySummary": {
+    "accepted": "수락됨",
+    "avgRatingValue": "평균 평점: {rating}/5",
+    "outfits": "코디",
+    "title": "이번 주"
+  },
+  "welcomeBack": "{name}님, 돌아오셨군요"
+}

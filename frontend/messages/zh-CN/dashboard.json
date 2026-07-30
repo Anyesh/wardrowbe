@@ -1,0 +1,66 @@
+{
+  "familyFeed": {
+    "browse": "浏览家庭搭配",
+    "description": "看看家人在穿什么，给他们的搭配打分",
+    "memberCount": "{count, plural, other {{name}中有 {count}位成员}}",
+    "title": "家庭搭配"
+  },
+  "insights": {
+    "empty": "多添加一些衣物并生成搭配，就能看到个性化洞察了！",
+    "title": "洞察"
+  },
+  "layout": {
+    "loading": "正在加载您的衣橱..."
+  },
+  "nextScheduled": {
+    "comingUp": "即将到来",
+    "dayAtTime": "{day} {time}",
+    "noSchedules": "暂无计划",
+    "occasionOutfit": "{occasion}搭配",
+    "setUpSchedule": "设置计划",
+    "title": "下一个计划",
+    "today": "今天",
+    "tomorrow": "明天"
+  },
+  "notifications": {
+    "activeCount": "{total} 个中 {active} 个活跃",
+    "addChannel": "添加渠道",
+    "configure": "配置",
+    "noChannels": "暂无配置的通知渠道",
+    "title": "通知"
+  },
+  "pendingOutfits": {
+    "acceptFailed": "接受搭配失败",
+    "accepted": "搭配已接受",
+    "allCaughtUp": "全部处理完毕",
+    "dismissFailed": "关闭搭配失败",
+    "dismissLabel": "关闭搭配",
+    "dismissed": "搭配已关闭",
+    "lookbook": "造型册",
+    "noPending": "没有等待回复的搭配",
+    "title": "待处理的搭配"
+  },
+  "quickActions": {
+    "addNewItem": "添加新衣物",
+    "description": "常用功能帮你快速开始",
+    "getOutfitSuggestion": "获取搭配推荐",
+    "title": "快捷操作"
+  },
+  "subtitle": "你的衣橱近况如下",
+  "userFallback": "用户",
+  "weather": {
+    "feelsLike": "体感温度 {temp}",
+    "getOutfitSuggestion": "获取搭配推荐",
+    "locationNotSet": "未设置位置",
+    "rainChance": "{percent}% 降雨概率",
+    "setLocation": "设置位置",
+    "title": "今日天气"
+  },
+  "weeklySummary": {
+    "accepted": "已接受",
+    "avgRatingValue": "平均评分：{rating}/5",
+    "outfits": "搭配",
+    "title": "本周"
+  },
+  "welcomeBack": "欢迎回来，{name}"
+}

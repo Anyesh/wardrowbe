@@ -1,0 +1,102 @@
+{
+  "createFamily": "가족 만들기",
+  "createFamilyDesc": "새 가족을 만들고 구성원을 초대하세요",
+  "editName": "이름 수정",
+  "familyName": "가족 이름",
+  "familyNameExample": "예: 김씨 가족",
+  "familyNamePlaceholder": "가족 이름",
+  "familyOutfits": {
+    "description": "가족 구성원의 코디를 보고 평가하세요",
+    "openFeed": "가족 피드 열기",
+    "title": "가족 코디"
+  },
+  "feed": {
+    "lookbook": "룩북",
+    "noFamily": {
+      "description": "가족을 만들거나 참여하면 서로의 코디를 보고 평가할 수 있어요.",
+      "setUpFamily": "가족 설정",
+      "title": "먼저 가족에 참여하세요"
+    },
+    "noMembers": {
+      "description": "가족 구성원을 초대하면 서로의 코디를 보고 평가할 수 있어요.",
+      "inviteMembers": "구성원 초대",
+      "manageFamily": "가족 관리",
+      "title": "아직 다른 구성원이 없어요"
+    },
+    "noOutfits": {
+      "description": "{member}의 코디 추천이 아직 없어요. 나중에 다시 확인해 보세요!",
+      "title": "아직 코디가 없어요"
+    },
+    "rateOutfit": "{member}의 코디 평가하기",
+    "ratingCount": "({count, plural, other {평가 {count}개}})",
+    "sourceBadges": {
+      "manual": "수동",
+      "onDemand": "즉시",
+      "pairing": "페어링",
+      "scheduled": "예약됨"
+    },
+    "subtitle": "가족 구성원의 코디를 보고 평가하세요",
+    "title": "가족 피드",
+    "unknownMember": "이 구성원",
+    "unknownMemberShort": "이 구성원"
+  },
+  "invalidInviteCode": "잘못된 초대 코드예요. 확인 후 다시 시도해 주세요.",
+  "inviteCode": "초대 코드",
+  "inviteCodeExample": "예: ABC123XY",
+  "inviteCodeSection": {
+    "description": "가족 구성원에게 이 코드를 공유하여 참여하게 하세요",
+    "title": "초대 코드"
+  },
+  "inviteEmailPlaceholder": "email@example.com",
+  "joinFamily": "가족 참여",
+  "joinFamilyDesc": "초대 코드로 기존 가족에 참여하기",
+  "leaveConfirm": {
+    "description": "{name}에서 나가시겠어요? 나중에 초대 코드로 다시 참여할 수 있어요.",
+    "title": "가족을 나가시겠어요?"
+  },
+  "leaveFamily": "가족 나가기",
+  "members": {
+    "description": "가족 구성원",
+    "removeConfirm": {
+      "description": "{name}님을 가족에서 제거하시겠어요?",
+      "title": "구성원을 제거하시겠어요?"
+    },
+    "title": "구성원"
+  },
+  "pendingInvites": {
+    "description": "아직 수락되지 않은 초대",
+    "expires": "{date} 만료",
+    "title": "대기 중인 초대"
+  },
+  "ratings": {
+    "addComment": "코멘트 추가 (선택사항)",
+    "ratingRemoved": "평점이 삭제되었어요",
+    "ratingSubmitted": "평점이 제출되었어요!",
+    "ratingUpdated": "평점이 업데이트되었어요!",
+    "removeError": "평점 삭제 실패",
+    "selectRating": "평점을 선택해 주세요",
+    "submitError": "평점 제출 실패",
+    "submitRating": "평점 제출",
+    "updateRating": "평점 수정",
+    "yourRating": "내 평점:"
+  },
+  "roles": {
+    "admin": "관리자",
+    "member": "구성원"
+  },
+  "sendInvite": "초대 보내기",
+  "sendInviteDesc": "이메일로 초대하기",
+  "subtitle": "가족을 만들거나 참여하여 옷장 경험을 공유하세요",
+  "title": "가족",
+  "toasts": {
+    "codeRegenerateFailed": "새 코드 생성에 실패했어요. 다시 시도해 주세요.",
+    "codeRegenerated": "새 초대 코드가 생성되었어요!",
+    "createFailed": "가족 만들기에 실패했어요. 다시 시도해 주세요.",
+    "created": "가족이 생성되었어요!",
+    "inviteFailed": "초대 전송 실패",
+    "inviteSent": "초대가 전송되었어요!",
+    "joined": "가족에 참여했어요!",
+    "nameUpdateFailed": "가족 이름 수정 실패",
+    "nameUpdated": "가족 이름이 수정되었어요"
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "actions": {
+    "addItem": "아이템 추가"
+  },
+  "addItem": {
+    "brandInputPlaceholder": "예: 유니클로",
+    "brandPlaceholder": "브랜드",
+    "bulk": {
+      "allFailed": "{count, plural, other {아이템 #개 모두 업로드에 실패했어요}}",
+      "allSuccess": "{count, plural, other {아이템 #개를 업로드했어요}}",
+      "clearAll": "전체 삭제",
+      "discardConfirm": {
+        "discard": "버리기",
+        "imageCount": "이 대화상자를 닫으면 선택한 {count, plural, other {이미지 #개}}가 사라져요.",
+        "keepEditing": "계속 편집",
+        "singleImage": "이 대화상자를 닫으면 선택한 이미지 1개가 사라져요.",
+        "title": "선택한 이미지를 버리시겠어요?"
+      },
+      "hint": "모든 아이템은 AI가 자동으로 태그해요. 나중에 수정할 수 있어요.",
+      "imageCount": "{count, plural, other {이미지 #개 선택됨}}",
+      "partial": "{success}개 업로드, {failed}개 실패",
+      "resultFailed": "{count, plural, other {아이템 #개 실패}}",
+      "resultSuccess": "{total}개 중 {success}개 업로드 완료",
+      "skipAi": "AI 분석 건너뛰기 (임시 값으로 추가하고 나중에 세부 정보 수정)",
+      "uploadButton": "{count, plural, other {아이템 #개 업로드}}",
+      "uploadError": "아이템 업로드에 실패했어요. 다시 시도해 주세요.",
+      "uploadMore": "추가 업로드",
+      "uploadingCount": "{count, plural, other {아이템 #개 업로드 중...}}"
+    },
+    "bulkUpload": "일괄 업로드",
+    "dropzone": "이미지를 끌어다 놓거나 탭하여 선택하세요",
+    "dropzoneActive": "여기에 이미지를 놓으세요",
+    "formatHint": "PNG, JPG 또는 HEIC",
+    "letAiDetect": "AI가 감지하도록 하기...",
+    "nameInputPlaceholder": "예: 블루 옥스포드 셔츠",
+    "namePlaceholder": "이름 (선택사항)",
+    "notesInputPlaceholder": "추가 메모...",
+    "notesPlaceholder": "메모",
+    "previewAlt": "미리보기",
+    "primaryColor": "메인 색상",
+    "selectPlaceholder": "선택...",
+    "singleItem": "단일 아이템",
+    "submit": "아이템 추가",
+    "subtitle": "옷 사진을 업로드하세요",
+    "title": "아이템 추가",
+    "typeLabel": "유형 (비워두면 AI가 감지해요)",
+    "uploading": "업로드 중..."
+  },
+  "ai": {
+    "analysisFailed": "분석 실패",
+    "analyzing": "AI 분석 중...",
+    "analyzingCount": "{count}개 분석 중",
+    "analyzingProgress": "{count}개 분석 중 · {percent}% 완료",
+    "completeness": "AI 완성도: {percent}%",
+    "confident": "{percent}% 확신",
+    "dismiss": "닫기",
+    "failedCount": "{count}개 실패"
+  },
+  "allTypes": "전체 유형",
+  "bulkActions": {
+    "deleteError": "아이템 삭제 실패",
+    "deletePartialFailed": "{count, plural, other {아이템 #개 삭제 실패}}",
+    "deleteSuccess": "{count, plural, other {아이템 #개를 삭제했어요}}",
+    "reanalyzeError": "아이템 재분석 대기열 추가 실패",
+    "reanalyzeMany": "{count}개 아이템이 재분석 대기열에 추가되었어요. 시간이 걸릴 수 있어요.",
+    "reanalyzePartialFailed": "{count, plural, other {아이템 #개 대기열 추가 실패}}",
+    "reanalyzeQueued": "{count, plural, other {아이템 #개를 재분석 대기열에 추가했어요}}"
+  },
+  "bulkDelete": {
+    "confirmDescription": "선택한 아이템과 이미지가 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
+    "confirmTitle": "{count, plural, other {아이템 #개를 삭제하시겠어요?}}",
+    "confirmTitleAll": "{count, plural, other {아이템 #개 전체를 삭제하시겠어요?}}"
+  },
+  "clearFilters": "필터 초기화",
+  "colorEyedropper": {
+    "buttonTitle": "이미지에서 색상 추출",
+    "description": "이미지 아무 곳이나 클릭하여 색상을 추출하세요",
+    "errors": {
+      "canvasContext": "캔버스 컨텍스트를 가져올 수 없어요",
+      "canvasUnavailable": "캔버스를 사용할 수 없어요",
+      "imageDecodeFailed": "blob에서 이미지를 불러오지 못했어요",
+      "imageLoadFailed": "이미지를 불러오지 못했어요",
+      "imageLoadStatus": "이미지를 불러오지 못했어요: {status}"
+    },
+    "noColorSelected": "아직 색상이 선택되지 않았어요",
+    "picked": "추출됨",
+    "title": "이미지에서 색상 추출",
+    "useColor": "{color} 사용"
+  },
+  "empty": {
+    "addFirstItem": "첫 아이템 추가",
+    "description": "첫 번째 옷을 추가하면 맞춤 코디 추천을 받을 수 있어요.",
+    "title": "옷장이 비어 있어요"
+  },
+  "errors": {
+    "clearFilters": "필터 초기화",
+    "loadFailed": "아이템을 불러오지 못했어요. 다시 시도해 주세요.",
+    "noItemsFound": "필터 조건에 맞는 아이템이 없어요."
+  },
+  "favorites": "즐겨찾기",
+  "itemCount": "{count, plural, other {옷장에 아이템 #개}}",
+  "itemDetail": {
+    "actions": {
+      "backgroundRemoveError": "배경 제거 실패",
+      "backgroundRemoved": "배경이 제거되었어요",
+      "cancelEditing": "편집 취소",
+      "deleteConfirm": "이 아이템을 삭제하시겠어요?",
+      "deleteDescription": "\"{name}\"이(가) 옷장에서 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
+      "deleteError": "아이템 삭제 실패",
+      "deleteErrorDescription": "문제가 발생했어요. 다시 시도해 주세요.",
+      "deleteItem": "아이템 삭제",
+      "deleted": "아이템이 삭제되었어요",
+      "deletedFallback": "옷장에서 아이템이 삭제되었어요.",
+      "deletedWithName": "\"{name}\"이(가) 삭제되었어요.",
+      "editItem": "아이템 편집",
+      "imageReplaceError": "이미지 교체 실패",
+      "imageReplaced": "이미지가 교체되었어요",
+      "imageRotateError": "이미지 회전 실패",
+      "imageRotated": "이미지가 회전되었어요",
+      "markWashed": "세탁 완료 표시",
+      "originalRestoreError": "원본 이미지 복원 실패",
+      "originalRestored": "원본 이미지가 복원되었어요",
+      "washError": "세탁 완료 표시 실패",
+      "washed": "세탁 완료로 표시되었어요"
+    },
+    "brand": "브랜드",
+    "name": "이름",
+    "notes": "메모",
+    "placeholders": {
+      "additionalNotes": "추가 메모...",
+      "brandName": "브랜드명",
+      "itemName": "아이템 이름",
+      "selectColor": "색상 선택",
+      "washIntervalDefault": "기본값: {count}"
+    },
+    "primaryColor": "메인 색상",
+    "titles": {
+      "analysisInProgress": "분석 진행 중...",
+      "deleteImage": "이미지 삭제",
+      "findMatchingOutfits": "어울리는 코디 찾기",
+      "reanalyzeWithAI": "AI로 재분석",
+      "removeBackground": "배경 제거",
+      "replaceImage": "이미지 교체",
+      "rotateLeft": "왼쪽 회전",
+      "rotateRight": "오른쪽 회전",
+      "setAsPrimary": "대표 이미지로 설정",
+      "toggleFavorite": "즐겨찾기 전환",
+      "undoBackgroundRemoval": "배경 제거 취소"
+    },
+    "type": "유형",
+    "view": {
+      "addedDate": "{date} 추가됨",
+      "aiAnalysis": "AI 분석",
+      "aiAnalyzing": "AI 분석 중...",
+      "avgPerMonth": "월 평균",
+      "complete": "{percent}% 완료",
+      "confident": "{percent}% 확신",
+      "daysAgo": "{count}일 전",
+      "fitBadge": "{fit} 핏",
+      "last6Months": "최근 6개월",
+      "lastWashed": "마지막 세탁: {date}",
+      "lastWorn": "마지막 착용",
+      "lastWornDate": "마지막: {date}",
+      "monthWears": "{month}: {count, plural, other {#회 착용}}",
+      "needsWashing": "세탁 필요",
+      "never": "없음",
+      "primaryImage": "대표",
+      "timeline": "{count, plural, other {타임라인 (#건)}}",
+      "today": "오늘",
+      "totalWears": "총 착용 횟수",
+      "usualOccasion": "주요 상황",
+      "washHistory": "세탁 기록 ({count})",
+      "washIntervalHint": "세탁이 필요한 착용 횟수예요. 비워두면 기본값이 적용돼요.",
+      "washStatus": "세탁 상태",
+      "wearHistory": "착용 기록",
+      "wears": "착용 횟수",
+      "wearsSinceWash": "세탁 후 착용: {current}/{max}",
+      "wornCount": "{count, plural, other {#회 착용}}"
+    },
+    "washInterval": "세탁 주기"
+  },
+  "lightbox": {
+    "openInWardrobe": "옷장에서 열기"
+  },
+  "needsWash": "세탁 필요",
+  "pageSize": "페이지당 {count}개",
+  "search": "아이템 검색...",
+  "sort": {
+    "leastRecentlyWorn": "오래 안 입은 순",
+    "leastWorn": "적게 입은 순",
+    "mostWorn": "많이 입은 순",
+    "nameAZ": "이름 ㄱ–ㅎ",
+    "nameZA": "이름 ㅎ–ㄱ",
+    "newestFirst": "최신순",
+    "oldestFirst": "오래된 순",
+    "recentlyWorn": "최근 착용순"
+  },
+  "title": "내 옷장",
+  "wearCount": "{count, plural, other {#회 착용}}",
+  "wornAgo": {
+    "daysAgo": "{days}일 전 착용",
+    "today": "오늘 착용",
+    "yesterday": "어제 착용"
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "bulkActions": {
+    "deleteError": "删除穿搭失败",
+    "deletePartialFailed": "删除 {count, plural, one {# 套穿搭} other {# 套穿搭}} 失败",
+    "deleteSuccess": "已删除 {count, plural, one {# 套穿搭} other {# 套穿搭}}",
+    "select": "选择"
+  },
+  "bulkDelete": {
+    "confirmDescription": "这将永久删除所选穿搭。此操作不可撤销。",
+    "confirmTitle": "删除 {count, plural, one {# 套穿搭} other {# 套穿搭}}？",
+    "confirmTitleAll": "删除全部 {count, plural, one {# 套穿搭} other {# 套穿搭}}？"
+  },
+  "calendar": {
+    "legendOnDemand": "按需",
+    "legendScheduled": "已计划",
+    "monthlyCount": "本月 {count, plural, one {# 套穿搭} other {# 套穿搭}}",
+    "noOutfitsOnDay": "这天没有穿搭",
+    "outfitCount": "{count, plural, one {# 套穿搭} other {# 套穿搭}}",
+    "weekDays": {
+      "fri": "五",
+      "mon": "一",
+      "sat": "六",
+      "sun": "日",
+      "thu": "四",
+      "tue": "二",
+      "wed": "三"
+    }
+  },
+  "canvas": {
+    "empty": "点击下方的单品开始搭配您的穿搭",
+    "removeItem": "移除 {name}"
+  },
+  "cards": {
+    "ai": "AI",
+    "lookbookTemplate": "造型册模板",
+    "outfitFallback": "{occasion}搭配",
+    "pairing": "搭配",
+    "replacement": "替换",
+    "studio": "工作室",
+    "worn": "已穿着"
+  },
+  "cloneToLookbook": {
+    "description": "为这套造型命名，方便日后查找和再次穿着。",
+    "errorEmpty": "请输入名称",
+    "name": "名称",
+    "namePlaceholder": "周五早午餐",
+    "saveError": "保存到造型册失败",
+    "saved": "已保存到造型册",
+    "title": "保存到造型册"
+  },
+  "detail": {
+    "addedToToday": "已添加到今天",
+    "backToOutfits": "返回穿搭列表",
+    "deleteConfirm": "删除这套穿搭？此操作不可撤销。",
+    "deleteError": "删除失败",
+    "deleted": "穿搭已删除",
+    "items": "单品 ({count})",
+    "lookbookTemplate": "造型册模板",
+    "notWornYet": "这套造型还没有穿过。点击“今天穿”来记录。",
+    "saveToLookbook": "保存到造型册",
+    "seeAll": "查看全部",
+    "stylingTip": "小贴士：",
+    "undated": "未设日期",
+    "wearToday": "今天穿",
+    "wearTodayError": "记录今天穿着失败",
+    "wornCount": "已穿着 {count, plural, one {# 次} other {# 次}}"
+  },
+  "details": {
+    "addedItems": "已从 AI 添加 {count, plural, one {# 件单品} other {# 件单品}}",
+    "aiAssistError": "请先选择至少一件单品和一个场合",
+    "aiFailed": "AI 辅助失败",
+    "aiNoSuggestions": "AI 没有新单品建议",
+    "aiThinking": "AI 正在思考...",
+    "letAiFinish": "让 AI 完成",
+    "name": "名称",
+    "namePlaceholder": "周五早午餐",
+    "nameRequired": "（造型册必填）",
+    "occasion": "场合",
+    "pickOccasion": "保存前请选择一个场合。",
+    "skippedItem": "已跳过 {name}：{reason}",
+    "warnings": {
+      "multipleBottoms": "选择了多件下装。",
+      "noBottoms": "未选择下装。",
+      "noFootwear": "未选择鞋履。",
+      "noTop": "未选择上装。"
+    }
+  },
+  "empty": {
+    "ai": "还没有 AI 建议。",
+    "all": "还没有穿搭。创建您的第一个造型吧！",
+    "myLooks": "还没有造型册模板。",
+    "pairings": "还没有搭配。",
+    "replacements": "还没有替换穿搭。",
+    "worn": "还没有穿着记录。"
+  },
+  "filters": {
+    "ai": "AI",
+    "all": "全部",
+    "lookbook": "造型册",
+    "pairings": "搭配",
+    "replacements": "替换",
+    "worn": "已穿着"
+  },
+  "itemPicker": {
+    "loadingMore": "加载更多...",
+    "noItems": "未找到单品",
+    "noMatch": "没有匹配的单品",
+    "search": "搜索衣橱...",
+    "showingAll": "显示全部 {count, plural, one {# 件单品} other {# 件单品}}"
+  },
+  "lineage": {
+    "fromLookbook": "来自您的造型册条目 {name}",
+    "replaces": "替换 {occasion} 建议",
+    "replacesWithDate": "替换来自 {date} 的 {occasion} 建议"
+  },
+  "loadError": "加载穿搭失败",
+  "loadMore": "加载更多",
+  "new": {
+    "discardChanges": "放弃更改",
+    "draft": {
+      "found": "您上次有未保存的草稿。是否继续编辑？",
+      "resume": "继续编辑",
+      "startFresh": "重新开始"
+    },
+    "editOutfit": "编辑穿搭",
+    "errors": {
+      "backToOutfits": "返回穿搭列表",
+      "cannotEdit": "您无法编辑这套穿搭",
+      "couldNotLoad": "无法加载这套穿搭",
+      "couldNotLoadDesc": "您的会话可能已过期，或这套穿搭属于其他账号。",
+      "genericError": "加载穿搭时出现问题。请检查网络连接后重试。",
+      "notFound": "未找到穿搭",
+      "notFoundDesc": "这套穿搭已不存在。它可能已在其他标签页或设备上被删除。"
+    },
+    "nameRequired": "保存前请为造型册条目命名",
+    "outfitUpdated": "穿搭已更新",
+    "saveChanges": "保存更改",
+    "saveError": "保存穿搭失败",
+    "saveToLookbook": "保存到造型册",
+    "savedAndMarkedWorn": "已保存并标记为已穿",
+    "savedToLookbook": "已保存到造型册",
+    "studio": "工作室",
+    "tabs": {
+      "canvas": "画布",
+      "details": "详情",
+      "emptyWardrobe": "您的衣橱中还没有单品。请先添加单品。",
+      "yourWardrobe": "您的衣橱"
+    },
+    "validation": {
+      "needItem": "请选择至少一件单品",
+      "needItemAndOccasion": "请选择至少一件单品和一个场合",
+      "needOccasion": "请选择一个场合"
+    },
+    "wearToday": "今天穿",
+    "worn": {
+      "backToOutfit": "返回穿搭",
+      "description": "已穿着的穿搭无法编辑，因为它们是您穿着历史的一部分。",
+      "saveAsNew": "另存为新穿搭",
+      "title": "这套穿搭已穿过"
+    }
+  },
+  "newOutfit": "新建穿搭",
+  "search": "搜索造型册...",
+  "subtitle": "您的造型、穿着记录和 AI 建议",
+  "title": "穿搭",
+  "totalCount": "共{count}组",
+  "viewCalendar": "日历",
+  "viewList": "列表",
+  "viewToggle": "切换视图"
+}

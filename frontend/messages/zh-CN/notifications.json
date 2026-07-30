@@ -1,0 +1,94 @@
+{
+  "channels": {
+    "addChannel": "添加渠道",
+    "addFailed": "添加渠道失败",
+    "channelAdded": "渠道已添加",
+    "channelDeleted": "渠道已删除",
+    "channelDisabled": "渠道已禁用",
+    "channelEnabled": "渠道已启用",
+    "channelType": "渠道类型",
+    "deleteConfirm": {
+      "description": "这将移除此通知渠道并停止通过它发送的所有通知。",
+      "title": "删除通知渠道？"
+    },
+    "description": "添加渠道以接收每日穿搭推荐",
+    "dialog": {
+      "description": "配置一种新的穿搭推荐接收方式。",
+      "title": "通知渠道"
+    },
+    "fields": {
+      "accessToken": "访问令牌",
+      "emailAddress": "邮箱地址 *",
+      "serverUrl": "服务器地址",
+      "topic": "主题 *",
+      "webhookUrl": "Webhook 地址 *"
+    },
+    "helpers": {
+      "accessTokenOptional": "如果 ntfy 服务器需要认证则必填",
+      "mattermostWebhook": "在 Mattermost 设置中创建一个传入 Webhook",
+      "topicSubscribe": "在你的 ntfy 应用中订阅此主题"
+    },
+    "noChannels": "尚未配置通知渠道",
+    "noChannelsDesc": "添加一个渠道来开始接收穿搭建议",
+    "placeholders": {
+      "accessToken": "tk_...",
+      "emailAddress": "you@example.com"
+    },
+    "priority": "优先级 {level}",
+    "test": "测试",
+    "testFailed": "发送测试通知失败",
+    "testSent": "测试通知已发送",
+    "title": "通知渠道",
+    "types": {
+      "email": "邮件",
+      "mattermost": "Mattermost",
+      "ntfy": "ntfy 推送通知"
+    },
+    "validation": {
+      "emailRequired": "需要填写邮箱地址",
+      "topicRequired": "ntfy 需要填写主题",
+      "webhookRequired": "Mattermost 需要填写 Webhook 地址"
+    },
+    "webhookConfigured": "Webhook 已配置"
+  },
+  "days": {
+    "friday": "周五",
+    "monday": "周一",
+    "saturday": "周六",
+    "sunday": "周日",
+    "thursday": "周四",
+    "tuesday": "周二",
+    "wednesday": "周三"
+  },
+  "deleteFailed": "删除失败",
+  "schedule": {
+    "addFailed": "添加时间表失败",
+    "addSchedule": "添加时间表",
+    "dayLabel": "日",
+    "deleteConfirm": {
+      "description": "这将移除此推送时间表。",
+      "title": "删除时间表？"
+    },
+    "description": "设置每天接收穿搭推荐的时间",
+    "dialogDescription": "设置您希望收到穿搭推荐的时间。",
+    "noSchedules": "尚未配置时间表",
+    "noSchedulesDesc": "添加时间表来接收每日穿搭建议",
+    "notifyDayBefore": "提前一天通知",
+    "notifyDayBeforeDesc": "前一天晚上收到通知，附带明天的天气预报",
+    "notifyDayBeforeInfo": "您将在 {notifyDay} {time} 收到 {outfitDay} 穿搭的通知。",
+    "notifyDayEvening": "{day}晚上",
+    "occasionLabel": "场合",
+    "scheduleAdded": "时间表已添加",
+    "scheduleDeleted": "时间表已删除",
+    "scheduleDisabled": "时间表已禁用",
+    "scheduleEnabled": "时间表已启用",
+    "summary": "{time} - {occasion}",
+    "timeLabel": "时间",
+    "title": "推送时间表",
+    "willNotifyDayBefore": "将提前一天通知",
+    "willNotifySameDay": "将当天通知"
+  },
+  "subtitle": "设置接收穿搭推荐的方式和时间",
+  "title": "通知",
+  "updateFailed": "更新失败"
+}

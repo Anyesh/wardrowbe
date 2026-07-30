@@ -1,0 +1,47 @@
+{
+  "card": {
+    "accept": "Annehmen",
+    "acceptFailed": "Outfit konnte nicht angenommen werden",
+    "didntWearThis": "Nicht getragen",
+    "dismiss": "Verwerfen",
+    "dismissFailed": "Outfit konnte nicht verworfen werden",
+    "familyLabel": "Familie:",
+    "itemFallback": "Stück",
+    "outfitAccepted": "Outfit angenommen",
+    "outfitDismissed": "Outfit verworfen",
+    "rate": "Bewerten",
+    "tip": "Tipp:",
+    "update": "Aktualisieren",
+    "viewItemDetails": "Stückdetails ansehen",
+    "woreInstead": "Stattdessen getragen:"
+  },
+  "empty": {
+    "description": "Dein Outfit-Empfehlungsverlauf erscheint hier, sobald du Vorschläge erhältst.",
+    "getFirstSuggestion": "Ersten Vorschlag erhalten",
+    "title": "Kein Empfehlungsverlauf"
+  },
+  "filters": {
+    "allOccasions": "Alle Anlässe",
+    "allStatus": "Alle Status",
+    "workout": "Sport"
+  },
+  "loadError": "Verlauf konnte nicht geladen werden. Bitte versuche es erneut.",
+  "noOutfitsForDate": "Keine Outfits für {date}",
+  "outfitCount": "{count, plural, one {# Outfit} other {# Outfits}}",
+  "sourceBadges": {
+    "manual": "Manuell",
+    "onDemand": "Auf Anfrage",
+    "pairing": "Kombination",
+    "scheduled": "Geplant"
+  },
+  "status": {
+    "accepted": "Angenommen",
+    "expired": "Abgelaufen",
+    "pending": "Ausstehend",
+    "rejected": "Abgelehnt",
+    "sent": "Gesendet",
+    "viewed": "Angesehen"
+  },
+  "subtitle": "Deine vergangenen Outfit-Empfehlungen ansehen",
+  "title": "Verlauf"
+}

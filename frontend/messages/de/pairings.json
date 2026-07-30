@@ -1,0 +1,34 @@
+{
+  "allItemTypes": "Alle Kleidungsarten",
+  "card": {
+    "badge": "Kombination",
+    "builtAround": "Aufgebaut um:",
+    "deleteError": "Kombination konnte nicht gelöscht werden",
+    "deleted": "Kombination gelöscht",
+    "rateThisPairing": "Diese Kombination bewerten",
+    "tip": "Tipp:",
+    "updateRating": "Bewertung aktualisieren"
+  },
+  "empty": {
+    "description": "Wähle ein Stück aus deinem Kleiderschrank und nutze „Kombinationen finden“, um zusammenpassende Outfit-Kombinationen zu entdecken.",
+    "goToWardrobe": "Zum Kleiderschrank",
+    "title": "Noch keine Kombinationen"
+  },
+  "generate": {
+    "description": "Die KI erstellt komplette Outfits mit diesem Stück",
+    "failed": "Kombinationen konnten nicht generiert werden",
+    "generate": "Outfits generieren",
+    "generating": "Wird generiert...",
+    "numOutfits": "Anzahl der Outfits",
+    "numOutfitsDesc": "Mehr Outfits = mehr Vielfalt, aber längere Generierungszeit",
+    "success": "{count, plural, one {{count} Outfit erstellt!} other {{count} Outfits erstellt!}}",
+    "successDesc": "Im Kombinationen-Bereich ansehen",
+    "title": "Passende Outfits finden",
+    "viewPairings": "Kombinationen ansehen"
+  },
+  "itemTypeOption": "{type} ({count})",
+  "loadError": "Kombinationen konnten nicht geladen werden. Bitte versuche es erneut.",
+  "pairingCount": "{count, plural, one {{count} Kombination} other {{count} Kombinationen}}",
+  "subtitle": "KI-generierte Outfit-Kombinationen rund um deine Stücke",
+  "title": "Kombinationen"
+}

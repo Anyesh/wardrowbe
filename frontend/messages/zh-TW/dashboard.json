@@ -1,0 +1,66 @@
+{
+  "familyFeed": {
+    "browse": "瀏覽家庭穿搭",
+    "description": "查看家人的穿搭並評分",
+    "memberCount": "{count, plural, one {{name} 中有 {count} 位成員} other {{name} 中有 {count} 位成員}}",
+    "title": "家庭穿搭"
+  },
+  "insights": {
+    "empty": "新增更多單品並產生穿搭以查看個人化洞察！",
+    "title": "洞察"
+  },
+  "layout": {
+    "loading": "正在載入你的衣櫥..."
+  },
+  "nextScheduled": {
+    "comingUp": "即將到來",
+    "dayAtTime": "{day} {time}",
+    "noSchedules": "尚未設定排程",
+    "occasionOutfit": "{occasion} 穿搭",
+    "setUpSchedule": "設定排程",
+    "title": "下次排程",
+    "today": "今天",
+    "tomorrow": "明天"
+  },
+  "notifications": {
+    "activeCount": "{total} 個中 {active} 個啟用中",
+    "addChannel": "新增頻道",
+    "configure": "設定",
+    "noChannels": "尚未設定頻道",
+    "title": "通知"
+  },
+  "pendingOutfits": {
+    "acceptFailed": "接受穿搭失敗",
+    "accepted": "穿搭已接受",
+    "allCaughtUp": "全部看完了",
+    "dismissFailed": "關閉穿搭失敗",
+    "dismissLabel": "關閉穿搭",
+    "dismissed": "穿搭已關閉",
+    "lookbook": "造型冊",
+    "noPending": "沒有待回應的穿搭",
+    "title": "待處理穿搭"
+  },
+  "quickActions": {
+    "addNewItem": "新增單品",
+    "description": "常用功能",
+    "getOutfitSuggestion": "取得穿搭建議",
+    "title": "快速操作"
+  },
+  "subtitle": "以下是你衣櫥的最新動態",
+  "userFallback": "使用者",
+  "weather": {
+    "feelsLike": "體感 {temp}",
+    "getOutfitSuggestion": "取得穿搭建議",
+    "locationNotSet": "尚未設定位置",
+    "rainChance": "降雨機率 {percent}%",
+    "setLocation": "設定位置",
+    "title": "今日天氣"
+  },
+  "weeklySummary": {
+    "accepted": "已接受",
+    "avgRatingValue": "平均評分：{rating}/5",
+    "outfits": "穿搭",
+    "title": "本週"
+  },
+  "welcomeBack": "歡迎回來，{name}"
+}

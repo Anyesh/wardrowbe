@@ -1,0 +1,80 @@
+{
+  "complete": {
+    "description": "你的衣櫥已準備就緒。開始新增衣物，獲得個人化穿搭建議！",
+    "finishing": "完成中...",
+    "goToDashboard": "前往儀表板",
+    "setupFailed": "完成設定失敗，請重試。",
+    "title": "全部完成！"
+  },
+  "family": {
+    "createFamily": "建立家庭",
+    "createFamilyDesc": "建立新家庭",
+    "description": "建立或加入家庭，一起分享衣櫥體驗",
+    "error": "家庭設定失敗，請重試。",
+    "familyName": "家庭名稱",
+    "familyNamePlaceholder": "例如：王家",
+    "inviteCode": "邀請碼",
+    "inviteCodePlaceholder": "例如：ABC123XY",
+    "joinFamily": "加入家庭",
+    "joinFamilyDesc": "使用邀請碼",
+    "joinSuccess": "成功加入家庭！",
+    "success": "家庭建立成功！",
+    "title": "家庭設定"
+  },
+  "firstItem": {
+    "addToWardrobe": "加入衣櫥",
+    "chooseDifferentPhoto": "選擇其他照片",
+    "description": "拍照或上傳一張衣物圖片",
+    "formatHint": "PNG、JPG 或 HEIC",
+    "previewAlt": "預覽",
+    "title": "新增第一件單品",
+    "typeLabel": "這是什麼類型的衣物？",
+    "typePlaceholder": "選擇類型...",
+    "uploadError": "上傳單品失敗，請重試。",
+    "uploadPrompt": "點擊上傳或拍照",
+    "uploadSuccess": "單品已新增至你的衣櫥！"
+  },
+  "location": {
+    "cityLabel": "城市/地點名稱",
+    "cityPlaceholder": "例如：台北市",
+    "description": "我們使用此資訊提供適合天氣的穿搭建議",
+    "detectLocation": "偵測我的位置",
+    "locationError": "偵測位置失敗，請手動輸入。",
+    "locationSuccess": "位置設定成功！",
+    "orManual": "或手動輸入",
+    "saveError": "儲存位置失敗，請重試。",
+    "title": "你的位置"
+  },
+  "skipForNow": "暫時跳過",
+  "steps": {
+    "family": "家庭",
+    "firstItem": "第一件單品",
+    "location": "位置",
+    "style": "風格",
+    "welcome": "歡迎"
+  },
+  "style": {
+    "colorsToAvoid": "避免的顏色",
+    "colorsToAvoidDesc": "點選你不喜歡穿的顏色",
+    "description": "幫助我們了解你的風格偏好",
+    "favoriteColors": "喜愛的顏色",
+    "favoriteColorsDesc": "點選你喜歡穿的顏色",
+    "percentValue": "{value}%",
+    "saveError": "儲存風格偏好失敗。",
+    "saveSuccess": "風格偏好已儲存！",
+    "styleProfile": "風格檔案",
+    "styleProfileDesc": "調整你對各風格的偏好程度",
+    "title": "你的風格"
+  },
+  "welcome": {
+    "description": "只要幾個步驟，就能完成你的數位衣櫥設定。",
+    "feature1": "拍下你的衣物",
+    "feature1Desc": "我們的 AI 會自動標記顏色、風格等資訊",
+    "feature2": "獲得個人化穿搭",
+    "feature2Desc": "依據天氣與你的風格提供每日推薦",
+    "feature3": "與家人分享",
+    "feature3Desc": "每個人都能擁有自己的個人化衣櫥",
+    "getStarted": "開始使用",
+    "greeting": "歡迎來到 Wardrowbe{name}！"
+  }
+}

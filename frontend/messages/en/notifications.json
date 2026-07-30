@@ -1,0 +1,94 @@
+{
+  "channels": {
+    "addChannel": "Add Channel",
+    "addFailed": "Failed to add channel",
+    "channelAdded": "Channel added",
+    "channelDeleted": "Channel deleted",
+    "channelDisabled": "Channel disabled",
+    "channelEnabled": "Channel enabled",
+    "channelType": "Channel Type",
+    "deleteConfirm": {
+      "description": "This will remove this notification channel and stop all notifications sent through it.",
+      "title": "Delete Notification Channel?"
+    },
+    "description": "Add channels to receive your daily outfit recommendations",
+    "dialog": {
+      "description": "Configure a new way to receive outfit recommendations.",
+      "title": "Notification Channel"
+    },
+    "fields": {
+      "accessToken": "Access Token",
+      "emailAddress": "Email Address *",
+      "serverUrl": "Server URL",
+      "topic": "Topic *",
+      "webhookUrl": "Webhook URL *"
+    },
+    "helpers": {
+      "accessTokenOptional": "Required if your ntfy server uses authentication",
+      "mattermostWebhook": "Create an incoming webhook in Mattermost settings",
+      "topicSubscribe": "Subscribe to this topic in your ntfy app"
+    },
+    "noChannels": "No notification channels configured",
+    "noChannelsDesc": "Add a channel to start receiving outfit suggestions",
+    "placeholders": {
+      "accessToken": "tk_...",
+      "emailAddress": "you@example.com"
+    },
+    "priority": "Priority {level}",
+    "test": "Test",
+    "testFailed": "Failed to send test notification",
+    "testSent": "Test notification sent",
+    "title": "Notification Channels",
+    "types": {
+      "email": "Email",
+      "mattermost": "Mattermost",
+      "ntfy": "ntfy Push Notifications"
+    },
+    "validation": {
+      "emailRequired": "Email address is required",
+      "topicRequired": "Topic is required for ntfy",
+      "webhookRequired": "Webhook URL is required for Mattermost"
+    },
+    "webhookConfigured": "Webhook configured"
+  },
+  "days": {
+    "friday": "Friday",
+    "monday": "Monday",
+    "saturday": "Saturday",
+    "sunday": "Sunday",
+    "thursday": "Thursday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday"
+  },
+  "deleteFailed": "Failed to delete",
+  "schedule": {
+    "addFailed": "Failed to add schedule",
+    "addSchedule": "Add Schedule",
+    "dayLabel": "Day",
+    "deleteConfirm": {
+      "description": "This will remove this delivery schedule.",
+      "title": "Delete Schedule?"
+    },
+    "description": "Set when you want to receive outfit recommendations each day",
+    "dialogDescription": "Set up when you want to receive outfit recommendations.",
+    "noSchedules": "No schedules configured",
+    "noSchedulesDesc": "Add a schedule to receive daily outfit suggestions",
+    "notifyDayBefore": "Notify day before",
+    "notifyDayBeforeDesc": "Get notification the evening before with tomorrow's forecast",
+    "notifyDayBeforeInfo": "You'll receive the notification on {notifyDay} at {time} for your {outfitDay} outfit.",
+    "notifyDayEvening": "{day} evening",
+    "occasionLabel": "Occasion",
+    "scheduleAdded": "Schedule added",
+    "scheduleDeleted": "Schedule deleted",
+    "scheduleDisabled": "Schedule disabled",
+    "scheduleEnabled": "Schedule enabled",
+    "summary": "{time} - {occasion}",
+    "timeLabel": "Time",
+    "title": "Delivery Schedule",
+    "willNotifyDayBefore": "Will notify day before",
+    "willNotifySameDay": "Will notify same day"
+  },
+  "subtitle": "Configure how and when you receive outfit recommendations",
+  "title": "Notifications",
+  "updateFailed": "Failed to update"
+}

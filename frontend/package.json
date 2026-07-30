@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "i18n:keys": "node scripts/i18n-keys.mjs",
+    "i18n:parity": "node scripts/i18n-check.mjs",
+    "i18n:scan": "node scripts/i18n-scan.mjs",
+    "i18n:check": "npm run i18n:keys && npm run i18n:parity && npm run i18n:scan"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
@@ -33,6 +37,7 @@
     "lucide-react": "^0.316.0",
     "next": "14.2.35",
     "next-auth": "^4.24.5",
+    "next-intl": "^4.13.4",
     "next-themes": "^0.2.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",

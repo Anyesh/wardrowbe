@@ -10,14 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useJoinFamilyByToken } from '@/lib/hooks/use-family';
 import { ApiError } from '@/lib/api';
+import { useTranslations } from 'next-intl';
 
-function getErrorMessage(error: unknown): string {
+function getErrorMessage(error: unknown, t: (key: string) => string): string {
   if (error instanceof ApiError) {
-    if (error.status === 404) return 'This invite link is invalid or has expired.';
-    if (error.status === 403) return 'This invite was sent to a different email address.';
-    if (error.status === 409) return 'You are already in a family.';
+    if (error.status === 404) return t('invite.invalidLink');
+    if (error.status === 403) return t('invite.wrongEmail');
+    if (error.status === 409) return t('invite.alreadyInFamily');
   }
-  return 'Something went wrong. Please try again.';
+  return t('default');
 }
 
 function InviteContent() {
@@ -26,6 +27,8 @@ function InviteContent() {
   const { status } = useSession();
   const token = searchParams.get('token');
   const joinByToken = useJoinFamilyByToken();
+  const t = useTranslations('auth');
+  const te = useTranslations('errors');
 
   useEffect(() => {
     if (!token) {
@@ -50,7 +53,7 @@ function InviteContent() {
   const handleAccept = async () => {
     try {
       const result = await joinByToken.mutateAsync(token);
-      toast.success(`Joined ${result.family_name}!`);
+      toast.success(t('invite.joinedFamily', { name: result.family_name }));
       router.push('/dashboard/family');
     } catch {
       // error displayed via joinByToken.error below
@@ -63,15 +66,15 @@ function InviteContent() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Family Invitation
+            {t('invite.title')}
           </CardTitle>
           <CardDescription>
-            You&apos;ve been invited to join a family on Wardrowbe
+            {t('invite.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {joinByToken.isError && (
-            <p className="text-sm text-destructive">{getErrorMessage(joinByToken.error)}</p>
+            <p className="text-sm text-destructive">{getErrorMessage(joinByToken.error, te)}</p>
           )}
           <Button
             onClick={handleAccept}
@@ -79,7 +82,7 @@ function InviteContent() {
             disabled={joinByToken.isPending || joinByToken.isSuccess}
           >
             {joinByToken.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Accept Invitation
+            {t('invite.acceptButton')}
           </Button>
         </CardContent>
       </Card>

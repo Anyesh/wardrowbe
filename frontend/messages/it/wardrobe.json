@@ -1,0 +1,205 @@
+{
+  "actions": {
+    "addItem": "Aggiungi capo"
+  },
+  "addItem": {
+    "brandInputPlaceholder": "es., J.Crew",
+    "brandPlaceholder": "Marca",
+    "bulk": {
+      "allFailed": "Impossibile caricare {count, plural, one {# capo} other {tutti i # capi}}",
+      "allSuccess": "{count, plural, one {# capo caricato con successo} other {# capi caricati con successo}}",
+      "clearAll": "Cancella tutto",
+      "discardConfirm": {
+        "discard": "Scarta",
+        "imageCount": "{count, plural, one {# immagine selezionata} other {# immagini selezionate}} che andranno perse se chiudi questa finestra di dialogo.",
+        "keepEditing": "Continua la modifica",
+        "singleImage": "1 immagine selezionata che andrà persa se chiudi questa finestra di dialogo.",
+        "title": "Scartare le immagini selezionate?"
+      },
+      "hint": "Tutti i capi saranno etichettati automaticamente dall'IA. Potrai modificare i dettagli in seguito.",
+      "imageCount": "{count, plural, one {# immagine selezionata} other {# immagini selezionate}}",
+      "partial": "{success} caricati, {failed} falliti",
+      "resultFailed": "{count, plural, one {# capo fallito} other {# capi falliti}}",
+      "resultSuccess": "{success} di {total} caricati con successo",
+      "skipAi": "Salta l’analisi IA (aggiungi con valori segnaposto, modifica i dettagli in seguito)",
+      "uploadButton": "{count, plural, one {Carica # capo} other {Carica # capi}}",
+      "uploadError": "Caricamento dei capi fallito. Riprova.",
+      "uploadMore": "Carica altro",
+      "uploadingCount": "{count, plural, one {Caricamento di # capo...} other {Caricamento di # capi...}}"
+    },
+    "bulkUpload": "Caricamento multiplo",
+    "dropzone": "Trascina e rilascia un'immagine, o tocca per selezionare",
+    "dropzoneActive": "Rilascia l'immagine qui",
+    "formatHint": "PNG, JPG o HEIC",
+    "letAiDetect": "Lascia rilevare all'IA...",
+    "nameInputPlaceholder": "es., Camicia Oxford blu",
+    "namePlaceholder": "Nome (opzionale)",
+    "notesInputPlaceholder": "Note aggiuntive...",
+    "notesPlaceholder": "Note",
+    "previewAlt": "Anteprima",
+    "primaryColor": "Colore principale",
+    "selectPlaceholder": "Seleziona...",
+    "singleItem": "Capo singolo",
+    "submit": "Aggiungi capo",
+    "subtitle": "Carica foto dei tuoi capi di abbigliamento",
+    "title": "Aggiungi capi",
+    "typeLabel": "Tipo (l'IA rileverà se vuoto)",
+    "uploading": "Caricamento in corso..."
+  },
+  "ai": {
+    "analysisFailed": "Analisi fallita",
+    "analyzing": "Analisi IA in corso...",
+    "analyzingCount": "{count} in analisi",
+    "analyzingProgress": "{count} in analisi · {percent}% completato",
+    "completeness": "Completezza IA: {percent}%",
+    "confident": "{percent}% fiducia",
+    "dismiss": "Ignora",
+    "failedCount": "{count} falliti"
+  },
+  "allTypes": "Tutti i tipi",
+  "bulkActions": {
+    "deleteError": "Eliminazione capi fallita",
+    "deletePartialFailed": "{count, plural, one {Impossibile eliminare # capo} other {Impossibile eliminare # capi}}",
+    "deleteSuccess": "{count, plural, one {# capo eliminato} other {# capi eliminati}}",
+    "reanalyzeError": "Impossibile mettere in coda i capi per la rianalisi",
+    "reanalyzeMany": "{count} capi messi in coda per la rianalisi. Potrebbe volerci un po’.",
+    "reanalyzePartialFailed": "{count, plural, one {Impossibile mettere in coda # capo} other {Impossibile mettere in coda # capi}}",
+    "reanalyzeQueued": "{count, plural, one {# capo messo in coda per la rianalisi} other {# capi messi in coda per la rianalisi}}"
+  },
+  "bulkDelete": {
+    "confirmDescription": "Questo eliminerà definitivamente i capi selezionati e le relative immagini. Questa azione non può essere annullata.",
+    "confirmTitle": "Eliminare {count, plural, one {# capo} other {# capi}}?",
+    "confirmTitleAll": "{count, plural, one {Eliminare # capo?} other {Eliminare tutti i capi (#)?}}"
+  },
+  "clearFilters": "Cancella filtri",
+  "colorEyedropper": {
+    "buttonTitle": "Scegli colore dall'immagine",
+    "description": "Clicca ovunque sull'immagine per campionare un colore",
+    "errors": {
+      "canvasContext": "Impossibile ottenere il contesto del canvas",
+      "canvasUnavailable": "Canvas non disponibile",
+      "imageDecodeFailed": "Impossibile caricare l’immagine dal blob",
+      "imageLoadFailed": "Caricamento dell’immagine fallito",
+      "imageLoadStatus": "Caricamento dell’immagine fallito: {status}"
+    },
+    "noColorSelected": "Nessun colore selezionato ancora",
+    "picked": "Selezionato",
+    "title": "Scegli colore dall'immagine",
+    "useColor": "Usa {color}"
+  },
+  "empty": {
+    "addFirstItem": "Aggiungi primo capo",
+    "description": "Aggiungi il tuo primo capo per iniziare a ricevere suggerimenti di outfit personalizzati.",
+    "title": "Il tuo guardaroba è vuoto"
+  },
+  "errors": {
+    "clearFilters": "Cancella filtri",
+    "loadFailed": "Caricamento capi fallito. Riprova.",
+    "noItemsFound": "Nessun capo trovato con i filtri selezionati."
+  },
+  "favorites": "Preferiti",
+  "itemCount": "{count, plural, one {# capo nel tuo guardaroba} other {# capi nel tuo guardaroba}}",
+  "itemDetail": {
+    "actions": {
+      "backgroundRemoveError": "Rimozione sfondo fallita",
+      "backgroundRemoved": "Sfondo rimosso",
+      "cancelEditing": "Annulla modifica",
+      "deleteConfirm": "Eliminare questo capo?",
+      "deleteDescription": "Questo eliminerà definitivamente \"{name}\" dal tuo guardaroba. Questa azione non può essere annullata.",
+      "deleteError": "Eliminazione capo fallita",
+      "deleteErrorDescription": "Qualcosa è andato storto. Riprova.",
+      "deleteItem": "Elimina capo",
+      "deleted": "Capo eliminato",
+      "deletedFallback": "Capo rimosso dal tuo guardaroba.",
+      "deletedWithName": "\"{name}\" è stato rimosso.",
+      "editItem": "Modifica capo",
+      "imageReplaceError": "Sostituzione immagine fallita",
+      "imageReplaced": "Immagine sostituita",
+      "imageRotateError": "Rotazione immagine fallita",
+      "imageRotated": "Immagine ruotata",
+      "markWashed": "Segna come lavato",
+      "originalRestoreError": "Ripristino dell’immagine originale fallito",
+      "originalRestored": "Immagine originale ripristinata",
+      "washError": "Impossibile segnare come lavato",
+      "washed": "Capo segnato come lavato"
+    },
+    "brand": "Marca",
+    "name": "Nome",
+    "notes": "Note",
+    "placeholders": {
+      "additionalNotes": "Note aggiuntive...",
+      "brandName": "Nome marca",
+      "itemName": "Nome capo",
+      "selectColor": "Seleziona colore",
+      "washIntervalDefault": "Predefinito: {count}"
+    },
+    "primaryColor": "Colore principale",
+    "titles": {
+      "analysisInProgress": "Analisi in corso...",
+      "deleteImage": "Elimina immagine",
+      "findMatchingOutfits": "Trova outfit abbinati",
+      "reanalyzeWithAI": "Rianalizza con IA",
+      "removeBackground": "Rimuovi sfondo",
+      "replaceImage": "Sostituisci immagine",
+      "rotateLeft": "Ruota a sinistra",
+      "rotateRight": "Ruota a destra",
+      "setAsPrimary": "Imposta come principale",
+      "toggleFavorite": "Attiva/disattiva preferito",
+      "undoBackgroundRemoval": "Annulla rimozione sfondo"
+    },
+    "type": "Tipo",
+    "view": {
+      "addedDate": "Aggiunto il {date}",
+      "aiAnalysis": "Analisi IA",
+      "aiAnalyzing": "Analisi IA in corso...",
+      "avgPerMonth": "Media/mese",
+      "complete": "{percent}% completato",
+      "confident": "{percent}% fiducia",
+      "daysAgo": "{count}g fa",
+      "fitBadge": "Vestibilità {fit}",
+      "last6Months": "Ultimi 6 mesi",
+      "lastWashed": "Ultimo lavaggio: {date}",
+      "lastWorn": "Ultimo utilizzo",
+      "lastWornDate": "Ultimo: {date}",
+      "monthWears": "{month}: {count, plural, one {# utilizzo} other {# utilizzi}}",
+      "needsWashing": "Da lavare",
+      "never": "Mai",
+      "primaryImage": "Principale",
+      "timeline": "{count, plural, one {Cronologia (# evento)} other {Cronologia (# eventi)}}",
+      "today": "Oggi",
+      "totalWears": "Totale utilizzi",
+      "usualOccasion": "Occasione abituale",
+      "washHistory": "Cronologia lavaggi ({count})",
+      "washIntervalHint": "Numero di utilizzi prima che questo capo necessiti di lavaggio. Lascia vuoto per il valore predefinito.",
+      "washStatus": "Stato lavaggio",
+      "wearHistory": "Cronologia utilizzi",
+      "wears": "utilizzi",
+      "wearsSinceWash": "Utilizzi dal lavaggio: {current}/{max}",
+      "wornCount": "{count, plural, one {Indossato # volta} other {Indossato # volte}}"
+    },
+    "washInterval": "Intervallo lavaggio"
+  },
+  "lightbox": {
+    "openInWardrobe": "Apri nel guardaroba"
+  },
+  "needsWash": "Da lavare",
+  "pageSize": "{count} per pagina",
+  "search": "Cerca capi...",
+  "sort": {
+    "leastRecentlyWorn": "Meno recenti indossati",
+    "leastWorn": "Meno indossati",
+    "mostWorn": "Più indossati",
+    "nameAZ": "Nome A–Z",
+    "nameZA": "Nome Z–A",
+    "newestFirst": "Più recenti prima",
+    "oldestFirst": "Più vecchi prima",
+    "recentlyWorn": "Indossati di recente"
+  },
+  "title": "Il mio guardaroba",
+  "wearCount": "{count, plural, one {Indossato # volta} other {Indossato # volte}}",
+  "wornAgo": {
+    "daysAgo": "Indossato {days}g fa",
+    "today": "Indossato oggi",
+    "yesterday": "Indossato ieri"
+  }
+}

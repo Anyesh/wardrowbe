@@ -56,8 +56,11 @@ import {
   useUpdateFamily,
 } from '@/lib/hooks/use-family';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 function NoFamilyView() {
+  const t = useTranslations('family');
+  const tc = useTranslations('common');
   const [mode, setMode] = useState<'create' | 'join' | null>(null);
   const [familyName, setFamilyName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -69,11 +72,11 @@ function NoFamilyView() {
     if (!familyName.trim()) return;
     try {
       await createFamily.mutateAsync(familyName.trim());
-      toast.success('Family created!');
+      toast.success(t('toasts.created'));
       setFamilyName('');
       setMode(null);
     } catch (error) {
-      toast.error('Failed to create family. Please try again.');
+      toast.error(t('toasts.createFailed'));
     }
   };
 
@@ -81,20 +84,20 @@ function NoFamilyView() {
     if (!inviteCode.trim()) return;
     try {
       await joinFamily.mutateAsync(inviteCode.trim().toUpperCase());
-      toast.success('Joined family!');
+      toast.success(t('toasts.joined'));
       setInviteCode('');
       setMode(null);
     } catch (error) {
-      toast.error('Invalid invite code. Please check and try again.');
+      toast.error(t('invalidInviteCode'));
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Family</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">
-          Create or join a family to share your wardrobe experience
+          {t('subtitle')}
         </p>
       </div>
 
@@ -103,18 +106,18 @@ function NoFamilyView() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Create Family
+              {t('createFamily')}
             </CardTitle>
-            <CardDescription>Start a new family and invite members</CardDescription>
+            <CardDescription>{t('createFamilyDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {mode === 'create' ? (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="family-name">Family Name</Label>
+                  <Label htmlFor="family-name">{t('familyName')}</Label>
                   <Input
                     id="family-name"
-                    placeholder="e.g., The Smith Family"
+                    placeholder={t('familyNameExample')}
                     value={familyName}
                     onChange={(e) => setFamilyName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
@@ -126,16 +129,16 @@ function NoFamilyView() {
                     disabled={!familyName.trim() || createFamily.isPending}
                   >
                     {createFamily.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create
+                    {tc('create')}
                   </Button>
                   <Button variant="outline" onClick={() => setMode(null)}>
-                    Cancel
+                    {tc('cancel')}
                   </Button>
                 </div>
               </div>
             ) : (
               <Button onClick={() => setMode('create')} className="w-full">
-                Create Family
+                {t('createFamily')}
               </Button>
             )}
           </CardContent>
@@ -145,18 +148,18 @@ function NoFamilyView() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5" />
-              Join Family
+              {t('joinFamily')}
             </CardTitle>
-            <CardDescription>Join an existing family with an invite code</CardDescription>
+            <CardDescription>{t('joinFamilyDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {mode === 'join' ? (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="invite-code">Invite Code</Label>
+                  <Label htmlFor="invite-code">{t('inviteCode')}</Label>
                   <Input
                     id="invite-code"
-                    placeholder="e.g., ABC123XY"
+                    placeholder={t('inviteCodeExample')}
                     value={inviteCode}
                     onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                     onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
@@ -169,21 +172,21 @@ function NoFamilyView() {
                     disabled={!inviteCode.trim() || joinFamily.isPending}
                   >
                     {joinFamily.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Join
+                    {tc('join')}
                   </Button>
                   <Button variant="outline" onClick={() => setMode(null)}>
-                    Cancel
+                    {tc('cancel')}
                   </Button>
                 </div>
                 {joinFamily.isError && (
                   <p className="text-sm text-destructive">
-                    Invalid invite code. Please check and try again.
+                    {t('invalidInviteCode')}
                   </p>
                 )}
               </div>
             ) : (
               <Button onClick={() => setMode('join')} variant="outline" className="w-full">
-                Join Family
+                {t('joinFamily')}
               </Button>
             )}
           </CardContent>
@@ -194,6 +197,8 @@ function NoFamilyView() {
 }
 
 function FamilyView() {
+  const t = useTranslations('family');
+  const tc = useTranslations('common');
   const { data: session } = useSession();
   const { data: family, isLoading } = useFamily();
   const [copied, setCopied] = useState(false);
@@ -236,9 +241,9 @@ function FamilyView() {
   const handleRegenerateCode = async () => {
     try {
       await regenerateCode.mutateAsync();
-      toast.success('New invite code generated!');
+      toast.success(t('toasts.codeRegenerated'));
     } catch (error) {
-      toast.error('Failed to generate new code. Please try again.');
+      toast.error(t('toasts.codeRegenerateFailed'));
     }
   };
 
@@ -246,10 +251,10 @@ function FamilyView() {
     if (!inviteEmail.trim()) return;
     try {
       await inviteMember.mutateAsync({ email: inviteEmail.trim(), role: inviteRole });
-      toast.success('Invitation sent!');
+      toast.success(t('toasts.inviteSent'));
       setInviteEmail('');
     } catch (error) {
-      toast.error('Failed to send invite. Please try again.');
+      toast.error(t('toasts.inviteFailed'));
     }
   };
 
@@ -257,11 +262,11 @@ function FamilyView() {
     if (!newName.trim()) return;
     try {
       await updateFamily.mutateAsync(newName.trim());
-      toast.success('Family name updated!');
+      toast.success(t('toasts.nameUpdated'));
       setEditingName(false);
       setNewName('');
     } catch (error) {
-      toast.error('Failed to update name. Please try again.');
+      toast.error(t('toasts.nameUpdateFailed'));
     }
   };
 
@@ -280,7 +285,7 @@ function FamilyView() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{family.name}</h1>
           <p className="text-muted-foreground">
-            {family.members.length} member{family.members.length !== 1 ? 's' : ''}
+            {tc('memberCount', { count: family.members.length })}
           </p>
         </div>
         <div className="flex gap-2">
@@ -292,27 +297,25 @@ function FamilyView() {
                 setEditingName(true);
               }}
             >
-              Edit Name
+              {t('editName')}
             </Button>
           )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive">
                 <LogOut className="mr-2 h-4 w-4" />
-                Leave Family
+                {t('leaveFamily')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Leave Family?</AlertDialogTitle>
+                <AlertDialogTitle>{t('leaveConfirm.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {isAdmin && family.members.length > 1
-                    ? 'You are an admin. Make sure another member is an admin before leaving, or remove all other members first.'
-                    : 'Are you sure you want to leave this family?'}
+                  {t('leaveConfirm.description', { name: family.name })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => leaveFamily.mutate()}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -320,7 +323,7 @@ function FamilyView() {
                   {leaveFamily.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
-                  Leave
+                  {tc('leave')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -336,15 +339,15 @@ function FamilyView() {
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Family name"
+                placeholder={t('familyNamePlaceholder')}
                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateName()}
               />
               <Button onClick={handleUpdateName} disabled={updateFamily.isPending}>
                 {updateFamily.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save
+                {tc('save')}
               </Button>
               <Button variant="outline" onClick={() => setEditingName(false)}>
-                Cancel
+                {tc('cancel')}
               </Button>
             </div>
           </CardContent>
@@ -354,8 +357,8 @@ function FamilyView() {
       {/* Invite Code Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Invite Code</CardTitle>
-          <CardDescription>Share this code with family members to let them join</CardDescription>
+          <CardTitle>{t('inviteCodeSection.title')}</CardTitle>
+          <CardDescription>{t('inviteCodeSection.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
@@ -387,14 +390,14 @@ function FamilyView() {
       {isAdmin && (
         <Card>
           <CardHeader>
-            <CardTitle>Send Invite</CardTitle>
-            <CardDescription>Invite someone by email</CardDescription>
+            <CardTitle>{t('sendInvite')}</CardTitle>
+            <CardDescription>{t('sendInviteDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex gap-2">
               <Input
                 type="email"
-                placeholder="email@example.com"
+                placeholder={t('inviteEmailPlaceholder')}
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
@@ -407,14 +410,14 @@ function FamilyView() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="member">Member</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="member">{t('roles.member')}</SelectItem>
+                  <SelectItem value="admin">{t('roles.admin')}</SelectItem>
                 </SelectContent>
               </Select>
               <Button onClick={handleInvite} disabled={!inviteEmail.trim() || inviteMember.isPending}>
                 {inviteMember.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Mail className="mr-2 h-4 w-4" />
-                Invite
+                {t('sendInvite')}
               </Button>
             </div>
           </CardContent>
@@ -424,8 +427,8 @@ function FamilyView() {
       {/* Members List */}
       <Card>
         <CardHeader>
-          <CardTitle>Members</CardTitle>
-          <CardDescription>People in your family</CardDescription>
+          <CardTitle>{t('members.title')}</CardTitle>
+          <CardDescription>{t('members.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -444,13 +447,13 @@ function FamilyView() {
                       <span className="font-medium">{member.display_name}</span>
                       {member.email === currentEmail && (
                         <Badge variant="secondary" className="text-xs">
-                          You
+                          {tc('you')}
                         </Badge>
                       )}
                       {member.role === 'admin' && (
                         <Badge variant="outline" className="text-xs gap-1">
                           <Crown className="h-3 w-3" />
-                          Admin
+                          {t('roles.admin')}
                         </Badge>
                       )}
                     </div>
@@ -469,8 +472,8 @@ function FamilyView() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="member">Member</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="member">{t('roles.member')}</SelectItem>
+                        <SelectItem value="admin">{t('roles.admin')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <AlertDialog>
@@ -481,18 +484,18 @@ function FamilyView() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Remove Member?</AlertDialogTitle>
+                          <AlertDialogTitle>{t('members.removeConfirm.title')}</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Remove {member.display_name} from the family?
+                            {t('members.removeConfirm.description', { name: member.display_name })}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => removeMember.mutate(member.id)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           >
-                            Remove
+                            {tc('remove')}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -509,8 +512,8 @@ function FamilyView() {
       {isAdmin && family.pending_invites.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Pending Invites</CardTitle>
-            <CardDescription>Invitations that haven&apos;t been accepted yet</CardDescription>
+            <CardTitle>{t('pendingInvites.title')}</CardTitle>
+            <CardDescription>{t('pendingInvites.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -527,7 +530,7 @@ function FamilyView() {
                       <span className="font-medium">{invite.email}</span>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        Expires {new Date(invite.expires_at).toLocaleDateString()}
+                        {t('pendingInvites.expires', { date: new Date(invite.expires_at).toLocaleDateString() })}
                       </div>
                     </div>
                   </div>
@@ -556,15 +559,15 @@ function FamilyView() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shirt className="h-5 w-5" />
-            Family Outfits
+            {t('familyOutfits.title')}
           </CardTitle>
-          <CardDescription>Browse and rate your family members&apos; outfits</CardDescription>
+          <CardDescription>{t('familyOutfits.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild className="w-full">
             <Link href="/dashboard/family/feed">
               <Star className="mr-2 h-4 w-4" />
-              Open Family Feed
+              {t('familyOutfits.openFeed')}
             </Link>
           </Button>
         </CardContent>

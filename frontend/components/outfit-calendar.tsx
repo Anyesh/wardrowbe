@@ -18,6 +18,9 @@ import {
   subMonths,
 } from 'date-fns';
 import type { Outfit, OutfitSource } from '@/lib/hooks/use-outfits';
+import { useTranslations } from 'next-intl';
+
+const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 interface OutfitCalendarProps {
   year: number;
@@ -36,6 +39,7 @@ export function OutfitCalendar({
   onSelectDate,
   onMonthChange,
 }: OutfitCalendarProps) {
+  const t = useTranslations('outfits.calendar');
   const currentMonth = new Date(year, month - 1, 1);
 
   // Build a map of date -> outfit sources for quick lookup
@@ -72,7 +76,7 @@ export function OutfitCalendar({
     onMonthChange(next.getFullYear(), next.getMonth() + 1);
   };
 
-  const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const weekDays = WEEKDAY_KEYS.map((key) => ({ key, label: t(`weekDays.${key}`) }));
 
   return (
     <div className="w-full">
@@ -93,10 +97,10 @@ export function OutfitCalendar({
       <div className="grid grid-cols-7 mb-2">
         {weekDays.map((day) => (
           <div
-            key={day}
+            key={day.key}
             className="text-center text-xs text-muted-foreground font-medium py-1"
           >
-            {day}
+            {day.label}
           </div>
         ))}
       </div>
@@ -157,11 +161,11 @@ export function OutfitCalendar({
       <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-primary" />
-          <span>Scheduled</span>
+          <span>{t('legendScheduled')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-orange-500" />
-          <span>On-demand</span>
+          <span>{t('legendOnDemand')}</span>
         </div>
       </div>
     </div>

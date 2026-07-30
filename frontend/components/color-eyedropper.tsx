@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { CLOTHING_COLORS } from '@/lib/types';
+import { useClothingColors } from '@/lib/hooks/use-translated-constants';
+import { useTranslations } from 'next-intl';
 
 interface ColorEyedropperProps {
   imageUrl: string;
@@ -86,6 +88,9 @@ function findClosestColor(hex: string): ClothingColor {
 }
 
 export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedropperProps) {
+  const t = useTranslations('wardrobe.colorEyedropper');
+  const tc = useTranslations('common');
+  const clothingColors = useClothingColors();
   const [open, setOpen] = useState(false);
   const [pickedColor, setPickedColor] = useState<string | null>(null);
   const [matchedColor, setMatchedColor] = useState<ClothingColor | null>(null);
@@ -126,14 +131,14 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
     const timer = setTimeout(() => {
       const canvas = canvasRef.current;
       if (!canvas) {
-        setError('Canvas not available');
+        setError(t('errors.canvasUnavailable'));
         setIsLoading(false);
         return;
       }
 
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        setError('Could not get canvas context');
+        setError(t('errors.canvasContext'));
         setIsLoading(false);
         return;
       }
@@ -141,7 +146,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
       // Fetch image as blob to avoid CORS issues with canvas
       fetch(imageUrl, { credentials: 'include' })
         .then(response => {
-          if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
+          if (!response.ok) throw new Error(t('errors.imageLoadStatus', { status: response.status }));
           return response.blob();
         })
         .then(blob => {
@@ -178,19 +183,19 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
             setImageLoaded(true);
           };
           img.onerror = () => {
-            setError('Failed to load image from blob');
+            setError(t('errors.imageDecodeFailed'));
             setIsLoading(false);
           };
           img.src = blobUrl;
         })
         .catch(err => {
-          setError(err.message || 'Failed to load image');
+          setError(err.message || t('errors.imageLoadFailed'));
           setIsLoading(false);
         });
     }, 100); // Small delay to ensure DOM is ready
 
     return () => clearTimeout(timer);
-  }, [open, imageUrl, imageLoaded]);
+  }, [open, imageUrl, imageLoaded, t]);
 
   const getColorAtPosition = useCallback((x: number, y: number): string | null => {
     const canvas = canvasRef.current;
@@ -259,7 +264,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
           variant="outline"
           size="icon"
           onClick={() => setOpen(true)}
-          title="Pick color from image"
+          title={t('buttonTitle')}
         >
           <Pipette className="h-4 w-4" />
         </Button>
@@ -270,13 +275,13 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pipette className="h-5 w-5" />
-              Pick Color from Image
+              {t('title')}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Click anywhere on the image to sample a color
+              {t('description')}
             </p>
 
             <div className="relative flex justify-center bg-muted rounded-lg p-2 min-h-[200px]">
@@ -328,7 +333,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
                       className="w-10 h-10 rounded border shadow-inner"
                       style={{ backgroundColor: pickedColor }}
                     />
-                    <span className="text-xs text-muted-foreground">Picked</span>
+                    <span className="text-xs text-muted-foreground">{t('picked')}</span>
                   </div>
                   <div className="text-muted-foreground">&rarr;</div>
                   <div className="flex flex-col items-center gap-1">
@@ -336,7 +341,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
                       className="w-10 h-10 rounded border shadow-inner"
                       style={{ backgroundColor: matchedColor.hex }}
                     />
-                    <span className="text-xs font-medium">{matchedColor.name}</span>
+                    <span className="text-xs font-medium">{clothingColors.find((c) => c.value === matchedColor.value)?.name ?? matchedColor.name}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -349,11 +354,11 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
                     }}
                   >
                     <X className="h-4 w-4 mr-1" />
-                    Clear
+                    {tc('clear')}
                   </Button>
                   <Button size="sm" onClick={handleConfirm}>
                     <Check className="h-4 w-4 mr-1" />
-                    Use {matchedColor.name}
+                    {t('useColor', { color: clothingColors.find((c) => c.value === matchedColor.value)?.name ?? matchedColor.name })}
                   </Button>
                 </div>
               </div>
@@ -361,7 +366,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
 
             {!pickedColor && (
               <div className="text-center text-sm text-muted-foreground py-2">
-                No color selected yet
+                {t('noColorSelected')}
               </div>
             )}
           </div>

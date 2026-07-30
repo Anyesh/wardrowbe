@@ -1,0 +1,12 @@
+{
+  "default": "發生錯誤，請重試。",
+  "invite": {
+    "alreadyInFamily": "你已經在一個家庭中了。",
+    "invalidLink": "此邀請連結無效或已過期。",
+    "wrongEmail": "此邀請是寄給另一個電子郵件地址的。"
+  },
+  "pageLoad": {
+    "description": "載入此內容時發生錯誤，這可能是暫時性的問題。",
+    "title": "載入此頁面失敗"
+  }
+}

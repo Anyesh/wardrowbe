@@ -1,0 +1,84 @@
+{
+  "dismissOutfit": "关闭穿搭",
+  "error": "生成穿搭建议失败，请重试。",
+  "feedback": {
+    "commentsOptional": "评论（选填）",
+    "commentsPlaceholder": "对这套穿搭有什么想法？",
+    "didYouWear": "你穿了这套吗？",
+    "didYouWearDesc": "告诉我们你是否采纳了这个推荐，这样我们可以更好地了解你的偏好。",
+    "howDidItWork": "这套穿搭效果如何？",
+    "itemsSelected": "{count, plural, one {已选择 # 件单品} other {已选择 # 件单品}}",
+    "loadingMore": "加载更多...",
+    "noItemsInWardrobe": "衣柜中没有单品",
+    "noMatch": "没有匹配的单品",
+    "noWoreSomethingElse": "没有，我穿了别的",
+    "overallRating": "总体评分",
+    "rateHowItWent": "评价穿着效果",
+    "rateThisOutfit": "评价这套穿搭",
+    "searchWardrobe": "搜索你的衣柜...",
+    "showingAll": "{count, plural, one {显示全部 # 件单品} other {显示全部 # 件单品}}",
+    "submitError": "提交反馈失败",
+    "submitWithCount": "提交（{count}）",
+    "submitted": "反馈已提交",
+    "submitting": "提交中...",
+    "tellUsWhatYouWore": "告诉我们你穿了什么",
+    "whatDidYouWear": "你穿了什么？",
+    "whatDidYouWearDesc": "选择你实际穿的单品，这有助于我们了解你的偏好。",
+    "yesWoreIt": "是的，我穿了"
+  },
+  "generating": "正在为你搭配...",
+  "getSuggestion": "获取推荐",
+  "greeting": {
+    "afternoon": "下午好",
+    "evening": "晚上好",
+    "morning": "早上好"
+  },
+  "location": {
+    "notSet": "未设置位置",
+    "setDescription": "在设置中设置你的位置以获取天气推荐"
+  },
+  "loveIt": "喜欢",
+  "occasionPrompt": "今天什么场合？",
+  "outfitPreview": {
+    "familyRatings": {
+      "average": "（平均 {rating} <star></star>）",
+      "noRatings": "还没有家庭评分。",
+      "noRatingsPrompt": "还没有家庭评分，来做第一个评分的人吧！",
+      "rate": "评分",
+      "title": "家庭评分"
+    },
+    "imageRotated": "图片已旋转",
+    "noImage": "无图片",
+    "rotateFailed": "旋转图片失败",
+    "rotateLeft": "向左旋转",
+    "rotateRight": "向右旋转",
+    "title": "{occasion}穿搭",
+    "viewItemDetails": "查看单品详情"
+  },
+  "startOver": "重新开始",
+  "subtitle": "让我们为你找到今天的完美穿搭",
+  "tip": "小贴士：",
+  "tryAnother": "换一套",
+  "weather": {
+    "feelsLike": "体感{temp}°",
+    "feelsLikeInline": "（体感{temp}°）",
+    "rainChance": "{chance}% 降雨概率",
+    "windSpeed": "风速{speed}公里/小时"
+  },
+  "weatherHints": {
+    "cold": "注意保暖 - 天气很冷",
+    "hot": "穿得轻薄透气些",
+    "mild": "穿件薄外套刚刚好",
+    "nice": "好天气，随意穿搭",
+    "rainy": "带把伞或穿件防雨外套吧",
+    "windy": "考虑穿件防风的"
+  },
+  "weatherOverride": {
+    "active": "天气已手动覆盖",
+    "condition": "天气状况",
+    "overrideWeather": "覆盖天气",
+    "reset": "重置",
+    "temperature": "温度"
+  },
+  "yourOutfit": "你的穿搭"
+}

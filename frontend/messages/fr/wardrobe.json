@@ -1,0 +1,205 @@
+{
+  "actions": {
+    "addItem": "Ajouter un article"
+  },
+  "addItem": {
+    "brandInputPlaceholder": "ex. J.Crew",
+    "brandPlaceholder": "Marque",
+    "bulk": {
+      "allFailed": "{count, plural, one {Échec de l’import de # article} other {Échec de l’import des # articles}}",
+      "allSuccess": "{count, plural, one {# article importé avec succès} other {# articles importés avec succès}}",
+      "clearAll": "Tout effacer",
+      "discardConfirm": {
+        "discard": "Abandonner",
+        "imageCount": "{count, plural, one {# image sélectionnée} other {# images sélectionnées}} qui seront perdues si vous fermez cette boîte de dialogue.",
+        "keepEditing": "Continuer à modifier",
+        "singleImage": "1 image sélectionnée qui sera perdue si vous fermez cette boîte de dialogue.",
+        "title": "Ignorer les images sélectionnées ?"
+      },
+      "hint": "Tous les articles seront automatiquement tagués par l'IA. Vous pourrez modifier les détails plus tard.",
+      "imageCount": "{count, plural, one {# image sélectionnée} other {# images sélectionnées}}",
+      "partial": "{success} importés, {failed} en échec",
+      "resultFailed": "{count, plural, one {# article en échec} other {# articles en échec}}",
+      "resultSuccess": "{success} sur {total} téléchargés avec succès",
+      "skipAi": "Ignorer l'analyse IA (ajouter avec des valeurs provisoires, modifier les détails plus tard)",
+      "uploadButton": "{count, plural, one {Télécharger # article} other {Télécharger # articles}}",
+      "uploadError": "Échec de l'import des articles. Veuillez réessayer.",
+      "uploadMore": "Importer plus",
+      "uploadingCount": "{count, plural, one {Import de # article...} other {Import de # articles...}}"
+    },
+    "bulkUpload": "Téléchargement groupé",
+    "dropzone": "Glissez-déposez une image, ou appuyez pour sélectionner",
+    "dropzoneActive": "Déposez l'image ici",
+    "formatHint": "PNG, JPG ou HEIC",
+    "letAiDetect": "Laisser l'IA détecter...",
+    "nameInputPlaceholder": "ex. Chemise Oxford bleue",
+    "namePlaceholder": "Nom (optionnel)",
+    "notesInputPlaceholder": "Notes supplémentaires...",
+    "notesPlaceholder": "Notes",
+    "previewAlt": "Aperçu",
+    "primaryColor": "Couleur principale",
+    "selectPlaceholder": "Sélectionner...",
+    "singleItem": "Article unique",
+    "submit": "Ajouter un article",
+    "subtitle": "Importez des photos de vos vêtements",
+    "title": "Ajouter des articles",
+    "typeLabel": "Type (l'IA détectera si vide)",
+    "uploading": "Import en cours..."
+  },
+  "ai": {
+    "analysisFailed": "Analyse échouée",
+    "analyzing": "Analyse IA en cours...",
+    "analyzingCount": "{count} en cours d'analyse",
+    "analyzingProgress": "{count} en cours d'analyse · {percent} % terminé",
+    "completeness": "Complétude IA : {percent} %",
+    "confident": "{percent} % de confiance",
+    "dismiss": "Fermer",
+    "failedCount": "{count} échoué(s)"
+  },
+  "allTypes": "Tous les types",
+  "bulkActions": {
+    "deleteError": "Échec de la suppression des articles",
+    "deletePartialFailed": "{count, plural, one {Échec de la suppression de # article} other {Échec de la suppression de # articles}}",
+    "deleteSuccess": "{count, plural, one {# article supprimé} other {# articles supprimés}}",
+    "reanalyzeError": "Échec de la mise en file d'attente pour ré-analyse",
+    "reanalyzeMany": "{count} articles remis en file d'attente pour ré-analyse. Cela peut prendre un moment.",
+    "reanalyzePartialFailed": "{count, plural, one {Échec de la mise en file d’attente de # article} other {Échec de la mise en file d’attente de # articles}}",
+    "reanalyzeQueued": "{count, plural, one {# article mis en file d’attente pour ré-analyse} other {# articles mis en file d’attente pour ré-analyse}}"
+  },
+  "bulkDelete": {
+    "confirmDescription": "Cela supprimera définitivement les articles sélectionnés et leurs images. Cette action est irréversible.",
+    "confirmTitle": "{count, plural, one {Supprimer # article ?} other {Supprimer # articles ?}}",
+    "confirmTitleAll": "{count, plural, one {Supprimer # article ?} other {Supprimer tous les # articles ?}}"
+  },
+  "clearFilters": "Effacer les filtres",
+  "colorEyedropper": {
+    "buttonTitle": "Choisir une couleur depuis l'image",
+    "description": "Cliquez n'importe où sur l'image pour prélever une couleur",
+    "errors": {
+      "canvasContext": "Impossible d’obtenir le contexte du canvas",
+      "canvasUnavailable": "Canvas non disponible",
+      "imageDecodeFailed": "Échec du chargement de l’image depuis le blob",
+      "imageLoadFailed": "Échec du chargement de l’image",
+      "imageLoadStatus": "Échec du chargement de l’image : {status}"
+    },
+    "noColorSelected": "Aucune couleur sélectionnée",
+    "picked": "Sélectionné",
+    "title": "Choisir une couleur depuis l'image",
+    "useColor": "Utiliser {color}"
+  },
+  "empty": {
+    "addFirstItem": "Ajouter un premier article",
+    "description": "Ajoutez votre premier vêtement pour commencer à recevoir des suggestions de tenues personnalisées.",
+    "title": "Votre garde-robe est vide"
+  },
+  "errors": {
+    "clearFilters": "Effacer les filtres",
+    "loadFailed": "Échec du chargement des articles. Veuillez réessayer.",
+    "noItemsFound": "Aucun article trouvé correspondant à vos filtres."
+  },
+  "favorites": "Favoris",
+  "itemCount": "{count, plural, one {# article dans votre garde-robe} other {# articles dans votre garde-robe}}",
+  "itemDetail": {
+    "actions": {
+      "backgroundRemoveError": "Échec de la suppression de l'arrière-plan",
+      "backgroundRemoved": "Arrière-plan supprimé",
+      "cancelEditing": "Annuler la modification",
+      "deleteConfirm": "Supprimer cet article ?",
+      "deleteDescription": "Cela supprimera définitivement « {name} » de votre garde-robe. Cette action est irréversible.",
+      "deleteError": "Échec de la suppression de l'article",
+      "deleteErrorDescription": "Un problème est survenu. Veuillez réessayer.",
+      "deleteItem": "Supprimer l'article",
+      "deleted": "Article supprimé",
+      "deletedFallback": "Article retiré de votre garde-robe.",
+      "deletedWithName": "« {name} » a été retiré.",
+      "editItem": "Modifier l'article",
+      "imageReplaceError": "Échec du remplacement de l'image",
+      "imageReplaced": "Image remplacée",
+      "imageRotateError": "Échec de la rotation de l'image",
+      "imageRotated": "Image pivotée",
+      "markWashed": "Marquer comme lavé",
+      "originalRestoreError": "Échec de la restauration de l'image originale",
+      "originalRestored": "Image originale restaurée",
+      "washError": "Échec du marquage comme lavé",
+      "washed": "Article marqué comme lavé"
+    },
+    "brand": "Marque",
+    "name": "Nom",
+    "notes": "Notes",
+    "placeholders": {
+      "additionalNotes": "Notes supplémentaires...",
+      "brandName": "Nom de la marque",
+      "itemName": "Nom de l'article",
+      "selectColor": "Sélectionner une couleur",
+      "washIntervalDefault": "Par défaut : {count}"
+    },
+    "primaryColor": "Couleur principale",
+    "titles": {
+      "analysisInProgress": "Analyse en cours...",
+      "deleteImage": "Supprimer l'image",
+      "findMatchingOutfits": "Trouver des tenues assorties",
+      "reanalyzeWithAI": "Ré-analyser avec l'IA",
+      "removeBackground": "Supprimer l'arrière-plan",
+      "replaceImage": "Remplacer l'image",
+      "rotateLeft": "Rotation à gauche",
+      "rotateRight": "Rotation à droite",
+      "setAsPrimary": "Définir comme image principale",
+      "toggleFavorite": "Basculer le favori",
+      "undoBackgroundRemoval": "Annuler la suppression de l'arrière-plan"
+    },
+    "type": "Type",
+    "view": {
+      "addedDate": "Ajouté le {date}",
+      "aiAnalysis": "Analyse IA",
+      "aiAnalyzing": "Analyse IA en cours...",
+      "avgPerMonth": "Moy./mois",
+      "complete": "{percent} % complet",
+      "confident": "{percent} % de confiance",
+      "daysAgo": "il y a {count} j",
+      "fitBadge": "Coupe {fit}",
+      "last6Months": "6 derniers mois",
+      "lastWashed": "Dernier lavage : {date}",
+      "lastWorn": "Dernier porté",
+      "lastWornDate": "Dernier : {date}",
+      "monthWears": "{month} : {count, plural, one {# port} other {# ports}}",
+      "needsWashing": "À laver",
+      "never": "Jamais",
+      "primaryImage": "Principal",
+      "timeline": "{count, plural, one {Chronologie (# événement)} other {Chronologie (# événements)}}",
+      "today": "Aujourd'hui",
+      "totalWears": "Total des portés",
+      "usualOccasion": "Occasion habituelle",
+      "washHistory": "Historique de lavage ({count})",
+      "washIntervalHint": "Nombre de portés avant que cet article ait besoin d'être lavé. Laissez vide pour la valeur par défaut.",
+      "washStatus": "Statut de lavage",
+      "wearHistory": "Historique des portés",
+      "wears": "ports",
+      "wearsSinceWash": "Ports depuis le lavage : {current}/{max}",
+      "wornCount": "{count, plural, one {Porté # fois} other {Porté # fois}}"
+    },
+    "washInterval": "Intervalle de lavage"
+  },
+  "lightbox": {
+    "openInWardrobe": "Ouvrir dans la garde-robe"
+  },
+  "needsWash": "À laver",
+  "pageSize": "{count} par page",
+  "search": "Rechercher des articles...",
+  "sort": {
+    "leastRecentlyWorn": "Moins récemment portés",
+    "leastWorn": "Moins portés",
+    "mostWorn": "Plus portés",
+    "nameAZ": "Nom A–Z",
+    "nameZA": "Nom Z–A",
+    "newestFirst": "Plus récents d'abord",
+    "oldestFirst": "Plus anciens d'abord",
+    "recentlyWorn": "Récemment portés"
+  },
+  "title": "Ma Garde-robe",
+  "wearCount": "{count, plural, one {Porté # fois} other {Porté # fois}}",
+  "wornAgo": {
+    "daysAgo": "Porté il y a {days} j",
+    "today": "Porté aujourd'hui",
+    "yesterday": "Porté hier"
+  }
+}

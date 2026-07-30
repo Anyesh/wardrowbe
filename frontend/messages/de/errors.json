@@ -1,0 +1,12 @@
+{
+  "default": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+  "invite": {
+    "alreadyInFamily": "Du bist bereits in einer Familie.",
+    "invalidLink": "Dieser Einladungslink ist ungültig oder abgelaufen.",
+    "wrongEmail": "Diese Einladung wurde an eine andere E-Mail-Adresse gesendet."
+  },
+  "pageLoad": {
+    "description": "Beim Laden dieses Inhalts ist ein Fehler aufgetreten. Möglicherweise ist es nur ein vorübergehendes Problem.",
+    "title": "Seite konnte nicht geladen werden"
+  }
+}

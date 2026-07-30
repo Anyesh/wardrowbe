@@ -61,6 +61,91 @@ class TestUserUpdate:
         assert float(data["location_lon"]) == pytest.approx(-74.0060, rel=1e-4)
 
 
+class TestUserLocale:
+    @pytest.mark.asyncio
+    async def test_default_locale_is_en(self, client: AsyncClient, test_user, auth_headers):
+        response = await client.get("/api/v1/users/me", headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json()["locale"] == "en"
+
+    @pytest.mark.asyncio
+    async def test_update_locale(self, client: AsyncClient, test_user, auth_headers):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"locale": "zh-CN"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["locale"] == "zh-CN"
+
+        response = await client.get("/api/v1/users/me", headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json()["locale"] == "zh-CN"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("locale", ["en", "zh-CN", "zh-TW", "ko", "ja", "fr", "de", "it"])
+    async def test_all_supported_locales_accepted(
+        self, client: AsyncClient, test_user, auth_headers, locale
+    ):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"locale": locale},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["locale"] == locale
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("locale", ["xx", "", "en-US-posix", "x" * 11, "EN", "en_US", None])
+    async def test_unsupported_locale_rejected(
+        self, client: AsyncClient, test_user, auth_headers, locale
+    ):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"locale": locale},
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+        response = await client.get("/api/v1/users/me", headers=auth_headers)
+        assert response.json()["locale"] == "en"
+
+    @pytest.mark.asyncio
+    async def test_update_locale_with_other_field(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"locale": "ja", "display_name": "Locale User"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["locale"] == "ja"
+        assert data["display_name"] == "Locale User"
+
+    @pytest.mark.asyncio
+    async def test_omitting_locale_preserves_existing(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        await client.patch("/api/v1/users/me", json={"locale": "de"}, headers=auth_headers)
+
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"display_name": "Still German"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["display_name"] == "Still German"
+        assert data["locale"] == "de"
+
+    @pytest.mark.asyncio
+    async def test_update_locale_unauthorized(self, client: AsyncClient):
+        response = await client.patch("/api/v1/users/me", json={"locale": "fr"})
+        assert response.status_code == 401
+
+
 class TestOnboarding:
     """Tests for onboarding completion endpoint."""
 

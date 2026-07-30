@@ -1,0 +1,12 @@
+{
+  "default": "Un problème est survenu. Veuillez réessayer.",
+  "invite": {
+    "alreadyInFamily": "Vous êtes déjà dans une famille.",
+    "invalidLink": "Ce lien d'invitation est invalide ou a expiré.",
+    "wrongEmail": "Cette invitation a été envoyée à une adresse e-mail différente."
+  },
+  "pageLoad": {
+    "description": "Une erreur est survenue lors du chargement de ce contenu. Il s’agit peut-être d’un problème temporaire.",
+    "title": "Échec du chargement de cette page"
+  }
+}

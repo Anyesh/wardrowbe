@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useItems } from '@/lib/hooks/use-items';
 import { cn } from '@/lib/utils';
 import type { Item } from '@/lib/types';
+import { useTranslations } from 'next-intl';
 
 const PAGE_SIZE = 24;
 
@@ -25,9 +26,10 @@ export function ItemPicker({
   onToggle,
   hideNeedsWash = true,
   filterType,
-  emptyMessage = 'No items found',
+  emptyMessage,
   heightClass = 'h-[360px]',
 }: ItemPickerProps) {
+  const t = useTranslations('outfits.itemPicker');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -99,7 +101,7 @@ export function ItemPicker({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search wardrobe..."
+          placeholder={t('search')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9 h-9"
@@ -169,7 +171,7 @@ export function ItemPicker({
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
             <span className="text-xs text-muted-foreground">
-              Loading more...
+              {t('loadingMore')}
             </span>
           </div>
         )}
@@ -177,14 +179,14 @@ export function ItemPicker({
         {!isLoading && items.length === 0 && (
           <div className="text-center text-muted-foreground py-8">
             {debouncedSearch
-              ? 'No items match your search'
-              : emptyMessage}
+              ? t('noMatch')
+              : emptyMessage ?? t('noItems')}
           </div>
         )}
 
         {!isLoading && !hasMore && items.length > 0 && (
           <div className="text-center text-xs text-muted-foreground py-3">
-            Showing all {totalItems} items
+            {t('showingAll', { count: totalItems })}
           </div>
         )}
       </div>

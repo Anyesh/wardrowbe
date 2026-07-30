@@ -1,0 +1,34 @@
+{
+  "allItemTypes": "Tutti i tipi di capi",
+  "card": {
+    "badge": "Abbinamento",
+    "builtAround": "Costruito attorno a:",
+    "deleteError": "Eliminazione abbinamento fallita",
+    "deleted": "Abbinamento eliminato",
+    "rateThisPairing": "Valuta questo abbinamento",
+    "tip": "Suggerimento:",
+    "updateRating": "Aggiorna valutazione"
+  },
+  "empty": {
+    "description": "Seleziona un capo dal tuo guardaroba e usa \"Trova abbinamenti\" per scoprire combinazioni che funzionano bene insieme.",
+    "goToWardrobe": "Vai al guardaroba",
+    "title": "Nessun abbinamento ancora"
+  },
+  "generate": {
+    "description": "L'IA creerà outfit completi con questo capo come protagonista",
+    "failed": "Generazione abbinamenti fallita",
+    "generate": "Genera outfit",
+    "generating": "Generazione in corso...",
+    "numOutfits": "Numero di outfit",
+    "numOutfitsDesc": "Più outfit = più varietà, ma richiede più tempo per generare",
+    "success": "{count, plural, one {{count} outfit creato!} other {{count} outfit creati!}}",
+    "successDesc": "Visualizzali nella sezione Abbinamenti",
+    "title": "Trova outfit abbinati",
+    "viewPairings": "Vedi abbinamenti"
+  },
+  "itemTypeOption": "{type} ({count})",
+  "loadError": "Caricamento abbinamenti fallito. Riprova.",
+  "pairingCount": "{count, plural, one {{count} abbinamento} other {{count} abbinamenti}}",
+  "subtitle": "Combinazioni di outfit generate dall'IA basate sui tuoi capi",
+  "title": "Abbinamenti"
+}

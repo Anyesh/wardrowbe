@@ -25,3 +25,27 @@ repos:
         language: system
         files: ^frontend/.*\.(ts|tsx)$
         pass_filenames: false
+
+      # t() takes a plain string, so a missing translation key type-checks, lints and tests
+      # clean, then renders as a raw key path to the user. These three gates are the only
+      # thing that catches it.
+      - id: i18n-keys
+        name: i18n keys resolve
+        entry: bash -c 'cd frontend && node scripts/i18n-keys.mjs'
+        language: system
+        files: ^frontend/(app|components|lib|messages)/
+        pass_filenames: false
+
+      - id: i18n-parity
+        name: i18n locale parity
+        entry: bash -c 'cd frontend && node scripts/i18n-check.mjs'
+        language: system
+        files: ^frontend/messages/
+        pass_filenames: false
+
+      - id: i18n-scan
+        name: i18n no hardcoded strings
+        entry: bash -c 'cd frontend && node scripts/i18n-scan.mjs'
+        language: system
+        files: ^frontend/(app|components|lib)/.*\.tsx?$
+        pass_filenames: false

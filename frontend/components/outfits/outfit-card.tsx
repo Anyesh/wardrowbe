@@ -16,6 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import type { Outfit } from '@/lib/hooks/use-outfits';
+import { useTranslations } from 'next-intl';
 
 interface OutfitCardProps {
   outfit: Outfit;
@@ -25,14 +26,14 @@ interface OutfitCardProps {
   onSelect?: (id: string, checked: boolean) => void;
 }
 
-function getSourceBadge(outfit: Outfit): {
+function getSourceBadge(outfit: Outfit, t: any): {
   label: string;
   icon: React.ReactNode;
   className: string;
 } | null {
   if (outfit.replaces_outfit_id) {
     return {
-      label: 'Replacement',
+      label: t('replacement'),
       icon: <RefreshCw className="h-3 w-3" />,
       className: 'bg-orange-100 text-orange-700 border-orange-200',
     };
@@ -43,33 +44,33 @@ function getSourceBadge(outfit: Outfit): {
     outfit.scheduled_for
   ) {
     return {
-      label: 'Worn',
+      label: t('worn'),
       icon: <BookmarkCheck className="h-3 w-3" />,
       className: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     };
   }
   if (outfit.source === 'manual') {
     return {
-      label: 'Studio',
+      label: t('studio'),
       icon: <Shirt className="h-3 w-3" />,
       className: 'bg-purple-100 text-purple-700 border-purple-200',
     };
   }
   if (outfit.source === 'pairing') {
     return {
-      label: 'Pairing',
+      label: t('pairing'),
       icon: <Layers className="h-3 w-3" />,
       className: 'bg-amber-100 text-amber-700 border-amber-200',
     };
   }
   return {
-    label: 'AI',
+    label: t('ai'),
     icon: <Sparkles className="h-3 w-3" />,
     className: 'bg-blue-100 text-blue-700 border-blue-200',
   };
 }
 
-function getCardTitle(outfit: Outfit): string {
+function getCardTitle(outfit: Outfit, t: any): string {
   if (outfit.name) return outfit.name;
   if (outfit.reasoning) return outfit.reasoning;
   if (outfit.highlights && outfit.highlights.length > 0) {
@@ -77,11 +78,10 @@ function getCardTitle(outfit: Outfit): string {
   }
   const occasion =
     outfit.occasion.charAt(0).toUpperCase() + outfit.occasion.slice(1);
-  return `${occasion} outfit`;
+  return t('outfitFallback', { occasion });
 }
-
-function getMetaLabel(outfit: Outfit): string {
-  if (!outfit.scheduled_for) return 'Lookbook template';
+function getMetaLabel(outfit: Outfit, t: any): string {
+  if (!outfit.scheduled_for) return t('lookbookTemplate');
   try {
     return formatDistanceToNow(parseISO(outfit.scheduled_for), {
       addSuffix: true,
@@ -92,7 +92,8 @@ function getMetaLabel(outfit: Outfit): string {
 }
 
 export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: OutfitCardProps) {
-  const badge = getSourceBadge(outfit);
+  const t = useTranslations('outfits.cards');
+  const badge = getSourceBadge(outfit, t);
   const visibleItems = outfit.items.slice(0, 4);
   const overflow = outfit.items.length - visibleItems.length;
 
@@ -173,13 +174,13 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
         </div>
         <div className="p-3 space-y-1">
           <h3 className="text-sm font-semibold leading-tight truncate">
-            {getCardTitle(outfit)}
+            {getCardTitle(outfit, t)}
           </h3>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <Badge variant="outline" className="capitalize">
               {outfit.occasion}
             </Badge>
-            <span>{getMetaLabel(outfit)}</span>
+            <span>{getMetaLabel(outfit, t)}</span>
           </div>
         </div>
       </CardContent>

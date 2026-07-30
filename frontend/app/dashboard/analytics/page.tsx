@@ -16,6 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 function StatCard({
   title,
@@ -95,6 +96,7 @@ function LoadingSkeleton() {
 }
 
 function ColorBar({ color, percentage }: { color: string; percentage: number }) {
+  const t = useTranslations('analytics');
   const colorMap: Record<string, string> = {
     black: 'bg-gray-900',
     white: 'bg-gray-100 border',
@@ -128,7 +130,7 @@ function ColorBar({ color, percentage }: { color: string; percentage: number }) 
       <div className="flex-1">
         <div className="flex justify-between text-sm mb-1">
           <span className="capitalize">{color}</span>
-          <span className="text-muted-foreground">{percentage.toFixed(1)}%</span>
+          <span className="text-muted-foreground">{t('percent', { value: percentage.toFixed(1) })}</span>
         </div>
         <Progress value={percentage} className="h-2" />
       </div>
@@ -137,6 +139,7 @@ function ColorBar({ color, percentage }: { color: string; percentage: number }) 
 }
 
 function ItemCard({ item }: { item: { id: string; name: string | null; type: string; thumbnail_url: string | null; wear_count: number } }) {
+  const t = useTranslations('analytics');
   return (
     <Link
       href={`/dashboard/wardrobe?item=${item.id}`}
@@ -161,12 +164,13 @@ function ItemCard({ item }: { item: { id: string; name: string | null; type: str
         <p className="font-medium truncate">{item.name || item.type}</p>
         <p className="text-sm text-muted-foreground capitalize">{item.type}</p>
       </div>
-      <Badge variant="secondary">{item.wear_count}x</Badge>
+      <Badge variant="secondary">{t('wearCount', { count: item.wear_count })}</Badge>
     </Link>
   );
 }
 
 function AcceptanceTrendChart({ data }: { data: { period: string; rate: number; total: number }[] }) {
+  const t = useTranslations('analytics');
   const maxTotal = Math.max(...data.map((d) => d.total), 1);
 
   return (
@@ -185,7 +189,7 @@ function AcceptanceTrendChart({ data }: { data: { period: string; rate: number; 
               />
             </div>
             {week.total > 0 && (
-              <span className="text-xs text-muted-foreground">{week.rate.toFixed(0)}%</span>
+              <span className="text-xs text-muted-foreground">{t('percent', { value: week.rate.toFixed(0) })}</span>
             )}
           </div>
         </div>
@@ -195,14 +199,15 @@ function AcceptanceTrendChart({ data }: { data: { period: string; rate: number; 
 }
 
 export default function AnalyticsPage() {
+  const t = useTranslations('analytics');
   const { data, isLoading, isError } = useAnalytics(60);
 
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground">Your wardrobe insights and statistics</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
         <LoadingSkeleton />
       </div>
@@ -212,7 +217,7 @@ export default function AnalyticsPage() {
   if (isError || !data) {
     return (
       <div className="text-center py-8 text-red-500">
-        Failed to load analytics. Please try again.
+        {t('loadError')}
       </div>
     );
   }
@@ -222,35 +227,35 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground">Your wardrobe insights and statistics</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground">{t('subtitle')}</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Items"
+          title={t('stats.totalItems.title')}
           value={wardrobe.total_items}
-          description={`${wardrobe.items_by_status.ready} ready to wear`}
+          description={t('stats.totalItems.description', { count: wardrobe.items_by_status.ready })}
           icon={Shirt}
         />
         <StatCard
-          title="Outfits Generated"
+          title={t('stats.outfitsGenerated.title')}
           value={wardrobe.total_outfits}
-          description={`${wardrobe.outfits_this_week} this week`}
+          description={t('stats.outfitsGenerated.description', { count: wardrobe.outfits_this_week })}
           icon={Sparkles}
         />
         <StatCard
-          title="Acceptance Rate"
-          value={wardrobe.acceptance_rate ? `${wardrobe.acceptance_rate}%` : '-'}
-          description={wardrobe.acceptance_rate ? 'of suggestions accepted' : 'No data yet'}
+          title={t('stats.acceptanceRate.title')}
+          value={wardrobe.acceptance_rate ? t('percent', { value: wardrobe.acceptance_rate }) : '-'}
+          description={wardrobe.acceptance_rate ? t('stats.acceptanceRate.description') : t('stats.totalWears.noData')}
           icon={TrendingUp}
           trend={wardrobe.acceptance_rate && wardrobe.acceptance_rate > 50 ? 'up' : undefined}
         />
         <StatCard
-          title="Total Wears"
+          title={t('stats.totalWears.title')}
           value={wardrobe.total_wears}
-          description={wardrobe.average_rating ? `Avg rating: ${wardrobe.average_rating}/5` : 'Track your outfits'}
+          description={wardrobe.average_rating ? t('stats.avgRating', { rating: wardrobe.average_rating }) : t('stats.totalWears.description')}
           icon={Activity}
         />
       </div>
@@ -261,7 +266,7 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Lightbulb className="h-5 w-5" />
-              Insights
+              {t('insights.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -283,13 +288,13 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PieChart className="h-5 w-5" />
-              Color Distribution
+              {t('insights.colorDistribution.title')}
             </CardTitle>
-            <CardDescription>Most common colors in your wardrobe</CardDescription>
+            <CardDescription>{t('insights.colorDistribution.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {color_distribution.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No color data yet</p>
+              <p className="text-muted-foreground text-sm">{t('insights.colorDistribution.noData')}</p>
             ) : (
               <div className="space-y-3">
                 {color_distribution.slice(0, 8).map((color) => (
@@ -305,13 +310,13 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart className="h-5 w-5" />
-              Item Types
+              {t('insights.itemTypes.title')}
             </CardTitle>
-            <CardDescription>Breakdown by clothing type</CardDescription>
+            <CardDescription>{t('insights.itemTypes.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {type_distribution.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No items yet</p>
+              <p className="text-muted-foreground text-sm">{t('insights.itemTypes.noData')}</p>
             ) : (
               <div className="space-y-3">
                 {type_distribution.map((type) => (
@@ -335,12 +340,12 @@ export default function AnalyticsPage() {
         {/* Most Worn */}
         <Card>
           <CardHeader>
-            <CardTitle>Most Worn</CardTitle>
-            <CardDescription>Your favorites</CardDescription>
+            <CardTitle>{t('insights.mostWorn.title')}</CardTitle>
+            <CardDescription>{t('insights.mostWorn.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {most_worn.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Start tracking your outfits!</p>
+              <p className="text-muted-foreground text-sm">{t('insights.mostWorn.noData')}</p>
             ) : (
               <div className="space-y-1">
                 {most_worn.map((item) => (
@@ -354,12 +359,12 @@ export default function AnalyticsPage() {
         {/* Least Worn */}
         <Card>
           <CardHeader>
-            <CardTitle>Least Worn</CardTitle>
-            <CardDescription>Consider wearing these</CardDescription>
+            <CardTitle>{t('insights.leastWorn.title')}</CardTitle>
+            <CardDescription>{t('insights.leastWorn.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {least_worn.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Keep tracking!</p>
+              <p className="text-muted-foreground text-sm">{t('insights.leastWorn.noData')}</p>
             ) : (
               <div className="space-y-1">
                 {least_worn.map((item) => (
@@ -373,12 +378,12 @@ export default function AnalyticsPage() {
         {/* Never Worn */}
         <Card>
           <CardHeader>
-            <CardTitle>Never Worn</CardTitle>
-            <CardDescription>Time to try these?</CardDescription>
+            <CardTitle>{t('insights.neverWorn.title')}</CardTitle>
+            <CardDescription>{t('insights.neverWorn.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {never_worn.length === 0 ? (
-              <p className="text-muted-foreground text-sm">All items have been worn!</p>
+              <p className="text-muted-foreground text-sm">{t('insights.neverWorn.noData')}</p>
             ) : (
               <div className="space-y-1">
                 {never_worn.map((item) => (
@@ -394,8 +399,8 @@ export default function AnalyticsPage() {
       {acceptance_trend.length > 0 && acceptance_trend.some((t) => t.total > 0) && (
         <Card>
           <CardHeader>
-            <CardTitle>Acceptance Rate Trend</CardTitle>
-            <CardDescription>How you&apos;ve responded to suggestions over time</CardDescription>
+            <CardTitle>{t('insights.acceptanceTrend.title')}</CardTitle>
+            <CardDescription>{t('insights.acceptanceTrend.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <AcceptanceTrendChart data={acceptance_trend} />

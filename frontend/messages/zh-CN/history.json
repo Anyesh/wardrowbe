@@ -1,0 +1,47 @@
+{
+  "card": {
+    "accept": "采纳",
+    "acceptFailed": "采纳穿搭失败",
+    "didntWearThis": "没穿这套",
+    "dismiss": "关闭",
+    "dismissFailed": "关闭穿搭失败",
+    "familyLabel": "家庭：",
+    "itemFallback": "单品",
+    "outfitAccepted": "搭配已接受",
+    "outfitDismissed": "搭配已关闭",
+    "rate": "评分",
+    "tip": "小贴士：",
+    "update": "更新",
+    "viewItemDetails": "查看单品详情",
+    "woreInstead": "实际穿了："
+  },
+  "empty": {
+    "description": "开始获取穿搭建议后，推荐记录将显示在这里。",
+    "getFirstSuggestion": "获取你的第一个建议",
+    "title": "暂无推荐记录"
+  },
+  "filters": {
+    "allOccasions": "所有场合",
+    "allStatus": "所有状态",
+    "workout": "运动"
+  },
+  "loadError": "加载历史记录失败，请重试。",
+  "noOutfitsForDate": "{date}没有穿搭",
+  "outfitCount": "{count, plural, one {# 套穿搭} other {# 套穿搭}}",
+  "sourceBadges": {
+    "manual": "手动",
+    "onDemand": "即时获取",
+    "pairing": "搭配",
+    "scheduled": "定时推送"
+  },
+  "status": {
+    "accepted": "已采纳",
+    "expired": "已过期",
+    "pending": "待处理",
+    "rejected": "已拒绝",
+    "sent": "已发送",
+    "viewed": "已查看"
+  },
+  "subtitle": "查看过去的穿搭推荐",
+  "title": "历史记录"
+}

@@ -1,0 +1,205 @@
+{
+  "actions": {
+    "addItem": "Stück hinzufügen"
+  },
+  "addItem": {
+    "brandInputPlaceholder": "z. B. Hugo Boss",
+    "brandPlaceholder": "Marke",
+    "bulk": {
+      "allFailed": "{count, plural, one {# Stück konnte nicht hochgeladen werden} other {Alle # Stücke konnten nicht hochgeladen werden}}",
+      "allSuccess": "{count, plural, one {# Stück erfolgreich hochgeladen} other {# Stücke erfolgreich hochgeladen}}",
+      "clearAll": "Alle löschen",
+      "discardConfirm": {
+        "discard": "Verwerfen",
+        "imageCount": "{count, plural, one {# ausgewähltes Bild geht verloren} other {# ausgewählte Bilder gehen verloren}}, wenn du diesen Dialog schließt.",
+        "keepEditing": "Weiter bearbeiten",
+        "singleImage": "1 ausgewähltes Bild geht verloren, wenn du diesen Dialog schließt.",
+        "title": "Ausgewählte Bilder verwerfen?"
+      },
+      "hint": "Alle Stücke werden automatisch von der KI getaggt. Details kannst du später bearbeiten.",
+      "imageCount": "{count, plural, one {# Bild ausgewählt} other {# Bilder ausgewählt}}",
+      "partial": "{success} hochgeladen, {failed} fehlgeschlagen",
+      "resultFailed": "{count, plural, one {# Stück fehlgeschlagen} other {# Stücke fehlgeschlagen}}",
+      "resultSuccess": "{success} von {total} erfolgreich hochgeladen",
+      "skipAi": "KI-Analyse überspringen (mit Platzhalterwerten hinzufügen, Details später bearbeiten)",
+      "uploadButton": "{count, plural, one {# Stück hochladen} other {# Stücke hochladen}}",
+      "uploadError": "Stücke konnten nicht hochgeladen werden. Bitte versuche es erneut.",
+      "uploadMore": "Mehr hochladen",
+      "uploadingCount": "{count, plural, one {# Stück wird hochgeladen...} other {# Stücke werden hochgeladen...}}"
+    },
+    "bulkUpload": "Mehrere Stücke",
+    "dropzone": "Bild hierher ziehen oder tippen zum Auswählen",
+    "dropzoneActive": "Bild hier ablegen",
+    "formatHint": "PNG, JPG oder HEIC",
+    "letAiDetect": "KI erkennen lassen...",
+    "nameInputPlaceholder": "z. B. Blaues Oxford-Hemd",
+    "namePlaceholder": "Name (optional)",
+    "notesInputPlaceholder": "Zusätzliche Notizen...",
+    "notesPlaceholder": "Notizen",
+    "previewAlt": "Vorschau",
+    "primaryColor": "Hauptfarbe",
+    "selectPlaceholder": "Auswählen...",
+    "singleItem": "Einzelnes Stück",
+    "submit": "Stück hinzufügen",
+    "subtitle": "Lade Fotos deiner Kleidungsstücke hoch",
+    "title": "Stücke hinzufügen",
+    "typeLabel": "Typ (die KI erkennt ihn, wenn leer)",
+    "uploading": "Wird hochgeladen..."
+  },
+  "ai": {
+    "analysisFailed": "Analyse fehlgeschlagen",
+    "analyzing": "KI analysiert...",
+    "analyzingCount": "{count} werden analysiert",
+    "analyzingProgress": "{count} werden analysiert · {percent} % fertig",
+    "completeness": "KI-Vollständigkeit: {percent} %",
+    "confident": "{percent} % sicher",
+    "dismiss": "Schließen",
+    "failedCount": "{count} fehlgeschlagen"
+  },
+  "allTypes": "Alle Typen",
+  "bulkActions": {
+    "deleteError": "Stücke konnten nicht gelöscht werden",
+    "deletePartialFailed": "{count, plural, one {# Stück konnte nicht gelöscht werden} other {# Stücke konnten nicht gelöscht werden}}",
+    "deleteSuccess": "{count, plural, one {# Stück gelöscht} other {# Stücke gelöscht}}",
+    "reanalyzeError": "Stücke konnten nicht zur erneuten Analyse eingereiht werden",
+    "reanalyzeMany": "{count} Stücke zur erneuten Analyse eingereiht. Das kann etwas dauern.",
+    "reanalyzePartialFailed": "{count, plural, one {# Stück konnte nicht eingereiht werden} other {# Stücke konnten nicht eingereiht werden}}",
+    "reanalyzeQueued": "{count, plural, one {# Stück zur erneuten Analyse eingereiht} other {# Stücke zur erneuten Analyse eingereiht}}"
+  },
+  "bulkDelete": {
+    "confirmDescription": "Die ausgewählten Stücke und ihre Bilder werden endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "confirmTitle": "{count, plural, one {# Stück} other {# Stücke}} löschen?",
+    "confirmTitleAll": "Alle {count, plural, one {# Stück} other {# Stücke}} löschen?"
+  },
+  "clearFilters": "Filter zurücksetzen",
+  "colorEyedropper": {
+    "buttonTitle": "Farbe aus Bild wählen",
+    "description": "Klicke auf das Bild, um eine Farbe auszuwählen",
+    "errors": {
+      "canvasContext": "Canvas-Kontext konnte nicht abgerufen werden",
+      "canvasUnavailable": "Canvas nicht verfügbar",
+      "imageDecodeFailed": "Bild konnte nicht aus dem Blob geladen werden",
+      "imageLoadFailed": "Bild konnte nicht geladen werden",
+      "imageLoadStatus": "Bild konnte nicht geladen werden: {status}"
+    },
+    "noColorSelected": "Noch keine Farbe ausgewählt",
+    "picked": "Ausgewählt",
+    "title": "Farbe aus Bild wählen",
+    "useColor": "{color} verwenden"
+  },
+  "empty": {
+    "addFirstItem": "Erstes Stück hinzufügen",
+    "description": "Füge dein erstes Kleidungsstück hinzu, um personalisierte Outfit-Vorschläge zu erhalten.",
+    "title": "Dein Kleiderschrank ist leer"
+  },
+  "errors": {
+    "clearFilters": "Filter zurücksetzen",
+    "loadFailed": "Stücke konnten nicht geladen werden. Bitte versuche es erneut.",
+    "noItemsFound": "Keine Stücke zu deinen Filtern gefunden."
+  },
+  "favorites": "Favoriten",
+  "itemCount": "{count, plural, one {# Stück in deinem Kleiderschrank} other {# Stücke in deinem Kleiderschrank}}",
+  "itemDetail": {
+    "actions": {
+      "backgroundRemoveError": "Hintergrund konnte nicht entfernt werden",
+      "backgroundRemoved": "Hintergrund entfernt",
+      "cancelEditing": "Bearbeitung abbrechen",
+      "deleteConfirm": "Dieses Stück löschen?",
+      "deleteDescription": "„{name}“ wird endgültig aus deinem Kleiderschrank gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "deleteError": "Stück konnte nicht gelöscht werden",
+      "deleteErrorDescription": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+      "deleteItem": "Stück löschen",
+      "deleted": "Stück gelöscht",
+      "deletedFallback": "Stück aus deinem Kleiderschrank entfernt.",
+      "deletedWithName": "„{name}“ wurde entfernt.",
+      "editItem": "Stück bearbeiten",
+      "imageReplaceError": "Bild konnte nicht ersetzt werden",
+      "imageReplaced": "Bild ersetzt",
+      "imageRotateError": "Bild konnte nicht gedreht werden",
+      "imageRotated": "Bild gedreht",
+      "markWashed": "Als gewaschen markieren",
+      "originalRestoreError": "Originalbild konnte nicht wiederhergestellt werden",
+      "originalRestored": "Originalbild wiederhergestellt",
+      "washError": "Konnte nicht als gewaschen markiert werden",
+      "washed": "Stück als gewaschen markiert"
+    },
+    "brand": "Marke",
+    "name": "Name",
+    "notes": "Notizen",
+    "placeholders": {
+      "additionalNotes": "Zusätzliche Notizen...",
+      "brandName": "Markenname",
+      "itemName": "Name des Stücks",
+      "selectColor": "Farbe auswählen",
+      "washIntervalDefault": "Standard: {count}"
+    },
+    "primaryColor": "Hauptfarbe",
+    "titles": {
+      "analysisInProgress": "Analyse läuft...",
+      "deleteImage": "Bild löschen",
+      "findMatchingOutfits": "Passende Outfits finden",
+      "reanalyzeWithAI": "Erneut mit KI analysieren",
+      "removeBackground": "Hintergrund entfernen",
+      "replaceImage": "Bild ersetzen",
+      "rotateLeft": "Nach links drehen",
+      "rotateRight": "Nach rechts drehen",
+      "setAsPrimary": "Als Hauptbild festlegen",
+      "toggleFavorite": "Favorit umschalten",
+      "undoBackgroundRemoval": "Hintergrundentfernung rückgängig machen"
+    },
+    "type": "Typ",
+    "view": {
+      "addedDate": "Hinzugefügt am {date}",
+      "aiAnalysis": "KI-Analyse",
+      "aiAnalyzing": "KI analysiert...",
+      "avgPerMonth": "Ø/Monat",
+      "complete": "{percent} % vollständig",
+      "confident": "{percent} % sicher",
+      "daysAgo": "vor {count} T.",
+      "fitBadge": "{fit} Passform",
+      "last6Months": "Letzte 6 Monate",
+      "lastWashed": "Zuletzt gewaschen: {date}",
+      "lastWorn": "Zuletzt getragen",
+      "lastWornDate": "Zuletzt: {date}",
+      "monthWears": "{month}: {count, plural, one {# Mal getragen} other {# Mal getragen}}",
+      "needsWashing": "Muss gewaschen werden",
+      "never": "Nie",
+      "primaryImage": "Primär",
+      "timeline": "{count, plural, one {Verlauf (# Ereignis)} other {Verlauf (# Ereignisse)}}",
+      "today": "Heute",
+      "totalWears": "Insgesamt getragen",
+      "usualOccasion": "Üblicher Anlass",
+      "washHistory": "Waschverlauf ({count})",
+      "washIntervalHint": "Anzahl der Tragezyklen bis zur nächsten Wäsche. Leer lassen für Standard.",
+      "washStatus": "Waschstatus",
+      "wearHistory": "Trageverlauf",
+      "wears": "Tragezyklen",
+      "wearsSinceWash": "Getragen seit Wäsche: {current}/{max}",
+      "wornCount": "{count, plural, one {# Mal getragen} other {# Mal getragen}}"
+    },
+    "washInterval": "Waschintervall"
+  },
+  "lightbox": {
+    "openInWardrobe": "Im Kleiderschrank öffnen"
+  },
+  "needsWash": "Muss gewaschen werden",
+  "pageSize": "{count} pro Seite",
+  "search": "Stücke suchen...",
+  "sort": {
+    "leastRecentlyWorn": "Am längsten nicht getragen",
+    "leastWorn": "Am seltensten getragen",
+    "mostWorn": "Am häufigsten getragen",
+    "nameAZ": "Name A–Z",
+    "nameZA": "Name Z–A",
+    "newestFirst": "Neueste zuerst",
+    "oldestFirst": "Älteste zuerst",
+    "recentlyWorn": "Kürzlich getragen"
+  },
+  "title": "Mein Kleiderschrank",
+  "wearCount": "{count, plural, one {# Mal getragen} other {# Mal getragen}}",
+  "wornAgo": {
+    "daysAgo": "Vor {days} T. getragen",
+    "today": "Heute getragen",
+    "yesterday": "Gestern getragen"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "bestCombinations": {
+    "description": "Item pairs that you consistently love together",
+    "title": "Your Best Combinations"
+  },
+  "colorPreferences": {
+    "description": "Colors you tend to accept or reject",
+    "noData": "Not enough feedback to determine color preferences yet.",
+    "title": "Learned Color Preferences"
+  },
+  "confidence": "{percent}% confidence",
+  "dismiss": "Dismiss",
+  "lastUpdated": "Learning profile last updated: {date}",
+  "loadError": "Failed to load learning data. Please try again.",
+  "noData": {
+    "alreadyGaveFeedback": "Already gave feedback? Click \"Compute Now\" to process it.",
+    "computeNow": "Compute Now",
+    "computing": "Computing...",
+    "description": "Start by accepting or rejecting outfit suggestions and rating them.",
+    "getOutfitSuggestions": "Get Outfit Suggestions",
+    "title": "No Learning Data Yet"
+  },
+  "occasionPatterns": {
+    "description": "What works for different occasions",
+    "title": "Occasion Patterns"
+  },
+  "percent": "{value}%",
+  "preferredColors": "Preferred colors:",
+  "recompute": "Recompute",
+  "stats": {
+    "acceptanceRate": "Acceptance Rate",
+    "averageRating": "Average Rating",
+    "feedbackGiven": "Feedback Given",
+    "notEnoughData": "Not enough data",
+    "outOf5Stars": "out of 5 stars",
+    "outfitsRated": "{count, plural, one {{count} outfit rated} other {{count} outfits rated}}",
+    "rateMoreOutfits": "Rate more outfits",
+    "rateOutfitStyles": "Rate outfit styles",
+    "styleRating": "Style Rating",
+    "styleSatisfaction": "style satisfaction",
+    "suggestionsAccepted": "of suggestions accepted"
+  },
+  "styleInsights": {
+    "description": "What we've learned about your preferences",
+    "generate": "New Insights",
+    "title": "Style Insights"
+  },
+  "stylePreferences": {
+    "description": "Styles that match your taste",
+    "noData": "Not enough feedback to determine style preferences yet.",
+    "title": "Learned Style Preferences"
+  },
+  "subtitle": "How the AI learns from your feedback",
+  "subtitleEmpty": "Start rating outfits to help the AI learn your preferences",
+  "successRate": "{percent}% success",
+  "suggestedUpdates": {
+    "addToAvoid": "Add to colors to avoid:",
+    "addToFavorites": "Add to favorite colors:",
+    "description": "Based on your feedback, we suggest updating your preferences",
+    "title": "Suggested Preference Updates",
+    "updatePreferences": "Update Preferences"
+  },
+  "timesPaired": "{count}x paired",
+  "title": "AI Learning",
+  "weatherPreferences": {
+    "description": "How you dress for different conditions",
+    "layers": "~{count} layers",
+    "title": "Weather Preferences"
+  }
+}

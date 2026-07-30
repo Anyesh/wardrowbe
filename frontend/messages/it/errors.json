@@ -1,0 +1,12 @@
+{
+  "default": "Qualcosa è andato storto. Riprova.",
+  "invite": {
+    "alreadyInFamily": "Sei già in una famiglia.",
+    "invalidLink": "Questo link di invito non è valido o è scaduto.",
+    "wrongEmail": "Questo invito è stato inviato a un indirizzo email diverso."
+  },
+  "pageLoad": {
+    "description": "Si è verificato un errore durante il caricamento di questo contenuto. Potrebbe essere un problema temporaneo.",
+    "title": "Caricamento della pagina fallito"
+  }
+}

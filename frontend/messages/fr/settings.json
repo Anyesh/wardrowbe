@@ -1,0 +1,148 @@
+{
+  "account": {
+    "description": "Vos informations de profil",
+    "email": "E-mail",
+    "name": "Nom",
+    "title": "Compte"
+  },
+  "aiEndpoints": {
+    "active": "Actif",
+    "addEndpoint": "Ajouter un point de terminaison",
+    "connected": "Connecté",
+    "description": "Configurez les points de terminaison IA pour l'analyse d'images. Les points de terminaison sont essayés dans l'ordre, de haut en bas.",
+    "disabled": "Désactivé",
+    "error": "Erreur",
+    "fields": {
+      "name": "Nom",
+      "textModel": "Modèle de texte",
+      "url": "URL",
+      "visionModel": "Modèle de vision"
+    },
+    "modelsAvailable": "{count, plural, one {{count} modèle disponible} other {{count} modèles disponibles}}",
+    "noEndpoints": "Aucun point de terminaison personnalisé configuré. Utilisation des paramètres serveur par défaut.",
+    "placeholders": {
+      "name": "ex. Ollama local"
+    },
+    "testConnection": "Tester la connexion",
+    "testFailed": "Échec du test du point de terminaison",
+    "textModels": "Texte : {models}",
+    "title": "Points de terminaison IA",
+    "visionModels": "Vision : {models}"
+  },
+  "body": {
+    "bodyLabel": "Corps",
+    "description": "Aidez l'IA à recommander des tenues mieux ajustées",
+    "errors": {
+      "positiveNumber": "{field} doit être un nombre positif"
+    },
+    "fields": {
+      "chest": "Poitrine",
+      "height": "Taille",
+      "hips": "Hanches",
+      "inseam": "Entrejambe",
+      "waist": "Tour de taille",
+      "weight": "Poids"
+    },
+    "imperial": "Impérial (in/lbs)",
+    "metric": "Métrique (cm/kg)",
+    "saveError": "Échec de l’enregistrement des mensurations",
+    "saveMeasurements": "Enregistrer les mensurations",
+    "saved": "Mensurations enregistrées",
+    "sizeFields": {
+      "dressSize": "Taille robe",
+      "pantsSize": "Taille pantalon",
+      "shirtSize": "Taille chemise",
+      "shoeSize": "Pointure"
+    },
+    "sizePlaceholders": {
+      "dress_size": "ex. 8, 10",
+      "pants_size": "ex. 32, 34",
+      "shirt_size": "ex. M, L, XL",
+      "shoe_size": "ex. 10, 42"
+    },
+    "sizesLabel": "Tailles",
+    "title": "Mensurations",
+    "unitSystem": "Système d'unités"
+  },
+  "colors": {
+    "colorsToAvoid": "Couleurs à éviter",
+    "description": "Sélectionnez les couleurs que vous aimez et celles à éviter dans les recommandations",
+    "favoriteColors": "Couleurs préférées"
+  },
+  "confirmReset": "Êtes-vous sûr de vouloir réinitialiser toutes les préférences aux valeurs par défaut ?",
+  "location": {
+    "approximateDetected": "Localisation approximative renseignée. Vérifiez-la puis enregistrez.",
+    "approximateDetectedWithReason": "{reason} Localisation approximative renseignée. Vérifiez-la puis enregistrez.",
+    "cityLabel": "Ville / Nom du lieu (facultatif)",
+    "cityPlaceholder": "ex. Paris, France",
+    "description": "Définissez votre localisation pour des recommandations de tenues basées sur la météo",
+    "detected": "Localisation détectée. Vérifiez-la puis enregistrez.",
+    "errors": {
+      "geolocationDenied": "L'accès à la localisation a été refusé.",
+      "geolocationFailed": "Échec de l'obtention de la localisation exacte : {message}",
+      "geolocationFailedGeneric": "Échec de l'obtention de la localisation exacte.",
+      "geolocationTimeout": "La demande de localisation a expiré.",
+      "geolocationUnavailable": "La localisation est actuellement indisponible.",
+      "geolocationUnsupported": "La géolocalisation n’est pas prise en charge par votre navigateur.",
+      "invalidCoordinates": "Veuillez saisir des valeurs de latitude et de longitude valides",
+      "latitudeRange": "La latitude doit être comprise entre -90 et 90",
+      "longitudeRange": "La longitude doit être comprise entre -180 et 180",
+      "networkLookupFailed": "Échec de la localisation par le réseau ({status})",
+      "saveFailed": "Échec de l'enregistrement de la localisation. Veuillez réessayer.",
+      "unableToDetect": "Impossible de détecter votre localisation."
+    },
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "required": "La localisation est requise pour les recommandations de tenues basées sur la météo.",
+    "saveLocation": "Enregistrer la localisation",
+    "saved": "Localisation et fuseau horaire enregistrés",
+    "selectTimezone": "Sélectionner le fuseau horaire",
+    "timezone": "Fuseau horaire",
+    "title": "Localisation",
+    "useMyLocation": "Utiliser ma localisation"
+  },
+  "recommendations": {
+    "avoidRepeatDays": "Éviter les répétitions d'articles dans (jours)",
+    "defaultOccasion": "Occasion par défaut",
+    "description": "Personnalisez la façon dont les recommandations de tenues sont générées",
+    "no": "Non",
+    "preferUnderused": "Préférer les articles sous-utilisés",
+    "title": "Paramètres de recommandation",
+    "varietyLevel": "Niveau de variété",
+    "varietyOptions": {
+      "high": "Élevé (essayer de nouvelles combinaisons)",
+      "low": "Faible (rester sur les favoris)",
+      "moderate": "Modéré"
+    },
+    "yes": "Oui"
+  },
+  "reset": "Réinitialiser",
+  "styleProfile": {
+    "description": "Ajustez votre préférence pour chaque style dans les recommandations de tenues",
+    "title": "Profil de style"
+  },
+  "subtitle": "Gérez vos préférences et paramètres de compte",
+  "temperature": {
+    "celsius": "Celsius",
+    "coldThreshold": "Seuil de froid ({unit})",
+    "description": "Ajustez la façon dont les recommandations s'adaptent à la météo",
+    "fahrenheit": "Fahrenheit",
+    "hotThreshold": "Seuil de chaleur ({unit})",
+    "layering": "Préférence de superposition",
+    "layeringOptions": {
+      "heavy": "Superposition importante",
+      "minimal": "Superposition minimale",
+      "moderate": "Superposition modérée"
+    },
+    "sensitivity": "Sensibilité à la température",
+    "sensitivityOptions": {
+      "high": "J'ai facilement froid",
+      "low": "J'ai facilement chaud",
+      "normal": "Normal"
+    },
+    "title": "Température et confort",
+    "unit": "Unité de température"
+  },
+  "title": "Paramètres",
+  "unsavedChanges": "Vous avez des modifications non enregistrées. Quitter cette page ?"
+}

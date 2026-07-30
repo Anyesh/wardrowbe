@@ -1,0 +1,94 @@
+{
+  "channels": {
+    "addChannel": "채널 추가",
+    "addFailed": "채널 추가 실패",
+    "channelAdded": "채널이 추가되었어요",
+    "channelDeleted": "채널이 삭제되었어요",
+    "channelDisabled": "채널 비활성화됨",
+    "channelEnabled": "채널 활성화됨",
+    "channelType": "채널 유형",
+    "deleteConfirm": {
+      "description": "이 알림 채널이 삭제되고 이 채널로 보내던 알림이 모두 중지돼요.",
+      "title": "알림 채널을 삭제하시겠어요?"
+    },
+    "description": "매일 코디 추천을 받을 채널을 추가하세요",
+    "dialog": {
+      "description": "코디 추천을 받을 새로운 방법을 설정하세요.",
+      "title": "알림 채널"
+    },
+    "fields": {
+      "accessToken": "액세스 토큰",
+      "emailAddress": "이메일 주소 *",
+      "serverUrl": "서버 URL",
+      "topic": "토픽 *",
+      "webhookUrl": "웹훅 URL *"
+    },
+    "helpers": {
+      "accessTokenOptional": "ntfy 서버가 인증을 사용하는 경우 필요해요",
+      "mattermostWebhook": "Mattermost 설정에서 수신 웹훅을 생성하세요",
+      "topicSubscribe": "ntfy 앱에서 이 토픽을 구독하세요"
+    },
+    "noChannels": "설정된 알림 채널이 없어요",
+    "noChannelsDesc": "채널을 추가하면 코디 추천을 받을 수 있어요",
+    "placeholders": {
+      "accessToken": "tk_...",
+      "emailAddress": "you@example.com"
+    },
+    "priority": "우선순위 {level}",
+    "test": "테스트",
+    "testFailed": "테스트 알림 전송 실패",
+    "testSent": "테스트 알림을 보냈어요",
+    "title": "알림 채널",
+    "types": {
+      "email": "이메일",
+      "mattermost": "Mattermost",
+      "ntfy": "ntfy 푸시 알림"
+    },
+    "validation": {
+      "emailRequired": "이메일 주소가 필요해요",
+      "topicRequired": "ntfy에는 토픽이 필요해요",
+      "webhookRequired": "Mattermost에는 웹훅 URL이 필요해요"
+    },
+    "webhookConfigured": "웹훅 설정됨"
+  },
+  "days": {
+    "friday": "금요일",
+    "monday": "월요일",
+    "saturday": "토요일",
+    "sunday": "일요일",
+    "thursday": "목요일",
+    "tuesday": "화요일",
+    "wednesday": "수요일"
+  },
+  "deleteFailed": "삭제 실패",
+  "schedule": {
+    "addFailed": "일정 추가 실패",
+    "addSchedule": "일정 추가",
+    "dayLabel": "요일",
+    "deleteConfirm": {
+      "description": "이 전송 일정이 삭제돼요.",
+      "title": "일정을 삭제하시겠어요?"
+    },
+    "description": "매일 코디 추천을 받을 시간을 설정하세요",
+    "dialogDescription": "코디 추천을 받을 시간을 설정하세요.",
+    "noSchedules": "설정된 일정이 없어요",
+    "noSchedulesDesc": "일정을 추가하면 매일 코디 추천을 받을 수 있어요",
+    "notifyDayBefore": "전날 알림",
+    "notifyDayBeforeDesc": "전날 저녁에 내일 날씨 예보와 함께 알림을 받아요",
+    "notifyDayBeforeInfo": "{outfitDay} 코디 알림을 {notifyDay} {time}에 받아요.",
+    "notifyDayEvening": "{day} 저녁",
+    "occasionLabel": "상황",
+    "scheduleAdded": "일정이 추가되었어요",
+    "scheduleDeleted": "일정이 삭제되었어요",
+    "scheduleDisabled": "일정 비활성화됨",
+    "scheduleEnabled": "일정 활성화됨",
+    "summary": "{time} - {occasion}",
+    "timeLabel": "시간",
+    "title": "전송 일정",
+    "willNotifyDayBefore": "전날 알림",
+    "willNotifySameDay": "당일 알림"
+  },
+  "subtitle": "코디 추천을 받는 방법과 시간을 설정하세요",
+  "title": "알림",
+  "updateFailed": "업데이트 실패"
+}

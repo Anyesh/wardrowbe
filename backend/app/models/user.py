@@ -10,6 +10,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.utils.locale import DEFAULT_LOCALE
 
 if TYPE_CHECKING:
     from app.models.family import Family
@@ -36,6 +37,9 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(String(500))
     role: Mapped[str] = mapped_column(String(20), default="member")
     timezone: Mapped[str] = mapped_column(String(50), default="UTC")
+    locale: Mapped[str] = mapped_column(
+        String(10), default=DEFAULT_LOCALE, server_default=DEFAULT_LOCALE, nullable=False
+    )
 
     # Location for weather
     location_lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 8))

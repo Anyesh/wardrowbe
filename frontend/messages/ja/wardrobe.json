@@ -1,0 +1,205 @@
+{
+  "actions": {
+    "addItem": "アイテムを追加"
+  },
+  "addItem": {
+    "brandInputPlaceholder": "例：ユニクロ",
+    "brandPlaceholder": "ブランド",
+    "bulk": {
+      "allFailed": "{count, plural, one {# 件のアイテム} other {# 件のアイテム}}すべてのアップロードに失敗しました",
+      "allSuccess": "{count, plural, one {# 件のアイテムをアップロードしました} other {# 件のアイテムをアップロードしました}}",
+      "clearAll": "すべてクリア",
+      "discardConfirm": {
+        "discard": "破棄",
+        "imageCount": "{count, plural, one {# 枚の画像を選択中} other {# 枚の画像を選択中}}です。このダイアログを閉じると失われます。",
+        "keepEditing": "編集を続ける",
+        "singleImage": "1枚の画像を選択中です。このダイアログを閉じると失われます。",
+        "title": "選択した画像を破棄しますか？"
+      },
+      "hint": "すべてのアイテムはAIで自動タグ付けされます。詳細は後から編集できます。",
+      "imageCount": "{count, plural, one {# 枚の画像を選択中} other {# 枚の画像を選択中}}",
+      "partial": "{success}件成功、{failed}件失敗",
+      "resultFailed": "{count, plural, one {# 件のアイテムが失敗} other {# 件のアイテムが失敗}}",
+      "resultSuccess": "{total}件中{success}件のアップロードに成功しました",
+      "skipAi": "AI解析をスキップ（仮の値で追加し、詳細は後から編集）",
+      "uploadButton": "{count, plural, one {# 件} other {# 件}}をアップロード",
+      "uploadError": "アイテムのアップロードに失敗しました。もう一度お試しください。",
+      "uploadMore": "もっとアップロード",
+      "uploadingCount": "{count, plural, one {# 件のアイテムをアップロード中...} other {# 件のアイテムをアップロード中...}}"
+    },
+    "bulkUpload": "一括アップロード",
+    "dropzone": "画像をドラッグ＆ドロップ、またはタップして選択",
+    "dropzoneActive": "ここに画像をドロップ",
+    "formatHint": "PNG、JPG、HEIC",
+    "letAiDetect": "AIに検出させる...",
+    "nameInputPlaceholder": "例：ブルーオックスフォードシャツ",
+    "namePlaceholder": "名前（任意）",
+    "notesInputPlaceholder": "メモを入力...",
+    "notesPlaceholder": "メモ",
+    "previewAlt": "プレビュー",
+    "primaryColor": "メインカラー",
+    "selectPlaceholder": "選択...",
+    "singleItem": "単品",
+    "submit": "アイテムを追加",
+    "subtitle": "衣類の写真をアップロード",
+    "title": "アイテムを追加",
+    "typeLabel": "タイプ（空欄ならAIが検出）",
+    "uploading": "アップロード中..."
+  },
+  "ai": {
+    "analysisFailed": "分析失敗",
+    "analyzing": "AI分析中...",
+    "analyzingCount": "{count} 件を分析中",
+    "analyzingProgress": "{count} 件を分析中 · {percent}% 完了",
+    "completeness": "AI完了度：{percent}%",
+    "confident": "信頼度 {percent}%",
+    "dismiss": "閉じる",
+    "failedCount": "{count} 件が失敗"
+  },
+  "allTypes": "すべてのタイプ",
+  "bulkActions": {
+    "deleteError": "アイテムの削除に失敗しました",
+    "deletePartialFailed": "{count, plural, one {# 件のアイテムの削除に失敗しました} other {# 件のアイテムの削除に失敗しました}}",
+    "deleteSuccess": "{count, plural, one {# 件のアイテムを削除しました} other {# 件のアイテムを削除しました}}",
+    "reanalyzeError": "再分析キューイングに失敗しました",
+    "reanalyzeMany": "{count} 件を再分析キューに追加しました。少し時間がかかる場合があります。",
+    "reanalyzePartialFailed": "{count, plural, one {# 件のキューイングに失敗しました} other {# 件のキューイングに失敗しました}}",
+    "reanalyzeQueued": "{count, plural, one {# 件を再分析キューに追加しました} other {# 件を再分析キューに追加しました}}"
+  },
+  "bulkDelete": {
+    "confirmDescription": "選択したアイテムと画像を完全に削除します。この操作は取り消せません。",
+    "confirmTitle": "{count, plural, one {# 件のアイテム} other {# 件のアイテム}}を削除しますか？",
+    "confirmTitleAll": "すべての{count, plural, one {# 件のアイテム} other {# 件のアイテム}}を削除しますか？"
+  },
+  "clearFilters": "フィルターをクリア",
+  "colorEyedropper": {
+    "buttonTitle": "画像から色を選択",
+    "description": "画像の任意の場所をクリックして色を取得",
+    "errors": {
+      "canvasContext": "canvasコンテキストを取得できませんでした",
+      "canvasUnavailable": "canvasを利用できません",
+      "imageDecodeFailed": "blobから画像を読み込めませんでした",
+      "imageLoadFailed": "画像の読み込みに失敗しました",
+      "imageLoadStatus": "画像の読み込みに失敗しました：{status}"
+    },
+    "noColorSelected": "色が未選択です",
+    "picked": "選択済み",
+    "title": "画像から色を選択",
+    "useColor": "{color}を使用"
+  },
+  "empty": {
+    "addFirstItem": "最初のアイテムを追加",
+    "description": "最初の服を追加して、パーソナライズされたコーデ提案を受け取りましょう。",
+    "title": "ワードローブが空です"
+  },
+  "errors": {
+    "clearFilters": "フィルターをクリア",
+    "loadFailed": "アイテムの読み込みに失敗しました。もう一度お試しください。",
+    "noItemsFound": "フィルターに一致するアイテムが見つかりません。"
+  },
+  "favorites": "お気に入り",
+  "itemCount": "{count, plural, one {ワードローブに# 件のアイテム} other {ワードローブに# 件のアイテム}}",
+  "itemDetail": {
+    "actions": {
+      "backgroundRemoveError": "背景の削除に失敗しました",
+      "backgroundRemoved": "背景を削除しました",
+      "cancelEditing": "編集をキャンセル",
+      "deleteConfirm": "このアイテムを削除しますか？",
+      "deleteDescription": "「{name}」がワードローブから完全に削除されます。この操作は取り消せません。",
+      "deleteError": "アイテムの削除に失敗しました",
+      "deleteErrorDescription": "エラーが発生しました。もう一度お試しください。",
+      "deleteItem": "アイテムを削除",
+      "deleted": "アイテムを削除しました",
+      "deletedFallback": "ワードローブから削除しました。",
+      "deletedWithName": "「{name}」を削除しました。",
+      "editItem": "アイテムを編集",
+      "imageReplaceError": "画像の置き換えに失敗しました",
+      "imageReplaced": "画像を置き換えました",
+      "imageRotateError": "画像の回転に失敗しました",
+      "imageRotated": "画像を回転しました",
+      "markWashed": "洗濯済みにする",
+      "originalRestoreError": "元の画像の復元に失敗しました",
+      "originalRestored": "元の画像を復元しました",
+      "washError": "洗濯済みマークに失敗しました",
+      "washed": "洗濯済みにしました"
+    },
+    "brand": "ブランド",
+    "name": "名前",
+    "notes": "メモ",
+    "placeholders": {
+      "additionalNotes": "メモ...",
+      "brandName": "ブランド名",
+      "itemName": "アイテム名",
+      "selectColor": "色を選択",
+      "washIntervalDefault": "デフォルト：{count}"
+    },
+    "primaryColor": "メインカラー",
+    "titles": {
+      "analysisInProgress": "分析中...",
+      "deleteImage": "画像を削除",
+      "findMatchingOutfits": "マッチするコーデを探す",
+      "reanalyzeWithAI": "AIで再分析",
+      "removeBackground": "背景を削除",
+      "replaceImage": "画像を置き換え",
+      "rotateLeft": "左に回転",
+      "rotateRight": "右に回転",
+      "setAsPrimary": "メインに設定",
+      "toggleFavorite": "お気に入りを切替",
+      "undoBackgroundRemoval": "背景削除を元に戻す"
+    },
+    "type": "タイプ",
+    "view": {
+      "addedDate": "{date}に追加",
+      "aiAnalysis": "AI分析",
+      "aiAnalyzing": "AI分析中...",
+      "avgPerMonth": "月平均",
+      "complete": "{percent}%完了",
+      "confident": "信頼度 {percent}%",
+      "daysAgo": "{count}日前",
+      "fitBadge": "{fit}フィット",
+      "last6Months": "過去6ヶ月",
+      "lastWashed": "最後の洗濯：{date}",
+      "lastWorn": "最後の着用",
+      "lastWornDate": "最終：{date}",
+      "monthWears": "{month}：{count, plural, one {# 回着用} other {# 回着用}}",
+      "needsWashing": "洗濯が必要",
+      "never": "なし",
+      "primaryImage": "メイン",
+      "timeline": "{count, plural, one {タイムライン（# 件）} other {タイムライン（# 件）}}",
+      "today": "今日",
+      "totalWears": "総着用回数",
+      "usualOccasion": "よく着るシーン",
+      "washHistory": "洗濯履歴（{count}）",
+      "washIntervalHint": "洗濯が必要になるまでの着用回数。空欄でデフォルト値。",
+      "washStatus": "洗濯ステータス",
+      "wearHistory": "着用履歴",
+      "wears": "着用回数",
+      "wearsSinceWash": "洗濯後の着用：{current}/{max}",
+      "wornCount": "{count, plural, one {# 回着用} other {# 回着用}}"
+    },
+    "washInterval": "洗濯間隔"
+  },
+  "lightbox": {
+    "openInWardrobe": "ワードローブで開く"
+  },
+  "needsWash": "洗濯が必要",
+  "pageSize": "{count} 件/ページ",
+  "search": "アイテムを検索...",
+  "sort": {
+    "leastRecentlyWorn": "最も久しく着ていない",
+    "leastWorn": "着用回数が少ない",
+    "mostWorn": "最も着用",
+    "nameAZ": "名前 A–Z",
+    "nameZA": "名前 Z–A",
+    "newestFirst": "新しい順",
+    "oldestFirst": "古い順",
+    "recentlyWorn": "最近着用"
+  },
+  "title": "マイワードローブ",
+  "wearCount": "{count, plural, one {# 回着用} other {# 回着用}}",
+  "wornAgo": {
+    "daysAgo": "{days}日前に着用",
+    "today": "今日着用",
+    "yesterday": "昨日着用"
+  }
+}

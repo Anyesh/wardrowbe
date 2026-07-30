@@ -1,0 +1,80 @@
+{
+  "complete": {
+    "description": "Votre garde-robe est prête. Commencez à ajouter des vêtements et obtenez des suggestions de tenues personnalisées !",
+    "finishing": "Finalisation...",
+    "goToDashboard": "Aller au tableau de bord",
+    "setupFailed": "Échec de la finalisation de la configuration. Veuillez réessayer.",
+    "title": "Tout est prêt !"
+  },
+  "family": {
+    "createFamily": "Créer une famille",
+    "createFamilyDesc": "Créer une nouvelle famille",
+    "description": "Créez ou rejoignez une famille pour partager l'expérience garde-robe",
+    "error": "Échec de la configuration de la famille. Veuillez réessayer.",
+    "familyName": "Nom de famille",
+    "familyNamePlaceholder": "ex. : Famille Dupont",
+    "inviteCode": "Code d'invitation",
+    "inviteCodePlaceholder": "ex. : ABC123XY",
+    "joinFamily": "Rejoindre une famille",
+    "joinFamilyDesc": "Utiliser un code d'invitation",
+    "joinSuccess": "Famille rejointe avec succès !",
+    "success": "Famille créée avec succès !",
+    "title": "Configuration famille"
+  },
+  "firstItem": {
+    "addToWardrobe": "Ajouter à la garde-robe",
+    "chooseDifferentPhoto": "Choisir une autre photo",
+    "description": "Prenez une photo ou téléchargez une image d'un vêtement",
+    "formatHint": "PNG, JPG ou HEIC",
+    "previewAlt": "Aperçu",
+    "title": "Ajoutez votre premier article",
+    "typeLabel": "Quel type de vêtement est-ce ?",
+    "typePlaceholder": "Sélectionnez le type...",
+    "uploadError": "Échec du téléchargement de l'article. Veuillez réessayer.",
+    "uploadPrompt": "Cliquez pour importer ou prendre une photo",
+    "uploadSuccess": "Article ajouté à votre garde-robe !"
+  },
+  "location": {
+    "cityLabel": "Ville / Lieu",
+    "cityPlaceholder": "ex. : Paris, France",
+    "description": "Nous l'utilisons pour vous proposer des tenues adaptées à la météo",
+    "detectLocation": "Détecter ma position",
+    "locationError": "Échec de la détection de la localisation. Veuillez la saisir manuellement.",
+    "locationSuccess": "Localisation définie avec succès !",
+    "orManual": "Ou saisir manuellement",
+    "saveError": "Échec de l'enregistrement de la localisation. Veuillez réessayer.",
+    "title": "Votre localisation"
+  },
+  "skipForNow": "Passer pour le moment",
+  "steps": {
+    "family": "Famille",
+    "firstItem": "Premier vêtement",
+    "location": "Localisation",
+    "style": "Style",
+    "welcome": "Bienvenue"
+  },
+  "style": {
+    "colorsToAvoid": "Couleurs à éviter",
+    "colorsToAvoidDesc": "Sélectionnez les couleurs que vous préférez ne pas porter",
+    "description": "Aidez-nous à comprendre vos préférences de style",
+    "favoriteColors": "Couleurs préférées",
+    "favoriteColorsDesc": "Sélectionnez les couleurs que vous aimez porter",
+    "percentValue": "{value} %",
+    "saveError": "Échec de l'enregistrement des préférences de style.",
+    "saveSuccess": "Préférences de style enregistrées !",
+    "styleProfile": "Profil de style",
+    "styleProfileDesc": "Ajustez vos préférences pour chaque style",
+    "title": "Votre style"
+  },
+  "welcome": {
+    "description": "Configurez votre garde-robe numérique en quelques étapes.",
+    "feature1": "Photographiez vos vêtements",
+    "feature1Desc": "Notre IA taguera automatiquement les couleurs, les styles et plus encore",
+    "feature2": "Obtenez des tenues personnalisées",
+    "feature2Desc": "Des recommandations quotidiennes selon la météo et votre style",
+    "feature3": "Partagez avec votre famille",
+    "feature3Desc": "Chacun peut avoir sa propre garde-robe personnalisée",
+    "getStarted": "Commencer",
+    "greeting": "Bienvenue sur Wardrowbe{name} !"
+  }
+}

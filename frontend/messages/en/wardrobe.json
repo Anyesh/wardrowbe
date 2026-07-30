@@ -1,0 +1,205 @@
+{
+  "actions": {
+    "addItem": "Add Item"
+  },
+  "addItem": {
+    "brandInputPlaceholder": "e.g., J.Crew",
+    "brandPlaceholder": "Brand",
+    "bulk": {
+      "allFailed": "Failed to upload all {count, plural, one {# item} other {# items}}",
+      "allSuccess": "{count, plural, one {# item uploaded successfully} other {# items uploaded successfully}}",
+      "clearAll": "Clear All",
+      "discardConfirm": {
+        "discard": "Discard",
+        "imageCount": "{count, plural, one {# image selected} other {# images selected}} that will be lost if you close this dialog.",
+        "keepEditing": "Keep editing",
+        "singleImage": "1 image selected that will be lost if you close this dialog.",
+        "title": "Discard selected images?"
+      },
+      "hint": "All items will be auto-tagged by AI. You can edit details later.",
+      "imageCount": "{count, plural, one {# image selected} other {# images selected}}",
+      "partial": "{success} uploaded, {failed} failed",
+      "resultFailed": "{count, plural, one {# item failed} other {# items failed}}",
+      "resultSuccess": "{success} of {total} uploaded successfully",
+      "skipAi": "Skip AI analysis (add with placeholder values, edit details later)",
+      "uploadButton": "Upload {count, plural, one {# Item} other {# Items}}",
+      "uploadError": "Failed to upload items. Please try again.",
+      "uploadMore": "Upload More",
+      "uploadingCount": "{count, plural, one {Uploading # item...} other {Uploading # items...}}"
+    },
+    "bulkUpload": "Bulk Upload",
+    "dropzone": "Drag & drop an image, or tap to select",
+    "dropzoneActive": "Drop the image here",
+    "formatHint": "PNG, JPG, or HEIC",
+    "letAiDetect": "Let AI detect...",
+    "nameInputPlaceholder": "e.g., Blue Oxford Shirt",
+    "namePlaceholder": "Name (optional)",
+    "notesInputPlaceholder": "Any additional notes...",
+    "notesPlaceholder": "Notes",
+    "previewAlt": "Preview",
+    "primaryColor": "Primary Color",
+    "selectPlaceholder": "Select...",
+    "singleItem": "Single Item",
+    "submit": "Add Item",
+    "subtitle": "Upload photos of your clothing items",
+    "title": "Add Items",
+    "typeLabel": "Type (AI will detect if empty)",
+    "uploading": "Uploading..."
+  },
+  "ai": {
+    "analysisFailed": "Analysis Failed",
+    "analyzing": "AI Analyzing...",
+    "analyzingCount": "{count} analyzing",
+    "analyzingProgress": "{count} analyzing · {percent}% done",
+    "completeness": "AI completeness: {percent}%",
+    "confident": "{percent}% confident",
+    "dismiss": "Dismiss",
+    "failedCount": "{count} failed"
+  },
+  "allTypes": "All types",
+  "bulkActions": {
+    "deleteError": "Failed to delete items",
+    "deletePartialFailed": "{count, plural, one {Failed to delete # item} other {Failed to delete # items}}",
+    "deleteSuccess": "{count, plural, one {# item deleted} other {# items deleted}}",
+    "reanalyzeError": "Failed to queue items for re-analysis",
+    "reanalyzeMany": "Queued {count} items for re-analysis. This may take a while.",
+    "reanalyzePartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
+    "reanalyzeQueued": "{count, plural, one {Queued # item for re-analysis} other {Queued # items for re-analysis}}"
+  },
+  "bulkDelete": {
+    "confirmDescription": "This will permanently delete the selected items and their images. This action cannot be undone.",
+    "confirmTitle": "Delete {count, plural, one {# item} other {# items}}?",
+    "confirmTitleAll": "Delete all {count, plural, one {# item} other {# items}}?"
+  },
+  "clearFilters": "Clear filters",
+  "colorEyedropper": {
+    "buttonTitle": "Pick color from image",
+    "description": "Click anywhere on the image to sample a color",
+    "errors": {
+      "canvasContext": "Could not get canvas context",
+      "canvasUnavailable": "Canvas not available",
+      "imageDecodeFailed": "Failed to load image from blob",
+      "imageLoadFailed": "Failed to load image",
+      "imageLoadStatus": "Failed to load image: {status}"
+    },
+    "noColorSelected": "No color selected yet",
+    "picked": "Picked",
+    "title": "Pick Color from Image",
+    "useColor": "Use {color}"
+  },
+  "empty": {
+    "addFirstItem": "Add First Item",
+    "description": "Add your first clothing item to start getting personalized outfit suggestions.",
+    "title": "Your wardrobe is empty"
+  },
+  "errors": {
+    "clearFilters": "Clear Filters",
+    "loadFailed": "Failed to load items. Please try again.",
+    "noItemsFound": "No items found matching your filters."
+  },
+  "favorites": "Favorites",
+  "itemCount": "{count, plural, one {# item in your wardrobe} other {# items in your wardrobe}}",
+  "itemDetail": {
+    "actions": {
+      "backgroundRemoveError": "Failed to remove background",
+      "backgroundRemoved": "Background removed",
+      "cancelEditing": "Cancel editing",
+      "deleteConfirm": "Delete this item?",
+      "deleteDescription": "This will permanently delete \"{name}\" from your wardrobe. This action cannot be undone.",
+      "deleteError": "Failed to delete item",
+      "deleteErrorDescription": "Something went wrong. Please try again.",
+      "deleteItem": "Delete item",
+      "deleted": "Item deleted",
+      "deletedFallback": "Item removed from your wardrobe.",
+      "deletedWithName": "\"{name}\" has been removed.",
+      "editItem": "Edit item",
+      "imageReplaceError": "Failed to replace image",
+      "imageReplaced": "Image replaced",
+      "imageRotateError": "Failed to rotate image",
+      "imageRotated": "Image rotated",
+      "markWashed": "Mark Washed",
+      "originalRestoreError": "Failed to restore original image",
+      "originalRestored": "Original image restored",
+      "washError": "Failed to mark as washed",
+      "washed": "Item marked as washed"
+    },
+    "brand": "Brand",
+    "name": "Name",
+    "notes": "Notes",
+    "placeholders": {
+      "additionalNotes": "Additional notes...",
+      "brandName": "Brand name",
+      "itemName": "Item name",
+      "selectColor": "Select color",
+      "washIntervalDefault": "Default: {count}"
+    },
+    "primaryColor": "Primary Color",
+    "titles": {
+      "analysisInProgress": "Analysis in progress...",
+      "deleteImage": "Delete image",
+      "findMatchingOutfits": "Find matching outfits",
+      "reanalyzeWithAI": "Re-analyze with AI",
+      "removeBackground": "Remove background",
+      "replaceImage": "Replace image",
+      "rotateLeft": "Rotate left",
+      "rotateRight": "Rotate right",
+      "setAsPrimary": "Set as primary",
+      "toggleFavorite": "Toggle favorite",
+      "undoBackgroundRemoval": "Undo background removal"
+    },
+    "type": "Type",
+    "view": {
+      "addedDate": "Added {date}",
+      "aiAnalysis": "AI Analysis",
+      "aiAnalyzing": "AI Analyzing...",
+      "avgPerMonth": "Avg/month",
+      "complete": "{percent}% complete",
+      "confident": "{percent}% confident",
+      "daysAgo": "{count}d ago",
+      "fitBadge": "{fit} fit",
+      "last6Months": "Last 6 months",
+      "lastWashed": "Last washed: {date}",
+      "lastWorn": "Last worn",
+      "lastWornDate": "Last: {date}",
+      "monthWears": "{month}: {count, plural, one {# wear} other {# wears}}",
+      "needsWashing": "Needs washing",
+      "never": "Never",
+      "primaryImage": "Primary",
+      "timeline": "{count, plural, one {Timeline (# event)} other {Timeline (# events)}}",
+      "today": "Today",
+      "totalWears": "Total wears",
+      "usualOccasion": "Usual occasion",
+      "washHistory": "Wash history ({count})",
+      "washIntervalHint": "Number of wears before this item needs washing. Leave blank for default.",
+      "washStatus": "Wash Status",
+      "wearHistory": "Wear History",
+      "wears": "wears",
+      "wearsSinceWash": "Wears since wash: {current}/{max}",
+      "wornCount": "{count, plural, one {Worn # time} other {Worn # times}}"
+    },
+    "washInterval": "Wash Interval"
+  },
+  "lightbox": {
+    "openInWardrobe": "Open in Wardrobe"
+  },
+  "needsWash": "Needs wash",
+  "pageSize": "{count} per page",
+  "search": "Search items...",
+  "sort": {
+    "leastRecentlyWorn": "Least recently worn",
+    "leastWorn": "Least worn",
+    "mostWorn": "Most worn",
+    "nameAZ": "Name A–Z",
+    "nameZA": "Name Z–A",
+    "newestFirst": "Newest first",
+    "oldestFirst": "Oldest first",
+    "recentlyWorn": "Recently worn"
+  },
+  "title": "My Wardrobe",
+  "wearCount": "{count, plural, one {Worn # time} other {Worn # times}}",
+  "wornAgo": {
+    "daysAgo": "Worn {days}d ago",
+    "today": "Worn today",
+    "yesterday": "Worn yesterday"
+  }
+}
