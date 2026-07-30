@@ -50,6 +50,7 @@
     "analysisFailed": "分析失敗",
     "analyzing": "AI 分析中...",
     "analyzingCount": "{count} 件分析中",
+    "analyzingProgress": "{count} 件分析中 · 已完成 {percent}%",
     "completeness": "AI 完整度：{percent}%",
     "confident": "信心 {percent}%",
     "dismiss": "關閉",

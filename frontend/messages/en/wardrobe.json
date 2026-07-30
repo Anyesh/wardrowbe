@@ -50,6 +50,7 @@
     "analysisFailed": "Analysis Failed",
     "analyzing": "AI Analyzing...",
     "analyzingCount": "{count} analyzing",
+    "analyzingProgress": "{count} analyzing · {percent}% done",
     "completeness": "AI completeness: {percent}%",
     "confident": "{percent}% confident",
     "dismiss": "Dismiss",

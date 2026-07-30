@@ -1,8 +1,9 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from app.utils.signed_urls import sign_image_url
 
@@ -74,6 +75,25 @@ class ItemUpdate(BaseModel):
 class ItemResponse(ItemBase):
     model_config = ConfigDict(from_attributes=True)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _surface_failure_reason(cls, data: Any) -> Any:
+        # ai_raw_response also carries successful raw model output, so only the
+        # error key is lifted out. Without this the UI can only say "Analysis
+        # Failed" with no way for the user to tell a bad model name from a
+        # dead endpoint.
+        raw = (
+            data.get("ai_raw_response")
+            if isinstance(data, dict)
+            else getattr(data, "ai_raw_response", None)
+        )
+        if isinstance(raw, dict) and raw.get("error"):
+            if isinstance(data, dict):
+                data["ai_error"] = raw["error"]
+            else:
+                data.ai_error = raw["error"]
+        return data
+
     id: UUID
     user_id: UUID
     image_path: str
@@ -92,6 +112,7 @@ class ItemResponse(ItemBase):
     ai_processed: bool = False
     ai_confidence: Decimal | None = None
     ai_description: str | None = None
+    ai_error: str | None = None
     tagging_status: str = "pending"
     tagged_by: str | None = None
     tagged_at: datetime | None = None
@@ -136,6 +157,13 @@ class ItemResponse(ItemBase):
         if self.wash_interval is not None:
             return self.wash_interval
         return DEFAULT_WASH_INTERVALS.get(self.type, 3)
+
+
+class TaggingProgressResponse(BaseModel):
+    processing: int
+    failed: int
+    completed: int
+    total: int
 
 
 class ItemListResponse(BaseModel):

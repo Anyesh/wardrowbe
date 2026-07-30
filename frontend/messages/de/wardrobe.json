@@ -50,6 +50,7 @@
     "analysisFailed": "Analyse fehlgeschlagen",
     "analyzing": "KI analysiert...",
     "analyzingCount": "{count} werden analysiert",
+    "analyzingProgress": "{count} werden analysiert · {percent} % fertig",
     "completeness": "KI-Vollständigkeit: {percent} %",
     "confident": "{percent} % sicher",
     "dismiss": "Schließen",

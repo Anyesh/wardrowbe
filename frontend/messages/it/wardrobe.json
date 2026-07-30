@@ -50,6 +50,7 @@
     "analysisFailed": "Analisi fallita",
     "analyzing": "Analisi IA in corso...",
     "analyzingCount": "{count} in analisi",
+    "analyzingProgress": "{count} in analisi · {percent}% completato",
     "completeness": "Completezza IA: {percent}%",
     "confident": "{percent}% fiducia",
     "dismiss": "Ignora",

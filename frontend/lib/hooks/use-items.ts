@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, getAccessToken, setAccessToken, ApiError, NetworkError } from '@/lib/api';
-import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage } from '@/lib/types';
+import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
 import { chunkArray } from '@/lib/utils';
 
 // Must not exceed the backend's MAX_BULK_UPLOAD_COUNT setting, or every chunk
@@ -49,6 +49,26 @@ export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
       const hasProcessing = data?.items?.some((item) => item.status === 'processing');
       return hasProcessing ? 5000 : 30000;
     },
+    // Tagging runs server-side in the worker, so it keeps going while the tab is
+    // hidden. Without this the polling stops and the UI looks frozen, which reads
+    // as "analysis stopped when I switched tabs".
+    refetchIntervalInBackground: true,
+  });
+}
+
+export function useTaggingProgress() {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
+  return useQuery({
+    queryKey: ['tagging-progress'],
+    queryFn: () => api.get<TaggingProgress>('/items/tagging-progress'),
+    enabled: status !== 'loading',
+    refetchInterval: (query) => {
+      const data = query.state.data as TaggingProgress | undefined;
+      return data && data.processing > 0 ? 5000 : 30000;
+    },
+    refetchIntervalInBackground: true,
   });
 }
 

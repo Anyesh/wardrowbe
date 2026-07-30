@@ -50,6 +50,7 @@
     "analysisFailed": "분석 실패",
     "analyzing": "AI 분석 중...",
     "analyzingCount": "{count}개 분석 중",
+    "analyzingProgress": "{count}개 분석 중 · {percent}% 완료",
     "completeness": "AI 완성도: {percent}%",
     "confident": "{percent}% 확신",
     "dismiss": "닫기",

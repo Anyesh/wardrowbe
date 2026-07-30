@@ -26,7 +26,7 @@ import {
 import { AddItemDialog } from '@/components/add-item-dialog';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
-import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, BulkOperationParams } from '@/lib/hooks/use-items';
+import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useTaggingProgress, BulkOperationParams } from '@/lib/hooks/use-items';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { Item } from '@/lib/types';
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
@@ -154,6 +154,14 @@ function ItemCard({
           <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-2">
             <AlertCircle className="h-6 w-6 text-red-400" />
             <span className="text-white text-xs font-medium text-center">{t('ai.analysisFailed')}</span>
+            {item.ai_error && (
+              <span
+                className="text-white/70 text-[10px] text-center line-clamp-2 px-1"
+                title={item.ai_error}
+              >
+                {item.ai_error}
+              </span>
+            )}
             <div className="flex gap-1.5">
               {onRetry && (
                 <Button
@@ -369,6 +377,7 @@ export default function WardrobePage() {
 
   // Fetch items with automatic polling (faster when items are processing)
   const { data, isLoading, error } = useItems(filters, page, pageSize);
+  const { data: taggingProgress } = useTaggingProgress();
   const { data: itemTypes } = useItemTypes();
   const reanalyze = useReanalyzeItem();
   const cancelAnalysis = useCancelAnalysis();
@@ -383,11 +392,16 @@ export default function WardrobePage() {
   const { data: fetchedItem } = useItem(detailItemId && !listItem ? detailItemId : '');
   const detailItem = listItem || fetchedItem || null;
 
-  // Count items being processed or with errors
-  const processingCount = items.filter((i) => i.status === 'processing').length;
+  // Wardrobe-wide, from the server: counting the current page only capped the
+  // badge at the page size, so a 100-image upload still read "20 analyzing".
+  const processingCount = taggingProgress?.processing ?? 0;
   const errorCount = items.filter(
     (i) => i.status === 'error' && !dismissedErrors.has(`${i.id}:${i.updated_at}`)
   ).length;
+  const taggedTotal = taggingProgress?.total ?? 0;
+  const taggedDone = taggingProgress?.completed ?? 0;
+  const percentComplete =
+    taggedTotal > 0 ? Math.round((taggedDone / taggedTotal) * 100) : 0;
 
   // Clear selection when filters change (but not page - allow cross-page selection)
   useEffect(() => {
@@ -527,7 +541,9 @@ export default function WardrobePage() {
               {processingCount > 0 && (
                 <Badge variant="secondary" className="gap-1 text-xs">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  {t('ai.analyzingCount', { count: processingCount })}
+                  {taggedTotal > 0
+                    ? t('ai.analyzingProgress', { count: processingCount, percent: percentComplete })
+                    : t('ai.analyzingCount', { count: processingCount })}
                 </Badge>
               )}
               {errorCount > 0 && (
