@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.6.0...wardrowbe-v1.7.0) (2026-07-30)
+
+
+### ✨ Features
+
+* add next-intl internationalization with 4 locales ([be2668f](https://github.com/Anyesh/wardrowbe/commit/be2668f9b326ddfaaa45ecb2aad9195fd74b4bc5))
+* **backend:** persist user locale ([a1878d3](https://github.com/Anyesh/wardrowbe/commit/a1878d3bb07258ca1285dc1334d5c082d49e120b))
+* **i18n:** restructure keys onto feature namespaces and ship 8 locales ([eaf47b3](https://github.com/Anyesh/wardrowbe/commit/eaf47b3dffb64fa430f2ead21ed1d2f7f7c3850e))
+* **outfits:** add bulk-delete endpoint ([0db1be2](https://github.com/Anyesh/wardrowbe/commit/0db1be23417cad87d28fa498bac9d5bf409c41ff))
+* **outfits:** add bulk-select/delete to outfits page, rename lookbook filter chip ([ea9f2c6](https://github.com/Anyesh/wardrowbe/commit/ea9f2c69decadb5f6e16f7e27ac1989bfbfe21e8))
+
+
+### 🐛 Bug Fixes
+
+* **frontend:** restore missing [@emnapi](https://github.com/emnapi) entries in package-lock.json ([58740db](https://github.com/Anyesh/wardrowbe/commit/58740db6f33b4ecbdd074a552205d3110625454b))
+* **frontend:** sync package-lock.json with package.json ([8ce97d0](https://github.com/Anyesh/wardrowbe/commit/8ce97d0d47e6f9803fbe3b83c75b7700899ecd6f))
+* **i18n:** translate defaultOccasion label in 6 locales ([6c92599](https://github.com/Anyesh/wardrowbe/commit/6c9259975146e9ec6be616b36583995d9f35c1cf))
+* **outfits:** relabel Reject to Dismiss ([c54fd57](https://github.com/Anyesh/wardrowbe/commit/c54fd57e6713a48cf5a6d944c61a96fafdd9bf25))
+
+
+### 📝 Documentation
+
+* replace star history with supporters list ([0ba2f77](https://github.com/Anyesh/wardrowbe/commit/0ba2f77bb1dc72ac1ee04bc55354994cdd50a2ec))
+
+
+### 👷 CI/CD
+
+* gate translation coverage ([6a87d29](https://github.com/Anyesh/wardrowbe/commit/6a87d298b9b489f62eb0373cfc939f99362615e2))
+
 ## [1.6.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.5.1...wardrowbe-v1.6.0) (2026-07-25)
 
 
