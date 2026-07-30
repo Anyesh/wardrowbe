@@ -18,6 +18,7 @@
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#quick-start">Quick Start</a> •
+  <a href="#languages">Languages</a> •
   <a href="#deployment">Deployment</a> •
   <a href="#architecture">Architecture</a> •
   <a href="#contributing">Contributing</a>
@@ -49,6 +50,24 @@ Self-hosted wardrobe management with AI-powered outfit recommendations. Take pho
 - **Analytics** - See what you wear, what you don't, color distribution
 - **Fully self-hosted** - Your data stays on your hardware
 - **Works with any AI** - OpenAI, Ollama, LocalAI, or any OpenAI-compatible API
+- **8 languages** - English, Chinese (Simplified & Traditional), Korean, Japanese, French, German, Italian
+
+## Languages
+
+Wardrowbe's UI is fully translated into 8 languages via `next-intl`. Pick a language from Settings, or let it follow your browser automatically.
+
+| Language | Locale code |
+|----------|-------------|
+| English | `en` |
+| 中文简体 (Chinese, Simplified) | `zh-CN` |
+| 中文繁體 (Chinese, Traditional) | `zh-TW` |
+| 한국어 (Korean) | `ko` |
+| 日本語 (Japanese) | `ja` |
+| Français (French) | `fr` |
+| Deutsch (German) | `de` |
+| Italiano (Italian) | `it` |
+
+Want to add a language or improve a translation? See [Internationalization](CONTRIBUTING.md#internationalization) in the contributing guide.
 
 ## Screenshots
 
