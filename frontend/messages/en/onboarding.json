@@ -1,0 +1,80 @@
+{
+  "complete": {
+    "description": "Your wardrobe is ready. Start adding clothes and get personalized outfit suggestions!",
+    "finishing": "Finishing...",
+    "goToDashboard": "Go to Dashboard",
+    "setupFailed": "Failed to complete setup. Please try again.",
+    "title": "You're All Set!"
+  },
+  "family": {
+    "createFamily": "Create Family",
+    "createFamilyDesc": "Start a new family",
+    "description": "Create or join a family to share the wardrobe experience",
+    "error": "Failed to set up family. Please try again.",
+    "familyName": "Family Name",
+    "familyNamePlaceholder": "e.g., The Smith Family",
+    "inviteCode": "Invite Code",
+    "inviteCodePlaceholder": "e.g., ABC123XY",
+    "joinFamily": "Join Family",
+    "joinFamilyDesc": "Use an invite code",
+    "joinSuccess": "Joined family successfully!",
+    "success": "Family created successfully!",
+    "title": "Family Setup"
+  },
+  "firstItem": {
+    "addToWardrobe": "Add to Wardrobe",
+    "chooseDifferentPhoto": "Choose Different Photo",
+    "description": "Take a photo or upload an image of a clothing item",
+    "formatHint": "PNG, JPG, or HEIC",
+    "previewAlt": "Preview",
+    "title": "Add Your First Item",
+    "typeLabel": "What type of clothing is this?",
+    "typePlaceholder": "Select type...",
+    "uploadError": "Failed to upload item. Please try again.",
+    "uploadPrompt": "Click to upload or take photo",
+    "uploadSuccess": "Item added to your wardrobe!"
+  },
+  "location": {
+    "cityLabel": "City/Location Name",
+    "cityPlaceholder": "e.g., New York, NY",
+    "description": "We use this to provide weather-appropriate outfit suggestions",
+    "detectLocation": "Detect My Location",
+    "locationError": "Failed to detect location. Please enter it manually.",
+    "locationSuccess": "Location set successfully!",
+    "orManual": "Or enter manually",
+    "saveError": "Failed to save location. Please try again.",
+    "title": "Your Location"
+  },
+  "skipForNow": "Skip for now",
+  "steps": {
+    "family": "Family",
+    "firstItem": "First Item",
+    "location": "Location",
+    "style": "Style",
+    "welcome": "Welcome"
+  },
+  "style": {
+    "colorsToAvoid": "Colors to Avoid",
+    "colorsToAvoidDesc": "Tap colors you prefer not to wear",
+    "description": "Help us understand your style preferences",
+    "favoriteColors": "Favorite Colors",
+    "favoriteColorsDesc": "Tap colors you love wearing",
+    "percentValue": "{value}%",
+    "saveError": "Failed to save style preferences.",
+    "saveSuccess": "Style preferences saved!",
+    "styleProfile": "Style Profile",
+    "styleProfileDesc": "Adjust how much you prefer each style",
+    "title": "Your Style"
+  },
+  "welcome": {
+    "description": "Let's get your digital wardrobe set up in just a few steps.",
+    "feature1": "Photograph your clothes",
+    "feature1Desc": "Our AI will automatically tag colors, styles, and more",
+    "feature2": "Get personalized outfits",
+    "feature2Desc": "Daily recommendations based on weather and your style",
+    "feature3": "Share with family",
+    "feature3Desc": "Everyone can have their own personalized wardrobe",
+    "getStarted": "Get Started",
+    "greeting": "Welcome to Wardrowbe{name}!"
+  }
+}

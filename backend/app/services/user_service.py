@@ -39,6 +39,7 @@ class UserService:
             display_name=user_data.display_name,
             avatar_url=user_data.avatar_url,
             timezone=user_data.timezone,
+            locale=user_data.locale,
             location_lat=user_data.location_lat,
             location_lon=user_data.location_lon,
             location_name=user_data.location_name,

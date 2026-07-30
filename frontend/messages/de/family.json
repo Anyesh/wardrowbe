@@ -1,0 +1,102 @@
+{
+  "createFamily": "Familie erstellen",
+  "createFamilyDesc": "Gründe eine neue Familie und lade Mitglieder ein",
+  "editName": "Name bearbeiten",
+  "familyName": "Familienname",
+  "familyNameExample": "z. B. Familie Müller",
+  "familyNamePlaceholder": "Familienname",
+  "familyOutfits": {
+    "description": "Durchstöbere und bewerte die Outfits deiner Familienmitglieder",
+    "openFeed": "Familien-Feed öffnen",
+    "title": "Familien-Outfits"
+  },
+  "feed": {
+    "lookbook": "Lookbook",
+    "noFamily": {
+      "description": "Erstelle oder tritt einer Familie bei, um Outfits zu durchstöbern und gegenseitig zu bewerten.",
+      "setUpFamily": "Familie einrichten",
+      "title": "Tritt zuerst einer Familie bei"
+    },
+    "noMembers": {
+      "description": "Lade Familienmitglieder ein, um gegenseitig Outfits durchzustöbern und zu bewerten.",
+      "inviteMembers": "Mitglieder einladen",
+      "manageFamily": "Familie verwalten",
+      "title": "Noch keine weiteren Mitglieder"
+    },
+    "noOutfits": {
+      "description": "{member} hat noch keine Outfit-Empfehlungen erhalten. Schau später wieder vorbei!",
+      "title": "Noch keine Outfits"
+    },
+    "rateOutfit": "Outfit von {member} bewerten",
+    "ratingCount": "({count, plural, one {{count} Bewertung} other {{count} Bewertungen}})",
+    "sourceBadges": {
+      "manual": "Manuell",
+      "onDemand": "Auf Anfrage",
+      "pairing": "Kombination",
+      "scheduled": "Geplant"
+    },
+    "subtitle": "Durchstöbere und bewerte die Outfits deiner Familienmitglieder",
+    "title": "Familien-Feed",
+    "unknownMember": "Dieses Mitglied",
+    "unknownMemberShort": "diesem Mitglied"
+  },
+  "invalidInviteCode": "Ungültiger Einladungscode. Bitte überprüfe ihn und versuche es erneut.",
+  "inviteCode": "Einladungscode",
+  "inviteCodeExample": "z. B. ABC123XY",
+  "inviteCodeSection": {
+    "description": "Teile diesen Code mit Familienmitgliedern, damit sie beitreten können",
+    "title": "Einladungscode"
+  },
+  "inviteEmailPlaceholder": "email@example.com",
+  "joinFamily": "Familie beitreten",
+  "joinFamilyDesc": "Einer bestehenden Familie mit Einladungscode beitreten",
+  "leaveConfirm": {
+    "description": "Möchtest du {name} wirklich verlassen? Du kannst später mit einem Einladungscode wieder beitreten.",
+    "title": "Familie verlassen?"
+  },
+  "leaveFamily": "Familie verlassen",
+  "members": {
+    "description": "Personen in deiner Familie",
+    "removeConfirm": {
+      "description": "Möchtest du {name} wirklich aus der Familie entfernen?",
+      "title": "Mitglied entfernen?"
+    },
+    "title": "Mitglieder"
+  },
+  "pendingInvites": {
+    "description": "Einladungen, die noch nicht angenommen wurden",
+    "expires": "Läuft ab am {date}",
+    "title": "Ausstehende Einladungen"
+  },
+  "ratings": {
+    "addComment": "Kommentar hinzufügen (optional)",
+    "ratingRemoved": "Bewertung entfernt",
+    "ratingSubmitted": "Bewertung abgesendet!",
+    "ratingUpdated": "Bewertung aktualisiert!",
+    "removeError": "Bewertung konnte nicht entfernt werden",
+    "selectRating": "Bitte wähle eine Bewertung",
+    "submitError": "Bewertung konnte nicht abgesendet werden",
+    "submitRating": "Bewertung absenden",
+    "updateRating": "Bewertung aktualisieren",
+    "yourRating": "Deine Bewertung:"
+  },
+  "roles": {
+    "admin": "Admin",
+    "member": "Mitglied"
+  },
+  "sendInvite": "Einladung senden",
+  "sendInviteDesc": "Jemanden per E-Mail einladen",
+  "subtitle": "Erstelle oder tritt einer Familie bei, um das Kleiderschrank-Erlebnis zu teilen",
+  "title": "Familie",
+  "toasts": {
+    "codeRegenerateFailed": "Neuer Code konnte nicht generiert werden. Bitte versuche es erneut.",
+    "codeRegenerated": "Neuer Einladungscode generiert!",
+    "createFailed": "Familie konnte nicht erstellt werden. Bitte versuche es erneut.",
+    "created": "Familie erstellt!",
+    "inviteFailed": "Einladung konnte nicht gesendet werden",
+    "inviteSent": "Einladung gesendet!",
+    "joined": "Familie beigetreten!",
+    "nameUpdateFailed": "Familienname konnte nicht aktualisiert werden",
+    "nameUpdated": "Familienname aktualisiert"
+  }
+}

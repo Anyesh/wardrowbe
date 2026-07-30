@@ -137,6 +137,14 @@ jobs:
           cd frontend
           npx tsc --noEmit
 
+      # Missing translation keys and unwrapped strings are invisible to tsc, eslint and vitest,
+      # because t() takes a plain string. Without this step they only surface as raw key paths
+      # in front of a user.
+      - name: i18n check
+        run: |
+          cd frontend
+          npm run i18n:check
+
   frontend-test:
     name: Frontend Tests
     runs-on: ubuntu-latest

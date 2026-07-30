@@ -1,0 +1,84 @@
+{
+  "dismissOutfit": "このコーデを見送る",
+  "error": "コーデ提案の生成に失敗しました。もう一度お試しください。",
+  "feedback": {
+    "commentsOptional": "コメント（任意）",
+    "commentsPlaceholder": "このコーデについてどう思いますか？",
+    "didYouWear": "このコーデを着ましたか？",
+    "didYouWearDesc": "この提案を参考にしたかどうか教えてください。あなたの好みの学習に役立ちます。",
+    "howDidItWork": "このコーデの着心地はいかがでしたか？",
+    "itemsSelected": "{count, plural, one {# 件のアイテムを選択中} other {# 件のアイテムを選択中}}",
+    "loadingMore": "読み込み中...",
+    "noItemsInWardrobe": "ワードローブにアイテムがありません",
+    "noMatch": "検索に一致するアイテムがありません",
+    "noWoreSomethingElse": "いいえ、別のものを着ました",
+    "overallRating": "総合評価",
+    "rateHowItWent": "着心地を評価",
+    "rateThisOutfit": "このコーデを評価",
+    "searchWardrobe": "ワードローブを検索...",
+    "showingAll": "{count, plural, one {# 件のアイテムをすべて表示中} other {# 件のアイテムをすべて表示中}}",
+    "submitError": "フィードバックの送信に失敗しました",
+    "submitWithCount": "送信（{count}）",
+    "submitted": "フィードバックを送信しました",
+    "submitting": "送信中...",
+    "tellUsWhatYouWore": "実際に何を着たか教えてください",
+    "whatDidYouWear": "代わりに何を着ましたか？",
+    "whatDidYouWearDesc": "実際に着たアイテムを選択してください。好みの学習に役立ちます。",
+    "yesWoreIt": "はい、着ました"
+  },
+  "generating": "コーデを作成中...",
+  "getSuggestion": "提案を取得",
+  "greeting": {
+    "afternoon": "こんにちは",
+    "evening": "こんばんは",
+    "morning": "おはようございます"
+  },
+  "location": {
+    "notSet": "位置情報が未設定",
+    "setDescription": "設定で位置情報を設定すると、天気に合った提案が届きます"
+  },
+  "loveIt": "最高",
+  "occasionPrompt": "どんなシーンですか？",
+  "outfitPreview": {
+    "familyRatings": {
+      "average": "（平均 {rating} <star></star>）",
+      "noRatings": "ファミリーの評価はまだありません。",
+      "noRatingsPrompt": "ファミリーの評価はまだありません。最初に評価しましょう！",
+      "rate": "評価",
+      "title": "ファミリー評価"
+    },
+    "imageRotated": "画像を回転しました",
+    "noImage": "画像なし",
+    "rotateFailed": "画像の回転に失敗しました",
+    "rotateLeft": "左に回転",
+    "rotateRight": "右に回転",
+    "title": "{occasion}コーデ",
+    "viewItemDetails": "アイテム詳細を見る"
+  },
+  "startOver": "最初から",
+  "subtitle": "今日にぴったりのコーデを見つけましょう",
+  "tip": "ヒント：",
+  "tryAnother": "別のコーデ",
+  "weather": {
+    "feelsLike": "体感 {temp}°",
+    "feelsLikeInline": "（体感 {temp}°）",
+    "rainChance": "降水確率 {chance}%",
+    "windSpeed": "{speed} km/h"
+  },
+  "weatherHints": {
+    "cold": "かなり冷えます。重ね着をしましょう",
+    "hot": "軽くて通気性のよい服がおすすめ",
+    "mild": "薄手のジャケットがぴったり",
+    "nice": "どんなスタイルにも最適な天気",
+    "rainy": "傘かレインジャケットをお忘れなく",
+    "windy": "防風アウターを検討してみてください"
+  },
+  "weatherOverride": {
+    "active": "天気の上書きが有効",
+    "condition": "天候",
+    "overrideWeather": "天気を上書き",
+    "reset": "リセット",
+    "temperature": "気温"
+  },
+  "yourOutfit": "あなたのコーデ"
+}

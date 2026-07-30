@@ -1,0 +1,59 @@
+{
+  "insights": {
+    "acceptanceTrend": {
+      "description": "Come hai risposto ai suggerimenti nel tempo",
+      "title": "Andamento tasso di accettazione"
+    },
+    "colorDistribution": {
+      "description": "Colori più comuni nel tuo guardaroba",
+      "noData": "Nessun dato sui colori ancora",
+      "title": "Distribuzione colori"
+    },
+    "itemTypes": {
+      "description": "Ripartizione per tipo di abbigliamento",
+      "noData": "Nessun capo ancora",
+      "title": "Tipi di capi"
+    },
+    "leastWorn": {
+      "description": "Considera di indossare questi",
+      "noData": "Continua a tracciare!",
+      "title": "Meno indossati"
+    },
+    "mostWorn": {
+      "description": "I tuoi preferiti",
+      "noData": "Inizia a tracciare i tuoi outfit!",
+      "title": "Più indossati"
+    },
+    "neverWorn": {
+      "description": "È ora di provare questi?",
+      "noData": "Tutti i capi sono stati indossati!",
+      "title": "Mai indossati"
+    },
+    "title": "Approfondimenti"
+  },
+  "loadError": "Caricamento analisi fallito. Riprova.",
+  "percent": "{value}%",
+  "stats": {
+    "acceptanceRate": {
+      "description": "di suggerimenti accettati",
+      "title": "Tasso di accettazione"
+    },
+    "avgRating": "Voto medio: {rating}/5",
+    "outfitsGenerated": {
+      "description": "{count} questa settimana",
+      "title": "Outfit generati"
+    },
+    "totalItems": {
+      "description": "{count} pronti da indossare",
+      "title": "Totale capi"
+    },
+    "totalWears": {
+      "description": "Traccia i tuoi outfit",
+      "noData": "Nessun dato ancora",
+      "title": "Totale utilizzi"
+    }
+  },
+  "subtitle": "Approfondimenti e statistiche del tuo guardaroba",
+  "title": "Analisi",
+  "wearCount": "{count}x"
+}

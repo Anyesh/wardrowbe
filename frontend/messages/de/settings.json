@@ -1,0 +1,148 @@
+{
+  "account": {
+    "description": "Deine Profilinformationen",
+    "email": "E-Mail",
+    "name": "Name",
+    "title": "Konto"
+  },
+  "aiEndpoints": {
+    "active": "Aktiv",
+    "addEndpoint": "Endpunkt hinzufügen",
+    "connected": "Verbunden",
+    "description": "Konfiguriere KI-Endpunkte für die Bildanalyse. Die Endpunkte werden der Reihe nach von oben nach unten ausprobiert.",
+    "disabled": "Deaktiviert",
+    "error": "Fehler",
+    "fields": {
+      "name": "Name",
+      "textModel": "Textmodell",
+      "url": "URL",
+      "visionModel": "Vision-Modell"
+    },
+    "modelsAvailable": "{count, plural, one {{count} Modell verfügbar} other {{count} Modelle verfügbar}}",
+    "noEndpoints": "Keine eigenen Endpunkte konfiguriert. Es werden die Standard-Servereinstellungen verwendet.",
+    "placeholders": {
+      "name": "z. B. Lokales Ollama"
+    },
+    "testConnection": "Verbindung testen",
+    "testFailed": "Endpunkt konnte nicht getestet werden",
+    "textModels": "Text: {models}",
+    "title": "KI-Endpunkte",
+    "visionModels": "Vision: {models}"
+  },
+  "body": {
+    "bodyLabel": "Körper",
+    "description": "Hilf der KI, besser passende Outfits zu empfehlen",
+    "errors": {
+      "positiveNumber": "{field} muss eine positive Zahl sein"
+    },
+    "fields": {
+      "chest": "Brust",
+      "height": "Körpergröße",
+      "hips": "Hüfte",
+      "inseam": "Innenbeinlänge",
+      "waist": "Taille",
+      "weight": "Gewicht"
+    },
+    "imperial": "Imperial (in/lbs)",
+    "metric": "Metrisch (cm/kg)",
+    "saveError": "Maße konnten nicht gespeichert werden",
+    "saveMeasurements": "Maße speichern",
+    "saved": "Maße gespeichert",
+    "sizeFields": {
+      "dressSize": "Kleidergröße",
+      "pantsSize": "Hosengröße",
+      "shirtSize": "Hemdgröße",
+      "shoeSize": "Schuhgröße"
+    },
+    "sizePlaceholders": {
+      "dress_size": "z. B. 36, 38",
+      "pants_size": "z. B. 32, 34",
+      "shirt_size": "z. B. M, L, XL",
+      "shoe_size": "z. B. 42, 44"
+    },
+    "sizesLabel": "Größen",
+    "title": "Körpermaße",
+    "unitSystem": "Maßeinheit"
+  },
+  "colors": {
+    "colorsToAvoid": "Farben, die du vermeiden möchtest",
+    "description": "Wähle Farben, die du liebst, und Farben, die in Empfehlungen vermieden werden sollen",
+    "favoriteColors": "Lieblingsfarben"
+  },
+  "confirmReset": "Möchtest du wirklich alle Vorlieben auf die Standardwerte zurücksetzen?",
+  "location": {
+    "approximateDetected": "Ungefährer Standort eingetragen. Überprüfe ihn und speichere dann.",
+    "approximateDetectedWithReason": "{reason} Ungefährer Standort eingetragen. Überprüfe ihn und speichere dann.",
+    "cityLabel": "Stadt/Ortsname (optional)",
+    "cityPlaceholder": "z. B. Berlin, DE",
+    "description": "Lege deinen Standort für wetterbasierte Outfit-Empfehlungen fest",
+    "detected": "Standort erkannt. Überprüfe ihn und speichere dann.",
+    "errors": {
+      "geolocationDenied": "Der Zugriff auf den Standort wurde verweigert.",
+      "geolocationFailed": "Genauer Standort konnte nicht ermittelt werden: {message}",
+      "geolocationFailedGeneric": "Genauer Standort konnte nicht ermittelt werden.",
+      "geolocationTimeout": "Zeitüberschreitung bei der Standortabfrage.",
+      "geolocationUnavailable": "Der Standort ist derzeit nicht verfügbar.",
+      "geolocationUnsupported": "Geolokalisierung wird von deinem Browser nicht unterstützt.",
+      "invalidCoordinates": "Bitte gib gültige Werte für Breiten- und Längengrad ein",
+      "latitudeRange": "Der Breitengrad muss zwischen -90 und 90 liegen",
+      "longitudeRange": "Der Längengrad muss zwischen -180 und 180 liegen",
+      "networkLookupFailed": "Netzwerkbasierte Standortermittlung fehlgeschlagen ({status})",
+      "saveFailed": "Standort konnte nicht gespeichert werden. Bitte versuche es erneut.",
+      "unableToDetect": "Dein Standort konnte nicht ermittelt werden."
+    },
+    "latitude": "Breitengrad",
+    "longitude": "Längengrad",
+    "required": "Für wetterbasierte Outfit-Empfehlungen ist ein Standort erforderlich.",
+    "saveLocation": "Standort speichern",
+    "saved": "Standort und Zeitzone gespeichert",
+    "selectTimezone": "Zeitzone auswählen",
+    "timezone": "Zeitzone",
+    "title": "Standort",
+    "useMyLocation": "Meinen Standort verwenden"
+  },
+  "recommendations": {
+    "avoidRepeatDays": "Wiederholungen vermeiden für (Tage)",
+    "defaultOccasion": "Standardanlass",
+    "description": "Passe an, wie Outfit-Empfehlungen erstellt werden",
+    "no": "Nein",
+    "preferUnderused": "Selten getragene Stücke bevorzugen",
+    "title": "Empfehlungseinstellungen",
+    "varietyLevel": "Abwechslungsgrad",
+    "varietyOptions": {
+      "high": "Hoch (neue Kombinationen ausprobieren)",
+      "low": "Niedrig (bei Favoriten bleiben)",
+      "moderate": "Mittel"
+    },
+    "yes": "Ja"
+  },
+  "reset": "Zurücksetzen",
+  "styleProfile": {
+    "description": "Passe an, wie sehr du jeden Stil in Outfit-Empfehlungen bevorzugst",
+    "title": "Stilprofil"
+  },
+  "subtitle": "Verwalte deine Vorlieben und Kontoeinstellungen",
+  "temperature": {
+    "celsius": "Celsius",
+    "coldThreshold": "Kälteschwelle ({unit})",
+    "description": "Passe an, wie sich Empfehlungen an das Wetter anpassen",
+    "fahrenheit": "Fahrenheit",
+    "hotThreshold": "Hitzeschwelle ({unit})",
+    "layering": "Bevorzugte Schichten",
+    "layeringOptions": {
+      "heavy": "Viele Schichten",
+      "minimal": "Wenige Schichten",
+      "moderate": "Mittlere Schichten"
+    },
+    "sensitivity": "Temperaturempfindlichkeit",
+    "sensitivityOptions": {
+      "high": "Mir wird schnell kalt",
+      "low": "Mir wird schnell warm",
+      "normal": "Normal"
+    },
+    "title": "Temperatur & Komfort",
+    "unit": "Temperatureinheit"
+  },
+  "title": "Einstellungen",
+  "unsavedChanges": "Du hast ungespeicherte Änderungen. Diese Seite verlassen?"
+}

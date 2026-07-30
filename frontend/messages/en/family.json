@@ -1,0 +1,102 @@
+{
+  "createFamily": "Create Family",
+  "createFamilyDesc": "Start a new family and invite members",
+  "editName": "Edit Name",
+  "familyName": "Family Name",
+  "familyNameExample": "e.g., The Smith Family",
+  "familyNamePlaceholder": "Family name",
+  "familyOutfits": {
+    "description": "Browse and rate your family members' outfits",
+    "openFeed": "Open Family Feed",
+    "title": "Family Outfits"
+  },
+  "feed": {
+    "lookbook": "Lookbook",
+    "noFamily": {
+      "description": "Create or join a family to browse and rate each other's outfits.",
+      "setUpFamily": "Set Up Family",
+      "title": "Join a family first"
+    },
+    "noMembers": {
+      "description": "Invite family members to start browsing and rating each other's outfits.",
+      "inviteMembers": "Invite Members",
+      "manageFamily": "Manage Family",
+      "title": "No other members yet"
+    },
+    "noOutfits": {
+      "description": "{member} hasn't received any outfit recommendations yet. Check back later!",
+      "title": "No outfits yet"
+    },
+    "rateOutfit": "Rate {member}'s outfit",
+    "ratingCount": "({count, plural, one {{count} rating} other {{count} ratings}})",
+    "sourceBadges": {
+      "manual": "Manual",
+      "onDemand": "On Demand",
+      "pairing": "Pairing",
+      "scheduled": "Scheduled"
+    },
+    "subtitle": "Browse and rate your family members' outfits",
+    "title": "Family Feed",
+    "unknownMember": "This member",
+    "unknownMemberShort": "their"
+  },
+  "invalidInviteCode": "Invalid invite code. Please check and try again.",
+  "inviteCode": "Invite Code",
+  "inviteCodeExample": "e.g., ABC123XY",
+  "inviteCodeSection": {
+    "description": "Share this code with family members to let them join",
+    "title": "Invite Code"
+  },
+  "inviteEmailPlaceholder": "email@example.com",
+  "joinFamily": "Join Family",
+  "joinFamilyDesc": "Join an existing family with an invite code",
+  "leaveConfirm": {
+    "description": "Are you sure you want to leave {name}? You can join again later with an invite code.",
+    "title": "Leave Family?"
+  },
+  "leaveFamily": "Leave Family",
+  "members": {
+    "description": "People in your family",
+    "removeConfirm": {
+      "description": "Are you sure you want to remove {name} from the family?",
+      "title": "Remove Member?"
+    },
+    "title": "Members"
+  },
+  "pendingInvites": {
+    "description": "Invitations that haven't been accepted yet",
+    "expires": "Expires {date}",
+    "title": "Pending Invites"
+  },
+  "ratings": {
+    "addComment": "Add a comment (optional)",
+    "ratingRemoved": "Rating removed",
+    "ratingSubmitted": "Rating submitted!",
+    "ratingUpdated": "Rating updated!",
+    "removeError": "Failed to remove rating",
+    "selectRating": "Please select a rating",
+    "submitError": "Failed to submit rating",
+    "submitRating": "Submit Rating",
+    "updateRating": "Update Rating",
+    "yourRating": "Your rating:"
+  },
+  "roles": {
+    "admin": "Admin",
+    "member": "Member"
+  },
+  "sendInvite": "Send Invite",
+  "sendInviteDesc": "Invite someone by email",
+  "subtitle": "Create or join a family to share your wardrobe experience",
+  "title": "Family",
+  "toasts": {
+    "codeRegenerateFailed": "Failed to generate new code. Please try again.",
+    "codeRegenerated": "New invite code generated!",
+    "createFailed": "Failed to create family. Please try again.",
+    "created": "Family created!",
+    "inviteFailed": "Failed to send invitation",
+    "inviteSent": "Invitation sent!",
+    "joined": "Joined family!",
+    "nameUpdateFailed": "Failed to update family name",
+    "nameUpdated": "Family name updated"
+  }
+}

@@ -142,6 +142,62 @@ export function ItemCard({ item, onSelect }: ItemCardProps) {
 }
 ```
 
+## Internationalization
+
+Wardrowbe ships in 8 languages. **Every user-visible string must go through `next-intl`.** A PR that
+hardcodes English will be blocked by CI.
+
+Translation files live in `frontend/messages/<locale>/<namespace>.json`, split by feature area.
+`en` is the source of truth; every other locale must have exactly the same key set.
+
+```typescript
+import { useTranslations } from 'next-intl';
+
+export function ItemCard({ item }: ItemCardProps) {
+  const t = useTranslations('wardrobe');
+  const tc = useTranslations('common');
+
+  return (
+    <div>
+      <h3>{t('card.title')}</h3>
+      <p>{t('card.wornCount', { count: item.wear_count })}</p>
+      <button aria-label={tc('delete')}>{tc('delete')}</button>
+    </div>
+  );
+}
+```
+
+Rules:
+
+- Add new keys to `frontend/messages/en/<namespace>.json` only. Other locales are filled in by
+  translators; an untranslated key falls back to its English text rather than breaking the page.
+- Reuse `common` for generic UI verbs (save, cancel, delete, loading) and `constants` for domain
+  vocabulary (clothing types, colors, occasions). Do not re-declare them in a feature namespace.
+- Never build a sentence by concatenating fragments around a value. Use one ICU message:
+  `t('feelsLike', { temp })`, not `Feels {temp}`.
+- Use ICU plurals for anything count-dependent:
+  `"itemCount": "{count, plural, one {{count} item} other {{count} items}}"`.
+- `placeholder`, `title`, `aria-label`, `alt` and every `toast.*()` argument are user-visible too.
+
+Before pushing:
+
+```bash
+cd frontend
+npm run i18n:check
+```
+
+That runs three gates, none of which `tsc`, ESLint or Vitest can replace, because `t()` takes a
+plain string and a missing key type-checks perfectly:
+
+| Gate | Catches |
+|------|---------|
+| `i18n:keys` | `t()` calls referencing keys absent from the `en` catalog |
+| `i18n:parity` | locales missing keys, or ICU placeholders dropped in translation |
+| `i18n:scan` | hardcoded user-visible strings in JSX, attributes and toasts |
+
+Adding a language: add it to `SUPPORTED_LOCALES` in `frontend/lib/i18n/locales.ts`, add the same
+list to `backend/app/utils/locale.py`, and create `frontend/messages/<locale>/`.
+
 ## Project Structure
 
 ### Backend

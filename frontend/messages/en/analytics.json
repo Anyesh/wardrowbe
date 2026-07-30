@@ -1,0 +1,59 @@
+{
+  "insights": {
+    "acceptanceTrend": {
+      "description": "How you've responded to suggestions over time",
+      "title": "Acceptance Rate Trend"
+    },
+    "colorDistribution": {
+      "description": "Most common colors in your wardrobe",
+      "noData": "No color data yet",
+      "title": "Color Distribution"
+    },
+    "itemTypes": {
+      "description": "Breakdown by clothing type",
+      "noData": "No items yet",
+      "title": "Item Types"
+    },
+    "leastWorn": {
+      "description": "Consider wearing these",
+      "noData": "Keep tracking!",
+      "title": "Least Worn"
+    },
+    "mostWorn": {
+      "description": "Your favorites",
+      "noData": "Start tracking your outfits!",
+      "title": "Most Worn"
+    },
+    "neverWorn": {
+      "description": "Time to try these?",
+      "noData": "All items have been worn!",
+      "title": "Never Worn"
+    },
+    "title": "Insights"
+  },
+  "loadError": "Failed to load analytics. Please try again.",
+  "percent": "{value}%",
+  "stats": {
+    "acceptanceRate": {
+      "description": "of suggestions accepted",
+      "title": "Acceptance Rate"
+    },
+    "avgRating": "Avg rating: {rating}/5",
+    "outfitsGenerated": {
+      "description": "{count} this week",
+      "title": "Outfits Generated"
+    },
+    "totalItems": {
+      "description": "{count} ready to wear",
+      "title": "Total Items"
+    },
+    "totalWears": {
+      "description": "Track your outfits",
+      "noData": "No data yet",
+      "title": "Total Wears"
+    }
+  },
+  "subtitle": "Your wardrobe insights and statistics",
+  "title": "Analytics",
+  "wearCount": "{count}x"
+}

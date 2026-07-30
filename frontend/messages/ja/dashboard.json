@@ -1,0 +1,66 @@
+{
+  "familyFeed": {
+    "browse": "ファミリーのコーデを見る",
+    "description": "家族のコーディネートを見て評価しよう",
+    "memberCount": "{count, plural, one {{name}に{count} 人} other {{name}に{count} 人}}",
+    "title": "ファミリーコーデ"
+  },
+  "insights": {
+    "empty": "アイテムを追加してコーデを生成すると、パーソナライズされたインサイトが表示されます！",
+    "title": "インサイト"
+  },
+  "layout": {
+    "loading": "ワードローブを読み込み中..."
+  },
+  "nextScheduled": {
+    "comingUp": "今後の予定",
+    "dayAtTime": "{day} {time}",
+    "noSchedules": "スケジュール未設定",
+    "occasionOutfit": "{occasion}コーデ",
+    "setUpSchedule": "スケジュールを設定",
+    "title": "次のスケジュール",
+    "today": "今日",
+    "tomorrow": "明日"
+  },
+  "notifications": {
+    "activeCount": "{total}件中{active}件が有効",
+    "addChannel": "チャンネル追加",
+    "configure": "設定",
+    "noChannels": "チャンネル未設定",
+    "title": "通知"
+  },
+  "pendingOutfits": {
+    "acceptFailed": "コーディネートの承認に失敗しました",
+    "accepted": "コーディネートを承認しました",
+    "allCaughtUp": "すべて確認済み",
+    "dismissFailed": "コーデの見送りに失敗しました",
+    "dismissLabel": "このコーデを見送る",
+    "dismissed": "コーデを見送りました",
+    "lookbook": "ルックブック",
+    "noPending": "待機中のコーディネートはありません",
+    "title": "保留中のコーデ"
+  },
+  "quickActions": {
+    "addNewItem": "新しいアイテムを追加",
+    "description": "よく使う機能",
+    "getOutfitSuggestion": "コーディネート提案を取得",
+    "title": "クイックアクション"
+  },
+  "subtitle": "ワードローブの最新情報",
+  "userFallback": "ユーザー",
+  "weather": {
+    "feelsLike": "体感 {temp}",
+    "getOutfitSuggestion": "コーディネート提案を取得",
+    "locationNotSet": "位置情報が未設定",
+    "rainChance": "降水確率 {percent}%",
+    "setLocation": "位置を設定",
+    "title": "今日の天気"
+  },
+  "weeklySummary": {
+    "accepted": "承認済み",
+    "avgRatingValue": "平均評価：{rating}/5",
+    "outfits": "コーデ",
+    "title": "今週"
+  },
+  "welcomeBack": "おかえりなさい、{name}さん"
+}

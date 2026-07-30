@@ -1,0 +1,148 @@
+{
+  "account": {
+    "description": "프로필 정보",
+    "email": "이메일",
+    "name": "이름",
+    "title": "계정"
+  },
+  "aiEndpoints": {
+    "active": "활성",
+    "addEndpoint": "엔드포인트 추가",
+    "connected": "연결됨",
+    "description": "이미지 분석에 사용할 AI 엔드포인트를 설정하세요. 위에서 아래 순서로 시도해요.",
+    "disabled": "비활성",
+    "error": "오류",
+    "fields": {
+      "name": "이름",
+      "textModel": "텍스트 모델",
+      "url": "URL",
+      "visionModel": "비전 모델"
+    },
+    "modelsAvailable": "{count, plural, other {모델 {count}개 사용 가능}}",
+    "noEndpoints": "설정된 사용자 엔드포인트가 없어요. 기본 서버 설정을 사용해요.",
+    "placeholders": {
+      "name": "예: 로컬 Ollama"
+    },
+    "testConnection": "연결 테스트",
+    "testFailed": "엔드포인트 테스트 실패",
+    "textModels": "텍스트: {models}",
+    "title": "AI 엔드포인트",
+    "visionModels": "비전: {models}"
+  },
+  "body": {
+    "bodyLabel": "신체",
+    "description": "더 잘 맞는 코디를 추천할 수 있도록 AI를 도와주세요",
+    "errors": {
+      "positiveNumber": "{field}은(는) 양수여야 해요"
+    },
+    "fields": {
+      "chest": "가슴둘레",
+      "height": "키",
+      "hips": "엉덩이둘레",
+      "inseam": "안쪽 솔기",
+      "waist": "허리둘레",
+      "weight": "체중"
+    },
+    "imperial": "야드파운드법 (in/lbs)",
+    "metric": "미터법 (cm/kg)",
+    "saveError": "신체 치수 저장 실패",
+    "saveMeasurements": "치수 저장",
+    "saved": "치수가 저장되었어요",
+    "sizeFields": {
+      "dressSize": "드레스 사이즈",
+      "pantsSize": "바지 사이즈",
+      "shirtSize": "셔츠 사이즈",
+      "shoeSize": "신발 사이즈"
+    },
+    "sizePlaceholders": {
+      "dress_size": "예: 8, 10",
+      "pants_size": "예: 32, 34",
+      "shirt_size": "예: M, L, XL",
+      "shoe_size": "예: 10, 42"
+    },
+    "sizesLabel": "사이즈",
+    "title": "신체 치수",
+    "unitSystem": "단위 시스템"
+  },
+  "colors": {
+    "colorsToAvoid": "피하고 싶은 색상",
+    "description": "추천에 반영할 좋아하는 색상과 피하고 싶은 색상을 선택하세요",
+    "favoriteColors": "좋아하는 색상"
+  },
+  "confirmReset": "모든 설정을 기본값으로 초기화하시겠어요?",
+  "location": {
+    "approximateDetected": "대략적인 위치가 입력되었어요. 확인 후 저장하세요.",
+    "approximateDetectedWithReason": "{reason} 대략적인 위치가 입력되었어요. 확인 후 저장하세요.",
+    "cityLabel": "도시/지역 이름 (선택사항)",
+    "cityPlaceholder": "예: 런던, 영국",
+    "description": "날씨 기반 코디 추천을 위해 위치를 설정하세요",
+    "detected": "위치를 감지했어요. 확인 후 저장하세요.",
+    "errors": {
+      "geolocationDenied": "위치 접근이 거부되었어요.",
+      "geolocationFailed": "정확한 위치를 가져오지 못했어요: {message}",
+      "geolocationFailedGeneric": "정확한 위치를 가져오지 못했어요.",
+      "geolocationTimeout": "위치 요청 시간이 초과되었어요.",
+      "geolocationUnavailable": "현재 위치를 사용할 수 없어요.",
+      "geolocationUnsupported": "이 브라우저는 위치 정보를 지원하지 않아요.",
+      "invalidCoordinates": "올바른 위도와 경도 값을 입력해 주세요",
+      "latitudeRange": "위도는 -90에서 90 사이여야 해요",
+      "longitudeRange": "경도는 -180에서 180 사이여야 해요",
+      "networkLookupFailed": "네트워크 기반 위치 조회에 실패했어요 ({status})",
+      "saveFailed": "위치 저장에 실패했어요. 다시 시도해 주세요.",
+      "unableToDetect": "위치를 감지할 수 없어요."
+    },
+    "latitude": "위도",
+    "longitude": "경도",
+    "required": "날씨 기반 코디 추천에는 위치가 필요해요.",
+    "saveLocation": "위치 저장",
+    "saved": "위치와 시간대가 저장되었어요",
+    "selectTimezone": "시간대 선택",
+    "timezone": "시간대",
+    "title": "위치",
+    "useMyLocation": "내 위치 사용"
+  },
+  "recommendations": {
+    "avoidRepeatDays": "반복 착용 제한 기간 (일)",
+    "defaultOccasion": "기본 상황",
+    "description": "코디 추천이 만들어지는 방식을 조정하세요",
+    "no": "아니요",
+    "preferUnderused": "덜 입은 아이템 우선",
+    "title": "추천 설정",
+    "varietyLevel": "다양성 수준",
+    "varietyOptions": {
+      "high": "높음 (새로운 조합 시도)",
+      "low": "낮음 (좋아하는 것 위주)",
+      "moderate": "보통"
+    },
+    "yes": "네"
+  },
+  "reset": "초기화",
+  "styleProfile": {
+    "description": "코디 추천에서 각 스타일을 얼마나 선호하는지 조정하세요",
+    "title": "스타일 프로필"
+  },
+  "subtitle": "취향과 계정 설정을 관리하세요",
+  "temperature": {
+    "celsius": "섭씨",
+    "coldThreshold": "추위 기준 ({unit})",
+    "description": "추천이 날씨에 맞춰지는 방식을 조정하세요",
+    "fahrenheit": "화씨",
+    "hotThreshold": "더위 기준 ({unit})",
+    "layering": "레이어링 선호도",
+    "layeringOptions": {
+      "heavy": "두껍게 겹쳐 입기",
+      "minimal": "최소한으로 겹쳐 입기",
+      "moderate": "적당히 겹쳐 입기"
+    },
+    "sensitivity": "온도 민감도",
+    "sensitivityOptions": {
+      "high": "추위를 잘 타요",
+      "low": "더위를 잘 타요",
+      "normal": "보통"
+    },
+    "title": "온도 및 쾌적함",
+    "unit": "온도 단위"
+  },
+  "title": "설정",
+  "unsavedChanges": "저장하지 않은 변경사항이 있어요. 이 페이지를 나가시겠어요?"
+}

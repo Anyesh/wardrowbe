@@ -1,0 +1,70 @@
+{
+  "bestCombinations": {
+    "description": "あなたが一貫して気に入っているペア",
+    "title": "ベストな組み合わせ"
+  },
+  "colorPreferences": {
+    "description": "承認または却下する傾向のある色",
+    "noData": "色の好みを判断するにはフィードバックが不足しています。",
+    "title": "学習した色の好み"
+  },
+  "confidence": "信頼度 {percent}%",
+  "dismiss": "閉じる",
+  "lastUpdated": "学習プロフィール最終更新：{date}",
+  "loadError": "学習データの読み込みに失敗しました。もう一度お試しください。",
+  "noData": {
+    "alreadyGaveFeedback": "フィードバック済みですか？「今すぐ計算」をクリックして処理しましょう。",
+    "computeNow": "今すぐ計算",
+    "computing": "計算中...",
+    "description": "まずはコーデ提案を承認または却下して、評価してみましょう。",
+    "getOutfitSuggestions": "コーデ提案を取得",
+    "title": "学習データがありません"
+  },
+  "occasionPatterns": {
+    "description": "シーン別に効果的なスタイル",
+    "title": "シーン別パターン"
+  },
+  "percent": "{value}%",
+  "preferredColors": "好みの色：",
+  "recompute": "再計算",
+  "stats": {
+    "acceptanceRate": "承認率",
+    "averageRating": "平均評価",
+    "feedbackGiven": "フィードバック済み",
+    "notEnoughData": "データ不足",
+    "outOf5Stars": "5つ星中",
+    "outfitsRated": "{count, plural, one {{count} 件のコーデを評価} other {{count} 件のコーデを評価}}",
+    "rateMoreOutfits": "もっとコーデを評価",
+    "rateOutfitStyles": "コーデスタイルを評価",
+    "styleRating": "スタイル評価",
+    "styleSatisfaction": "スタイル満足度",
+    "suggestionsAccepted": "の提案を承認"
+  },
+  "styleInsights": {
+    "description": "あなたの好みについて学んだこと",
+    "generate": "新しいインサイト",
+    "title": "スタイルインサイト"
+  },
+  "stylePreferences": {
+    "description": "あなたの好みに合うスタイル",
+    "noData": "スタイルの好みを判断するにはフィードバックが不足しています。",
+    "title": "学習したスタイルの好み"
+  },
+  "subtitle": "AIがフィードバックからどう学習するか",
+  "subtitleEmpty": "コーデを評価して、AIにあなたの好みを学習させましょう",
+  "successRate": "成功率 {percent}%",
+  "suggestedUpdates": {
+    "addToAvoid": "避けたい色に追加：",
+    "addToFavorites": "好きな色に追加：",
+    "description": "フィードバックに基づいて、好み設定の更新をおすすめします",
+    "title": "おすすめの好み更新",
+    "updatePreferences": "好みを更新"
+  },
+  "timesPaired": "{count}回ペアリング",
+  "title": "AI学習",
+  "weatherPreferences": {
+    "description": "異なる天候での着こなし傾向",
+    "layers": "約{count}枚重ね",
+    "title": "天気の好み"
+  }
+}

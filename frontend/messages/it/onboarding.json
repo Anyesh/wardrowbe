@@ -1,0 +1,80 @@
+{
+  "complete": {
+    "description": "Il tuo guardaroba è pronto. Inizia ad aggiungere vestiti e ricevi suggerimenti di outfit personalizzati!",
+    "finishing": "Completamento...",
+    "goToDashboard": "Vai al cruscotto",
+    "setupFailed": "Completamento della configurazione fallito. Riprova.",
+    "title": "Tutto pronto!"
+  },
+  "family": {
+    "createFamily": "Crea famiglia",
+    "createFamilyDesc": "Crea una nuova famiglia",
+    "description": "Crea o unisciti a una famiglia per condividere l'esperienza del guardaroba",
+    "error": "Configurazione famiglia fallita. Riprova.",
+    "familyName": "Nome famiglia",
+    "familyNamePlaceholder": "es., La famiglia Rossi",
+    "inviteCode": "Codice invito",
+    "inviteCodePlaceholder": "es., ABC123XY",
+    "joinFamily": "Unisciti alla famiglia",
+    "joinFamilyDesc": "Usa un codice invito",
+    "joinSuccess": "Ti sei unito alla famiglia con successo!",
+    "success": "Famiglia creata con successo!",
+    "title": "Configurazione famiglia"
+  },
+  "firstItem": {
+    "addToWardrobe": "Aggiungi al guardaroba",
+    "chooseDifferentPhoto": "Scegli un'altra foto",
+    "description": "Scatta una foto o carica un'immagine di un capo di abbigliamento",
+    "formatHint": "PNG, JPG o HEIC",
+    "previewAlt": "Anteprima",
+    "title": "Aggiungi il tuo primo capo",
+    "typeLabel": "Che tipo di capo è?",
+    "typePlaceholder": "Seleziona tipo...",
+    "uploadError": "Caricamento capo fallito. Riprova.",
+    "uploadPrompt": "Clicca per caricare o scattare una foto",
+    "uploadSuccess": "Capo aggiunto al tuo guardaroba!"
+  },
+  "location": {
+    "cityLabel": "Città / Nome località",
+    "cityPlaceholder": "es., Roma",
+    "description": "La usiamo per fornirti suggerimenti di outfit adatti al meteo",
+    "detectLocation": "Rileva la mia posizione",
+    "locationError": "Rilevamento posizione fallito. Inseriscila manualmente.",
+    "locationSuccess": "Posizione impostata con successo!",
+    "orManual": "Oppure inseriscila manualmente",
+    "saveError": "Salvataggio posizione fallito. Riprova.",
+    "title": "La tua posizione"
+  },
+  "skipForNow": "Salta per ora",
+  "steps": {
+    "family": "Famiglia",
+    "firstItem": "Primo capo",
+    "location": "Posizione",
+    "style": "Stile",
+    "welcome": "Benvenuto"
+  },
+  "style": {
+    "colorsToAvoid": "Colori da evitare",
+    "colorsToAvoidDesc": "Tocca i colori che preferisci non indossare",
+    "description": "Aiutaci a capire le tue preferenze di stile",
+    "favoriteColors": "Colori preferiti",
+    "favoriteColorsDesc": "Tocca i colori che ami indossare",
+    "percentValue": "{value}%",
+    "saveError": "Salvataggio preferenze di stile fallito.",
+    "saveSuccess": "Preferenze di stile salvate!",
+    "styleProfile": "Profilo di stile",
+    "styleProfileDesc": "Regola quanto preferisci ogni stile",
+    "title": "Il tuo stile"
+  },
+  "welcome": {
+    "description": "Configura il tuo guardaroba digitale in pochi passaggi.",
+    "feature1": "Fotografa i tuoi vestiti",
+    "feature1Desc": "La nostra IA etichetterà automaticamente colori, stili e altro",
+    "feature2": "Ricevi outfit personalizzati",
+    "feature2Desc": "Consigli giornalieri basati sul meteo e sul tuo stile",
+    "feature3": "Condividi con la famiglia",
+    "feature3Desc": "Ognuno può avere il proprio guardaroba personalizzato",
+    "getStarted": "Inizia",
+    "greeting": "Benvenuto su Wardrowbe{name}!"
+  }
+}

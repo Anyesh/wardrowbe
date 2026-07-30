@@ -1,0 +1,47 @@
+{
+  "card": {
+    "accept": "수락",
+    "acceptFailed": "코디 수락 실패",
+    "didntWearThis": "이 코디를 입지 않았어요",
+    "dismiss": "닫기",
+    "dismissFailed": "코디 닫기 실패",
+    "familyLabel": "가족:",
+    "itemFallback": "아이템",
+    "outfitAccepted": "코디를 수락했어요",
+    "outfitDismissed": "코디를 닫았어요",
+    "rate": "평가",
+    "tip": "팁:",
+    "update": "수정",
+    "viewItemDetails": "아이템 상세보기",
+    "woreInstead": "대신 입은 옷:"
+  },
+  "empty": {
+    "description": "코디 추천을 받기 시작하면 여기에 기록이 표시돼요.",
+    "getFirstSuggestion": "첫 추천 받기",
+    "title": "추천 기록이 없어요"
+  },
+  "filters": {
+    "allOccasions": "전체 상황",
+    "allStatus": "전체 상태",
+    "workout": "운동"
+  },
+  "loadError": "기록을 불러오지 못했어요. 다시 시도해 주세요.",
+  "noOutfitsForDate": "{date}에 코디가 없어요",
+  "outfitCount": "{count, plural, other {코디 #개}}",
+  "sourceBadges": {
+    "manual": "수동",
+    "onDemand": "즉시",
+    "pairing": "페어링",
+    "scheduled": "예약됨"
+  },
+  "status": {
+    "accepted": "수락됨",
+    "expired": "만료됨",
+    "pending": "대기 중",
+    "rejected": "거절됨",
+    "sent": "전송됨",
+    "viewed": "확인됨"
+  },
+  "subtitle": "지난 코디 추천을 확인해 보세요",
+  "title": "기록"
+}

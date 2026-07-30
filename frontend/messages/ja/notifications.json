@@ -1,0 +1,94 @@
+{
+  "channels": {
+    "addChannel": "チャンネルを追加",
+    "addFailed": "チャンネルの追加に失敗しました",
+    "channelAdded": "チャンネルを追加しました",
+    "channelDeleted": "チャンネルを削除しました",
+    "channelDisabled": "チャンネルを無効にしました",
+    "channelEnabled": "チャンネルを有効にしました",
+    "channelType": "チャンネルタイプ",
+    "deleteConfirm": {
+      "description": "この通知チャンネルを削除し、このチャンネル経由の通知をすべて停止します。",
+      "title": "通知チャンネルを削除しますか？"
+    },
+    "description": "チャンネルを追加して、毎日のコーデのおすすめを受け取りましょう",
+    "dialog": {
+      "description": "コーデのおすすめを受け取る新しい方法を設定します。",
+      "title": "通知チャンネル"
+    },
+    "fields": {
+      "accessToken": "アクセストークン",
+      "emailAddress": "メールアドレス *",
+      "serverUrl": "サーバーURL",
+      "topic": "トピック *",
+      "webhookUrl": "Webhook URL *"
+    },
+    "helpers": {
+      "accessTokenOptional": "ntfyサーバーが認証を必要とする場合に必要",
+      "mattermostWebhook": "Mattermost設定で受信Webhookを作成してください",
+      "topicSubscribe": "ntfyアプリでこのトピックを購読してください"
+    },
+    "noChannels": "通知チャンネルが未設定",
+    "noChannelsDesc": "チャンネルを追加してコーデ提案の受信を開始",
+    "placeholders": {
+      "accessToken": "tk_...",
+      "emailAddress": "you@example.com"
+    },
+    "priority": "優先度 {level}",
+    "test": "テスト",
+    "testFailed": "テスト通知の送信に失敗しました",
+    "testSent": "テスト通知を送信しました",
+    "title": "通知チャンネル",
+    "types": {
+      "email": "メール",
+      "mattermost": "Mattermost",
+      "ntfy": "ntfyプッシュ通知"
+    },
+    "validation": {
+      "emailRequired": "メールアドレスは必須です",
+      "topicRequired": "ntfyにはトピックが必要です",
+      "webhookRequired": "MattermostにはWebhook URLが必要です"
+    },
+    "webhookConfigured": "Webhook設定済み"
+  },
+  "days": {
+    "friday": "金曜日",
+    "monday": "月曜日",
+    "saturday": "土曜日",
+    "sunday": "日曜日",
+    "thursday": "木曜日",
+    "tuesday": "火曜日",
+    "wednesday": "水曜日"
+  },
+  "deleteFailed": "削除に失敗しました",
+  "schedule": {
+    "addFailed": "スケジュールの追加に失敗しました",
+    "addSchedule": "スケジュールを追加",
+    "dayLabel": "日",
+    "deleteConfirm": {
+      "description": "この配信スケジュールを削除します。",
+      "title": "スケジュールを削除しますか？"
+    },
+    "description": "毎日コーデのおすすめを受け取る時間を設定",
+    "dialogDescription": "コーデのおすすめを受け取るタイミングを設定します。",
+    "noSchedules": "スケジュール未設定",
+    "noSchedulesDesc": "スケジュールを追加して毎日コーデ提案を受信",
+    "notifyDayBefore": "前日に通知",
+    "notifyDayBeforeDesc": "前日の夕方に明日の天気予報の通知を受け取る",
+    "notifyDayBeforeInfo": "{outfitDay}のコーデの通知を、{notifyDay}の{time}に受け取ります。",
+    "notifyDayEvening": "{day}の夕方",
+    "occasionLabel": "シーン",
+    "scheduleAdded": "スケジュールを追加しました",
+    "scheduleDeleted": "スケジュールを削除しました",
+    "scheduleDisabled": "スケジュールを無効にしました",
+    "scheduleEnabled": "スケジュールを有効にしました",
+    "summary": "{time} - {occasion}",
+    "timeLabel": "時間",
+    "title": "配信スケジュール",
+    "willNotifyDayBefore": "前日に通知します",
+    "willNotifySameDay": "当日に通知します"
+  },
+  "subtitle": "コーデのおすすめを受け取る方法とタイミングを設定",
+  "title": "通知",
+  "updateFailed": "更新に失敗しました"
+}

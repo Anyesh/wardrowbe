@@ -1,0 +1,70 @@
+{
+  "bestCombinations": {
+    "description": "你持續喜愛的配對",
+    "title": "你的最佳組合"
+  },
+  "colorPreferences": {
+    "description": "你傾向接受或拒絕的顏色",
+    "noData": "回饋不足以判斷顏色偏好。",
+    "title": "已學習的顏色偏好"
+  },
+  "confidence": "信心 {percent}%",
+  "dismiss": "關閉",
+  "lastUpdated": "學習檔案最後更新：{date}",
+  "loadError": "載入學習資料失敗，請重試。",
+  "noData": {
+    "alreadyGaveFeedback": "已經給過回饋了？點擊「立即計算」來處理。",
+    "computeNow": "立即計算",
+    "computing": "計算中...",
+    "description": "先從接受或拒絕穿搭建議並給予評分開始。",
+    "getOutfitSuggestions": "取得穿搭建議",
+    "title": "尚無學習資料"
+  },
+  "occasionPatterns": {
+    "description": "不同場合適合什麼",
+    "title": "場合模式"
+  },
+  "percent": "{value}%",
+  "preferredColors": "偏好的顏色：",
+  "recompute": "重新計算",
+  "stats": {
+    "acceptanceRate": "接受率",
+    "averageRating": "平均評分",
+    "feedbackGiven": "已給回饋",
+    "notEnoughData": "資料不足",
+    "outOf5Stars": "滿分 5 顆星",
+    "outfitsRated": "{count, plural, one {已評分 {count} 套穿搭} other {已評分 {count} 套穿搭}}",
+    "rateMoreOutfits": "評分更多穿搭",
+    "rateOutfitStyles": "評價穿搭風格",
+    "styleRating": "風格評分",
+    "styleSatisfaction": "風格滿意度",
+    "suggestionsAccepted": "建議已被接受"
+  },
+  "styleInsights": {
+    "description": "我們對你偏好的了解",
+    "generate": "新洞察",
+    "title": "風格洞察"
+  },
+  "stylePreferences": {
+    "description": "符合你品味的風格",
+    "noData": "回饋不足以判斷風格偏好。",
+    "title": "已學習的風格偏好"
+  },
+  "subtitle": "AI 如何從你的回饋中學習",
+  "subtitleEmpty": "開始評分穿搭以幫助 AI 學習你的偏好",
+  "successRate": "{percent}% 成功率",
+  "suggestedUpdates": {
+    "addToAvoid": "加入避免的顏色：",
+    "addToFavorites": "加入喜愛的顏色：",
+    "description": "根據你的回饋，我們建議更新你的偏好",
+    "title": "建議的偏好更新",
+    "updatePreferences": "更新偏好"
+  },
+  "timesPaired": "配對 {count} 次",
+  "title": "AI 學習",
+  "weatherPreferences": {
+    "description": "不同天氣下的穿著習慣",
+    "layers": "約 {count} 層",
+    "title": "天氣偏好"
+  }
+}

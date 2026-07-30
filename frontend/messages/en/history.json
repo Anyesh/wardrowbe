@@ -1,0 +1,47 @@
+{
+  "card": {
+    "accept": "Accept",
+    "acceptFailed": "Failed to accept outfit",
+    "didntWearThis": "Didn't wear this",
+    "dismiss": "Dismiss",
+    "dismissFailed": "Failed to dismiss outfit",
+    "familyLabel": "Family:",
+    "itemFallback": "Item",
+    "outfitAccepted": "Outfit accepted",
+    "outfitDismissed": "Outfit dismissed",
+    "rate": "Rate",
+    "tip": "Tip:",
+    "update": "Update",
+    "viewItemDetails": "View item details",
+    "woreInstead": "Wore instead:"
+  },
+  "empty": {
+    "description": "Your outfit recommendation history will appear here once you start receiving suggestions.",
+    "getFirstSuggestion": "Get Your First Suggestion",
+    "title": "No recommendation history"
+  },
+  "filters": {
+    "allOccasions": "All occasions",
+    "allStatus": "All status",
+    "workout": "Workout"
+  },
+  "loadError": "Failed to load history. Please try again.",
+  "noOutfitsForDate": "No outfits for {date}",
+  "outfitCount": "{count, plural, one {# outfit} other {# outfits}}",
+  "sourceBadges": {
+    "manual": "Manual",
+    "onDemand": "On Demand",
+    "pairing": "Pairing",
+    "scheduled": "Scheduled"
+  },
+  "status": {
+    "accepted": "Accepted",
+    "expired": "Expired",
+    "pending": "Pending",
+    "rejected": "Rejected",
+    "sent": "Sent",
+    "viewed": "Viewed"
+  },
+  "subtitle": "View your past outfit recommendations",
+  "title": "History"
+}

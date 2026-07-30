@@ -16,6 +16,39 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        // Inter carries no CJK glyphs, so zh/ja/ko fall through to fonts shipped with the OS.
+        // Bundling Noto CJK instead would add megabytes and make the Docker build depend on
+        // reaching Google Fonts, which a self-hosted build cannot assume.
+        sans: [
+          'var(--font-inter)',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'PingFang SC',
+          'Hiragino Sans GB',
+          'Microsoft YaHei',
+          'Noto Sans CJK SC',
+          'Noto Sans SC',
+          'PingFang TC',
+          'Microsoft JhengHei',
+          'Noto Sans CJK TC',
+          'Hiragino Kaku Gothic ProN',
+          'Yu Gothic',
+          'Meiryo',
+          'Noto Sans CJK JP',
+          'Apple SD Gothic Neo',
+          'Malgun Gothic',
+          'Noto Sans CJK KR',
+          'Helvetica Neue',
+          'Arial',
+          'sans-serif',
+          'Apple Color Emoji',
+          'Segoe UI Emoji',
+        ],
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

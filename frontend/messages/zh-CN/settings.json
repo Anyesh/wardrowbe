@@ -1,0 +1,148 @@
+{
+  "account": {
+    "description": "您的个人资料信息",
+    "email": "邮箱",
+    "name": "名称",
+    "title": "账号"
+  },
+  "aiEndpoints": {
+    "active": "活跃",
+    "addEndpoint": "添加端点",
+    "connected": "已连接",
+    "description": "配置用于图像分析的 AI 端点。端点按从上到下的顺序依次尝试。",
+    "disabled": "已禁用",
+    "error": "错误",
+    "fields": {
+      "name": "名称",
+      "textModel": "文本模型",
+      "url": "URL",
+      "visionModel": "视觉模型"
+    },
+    "modelsAvailable": "{count, plural, one {{count} 个可用模型} other {{count} 个可用模型}}",
+    "noEndpoints": "未配置自定义端点。使用默认服务器设置。",
+    "placeholders": {
+      "name": "例如：本地 Ollama"
+    },
+    "testConnection": "测试连接",
+    "testFailed": "测试端点失败",
+    "textModels": "文本：{models}",
+    "title": "AI 端点",
+    "visionModels": "视觉：{models}"
+  },
+  "body": {
+    "bodyLabel": "身体",
+    "description": "帮助 AI 推荐更合身的穿搭",
+    "errors": {
+      "positiveNumber": "{field}必须为正数"
+    },
+    "fields": {
+      "chest": "胸围",
+      "height": "身高",
+      "hips": "臀围",
+      "inseam": "内缝",
+      "waist": "腰围",
+      "weight": "体重"
+    },
+    "imperial": "英制（in/lbs）",
+    "metric": "公制（cm/kg）",
+    "saveError": "保存尺寸失败",
+    "saveMeasurements": "保存尺寸",
+    "saved": "尺寸已保存",
+    "sizeFields": {
+      "dressSize": "裙装尺码",
+      "pantsSize": "裤子尺码",
+      "shirtSize": "衬衫尺码",
+      "shoeSize": "鞋码"
+    },
+    "sizePlaceholders": {
+      "dress_size": "例如 8、10",
+      "pants_size": "例如 32、34",
+      "shirt_size": "例如 M、L、XL",
+      "shoe_size": "例如 10、42"
+    },
+    "sizesLabel": "尺码",
+    "title": "身体测量",
+    "unitSystem": "单位制"
+  },
+  "colors": {
+    "colorsToAvoid": "想避免的颜色",
+    "description": "选择您喜欢和想要避免的颜色",
+    "favoriteColors": "喜欢的颜色"
+  },
+  "confirmReset": "确定要将所有偏好恢复为默认值吗？",
+  "location": {
+    "approximateDetected": "已填入大致位置。请确认后保存。",
+    "approximateDetectedWithReason": "{reason} 已填入大致位置。请确认后保存。",
+    "cityLabel": "城市/位置名称（可选）",
+    "cityPlaceholder": "例如：英国伦敦",
+    "description": "设置您的位置以获取基于天气的穿搭推荐",
+    "detected": "位置已检测到。请确认后保存。",
+    "errors": {
+      "geolocationDenied": "位置访问被拒绝。",
+      "geolocationFailed": "获取精确位置失败：{message}",
+      "geolocationFailedGeneric": "获取精确位置失败。",
+      "geolocationTimeout": "位置请求超时。",
+      "geolocationUnavailable": "位置当前不可用。",
+      "geolocationUnsupported": "您的浏览器不支持地理定位。",
+      "invalidCoordinates": "请输入有效的纬度和经度值",
+      "latitudeRange": "纬度必须在 -90 到 90 之间",
+      "longitudeRange": "经度必须在 -180 到 180 之间",
+      "networkLookupFailed": "基于网络的位置查询失败（{status}）",
+      "saveFailed": "保存位置失败，请重试。",
+      "unableToDetect": "无法检测到您的位置。"
+    },
+    "latitude": "纬度",
+    "longitude": "经度",
+    "required": "基于天气的穿搭推荐需要设置位置。",
+    "saveLocation": "保存位置",
+    "saved": "位置和时区已保存",
+    "selectTimezone": "选择时区",
+    "timezone": "时区",
+    "title": "位置",
+    "useMyLocation": "使用我的位置"
+  },
+  "recommendations": {
+    "avoidRepeatDays": "避免重复单品的间隔天数",
+    "defaultOccasion": "默认场合",
+    "description": "自定义穿搭推荐的生成方式",
+    "no": "否",
+    "preferUnderused": "优先使用低频单品",
+    "title": "推荐设置",
+    "varietyLevel": "多样程度",
+    "varietyOptions": {
+      "high": "高（尝试新组合）",
+      "low": "低（坚持偏好）",
+      "moderate": "中等"
+    },
+    "yes": "是"
+  },
+  "reset": "重置",
+  "styleProfile": {
+    "description": "调整穿搭推荐中每种风格的偏好程度",
+    "title": "风格档案"
+  },
+  "subtitle": "管理您的偏好和账号设置",
+  "temperature": {
+    "celsius": "摄氏度",
+    "coldThreshold": "低温阈值（{unit}）",
+    "description": "调整推荐如何适应天气",
+    "fahrenheit": "华氏度",
+    "hotThreshold": "高温阈值（{unit}）",
+    "layering": "层次偏好",
+    "layeringOptions": {
+      "heavy": "大量层次",
+      "minimal": "少量层次",
+      "moderate": "适量层次"
+    },
+    "sensitivity": "温度敏感度",
+    "sensitivityOptions": {
+      "high": "我容易觉得冷",
+      "low": "我容易觉得热",
+      "normal": "正常"
+    },
+    "title": "温度与舒适度",
+    "unit": "温度单位"
+  },
+  "title": "设置",
+  "unsavedChanges": "您有未保存的更改。确定离开此页面？"
+}

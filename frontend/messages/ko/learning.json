@@ -1,0 +1,70 @@
+{
+  "bestCombinations": {
+    "description": "함께 입었을 때 꾸준히 좋은 반응을 받은 아이템 조합",
+    "title": "최고의 조합"
+  },
+  "colorPreferences": {
+    "description": "수락하거나 거절한 색상 경향",
+    "noData": "아직 색상 선호도를 파악하기에 피드백이 충분하지 않아요.",
+    "title": "학습된 색상 선호도"
+  },
+  "confidence": "{percent}% 확신",
+  "dismiss": "닫기",
+  "lastUpdated": "학습 프로필 마지막 업데이트: {date}",
+  "loadError": "학습 데이터를 불러오지 못했어요. 다시 시도해 주세요.",
+  "noData": {
+    "alreadyGaveFeedback": "이미 피드백을 남기셨나요? \"지금 계산\"을 클릭하여 처리하세요.",
+    "computeNow": "지금 계산",
+    "computing": "계산 중...",
+    "description": "코디 추천을 수락하거나 거절하고 평가하는 것부터 시작해 보세요.",
+    "getOutfitSuggestions": "코디 추천 받기",
+    "title": "아직 학습 데이터가 없어요"
+  },
+  "occasionPatterns": {
+    "description": "각 상황에 맞는 코디",
+    "title": "상황별 패턴"
+  },
+  "percent": "{value}%",
+  "preferredColors": "선호 색상:",
+  "recompute": "재계산",
+  "stats": {
+    "acceptanceRate": "수락률",
+    "averageRating": "평균 평점",
+    "feedbackGiven": "제공한 피드백",
+    "notEnoughData": "데이터 부족",
+    "outOf5Stars": "5점 만점",
+    "outfitsRated": "{count, plural, other {코디 {count}개 평가함}}",
+    "rateMoreOutfits": "코디를 더 평가해 주세요",
+    "rateOutfitStyles": "코디 스타일을 평가하세요",
+    "styleRating": "스타일 평점",
+    "styleSatisfaction": "스타일 만족도",
+    "suggestionsAccepted": "추천 수락 비율"
+  },
+  "styleInsights": {
+    "description": "취향에 대해 파악한 내용",
+    "generate": "새로운 인사이트",
+    "title": "스타일 인사이트"
+  },
+  "stylePreferences": {
+    "description": "취향에 맞는 스타일",
+    "noData": "아직 스타일 선호도를 파악하기에 피드백이 충분하지 않아요.",
+    "title": "학습된 스타일 선호도"
+  },
+  "subtitle": "AI가 피드백에서 학습하는 방법",
+  "subtitleEmpty": "코디를 평가하면 AI가 취향을 학습해요",
+  "successRate": "{percent}% 성공",
+  "suggestedUpdates": {
+    "addToAvoid": "피하는 색상에 추가:",
+    "addToFavorites": "선호 색상에 추가:",
+    "description": "피드백을 바탕으로 설정 업데이트를 제안해요",
+    "title": "추천 설정 업데이트",
+    "updatePreferences": "설정 업데이트"
+  },
+  "timesPaired": "{count}회 조합",
+  "title": "AI 학습",
+  "weatherPreferences": {
+    "description": "날씨별 옷차림 경향",
+    "layers": "약 {count}겹",
+    "title": "날씨 선호도"
+  }
+}

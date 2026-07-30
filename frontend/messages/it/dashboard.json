@@ -1,0 +1,66 @@
+{
+  "familyFeed": {
+    "browse": "Sfoglia outfit di famiglia",
+    "description": "Scopri cosa indossa la tua famiglia e valuta i loro outfit",
+    "memberCount": "{count, plural, one {{count} membro in {name}} other {{count} membri in {name}}}",
+    "title": "Outfit di famiglia"
+  },
+  "insights": {
+    "empty": "Aggiungi altri capi e genera outfit per vedere approfondimenti personalizzati!",
+    "title": "Approfondimenti"
+  },
+  "layout": {
+    "loading": "Caricamento del guardaroba..."
+  },
+  "nextScheduled": {
+    "comingUp": "In arrivo",
+    "dayAtTime": "{day} alle {time}",
+    "noSchedules": "Nessuna programmazione impostata",
+    "occasionOutfit": "Outfit {occasion}",
+    "setUpSchedule": "Imposta programmazione",
+    "title": "Prossimo programmato",
+    "today": "Oggi",
+    "tomorrow": "Domani"
+  },
+  "notifications": {
+    "activeCount": "{active} di {total} attivi",
+    "addChannel": "Aggiungi canale",
+    "configure": "Configura",
+    "noChannels": "Nessun canale configurato",
+    "title": "Notifiche"
+  },
+  "pendingOutfits": {
+    "acceptFailed": "Accettazione outfit fallita",
+    "accepted": "Outfit accettato",
+    "allCaughtUp": "Tutto aggiornato",
+    "dismissFailed": "Impossibile ignorare l’outfit",
+    "dismissLabel": "Ignora outfit",
+    "dismissed": "Outfit ignorato",
+    "lookbook": "Lookbook",
+    "noPending": "Nessun outfit in attesa di risposta",
+    "title": "Outfit in attesa"
+  },
+  "quickActions": {
+    "addNewItem": "Aggiungi nuovo capo",
+    "description": "Attività comuni per iniziare",
+    "getOutfitSuggestion": "Ottieni suggerimento outfit",
+    "title": "Azioni rapide"
+  },
+  "subtitle": "Ecco cosa succede con il tuo guardaroba",
+  "userFallback": "Utente",
+  "weather": {
+    "feelsLike": "percepita {temp}",
+    "getOutfitSuggestion": "Ottieni suggerimento outfit",
+    "locationNotSet": "Posizione non impostata",
+    "rainChance": "{percent}% di probabilità di pioggia",
+    "setLocation": "Imposta posizione",
+    "title": "Meteo di oggi"
+  },
+  "weeklySummary": {
+    "accepted": "accettati",
+    "avgRatingValue": "Voto medio: {rating}/5",
+    "outfits": "Outfit",
+    "title": "Questa settimana"
+  },
+  "welcomeBack": "Bentornato, {name}"
+}

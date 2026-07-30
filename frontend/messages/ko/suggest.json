@@ -1,0 +1,84 @@
+{
+  "dismissOutfit": "코디 닫기",
+  "error": "코디 추천 생성에 실패했어요. 다시 시도해 주세요.",
+  "feedback": {
+    "commentsOptional": "코멘트 (선택사항)",
+    "commentsPlaceholder": "이 코디에 대한 생각이 있으신가요?",
+    "didYouWear": "이 코디를 입으셨나요?",
+    "didYouWearDesc": "추천을 따르셨는지 알려주시면 취향을 더 잘 파악할 수 있어요.",
+    "howDidItWork": "이 코디는 어떠셨나요?",
+    "itemsSelected": "{count, plural, other {#개 선택됨}}",
+    "loadingMore": "더 불러오는 중...",
+    "noItemsInWardrobe": "옷장에 아이템이 없어요",
+    "noMatch": "검색 결과가 없어요",
+    "noWoreSomethingElse": "아니요, 다른 걸 입었어요",
+    "overallRating": "전체 평점",
+    "rateHowItWent": "어땠는지 평가해 주세요",
+    "rateThisOutfit": "이 코디 평가하기",
+    "searchWardrobe": "옷장 검색...",
+    "showingAll": "{count, plural, other {전체 #개 표시 중}}",
+    "submitError": "피드백 제출 실패",
+    "submitWithCount": "제출 ({count})",
+    "submitted": "피드백이 제출되었어요",
+    "submitting": "제출 중...",
+    "tellUsWhatYouWore": "무엇을 입었는지 알려주세요",
+    "whatDidYouWear": "대신 무엇을 입으셨나요?",
+    "whatDidYouWearDesc": "실제로 입은 아이템을 선택해 주세요. 취향 파악에 도움이 돼요.",
+    "yesWoreIt": "네, 입었어요"
+  },
+  "generating": "코디를 만들고 있어요...",
+  "getSuggestion": "추천 받기",
+  "greeting": {
+    "afternoon": "좋은 오후예요",
+    "evening": "좋은 저녁이에요",
+    "morning": "좋은 아침이에요"
+  },
+  "location": {
+    "notSet": "위치가 설정되지 않았어요",
+    "setDescription": "설정에서 위치를 등록하면 날씨 기반 추천을 받을 수 있어요"
+  },
+  "loveIt": "마음에 들어요",
+  "occasionPrompt": "어떤 상황인가요?",
+  "outfitPreview": {
+    "familyRatings": {
+      "average": "(평균 {rating} <star></star>)",
+      "noRatings": "아직 가족 평가가 없어요.",
+      "noRatingsPrompt": "아직 가족 평가가 없어요. 첫 번째로 평가해 보세요!",
+      "rate": "평가",
+      "title": "가족 평가"
+    },
+    "imageRotated": "이미지가 회전되었어요",
+    "noImage": "이미지 없음",
+    "rotateFailed": "이미지 회전 실패",
+    "rotateLeft": "왼쪽 회전",
+    "rotateRight": "오른쪽 회전",
+    "title": "{occasion} 코디",
+    "viewItemDetails": "아이템 상세보기"
+  },
+  "startOver": "처음부터 다시",
+  "subtitle": "오늘 하루에 딱 맞는 코디를 찾아볼까요",
+  "tip": "팁:",
+  "tryAnother": "다른 코디",
+  "weather": {
+    "feelsLike": "체감 {temp}°",
+    "feelsLikeInline": "(체감 {temp}°)",
+    "rainChance": "강수 확률 {chance}%",
+    "windSpeed": "풍속 {speed} km/h"
+  },
+  "weatherHints": {
+    "cold": "꽤 추우니 겹쳐 입으세요",
+    "hot": "가볍고 통기성 좋은 옷을 입으세요",
+    "mild": "가벼운 재킷이 딱 좋아요",
+    "nice": "어떤 스타일이든 좋은 날씨예요",
+    "rainy": "우산이나 레인코트를 챙기세요",
+    "windy": "바람막이를 고려해 보세요"
+  },
+  "weatherOverride": {
+    "active": "날씨 수동 설정 적용 중",
+    "condition": "날씨",
+    "overrideWeather": "날씨 수동 설정",
+    "reset": "초기화",
+    "temperature": "기온"
+  },
+  "yourOutfit": "오늘의 코디"
+}

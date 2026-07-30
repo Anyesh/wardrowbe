@@ -1,0 +1,66 @@
+{
+  "familyFeed": {
+    "browse": "Browse Family Outfits",
+    "description": "See what your family is wearing and rate their outfits",
+    "memberCount": "{count, plural, one {{count} member in {name}} other {{count} members in {name}}}",
+    "title": "Family Outfits"
+  },
+  "insights": {
+    "empty": "Add more items and generate outfits to see personalized insights!",
+    "title": "Insights"
+  },
+  "layout": {
+    "loading": "Loading your wardrobe..."
+  },
+  "nextScheduled": {
+    "comingUp": "Coming up",
+    "dayAtTime": "{day} at {time}",
+    "noSchedules": "No schedules set up",
+    "occasionOutfit": "{occasion} outfit",
+    "setUpSchedule": "Set Up Schedule",
+    "title": "Next Scheduled",
+    "today": "Today",
+    "tomorrow": "Tomorrow"
+  },
+  "notifications": {
+    "activeCount": "{active} of {total} active",
+    "addChannel": "Add Channel",
+    "configure": "Configure",
+    "noChannels": "No channels configured",
+    "title": "Notifications"
+  },
+  "pendingOutfits": {
+    "acceptFailed": "Failed to accept outfit",
+    "accepted": "Outfit accepted",
+    "allCaughtUp": "All Caught Up",
+    "dismissFailed": "Failed to dismiss outfit",
+    "dismissLabel": "Dismiss outfit",
+    "dismissed": "Outfit dismissed",
+    "lookbook": "Lookbook",
+    "noPending": "No outfits waiting for your response",
+    "title": "Pending Outfits"
+  },
+  "quickActions": {
+    "addNewItem": "Add New Item",
+    "description": "Common tasks to get you started",
+    "getOutfitSuggestion": "Get Outfit Suggestion",
+    "title": "Quick Actions"
+  },
+  "subtitle": "Here's what's happening with your wardrobe",
+  "userFallback": "User",
+  "weather": {
+    "feelsLike": "feels {temp}",
+    "getOutfitSuggestion": "Get Outfit Suggestion",
+    "locationNotSet": "Location not set",
+    "rainChance": "{percent}% chance of rain",
+    "setLocation": "Set Location",
+    "title": "Today's Weather"
+  },
+  "weeklySummary": {
+    "accepted": "accepted",
+    "avgRatingValue": "Avg rating: {rating}/5",
+    "outfits": "outfits",
+    "title": "This Week"
+  },
+  "welcomeBack": "Welcome back, {name}"
+}

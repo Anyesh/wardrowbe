@@ -1,0 +1,170 @@
+{
+  "bulkActions": {
+    "deleteError": "Échec de la suppression des tenues",
+    "deletePartialFailed": "{count, plural, one {Échec de la suppression de # tenue} other {Échec de la suppression de # tenues}}",
+    "deleteSuccess": "{count, plural, one {# tenue supprimée} other {# tenues supprimées}}",
+    "select": "Sélectionner"
+  },
+  "bulkDelete": {
+    "confirmDescription": "Cela supprimera définitivement les tenues sélectionnées. Cette action est irréversible.",
+    "confirmTitle": "{count, plural, one {Supprimer # tenue ?} other {Supprimer # tenues ?}}",
+    "confirmTitleAll": "{count, plural, one {Supprimer # tenue ?} other {Supprimer toutes les # tenues ?}}"
+  },
+  "calendar": {
+    "legendOnDemand": "À la demande",
+    "legendScheduled": "Planifié",
+    "monthlyCount": "{count, plural, one {# tenue} other {# tenues}} ce mois-ci",
+    "noOutfitsOnDay": "Aucune tenue ce jour-là",
+    "outfitCount": "{count, plural, one {# tenue} other {# tenues}}",
+    "weekDays": {
+      "fri": "Ve",
+      "mon": "Lu",
+      "sat": "Sa",
+      "sun": "Di",
+      "thu": "Je",
+      "tue": "Ma",
+      "wed": "Me"
+    }
+  },
+  "canvas": {
+    "empty": "Appuyez sur les articles ci-dessous pour commencer à composer votre tenue",
+    "removeItem": "Supprimer {name}"
+  },
+  "cards": {
+    "ai": "IA",
+    "lookbookTemplate": "Modèle de lookbook",
+    "outfitFallback": "Tenue {occasion}",
+    "pairing": "Association",
+    "replacement": "Remplacement",
+    "studio": "Studio",
+    "worn": "Portées"
+  },
+  "cloneToLookbook": {
+    "description": "Donnez un nom à ce look pour le retrouver et le porter à nouveau.",
+    "errorEmpty": "Veuillez entrer un nom",
+    "name": "Nom",
+    "namePlaceholder": "Brunch du vendredi",
+    "saveError": "Échec de la sauvegarde dans le lookbook",
+    "saved": "Sauvegardé dans le lookbook",
+    "title": "Sauvegarder dans le lookbook"
+  },
+  "detail": {
+    "addedToToday": "Ajoutée à aujourd'hui",
+    "backToOutfits": "Retour aux tenues",
+    "deleteConfirm": "Supprimer cette tenue ? Cette action est irréversible.",
+    "deleteError": "Échec de la suppression",
+    "deleted": "Tenue supprimée",
+    "items": "Articles ({count})",
+    "lookbookTemplate": "Modèle de lookbook",
+    "notWornYet": "Ce look n'a pas encore été porté. Cliquez sur « Porter aujourd'hui » pour l'enregistrer.",
+    "saveToLookbook": "Sauvegarder dans le lookbook",
+    "seeAll": "Tout voir",
+    "stylingTip": "Conseil :",
+    "undated": "Non daté",
+    "wearToday": "Porter aujourd'hui",
+    "wearTodayError": "Échec du marquage comme portée aujourd’hui",
+    "wornCount": "Portée {count, plural, one {# fois} other {# fois}}"
+  },
+  "details": {
+    "addedItems": "{count, plural, one {# article ajouté} other {# articles ajoutés}} par l’IA",
+    "aiAssistError": "Choisissez au moins un article et une occasion d'abord",
+    "aiFailed": "Échec de l'assistance IA",
+    "aiNoSuggestions": "L'IA n'avait pas de nouveaux articles à suggérer",
+    "aiThinking": "L'IA réfléchit...",
+    "letAiFinish": "Laisser l'IA terminer",
+    "name": "Nom",
+    "namePlaceholder": "Brunch du vendredi",
+    "nameRequired": "(requis pour le lookbook)",
+    "occasion": "Occasion",
+    "pickOccasion": "Choisissez une occasion avant de sauvegarder.",
+    "skippedItem": "{name} ignoré : {reason}",
+    "warnings": {
+      "multipleBottoms": "Plusieurs bas sélectionnés.",
+      "noBottoms": "Aucun bas sélectionné.",
+      "noFootwear": "Aucune chaussure sélectionnée.",
+      "noTop": "Aucun haut sélectionné."
+    }
+  },
+  "empty": {
+    "ai": "Pas encore de suggestions IA.",
+    "all": "Pas encore de tenues. Créez votre premier look !",
+    "myLooks": "Pas encore de modèles dans le lookbook.",
+    "pairings": "Pas encore d'associations.",
+    "replacements": "Pas encore de tenues de remplacement.",
+    "worn": "Pas encore de tenues portées."
+  },
+  "filters": {
+    "ai": "IA",
+    "all": "Toutes",
+    "lookbook": "Lookbook",
+    "pairings": "Associations",
+    "replacements": "Remplacements",
+    "worn": "Portées"
+  },
+  "itemPicker": {
+    "loadingMore": "Chargement...",
+    "noItems": "Aucun article trouvé",
+    "noMatch": "Aucun article ne correspond à votre recherche",
+    "search": "Rechercher dans la garde-robe...",
+    "showingAll": "{count, plural, one {# article affiché} other {Tous les # articles affichés}}"
+  },
+  "lineage": {
+    "fromLookbook": "De votre entrée de lookbook {name}",
+    "replaces": "Remplace la suggestion {occasion}",
+    "replacesWithDate": "Remplace la suggestion {occasion} du {date}"
+  },
+  "loadError": "Échec du chargement des tenues",
+  "loadMore": "Charger plus",
+  "new": {
+    "discardChanges": "Annuler les modifications",
+    "draft": {
+      "found": "Vous avez un brouillon non enregistré de votre dernière session. Le reprendre ?",
+      "resume": "Reprendre",
+      "startFresh": "Recommencer"
+    },
+    "editOutfit": "Modifier la tenue",
+    "errors": {
+      "backToOutfits": "Retour aux tenues",
+      "cannotEdit": "Vous ne pouvez pas modifier cette tenue",
+      "couldNotLoad": "Impossible de charger cette tenue",
+      "couldNotLoadDesc": "Votre session a peut-être expiré ou cette tenue appartient à un autre compte.",
+      "genericError": "Un problème est survenu lors du chargement de cette tenue. Vérifiez votre connexion et réessayez.",
+      "notFound": "Tenue introuvable",
+      "notFoundDesc": "Cette tenue n'existe plus. Elle a peut-être été supprimée depuis un autre onglet ou appareil."
+    },
+    "nameRequired": "Donnez un nom à votre entrée de lookbook avant de sauvegarder",
+    "outfitUpdated": "Tenue mise à jour",
+    "saveChanges": "Enregistrer les modifications",
+    "saveError": "Échec de la sauvegarde de la tenue",
+    "saveToLookbook": "Sauvegarder dans le lookbook",
+    "savedAndMarkedWorn": "Enregistrée et marquée comme portée",
+    "savedToLookbook": "Sauvegardé dans le lookbook",
+    "studio": "Studio",
+    "tabs": {
+      "canvas": "Canevas",
+      "details": "Détails",
+      "emptyWardrobe": "Aucun article dans votre garde-robe. Ajoutez d'abord des articles.",
+      "yourWardrobe": "Votre garde-robe"
+    },
+    "validation": {
+      "needItem": "Choisissez au moins un article",
+      "needItemAndOccasion": "Choisissez au moins un article et une occasion",
+      "needOccasion": "Choisissez une occasion"
+    },
+    "wearToday": "Porter aujourd'hui",
+    "worn": {
+      "backToOutfit": "Retour à la tenue",
+      "description": "Les tenues portées ne peuvent pas être modifiées car elles font partie de votre historique.",
+      "saveAsNew": "Enregistrer comme nouvelle",
+      "title": "Cette tenue a été portée"
+    }
+  },
+  "newOutfit": "Nouvelle tenue",
+  "search": "Rechercher dans le lookbook...",
+  "subtitle": "Vos looks, tenues portées et suggestions IA",
+  "title": "Tenues",
+  "totalCount": "{count} au total",
+  "viewCalendar": "Calendrier",
+  "viewList": "Liste",
+  "viewToggle": "Changer de vue"
+}

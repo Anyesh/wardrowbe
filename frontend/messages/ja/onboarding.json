@@ -1,0 +1,80 @@
+{
+  "complete": {
+    "description": "ワードローブの準備が整いました。服を追加して、パーソナライズされたコーデ提案を受け取りましょう！",
+    "finishing": "完了中...",
+    "goToDashboard": "ダッシュボードへ",
+    "setupFailed": "セットアップの完了に失敗しました。もう一度お試しください。",
+    "title": "準備完了！"
+  },
+  "family": {
+    "createFamily": "ファミリーを作成",
+    "createFamilyDesc": "新しいファミリーを作成",
+    "description": "ファミリーを作成または参加して、ワードローブ体験を共有",
+    "error": "ファミリーの設定に失敗しました。もう一度お試しください。",
+    "familyName": "ファミリー名",
+    "familyNamePlaceholder": "例：田中ファミリー",
+    "inviteCode": "招待コード",
+    "inviteCodePlaceholder": "例：ABC123XY",
+    "joinFamily": "ファミリーに参加",
+    "joinFamilyDesc": "招待コードを使用",
+    "joinSuccess": "ファミリーに参加しました！",
+    "success": "ファミリーを作成しました！",
+    "title": "ファミリー設定"
+  },
+  "firstItem": {
+    "addToWardrobe": "ワードローブに追加",
+    "chooseDifferentPhoto": "別の写真を選ぶ",
+    "description": "衣類の写真を撮るか、画像をアップロードしてください",
+    "formatHint": "PNG、JPG、HEIC",
+    "previewAlt": "プレビュー",
+    "title": "最初のアイテムを追加",
+    "typeLabel": "これはどんなタイプの服ですか？",
+    "typePlaceholder": "タイプを選択...",
+    "uploadError": "アイテムのアップロードに失敗しました。もう一度お試しください。",
+    "uploadPrompt": "クリックしてアップロードまたは撮影",
+    "uploadSuccess": "ワードローブにアイテムを追加しました！"
+  },
+  "location": {
+    "cityLabel": "市区町村名",
+    "cityPlaceholder": "例：東京都渋谷区",
+    "description": "天気に合ったコーディネート提案のために位置情報を使用します",
+    "detectLocation": "位置情報を検出",
+    "locationError": "位置情報の検出に失敗しました。手動で入力してください。",
+    "locationSuccess": "位置情報を設定しました！",
+    "orManual": "または手動で入力",
+    "saveError": "位置情報の保存に失敗しました。もう一度お試しください。",
+    "title": "あなたの位置情報"
+  },
+  "skipForNow": "今はスキップ",
+  "steps": {
+    "family": "ファミリー",
+    "firstItem": "最初のアイテム",
+    "location": "位置情報",
+    "style": "スタイル",
+    "welcome": "ようこそ"
+  },
+  "style": {
+    "colorsToAvoid": "避けたい色",
+    "colorsToAvoidDesc": "着たくない色をタップ",
+    "description": "スタイルの好みを教えてください",
+    "favoriteColors": "好きな色",
+    "favoriteColorsDesc": "好きな色をタップ",
+    "percentValue": "{value}%",
+    "saveError": "スタイルの好みの保存に失敗しました。",
+    "saveSuccess": "スタイルの好みを保存しました！",
+    "styleProfile": "スタイルプロフィール",
+    "styleProfileDesc": "各スタイルの好みの度合いを調整",
+    "title": "あなたのスタイル"
+  },
+  "welcome": {
+    "description": "数ステップでデジタルワードローブを設定しましょう。",
+    "feature1": "服を撮影",
+    "feature1Desc": "AIが色やスタイルなどを自動でタグ付けします",
+    "feature2": "パーソナライズされたコーデ",
+    "feature2Desc": "天気とあなたのスタイルに基づく毎日のおすすめ",
+    "feature3": "家族と共有",
+    "feature3Desc": "一人ひとりが自分専用のワードローブを持てます",
+    "getStarted": "始める",
+    "greeting": "Wardrowbeへようこそ{name}！"
+  }
+}

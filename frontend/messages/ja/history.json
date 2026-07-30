@@ -1,0 +1,47 @@
+{
+  "card": {
+    "accept": "承認",
+    "acceptFailed": "コーデの承認に失敗しました",
+    "didntWearThis": "着なかった",
+    "dismiss": "見送る",
+    "dismissFailed": "コーデの見送りに失敗しました",
+    "familyLabel": "ファミリー：",
+    "itemFallback": "アイテム",
+    "outfitAccepted": "コーディネートを承認しました",
+    "outfitDismissed": "コーデを見送りました",
+    "rate": "評価",
+    "tip": "ヒント：",
+    "update": "更新",
+    "viewItemDetails": "アイテム詳細を見る",
+    "woreInstead": "代わりに着たもの："
+  },
+  "empty": {
+    "description": "コーデの提案を受け始めると、ここに推薦履歴が表示されます。",
+    "getFirstSuggestion": "最初の提案を取得",
+    "title": "推薦履歴なし"
+  },
+  "filters": {
+    "allOccasions": "すべてのシーン",
+    "allStatus": "すべてのステータス",
+    "workout": "ワークアウト"
+  },
+  "loadError": "履歴の読み込みに失敗しました。もう一度お試しください。",
+  "noOutfitsForDate": "{date}にコーデはありません",
+  "outfitCount": "{count, plural, one {# 件のコーデ} other {# 件のコーデ}}",
+  "sourceBadges": {
+    "manual": "手動",
+    "onDemand": "オンデマンド",
+    "pairing": "ペアリング",
+    "scheduled": "スケジュール"
+  },
+  "status": {
+    "accepted": "承認済み",
+    "expired": "期限切れ",
+    "pending": "保留中",
+    "rejected": "却下済み",
+    "sent": "送信済み",
+    "viewed": "閲覧済み"
+  },
+  "subtitle": "過去のコーデ提案を見る",
+  "title": "履歴"
+}

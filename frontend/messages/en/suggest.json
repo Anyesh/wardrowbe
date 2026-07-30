@@ -1,0 +1,84 @@
+{
+  "dismissOutfit": "Dismiss outfit",
+  "error": "Failed to generate outfit suggestion. Please try again.",
+  "feedback": {
+    "commentsOptional": "Comments (optional)",
+    "commentsPlaceholder": "Any thoughts about this outfit?",
+    "didYouWear": "Did you wear this outfit?",
+    "didYouWearDesc": "Let us know if you followed this recommendation so we can learn your preferences.",
+    "howDidItWork": "How did this outfit work out for you?",
+    "itemsSelected": "{count, plural, one {# item selected} other {# items selected}}",
+    "loadingMore": "Loading more...",
+    "noItemsInWardrobe": "No items in wardrobe",
+    "noMatch": "No items match your search",
+    "noWoreSomethingElse": "No, I wore something else",
+    "overallRating": "Overall Rating",
+    "rateHowItWent": "Rate how it went",
+    "rateThisOutfit": "Rate This Outfit",
+    "searchWardrobe": "Search your wardrobe...",
+    "showingAll": "{count, plural, one {Showing all # item} other {Showing all # items}}",
+    "submitError": "Failed to submit feedback",
+    "submitWithCount": "Submit ({count})",
+    "submitted": "Feedback submitted",
+    "submitting": "Submitting...",
+    "tellUsWhatYouWore": "Tell us what you wore",
+    "whatDidYouWear": "What did you wear instead?",
+    "whatDidYouWearDesc": "Select the items you actually wore. This helps us learn your preferences.",
+    "yesWoreIt": "Yes, I wore it"
+  },
+  "generating": "Creating your look...",
+  "getSuggestion": "Get Suggestion",
+  "greeting": {
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "morning": "Good morning"
+  },
+  "location": {
+    "notSet": "Location not set",
+    "setDescription": "Set your location in settings for weather-aware suggestions"
+  },
+  "loveIt": "Love it",
+  "occasionPrompt": "What's the occasion?",
+  "outfitPreview": {
+    "familyRatings": {
+      "average": "({rating} <star></star> avg)",
+      "noRatings": "No family ratings yet.",
+      "noRatingsPrompt": "No family ratings yet. Be the first to rate!",
+      "rate": "Rate",
+      "title": "Family Ratings"
+    },
+    "imageRotated": "Image rotated",
+    "noImage": "No image",
+    "rotateFailed": "Failed to rotate image",
+    "rotateLeft": "Rotate left",
+    "rotateRight": "Rotate right",
+    "title": "{occasion} Outfit",
+    "viewItemDetails": "View item details"
+  },
+  "startOver": "Start over",
+  "subtitle": "Let's find the perfect outfit for your day",
+  "tip": "Tip:",
+  "tryAnother": "Try Another",
+  "weather": {
+    "feelsLike": "Feels {temp}°",
+    "feelsLikeInline": "(feels {temp}°)",
+    "rainChance": "{chance}% rain",
+    "windSpeed": "{speed} km/h"
+  },
+  "weatherHints": {
+    "cold": "Layer up - it's quite cold",
+    "hot": "Keep it light and breathable",
+    "mild": "A light jacket would be perfect",
+    "nice": "Great weather for any style",
+    "rainy": "Bring an umbrella or rain jacket",
+    "windy": "Consider something windproof"
+  },
+  "weatherOverride": {
+    "active": "Weather override active",
+    "condition": "Condition",
+    "overrideWeather": "Override weather",
+    "reset": "Reset",
+    "temperature": "Temperature"
+  },
+  "yourOutfit": "Your Outfit"
+}

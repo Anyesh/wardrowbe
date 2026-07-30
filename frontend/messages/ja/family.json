@@ -1,0 +1,102 @@
+{
+  "createFamily": "ファミリーを作成",
+  "createFamilyDesc": "新しいファミリーを作成してメンバーを招待",
+  "editName": "名前を編集",
+  "familyName": "ファミリー名",
+  "familyNameExample": "例：田中ファミリー",
+  "familyNamePlaceholder": "ファミリー名",
+  "familyOutfits": {
+    "description": "家族のコーディネートを見て評価",
+    "openFeed": "ファミリーフィードを開く",
+    "title": "ファミリーコーデ"
+  },
+  "feed": {
+    "lookbook": "ルックブック",
+    "noFamily": {
+      "description": "ファミリーを作成または参加して、お互いのコーデを見て評価しましょう。",
+      "setUpFamily": "ファミリーを設定",
+      "title": "まずファミリーに参加してください"
+    },
+    "noMembers": {
+      "description": "家族を招待して、お互いのコーデを見て評価し合いましょう。",
+      "inviteMembers": "メンバーを招待",
+      "manageFamily": "ファミリーを管理",
+      "title": "まだ他にメンバーがいません"
+    },
+    "noOutfits": {
+      "description": "{member}はまだコーデのおすすめを受け取っていません。しばらくしてからご確認ください。",
+      "title": "コーデはまだありません"
+    },
+    "rateOutfit": "{member}のコーデを評価",
+    "ratingCount": "（{count, plural, one {{count} 件の評価} other {{count} 件の評価}}）",
+    "sourceBadges": {
+      "manual": "手動",
+      "onDemand": "オンデマンド",
+      "pairing": "ペアリング",
+      "scheduled": "スケジュール"
+    },
+    "subtitle": "家族のコーディネートを見て評価",
+    "title": "ファミリーフィード",
+    "unknownMember": "このメンバー",
+    "unknownMemberShort": "このメンバー"
+  },
+  "invalidInviteCode": "無効な招待コードです。確認してもう一度お試しください。",
+  "inviteCode": "招待コード",
+  "inviteCodeExample": "例：ABC123XY",
+  "inviteCodeSection": {
+    "description": "このコードを家族に共有して参加してもらいましょう",
+    "title": "招待コード"
+  },
+  "inviteEmailPlaceholder": "email@example.com",
+  "joinFamily": "ファミリーに参加",
+  "joinFamilyDesc": "招待コードで既存のファミリーに参加",
+  "leaveConfirm": {
+    "description": "本当に{name}を退出しますか？後から招待コードで再度参加できます。",
+    "title": "ファミリーを退出しますか？"
+  },
+  "leaveFamily": "ファミリーを退出",
+  "members": {
+    "description": "ファミリーのメンバー",
+    "removeConfirm": {
+      "description": "本当に{name}さんをファミリーから削除しますか？",
+      "title": "メンバーを削除しますか？"
+    },
+    "title": "メンバー"
+  },
+  "pendingInvites": {
+    "description": "まだ承認されていない招待",
+    "expires": "{date}に期限切れ",
+    "title": "保留中の招待"
+  },
+  "ratings": {
+    "addComment": "コメントを追加（任意）",
+    "ratingRemoved": "評価を削除しました",
+    "ratingSubmitted": "評価を送信しました！",
+    "ratingUpdated": "評価を更新しました！",
+    "removeError": "評価の削除に失敗しました",
+    "selectRating": "評価を選択してください",
+    "submitError": "評価の送信に失敗しました",
+    "submitRating": "評価を送信",
+    "updateRating": "評価を更新",
+    "yourRating": "あなたの評価："
+  },
+  "roles": {
+    "admin": "管理者",
+    "member": "メンバー"
+  },
+  "sendInvite": "招待を送信",
+  "sendInviteDesc": "メールで招待",
+  "subtitle": "ファミリーを作成または参加して、ワードローブ体験を共有",
+  "title": "ファミリー",
+  "toasts": {
+    "codeRegenerateFailed": "新しいコードの生成に失敗しました。もう一度お試しください。",
+    "codeRegenerated": "新しい招待コードを生成しました！",
+    "createFailed": "ファミリーの作成に失敗しました。もう一度お試しください。",
+    "created": "ファミリーを作成しました！",
+    "inviteFailed": "招待の送信に失敗しました",
+    "inviteSent": "招待を送信しました！",
+    "joined": "ファミリーに参加しました！",
+    "nameUpdateFailed": "ファミリー名の更新に失敗しました",
+    "nameUpdated": "ファミリー名を更新しました"
+  }
+}

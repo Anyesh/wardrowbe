@@ -13,12 +13,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useTranslations } from 'next-intl';
 
 export interface BulkSelection {
   mode: 'none' | 'some' | 'all';
   selectedIds: Set<string>;    // Used when mode is 'some'
   excludedIds: Set<string>;    // Used when mode is 'all'
 }
+
+export type BulkDeleteVariant = 'items' | 'outfits';
 
 interface BulkActionToolbarProps {
   selection: BulkSelection;
@@ -31,8 +34,7 @@ interface BulkActionToolbarProps {
   onReanalyze?: () => void;
   isDeleting?: boolean;
   isReanalyzing?: boolean;
-  itemLabel?: string;
-  deleteWarningSuffix?: string;
+  variant?: BulkDeleteVariant;
   // Pagination props
   page: number;
   pageSize: number;
@@ -50,13 +52,18 @@ export function BulkActionToolbar({
   onReanalyze,
   isDeleting = false,
   isReanalyzing = false,
-  itemLabel = 'items',
-  deleteWarningSuffix = '',
+  variant = 'items',
   page,
   pageSize,
   onPageChange,
 }: BulkActionToolbarProps) {
-  // Calculate selected count
+  const t = useTranslations('common');
+  const tWardrobe = useTranslations('wardrobe');
+  const tOutfits = useTranslations('outfits');
+  // Each variant carries a whole delete sentence so that gendered and case-inflected
+  // languages are never handed a bare noun to splice into English grammar.
+  const tDelete = variant === 'outfits' ? tOutfits : tWardrobe;
+
   const selectedCount = selection.mode === 'all'
     ? totalItems - selection.excludedIds.size
     : selection.selectedIds.size;
@@ -91,7 +98,7 @@ export function BulkActionToolbar({
           <Square className="h-5 w-5 text-muted-foreground" />
         )}
         <span className="text-sm font-medium whitespace-nowrap hidden sm:inline">
-          {isAllSelected ? 'All' : 'Select all'}
+          {isAllSelected ? t('bulkActions.all') : t('selectAll')}
         </span>
       </div>
 
@@ -99,21 +106,21 @@ export function BulkActionToolbar({
 
       <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
         {selectedCount === 0 ? (
-          <span className="hidden sm:inline">None selected</span>
+          <span className="hidden sm:inline">{t('bulkActions.noneSelected')}</span>
         ) : selection.mode === 'all' && selection.excludedIds.size > 0 ? (
           <>
             <span className="sm:hidden">{totalItems - selection.excludedIds.size}</span>
-            <span className="hidden sm:inline">All except {selection.excludedIds.size}</span>
+            <span className="hidden sm:inline">{t('bulkActions.allExcept', { count: selection.excludedIds.size })}</span>
           </>
         ) : selection.mode === 'all' ? (
           <>
-            <span className="sm:hidden">All ({totalItems})</span>
-            <span className="hidden sm:inline">All {totalItems} selected</span>
+            <span className="sm:hidden">{t('bulkActions.allShort', { count: totalItems })}</span>
+            <span className="hidden sm:inline">{t('bulkActions.allSelected', { count: totalItems })}</span>
           </>
         ) : (
           <>
             <span className="sm:hidden">{selectedCount}</span>
-            <span className="hidden sm:inline">{selectedCount} selected</span>
+            <span className="hidden sm:inline">{t('selected', { count: selectedCount })}</span>
           </>
         )}
       </span>
@@ -125,7 +132,7 @@ export function BulkActionToolbar({
           className="h-8 px-0 text-xs shrink-0 hidden sm:inline-flex"
           onClick={onSelectAllMatching}
         >
-          Select all {totalItems} matching
+          {t('bulkActions.selectAllMatching', { count: totalItems })}
         </Button>
       )}
 
@@ -136,7 +143,7 @@ export function BulkActionToolbar({
             size="icon"
             onClick={onClear}
             className="text-muted-foreground h-8 w-8 shrink-0"
-            aria-label="Clear selection"
+            aria-label={t('bulkActions.clearSelection')}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -148,7 +155,7 @@ export function BulkActionToolbar({
               className="h-8 w-8 shrink-0"
               onClick={onReanalyze}
               disabled={isReanalyzing}
-              aria-label="Re-analyze"
+              aria-label={t('bulkActions.reanalyze')}
             >
               {isReanalyzing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -159,7 +166,7 @@ export function BulkActionToolbar({
           )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="icon" className="h-8 w-8 shrink-0" disabled={isDeleting} aria-label="Delete">
+              <Button variant="destructive" size="icon" className="h-8 w-8 shrink-0" disabled={isDeleting} aria-label={t('delete')}>
                 {isDeleting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -170,22 +177,21 @@ export function BulkActionToolbar({
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  Delete {selection.mode === 'all' && selection.excludedIds.size === 0
-                    ? `all ${totalItems}`
-                    : selectedCount} {itemLabel}?
+                  {selection.mode === 'all' && selection.excludedIds.size === 0
+                    ? tDelete('bulkDelete.confirmTitleAll', { count: totalItems })
+                    : tDelete('bulkDelete.confirmTitle', { count: selectedCount })}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete the selected {itemLabel}{deleteWarningSuffix}.
-                  This action cannot be undone.
+                  {tDelete('bulkDelete.confirmDescription')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={onDelete}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Delete
+                  {t('delete')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -204,7 +210,7 @@ export function BulkActionToolbar({
               className="h-8 w-8 hidden sm:flex"
               disabled={page === 1}
               onClick={() => onPageChange(1)}
-              aria-label="First page"
+              aria-label={t('firstPage')}
             >
               <ChevronsLeft className="h-4 w-4" />
             </Button>
@@ -214,7 +220,7 @@ export function BulkActionToolbar({
               className="h-8 w-8"
               disabled={page === 1}
               onClick={() => onPageChange(page - 1)}
-              aria-label="Previous page"
+              aria-label={t('previousPage')}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -227,7 +233,7 @@ export function BulkActionToolbar({
               className="h-8 w-8"
               disabled={page >= totalPages}
               onClick={() => onPageChange(page + 1)}
-              aria-label="Next page"
+              aria-label={t('nextPage')}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -237,7 +243,7 @@ export function BulkActionToolbar({
               className="h-8 w-8 hidden sm:flex"
               disabled={page >= totalPages}
               onClick={() => onPageChange(totalPages)}
-              aria-label="Last page"
+              aria-label={t('lastPage')}
             >
               <ChevronsRight className="h-4 w-4" />
             </Button>

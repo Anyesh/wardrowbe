@@ -1,0 +1,148 @@
+{
+  "account": {
+    "description": "プロフィール情報",
+    "email": "メールアドレス",
+    "name": "名前",
+    "title": "アカウント"
+  },
+  "aiEndpoints": {
+    "active": "有効",
+    "addEndpoint": "エンドポイントを追加",
+    "connected": "接続済み",
+    "description": "画像解析用のAIエンドポイントを設定します。エンドポイントは上から順に試行されます。",
+    "disabled": "無効",
+    "error": "エラー",
+    "fields": {
+      "name": "名前",
+      "textModel": "テキストモデル",
+      "url": "URL",
+      "visionModel": "ビジョンモデル"
+    },
+    "modelsAvailable": "{count, plural, one {{count} 個のモデルが利用可能} other {{count} 個のモデルが利用可能}}",
+    "noEndpoints": "カスタムエンドポイントは未設定です。デフォルトのサーバー設定を使用します。",
+    "placeholders": {
+      "name": "例：Local Ollama"
+    },
+    "testConnection": "接続テスト",
+    "testFailed": "エンドポイントのテストに失敗しました",
+    "textModels": "テキスト：{models}",
+    "title": "AIエンドポイント",
+    "visionModels": "ビジョン：{models}"
+  },
+  "body": {
+    "bodyLabel": "ボディ",
+    "description": "AIが体型に合ったコーデを提案できるようになります",
+    "errors": {
+      "positiveNumber": "{field}は正の数で入力してください"
+    },
+    "fields": {
+      "chest": "胸囲",
+      "height": "身長",
+      "hips": "ヒップ",
+      "inseam": "股下",
+      "waist": "ウエスト",
+      "weight": "体重"
+    },
+    "imperial": "ヤードポンド法（in/lbs）",
+    "metric": "メートル法（cm/kg）",
+    "saveError": "測定値の保存に失敗しました",
+    "saveMeasurements": "測定値を保存",
+    "saved": "測定値を保存しました",
+    "sizeFields": {
+      "dressSize": "ドレスサイズ",
+      "pantsSize": "パンツサイズ",
+      "shirtSize": "シャツサイズ",
+      "shoeSize": "靴サイズ"
+    },
+    "sizePlaceholders": {
+      "dress_size": "例：8、10",
+      "pants_size": "例：32、34",
+      "shirt_size": "例：M、L、XL",
+      "shoe_size": "例：10、42"
+    },
+    "sizesLabel": "サイズ",
+    "title": "ボディ測定",
+    "unitSystem": "単位系"
+  },
+  "colors": {
+    "colorsToAvoid": "避けたい色",
+    "description": "おすすめで好きな色と避けたい色を選択してください",
+    "favoriteColors": "好きな色"
+  },
+  "confirmReset": "すべての設定をデフォルトに戻してもよろしいですか？",
+  "location": {
+    "approximateDetected": "おおよその位置情報を入力しました。確認して保存してください。",
+    "approximateDetectedWithReason": "{reason} おおよその位置情報を入力しました。確認して保存してください。",
+    "cityLabel": "市区町村・地名（任意）",
+    "cityPlaceholder": "例：東京都渋谷区",
+    "description": "天気に基づくコーデのおすすめのために位置情報を設定します",
+    "detected": "位置情報を検出しました。確認して保存してください。",
+    "errors": {
+      "geolocationDenied": "位置情報へのアクセスが拒否されました。",
+      "geolocationFailed": "正確な位置情報の取得に失敗しました：{message}",
+      "geolocationFailedGeneric": "正確な位置情報の取得に失敗しました。",
+      "geolocationTimeout": "位置情報のリクエストがタイムアウトしました。",
+      "geolocationUnavailable": "現在、位置情報を利用できません。",
+      "geolocationUnsupported": "お使いのブラウザは位置情報に対応していません。",
+      "invalidCoordinates": "有効な緯度と経度を入力してください",
+      "latitudeRange": "緯度は-90から90の間で入力してください",
+      "longitudeRange": "経度は-180から180の間で入力してください",
+      "networkLookupFailed": "ネットワークによる位置情報の取得に失敗しました（{status}）",
+      "saveFailed": "位置情報の保存に失敗しました。もう一度お試しください。",
+      "unableToDetect": "位置情報を検出できませんでした。"
+    },
+    "latitude": "緯度",
+    "longitude": "経度",
+    "required": "天気に基づくコーデのおすすめには位置情報が必要です。",
+    "saveLocation": "位置情報を保存",
+    "saved": "位置情報とタイムゾーンを保存しました",
+    "selectTimezone": "タイムゾーンを選択",
+    "timezone": "タイムゾーン",
+    "title": "位置情報",
+    "useMyLocation": "現在地を使用"
+  },
+  "recommendations": {
+    "avoidRepeatDays": "同じアイテムを避ける期間（日）",
+    "defaultOccasion": "デフォルトのシーン",
+    "description": "コーデのおすすめの生成方法をカスタマイズします",
+    "no": "いいえ",
+    "preferUnderused": "あまり着ていないアイテムを優先",
+    "title": "おすすめ設定",
+    "varietyLevel": "バリエーションの度合い",
+    "varietyOptions": {
+      "high": "高（新しい組み合わせを試す）",
+      "low": "低（お気に入り中心）",
+      "moderate": "中"
+    },
+    "yes": "はい"
+  },
+  "reset": "リセット",
+  "styleProfile": {
+    "description": "コーデのおすすめで各スタイルをどれくらい好むか調整します",
+    "title": "スタイルプロフィール"
+  },
+  "subtitle": "好み設定とアカウント設定を管理",
+  "temperature": {
+    "celsius": "摂氏",
+    "coldThreshold": "寒いと感じる基準（{unit}）",
+    "description": "天気に応じたおすすめの調整方法を設定します",
+    "fahrenheit": "華氏",
+    "hotThreshold": "暑いと感じる基準（{unit}）",
+    "layering": "重ね着の好み",
+    "layeringOptions": {
+      "heavy": "しっかり重ね着",
+      "minimal": "重ね着は最小限",
+      "moderate": "ほどよく重ね着"
+    },
+    "sensitivity": "温度感覚",
+    "sensitivityOptions": {
+      "high": "寒がり",
+      "low": "暑がり",
+      "normal": "普通"
+    },
+    "title": "気温と快適さ",
+    "unit": "温度単位"
+  },
+  "title": "設定",
+  "unsavedChanges": "保存されていない変更があります。このページを離れますか？"
+}

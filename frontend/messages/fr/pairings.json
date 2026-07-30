@@ -1,0 +1,34 @@
+{
+  "allItemTypes": "Tous les types d'articles",
+  "card": {
+    "badge": "Combinaison",
+    "builtAround": "Construit autour de :",
+    "deleteError": "Échec de la suppression de la combinaison",
+    "deleted": "Combinaison supprimée",
+    "rateThisPairing": "Noter cette combinaison",
+    "tip": "Conseil :",
+    "updateRating": "Mettre à jour la note"
+  },
+  "empty": {
+    "description": "Sélectionnez un article de votre garde-robe et utilisez « Trouver des combinaisons » pour découvrir des tenues qui fonctionnent bien ensemble.",
+    "goToWardrobe": "Aller à la garde-robe",
+    "title": "Aucune combinaison pour le moment"
+  },
+  "generate": {
+    "description": "L'IA créera des tenues complètes avec cet article",
+    "failed": "Échec de la génération des combinaisons",
+    "generate": "Générer des tenues",
+    "generating": "Génération en cours...",
+    "numOutfits": "Nombre de tenues",
+    "numOutfitsDesc": "Plus de tenues = plus de variété, mais la génération est plus longue",
+    "success": "{count, plural, one {{count} tenue créée !} other {{count} tenues créées !}}",
+    "successDesc": "Consultez-les dans la section Combinaisons",
+    "title": "Trouver des tenues assorties",
+    "viewPairings": "Voir les combinaisons"
+  },
+  "itemTypeOption": "{type} ({count})",
+  "loadError": "Échec du chargement des combinaisons. Veuillez réessayer.",
+  "pairingCount": "{count, plural, one {{count} combinaison} other {{count} combinaisons}}",
+  "subtitle": "Combinaisons de tenues générées par l'IA autour de vos articles",
+  "title": "Combinaisons"
+}

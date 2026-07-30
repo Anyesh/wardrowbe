@@ -1,0 +1,47 @@
+{
+  "card": {
+    "accept": "Accetta",
+    "acceptFailed": "Accettazione outfit fallita",
+    "didntWearThis": "Non indossato",
+    "dismiss": "Ignora",
+    "dismissFailed": "Impossibile ignorare l’outfit",
+    "familyLabel": "Famiglia:",
+    "itemFallback": "Capo",
+    "outfitAccepted": "Outfit accettato",
+    "outfitDismissed": "Outfit ignorato",
+    "rate": "Valuta",
+    "tip": "Suggerimento:",
+    "update": "Aggiorna",
+    "viewItemDetails": "Vedi dettagli capo",
+    "woreInstead": "Indossato invece:"
+  },
+  "empty": {
+    "description": "La cronologia dei suggerimenti di outfit apparirà qui una volta che inizierai a ricevere suggerimenti.",
+    "getFirstSuggestion": "Ottieni il tuo primo suggerimento",
+    "title": "Nessuna cronologia dei suggerimenti"
+  },
+  "filters": {
+    "allOccasions": "Tutte le occasioni",
+    "allStatus": "Tutti gli stati",
+    "workout": "Allenamento"
+  },
+  "loadError": "Caricamento cronologia fallito. Riprova.",
+  "noOutfitsForDate": "Nessun outfit per {date}",
+  "outfitCount": "{count, plural, one {# outfit} other {# outfit}}",
+  "sourceBadges": {
+    "manual": "Manuale",
+    "onDemand": "Su richiesta",
+    "pairing": "Abbinamento",
+    "scheduled": "Programmato"
+  },
+  "status": {
+    "accepted": "accettati",
+    "expired": "Scaduti",
+    "pending": "In attesa",
+    "rejected": "Rifiutati",
+    "sent": "Inviati",
+    "viewed": "Visualizzati"
+  },
+  "subtitle": "Visualizza i tuoi suggerimenti di outfit passati",
+  "title": "Cronologia"
+}

@@ -1,0 +1,148 @@
+{
+  "account": {
+    "description": "你的個人資料",
+    "email": "電子郵件",
+    "name": "名稱",
+    "title": "帳號"
+  },
+  "aiEndpoints": {
+    "active": "使用中",
+    "addEndpoint": "新增端點",
+    "connected": "已連線",
+    "description": "設定用於圖片分析的 AI 端點。端點會由上而下依序嘗試。",
+    "disabled": "已停用",
+    "error": "錯誤",
+    "fields": {
+      "name": "名稱",
+      "textModel": "文字模型",
+      "url": "URL",
+      "visionModel": "視覺模型"
+    },
+    "modelsAvailable": "{count, plural, one {{count} 個可用模型} other {{count} 個可用模型}}",
+    "noEndpoints": "尚未設定自訂端點。使用預設的伺服器設定。",
+    "placeholders": {
+      "name": "例如：本機 Ollama"
+    },
+    "testConnection": "測試連線",
+    "testFailed": "測試端點失敗",
+    "textModels": "文字：{models}",
+    "title": "AI 端點",
+    "visionModels": "視覺：{models}"
+  },
+  "body": {
+    "bodyLabel": "身體",
+    "description": "幫助 AI 推薦更合身的穿搭",
+    "errors": {
+      "positiveNumber": "{field}必須是正數"
+    },
+    "fields": {
+      "chest": "胸圍",
+      "height": "身高",
+      "hips": "臀圍",
+      "inseam": "內縫",
+      "waist": "腰圍",
+      "weight": "體重"
+    },
+    "imperial": "英制（in/lbs）",
+    "metric": "公制（cm/kg）",
+    "saveError": "儲存測量數值失敗",
+    "saveMeasurements": "儲存測量數值",
+    "saved": "測量數值已儲存",
+    "sizeFields": {
+      "dressSize": "洋裝尺碼",
+      "pantsSize": "褲子尺碼",
+      "shirtSize": "襯衫尺碼",
+      "shoeSize": "鞋碼"
+    },
+    "sizePlaceholders": {
+      "dress_size": "例如 8、10",
+      "pants_size": "例如 32、34",
+      "shirt_size": "例如 M、L、XL",
+      "shoe_size": "例如 10、42"
+    },
+    "sizesLabel": "尺碼",
+    "title": "身體測量",
+    "unitSystem": "單位制"
+  },
+  "colors": {
+    "colorsToAvoid": "避免的顏色",
+    "description": "選擇你喜愛的顏色，以及推薦中要避免的顏色",
+    "favoriteColors": "喜愛的顏色"
+  },
+  "confirmReset": "確定要將所有偏好重設為預設值嗎？",
+  "location": {
+    "approximateDetected": "已填入大致位置。請確認後儲存。",
+    "approximateDetectedWithReason": "{reason} 已填入大致位置。請確認後儲存。",
+    "cityLabel": "城市/地點名稱（選填）",
+    "cityPlaceholder": "例如：英國倫敦",
+    "description": "設定你的位置，以取得以天氣為依據的穿搭推薦",
+    "detected": "已偵測到位置。請確認後儲存。",
+    "errors": {
+      "geolocationDenied": "位置存取被拒絕。",
+      "geolocationFailed": "取得精確位置失敗：{message}",
+      "geolocationFailedGeneric": "取得精確位置失敗。",
+      "geolocationTimeout": "位置請求逾時。",
+      "geolocationUnavailable": "目前無法取得位置。",
+      "geolocationUnsupported": "你的瀏覽器不支援地理定位。",
+      "invalidCoordinates": "請輸入有效的緯度與經度值",
+      "latitudeRange": "緯度必須介於 -90 到 90 之間",
+      "longitudeRange": "經度必須介於 -180 到 180 之間",
+      "networkLookupFailed": "透過網路查詢位置失敗（{status}）",
+      "saveFailed": "儲存位置失敗，請重試。",
+      "unableToDetect": "無法偵測你的位置。"
+    },
+    "latitude": "緯度",
+    "longitude": "經度",
+    "required": "以天氣為依據的穿搭推薦需要設定位置。",
+    "saveLocation": "儲存位置",
+    "saved": "位置與時區已儲存",
+    "selectTimezone": "選擇時區",
+    "timezone": "時區",
+    "title": "位置",
+    "useMyLocation": "使用我的位置"
+  },
+  "recommendations": {
+    "avoidRepeatDays": "避免重複單品的間隔天數",
+    "defaultOccasion": "預設場合",
+    "description": "自訂穿搭推薦的產生方式",
+    "no": "否",
+    "preferUnderused": "優先使用低頻單品",
+    "title": "推薦設定",
+    "varietyLevel": "多樣程度",
+    "varietyOptions": {
+      "high": "高（嘗試新組合）",
+      "low": "低（維持既有偏好）",
+      "moderate": "中等"
+    },
+    "yes": "是"
+  },
+  "reset": "重設",
+  "styleProfile": {
+    "description": "調整穿搭推薦中每種風格的偏好程度",
+    "title": "風格檔案"
+  },
+  "subtitle": "管理你的偏好與帳號設定",
+  "temperature": {
+    "celsius": "攝氏",
+    "coldThreshold": "低溫門檻（{unit}）",
+    "description": "調整推薦如何因應天氣",
+    "fahrenheit": "華氏",
+    "hotThreshold": "高溫門檻（{unit}）",
+    "layering": "層次偏好",
+    "layeringOptions": {
+      "heavy": "大量層次",
+      "minimal": "少量層次",
+      "moderate": "適量層次"
+    },
+    "sensitivity": "溫度敏感度",
+    "sensitivityOptions": {
+      "high": "我容易覺得冷",
+      "low": "我容易覺得熱",
+      "normal": "正常"
+    },
+    "title": "溫度與舒適度",
+    "unit": "溫度單位"
+  },
+  "title": "設定",
+  "unsavedChanges": "你有未儲存的變更。確定要離開此頁面？"
+}

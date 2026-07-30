@@ -1,0 +1,66 @@
+{
+  "familyFeed": {
+    "browse": "Familien-Outfits durchstöbern",
+    "description": "Schau, was deine Familie trägt, und bewerte ihre Outfits",
+    "memberCount": "{count, plural, one {{count} Mitglied in {name}} other {{count} Mitglieder in {name}}}",
+    "title": "Familien-Outfits"
+  },
+  "insights": {
+    "empty": "Füge mehr Kleidungsstücke hinzu und erstelle Outfits, um personalisierte Einblicke zu erhalten!",
+    "title": "Einblicke"
+  },
+  "layout": {
+    "loading": "Dein Kleiderschrank wird geladen..."
+  },
+  "nextScheduled": {
+    "comingUp": "Demnächst",
+    "dayAtTime": "{day} um {time}",
+    "noSchedules": "Keine Zeitpläne eingerichtet",
+    "occasionOutfit": "{occasion}-Outfit",
+    "setUpSchedule": "Zeitplan einrichten",
+    "title": "Nächster Zeitplan",
+    "today": "Heute",
+    "tomorrow": "Morgen"
+  },
+  "notifications": {
+    "activeCount": "{active} von {total} aktiv",
+    "addChannel": "Kanal hinzufügen",
+    "configure": "Konfigurieren",
+    "noChannels": "Keine Kanäle konfiguriert",
+    "title": "Benachrichtigungen"
+  },
+  "pendingOutfits": {
+    "acceptFailed": "Outfit konnte nicht angenommen werden",
+    "accepted": "Outfit angenommen",
+    "allCaughtUp": "Alles erledigt",
+    "dismissFailed": "Outfit konnte nicht verworfen werden",
+    "dismissLabel": "Outfit verwerfen",
+    "dismissed": "Outfit verworfen",
+    "lookbook": "Lookbook",
+    "noPending": "Keine Outfits warten auf deine Antwort",
+    "title": "Ausstehende Outfits"
+  },
+  "quickActions": {
+    "addNewItem": "Neues Stück hinzufügen",
+    "description": "Häufige Aktionen für den Einstieg",
+    "getOutfitSuggestion": "Outfit-Vorschlag erhalten",
+    "title": "Schnellzugriff"
+  },
+  "subtitle": "Hier siehst du, was in deinem Kleiderschrank passiert",
+  "userFallback": "Benutzer",
+  "weather": {
+    "feelsLike": "gefühlt {temp}",
+    "getOutfitSuggestion": "Outfit-Vorschlag erhalten",
+    "locationNotSet": "Standort nicht festgelegt",
+    "rainChance": "{percent} % Regenwahrscheinlichkeit",
+    "setLocation": "Standort festlegen",
+    "title": "Heutiges Wetter"
+  },
+  "weeklySummary": {
+    "accepted": "angenommen",
+    "avgRatingValue": "Ø Bewertung: {rating}/5",
+    "outfits": "Outfits",
+    "title": "Diese Woche"
+  },
+  "welcomeBack": "Willkommen zurück, {name}"
+}

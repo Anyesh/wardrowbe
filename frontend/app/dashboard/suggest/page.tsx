@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import {
   Briefcase,
   Shirt,
@@ -42,11 +43,20 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { api, ApiError, setAccessToken } from '@/lib/api';
-import { OCCASIONS, Outfit, SuggestRequest } from '@/lib/types';
+import { Outfit, SuggestRequest } from '@/lib/types';
+import { useOccasions } from '@/lib/hooks/use-translated-constants';
 import { useWeather, Weather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
 import { cn } from '@/lib/utils';
 import { TempUnit, formatTemp, displayValue, toF, toCelsius } from '@/lib/temperature';
+
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+const OVERRIDE_CONDITION_KEYS: Record<string, string> = {
+  sunny: 'clear',
+  cloudy: 'cloudy',
+  rainy: 'rain',
+};
 
 // Map occasion values to icons and colors
 const OCCASION_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
@@ -69,25 +79,25 @@ function getWeatherIcon(condition: string, isDay: boolean) {
   return isDay ? <Sun className="h-8 w-8" /> : <Cloud className="h-8 w-8" />;
 }
 
-// Get time-based greeting
-function getGreeting() {
+// Get time-based greeting key
+function getGreetingKey(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return 'greeting.morning';
+  if (hour < 17) return 'greeting.afternoon';
+  return 'greeting.evening';
 }
 
-// Get weather-based outfit hint
-function getWeatherHint(weather: Weather): string {
+// Get weather-based outfit hint key
+function getWeatherHintKey(weather: Weather): string {
   const temp = weather.temperature;
   const condition = weather.condition.toLowerCase();
 
-  if (weather.precipitation_chance > 50) return 'Bring an umbrella or rain jacket';
-  if (temp < 10) return 'Layer up - it\'s quite cold';
-  if (temp < 18) return 'A light jacket would be perfect';
-  if (temp > 28) return 'Keep it light and breathable';
-  if (condition.includes('wind')) return 'Consider something windproof';
-  return 'Great weather for any style';
+  if (weather.precipitation_chance > 50) return 'weatherHints.rainy';
+  if (temp < 10) return 'weatherHints.cold';
+  if (temp < 18) return 'weatherHints.mild';
+  if (temp > 28) return 'weatherHints.hot';
+  if (condition.includes('wind')) return 'weatherHints.windy';
+  return 'weatherHints.nice';
 }
 
 interface WeatherOverride {
@@ -95,7 +105,7 @@ interface WeatherOverride {
   condition: 'sunny' | 'cloudy' | 'rainy';
 }
 
-function WeatherCard({ weather, isLoading, temperatureUnit }: { weather?: Weather; isLoading: boolean; temperatureUnit: TempUnit }) {
+function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: Weather; isLoading: boolean; temperatureUnit: TempUnit; t: Translator }) {
   if (isLoading) {
     return (
       <Card className="border-muted">
@@ -121,9 +131,9 @@ function WeatherCard({ weather, isLoading, temperatureUnit }: { weather?: Weathe
               <MapPin className="h-6 w-6 text-muted-foreground" />
             </div>
             <div>
-              <p className="font-medium">Location not set</p>
+              <p className="font-medium">{t('location.notSet')}</p>
               <p className="text-sm text-muted-foreground">
-                Set your location in settings for weather-aware suggestions
+                {t('location.setDescription')}
               </p>
             </div>
           </div>
@@ -151,21 +161,21 @@ function WeatherCard({ weather, isLoading, temperatureUnit }: { weather?: Weathe
           <div className="text-right text-sm text-muted-foreground space-y-1">
             <div className="flex items-center gap-1.5 justify-end">
               <Thermometer className="h-3.5 w-3.5" />
-              <span>Feels {displayValue(weather.feels_like, temperatureUnit)}°</span>
+              <span>{t('weather.feelsLike', { temp: displayValue(weather.feels_like, temperatureUnit) })}</span>
             </div>
             <div className="flex items-center gap-1.5 justify-end">
               <Droplets className="h-3.5 w-3.5" />
-              <span>{weather.precipitation_chance}% rain</span>
+              <span>{t('weather.rainChance', { chance: weather.precipitation_chance })}</span>
             </div>
             <div className="flex items-center gap-1.5 justify-end">
               <Wind className="h-3.5 w-3.5" />
-              <span>{Math.round(weather.wind_speed)} km/h</span>
+              <span>{t('weather.windSpeed', { speed: Math.round(weather.wind_speed) })}</span>
             </div>
           </div>
         </div>
         <div className="mt-4 pt-4 border-t">
           <p className="text-sm text-muted-foreground">
-            {getWeatherHint(weather)}
+            {t(getWeatherHintKey(weather))}
           </p>
         </div>
       </CardContent>
@@ -180,9 +190,10 @@ function OccasionChips({
   selected: string | null;
   onSelect: (occasion: string) => void;
 }) {
+  const occasions = useOccasions();
   return (
     <div className="flex flex-wrap gap-2">
-      {OCCASIONS.map((occasion) => {
+      {occasions.map((occasion) => {
         const config = OCCASION_CONFIG[occasion.value];
         return (
           <button
@@ -209,16 +220,19 @@ function WeatherOverrideSection({
   weather,
   onChange,
   temperatureUnit,
+  t,
 }: {
   weather: WeatherOverride | null;
   onChange: (weather: WeatherOverride | null) => void;
   temperatureUnit: TempUnit;
+  t: Translator;
 }) {
+  const tc = useTranslations('constants.weatherConditions');
   const [isOpen, setIsOpen] = useState(false);
   const conditions = [
-    { value: 'sunny', icon: <Sun className="h-4 w-4" />, label: 'Sunny' },
-    { value: 'cloudy', icon: <Cloud className="h-4 w-4" />, label: 'Cloudy' },
-    { value: 'rainy', icon: <CloudRain className="h-4 w-4" />, label: 'Rainy' },
+    { value: 'sunny', icon: <Sun className="h-4 w-4" /> },
+    { value: 'cloudy', icon: <Cloud className="h-4 w-4" /> },
+    { value: 'rainy', icon: <CloudRain className="h-4 w-4" /> },
   ] as const;
 
   return (
@@ -226,10 +240,10 @@ function WeatherOverrideSection({
       <CollapsibleTrigger asChild>
         <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ChevronDown className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-180')} />
-          <span>{weather ? 'Weather override active' : 'Override weather'}</span>
+          <span>{weather ? t('weatherOverride.active') : t('weatherOverride.overrideWeather')}</span>
           {weather && (
             <Badge variant="secondary" className="text-xs">
-              {weather.condition} {formatTemp(weather.temperature, temperatureUnit)}
+              {tc(OVERRIDE_CONDITION_KEYS[weather.condition])} {formatTemp(weather.temperature, temperatureUnit)}
             </Badge>
           )}
         </button>
@@ -237,10 +251,10 @@ function WeatherOverrideSection({
       <CollapsibleContent className="pt-4">
         <div className="space-y-4 p-4 rounded-lg bg-muted/50">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Condition</span>
+            <span className="text-sm font-medium">{t('weatherOverride.condition')}</span>
             {weather && (
               <Button variant="ghost" size="sm" onClick={() => onChange(null)}>
-                Reset
+                {t('weatherOverride.reset')}
               </Button>
             )}
           </div>
@@ -262,13 +276,13 @@ function WeatherOverrideSection({
                 )}
               >
                 {c.icon}
-                <span className="text-sm">{c.label}</span>
+                <span className="text-sm">{tc(OVERRIDE_CONDITION_KEYS[c.value])}</span>
               </button>
             ))}
           </div>
           {weather && (
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">Temperature</span>
+              <span className="text-sm text-muted-foreground">{t('weatherOverride.temperature')}</span>
               <input
                 type="range"
                 min={temperatureUnit === 'fahrenheit' ? 14 : -10}
@@ -297,6 +311,7 @@ function OutfitResult({
   onReject,
   onTryAnother,
   onNewRequest,
+  t,
 }: {
   outfit: Outfit;
   occasion: string;
@@ -305,6 +320,7 @@ function OutfitResult({
   onReject: () => void;
   onTryAnother: () => void;
   onNewRequest: () => void;
+  t: Translator;
 }) {
   return (
     <div className="space-y-6">
@@ -322,7 +338,7 @@ function OutfitResult({
           )}
         </div>
         <Button variant="ghost" size="sm" onClick={onNewRequest}>
-          Start over
+          {t('startOver')}
         </Button>
       </div>
 
@@ -332,11 +348,11 @@ function OutfitResult({
           <div className="flex items-center gap-1.5">
             <Thermometer className="h-4 w-4" />
             <span>{formatTemp(outfit.weather.temperature, temperatureUnit)}</span>
-            <span className="text-xs opacity-70">(feels {displayValue(outfit.weather.feels_like, temperatureUnit)}°)</span>
+            <span className="text-xs opacity-70">{t('weather.feelsLikeInline', { temp: displayValue(outfit.weather.feels_like, temperatureUnit) })}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Droplets className="h-4 w-4" />
-            <span>{outfit.weather.precipitation_chance}% rain</span>
+            <span>{t('weather.rainChance', { chance: outfit.weather.precipitation_chance })}</span>
           </div>
           <Badge variant="outline" className="capitalize">
             {outfit.weather.condition}
@@ -349,7 +365,7 @@ function OutfitResult({
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 border-b">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Your Outfit</h3>
+            <h3 className="font-semibold">{t('yourOutfit')}</h3>
           </div>
           {outfit.reasoning && (
             <p className="mt-2 text-base font-medium text-foreground">{outfit.reasoning}</p>
@@ -405,7 +421,7 @@ function OutfitResult({
           {outfit.style_notes && (
             <div className="mt-4 p-3 bg-muted rounded-lg border">
               <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">Tip:</span> {outfit.style_notes}
+                <span className="font-medium text-foreground">{t('tip')}</span> {outfit.style_notes}
               </p>
             </div>
           )}
@@ -416,13 +432,13 @@ function OutfitResult({
       <div className="flex gap-3 justify-center">
         <Button variant="outline" size="lg" onClick={onTryAnother} className="gap-2">
           <RefreshCw className="h-4 w-4" />
-          Try Another
+          {t('tryAnother')}
         </Button>
         <Button size="lg" onClick={onAccept} className="gap-2">
           <ThumbsUp className="h-4 w-4" />
-          Love it
+          {t('loveIt')}
         </Button>
-        <Button variant="ghost" size="lg" onClick={onReject} className="px-3" aria-label="Dismiss outfit">
+        <Button variant="ghost" size="lg" onClick={onReject} className="px-3" aria-label={t('dismissOutfit')}>
           <ThumbsDown className="h-4 w-4" />
         </Button>
       </div>
@@ -431,6 +447,7 @@ function OutfitResult({
 }
 
 export default function SuggestPage() {
+  const t = useTranslations('suggest');
   const { data: session } = useSession();
   const { data: weather, isLoading: weatherLoading } = useWeather();
   const { data: prefs } = usePreferences();
@@ -480,7 +497,7 @@ export default function SuggestPage() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError('Failed to generate outfit suggestion. Please try again.');
+        setError(t('error'));
       }
       console.error('Suggestion error:', err);
     } finally {
@@ -536,9 +553,9 @@ export default function SuggestPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Page header with greeting */}
       <div className="text-center space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">{getGreeting()}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t(getGreetingKey())}</h1>
         <p className="text-muted-foreground">
-          Let&apos;s find the perfect outfit for your day
+          {t('subtitle')}
         </p>
       </div>
 
@@ -552,14 +569,14 @@ export default function SuggestPage() {
       {!outfit ? (
         <div className="space-y-6">
           {/* Weather context */}
-          <WeatherCard weather={weather} isLoading={weatherLoading} temperatureUnit={temperatureUnit} />
+          <WeatherCard weather={weather} isLoading={weatherLoading} temperatureUnit={temperatureUnit} t={t} />
 
           {/* Main selection card */}
           <Card>
             <CardContent className="p-6 space-y-6">
               {/* Occasion selection */}
               <div className="space-y-3">
-                <h2 className="font-semibold">What&apos;s the occasion?</h2>
+                <h2 className="font-semibold">{t('occasionPrompt')}</h2>
                 <OccasionChips
                   selected={selectedOccasion}
                   onSelect={setSelectedOccasion}
@@ -571,6 +588,7 @@ export default function SuggestPage() {
                 weather={weatherOverride}
                 onChange={setWeatherOverride}
                 temperatureUnit={temperatureUnit}
+                t={t}
               />
 
               {/* Generate button */}
@@ -584,12 +602,12 @@ export default function SuggestPage() {
                   {isGenerating ? (
                     <>
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      Creating your look...
+                      {t('generating')}
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-5 w-5" />
-                      Get Suggestion
+                      {t('getSuggestion')}
                     </>
                   )}
                 </Button>
@@ -606,6 +624,7 @@ export default function SuggestPage() {
           onReject={handleReject}
           onTryAnother={handleTryAnother}
           onNewRequest={handleNewRequest}
+          t={t}
         />
       )}
     </div>
