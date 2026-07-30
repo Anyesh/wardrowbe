@@ -103,7 +103,7 @@
   },
   "recommendations": {
     "avoidRepeatDays": "반복 착용 제한 기간 (일)",
-    "defaultOccasion": "Default occasion",
+    "defaultOccasion": "기본 상황",
     "description": "코디 추천이 만들어지는 방식을 조정하세요",
     "no": "아니요",
     "preferUnderused": "덜 입은 아이템 우선",

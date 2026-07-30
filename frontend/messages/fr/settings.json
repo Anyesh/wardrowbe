@@ -103,7 +103,7 @@
   },
   "recommendations": {
     "avoidRepeatDays": "Éviter les répétitions d'articles dans (jours)",
-    "defaultOccasion": "Default occasion",
+    "defaultOccasion": "Occasion par défaut",
     "description": "Personnalisez la façon dont les recommandations de tenues sont générées",
     "no": "Non",
     "preferUnderused": "Préférer les articles sous-utilisés",

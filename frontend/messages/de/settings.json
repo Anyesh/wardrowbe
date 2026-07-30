@@ -103,7 +103,7 @@
   },
   "recommendations": {
     "avoidRepeatDays": "Wiederholungen vermeiden für (Tage)",
-    "defaultOccasion": "Default occasion",
+    "defaultOccasion": "Standardanlass",
     "description": "Passe an, wie Outfit-Empfehlungen erstellt werden",
     "no": "Nein",
     "preferUnderused": "Selten getragene Stücke bevorzugen",

@@ -103,7 +103,7 @@
   },
   "recommendations": {
     "avoidRepeatDays": "同じアイテムを避ける期間（日）",
-    "defaultOccasion": "Default occasion",
+    "defaultOccasion": "デフォルトのシーン",
     "description": "コーデのおすすめの生成方法をカスタマイズします",
     "no": "いいえ",
     "preferUnderused": "あまり着ていないアイテムを優先",

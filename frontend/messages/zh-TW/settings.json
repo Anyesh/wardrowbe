@@ -103,7 +103,7 @@
   },
   "recommendations": {
     "avoidRepeatDays": "避免重複單品的間隔天數",
-    "defaultOccasion": "Default occasion",
+    "defaultOccasion": "預設場合",
     "description": "自訂穿搭推薦的產生方式",
     "no": "否",
     "preferUnderused": "優先使用低頻單品",
