@@ -519,6 +519,48 @@ async def test_generated_pairing_survives_source_item_deletion(
     assert str(outfit_id) in [p["id"] for p in listed.json()["pairings"]]
 
 
+# --- Suggestion write-path side effects --------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_suggestion_clears_cached_suggestions(
+    client: AsyncClient, test_user, auth_headers, db_session: AsyncSession, monkeypatch
+):
+    shirt, jeans = await _make_wardrobe(db_session, test_user, ["shirt", "jeans"])
+    cleared: list[tuple] = []
+
+    async def fake_clear(user_id, occasion):
+        cleared.append((user_id, occasion))
+
+    monkeypatch.setattr("app.api.outfits.clear_suggestions", fake_clear)
+
+    resp = await client.post(
+        "/api/v1/outfits/suggestions",
+        json={"items": [str(shirt.id), str(jeans.id)], "occasion": "office"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201, resp.text
+    assert cleared == [(test_user.id, "office")]
+
+
+@pytest.mark.asyncio
+async def test_create_suggestion_lands_unrated(
+    client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+):
+    # Unlike the studio path, authoring must not synthesize accepted feedback: the user has not
+    # seen the outfit yet, so learning has nothing to score until they accept or rate it.
+    shirt, jeans = await _make_wardrobe(db_session, test_user, ["shirt", "jeans"])
+
+    resp = await client.post(
+        "/api/v1/outfits/suggestions",
+        json={"items": [str(shirt.id), str(jeans.id)], "occasion": "casual"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["status"] == "pending"
+    assert resp.json()["feedback"] is None
+
+
 # --- POST /outfits/studio ----------------------------------------------------
 
 

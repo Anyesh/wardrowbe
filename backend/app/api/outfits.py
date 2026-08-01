@@ -557,6 +557,10 @@ async def create_external_suggestion(
         ) from None
 
     await db.commit()
+    # No learning pass here, unlike the studio path: that one synthesizes accepted feedback, while
+    # an authored suggestion lands pending and unrated, so process_feedback would return early.
+    # Learning fires when the user actually accepts or rates it.
+    await clear_suggestions(current_user.id, request.occasion)
 
     full = await service.get_full_outfit(outfit.id)
     return outfit_to_response(full)
