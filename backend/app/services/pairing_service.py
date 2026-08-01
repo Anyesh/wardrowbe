@@ -19,12 +19,16 @@ logger = logging.getLogger(__name__)
 
 PAIRING_PROMPT_TEMPLATE = load_prompt("item_pairing")
 
-# A pairing is an internally-generated row, or an externally-authored one still
-# anchored to its source item (external rows without one are suggestions).
-# Internal rows stay pairings even after their source item is deleted (SET NULL).
+# A pairing is an internally-generated row, or an externally-authored one carrying the
+# server-set "pairing" occasion (external rows with any other occasion are suggestions).
+# Keyed on occasion rather than source_item_id because that column is ON DELETE SET NULL:
+# hard-deleting the source item must not silently reclassify the row as a suggestion.
+# "pairing" is absent from VALID_OCCASIONS, so an authoring client cannot forge it.
+PAIRING_OCCASION = "pairing"
+
 PAIRING_SOURCE_CLAUSE = or_(
     Outfit.source == OutfitSource.pairing,
-    and_(Outfit.source == OutfitSource.external, Outfit.source_item_id.is_not(None)),
+    and_(Outfit.source == OutfitSource.external, Outfit.occasion == PAIRING_OCCASION),
 )
 
 
@@ -271,7 +275,7 @@ class PairingService:
             # Create outfit
             outfit = Outfit(
                 user_id=user.id,
-                occasion="pairing",
+                occasion=PAIRING_OCCASION,
                 scheduled_for=user_today,
                 source=OutfitSource.pairing,
                 source_item_id=source_item_id,

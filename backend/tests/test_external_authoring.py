@@ -457,6 +457,68 @@ async def test_delete_external_pairing(
     assert pairing_id not in [p["id"] for p in listed.json()["pairings"]]
 
 
+@pytest.mark.asyncio
+async def test_external_pairing_survives_source_item_deletion(
+    client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+):
+    # DELETE /items/{id} hard-deletes, and Outfit.source_item_id is ON DELETE SET NULL,
+    # so the row must stay classifiable as a pairing without leaning on source_item_id.
+    shirt, jeans = await _make_wardrobe(db_session, test_user, ["shirt", "jeans"])
+    shirt_id, jeans_id = shirt.id, jeans.id
+
+    created = await client.post(
+        f"/api/v1/pairings/item/{shirt_id}",
+        json={"items": [str(jeans_id)]},
+        headers=auth_headers,
+    )
+    assert created.status_code == 201, created.text
+    pairing_id = created.json()["id"]
+
+    removed = await client.delete(f"/api/v1/items/{shirt_id}", headers=auth_headers)
+    assert removed.status_code == 204, removed.text
+
+    listed = await client.get("/api/v1/pairings", headers=auth_headers)
+    assert listed.status_code == 200, listed.text
+    assert pairing_id in [p["id"] for p in listed.json()["pairings"]]
+
+    deleted = await client.delete(f"/api/v1/pairings/{pairing_id}", headers=auth_headers)
+    assert deleted.status_code == 204, deleted.text
+
+
+@pytest.mark.asyncio
+async def test_generated_pairing_survives_source_item_deletion(
+    client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+):
+    shirt, jeans = await _make_wardrobe(db_session, test_user, ["shirt", "jeans"])
+    shirt_id, jeans_id = shirt.id, jeans.id
+    outfit_id = uuid4()
+
+    outfit = Outfit(
+        id=outfit_id,
+        user_id=test_user.id,
+        occasion="pairing",
+        scheduled_for=date.today(),
+        status=OutfitStatus.pending,
+        source=OutfitSource.pairing,
+        source_item_id=shirt_id,
+    )
+    outfit.items.append(OutfitItem(item_id=shirt_id, position=0))
+    outfit.items.append(OutfitItem(item_id=jeans_id, position=1))
+    db_session.add(outfit)
+    await db_session.commit()
+    # The API shares this session in tests; drop the hand-built rows from the identity map so the
+    # request sees what a fresh production session would, rather than OutfitItem objects the
+    # cascade has already deleted underneath it.
+    db_session.expunge_all()
+
+    removed = await client.delete(f"/api/v1/items/{shirt_id}", headers=auth_headers)
+    assert removed.status_code == 204, removed.text
+
+    listed = await client.get("/api/v1/pairings", headers=auth_headers)
+    assert listed.status_code == 200, listed.text
+    assert str(outfit_id) in [p["id"] for p in listed.json()["pairings"]]
+
+
 # --- POST /outfits/studio ----------------------------------------------------
 
 

@@ -18,6 +18,7 @@ from app.models.outfit import (
     OutfitStatus,
 )
 from app.models.user import User
+from app.services.pairing_service import PAIRING_OCCASION
 from app.services.studio_service import validate_item_ownership
 from app.utils.timezone import get_user_today
 
@@ -137,7 +138,7 @@ class ExternalOutfitService:
         return await self._persist_outfit(
             user,
             ordered_item_ids=ordered,
-            occasion="pairing",
+            occasion=PAIRING_OCCASION,
             scheduled_for=scheduled_for,
             source_item_id=source_item_id,
             reasoning=reasoning,
