@@ -33,6 +33,20 @@ class OutfitNotTemplateError(Exception):
     pass
 
 
+async def load_full_outfit(db: AsyncSession, outfit_id: UUID) -> Outfit:
+    result = await db.execute(
+        select(Outfit)
+        .where(Outfit.id == outfit_id)
+        .options(
+            selectinload(Outfit.items).selectinload(OutfitItem.item),
+            selectinload(Outfit.feedback),
+            selectinload(Outfit.source_item),
+            selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
+        )
+    )
+    return result.scalar_one()
+
+
 async def validate_item_ownership(
     db: AsyncSession, user_id: UUID, item_ids: list[UUID]
 ) -> list[ClothingItem]:
@@ -121,16 +135,7 @@ class StudioService:
         return result.scalar_one()
 
     async def get_full_outfit(self, outfit_id: UUID) -> Outfit:
-        result = await self.db.execute(
-            select(Outfit)
-            .where(Outfit.id == outfit_id)
-            .options(
-                selectinload(Outfit.items).selectinload(OutfitItem.item),
-                selectinload(Outfit.feedback),
-                selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
-            )
-        )
-        return result.scalar_one()
+        return await load_full_outfit(self.db, outfit_id)
 
     async def create_from_scratch(
         self,

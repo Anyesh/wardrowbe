@@ -6,20 +6,12 @@ Authored rows are regular outfits with source='external'; no separate table.
 from datetime import date
 from uuid import UUID
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from app.models.outfit import (
-    FamilyOutfitRating,
-    Outfit,
-    OutfitItem,
-    OutfitSource,
-    OutfitStatus,
-)
+from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
 from app.services.pairing_service import PAIRING_OCCASION
-from app.services.studio_service import validate_item_ownership
+from app.services.studio_service import load_full_outfit, validate_item_ownership
 from app.utils.timezone import get_user_today
 
 
@@ -28,17 +20,7 @@ class ExternalOutfitService:
         self.db = db
 
     async def get_full_outfit(self, outfit_id: UUID) -> Outfit:
-        result = await self.db.execute(
-            select(Outfit)
-            .where(Outfit.id == outfit_id)
-            .options(
-                selectinload(Outfit.items).selectinload(OutfitItem.item),
-                selectinload(Outfit.feedback),
-                selectinload(Outfit.source_item),
-                selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
-            )
-        )
-        return result.scalar_one()
+        return await load_full_outfit(self.db, outfit_id)
 
     async def _persist_outfit(
         self,
