@@ -310,6 +310,10 @@ export interface Outfit {
   source: OutfitSource;
   reasoning?: string;
   style_notes?: string;
+  season?: string | null;
+  formality?: string | null;
+  palette?: string[] | null;
+  notes?: string | null;
   highlights?: string[];
   weather?: WeatherData;
   items: OutfitItem[];

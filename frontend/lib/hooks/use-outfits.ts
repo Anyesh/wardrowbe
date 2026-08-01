@@ -55,6 +55,10 @@ export interface Outfit {
   cloned_from_outfit_id: string | null;
   reasoning: string | null;
   style_notes: string | null;
+  season: string | null;
+  formality: string | null;
+  palette: string[] | null;
+  notes: string | null;
   highlights: string[] | null;
   weather: Record<string, unknown> | null;
   items: OutfitItem[];
