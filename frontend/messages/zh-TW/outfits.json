@@ -32,6 +32,7 @@
   },
   "cards": {
     "ai": "AI",
+    "external": "外部",
     "lookbookTemplate": "造型冊範本",
     "outfitFallback": "{occasion} 穿搭",
     "pairing": "搭配",

@@ -22,7 +22,9 @@ from app.models.outfit import (
 )
 from app.models.user import User
 from app.schemas.item import DEFAULT_WASH_INTERVALS
+from app.schemas.outfit import MAX_AUTHORING_TEXT_LENGTH, OutfitAttributeFields
 from app.services.ai_service import AIDisabledError
+from app.services.external_outfit_service import ExternalOutfitService
 from app.services.item_service import ItemService
 from app.services.learning_service import LearningService
 from app.services.outfit_service import OutfitListFilters, OutfitService
@@ -188,6 +190,10 @@ class OutfitResponse(BaseModel):
     source: str
     reasoning: str | None = None
     style_notes: str | None = None
+    season: str | None = None
+    formality: str | None = None
+    palette: list[str] | None = None
+    notes: str | None = None
     highlights: list[str] | None = None
     weather: dict | None = None
     items: list[OutfitItemResponse]
@@ -404,6 +410,10 @@ def outfit_to_response(
         source=outfit.source.value,
         reasoning=outfit.reasoning,
         style_notes=outfit.style_notes,
+        season=outfit.season,
+        formality=outfit.formality,
+        palette=outfit.palette,
+        notes=outfit.notes,
         highlights=highlights,
         weather=outfit.weather_data,
         items=items,
@@ -486,6 +496,74 @@ async def suggest_outfit(
 
     wore_instead_map = await fetch_wore_instead_items_map(db, [outfit], user_id=current_user.id)
     return outfit_to_response(outfit, wore_instead_map, is_starter_suggestion=is_starter)
+
+
+class SuggestionCreateRequest(OutfitAttributeFields):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[UUID] = Field(min_length=1, max_length=20)
+    occasion: str = Field(max_length=50)
+    name: Annotated[str | None, Field(max_length=100)] = None
+    scheduled_for: date | None = Field(
+        default=None, description="Defaults to the user's current date"
+    )
+    reasoning: Annotated[str | None, Field(max_length=MAX_AUTHORING_TEXT_LENGTH)] = None
+    style_notes: Annotated[str | None, Field(max_length=MAX_AUTHORING_TEXT_LENGTH)] = None
+
+    @field_validator("occasion")
+    @classmethod
+    def validate_occasion(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in VALID_OCCASIONS:
+            raise ValueError(
+                f"Invalid occasion '{v}'. Must be one of: {', '.join(sorted(VALID_OCCASIONS))}"
+            )
+        return v
+
+
+@router.post("/suggestions", response_model=OutfitResponse, status_code=status.HTTP_201_CREATED)
+async def create_external_suggestion(
+    request: SuggestionCreateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> OutfitResponse:
+    """Persist an externally-authored suggestion; available regardless of the AI flags."""
+    await rate_limit_by_user(
+        str(current_user.id), "external_suggestion", max_requests=20, window_seconds=60
+    )
+
+    service = ExternalOutfitService(db)
+    try:
+        outfit = await service.create_suggestion(
+            user=current_user,
+            item_ids=request.items,
+            occasion=request.occasion,
+            name=request.name,
+            scheduled_for=request.scheduled_for,
+            reasoning=request.reasoning,
+            style_notes=request.style_notes,
+            season=request.season,
+            formality=request.formality,
+            palette=request.palette,
+            notes=request.notes,
+        )
+    except ItemOwnershipError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error_code": "OUTFIT_ITEM_OWNERSHIP",
+                "message": "One or more items do not belong to you",
+            },
+        ) from None
+
+    await db.commit()
+    # No learning pass here, unlike the studio path: that one synthesizes accepted feedback, while
+    # an authored suggestion lands pending and unrated, so process_feedback would return early.
+    # Learning fires when the user actually accepts or rates it.
+    await clear_suggestions(current_user.id, request.occasion)
+
+    full = await service.get_full_outfit(outfit.id)
+    return outfit_to_response(full)
 
 
 @router.get("", response_model=OutfitListResponse)
@@ -1052,7 +1130,7 @@ def _check_studio_kill_switch() -> None:
         )
 
 
-class StudioCreateRequest(BaseModel):
+class StudioCreateRequest(OutfitAttributeFields):
     model_config = ConfigDict(extra="forbid")
 
     items: list[UUID] = Field(min_length=1, max_length=20)
@@ -1129,6 +1207,10 @@ async def create_studio_outfit(
             scheduled_for=request.scheduled_for,
             mark_worn=request.mark_worn,
             source_item_id=request.source_item_id,
+            season=request.season,
+            formality=request.formality,
+            palette=request.palette,
+            notes=request.notes,
         )
     except ItemOwnershipError:
         raise HTTPException(

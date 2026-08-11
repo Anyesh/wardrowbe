@@ -1,6 +1,6 @@
 'use client';
 
-import { Trash2, Star, Sparkles } from 'lucide-react';
+import { Trash2, Star, Sparkles, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,10 +54,21 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
       <CardContent className="p-3 flex flex-col flex-1">
         {/* Header with source badge */}
         <div className="flex items-center justify-between mb-2">
-          <Badge variant="outline">
-            <Sparkles className="h-3 w-3 mr-1" />
-            {t('badge')}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline">
+              <Sparkles className="h-3 w-3 mr-1" />
+              {t('badge')}
+            </Badge>
+            {pairing.source === 'external' && (
+              <Badge
+                variant="outline"
+                className="bg-teal-500/10 text-teal-600 border-teal-500/20"
+              >
+                <Bot className="h-3 w-3 mr-1" />
+                {t('externalBadge')}
+              </Badge>
+            )}
+          </div>
           <Button
             variant="ghost"
             size="icon"

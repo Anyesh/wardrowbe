@@ -300,7 +300,7 @@ export interface FeedbackSummary {
   worn_at?: string;
 }
 
-export type OutfitSource = 'scheduled' | 'on_demand' | 'manual' | 'pairing';
+export type OutfitSource = 'scheduled' | 'on_demand' | 'manual' | 'pairing' | 'external';
 
 export interface Outfit {
   id: string;
@@ -310,6 +310,10 @@ export interface Outfit {
   source: OutfitSource;
   reasoning?: string;
   style_notes?: string;
+  season?: string | null;
+  formality?: string | null;
+  palette?: string[] | null;
+  notes?: string | null;
   highlights?: string[];
   weather?: WeatherData;
   items: OutfitItem[];

@@ -30,6 +30,7 @@
     "rateOutfit": "Noter la tenue de {member}",
     "ratingCount": "({count, plural, one {{count} note} other {{count} notes}})",
     "sourceBadges": {
+      "external": "Externe",
       "manual": "Manuel",
       "onDemand": "À la demande",
       "pairing": "Combinaison",

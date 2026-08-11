@@ -32,6 +32,7 @@
   },
   "cards": {
     "ai": "AI",
+    "external": "외부",
     "lookbookTemplate": "룩북 템플릿",
     "outfitFallback": "{occasion} 코디",
     "pairing": "페어링",

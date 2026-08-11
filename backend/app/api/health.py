@@ -34,8 +34,8 @@ async def capabilities() -> dict[str, Any]:
         },
         "features": {
             "external_tagging": True,
-            "external_suggestions": False,
-            "external_pairings": False,
+            "external_suggestions": True,
+            "external_pairings": True,
         },
         "version": "1.0.0",
     }

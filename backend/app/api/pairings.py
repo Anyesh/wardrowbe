@@ -4,20 +4,25 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.outfit import Outfit, OutfitSource
+from app.models.outfit import Outfit
 from app.models.user import User
+from app.schemas.outfit import MAX_AUTHORING_TEXT_LENGTH, OutfitAttributeFields
 from app.services.ai_service import AIDisabledError
+from app.services.external_outfit_service import ExternalOutfitService
 from app.services.pairing_service import (
+    PAIRING_SOURCE_CLAUSE,
     AIGenerationError,
     InsufficientItemsError,
     PairingService,
 )
+from app.services.studio_service import ItemOwnershipError
 from app.utils.auth import get_current_user
+from app.utils.rate_limit import rate_limit_by_user
 from app.utils.signed_urls import sign_image_url
 
 logger = logging.getLogger(__name__)
@@ -101,6 +106,10 @@ class PairingResponse(BaseModel):
     source: str
     reasoning: str | None = None
     style_notes: str | None = None
+    season: str | None = None
+    formality: str | None = None
+    palette: list[str] | None = None
+    notes: str | None = None
     highlights: list[str] | None = None
     source_item: SourceItemResponse | None = None
     items: list[PairingItemResponse]
@@ -202,6 +211,10 @@ def pairing_to_response(outfit: Outfit) -> PairingResponse:
         source=outfit.source.value,
         reasoning=outfit.reasoning,
         style_notes=outfit.style_notes,
+        season=outfit.season,
+        formality=outfit.formality,
+        palette=outfit.palette,
+        notes=outfit.notes,
         highlights=highlights,
         source_item=source_item_response,
         items=items,
@@ -306,6 +319,72 @@ async def list_item_pairings(
     )
 
 
+class PairingCreateRequest(OutfitAttributeFields):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[UUID] = Field(
+        min_length=1, max_length=20, description="Partner items to pair with the source item"
+    )
+    scheduled_for: date | None = Field(
+        default=None, description="Defaults to the user's current date"
+    )
+    reasoning: Annotated[str | None, Field(max_length=MAX_AUTHORING_TEXT_LENGTH)] = None
+    style_notes: Annotated[str | None, Field(max_length=MAX_AUTHORING_TEXT_LENGTH)] = None
+
+
+@router.post("/item/{item_id}", response_model=PairingResponse, status_code=status.HTTP_201_CREATED)
+async def create_external_pairing(
+    item_id: UUID,
+    request: PairingCreateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> PairingResponse:
+    """Persist an externally-authored pairing; available regardless of the AI flags."""
+    await rate_limit_by_user(
+        str(current_user.id), "external_pairing", max_requests=20, window_seconds=60
+    )
+
+    source_item = await PairingService(db).get_source_item(current_user.id, item_id)
+    if not source_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Source item not found or not available",
+        )
+
+    service = ExternalOutfitService(db)
+    try:
+        outfit = await service.create_pairing(
+            user=current_user,
+            source_item_id=item_id,
+            item_ids=request.items,
+            scheduled_for=request.scheduled_for,
+            reasoning=request.reasoning,
+            style_notes=request.style_notes,
+            season=request.season,
+            formality=request.formality,
+            palette=request.palette,
+            notes=request.notes,
+        )
+    except ItemOwnershipError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error_code": "OUTFIT_ITEM_OWNERSHIP",
+                "message": "One or more items do not belong to you",
+            },
+        ) from None
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from None
+
+    await db.commit()
+
+    full = await service.get_full_outfit(outfit.id)
+    return pairing_to_response(full)
+
+
 @router.delete("/{pairing_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_pairing(
     pairing_id: UUID,
@@ -316,7 +395,7 @@ async def delete_pairing(
         and_(
             Outfit.id == pairing_id,
             Outfit.user_id == current_user.id,
-            Outfit.source == OutfitSource.pairing,
+            PAIRING_SOURCE_CLAUSE,
         )
     )
 

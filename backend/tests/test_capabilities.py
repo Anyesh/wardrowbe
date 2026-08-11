@@ -101,8 +101,8 @@ async def test_capabilities_default_on(client: AsyncClient):
     assert data["ai"] == {"vision": True, "text": True}
     assert data["features"] == {
         "external_tagging": True,
-        "external_suggestions": False,
-        "external_pairings": False,
+        "external_suggestions": True,
+        "external_pairings": True,
     }
     assert data["version"] == "1.0.0"
 

@@ -17,7 +17,8 @@ import {
   addMonths,
   subMonths,
 } from 'date-fns';
-import type { Outfit, OutfitSource } from '@/lib/hooks/use-outfits';
+import type { Outfit } from '@/lib/hooks/use-outfits';
+import { buildCalendarIndicators } from '@/lib/outfits/calendar-indicators';
 import { useTranslations } from 'next-intl';
 
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
@@ -42,19 +43,7 @@ export function OutfitCalendar({
   const t = useTranslations('outfits.calendar');
   const currentMonth = new Date(year, month - 1, 1);
 
-  // Build a map of date -> outfit sources for quick lookup
-  const outfitsByDate = useMemo(() => {
-    const map = new Map<string, Set<OutfitSource>>();
-    outfits.forEach((outfit) => {
-      const dateKey = outfit.scheduled_for;
-      if (!dateKey) return;
-      if (!map.has(dateKey)) {
-        map.set(dateKey, new Set());
-      }
-      map.get(dateKey)!.add(outfit.source);
-    });
-    return map;
-  }, [outfits]);
+  const outfitsByDate = useMemo(() => buildCalendarIndicators(outfits), [outfits]);
 
   // Generate calendar days
   const calendarDays = useMemo(() => {
@@ -109,9 +98,9 @@ export function OutfitCalendar({
       <div className="grid grid-cols-7 gap-1">
         {calendarDays.map((day) => {
           const dateKey = format(day, 'yyyy-MM-dd');
-          const sources = outfitsByDate.get(dateKey);
-          const hasScheduled = sources?.has('scheduled');
-          const hasOnDemand = sources?.has('on_demand') || sources?.has('manual');
+          const indicators = outfitsByDate.get(dateKey);
+          const hasScheduled = indicators?.scheduled;
+          const hasOnDemand = indicators?.onDemand;
           const isSelected = selectedDate && isSameDay(day, selectedDate);
           const isCurrentMonth = isSameMonth(day, currentMonth);
           const isDayToday = isToday(day);
@@ -132,7 +121,7 @@ export function OutfitCalendar({
             >
               <span>{format(day, 'd')}</span>
               {/* Outfit indicators */}
-              {sources && sources.size > 0 && (
+              {(hasScheduled || hasOnDemand) && (
                 <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
                   {hasScheduled && (
                     <span

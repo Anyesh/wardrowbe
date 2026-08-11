@@ -39,6 +39,7 @@ class OutfitSource(enum.StrEnum):
     on_demand = "on_demand"
     manual = "manual"
     pairing = "pairing"
+    external = "external"
 
 
 class Outfit(Base):
@@ -58,6 +59,12 @@ class Outfit(Base):
     reasoning: Mapped[str | None] = mapped_column(Text)
     style_notes: Mapped[str | None] = mapped_column(Text)
     ai_raw_response: Mapped[dict | None] = mapped_column(JSONB)
+
+    # Authoring attributes
+    season: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    formality: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    palette: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Status
     status: Mapped[OutfitStatus] = mapped_column(

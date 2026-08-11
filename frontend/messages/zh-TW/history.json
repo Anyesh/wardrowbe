@@ -29,6 +29,7 @@
   "noOutfitsForDate": "{date} 沒有穿搭",
   "outfitCount": "{count, plural, one {# 套穿搭} other {# 套穿搭}}",
   "sourceBadges": {
+    "external": "外部",
     "manual": "手動",
     "onDemand": "隨選",
     "pairing": "配對",

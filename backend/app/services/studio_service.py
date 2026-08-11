@@ -33,33 +33,48 @@ class OutfitNotTemplateError(Exception):
     pass
 
 
+async def load_full_outfit(db: AsyncSession, outfit_id: UUID) -> Outfit:
+    result = await db.execute(
+        select(Outfit)
+        .where(Outfit.id == outfit_id)
+        .options(
+            selectinload(Outfit.items).selectinload(OutfitItem.item),
+            selectinload(Outfit.feedback),
+            selectinload(Outfit.source_item),
+            selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
+        )
+    )
+    return result.scalar_one()
+
+
+async def validate_item_ownership(
+    db: AsyncSession, user_id: UUID, item_ids: list[UUID]
+) -> list[ClothingItem]:
+    if not item_ids:
+        raise ValueError("items required")
+
+    result = await db.execute(
+        select(ClothingItem).where(
+            and_(
+                ClothingItem.id.in_(item_ids),
+                ClothingItem.user_id == user_id,
+                ClothingItem.status == ItemStatus.ready,
+            )
+        )
+    )
+    items = list(result.scalars().all())
+    unique_requested = set(item_ids)
+    if len(items) != len(unique_requested):
+        raise ItemOwnershipError("one or more items do not belong to the caller")
+    return items
+
+
 class StudioService:
     CLONE_SOFT_IDEMPOTENCY_SECONDS = 5
 
     def __init__(self, db: AsyncSession):
         self.db = db
         self.learning = LearningService(db)
-
-    async def _validate_item_ownership(
-        self, user_id: UUID, item_ids: list[UUID]
-    ) -> list[ClothingItem]:
-        if not item_ids:
-            raise ValueError("items required")
-
-        result = await self.db.execute(
-            select(ClothingItem).where(
-                and_(
-                    ClothingItem.id.in_(item_ids),
-                    ClothingItem.user_id == user_id,
-                    ClothingItem.status == ItemStatus.ready,
-                )
-            )
-        )
-        items = list(result.scalars().all())
-        unique_requested = set(item_ids)
-        if len(items) != len(unique_requested):
-            raise ItemOwnershipError("one or more items do not belong to the caller")
-        return items
 
     def _order_items_canonically(self, items: list[ClothingItem]) -> list[ClothingItem]:
         type_map = {item.id: (item.type or "") for item in items}
@@ -120,16 +135,7 @@ class StudioService:
         return result.scalar_one()
 
     async def get_full_outfit(self, outfit_id: UUID) -> Outfit:
-        result = await self.db.execute(
-            select(Outfit)
-            .where(Outfit.id == outfit_id)
-            .options(
-                selectinload(Outfit.items).selectinload(OutfitItem.item),
-                selectinload(Outfit.feedback),
-                selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
-            )
-        )
-        return result.scalar_one()
+        return await load_full_outfit(self.db, outfit_id)
 
     async def create_from_scratch(
         self,
@@ -140,8 +146,12 @@ class StudioService:
         scheduled_for: date | None,
         mark_worn: bool,
         source_item_id: UUID | None,
+        season: str | None = None,
+        formality: str | None = None,
+        palette: list[str] | None = None,
+        notes: str | None = None,
     ) -> Outfit:
-        items = await self._validate_item_ownership(user.id, item_ids)
+        items = await validate_item_ownership(self.db, user.id, item_ids)
         ordered = self._order_items_canonically(items)
 
         effective_worn = scheduled_for if mark_worn else None
@@ -154,6 +164,10 @@ class StudioService:
             status=OutfitStatus.pending,
             name=name,
             source_item_id=source_item_id,
+            season=season,
+            formality=formality,
+            palette=palette,
+            notes=notes,
         )
         self.db.add(outfit)
         await self.db.flush()
@@ -203,7 +217,7 @@ class StudioService:
         if existing_replacement is not None:
             return existing_replacement
 
-        items = await self._validate_item_ownership(user.id, item_ids)
+        items = await validate_item_ownership(self.db, user.id, item_ids)
         ordered = self._order_items_canonically(items)
 
         effective_date = scheduled_for or original.scheduled_for
@@ -382,7 +396,7 @@ class StudioService:
             if outfit.feedback is not None and outfit.feedback.worn_at is not None:
                 raise OutfitWornImmutableError("cannot modify items on a worn outfit")
 
-            new_items = await self._validate_item_ownership(user.id, items)
+            new_items = await validate_item_ownership(self.db, user.id, items)
             ordered = self._order_items_canonically(new_items)
 
             old_item_ids = [oi.item_id for oi in outfit.items]

@@ -29,6 +29,7 @@
   "noOutfitsForDate": "{date}にコーデはありません",
   "outfitCount": "{count, plural, one {# 件のコーデ} other {# 件のコーデ}}",
   "sourceBadges": {
+    "external": "外部",
     "manual": "手動",
     "onDemand": "オンデマンド",
     "pairing": "ペアリング",

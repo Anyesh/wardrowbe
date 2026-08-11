@@ -29,6 +29,7 @@
   "noOutfitsForDate": "Aucune tenue pour le {date}",
   "outfitCount": "{count, plural, one {# tenue} other {# tenues}}",
   "sourceBadges": {
+    "external": "Externe",
     "manual": "Manuel",
     "onDemand": "À la demande",
     "pairing": "Combinaison",
