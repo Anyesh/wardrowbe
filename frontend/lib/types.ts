@@ -42,6 +42,7 @@ export interface Item {
   ai_confidence?: number;
   ai_description?: string;
   ai_error?: string | null;
+  ai_started_at?: string | null;
   tagging_status: 'pending' | 'tagged';
   tagged_by?: 'auto' | 'manual' | null;
   tagged_at?: string | null;
@@ -73,6 +74,8 @@ export interface ItemListResponse {
 
 export interface TaggingProgress {
   processing: number;
+  queued: number;
+  analyzing: number;
   failed: number;
   completed: number;
   total: number;

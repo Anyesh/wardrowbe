@@ -697,6 +697,7 @@ export function useBulkDeleteItems() {
 export interface BulkAnalyzeResponse {
   queued: number;
   failed: number;
+  skipped: number;
   errors: string[];
 }
 
@@ -726,7 +727,9 @@ export function useBulkReanalyzeItems() {
           return {
             ...old,
             items: old.items.map((item) =>
-              !excludedSet.has(item.id) ? { ...item, status: 'processing' as const } : item
+              !excludedSet.has(item.id)
+                ? { ...item, status: 'processing' as const, ai_started_at: null }
+                : item
             ),
           };
         });
@@ -737,7 +740,9 @@ export function useBulkReanalyzeItems() {
           return {
             ...old,
             items: old.items.map((item) =>
-              itemIdSet.has(item.id) ? { ...item, status: 'processing' as const } : item
+              itemIdSet.has(item.id)
+                ? { ...item, status: 'processing' as const, ai_started_at: null }
+                : item
             ),
           };
         });
@@ -832,6 +837,20 @@ export function mergeBulkUploadResponses(responses: BulkUploadResponse[]): BulkU
     }),
     { total: 0, successful: 0, failed: 0, results: [] }
   );
+}
+
+export function tagProcessingLabel(item: Pick<Item, 'ai_started_at'>): 'queued' | 'analyzing' {
+  return item.ai_started_at ? 'analyzing' : 'queued';
+}
+
+export function formatAnalyzingElapsed(aiStartedAt: string, now: number = Date.now()): string {
+  const elapsedSeconds = Math.max(0, Math.floor((now - new Date(aiStartedAt).getTime()) / 1000));
+  if (elapsedSeconds < 60) {
+    return `${elapsedSeconds}s`;
+  }
+  const minutes = Math.floor(elapsedSeconds / 60);
+  const seconds = elapsedSeconds % 60;
+  return `${minutes}m ${seconds}s`;
 }
 
 function failedChunkResponse(files: File[], error: unknown): BulkUploadResponse {

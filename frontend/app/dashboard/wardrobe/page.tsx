@@ -26,7 +26,7 @@ import {
 import { AddItemDialog } from '@/components/add-item-dialog';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
-import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useTaggingProgress, BulkOperationParams } from '@/lib/hooks/use-items';
+import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed } from '@/lib/hooks/use-items';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { Item } from '@/lib/types';
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
@@ -133,7 +133,11 @@ function ItemCard({
         {isProcessing && (
           <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
             <Loader2 className="h-6 w-6 text-white animate-spin" />
-            <span className="text-white text-xs font-medium">{t('ai.analyzing')}</span>
+            <span className="text-white text-xs font-medium">
+              {tagProcessingLabel(item) === 'analyzing' && item.ai_started_at
+                ? t('ai.analyzingElapsed', { elapsed: formatAnalyzingElapsed(item.ai_started_at) })
+                : t('ai.queued')}
+            </span>
             {onCancelAnalysis && (
               <Button
                 size="sm"
@@ -394,7 +398,8 @@ export default function WardrobePage() {
 
   // Wardrobe-wide, from the server: counting the current page only capped the
   // badge at the page size, so a 100-image upload still read "20 analyzing".
-  const processingCount = taggingProgress?.processing ?? 0;
+  const queuedCount = taggingProgress?.queued ?? 0;
+  const analyzingCount = taggingProgress?.analyzing ?? 0;
   const errorCount = items.filter(
     (i) => i.status === 'error' && !dismissedErrors.has(`${i.id}:${i.updated_at}`)
   ).length;
@@ -505,10 +510,17 @@ export default function WardrobePage() {
     const params = getBulkParams();
     try {
       const result = await bulkReanalyze.mutateAsync(params);
-      if (result.queued > 20) {
-        toast.success(t('bulkActions.reanalyzeMany', { count: result.queued }));
-      } else {
-        toast.success(t('bulkActions.reanalyzeQueued', { count: result.queued }));
+      if (result.queued > 0) {
+        if (result.queued > 20) {
+          toast.success(t('bulkActions.reanalyzeMany', { count: result.queued }));
+        } else {
+          toast.success(t('bulkActions.reanalyzeQueued', { count: result.queued }));
+        }
+      }
+      if (result.skipped > 0) {
+        // A batch that's entirely already-processing must not read as a bare
+        // "0 items queued" success - surface the skip count explicitly.
+        toast.info(t('bulkActions.reanalyzeSkipped', { count: result.skipped }));
       }
       if (result.failed > 0) {
         toast.error(t('bulkActions.reanalyzePartialFailed', { count: result.failed }));
@@ -536,14 +548,19 @@ export default function WardrobePage() {
           <p className="text-sm text-muted-foreground">
             {t('itemCount', { count: total })}
           </p>
-          {(processingCount > 0 || errorCount > 0) && (
+          {(queuedCount > 0 || analyzingCount > 0 || errorCount > 0) && (
             <div className="flex items-center gap-2 mt-2">
-              {processingCount > 0 && (
+              {analyzingCount > 0 && (
                 <Badge variant="secondary" className="gap-1 text-xs">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   {taggedTotal > 0
-                    ? t('ai.analyzingProgress', { count: processingCount, percent: percentComplete })
-                    : t('ai.analyzingCount', { count: processingCount })}
+                    ? t('ai.analyzingProgress', { count: analyzingCount, percent: percentComplete })
+                    : t('ai.analyzingCount', { count: analyzingCount })}
+                </Badge>
+              )}
+              {queuedCount > 0 && (
+                <Badge variant="secondary" className="gap-1 text-xs">
+                  {t('ai.queuedCount', { count: queuedCount })}
                 </Badge>
               )}
               {errorCount > 0 && (
