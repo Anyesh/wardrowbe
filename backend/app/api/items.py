@@ -467,8 +467,21 @@ async def bulk_analyze_items(
         await db.commit()
         return BulkAnalyzeResponse(queued=0, failed=failed, errors=errors)
 
-    for item in items_to_process:
+    # Items already processing with a live job are skipped, not re-queued - a
+    # double-submit must not orphan the first job or race its ai_started_at
+    # write. An item stuck `processing` with no job (a previously-failed
+    # enqueue) is not considered "already processing" and gets a fresh job.
+    already_processing_ids = {
+        item.id
+        for item in items_to_process
+        if item.status == ItemStatus.processing and item.ai_job_id
+    }
+    to_queue = [item for item in items_to_process if item.id not in already_processing_ids]
+    skipped = len(already_processing_ids)
+
+    for item in to_queue:
         item.status = ItemStatus.processing
+        item.ai_started_at = None
     await db.commit()
 
     # Queue AI jobs
@@ -477,8 +490,10 @@ async def bulk_analyze_items(
         redis = await create_pool(get_redis_settings())
     except Exception as e:
         logger.error(f"Failed to connect to Redis for bulk analyze: {e}")
-        # Roll back status changes
-        for item in items_to_process:
+        # Roll back status changes for items this call actually touched - not the
+        # full item list, or a transient outage would error out items that were
+        # already processing with a live job untouched by this request.
+        for item in to_queue:
             item.status = ItemStatus.error
         await db.commit()
         raise HTTPException(
@@ -487,15 +502,18 @@ async def bulk_analyze_items(
         ) from None
 
     try:
-        for item in items_to_process:
+        for item in to_queue:
             try:
                 full_image_path = f"{settings.storage_path}/{item.image_path}"
-                await redis.enqueue_job(
+                job = await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
                     full_image_path,
                     _queue_name="arq:tagging",
                 )
+                if job is None:
+                    raise RuntimeError("enqueue_job returned None")
+                item.ai_job_id = job.job_id
                 logger.info(f"Queued AI re-analysis for item {item.id}")
                 queued += 1
             except Exception as e:
@@ -509,7 +527,7 @@ async def bulk_analyze_items(
         if redis:
             await redis.aclose()
 
-    return BulkAnalyzeResponse(queued=queued, failed=failed, errors=errors)
+    return BulkAnalyzeResponse(queued=queued, failed=failed, skipped=skipped, errors=errors)
 
 
 @router.get("/types")
@@ -536,18 +554,34 @@ async def get_tagging_progress(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> TaggingProgressResponse:
     # Wardrobe-wide, not page-scoped: the client can only see the page it asked
-    # for, so a 100-image upload showed at most "20 analyzing".
+    # for, so a 100-image upload showed at most "20 analyzing". Grouped in one
+    # query on both status and whether the job has actually started, so the
+    # queued/analyzing split can never drift against `processing` the way two
+    # separate queries could under concurrent worker commits.
     result = await db.execute(
-        select(ClothingItem.status, func.count())
+        select(ClothingItem.status, ClothingItem.ai_started_at.is_(None), func.count())
         .where(ClothingItem.user_id == current_user.id, ClothingItem.is_archived.is_(False))
-        .group_by(ClothingItem.status)
+        .group_by(ClothingItem.status, ClothingItem.ai_started_at.is_(None))
     )
-    counts = {str(getattr(status_value, "value", status_value)): n for status_value, n in result}
-    processing = counts.get(ItemStatus.processing.value, 0)
-    failed = counts.get(ItemStatus.error.value, 0)
-    total = sum(counts.values())
+    queued = 0
+    analyzing = 0
+    failed = 0
+    total = 0
+    for status_value, is_null, n in result:
+        status_str = str(getattr(status_value, "value", status_value))
+        total += n
+        if status_str == ItemStatus.processing.value:
+            if is_null:
+                queued += n
+            else:
+                analyzing += n
+        elif status_str == ItemStatus.error.value:
+            failed += n
+    processing = queued + analyzing
     return TaggingProgressResponse(
         processing=processing,
+        queued=queued,
+        analyzing=analyzing,
         failed=failed,
         completed=total - processing - failed,
         total=total,
@@ -871,8 +905,15 @@ async def trigger_ai_analysis(
         await db.commit()
         return {"status": "deferred", "reason": "vision disabled"}
 
+    if item.status == ItemStatus.processing and item.ai_job_id:
+        # Dedup: a live job already owns this item. If ai_job_id is None instead,
+        # a prior enqueue silently failed and there's nothing to dedup against -
+        # fall through to a fresh enqueue below.
+        return {"status": "already_queued", "job_id": item.ai_job_id}
+
     try:
         item.status = ItemStatus.processing
+        item.ai_started_at = None
         await db.commit()
 
         redis = await create_pool(get_redis_settings())
@@ -953,14 +994,14 @@ async def cancel_item_analysis(
     await db.execute(
         update(ClothingItem)
         .where(ClothingItem.id == item.id, ClothingItem.status == ItemStatus.processing)
-        .values(status=ItemStatus.ready, ai_job_id=None)
+        .values(status=ItemStatus.ready, ai_job_id=None, ai_started_at=None)
     )
     await db.commit()
     # updated_at is recomputed by a DB-side trigger on UPDATE, so the Core update()
     # above leaves the in-memory value stale; refresh it explicitly alongside the
     # columns we changed instead of a bare refresh(), which would also expire the
     # already eager-loaded additional_images relationship and blow up serialization.
-    await db.refresh(item, attribute_names=["status", "ai_job_id", "updated_at"])
+    await db.refresh(item, attribute_names=["status", "ai_job_id", "ai_started_at", "updated_at"])
     return ItemResponse.model_validate(item)
 
 
