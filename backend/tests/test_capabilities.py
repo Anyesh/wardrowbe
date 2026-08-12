@@ -261,6 +261,9 @@ async def test_tag_item_image_runs_ai_when_enabled(monkeypatch):
         async def execute(self, *args, **kwargs):
             return _Result()
 
+        async def commit(self):
+            return None
+
         async def close(self):
             return None
 

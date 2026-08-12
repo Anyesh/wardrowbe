@@ -1,3 +1,4 @@
+import asyncio
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -10,7 +11,8 @@ from PIL import Image, ImageDraw
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.item import ClothingItem, ItemStatus
-from app.services.ai_service import AIService
+from app.services.ai_service import AIService, ClothingTags
+from app.workers import tagging as tagging_module
 from app.workers.tagging import tag_item_image
 from app.workers.worker import WorkerSettings, stale_processing_cutoff_seconds
 
@@ -169,6 +171,118 @@ class TestWorkerFailsLoudly:
         assert "upstream 500" in item.ai_raw_response["error"]
 
 
+class TestAiStartedAtLifecycle:
+    @pytest.mark.asyncio
+    async def test_sets_ai_started_at_on_attempt(self, db_session: AsyncSession, test_user):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="unknown",
+            image_path="t/started.jpg",
+            status=ItemStatus.processing,
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        with (
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch.object(AIService, "analyze_image", new_callable=AsyncMock) as analyze,
+        ):
+            analyze.return_value = ClothingTags(
+                type="shirt", primary_color="blue", colors=["blue"], confidence=0.9
+            )
+            await tag_item_image({"job_try": 1}, str(item.id), __file__)
+
+        await db_session.refresh(item)
+        assert item.ai_started_at is not None
+
+    @pytest.mark.asyncio
+    async def test_clears_ai_started_at_before_non_final_retry(
+        self, db_session: AsyncSession, test_user
+    ):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="unknown",
+            image_path="t/retry.jpg",
+            status=ItemStatus.processing,
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        with (
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch.object(AIService, "analyze_image", new_callable=AsyncMock) as analyze,
+        ):
+            analyze.side_effect = RuntimeError("upstream 500")
+            with pytest.raises(Retry):
+                await tag_item_image({"job_try": 1}, str(item.id), __file__)
+
+        await db_session.refresh(item)
+        assert item.status == ItemStatus.processing
+        assert item.ai_started_at is None
+
+    @pytest.mark.asyncio
+    async def test_cancelled_error_clears_marker_not_status(
+        self, db_session: AsyncSession, test_user
+    ):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="unknown",
+            image_path="t/cancel.jpg",
+            status=ItemStatus.processing,
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        with (
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch.object(AIService, "analyze_image", new_callable=AsyncMock) as analyze,
+        ):
+            analyze.side_effect = asyncio.CancelledError()
+            with pytest.raises(asyncio.CancelledError):
+                await tag_item_image({"job_try": 1}, str(item.id), __file__)
+
+        await db_session.refresh(item)
+        # Not `error` - cancel_item_analysis owns the terminal state for a
+        # cancelled job via its own guarded update; this must not race it.
+        assert item.status == ItemStatus.processing
+        assert item.ai_started_at is None
+
+    @pytest.mark.asyncio
+    async def test_hung_ai_call_trips_budget_and_retries_normally(
+        self, db_session: AsyncSession, test_user, monkeypatch
+    ):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="unknown",
+            image_path="t/hung.jpg",
+            status=ItemStatus.processing,
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        monkeypatch.setattr(tagging_module, "_tagging_call_budget", lambda ai_service: 0.05)
+
+        async def _hang(self, path):
+            await asyncio.sleep(10)
+
+        with (
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch.object(AIService, "analyze_image", _hang),
+        ):
+            with pytest.raises(Retry):
+                await tag_item_image({"job_try": 1}, str(item.id), __file__)
+
+        await db_session.refresh(item)
+        # A budget timeout goes through the normal retry path - unlike arq's own
+        # job_timeout kill, which does not retry at all.
+        assert item.status == ItemStatus.processing
+        assert item.ai_started_at is None
+
+
 class TestStaleCutoffCannotCondemnLiveJobs:
     def test_cutoff_exceeds_job_timeout(self):
         assert stale_processing_cutoff_seconds() > WorkerSettings.job_timeout
@@ -261,3 +375,61 @@ class TestTaggingQueueProgress:
         assert body["failed"] == 1
         assert body["total"] == 5
         assert body["completed"] == 1
+        # None of the processing items ever started, so they're all queued.
+        assert body["queued"] == 3
+        assert body["analyzing"] == 0
+
+    @pytest.mark.asyncio
+    async def test_splits_queued_from_analyzing(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        from datetime import UTC, datetime
+
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="unknown",
+                image_path="t/queued.jpg",
+                status=ItemStatus.processing,
+            )
+        )
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="unknown",
+                image_path="t/analyzing.jpg",
+                status=ItemStatus.processing,
+                ai_started_at=datetime.now(UTC),
+            )
+        )
+        await db_session.commit()
+
+        resp = await client.get("/api/v1/items/tagging-progress", headers=auth_headers)
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["processing"] == 2
+        assert body["queued"] == 1
+        assert body["analyzing"] == 1
+
+
+class TestTaggingConcurrencySetting:
+    def test_ai_tagging_concurrency_setting_is_respected(self):
+        from app.config import Settings
+
+        assert Settings(ai_tagging_concurrency=2).ai_tagging_concurrency == 2
+
+    def test_ai_tagging_concurrency_requires_at_least_one(self):
+        from pydantic import ValidationError
+
+        from app.config import Settings
+
+        with pytest.raises(ValidationError):
+            Settings(ai_tagging_concurrency=0)
+
+    def test_worker_max_jobs_matches_setting(self):
+        from app.config import get_settings
+
+        # Regression guard against the concurrency ceiling silently reverting to
+        # a hardcoded literal - both sides read the same cached settings at
+        # import time, so this isn't a behavioral proof, just a tripwire.
+        assert WorkerSettings.max_jobs == get_settings().ai_tagging_concurrency
