@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
@@ -17,6 +18,11 @@ logger = logging.getLogger(__name__)
 
 TAGGING_MAX_TRIES = 3
 
+# Margin left below job_timeout so the in-job call budget always fires before
+# arq's own kill (which does not retry - see _tagging_call_budget).
+CALL_BUDGET_MARGIN_SECONDS = 30
+MIN_CALL_BUDGET_SECONDS = 30
+
 
 class ItemVanishedError(Exception):
     """The item row is not visible to this worker's connection.
@@ -35,6 +41,55 @@ def retry_delay_seconds(ctx: dict) -> int:
     # Exponential, so a provider that is rate limiting or restarting gets room to
     # recover instead of being hit again immediately.
     return min(2 ** int(ctx.get("job_try") or 1) * 5, 120)
+
+
+def worker_job_timeout_seconds() -> int:
+    settings = get_settings()
+    return max(settings.ai_timeout * settings.ai_max_retries + 60, 600)
+
+
+def _tagging_call_budget(ai_service: AIService) -> float:
+    # No fixed formula bounds the real worst case (per-user endpoint count is
+    # unknowable at import time), so this is an upper bound clamped to
+    # job_timeout, not an exact figure - it deliberately omits inter-retry
+    # backoff sleeps. What matters is that it always fires before arq's own
+    # job_timeout kill, since that kill does not retry the job at all.
+    settings = get_settings()
+    endpoint_count = len(getattr(ai_service, "_endpoints", None) or [None])
+    raw = endpoint_count * settings.ai_max_retries * 2 * settings.ai_timeout
+    return max(
+        MIN_CALL_BUDGET_SECONDS,
+        min(raw, worker_job_timeout_seconds() - CALL_BUDGET_MARGIN_SECONDS),
+    )
+
+
+async def _clear_ai_started_at(ctx: dict, item_id: str) -> None:
+    db = get_db_session(ctx)
+    try:
+        # Guarded so this only touches a row still in `processing` - a row already
+        # moved to a terminal state (cancelled -> ready, or a final-attempt error)
+        # must not be re-touched. Not a race guard between this attempt and the
+        # next: arq only starts attempt N+1 after this write's enclosing exception
+        # has propagated and the retry defer has elapsed, so there is no window
+        # where two attempts' writes could interleave.
+        await db.execute(
+            update(ClothingItem)
+            .where(ClothingItem.id == UUID(item_id), ClothingItem.status == ItemStatus.processing)
+            .values(ai_started_at=None)
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def clear_ai_started_at(ctx: dict, item_id: str) -> None:
+    # Best-effort: this runs from an exception handler, so a failure here must
+    # never replace the exception already in flight. Bounded so a failing write
+    # can't hang arq's run_job wait indefinitely.
+    try:
+        await asyncio.wait_for(_clear_ai_started_at(ctx, item_id), timeout=5)
+    except Exception:
+        pass
 
 
 def tags_to_item_fields(tags: ClothingTags, raw_response: str | None = None) -> dict[str, Any]:
@@ -142,7 +197,7 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
             await update_item_status_to_error(ctx, item_id, error_msg)
             return {"status": "error", "error": "Image not found"}
 
-        # Get user's AI endpoints from preferences
+        # Get user's AI endpoints from preferences, and mark this attempt as started
         ai_endpoints = None
         db = get_db_session(ctx)
         try:
@@ -151,6 +206,10 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
             item = result.scalar_one_or_none()
             if item is None:
                 raise ItemVanishedError(f"Item {item_id} not visible to worker")
+
+            # Overwritten on every attempt (not set-once), so a retry's backoff wait
+            # reads as "queued for retry," not "still analyzing."
+            item.ai_started_at = datetime.now(UTC)
 
             pref_result = await db.execute(
                 select(UserPreference).where(UserPreference.user_id == item.user_id)
@@ -161,12 +220,16 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                 logger.info(
                     f"Using {len(ai_endpoints)} custom AI endpoints for user {item.user_id}"
                 )
+
+            await db.commit()
         finally:
             await db.close()
 
         # Analyze with AI (uses custom endpoints if available)
         ai_service = AIService(endpoints=ai_endpoints)
-        tags = await ai_service.analyze_image(path)
+        tags = await asyncio.wait_for(
+            ai_service.analyze_image(path), timeout=_tagging_call_budget(ai_service)
+        )
 
         logger.info(
             f"AI analysis complete for item {item_id}: type={tags.type}, color={tags.primary_color}"
@@ -239,6 +302,14 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         finally:
             await db.close()
 
+    except asyncio.CancelledError:
+        # A cancelled attempt (worker shutdown, or cancel_item_analysis's abort) must
+        # not touch `status` - cancel_item_analysis owns the terminal state for an
+        # aborted job via its own guarded update, and marking this `error` here would
+        # race it. Only clear the in-flight marker, then let the cancellation and
+        # arq's own handling proceed normally.
+        await clear_ai_started_at(ctx, item_id)
+        raise
     except Exception as e:
         error_msg = str(e)
         logger.exception(f"Error tagging item {item_id}: {error_msg}")
@@ -248,4 +319,5 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         if _is_final_attempt(ctx):
             await update_item_status_to_error(ctx, item_id, error_msg)
             raise
+        await clear_ai_started_at(ctx, item_id)
         raise Retry(defer=retry_delay_seconds(ctx)) from e

@@ -113,6 +113,7 @@ class ItemResponse(ItemBase):
     ai_confidence: Decimal | None = None
     ai_description: str | None = None
     ai_error: str | None = None
+    ai_started_at: datetime | None = None
     tagging_status: str = "pending"
     tagged_by: str | None = None
     tagged_at: datetime | None = None
@@ -161,6 +162,8 @@ class ItemResponse(ItemBase):
 
 class TaggingProgressResponse(BaseModel):
     processing: int
+    queued: int
+    analyzing: int
     failed: int
     completed: int
     total: int
@@ -259,6 +262,7 @@ class BulkAnalyzeRequest(BaseModel):
 class BulkAnalyzeResponse(BaseModel):
     queued: int
     failed: int
+    skipped: int = 0
     errors: list[str] = Field(default_factory=list)
 
 
