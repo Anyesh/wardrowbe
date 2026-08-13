@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     # jobs share one pool) - not an exact AI-call ceiling, but the primary lever
     # for bounding concurrent load on the AI backend.
     ai_tagging_concurrency: int = Field(default=5, ge=1)
+    # Floor matches arq's own max retry_delay_seconds (tagging.py), so a manual
+    # retry is never permitted inside a spacing window arq already exhausted.
+    ai_retry_cooldown_seconds: int = Field(default=120, ge=0)
 
     # Weather
     openmeteo_url: str = Field(default="https://api.open-meteo.com/v1")
