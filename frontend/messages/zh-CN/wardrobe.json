@@ -50,11 +50,14 @@
     "analysisFailed": "分析失败",
     "analyzing": "AI 分析中...",
     "analyzingCount": "{count} 件分析中",
+    "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} 件分析中 · 已完成 {percent}%",
     "completeness": "AI 完整度：{percent}%",
     "confident": "{percent}% 置信度",
     "dismiss": "关闭",
-    "failedCount": "{count} 件失败"
+    "failedCount": "{count} 件失败",
+    "queued": "Queued",
+    "queuedCount": "{count} queued"
   },
   "allTypes": "所有类型",
   "bulkActions": {
@@ -64,7 +67,8 @@
     "reanalyzeError": "将单品加入重新分析队列失败",
     "reanalyzeMany": "已将{count}件单品加入重新分析队列，可能需要一些时间。",
     "reanalyzePartialFailed": "{count, plural, one {# 件单品加入队列失败} other {# 件单品加入队列失败}}",
-    "reanalyzeQueued": "{count, plural, one {已将 # 件单品加入重新分析队列} other {已将 # 件单品加入重新分析队列}}"
+    "reanalyzeQueued": "{count, plural, one {已将 # 件单品加入重新分析队列} other {已将 # 件单品加入重新分析队列}}",
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
   },
   "bulkDelete": {
     "confirmDescription": "这将永久删除所选单品及其图片。此操作不可撤销。",

@@ -50,11 +50,14 @@
     "analysisFailed": "Analisi fallita",
     "analyzing": "Analisi IA in corso...",
     "analyzingCount": "{count} in analisi",
+    "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} in analisi · {percent}% completato",
     "completeness": "Completezza IA: {percent}%",
     "confident": "{percent}% fiducia",
     "dismiss": "Ignora",
-    "failedCount": "{count} falliti"
+    "failedCount": "{count} falliti",
+    "queued": "Queued",
+    "queuedCount": "{count} queued"
   },
   "allTypes": "Tutti i tipi",
   "bulkActions": {
@@ -64,7 +67,8 @@
     "reanalyzeError": "Impossibile mettere in coda i capi per la rianalisi",
     "reanalyzeMany": "{count} capi messi in coda per la rianalisi. Potrebbe volerci un po’.",
     "reanalyzePartialFailed": "{count, plural, one {Impossibile mettere in coda # capo} other {Impossibile mettere in coda # capi}}",
-    "reanalyzeQueued": "{count, plural, one {# capo messo in coda per la rianalisi} other {# capi messi in coda per la rianalisi}}"
+    "reanalyzeQueued": "{count, plural, one {# capo messo in coda per la rianalisi} other {# capi messi in coda per la rianalisi}}",
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
   },
   "bulkDelete": {
     "confirmDescription": "Questo eliminerà definitivamente i capi selezionati e le relative immagini. Questa azione non può essere annullata.",

@@ -77,6 +77,11 @@ class ClothingItem(Base):
         Enum(ItemStatus, name="item_status"), default=ItemStatus.processing
     )
     ai_job_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Set only by tagging.py's attempt loop (from NULL), and reset to NULL only by
+    # the status=processing writers in item_service.py/items.py. A future writer of
+    # status=processing must reset this too, or the stale-item sweep in worker.py
+    # can misjudge a fresh attempt as an old, lost one.
+    ai_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ai_processed: Mapped[bool] = mapped_column(Boolean, default=False)
     ai_confidence: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
     ai_raw_response: Mapped[dict | None] = mapped_column(JSONB)

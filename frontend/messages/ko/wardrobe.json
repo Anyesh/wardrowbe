@@ -50,11 +50,14 @@
     "analysisFailed": "분석 실패",
     "analyzing": "AI 분석 중...",
     "analyzingCount": "{count}개 분석 중",
+    "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count}개 분석 중 · {percent}% 완료",
     "completeness": "AI 완성도: {percent}%",
     "confident": "{percent}% 확신",
     "dismiss": "닫기",
-    "failedCount": "{count}개 실패"
+    "failedCount": "{count}개 실패",
+    "queued": "Queued",
+    "queuedCount": "{count} queued"
   },
   "allTypes": "전체 유형",
   "bulkActions": {
@@ -64,7 +67,8 @@
     "reanalyzeError": "아이템 재분석 대기열 추가 실패",
     "reanalyzeMany": "{count}개 아이템이 재분석 대기열에 추가되었어요. 시간이 걸릴 수 있어요.",
     "reanalyzePartialFailed": "{count, plural, other {아이템 #개 대기열 추가 실패}}",
-    "reanalyzeQueued": "{count, plural, other {아이템 #개를 재분석 대기열에 추가했어요}}"
+    "reanalyzeQueued": "{count, plural, other {아이템 #개를 재분석 대기열에 추가했어요}}",
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
   },
   "bulkDelete": {
     "confirmDescription": "선택한 아이템과 이미지가 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",

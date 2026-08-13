@@ -50,11 +50,14 @@
     "analysisFailed": "Analysis Failed",
     "analyzing": "AI Analyzing...",
     "analyzingCount": "{count} analyzing",
+    "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} analyzing · {percent}% done",
     "completeness": "AI completeness: {percent}%",
     "confident": "{percent}% confident",
     "dismiss": "Dismiss",
-    "failedCount": "{count} failed"
+    "failedCount": "{count} failed",
+    "queued": "Queued",
+    "queuedCount": "{count} queued"
   },
   "allTypes": "All types",
   "bulkActions": {
@@ -64,7 +67,8 @@
     "reanalyzeError": "Failed to queue items for re-analysis",
     "reanalyzeMany": "Queued {count} items for re-analysis. This may take a while.",
     "reanalyzePartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
-    "reanalyzeQueued": "{count, plural, one {Queued # item for re-analysis} other {Queued # items for re-analysis}}"
+    "reanalyzeQueued": "{count, plural, one {Queued # item for re-analysis} other {Queued # items for re-analysis}}",
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
   },
   "bulkDelete": {
     "confirmDescription": "This will permanently delete the selected items and their images. This action cannot be undone.",

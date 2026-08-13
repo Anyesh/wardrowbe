@@ -566,3 +566,148 @@ class TestCancelAnalysis:
 
         assert response.status_code == 200
         assert response.json()["status"] == "error"
+
+
+class TestAnalysisIdempotency:
+    async def _create_item(
+        self,
+        db_session: AsyncSession,
+        test_user,
+        status: ItemStatus = ItemStatus.processing,
+        ai_job_id: str | None = None,
+    ) -> ClothingItem:
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path="test/idempotency.jpg",
+            status=status,
+            ai_job_id=ai_job_id,
+        )
+        db_session.add(item)
+        await db_session.commit()
+        await db_session.refresh(item)
+        return item
+
+    @pytest.mark.asyncio
+    async def test_trigger_analysis_dedupes_when_already_processing_with_job(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await self._create_item(db_session, test_user, ai_job_id="existing-job")
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            response = await client.post(f"/api/v1/items/{item.id}/analyze", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json() == {"status": "already_queued", "job_id": "existing-job"}
+        mock_create_pool.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_trigger_analysis_enqueues_fresh_job_when_no_job_id(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await self._create_item(db_session, test_user, ai_job_id=None)
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fresh-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            response = await client.post(f"/api/v1/items/{item.id}/analyze", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json() == {"status": "queued", "job_id": "fresh-job-id"}
+        mock_redis.enqueue_job.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_bulk_analyze_skips_already_processing_with_job(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        already_processing = await self._create_item(
+            db_session, test_user, status=ItemStatus.processing, ai_job_id="live-job"
+        )
+        needs_queueing = await self._create_item(
+            db_session, test_user, status=ItemStatus.ready, ai_job_id=None
+        )
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "new-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            response = await client.post(
+                "/api/v1/items/bulk/analyze",
+                headers=auth_headers,
+                json={"item_ids": [str(already_processing.id), str(needs_queueing.id)]},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["queued"] == 1
+        assert body["skipped"] == 1
+        assert body["failed"] == 0
+        mock_redis.enqueue_job.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_bulk_analyze_stuck_item_with_no_job_gets_fresh_job(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        stuck = await self._create_item(
+            db_session, test_user, status=ItemStatus.processing, ai_job_id=None
+        )
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "recovery-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            response = await client.post(
+                "/api/v1/items/bulk/analyze",
+                headers=auth_headers,
+                json={"item_ids": [str(stuck.id)]},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["queued"] == 1
+        assert body["skipped"] == 0
+        mock_redis.enqueue_job.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_bulk_analyze_redis_failure_only_errors_items_it_touched(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        already_processing = await self._create_item(
+            db_session, test_user, status=ItemStatus.processing, ai_job_id="live-job"
+        )
+        needs_queueing = await self._create_item(
+            db_session, test_user, status=ItemStatus.ready, ai_job_id=None
+        )
+        # Captured before the request: the endpoint's own commit (on the same
+        # shared session) expires these ORM instances' attributes, and reading
+        # `.id` off an expired instance afterward triggers an implicit lazy
+        # load that fails outside an async context.
+        already_processing_id = already_processing.id
+        needs_queueing_id = needs_queueing.id
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_create_pool.side_effect = Exception("no redis")
+            response = await client.post(
+                "/api/v1/items/bulk/analyze",
+                headers=auth_headers,
+                json={"item_ids": [str(already_processing_id), str(needs_queueing_id)]},
+            )
+
+        assert response.status_code == 500
+
+        db_session.expire_all()
+        result = await db_session.execute(
+            select(ClothingItem).where(ClothingItem.id == already_processing_id)
+        )
+        # A transient Redis outage must not error out an item that was already
+        # processing with a live job and untouched by this request.
+        assert result.scalar_one().status == ItemStatus.processing
+
+        result = await db_session.execute(
+            select(ClothingItem).where(ClothingItem.id == needs_queueing_id)
+        )
+        assert result.scalar_one().status == ItemStatus.error

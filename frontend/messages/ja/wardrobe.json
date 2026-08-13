@@ -50,11 +50,14 @@
     "analysisFailed": "分析失敗",
     "analyzing": "AI分析中...",
     "analyzingCount": "{count} 件を分析中",
+    "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} 件を分析中 · {percent}% 完了",
     "completeness": "AI完了度：{percent}%",
     "confident": "信頼度 {percent}%",
     "dismiss": "閉じる",
-    "failedCount": "{count} 件が失敗"
+    "failedCount": "{count} 件が失敗",
+    "queued": "Queued",
+    "queuedCount": "{count} queued"
   },
   "allTypes": "すべてのタイプ",
   "bulkActions": {
@@ -64,7 +67,8 @@
     "reanalyzeError": "再分析キューイングに失敗しました",
     "reanalyzeMany": "{count} 件を再分析キューに追加しました。少し時間がかかる場合があります。",
     "reanalyzePartialFailed": "{count, plural, one {# 件のキューイングに失敗しました} other {# 件のキューイングに失敗しました}}",
-    "reanalyzeQueued": "{count, plural, one {# 件を再分析キューに追加しました} other {# 件を再分析キューに追加しました}}"
+    "reanalyzeQueued": "{count, plural, one {# 件を再分析キューに追加しました} other {# 件を再分析キューに追加しました}}",
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
   },
   "bulkDelete": {
     "confirmDescription": "選択したアイテムと画像を完全に削除します。この操作は取り消せません。",

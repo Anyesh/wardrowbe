@@ -527,7 +527,9 @@ class AIService:
         return None, last_error, None
 
     async def analyze_image(self, image_path: str | Path) -> ClothingTags:
-        image_base64 = self._preprocess_image(image_path)
+        # PIL preprocessing is CPU-bound and synchronous; run off the event loop so
+        # concurrent tagging jobs don't stall each other's in-flight HTTP reads.
+        image_base64 = await asyncio.to_thread(self._preprocess_image, image_path)
 
         # System/user separation for injection protection
         messages_tags = [

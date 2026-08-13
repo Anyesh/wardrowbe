@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     ai_timeout: int = Field(default=120)
     ai_max_retries: int = Field(default=3)
     ai_max_tokens: int = Field(default=8000)
+    # Total arq worker concurrency (tagging jobs plus lightweight background/cron
+    # jobs share one pool) - not an exact AI-call ceiling, but the primary lever
+    # for bounding concurrent load on the AI backend.
+    ai_tagging_concurrency: int = Field(default=5, ge=1)
 
     # Weather
     openmeteo_url: str = Field(default="https://api.open-meteo.com/v1")
