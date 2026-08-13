@@ -476,13 +476,52 @@ async def bulk_analyze_items(
         for item in items_to_process
         if item.status == ItemStatus.processing and item.ai_job_id
     }
-    to_queue = [item for item in items_to_process if item.id not in already_processing_ids]
+    # Error-status items go through the same cooldown gate as the single-item
+    # retry endpoint - deliberately NOT folded into `already_processing_ids`,
+    # since the reasons differ (a live job vs. a cooldown) and the response
+    # must report them separately (see `cooldown` below).
+    error_candidates = [
+        item
+        for item in items_to_process
+        if item.id not in already_processing_ids and item.status == ItemStatus.error
+    ]
+    to_queue = [
+        item
+        for item in items_to_process
+        if item.id not in already_processing_ids and item.status != ItemStatus.error
+    ]
     skipped = len(already_processing_ids)
+
+    # Batched atomic claim - one round trip, not one UPDATE per item - for every
+    # error-status candidate at once. Unclaimed candidates still genuinely in
+    # `error` and within cooldown are reported honestly instead of silently
+    # dropped or mislabeled as "already processing".
+    claimed_job_ids: dict[UUID, str] = {}
+    cooldown_count = 0
+    cooldown_retry_after: int | None = None
+    if error_candidates:
+        claimed_job_ids, cooling_down = await item_service.claim_error_items_for_retry(
+            [item.id for item in error_candidates], settings.ai_retry_cooldown_seconds
+        )
+        cooldown_count = len(cooling_down)
+        if cooling_down:
+            cooldown_retry_after = max(cooling_down.values())
+        await db.commit()
 
     for item in to_queue:
         item.status = ItemStatus.processing
         item.ai_started_at = None
     await db.commit()
+
+    # Unified enqueue worklist: regular to_queue items get an arq-assigned job
+    # id (read back after enqueue); claimed error items already have their job
+    # id atomically assigned by the claim above and must reuse it via `_job_id`
+    # (see the single-item retry endpoint for why - it closes the same
+    # ai_job_id-ambiguity window this claim mechanism exists to prevent).
+    to_enqueue: list[tuple[ClothingItem, str | None]] = [(item, None) for item in to_queue]
+    to_enqueue += [
+        (item, claimed_job_ids[item.id]) for item in error_candidates if item.id in claimed_job_ids
+    ]
 
     # Queue AI jobs
     redis = None
@@ -496,30 +535,41 @@ async def bulk_analyze_items(
         for item in to_queue:
             item.status = ItemStatus.error
         await db.commit()
+        for item, job_id in to_enqueue:
+            if job_id is not None:
+                # Infra failure, not an AI failure - release without starting a
+                # fresh cooldown (mirrors the single-item retry endpoint).
+                await item_service.release_failed_claim(item.id, job_id)
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to connect to job queue",
         ) from None
 
     try:
-        for item in to_queue:
+        for item, job_id in to_enqueue:
             try:
                 full_image_path = f"{settings.storage_path}/{item.image_path}"
                 job = await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
                     full_image_path,
+                    _job_id=job_id,
                     _queue_name="arq:tagging",
                 )
                 if job is None:
                     raise RuntimeError("enqueue_job returned None")
-                item.ai_job_id = job.job_id
+                if job_id is None:
+                    item.ai_job_id = job.job_id
                 logger.info(f"Queued AI re-analysis for item {item.id}")
                 queued += 1
             except Exception as e:
                 logger.error(f"Failed to queue AI analysis for {item.id}: {e}")
                 errors.append(f"Failed to queue analysis for item {item.id}")
-                item.status = ItemStatus.error
+                if job_id is not None:
+                    await item_service.release_failed_claim(item.id, job_id)
+                else:
+                    item.status = ItemStatus.error
                 failed += 1
 
         await db.commit()
@@ -527,7 +577,14 @@ async def bulk_analyze_items(
         if redis:
             await redis.aclose()
 
-    return BulkAnalyzeResponse(queued=queued, failed=failed, skipped=skipped, errors=errors)
+    return BulkAnalyzeResponse(
+        queued=queued,
+        failed=failed,
+        skipped=skipped,
+        cooldown=cooldown_count,
+        retry_after_seconds=cooldown_retry_after,
+        errors=errors,
+    )
 
 
 @router.get("/types")
@@ -910,6 +967,54 @@ async def trigger_ai_analysis(
         # a prior enqueue silently failed and there's nothing to dedup against -
         # fall through to a fresh enqueue below.
         return {"status": "already_queued", "job_id": item.ai_job_id}
+
+    if item.status == ItemStatus.error:
+        # Cooldown gate: internal retry (ai_service.py's fallback loop, arq's own
+        # backoff) already exhausted itself before this item reached `error`, so
+        # an instant manual retry only "works" by luck. Gated separately from the
+        # branch above - every other status keeps the unconditional enqueue below
+        # untouched.
+        image_path = item.image_path
+        job_id, retry_after_seconds = await item_service.claim_error_item_for_retry(
+            item.id, settings.ai_retry_cooldown_seconds
+        )
+        if job_id is None:
+            if retry_after_seconds is not None:
+                return {"status": "cooldown", "retry_after_seconds": retry_after_seconds}
+            # Lost a concurrent claim on this same item - report its real
+            # current state instead of a stale in-memory guess.
+            current = await item_service.get_by_id(item_id, current_user.id)
+            return {
+                "status": "already_queued",
+                "job_id": current.ai_job_id if current else None,
+            }
+
+        await db.commit()
+        try:
+            redis = await create_pool(get_redis_settings())
+            try:
+                full_image_path = f"{settings.storage_path}/{image_path}"
+                enqueued = await redis.enqueue_job(
+                    "tag_item_image",
+                    str(item_id),
+                    full_image_path,
+                    _job_id=job_id,
+                    _queue_name="arq:tagging",
+                )
+                if enqueued is None:
+                    raise RuntimeError("enqueue_job returned None")
+                logger.info(f"Queued AI re-analysis job for item {item_id}")
+                return {"status": "queued", "job_id": job_id}
+            finally:
+                await redis.aclose()
+        except Exception as e:
+            logger.error(f"Failed to queue AI analysis job: {e}")
+            await item_service.release_failed_claim(item_id, job_id)
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to queue AI analysis",
+            ) from None
 
     try:
         item.status = ItemStatus.processing

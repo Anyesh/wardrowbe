@@ -76,7 +76,9 @@ async def recover_stale_processing_items(ctx: dict) -> None:
                     update(ClothingItem)
                     .where(ClothingItem.id == item_id, ClothingItem.status == ItemStatus.processing)
                     .values(
-                        status=ItemStatus.error, ai_raw_response={"error": "Job lost or timed out"}
+                        status=ItemStatus.error,
+                        ai_raw_response={"error": "Job lost or timed out"},
+                        ai_failed_at=datetime.now(UTC),
                     )
                 )
                 condemned += result.rowcount

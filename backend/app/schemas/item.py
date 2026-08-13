@@ -263,6 +263,8 @@ class BulkAnalyzeResponse(BaseModel):
     queued: int
     failed: int
     skipped: int = 0
+    cooldown: int = 0
+    retry_after_seconds: int | None = None
     errors: list[str] = Field(default_factory=list)
 
 
