@@ -160,7 +160,11 @@ async def update_item_status_to_error(ctx: dict, item_id: str, error_msg: str) -
                 .where(
                     ClothingItem.id == UUID(item_id), ClothingItem.status == ItemStatus.processing
                 )
-                .values(status=ItemStatus.error, ai_raw_response={"error": error_msg})
+                .values(
+                    status=ItemStatus.error,
+                    ai_raw_response={"error": error_msg},
+                    ai_failed_at=datetime.now(UTC),
+                )
             )
             await db.commit()
         finally:

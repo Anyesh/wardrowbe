@@ -57,13 +57,15 @@
     "dismiss": "Schließen",
     "failedCount": "{count} fehlgeschlagen",
     "queued": "Queued",
-    "queuedCount": "{count} queued"
+    "queuedCount": "{count} queued",
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "Alle Typen",
   "bulkActions": {
     "deleteError": "Stücke konnten nicht gelöscht werden",
     "deletePartialFailed": "{count, plural, one {# Stück konnte nicht gelöscht werden} other {# Stücke konnten nicht gelöscht werden}}",
     "deleteSuccess": "{count, plural, one {# Stück gelöscht} other {# Stücke gelöscht}}",
+    "reanalyzeCooldown": "{count, plural, one {# item cooling down after a recent failure} other {# items cooling down after a recent failure}}",
     "reanalyzeError": "Stücke konnten nicht zur erneuten Analyse eingereiht werden",
     "reanalyzeMany": "{count} Stücke zur erneuten Analyse eingereiht. Das kann etwas dauern.",
     "reanalyzePartialFailed": "{count, plural, one {# Stück konnte nicht eingereiht werden} other {# Stücke konnten nicht eingereiht werden}}",

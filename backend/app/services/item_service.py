@@ -1,9 +1,9 @@
 from collections import Counter
 from datetime import UTC, date, datetime, timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
@@ -238,6 +238,122 @@ class ItemService:
         await self.db.flush()
         result = await self.get_by_id(item.id, item.user_id)
         return result  # type: ignore[return-value]
+
+    async def claim_error_item_for_retry(
+        self, item_id: UUID, cooldown_seconds: int
+    ) -> tuple[str | None, int | None]:
+        """Atomically claim a failed item for retry if its cooldown has elapsed.
+
+        A single conditional UPDATE, not read-then-write: this is the only way
+        two concurrent retry requests for the same item can't both pass the
+        cooldown check and double-enqueue. Returns (job_id, None) on success.
+        On failure, returns (None, retry_after_seconds) only if the item is
+        still genuinely `error` and cooling down; returns (None, None) if the
+        item isn't `error` at all (a concurrent request already claimed it, or
+        it moved on some other way) - that case is not a cooldown and callers
+        must not report one.
+        """
+        new_job_id = str(uuid4())
+        cutoff = datetime.now(UTC) - timedelta(seconds=cooldown_seconds)
+        result = await self.db.execute(
+            update(ClothingItem)
+            .where(
+                ClothingItem.id == item_id,
+                ClothingItem.status == ItemStatus.error,
+                or_(
+                    ClothingItem.ai_failed_at.is_(None),
+                    ClothingItem.ai_failed_at < cutoff,
+                ),
+            )
+            .values(status=ItemStatus.processing, ai_started_at=None, ai_job_id=new_job_id)
+            .returning(ClothingItem.id)
+        )
+        if result.first() is not None:
+            return new_job_id, None
+
+        recheck = await self.db.execute(
+            select(ClothingItem.status, ClothingItem.ai_failed_at).where(ClothingItem.id == item_id)
+        )
+        row = recheck.first()
+        if row is None or row.status != ItemStatus.error or row.ai_failed_at is None:
+            return None, None
+
+        retry_after = (row.ai_failed_at + timedelta(seconds=cooldown_seconds)) - datetime.now(UTC)
+        return None, max(int(retry_after.total_seconds()), 1)
+
+    async def release_failed_claim(self, item_id: UUID, job_id: str) -> None:
+        """Compensating rollback for a claim whose enqueue attempt failed.
+
+        Guarded on the specific job_id this claim assigned, so it can never
+        clobber a row a concurrent process has since changed. Deliberately
+        does not touch ai_failed_at: this is a queue-infrastructure failure,
+        not a fresh AI failure, and the prior cooldown had already elapsed for
+        the claim to have succeeded in the first place.
+        """
+        await self.db.execute(
+            update(ClothingItem)
+            .where(
+                ClothingItem.id == item_id,
+                ClothingItem.status == ItemStatus.processing,
+                ClothingItem.ai_job_id == job_id,
+            )
+            .values(status=ItemStatus.error)
+        )
+
+    async def claim_error_items_for_retry(
+        self, item_ids: list[UUID], cooldown_seconds: int
+    ) -> tuple[dict[UUID, str], dict[UUID, int]]:
+        """Batched version of claim_error_item_for_retry - one round trip.
+
+        Returns (claimed, cooling_down): claimed maps item_id to its new job_id
+        for items successfully claimed; cooling_down maps item_id to
+        retry_after_seconds for candidates still genuinely `error` and within
+        cooldown. An id absent from both raced to a different status entirely
+        and is not this method's concern - the caller no longer owns it.
+        """
+        if not item_ids:
+            return {}, {}
+
+        cutoff = datetime.now(UTC) - timedelta(seconds=cooldown_seconds)
+        # One statement claims every eligible row in the batch - a per-item loop
+        # here would reopen the exact per-row round-trip cost a prior review
+        # round rejected. gen_random_uuid() (built into Postgres 13+) assigns a
+        # distinct job_id per claimed row without a client round trip.
+        result = await self.db.execute(
+            update(ClothingItem)
+            .where(
+                ClothingItem.id.in_(item_ids),
+                ClothingItem.status == ItemStatus.error,
+                or_(
+                    ClothingItem.ai_failed_at.is_(None),
+                    ClothingItem.ai_failed_at < cutoff,
+                ),
+            )
+            .values(
+                status=ItemStatus.processing,
+                ai_started_at=None,
+                ai_job_id=text("gen_random_uuid()::text"),
+            )
+            .returning(ClothingItem.id, ClothingItem.ai_job_id)
+        )
+        claimed: dict[UUID, str] = {row.id: row.ai_job_id for row in result.all()}
+
+        unclaimed_ids = [item_id for item_id in item_ids if item_id not in claimed]
+        cooling_down: dict[UUID, int] = {}
+        if unclaimed_ids:
+            recheck = await self.db.execute(
+                select(ClothingItem.id, ClothingItem.status, ClothingItem.ai_failed_at).where(
+                    ClothingItem.id.in_(unclaimed_ids)
+                )
+            )
+            for row in recheck.all():
+                if row.status == ItemStatus.error and row.ai_failed_at is not None:
+                    retry_after = (
+                        row.ai_failed_at + timedelta(seconds=cooldown_seconds)
+                    ) - datetime.now(UTC)
+                    cooling_down[row.id] = max(int(retry_after.total_seconds()), 1)
+
+        return claimed, cooling_down
 
     async def delete(self, item: ClothingItem) -> None:
         await self.db.delete(item)

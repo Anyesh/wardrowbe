@@ -60,6 +60,9 @@ class TestRecoverStaleProcessingItems:
         updated = result.scalar_one()
         assert updated.status == ItemStatus.error
         assert updated.ai_raw_response == {"error": "Job lost or timed out"}
+        # Drives the retry-cooldown gate (issue #153) - a stale-swept item is
+        # exactly the kind of "just failed" item a user might immediately retry.
+        assert updated.ai_failed_at is not None
 
     @pytest.mark.asyncio
     async def test_does_not_touch_recent_processing(

@@ -82,6 +82,9 @@ class ClothingItem(Base):
     # status=processing must reset this too, or the stale-item sweep in worker.py
     # can misjudge a fresh attempt as an old, lost one.
     ai_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Set only when an actual AI tagging attempt fails (not on queue-infrastructure
+    # failures), and drives the retry cooldown in ItemService.claim_error_item_for_retry.
+    ai_failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ai_processed: Mapped[bool] = mapped_column(Boolean, default=False)
     ai_confidence: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
     ai_raw_response: Mapped[dict | None] = mapped_column(JSONB)

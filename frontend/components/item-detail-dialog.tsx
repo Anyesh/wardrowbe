@@ -78,6 +78,7 @@ interface ItemDetailDialogProps {
 export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogProps) {
   const t = useTranslations('wardrobe.itemDetail');
   const tc = useTranslations('common');
+  const tw = useTranslations('wardrobe');
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
   const [isEditing, setIsEditing] = useState(false);
@@ -194,8 +195,11 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
   const handleReanalyze = async () => {
     try {
-      await reanalyzeItem.mutateAsync(item.id);
-      // Status will update to 'processing' and UI will reflect it
+      const result = await reanalyzeItem.mutateAsync(item.id);
+      if (result.status === 'cooldown' && result.retry_after_seconds) {
+        toast.info(tw('ai.retryCooldown', { seconds: result.retry_after_seconds }));
+      }
+      // Otherwise status will update to 'processing' and UI will reflect it
     } catch (error) {
       console.error('Failed to trigger re-analysis:', error);
     }
