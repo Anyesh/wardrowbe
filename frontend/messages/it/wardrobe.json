@@ -57,13 +57,15 @@
     "dismiss": "Ignora",
     "failedCount": "{count} falliti",
     "queued": "Queued",
-    "queuedCount": "{count} queued"
+    "queuedCount": "{count} queued",
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "Tutti i tipi",
   "bulkActions": {
     "deleteError": "Eliminazione capi fallita",
     "deletePartialFailed": "{count, plural, one {Impossibile eliminare # capo} other {Impossibile eliminare # capi}}",
     "deleteSuccess": "{count, plural, one {# capo eliminato} other {# capi eliminati}}",
+    "reanalyzeCooldown": "{count, plural, one {# item cooling down after a recent failure} other {# items cooling down after a recent failure}}",
     "reanalyzeError": "Impossibile mettere in coda i capi per la rianalisi",
     "reanalyzeMany": "{count} capi messi in coda per la rianalisi. Potrebbe volerci un po’.",
     "reanalyzePartialFailed": "{count, plural, one {Impossibile mettere in coda # capo} other {Impossibile mettere in coda # capi}}",

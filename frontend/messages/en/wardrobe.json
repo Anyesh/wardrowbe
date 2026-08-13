@@ -57,13 +57,15 @@
     "dismiss": "Dismiss",
     "failedCount": "{count} failed",
     "queued": "Queued",
-    "queuedCount": "{count} queued"
+    "queuedCount": "{count} queued",
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "All types",
   "bulkActions": {
     "deleteError": "Failed to delete items",
     "deletePartialFailed": "{count, plural, one {Failed to delete # item} other {Failed to delete # items}}",
     "deleteSuccess": "{count, plural, one {# item deleted} other {# items deleted}}",
+    "reanalyzeCooldown": "{count, plural, one {# item cooling down after a recent failure} other {# items cooling down after a recent failure}}",
     "reanalyzeError": "Failed to queue items for re-analysis",
     "reanalyzeMany": "Queued {count} items for re-analysis. This may take a while.",
     "reanalyzePartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",

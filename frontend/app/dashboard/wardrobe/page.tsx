@@ -414,7 +414,13 @@ export default function WardrobePage() {
   }, [search, typeFilter, needsWash, favoriteFilter, sortIndex]);
 
   const handleRetry = (itemId: string) => {
-    reanalyze.mutate(itemId);
+    reanalyze.mutate(itemId, {
+      onSuccess: (data) => {
+        if (data.status === 'cooldown' && data.retry_after_seconds) {
+          toast.info(t('ai.retryCooldown', { seconds: data.retry_after_seconds }));
+        }
+      },
+    });
   };
 
   const handleCancelAnalysis = (itemId: string) => {
@@ -521,6 +527,9 @@ export default function WardrobePage() {
         // A batch that's entirely already-processing must not read as a bare
         // "0 items queued" success - surface the skip count explicitly.
         toast.info(t('bulkActions.reanalyzeSkipped', { count: result.skipped }));
+      }
+      if (result.cooldown > 0) {
+        toast.info(t('bulkActions.reanalyzeCooldown', { count: result.cooldown }));
       }
       if (result.failed > 0) {
         toast.error(t('bulkActions.reanalyzePartialFailed', { count: result.failed }));

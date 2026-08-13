@@ -57,13 +57,15 @@
     "dismiss": "閉じる",
     "failedCount": "{count} 件が失敗",
     "queued": "Queued",
-    "queuedCount": "{count} queued"
+    "queuedCount": "{count} queued",
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "すべてのタイプ",
   "bulkActions": {
     "deleteError": "アイテムの削除に失敗しました",
     "deletePartialFailed": "{count, plural, one {# 件のアイテムの削除に失敗しました} other {# 件のアイテムの削除に失敗しました}}",
     "deleteSuccess": "{count, plural, one {# 件のアイテムを削除しました} other {# 件のアイテムを削除しました}}",
+    "reanalyzeCooldown": "{count, plural, one {# item cooling down after a recent failure} other {# items cooling down after a recent failure}}",
     "reanalyzeError": "再分析キューイングに失敗しました",
     "reanalyzeMany": "{count} 件を再分析キューに追加しました。少し時間がかかる場合があります。",
     "reanalyzePartialFailed": "{count, plural, one {# 件のキューイングに失敗しました} other {# 件のキューイングに失敗しました}}",

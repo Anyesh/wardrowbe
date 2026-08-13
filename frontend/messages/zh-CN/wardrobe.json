@@ -57,13 +57,15 @@
     "dismiss": "关闭",
     "failedCount": "{count} 件失败",
     "queued": "Queued",
-    "queuedCount": "{count} queued"
+    "queuedCount": "{count} queued",
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "所有类型",
   "bulkActions": {
     "deleteError": "删除单品失败",
     "deletePartialFailed": "{count, plural, one {删除 # 件单品失败} other {删除 # 件单品失败}}",
     "deleteSuccess": "{count, plural, one {已删除 # 件单品} other {已删除 # 件单品}}",
+    "reanalyzeCooldown": "{count, plural, one {# item cooling down after a recent failure} other {# items cooling down after a recent failure}}",
     "reanalyzeError": "将单品加入重新分析队列失败",
     "reanalyzeMany": "已将{count}件单品加入重新分析队列，可能需要一些时间。",
     "reanalyzePartialFailed": "{count, plural, one {# 件单品加入队列失败} other {# 件单品加入队列失败}}",

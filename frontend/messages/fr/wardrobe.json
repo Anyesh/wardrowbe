@@ -57,13 +57,15 @@
     "dismiss": "Fermer",
     "failedCount": "{count} échoué(s)",
     "queued": "Queued",
-    "queuedCount": "{count} queued"
+    "queuedCount": "{count} queued",
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "Tous les types",
   "bulkActions": {
     "deleteError": "Échec de la suppression des articles",
     "deletePartialFailed": "{count, plural, one {Échec de la suppression de # article} other {Échec de la suppression de # articles}}",
     "deleteSuccess": "{count, plural, one {# article supprimé} other {# articles supprimés}}",
+    "reanalyzeCooldown": "{count, plural, one {# item cooling down after a recent failure} other {# items cooling down after a recent failure}}",
     "reanalyzeError": "Échec de la mise en file d'attente pour ré-analyse",
     "reanalyzeMany": "{count} articles remis en file d'attente pour ré-analyse. Cela peut prendre un moment.",
     "reanalyzePartialFailed": "{count, plural, one {Échec de la mise en file d’attente de # article} other {Échec de la mise en file d’attente de # articles}}",

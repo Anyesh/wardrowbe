@@ -573,7 +573,9 @@ export function useReanalyzeItem() {
       if (session?.accessToken) {
         setAccessToken(session.accessToken as string);
       }
-      return api.post<{ job_id: string; status: string }>(`/items/${id}/analyze`);
+      return api.post<{ job_id?: string; status: string; retry_after_seconds?: number }>(
+        `/items/${id}/analyze`
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
@@ -698,6 +700,8 @@ export interface BulkAnalyzeResponse {
   queued: number;
   failed: number;
   skipped: number;
+  cooldown: number;
+  retry_after_seconds: number | null;
   errors: string[];
 }
 

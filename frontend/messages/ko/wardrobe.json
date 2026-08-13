@@ -57,13 +57,15 @@
     "dismiss": "닫기",
     "failedCount": "{count}개 실패",
     "queued": "Queued",
-    "queuedCount": "{count} queued"
+    "queuedCount": "{count} queued",
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "전체 유형",
   "bulkActions": {
     "deleteError": "아이템 삭제 실패",
     "deletePartialFailed": "{count, plural, other {아이템 #개 삭제 실패}}",
     "deleteSuccess": "{count, plural, other {아이템 #개를 삭제했어요}}",
+    "reanalyzeCooldown": "{count, plural, one {# item cooling down after a recent failure} other {# items cooling down after a recent failure}}",
     "reanalyzeError": "아이템 재분석 대기열 추가 실패",
     "reanalyzeMany": "{count}개 아이템이 재분석 대기열에 추가되었어요. 시간이 걸릴 수 있어요.",
     "reanalyzePartialFailed": "{count, plural, other {아이템 #개 대기열 추가 실패}}",
