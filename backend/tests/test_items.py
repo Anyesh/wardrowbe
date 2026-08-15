@@ -7,11 +7,11 @@ from uuid import UUID, uuid4
 import pytest
 from httpx import AsyncClient
 from PIL import Image
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models.item import ClothingItem, ItemStatus
-from app.schemas.item import ItemFilter
+from app.schemas.item import ItemCreate, ItemFilter
 from app.services.item_service import ItemService
 from app.workers.tagging import update_item_status_to_error
 
@@ -364,6 +364,182 @@ class TestItemService:
         second_ids = [item.id for item in (await service.get_list(test_user.id, filters))[0]]
 
         assert first_ids == second_ids == sorted(first_ids)
+
+
+class TestBulkCreateUploadKeyIdempotency:
+    """upload_key lets a retried/duplicated bulk-upload chunk from the durable
+    frontend queue be replayed safely - covers both the fast-path pre-check and
+    the DB-constraint conflict path a race would actually hit."""
+
+    @pytest.mark.asyncio
+    async def test_first_upload_with_key_creates_item(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession
+    ):
+        files = [("images", ("shirt.jpg", _make_test_image_bytes(), "image/jpeg"))]
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
+            mock_create_pool.return_value = mock_redis
+            response = await client.post(
+                "/api/v1/items/bulk",
+                files=files,
+                data={"upload_keys": "key-1"},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 201
+        result = response.json()["results"][0]
+        assert result["success"] is True
+        assert result["duplicate"] is False
+        item_id = UUID(result["item"]["id"])
+        db_item = (
+            await db_session.execute(select(ClothingItem).where(ClothingItem.id == item_id))
+        ).scalar_one()
+        assert db_item.upload_key == "key-1"
+
+    @pytest.mark.asyncio
+    async def test_retry_with_same_key_is_reported_as_duplicate_not_recreated(
+        self, client: AsyncClient, auth_headers, test_user, db_session: AsyncSession
+    ):
+        files = [("images", ("shirt.jpg", _make_test_image_bytes(), "image/jpeg"))]
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            first = await client.post(
+                "/api/v1/items/bulk",
+                files=files,
+                data={"upload_keys": "key-retry"},
+                headers=auth_headers,
+            )
+            retry = await client.post(
+                "/api/v1/items/bulk",
+                files=[("images", ("shirt.jpg", _make_test_image_bytes(), "image/jpeg"))],
+                data={"upload_keys": "key-retry"},
+                headers=auth_headers,
+            )
+
+        first_item_id = first.json()["results"][0]["item"]["id"]
+        retry_result = retry.json()["results"][0]
+        assert retry_result["success"] is True
+        assert retry_result["duplicate"] is True
+        assert retry_result["existing_item_id"] == first_item_id
+
+        count = (
+            await db_session.execute(
+                select(func.count())
+                .select_from(ClothingItem)
+                .where(
+                    ClothingItem.user_id == test_user.id,
+                    ClothingItem.upload_key == "key-retry",
+                )
+            )
+        ).scalar_one()
+        assert count == 1
+
+    @pytest.mark.asyncio
+    async def test_concurrent_race_hits_db_constraint_not_a_second_row(
+        self, client: AsyncClient, auth_headers, test_user, db_session: AsyncSession
+    ):
+        """Simulates two concurrent drains racing on the same queued record: the
+        pre-check sees no existing row (patched to always miss), but the row is
+        already committed by the time create() flushes, so the real unique index
+        must catch it - this exercises the IntegrityError branch, not the fast path."""
+        test_user_id = test_user.id
+        item_service = ItemService(db_session)
+        image_paths = {"image_path": "seed.jpg", "image_hash": "seedhash1234abcd"}
+        winner = await item_service.create(
+            user_id=test_user_id,
+            item_data=ItemCreate(type="unknown"),
+            image_paths=image_paths,
+            upload_key="key-race",
+        )
+        await db_session.commit()
+        winner_id = winner.id
+
+        # Miss only on the first call (the pre-check racing the winner's commit);
+        # a real second call must hit the actual DB so the post-conflict lookup
+        # in the except branch is exercised for real, not also silenced by the mock.
+        real_find_by_upload_key = ItemService.find_by_upload_key
+        call_count = {"n": 0}
+
+        async def flaky_find_by_upload_key(self, user_id, upload_key):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                return None
+            return await real_find_by_upload_key(self, user_id, upload_key)
+
+        files = [("images", ("shirt.jpg", _make_test_image_bytes(), "image/jpeg"))]
+        with (
+            patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool,
+            patch(
+                "app.api.items.ItemService.find_by_upload_key",
+                new=flaky_find_by_upload_key,
+            ),
+        ):
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
+            mock_create_pool.return_value = mock_redis
+            response = await client.post(
+                "/api/v1/items/bulk",
+                files=files,
+                data={"upload_keys": "key-race"},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 201
+        result = response.json()["results"][0]
+        assert result["success"] is True
+        assert result["duplicate"] is True
+        assert result["existing_item_id"] == str(winner_id)
+
+        count = (
+            await db_session.execute(
+                select(func.count())
+                .select_from(ClothingItem)
+                .where(
+                    ClothingItem.user_id == test_user_id,
+                    ClothingItem.upload_key == "key-race",
+                )
+            )
+        ).scalar_one()
+        assert count == 1
+
+    @pytest.mark.asyncio
+    async def test_no_upload_keys_behaves_exactly_as_before(
+        self, client: AsyncClient, auth_headers
+    ):
+        files = [("images", ("shirt.jpg", _make_test_image_bytes(), "image/jpeg"))]
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
+            mock_create_pool.return_value = mock_redis
+            response = await client.post(
+                "/api/v1/items/bulk",
+                files=files,
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 201
+        result = response.json()["results"][0]
+        assert result["success"] is True
+        assert result["duplicate"] is False
+        assert result["existing_item_id"] is None
+
+    @pytest.mark.asyncio
+    async def test_mismatched_upload_keys_length_rejected(self, client: AsyncClient, auth_headers):
+        files = [
+            ("images", ("shirt.jpg", _make_test_image_bytes(), "image/jpeg")),
+            ("images", ("pants.jpg", _make_test_image_bytes(), "image/jpeg")),
+        ]
+        response = await client.post(
+            "/api/v1/items/bulk",
+            files=files,
+            data={"upload_keys": "only-one-key"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
 
 
 class TestBulkCreateSkipAI:

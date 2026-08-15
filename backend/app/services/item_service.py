@@ -159,11 +159,32 @@ class ItemService:
         )
         return result.scalar_one_or_none()
 
+    async def find_by_upload_key(
+        self,
+        user_id: UUID,
+        upload_key: str,
+    ) -> ClothingItem | None:
+        # additional_images is eager-loaded because callers pass the result
+        # straight to ItemResponse.model_validate(), which touches it
+        # synchronously - a lazy load there crashes with MissingGreenlet.
+        result = await self.db.execute(
+            select(ClothingItem)
+            .where(
+                and_(
+                    ClothingItem.user_id == user_id,
+                    ClothingItem.upload_key == upload_key,
+                )
+            )
+            .options(selectinload(ClothingItem.additional_images))
+        )
+        return result.scalar_one_or_none()
+
     async def create(
         self,
         user_id: UUID,
         item_data: ItemCreate,
         image_paths: dict[str, str],
+        upload_key: str | None = None,
     ) -> ClothingItem:
         # Build tags dict
         tags = {}
@@ -183,6 +204,7 @@ class ItemService:
             colors=item_data.colors or [],
             primary_color=item_data.primary_color,
             status=ItemStatus.processing,  # AI analysis will update to ready
+            upload_key=upload_key,
             name=item_data.name,
             brand=item_data.brand,
             notes=item_data.notes,
