@@ -19,6 +19,7 @@
       "hint": "Alle Stücke werden automatisch von der KI getaggt. Details kannst du später bearbeiten.",
       "imageCount": "{count, plural, one {# Bild ausgewählt} other {# Bilder ausgewählt}}",
       "partial": "{success} hochgeladen, {failed} fehlgeschlagen",
+      "queued": "{count, plural, one {# photo queued for upload} other {# photos queued for upload}}",
       "resultFailed": "{count, plural, one {# Stück fehlgeschlagen} other {# Stücke fehlgeschlagen}}",
       "resultSuccess": "{success} von {total} erfolgreich hochgeladen",
       "skipAi": "KI-Analyse überspringen (mit Platzhalterwerten hinzufügen, Details später bearbeiten)",
@@ -202,6 +203,18 @@
     "recentlyWorn": "Kürzlich getragen"
   },
   "title": "Mein Kleiderschrank",
+  "uploadQueue": {
+    "remaining": "{count, plural, one {# photo uploading in the background} other {# photos uploading in the background}}",
+    "keepTabOpen": "Keep this tab open until this finishes",
+    "storageNotPersisted": "Your browser may clear queued photos if you navigate away before this finishes",
+    "resuming": "Resuming {count, plural, one {# photo} other {# photos}} from an earlier import",
+    "failedCount": "{count, plural, one {# photo could not be uploaded} other {# photos could not be uploaded}}",
+    "retryAll": "Retry all",
+    "dismissAll": "Dismiss all",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+  },
   "wearCount": "{count, plural, one {# Mal getragen} other {# Mal getragen}}",
   "wornAgo": {
     "daysAgo": "Vor {days} T. getragen",

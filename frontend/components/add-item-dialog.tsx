@@ -159,15 +159,28 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
         files: bulkFiles.map((f) => f.file),
         skipAi,
       });
-      setBulkResult(result);
 
-      // Show toast based on results
-      if (result.failed === 0) {
-        toast.success(t('bulk.allSuccess', { count: result.successful }));
-      } else if (result.successful === 0) {
-        toast.error(t('bulk.allFailed', { count: result.failed }));
+      if (result.staged > 0) {
+        toast.success(t('bulk.queued', { count: result.staged }));
+      }
+
+      if (result.unprotected) {
+        // These files couldn't be durably staged and went through today's
+        // direct upload path instead - it already has a real result to show,
+        // same results screen as before.
+        const { successful, failed } = result.unprotected;
+        if (failed === 0) {
+          toast.success(t('bulk.allSuccess', { count: successful }));
+        } else if (successful === 0) {
+          toast.error(t('bulk.allFailed', { count: failed }));
+        } else {
+          toast.warning(t('bulk.partial', { success: successful, failed }));
+        }
+        setBulkResult(result.unprotected);
       } else {
-        toast.warning(t('bulk.partial', { success: result.successful, failed: result.failed }));
+        // Everything was staged - nothing to review synchronously, the
+        // dashboard-wide upload indicator now owns reporting progress.
+        handleClose();
       }
     } catch (error) {
       console.error('Failed to bulk upload:', error);

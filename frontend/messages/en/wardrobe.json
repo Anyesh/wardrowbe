@@ -19,6 +19,7 @@
       "hint": "All items will be auto-tagged by AI. You can edit details later.",
       "imageCount": "{count, plural, one {# image selected} other {# images selected}}",
       "partial": "{success} uploaded, {failed} failed",
+      "queued": "{count, plural, one {# photo queued for upload} other {# photos queued for upload}}",
       "resultFailed": "{count, plural, one {# item failed} other {# items failed}}",
       "resultSuccess": "{success} of {total} uploaded successfully",
       "skipAi": "Skip AI analysis (add with placeholder values, edit details later)",
@@ -202,6 +203,18 @@
     "recentlyWorn": "Recently worn"
   },
   "title": "My Wardrobe",
+  "uploadQueue": {
+    "remaining": "{count, plural, one {# photo uploading in the background} other {# photos uploading in the background}}",
+    "keepTabOpen": "Keep this tab open until this finishes",
+    "storageNotPersisted": "Your browser may clear queued photos if you navigate away before this finishes",
+    "resuming": "Resuming {count, plural, one {# photo} other {# photos}} from an earlier import",
+    "failedCount": "{count, plural, one {# photo could not be uploaded} other {# photos could not be uploaded}}",
+    "retryAll": "Retry all",
+    "dismissAll": "Dismiss all",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+  },
   "wearCount": "{count, plural, one {Worn # time} other {Worn # times}}",
   "wornAgo": {
     "daysAgo": "Worn {days}d ago",
