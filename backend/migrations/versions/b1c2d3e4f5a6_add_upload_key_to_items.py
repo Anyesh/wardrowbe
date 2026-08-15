@@ -19,9 +19,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "clothing_items", sa.Column("upload_key", sa.String(length=64), nullable=True)
-    )
+    op.add_column("clothing_items", sa.Column("upload_key", sa.String(length=64), nullable=True))
     op.create_index(
         "ix_clothing_items_user_upload_key",
         "clothing_items",
