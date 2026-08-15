@@ -206,6 +206,8 @@ class BulkUploadResult(BaseModel):
     success: bool
     item: ItemResponse | None = None
     error: str | None = None
+    duplicate: bool = False
+    existing_item_id: UUID | None = None
 
 
 class BulkUploadResponse(BaseModel):

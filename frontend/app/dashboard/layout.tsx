@@ -9,6 +9,7 @@ import { MobileSidebar } from '@/components/mobile-sidebar';
 import { MobileNav } from '@/components/mobile-nav';
 import { Header } from '@/components/header';
 import { OfflineIndicator } from '@/components/offline-indicator';
+import { UploadQueueIndicator } from '@/components/upload-queue-indicator';
 import { ImageLightbox } from '@/components/image-lightbox';
 import { LightboxProvider } from '@/lib/lightbox-context';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -66,6 +67,7 @@ export default function DashboardLayout({
         </div>
         <MobileNav />
         <OfflineIndicator />
+        <UploadQueueIndicator />
         <ImageLightbox />
       </div>
     </LightboxProvider>

@@ -19,6 +19,7 @@
       "hint": "すべてのアイテムはAIで自動タグ付けされます。詳細は後から編集できます。",
       "imageCount": "{count, plural, one {# 枚の画像を選択中} other {# 枚の画像を選択中}}",
       "partial": "{success}件成功、{failed}件失敗",
+      "queued": "{count, plural, one {# photo queued for upload} other {# photos queued for upload}}",
       "resultFailed": "{count, plural, one {# 件のアイテムが失敗} other {# 件のアイテムが失敗}}",
       "resultSuccess": "{total}件中{success}件のアップロードに成功しました",
       "skipAi": "AI解析をスキップ（仮の値で追加し、詳細は後から編集）",
@@ -202,6 +203,18 @@
     "recentlyWorn": "最近着用"
   },
   "title": "マイワードローブ",
+  "uploadQueue": {
+    "remaining": "{count, plural, one {# photo uploading in the background} other {# photos uploading in the background}}",
+    "keepTabOpen": "Keep this tab open until this finishes",
+    "storageNotPersisted": "Your browser may clear queued photos if you navigate away before this finishes",
+    "resuming": "Resuming {count, plural, one {# photo} other {# photos}} from an earlier import",
+    "failedCount": "{count, plural, one {# photo could not be uploaded} other {# photos could not be uploaded}}",
+    "retryAll": "Retry all",
+    "dismissAll": "Dismiss all",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+  },
   "wearCount": "{count, plural, one {# 回着用} other {# 回着用}}",
   "wornAgo": {
     "daysAgo": "{days}日前に着用",

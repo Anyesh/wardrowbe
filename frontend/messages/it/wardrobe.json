@@ -19,6 +19,7 @@
       "hint": "Tutti i capi saranno etichettati automaticamente dall'IA. Potrai modificare i dettagli in seguito.",
       "imageCount": "{count, plural, one {# immagine selezionata} other {# immagini selezionate}}",
       "partial": "{success} caricati, {failed} falliti",
+      "queued": "{count, plural, one {# photo queued for upload} other {# photos queued for upload}}",
       "resultFailed": "{count, plural, one {# capo fallito} other {# capi falliti}}",
       "resultSuccess": "{success} di {total} caricati con successo",
       "skipAi": "Salta l’analisi IA (aggiungi con valori segnaposto, modifica i dettagli in seguito)",
@@ -202,6 +203,18 @@
     "recentlyWorn": "Indossati di recente"
   },
   "title": "Il mio guardaroba",
+  "uploadQueue": {
+    "remaining": "{count, plural, one {# photo uploading in the background} other {# photos uploading in the background}}",
+    "keepTabOpen": "Keep this tab open until this finishes",
+    "storageNotPersisted": "Your browser may clear queued photos if you navigate away before this finishes",
+    "resuming": "Resuming {count, plural, one {# photo} other {# photos}} from an earlier import",
+    "failedCount": "{count, plural, one {# photo could not be uploaded} other {# photos could not be uploaded}}",
+    "retryAll": "Retry all",
+    "dismissAll": "Dismiss all",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+  },
   "wearCount": "{count, plural, one {Indossato # volta} other {Indossato # volte}}",
   "wornAgo": {
     "daysAgo": "Indossato {days}g fa",

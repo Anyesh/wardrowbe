@@ -19,6 +19,7 @@
       "hint": "모든 아이템은 AI가 자동으로 태그해요. 나중에 수정할 수 있어요.",
       "imageCount": "{count, plural, other {이미지 #개 선택됨}}",
       "partial": "{success}개 업로드, {failed}개 실패",
+      "queued": "{count, plural, one {# photo queued for upload} other {# photos queued for upload}}",
       "resultFailed": "{count, plural, other {아이템 #개 실패}}",
       "resultSuccess": "{total}개 중 {success}개 업로드 완료",
       "skipAi": "AI 분석 건너뛰기 (임시 값으로 추가하고 나중에 세부 정보 수정)",
@@ -202,6 +203,18 @@
     "recentlyWorn": "최근 착용순"
   },
   "title": "내 옷장",
+  "uploadQueue": {
+    "remaining": "{count, plural, one {# photo uploading in the background} other {# photos uploading in the background}}",
+    "keepTabOpen": "Keep this tab open until this finishes",
+    "storageNotPersisted": "Your browser may clear queued photos if you navigate away before this finishes",
+    "resuming": "Resuming {count, plural, one {# photo} other {# photos}} from an earlier import",
+    "failedCount": "{count, plural, one {# photo could not be uploaded} other {# photos could not be uploaded}}",
+    "retryAll": "Retry all",
+    "dismissAll": "Dismiss all",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+  },
   "wearCount": "{count, plural, other {#회 착용}}",
   "wornAgo": {
     "daysAgo": "{days}일 전 착용",

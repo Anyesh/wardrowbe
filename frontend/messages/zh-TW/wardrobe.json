@@ -19,6 +19,7 @@
       "hint": "所有單品將由 AI 自動標記。你可以稍後編輯詳情。",
       "imageCount": "{count, plural, one {已選擇 # 張圖片} other {已選擇 # 張圖片}}",
       "partial": "{success} 件上傳成功，{failed} 件失敗",
+      "queued": "{count, plural, one {# photo queued for upload} other {# photos queued for upload}}",
       "resultFailed": "{count, plural, one {# 件單品上傳失敗} other {# 件單品上傳失敗}}",
       "resultSuccess": "{total} 件中 {success} 件上傳成功",
       "skipAi": "略過 AI 分析（以預留值新增，稍後編輯詳情）",
@@ -202,6 +203,18 @@
     "recentlyWorn": "最近穿過"
   },
   "title": "我的衣櫥",
+  "uploadQueue": {
+    "remaining": "{count, plural, one {# photo uploading in the background} other {# photos uploading in the background}}",
+    "keepTabOpen": "Keep this tab open until this finishes",
+    "storageNotPersisted": "Your browser may clear queued photos if you navigate away before this finishes",
+    "resuming": "Resuming {count, plural, one {# photo} other {# photos}} from an earlier import",
+    "failedCount": "{count, plural, one {# photo could not be uploaded} other {# photos could not be uploaded}}",
+    "retryAll": "Retry all",
+    "dismissAll": "Dismiss all",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+  },
   "wearCount": "{count, plural, one {已穿著 # 次} other {已穿著 # 次}}",
   "wornAgo": {
     "daysAgo": "{days} 天前穿過",
