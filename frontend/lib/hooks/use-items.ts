@@ -605,6 +605,8 @@ export interface BulkUploadResult {
   success: boolean;
   item?: Item;
   error?: string;
+  duplicate?: boolean;
+  existing_item_id?: string;
 }
 
 export interface BulkUploadResponse {
