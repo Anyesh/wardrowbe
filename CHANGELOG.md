@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.7.0...wardrowbe-v1.8.0) (2026-08-15)
+
+
+### ✨ Features
+
+* external outfit authoring for suggestions and pairings ([#156](https://github.com/Anyesh/wardrowbe/issues/156)) ([1d3506a](https://github.com/Anyesh/wardrowbe/commit/1d3506a7bbab293e87043b6bfd9f996d7d1dffd6))
+* **items:** add ai_failed_at column and retry cooldown config ([ebe8409](https://github.com/Anyesh/wardrowbe/commit/ebe8409a31ecdd5249c2e6b3461c2fdb23e0409b))
+* **items:** add upload_key idempotency for bulk upload retries ([1d9d832](https://github.com/Anyesh/wardrowbe/commit/1d9d832dd41f7af1c34acf34957e2680fb83c4f7))
+* **wardrobe:** add durable upload queue and drain manager ([0d0ba29](https://github.com/Anyesh/wardrowbe/commit/0d0ba293f4fd6187bd0973e541262eb1b8ac3cc4))
+* **wardrobe:** show queued vs analyzing status with elapsed time ([9da07d0](https://github.com/Anyesh/wardrowbe/commit/9da07d06bea8c3caae2689692feb1cee04dc35c4))
+* **wardrobe:** surface retry-cooldown status to the user ([a2848f4](https://github.com/Anyesh/wardrowbe/commit/a2848f46fbc305bd26d6956dadfb7ab1eed7fff2))
+* **wardrobe:** wire durable upload queue into bulk-upload UI ([64ca39e](https://github.com/Anyesh/wardrowbe/commit/64ca39eae10db9dc452bfc72f23cc7fe2f6816b3))
+* **worker:** make AI tagging concurrency configurable ([adafab9](https://github.com/Anyesh/wardrowbe/commit/adafab9f37caa12092e786dae36d43d2fcd5018b))
+
+
+### 🐛 Bug Fixes
+
+* **ai:** stop image preprocessing from blocking the event loop ([b6ad642](https://github.com/Anyesh/wardrowbe/commit/b6ad6420110962651653a3fe75d3d64d27047313))
+* **items:** gate manual and bulk retry behind a cooldown after failure ([9338289](https://github.com/Anyesh/wardrowbe/commit/9338289a0a769ea2374d7127239700528c2e6d15))
+* **items:** idempotent re-analysis and real queue visibility ([9c8cbfd](https://github.com/Anyesh/wardrowbe/commit/9c8cbfdd657479f1ad7dff3a035b8a77153e0ac6))
+* regenerate frontend lockfile for musl/alpine platform ([961b09f](https://github.com/Anyesh/wardrowbe/commit/961b09ff59d819d859d9068b9b72e43144b6d711))
+* **worker:** stop the stale-item sweep from condemning queued items ([cc52597](https://github.com/Anyesh/wardrowbe/commit/cc52597e8431f661789477a9d480964574c52cb6))
+
+
+### 🧪 Tests
+
+* **backend:** cover retry-cooldown claim, gating, and concurrency ([ec8778f](https://github.com/Anyesh/wardrowbe/commit/ec8778f65cdb58a482be809e8e08e03a441ed991))
+* **backend:** cover stale-sweep, concurrency, and idempotency changes ([45ea759](https://github.com/Anyesh/wardrowbe/commit/45ea759735a6021d7813785ec3370609e08c878f))
+
+
+### 👷 CI/CD
+
+* remove unused cognitive-cache context workflows ([1604071](https://github.com/Anyesh/wardrowbe/commit/1604071981d779d62bce4b8423b2726ea8add56f))
+
+
+### 💄 Styling
+
+* ruff-format upload_key migration ([ced1ed8](https://github.com/Anyesh/wardrowbe/commit/ced1ed8eb0708c45293be97e10e4cd4bc4130d21))
+
 ## [1.7.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.6.0...wardrowbe-v1.7.0) (2026-07-30)
 
 
