@@ -206,6 +206,7 @@
   "uploadQueue": {
     "remaining": "{count, plural, one {# photo uploading in the background} other {# photos uploading in the background}}",
     "keepTabOpen": "Keep this tab open until this finishes",
+    "cancel": "Cancel",
     "storageNotPersisted": "Your browser may clear queued photos if you navigate away before this finishes",
     "resuming": "Resuming {count, plural, one {# photo} other {# photos}} from an earlier import",
     "failedCount": "{count, plural, one {# photo could not be uploaded} other {# photos could not be uploaded}}",

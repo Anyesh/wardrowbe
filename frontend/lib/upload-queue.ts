@@ -49,6 +49,14 @@ function reqToPromise<T>(request: IDBRequest<T>): Promise<T> {
   });
 }
 
+function txDone(tx: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'));
+  });
+}
+
 async function withStore<T>(
   mode: IDBTransactionMode,
   storeName: string,
@@ -59,7 +67,13 @@ async function withStore<T>(
     const tx = db.transaction(storeName, mode);
     const store = tx.objectStore(storeName);
     const result = fn(store);
-    return result instanceof IDBRequest ? await reqToPromise(result) : await result;
+    const resultPromise = result instanceof IDBRequest ? reqToPromise(result) : result;
+    // Wait for transaction commit, not just the request's own onsuccess -
+    // Safari can back a request's onsuccess without the transaction ever
+    // reaching oncomplete if the page is backgrounded mid-write, silently
+    // dropping the write while callers believe it durably landed.
+    const [value] = await Promise.all([resultPromise, txDone(tx)]);
+    return value;
   } finally {
     db.close();
   }
