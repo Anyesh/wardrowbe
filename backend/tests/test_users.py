@@ -60,6 +60,23 @@ class TestUserUpdate:
         assert float(data["location_lat"]) == pytest.approx(40.7128, rel=1e-4)
         assert float(data["location_lon"]) == pytest.approx(-74.0060, rel=1e-4)
 
+    @pytest.mark.asyncio
+    async def test_update_user_rejects_unknown_field(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        """An unrecognized key (e.g. a client-side naming mismatch like
+        timeZone instead of timezone) must 422, not silently no-op with a
+        200 that leaves the field unchanged."""
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"timeZone": "Europe/Amsterdam"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+        unchanged = await client.get("/api/v1/users/me", headers=auth_headers)
+        assert unchanged.json()["timezone"] != "Europe/Amsterdam"
+
 
 class TestUserLocale:
     @pytest.mark.asyncio

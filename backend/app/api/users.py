@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -35,6 +35,12 @@ class UserProfileResponse(BaseModel):
 
 
 class UserProfileUpdate(BaseModel):
+    # Reject unknown keys instead of the Pydantic default of silently
+    # dropping them - a client sending a misnamed field (e.g. "timeZone")
+    # would otherwise get a 200 with nothing actually updated, indistinguishable
+    # from a real success.
+    model_config = ConfigDict(extra="forbid")
+
     display_name: str | None = None
     timezone: str | None = None
     locale: str | None = None
