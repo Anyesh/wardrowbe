@@ -3,7 +3,7 @@ import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
 import { QueryClient } from '@tanstack/react-query'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { enqueueFiles, getPendingUploads } from '@/lib/upload-queue'
+import { enqueueFiles, getPendingUploads, markUploading } from '@/lib/upload-queue'
 import * as manager from '@/lib/upload-manager'
 
 // This file runs in the node environment (not jsdom, see the directive
@@ -192,6 +192,20 @@ describe('retry/dismiss actions', () => {
     for (let i = 0; i < 10; i++) {
       await new Promise((r) => setTimeout(r, 0))
     }
+
+    expect(await getPendingUploads()).toHaveLength(0)
+  })
+
+  it('cancelAll clears a stuck non-terminal record, which has no other recovery path', async () => {
+    // A record left in 'pending'/'uploading' never becomes terminal on its
+    // own (e.g. a durable write that silently failed to land) - dismissAll
+    // only touches terminalRecords, so cancelAll is the only way out.
+    await enqueueFiles([makeFile('stuck.jpg')], false)
+    const [record] = await getPendingUploads()
+    await markUploading(record.id)
+    expect((await manager.getState()).remaining).toBe(1)
+
+    await manager.cancelAll()
 
     expect(await getPendingUploads()).toHaveLength(0)
   })

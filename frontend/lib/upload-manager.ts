@@ -203,3 +203,13 @@ export async function dismissAll(): Promise<void> {
   await Promise.all(terminalRecords.map((r) => dismissRecord(r.id)));
   await emit();
 }
+
+export async function cancelAll(): Promise<void> {
+  // Unlike dismissAll (terminal records only), this also clears records
+  // stuck in 'pending'/'uploading' - the only recovery path for a record
+  // whose durable write to IndexedDB never actually landed, so it never
+  // becomes terminal on its own.
+  const records = await getPendingUploads();
+  await Promise.all(records.map((r) => dismissRecord(r.id)));
+  await emit();
+}
