@@ -773,6 +773,98 @@ export function useBulkReanalyzeItems() {
   });
 }
 
+export interface BulkRotateResponse {
+  rotated: number;
+  failed: number;
+  errors: string[];
+}
+
+export function useBulkRotateItems() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (params: BulkOperationParams & { direction: 'cw' | 'ccw' }) => {
+      if (session?.accessToken) {
+        setAccessToken(session.accessToken as string);
+      }
+      return api.post<BulkRotateResponse>('/items/bulk/rotate', params);
+    },
+    onSettled: () => {
+      // Rotation is synchronous server-side, so there's nothing to optimistically
+      // guess at - just refetch once the real (already-rotated) result is in.
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+}
+
+export interface BulkRemoveBackgroundResponse {
+  queued: number;
+  failed: number;
+  skipped: number;
+  errors: string[];
+}
+
+export function useBulkRemoveBackgroundItems() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (params: BulkOperationParams & { bg_color?: string }) => {
+      if (session?.accessToken) {
+        setAccessToken(session.accessToken as string);
+      }
+      return api.post<BulkRemoveBackgroundResponse>('/items/bulk/remove-background', params);
+    },
+    onMutate: async (params) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['items'] });
+
+      // Snapshot previous value
+      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+
+      // Optimistically set items to processing status, mirroring useBulkReanalyzeItems
+      if (params.select_all) {
+        const excludedSet = new Set(params.excluded_ids || []);
+        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((item) =>
+              !excludedSet.has(item.id) ? { ...item, status: 'processing' as const } : item
+            ),
+          };
+        });
+      } else if (params.item_ids) {
+        const itemIdSet = new Set(params.item_ids);
+        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((item) =>
+              itemIdSet.has(item.id) ? { ...item, status: 'processing' as const } : item
+            ),
+          };
+        });
+      }
+
+      return { previousData };
+    },
+    onError: (_err, _params, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    onSettled: () => {
+      // Refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+}
+
 function uploadBulkItemsChunk(
   files: File[],
   skipAi: boolean,

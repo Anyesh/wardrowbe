@@ -71,7 +71,14 @@
     "reanalyzeMany": "{count}개 아이템이 재분석 대기열에 추가되었어요. 시간이 걸릴 수 있어요.",
     "reanalyzePartialFailed": "{count, plural, other {아이템 #개 대기열 추가 실패}}",
     "reanalyzeQueued": "{count, plural, other {아이템 #개를 재분석 대기열에 추가했어요}}",
-    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
+    "removeBackgroundError": "Failed to queue background removal",
+    "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
+    "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
+    "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
+    "rotateError": "Failed to rotate items",
+    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "선택한 아이템과 이미지가 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",

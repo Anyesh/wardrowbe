@@ -71,7 +71,14 @@
     "reanalyzeMany": "已将{count}件单品加入重新分析队列，可能需要一些时间。",
     "reanalyzePartialFailed": "{count, plural, one {# 件单品加入队列失败} other {# 件单品加入队列失败}}",
     "reanalyzeQueued": "{count, plural, one {已将 # 件单品加入重新分析队列} other {已将 # 件单品加入重新分析队列}}",
-    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
+    "removeBackgroundError": "Failed to queue background removal",
+    "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
+    "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
+    "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
+    "rotateError": "Failed to rotate items",
+    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "这将永久删除所选单品及其图片。此操作不可撤销。",

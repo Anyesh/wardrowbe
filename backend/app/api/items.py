@@ -22,6 +22,10 @@ from app.schemas.item import (
     BulkAnalyzeResponse,
     BulkDeleteRequest,
     BulkDeleteResponse,
+    BulkRemoveBackgroundRequest,
+    BulkRemoveBackgroundResponse,
+    BulkRotateRequest,
+    BulkRotateResponse,
     BulkUploadResponse,
     BulkUploadResult,
     ItemCreate,
@@ -649,6 +653,147 @@ async def bulk_analyze_items(
         cooldown=cooldown_count,
         retry_after_seconds=cooldown_retry_after,
         errors=errors,
+    )
+
+
+@router.post("/bulk/rotate", response_model=BulkRotateResponse)
+async def bulk_rotate_items(
+    request: BulkRotateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> BulkRotateResponse:
+    item_service = ItemService(db)
+    image_service = ImageService()
+    rotated = 0
+    failed = 0
+    errors: list[str] = []
+
+    if request.select_all:
+        item_ids = await item_service.get_ids_by_filter(
+            user_id=current_user.id,
+            type_filter=request.filters.type if request.filters else None,
+            search=request.filters.search if request.filters else None,
+            is_archived=request.filters.is_archived
+            if request.filters and request.filters.is_archived is not None
+            else False,
+            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
+        )
+        logger.info(f"Bulk rotate select_all: {len(item_ids)} items to rotate")
+    else:
+        item_ids = request.item_ids or []
+
+    for item_id in item_ids:
+        item = await item_service.get_by_id(item_id, current_user.id)
+        if not item:
+            errors.append(f"Item {item_id} not found or not owned by user")
+            failed += 1
+            continue
+        if not item.image_path:
+            errors.append(f"Item {item_id} has no image")
+            failed += 1
+            continue
+        try:
+            image_service.rotate_image(item.image_path, request.direction)
+            rotated += 1
+        except Exception as e:
+            logger.error(f"Failed to rotate item {item_id}: {e}")
+            errors.append(f"Failed to rotate item {item_id}")
+            failed += 1
+
+    await db.commit()
+    return BulkRotateResponse(rotated=rotated, failed=failed, errors=errors)
+
+
+@router.post("/bulk/remove-background", response_model=BulkRemoveBackgroundResponse)
+async def bulk_remove_background_items(
+    request: BulkRemoveBackgroundRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> BulkRemoveBackgroundResponse:
+    item_service = ItemService(db)
+    queued = 0
+    failed = 0
+    errors: list[str] = []
+
+    if request.select_all:
+        item_ids = await item_service.get_ids_by_filter(
+            user_id=current_user.id,
+            type_filter=request.filters.type if request.filters else None,
+            search=request.filters.search if request.filters else None,
+            is_archived=request.filters.is_archived
+            if request.filters and request.filters.is_archived is not None
+            else False,
+            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
+        )
+        logger.info(f"Bulk remove-background select_all: {len(item_ids)} items")
+    else:
+        item_ids = request.item_ids or []
+
+    items_to_process: list[ClothingItem] = []
+    for item_id in item_ids:
+        item = await item_service.get_by_id(item_id, current_user.id)
+        if not item:
+            errors.append(f"Item {item_id} not found or not owned by user")
+            failed += 1
+            continue
+        if not item.image_path:
+            errors.append(f"Item {item_id} has no image")
+            failed += 1
+            continue
+        items_to_process.append(item)
+
+    # Already-processing items are skipped rather than double-enqueued - a second
+    # job racing the first would stomp each other's original-backup write.
+    already_processing = [item for item in items_to_process if item.status == ItemStatus.processing]
+    skipped = len(already_processing)
+    to_queue = [item for item in items_to_process if item.status != ItemStatus.processing]
+
+    for item in to_queue:
+        item.status = ItemStatus.processing
+        # Clear any stale ai_started_at left over from a prior tagging run -
+        # otherwise the frontend reads it as this job's elapsed "analyzing"
+        # time, showing a wildly wrong duration for what is actually a
+        # few-second background-removal job.
+        item.ai_started_at = None
+    await db.commit()
+
+    redis = None
+    try:
+        redis = await create_pool(get_redis_settings())
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis for bulk remove-background: {e}")
+        for item in to_queue:
+            item.status = ItemStatus.error
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to connect to job queue",
+        ) from None
+
+    try:
+        for item in to_queue:
+            try:
+                job = await redis.enqueue_job(
+                    "remove_item_background_job",
+                    str(item.id),
+                    request.bg_color,
+                    _queue_name="arq:tagging",
+                )
+                if job is None:
+                    raise RuntimeError("enqueue_job returned None")
+                queued += 1
+            except Exception as e:
+                logger.error(f"Failed to queue background removal for {item.id}: {e}")
+                errors.append(f"Failed to queue background removal for item {item.id}")
+                item.status = ItemStatus.error
+                failed += 1
+        await db.commit()
+    finally:
+        if redis:
+            await redis.aclose()
+
+    return BulkRemoveBackgroundResponse(
+        queued=queued, failed=failed, skipped=skipped, errors=errors
     )
 
 

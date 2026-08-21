@@ -71,7 +71,14 @@
     "reanalyzeMany": "{count} 件を再分析キューに追加しました。少し時間がかかる場合があります。",
     "reanalyzePartialFailed": "{count, plural, one {# 件のキューイングに失敗しました} other {# 件のキューイングに失敗しました}}",
     "reanalyzeQueued": "{count, plural, one {# 件を再分析キューに追加しました} other {# 件を再分析キューに追加しました}}",
-    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
+    "removeBackgroundError": "Failed to queue background removal",
+    "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
+    "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
+    "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
+    "rotateError": "Failed to rotate items",
+    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "選択したアイテムと画像を完全に削除します。この操作は取り消せません。",

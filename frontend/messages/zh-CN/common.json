@@ -11,6 +11,9 @@
     "clearSelection": "取消选择",
     "noneSelected": "未选择",
     "reanalyze": "重新分析",
+    "removeBackground": "Remove background",
+    "rotateCcw": "Rotate left",
+    "rotateCw": "Rotate right",
     "selectAllMatching": "全选匹配的{count}件"
   },
   "cancel": "取消",
