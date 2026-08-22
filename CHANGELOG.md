@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.8.1...wardrowbe-v1.8.2) (2026-08-22)
+
+
+### 👷 CI/CD
+
+* build arm64 images natively instead of under QEMU ([4aae3a0](https://github.com/Anyesh/wardrowbe/commit/4aae3a0ff95b50797ce270b2e1af0f66fb4b118a))
+
 ## [1.8.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.8.0...wardrowbe-v1.8.1) (2026-08-22)
 
 
