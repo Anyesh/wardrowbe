@@ -26,7 +26,7 @@ import {
 import { AddItemDialog } from '@/components/add-item-dialog';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
-import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed } from '@/lib/hooks/use-items';
+import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkRotateItems, useBulkRemoveBackgroundItems, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed } from '@/lib/hooks/use-items';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { Item } from '@/lib/types';
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
@@ -387,6 +387,8 @@ export default function WardrobePage() {
   const cancelAnalysis = useCancelAnalysis();
   const bulkDelete = useBulkDeleteItems();
   const bulkReanalyze = useBulkReanalyzeItems();
+  const bulkRotate = useBulkRotateItems();
+  const bulkRemoveBackground = useBulkRemoveBackgroundItems();
 
   const items = data?.items || [];
   const total = data?.total || 0;
@@ -537,6 +539,39 @@ export default function WardrobePage() {
       handleClearSelection();
     } catch {
       toast.error(t('bulkActions.reanalyzeError'));
+    }
+  };
+
+  const handleBulkRotate = async (direction: 'cw' | 'ccw') => {
+    const params = getBulkParams();
+    try {
+      const result = await bulkRotate.mutateAsync({ ...params, direction });
+      toast.success(t('bulkActions.rotateSuccess', { count: result.rotated }));
+      if (result.failed > 0) {
+        toast.error(t('bulkActions.rotatePartialFailed', { count: result.failed }));
+      }
+      handleClearSelection();
+    } catch {
+      toast.error(t('bulkActions.rotateError'));
+    }
+  };
+
+  const handleBulkRemoveBackground = async () => {
+    const params = getBulkParams();
+    try {
+      const result = await bulkRemoveBackground.mutateAsync(params);
+      if (result.queued > 0) {
+        toast.success(t('bulkActions.removeBackgroundQueued', { count: result.queued }));
+      }
+      if (result.skipped > 0) {
+        toast.info(t('bulkActions.removeBackgroundSkipped', { count: result.skipped }));
+      }
+      if (result.failed > 0) {
+        toast.error(t('bulkActions.removeBackgroundPartialFailed', { count: result.failed }));
+      }
+      handleClearSelection();
+    } catch {
+      toast.error(t('bulkActions.removeBackgroundError'));
     }
   };
 
@@ -802,8 +837,12 @@ export default function WardrobePage() {
         onClear={handleClearSelection}
         onDelete={handleBulkDelete}
         onReanalyze={handleBulkReanalyze}
+        onRotate={handleBulkRotate}
+        onRemoveBackground={handleBulkRemoveBackground}
         isDeleting={bulkDelete.isPending}
         isReanalyzing={bulkReanalyze.isPending}
+        isRotating={bulkRotate.isPending}
+        isRemovingBackground={bulkRemoveBackground.isPending}
         variant="items"
         page={page}
         pageSize={pageSize}

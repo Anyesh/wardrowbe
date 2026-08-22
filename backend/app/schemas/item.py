@@ -270,6 +270,63 @@ class BulkAnalyzeResponse(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
+class BulkRotateRequest(BaseModel):
+    # Explicit selection
+    item_ids: list[UUID] | None = None
+
+    # Select all with exceptions
+    select_all: bool = False
+    excluded_ids: list[UUID] | None = None
+    filters: BulkFilters | None = None
+
+    direction: str = Field(
+        "cw",
+        pattern="^(cw|ccw)$",
+        description="Rotation direction applied to every selected item",
+    )
+
+    def model_post_init(self, __context):
+        if not self.select_all and not self.item_ids:
+            raise ValueError("Either item_ids or select_all=True must be provided")
+        if self.select_all and self.item_ids:
+            raise ValueError("Cannot use both item_ids and select_all")
+
+
+class BulkRotateResponse(BaseModel):
+    rotated: int
+    failed: int
+    errors: list[str] = Field(default_factory=list)
+
+
+class BulkRemoveBackgroundRequest(BaseModel):
+    # Explicit selection
+    item_ids: list[UUID] | None = None
+
+    # Select all with exceptions
+    select_all: bool = False
+    excluded_ids: list[UUID] | None = None
+    filters: BulkFilters | None = None
+
+    bg_color: str = Field(
+        default="#FFFFFF",
+        pattern=r"^#[0-9A-Fa-f]{6}$",
+        description="Hex color for the replacement background",
+    )
+
+    def model_post_init(self, __context):
+        if not self.select_all and not self.item_ids:
+            raise ValueError("Either item_ids or select_all=True must be provided")
+        if self.select_all and self.item_ids:
+            raise ValueError("Cannot use both item_ids and select_all")
+
+
+class BulkRemoveBackgroundResponse(BaseModel):
+    queued: int
+    failed: int
+    skipped: int = 0
+    errors: list[str] = Field(default_factory=list)
+
+
 class ItemImageResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

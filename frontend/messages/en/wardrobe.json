@@ -71,7 +71,14 @@
     "reanalyzeMany": "Queued {count} items for re-analysis. This may take a while.",
     "reanalyzePartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
     "reanalyzeQueued": "{count, plural, one {Queued # item for re-analysis} other {Queued # items for re-analysis}}",
-    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
+    "removeBackgroundError": "Failed to queue background removal",
+    "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
+    "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
+    "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
+    "rotateError": "Failed to rotate items",
+    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "This will permanently delete the selected items and their images. This action cannot be undone.",

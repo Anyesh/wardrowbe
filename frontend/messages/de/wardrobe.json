@@ -71,7 +71,14 @@
     "reanalyzeMany": "{count} Stücke zur erneuten Analyse eingereiht. Das kann etwas dauern.",
     "reanalyzePartialFailed": "{count, plural, one {# Stück konnte nicht eingereiht werden} other {# Stücke konnten nicht eingereiht werden}}",
     "reanalyzeQueued": "{count, plural, one {# Stück zur erneuten Analyse eingereiht} other {# Stücke zur erneuten Analyse eingereiht}}",
-    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
+    "removeBackgroundError": "Failed to queue background removal",
+    "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
+    "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
+    "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
+    "rotateError": "Failed to rotate items",
+    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "Die ausgewählten Stücke und ihre Bilder werden endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",

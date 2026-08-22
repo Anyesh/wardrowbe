@@ -8,6 +8,7 @@ from sqlalchemy import and_, or_, select, update
 from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus
 from app.services.ai_service import AIService
+from app.workers.background_removal import remove_item_background_job
 from app.workers.db import close_db, get_db_session, init_db
 from app.workers.notifications import (
     check_scheduled_notifications,
@@ -110,6 +111,7 @@ async def shutdown(ctx: dict) -> None:
 class WorkerSettings:
     functions = [
         tag_item_image,
+        remove_item_background_job,
         send_notification,
         retry_failed_notifications,
         check_scheduled_notifications,

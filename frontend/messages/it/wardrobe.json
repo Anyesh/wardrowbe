@@ -71,7 +71,14 @@
     "reanalyzeMany": "{count} capi messi in coda per la rianalisi. Potrebbe volerci un po’.",
     "reanalyzePartialFailed": "{count, plural, one {Impossibile mettere in coda # capo} other {Impossibile mettere in coda # capi}}",
     "reanalyzeQueued": "{count, plural, one {# capo messo in coda per la rianalisi} other {# capi messi in coda per la rianalisi}}",
-    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
+    "removeBackgroundError": "Failed to queue background removal",
+    "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
+    "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
+    "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
+    "rotateError": "Failed to rotate items",
+    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "Questo eliminerà definitivamente i capi selezionati e le relative immagini. Questa azione non può essere annullata.",
