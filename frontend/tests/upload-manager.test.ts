@@ -114,6 +114,50 @@ describe('startDrain', () => {
     }
   })
 
+  it('splits and retries within the server limit instead of failing the whole chunk', async () => {
+    await enqueueFiles(
+      [makeFile('a.jpg'), makeFile('b.jpg'), makeFile('c.jpg'), makeFile('d.jpg')],
+      false
+    )
+
+    // setup.ts assigns global.fetch = vi.fn() once per file; the per-test
+    // vi.spyOn in this file's beforeEach layers on top of that same mock, so
+    // its call history isn't fully reset between tests without an explicit
+    // mockReset() here.
+    vi.mocked(fetch).mockReset()
+    let n = 0
+    vi.mocked(fetch).mockImplementation(async () => {
+      n += 1
+      if (n === 1) return jsonResponse({ detail: 'Maximum 2 images per bulk upload' }, false, 400)
+      if (n === 2)
+        return jsonResponse({
+          total: 2,
+          successful: 2,
+          failed: 0,
+          results: [
+            { filename: 'a.jpg', success: true },
+            { filename: 'b.jpg', success: true },
+          ],
+        })
+      if (n === 3)
+        return jsonResponse({
+          total: 2,
+          successful: 2,
+          failed: 0,
+          results: [
+            { filename: 'c.jpg', success: true },
+            { filename: 'd.jpg', success: true },
+          ],
+        })
+      throw new Error(`unexpected extra fetch call #${n}`)
+    })
+
+    await manager.startDrain()
+
+    expect(await getPendingUploads()).toHaveLength(0)
+    expect(fetch).toHaveBeenCalledTimes(3)
+  })
+
   it('is idempotent - a concurrent call while draining does not start a second loop', async () => {
     // isDraining is set synchronously before startDrain's first await, so
     // the guard doesn't depend on fetch timing - no need to hand-pause the
