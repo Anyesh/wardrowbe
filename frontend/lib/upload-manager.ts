@@ -12,11 +12,26 @@ import {
   dismiss as dismissRecord,
   type QueuedUpload,
 } from '@/lib/upload-queue';
-import type { BulkUploadResponse } from '@/lib/hooks/use-items';
+import { mergeBulkUploadResponses, type BulkUploadResponse } from '@/lib/hooks/use-items';
 
 const BULK_UPLOAD_CHUNK_SIZE = 20;
 const MAX_ATTEMPTS = 5;
 const RETRY_BACKOFF_BASE_MS = 5000;
+const BULK_LIMIT_ERROR = /^Maximum (\d+) images per bulk upload$/;
+
+class BulkLimitExceededError extends Error {
+  constructor(public readonly limit: number) {
+    super(`Server bulk upload limit is ${limit}`);
+  }
+}
+
+// The server's configured max_bulk_upload_count (admin-tunable, self-hosted)
+// isn't exposed to the client, so a chunk sized for the default of 20 gets
+// the WHOLE request rejected - not just the excess files - on an instance
+// where an admin lowered it below 20. Cached at module scope so once the
+// real limit is learned, later drain passes stop re-discovering it via a
+// failed request on every pass.
+let effectiveChunkSize = BULK_UPLOAD_CHUNK_SIZE;
 
 export interface TerminalRecord {
   id: string;
@@ -71,6 +86,7 @@ async function emit(): Promise<void> {
 
 export function init(client: QueryClient): void {
   queryClient = client;
+  effectiveChunkSize = BULK_UPLOAD_CHUNK_SIZE;
 }
 
 export function subscribe(listener: Listener): () => void {
@@ -97,9 +113,33 @@ async function uploadChunk(chunk: QueuedUpload[]): Promise<BulkUploadResponse> {
   });
 
   if (!response.ok) {
+    if (response.status === 400) {
+      const body = await response.json().catch(() => null);
+      const match =
+        typeof body?.detail === 'string' ? body.detail.match(BULK_LIMIT_ERROR) : null;
+      if (match) {
+        throw new BulkLimitExceededError(Number(match[1]));
+      }
+    }
     throw new Error(`Bulk upload request failed with status ${response.status}`);
   }
   return response.json();
+}
+
+async function uploadChunkWithinServerLimit(chunk: QueuedUpload[]): Promise<BulkUploadResponse> {
+  try {
+    return await uploadChunk(chunk);
+  } catch (error) {
+    if (error instanceof BulkLimitExceededError && error.limit > 0 && error.limit < chunk.length) {
+      effectiveChunkSize = Math.min(effectiveChunkSize, error.limit);
+      const responses: BulkUploadResponse[] = [];
+      for (let i = 0; i < chunk.length; i += error.limit) {
+        responses.push(await uploadChunkWithinServerLimit(chunk.slice(i, i + error.limit)));
+      }
+      return mergeBulkUploadResponses(responses);
+    }
+    throw error;
+  }
 }
 
 function errorMessage(error: unknown): string {
@@ -129,7 +169,7 @@ async function drainOnce(): Promise<boolean> {
   // A chunk request carries one skip_ai value - keep chunks homogeneous
   // rather than threading a per-file flag through the endpoint.
   const skipAi = actionable[0].skipAi;
-  const chunk = actionable.filter((r) => r.skipAi === skipAi).slice(0, BULK_UPLOAD_CHUNK_SIZE);
+  const chunk = actionable.filter((r) => r.skipAi === skipAi).slice(0, effectiveChunkSize);
 
   for (const record of chunk) {
     await markUploading(record.id);
@@ -137,7 +177,7 @@ async function drainOnce(): Promise<boolean> {
   await emit();
 
   try {
-    const response = await uploadChunk(chunk);
+    const response = await uploadChunkWithinServerLimit(chunk);
     await Promise.all(
       response.results.map(async (result, idx) => {
         const record = chunk[idx];
