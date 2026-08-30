@@ -161,6 +161,7 @@ jobs:
         env:
           IMAGE: ${{ steps.image.outputs.name }}
         run: |
+          # shellcheck disable=SC2046 # word splitting is intentional: expands to multiple -t flags / digest args
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf "$IMAGE@sha256:%s " *)
