@@ -1,0 +1,25 @@
+name: Auto-assign PR to maintainer
+
+on:
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    if: >-
+      github.event.pull_request.user.type != 'Bot' &&
+      github.event.pull_request.user.login != 'Anyesh'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              assignees: ['Anyesh'],
+            });
