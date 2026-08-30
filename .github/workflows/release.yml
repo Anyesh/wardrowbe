@@ -23,10 +23,6 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # release-please publishes the GitHub release with GITHUB_TOKEN, and GitHub
-  # will not let a GITHUB_TOKEN-created release event trigger another workflow,
-  # so the publish must be called from here (this run is the merge push) to tag
-  # released images with their version. version is empty on non-release pushes.
   publish-images:
     needs: release-please
     permissions:
@@ -36,10 +32,6 @@ jobs:
     with:
       version: ${{ needs.release-please.outputs.release_created == 'true' && needs.release-please.outputs.version || '' }}
 
-  # Notifies reporters of bug issues this release actually fixed, so the #152/#154
-  # pattern (closed as fixed, reporter finds out otherwise once they try the release)
-  # surfaces at release time instead of only when someone comes back to complain.
-  # Ships with DRY_RUN hardcoded true below: flip only after reading a real dry run.
   release-notify:
     needs: [release-please, publish-images]
     if: needs.release-please.outputs.release_created == 'true'
