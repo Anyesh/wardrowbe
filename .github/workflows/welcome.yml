@@ -1,0 +1,30 @@
+name: Welcome first-time contributors
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    if: >-
+      (github.event_name == 'issues' && github.event.issue.user.type != 'Bot') ||
+      (github.event_name == 'pull_request_target' && github.event.pull_request.user.type != 'Bot')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v3.1.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: >
+            Thanks for opening your first issue in Wardrowbe! Please make sure you've checked the
+            [CONTRIBUTING guide](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md)
+            and the deployment docs. A maintainer will take a look soon.
+          pr-message: >
+            Thanks for your first pull request to Wardrowbe! Please make sure you've read the
+            [CONTRIBUTING guide](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md),
+            especially the PR title format section. A maintainer will review this soon.
