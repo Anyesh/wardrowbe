@@ -742,14 +742,20 @@ async def bulk_remove_background_items(
             continue
         items_to_process.append(item)
 
-    # Already-processing items are skipped rather than double-enqueued - a second
-    # job racing the first would stomp each other's original-backup write.
-    already_processing = [item for item in items_to_process if item.status == ItemStatus.processing]
+    # Items already processing with a live job are skipped, not re-queued - a
+    # second job racing the first would stomp each other's original-backup
+    # write. An item stuck `processing` with no job (a previously-failed
+    # enqueue) is not considered "already processing" and gets a fresh job,
+    # mirroring bulk_analyze_items's skip check.
+    already_processing = [
+        item for item in items_to_process if item.status == ItemStatus.processing and item.ai_job_id
+    ]
     skipped = len(already_processing)
-    to_queue = [item for item in items_to_process if item.status != ItemStatus.processing]
+    to_queue = [item for item in items_to_process if item not in already_processing]
 
     for item in to_queue:
         item.status = ItemStatus.processing
+        item.processing_kind = "background_removal"
         # Clear any stale ai_started_at left over from a prior tagging run -
         # otherwise the frontend reads it as this job's elapsed "analyzing"
         # time, showing a wildly wrong duration for what is actually a
@@ -764,6 +770,7 @@ async def bulk_remove_background_items(
         logger.error(f"Failed to connect to Redis for bulk remove-background: {e}")
         for item in to_queue:
             item.status = ItemStatus.error
+            item.processing_kind = None
         await db.commit()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -781,11 +788,13 @@ async def bulk_remove_background_items(
                 )
                 if job is None:
                     raise RuntimeError("enqueue_job returned None")
+                item.ai_job_id = job.job_id
                 queued += 1
             except Exception as e:
                 logger.error(f"Failed to queue background removal for {item.id}: {e}")
                 errors.append(f"Failed to queue background removal for item {item.id}")
                 item.status = ItemStatus.error
+                item.processing_kind = None
                 failed += 1
         await db.commit()
     finally:
@@ -827,7 +836,13 @@ async def get_tagging_progress(
     # separate queries could under concurrent worker commits.
     result = await db.execute(
         select(ClothingItem.status, ClothingItem.ai_started_at.is_(None), func.count())
-        .where(ClothingItem.user_id == current_user.id, ClothingItem.is_archived.is_(False))
+        .where(
+            ClothingItem.user_id == current_user.id,
+            ClothingItem.is_archived.is_(False),
+            # Background-removal jobs reuse status=processing but aren't AI
+            # tagging - exclude them so they don't pollute this banner's counts.
+            ClothingItem.processing_kind.is_distinct_from("background_removal"),
+        )
         .group_by(ClothingItem.status, ClothingItem.ai_started_at.is_(None))
     )
     queued = 0
@@ -1309,14 +1324,17 @@ async def cancel_item_analysis(
     await db.execute(
         update(ClothingItem)
         .where(ClothingItem.id == item.id, ClothingItem.status == ItemStatus.processing)
-        .values(status=ItemStatus.ready, ai_job_id=None, ai_started_at=None)
+        .values(status=ItemStatus.ready, ai_job_id=None, ai_started_at=None, processing_kind=None)
     )
     await db.commit()
     # updated_at is recomputed by a DB-side trigger on UPDATE, so the Core update()
     # above leaves the in-memory value stale; refresh it explicitly alongside the
     # columns we changed instead of a bare refresh(), which would also expire the
     # already eager-loaded additional_images relationship and blow up serialization.
-    await db.refresh(item, attribute_names=["status", "ai_job_id", "ai_started_at", "updated_at"])
+    await db.refresh(
+        item,
+        attribute_names=["status", "ai_job_id", "ai_started_at", "processing_kind", "updated_at"],
+    )
     return ItemResponse.model_validate(item)
 
 
