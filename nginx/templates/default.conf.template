@@ -15,8 +15,8 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
 
-    # Client max body size for image uploads
-    client_max_body_size 50M;
+    # Client max body size for image uploads, controlled by NGINX_CLIENT_MAX_BODY_SIZE
+    client_max_body_size ${NGINX_CLIENT_MAX_BODY_SIZE};
 
     # NextAuth routes to frontend
     location /api/auth/ {

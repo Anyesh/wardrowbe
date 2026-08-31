@@ -61,9 +61,17 @@ class Settings(BaseSettings):
     ai_max_retries: int = Field(default=3)
     ai_max_tokens: int = Field(default=8000)
     # Total arq worker concurrency (tagging jobs plus lightweight background/cron
-    # jobs share one pool) - not an exact AI-call ceiling, but the primary lever
-    # for bounding concurrent load on the AI backend.
+    # jobs share one pool). Kept above ai_max_concurrent_requests so cron jobs
+    # (notification retries, the stale-processing sweep) always have a free slot
+    # during a big import instead of being starved by tagging jobs that are just
+    # waiting on the semaphore below.
     ai_tagging_concurrency: int = Field(default=5, ge=1)
+    # Real ceiling on concurrent outbound AI HTTP calls, enforced by a semaphore
+    # in ai_service.py. This is the actual lever for not overloading a single
+    # local Ollama instance - ai_tagging_concurrency only bounds the arq pool,
+    # not concurrent AI requests, since jobs above this limit simply wait on the
+    # semaphore instead of each opening their own request.
+    ai_max_concurrent_requests: int = Field(default=2, ge=1)
     # Floor matches arq's own max retry_delay_seconds (tagging.py), so a manual
     # retry is never permitted inside a spacing window arq already exhausted.
     ai_retry_cooldown_seconds: int = Field(default=120, ge=0)
