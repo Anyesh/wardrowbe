@@ -23,10 +23,6 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # release-please publishes the GitHub release with GITHUB_TOKEN, and GitHub
-  # will not let a GITHUB_TOKEN-created release event trigger another workflow,
-  # so the publish must be called from here (this run is the merge push) to tag
-  # released images with their version. version is empty on non-release pushes.
   publish-images:
     needs: release-please
     permissions:
@@ -35,3 +31,75 @@ jobs:
     uses: ./.github/workflows/docker-publish.yml
     with:
       version: ${{ needs.release-please.outputs.release_created == 'true' && needs.release-please.outputs.version || '' }}
+
+  release-notify:
+    needs: [release-please, publish-images]
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      VERSION: ${{ needs.release-please.outputs.version }}
+    steps:
+      - uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const version = process.env.VERSION; // read via env, never interpolated into the script body
+            const DRY_RUN = true; // flip to false only after a dry-run pass has been read and confirmed correct
+
+            const allReleases = await github.paginate(github.rest.repos.listReleases, { owner, repo, per_page: 100 });
+            const published = allReleases
+              .filter(r => !r.draft && !r.prerelease)
+              .sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
+            // Match the release that triggered this run by its actual tag, not by array
+            // position: release-please-config.json sets include-v-in-tag, so the tag is
+            // v{version} while the workflow output is the bare version.
+            const currentIdx = published.findIndex(r => r.tag_name === `v${version}`);
+            const previous = currentIdx === -1 ? null : published[currentIdx + 1];
+            if (!previous) {
+              core.info('No previous published release to diff against, skipping.');
+              return;
+            }
+            const since = previous.published_at;
+
+            const candidates = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'closed', labels: 'bug', since, per_page: 100,
+            });
+
+            for (const issue of candidates) {
+              if (issue.pull_request) continue;                           // the endpoint returns PRs too
+              if (issue.state_reason !== 'completed') continue;           // not closed-as-fixed
+              if (new Date(issue.closed_at) <= new Date(since)) continue; // `since` filters by updated_at, not closed_at
+
+              const timeline = await github.paginate(github.rest.issues.listEventsForTimeline, {
+                owner, repo, issue_number: issue.number, per_page: 100,
+              });
+              // The `closed` event's own commit_id is null whenever an issue was closed by
+              // hand rather than via "Fixes #N" in a merged PR, which is this repo's normal
+              // path. The real link lives on a `referenced` event carrying a commit_id, or a
+              // `cross-referenced` event whose source is a merged PR.
+              const linked = timeline.some(e => {
+                if (e.event === 'referenced' && e.commit_id) return true;
+                if (e.event === 'cross-referenced') {
+                  const pr = e.source && e.source.issue && e.source.issue.pull_request;
+                  if (pr && pr.merged_at) return true;
+                }
+                return false;
+              });
+              if (!linked) continue; // no confirmed code link, can't say this release fixed it
+
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner, repo, issue_number: issue.number, per_page: 100,
+              });
+              if (comments.some(c => (c.body || '').includes(version))) continue; // idempotent on re-run
+
+              const body = `This shipped in v${version}. Comment /reopen if it's still broken for you.`;
+              if (DRY_RUN) {
+                core.info(`[dry run] would comment on #${issue.number}: ${body}`);
+                continue;
+              }
+              await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body });
+            }

@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Questions & Discussions
-    url: https://github.com/yourusername/wardrowbe/discussions
+    url: https://github.com/Anyesh/wardrowbe/discussions
     about: Ask questions and discuss Wardrowbe in GitHub Discussions
   - name: Security Vulnerabilities
-    url: https://github.com/yourusername/wardrowbe/security/advisories/new
+    url: https://github.com/Anyesh/wardrowbe/security/advisories/new
     about: Report security vulnerabilities privately
