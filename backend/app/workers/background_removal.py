@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from uuid import UUID
 
@@ -30,14 +31,18 @@ async def remove_item_background_job(ctx: dict, item_id: str, bg_color_hex: str)
 
         try:
             image_service = ImageService()
-            out = image_service.remove_background(item.image_path, bg_color)
+            out = await asyncio.to_thread(
+                image_service.remove_background, item.image_path, bg_color
+            )
             item.original_image_path = out["original_backup_path"]
             item.status = ItemStatus.ready
+            item.processing_kind = None
             await db.commit()
             return {"status": "success", "item_id": item_id}
         except Exception as e:
             logger.error(f"Background removal failed for item {item_id}: {e}")
             item.status = ItemStatus.error
+            item.processing_kind = None
             await db.commit()
             return {"status": "error", "error": str(e)}
     finally:

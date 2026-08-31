@@ -693,7 +693,7 @@ async def bulk_rotate_items(
             failed += 1
             continue
         try:
-            image_service.rotate_image(item.image_path, request.direction)
+            await asyncio.to_thread(image_service.rotate_image, item.image_path, request.direction)
             rotated += 1
         except Exception as e:
             logger.error(f"Failed to rotate item {item_id}: {e}")
