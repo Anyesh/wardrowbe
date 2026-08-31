@@ -401,6 +401,7 @@ async def _make_other_user(db_session: AsyncSession) -> User:
     )
     db_session.add(other_user)
     await db_session.commit()
+    await db_session.refresh(other_user)
     return other_user
 
 
@@ -411,22 +412,24 @@ class TestBulkEndpointsAuthBoundary:
     ):
         other_user = await _make_other_user(db_session)
         other_item = await _make_item(db_session, other_user)
+        other_item_id = other_item.id
+        original_updated_at = other_item.updated_at
 
         response = await client.post(
             "/api/v1/items/bulk/rotate",
             headers=auth_headers,
-            json={"item_ids": [str(other_item.id)], "direction": "cw"},
+            json={"item_ids": [str(other_item_id)], "direction": "cw"},
         )
 
         assert response.status_code == 200
         body = response.json()
         assert body["rotated"] == 0
         assert body["failed"] == 1
-        assert str(other_item.id) in body["errors"][0]
+        assert str(other_item_id) in body["errors"][0]
 
         db_session.expire_all()
-        refreshed = await _get_item(db_session, other_item.id)
-        assert refreshed.updated_at == other_item.updated_at
+        refreshed = await _get_item(db_session, other_item_id)
+        assert refreshed.updated_at == original_updated_at
 
     @pytest.mark.asyncio
     async def test_bulk_remove_background_skips_other_users_item(
@@ -434,19 +437,20 @@ class TestBulkEndpointsAuthBoundary:
     ):
         other_user = await _make_other_user(db_session)
         other_item = await _make_item(db_session, other_user)
+        other_item_id = other_item.id
 
         response = await client.post(
             "/api/v1/items/bulk/remove-background",
             headers=auth_headers,
-            json={"item_ids": [str(other_item.id)]},
+            json={"item_ids": [str(other_item_id)]},
         )
 
         assert response.status_code == 200
         body = response.json()
         assert body["queued"] == 0
         assert body["failed"] == 1
-        assert str(other_item.id) in body["errors"][0]
+        assert str(other_item_id) in body["errors"][0]
 
         db_session.expire_all()
-        refreshed = await _get_item(db_session, other_item.id)
+        refreshed = await _get_item(db_session, other_item_id)
         assert refreshed.status == ItemStatus.ready
