@@ -546,7 +546,12 @@ export default function WardrobePage() {
     const params = getBulkParams();
     try {
       const result = await bulkRotate.mutateAsync({ ...params, direction });
-      toast.success(t('bulkActions.rotateSuccess', { count: result.rotated }));
+      if (result.rotated > 0) {
+        toast.success(t('bulkActions.rotateSuccess', { count: result.rotated }));
+      }
+      if (result.skipped > 0) {
+        toast.info(t('bulkActions.rotateSkipped', { count: result.skipped }));
+      }
       if (result.failed > 0) {
         toast.error(t('bulkActions.rotatePartialFailed', { count: result.failed }));
       }

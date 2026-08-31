@@ -776,6 +776,7 @@ export function useBulkReanalyzeItems() {
 export interface BulkRotateResponse {
   rotated: number;
   failed: number;
+  skipped: number;
   errors: string[];
 }
 

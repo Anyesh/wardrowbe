@@ -666,6 +666,7 @@ async def bulk_rotate_items(
     image_service = ImageService()
     rotated = 0
     failed = 0
+    skipped = 0
     errors: list[str] = []
 
     if request.select_all:
@@ -692,6 +693,12 @@ async def bulk_rotate_items(
             errors.append(f"Item {item_id} has no image")
             failed += 1
             continue
+        # A concurrent job (e.g. background removal) may still be writing
+        # image_path/medium_path/thumbnail_path for this item - rotating it
+        # now would race that writer, so skip rather than rotate.
+        if item.status == ItemStatus.processing:
+            skipped += 1
+            continue
         try:
             await asyncio.to_thread(image_service.rotate_image, item.image_path, request.direction)
             rotated += 1
@@ -701,7 +708,7 @@ async def bulk_rotate_items(
             failed += 1
 
     await db.commit()
-    return BulkRotateResponse(rotated=rotated, failed=failed, errors=errors)
+    return BulkRotateResponse(rotated=rotated, failed=failed, skipped=skipped, errors=errors)
 
 
 @router.post("/bulk/remove-background", response_model=BulkRemoveBackgroundResponse)

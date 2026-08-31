@@ -76,7 +76,7 @@ class TestBulkRotate:
         )
 
         assert response.status_code == 200
-        assert response.json() == {"rotated": 1, "failed": 0, "errors": []}
+        assert response.json() == {"rotated": 1, "failed": 0, "skipped": 0, "errors": []}
         after_size = Image.open(svc.get_image_path(item.image_path)).size
         assert after_size == (before_size[1], before_size[0])
 
@@ -162,6 +162,27 @@ class TestBulkRotate:
 
         assert response.status_code == 200
         assert response.json()["rotated"] == 2
+
+    @pytest.mark.asyncio
+    async def test_skips_items_currently_processing(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        # A background-removal job may still be writing image_path/medium_path/
+        # thumbnail_path for this item - rotating it now would race that writer.
+        processing_item = await _make_item(db_session, test_user, status=ItemStatus.processing)
+        ready_item = await _make_item(db_session, test_user)
+
+        response = await client.post(
+            "/api/v1/items/bulk/rotate",
+            headers=auth_headers,
+            json={"item_ids": [str(processing_item.id), str(ready_item.id)], "direction": "cw"},
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["rotated"] == 1
+        assert body["skipped"] == 1
+        assert body["failed"] == 0
 
 
 class TestBulkRemoveBackground:
