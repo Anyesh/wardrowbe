@@ -411,6 +411,40 @@ class TestTaggingQueueProgress:
         assert body["queued"] == 1
         assert body["analyzing"] == 1
 
+    @pytest.mark.asyncio
+    async def test_excludes_background_removal_jobs(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        # A queued background-removal job reuses status=processing with a NULL
+        # ai_started_at - exactly the shape of a queued tagging job - so without
+        # the processing_kind exclusion it would inflate this banner's counts.
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="shirt",
+                image_path="t/bg.jpg",
+                status=ItemStatus.processing,
+                processing_kind="background_removal",
+            )
+        )
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="shirt",
+                image_path="t/tagging.jpg",
+                status=ItemStatus.processing,
+            )
+        )
+        await db_session.commit()
+
+        resp = await client.get("/api/v1/items/tagging-progress", headers=auth_headers)
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["processing"] == 1
+        assert body["queued"] == 1
+        assert body["analyzing"] == 0
+        assert body["total"] == 1
+
 
 class TestTaggingConcurrencySetting:
     def test_ai_tagging_concurrency_setting_is_respected(self):

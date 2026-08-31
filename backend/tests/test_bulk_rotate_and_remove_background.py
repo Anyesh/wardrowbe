@@ -203,7 +203,7 @@ class TestBulkRemoveBackground:
 
         with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
             mock_redis = AsyncMock()
-            mock_redis.enqueue_job.return_value = object()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
             mock_create_pool.return_value = mock_redis
 
             response = await client.post(
@@ -225,17 +225,23 @@ class TestBulkRemoveBackground:
         refreshed = await _get_item(db_session, item_id)
         assert refreshed.status == ItemStatus.processing
         assert refreshed.ai_started_at is None
+        assert refreshed.ai_job_id == "fake-job-id"
+        assert refreshed.processing_kind == "background_removal"
 
     @pytest.mark.asyncio
     async def test_skips_items_already_processing(
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
-        already_processing = await _make_item(db_session, test_user, status=ItemStatus.processing)
+        # ai_job_id set - a genuinely live job, which is what makes this item
+        # skip-worthy rather than a stuck row from a previously-failed enqueue.
+        already_processing = await _make_item(
+            db_session, test_user, status=ItemStatus.processing, ai_job_id="live-job-id"
+        )
         ready_item = await _make_item(db_session, test_user)
 
         with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
             mock_redis = AsyncMock()
-            mock_redis.enqueue_job.return_value = object()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
             mock_create_pool.return_value = mock_redis
 
             response = await client.post(
@@ -248,6 +254,31 @@ class TestBulkRemoveBackground:
         body = response.json()
         assert body["queued"] == 1
         assert body["skipped"] == 1
+        mock_redis.enqueue_job.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_stuck_processing_item_with_no_job_is_retried(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        # status=processing with no ai_job_id - a previously-failed enqueue, not
+        # a live job - must be retried rather than skipped forever.
+        stuck = await _make_item(db_session, test_user, status=ItemStatus.processing)
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            response = await client.post(
+                "/api/v1/items/bulk/remove-background",
+                headers=auth_headers,
+                json={"item_ids": [str(stuck.id)]},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["queued"] == 1
+        assert body["skipped"] == 0
         mock_redis.enqueue_job.assert_called_once()
 
     @pytest.mark.asyncio
@@ -278,7 +309,7 @@ class TestBulkRemoveBackground:
 
         with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
             mock_redis = AsyncMock()
-            mock_redis.enqueue_job.return_value = object()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
             mock_create_pool.return_value = mock_redis
 
             response = await client.post(
@@ -299,7 +330,13 @@ class TestBulkRemoveBackground:
 class TestRemoveItemBackgroundJob:
     @pytest.mark.asyncio
     async def test_success_sets_ready_and_backup_path(self, db_session: AsyncSession, test_user):
-        item = await _make_item(db_session, test_user, status=ItemStatus.processing)
+        item = await _make_item(
+            db_session,
+            test_user,
+            status=ItemStatus.processing,
+            ai_job_id="live-job-id",
+            processing_kind="background_removal",
+        )
 
         with (
             patch("app.workers.background_removal.get_db_session", return_value=db_session),
@@ -313,10 +350,17 @@ class TestRemoveItemBackgroundJob:
         assert refreshed.status == ItemStatus.ready
         assert refreshed.original_image_path is not None
         assert refreshed.original_image_path.endswith("_orig.jpg")
+        assert refreshed.processing_kind is None
 
     @pytest.mark.asyncio
     async def test_provider_failure_sets_error_status(self, db_session: AsyncSession, test_user):
-        item = await _make_item(db_session, test_user, status=ItemStatus.processing)
+        item = await _make_item(
+            db_session,
+            test_user,
+            status=ItemStatus.processing,
+            ai_job_id="live-job-id",
+            processing_kind="background_removal",
+        )
 
         failing_provider = MagicMock()
         failing_provider.remove.side_effect = RuntimeError("boom")
@@ -331,6 +375,7 @@ class TestRemoveItemBackgroundJob:
         assert result["status"] == "error"
         refreshed = await _get_item(db_session, item.id)
         assert refreshed.status == ItemStatus.error
+        assert refreshed.processing_kind is None
 
     @pytest.mark.asyncio
     async def test_missing_item_returns_error_without_raising(self, db_session: AsyncSession):
@@ -341,3 +386,67 @@ class TestRemoveItemBackgroundJob:
             result = await remove_item_background_job({}, str(uuid4()), "#FFFFFF")
 
         assert result == {"status": "error", "error": "Item not found"}
+
+
+async def _make_other_user(db_session: AsyncSession) -> User:
+    other_id = uuid4()
+    other_user = User(
+        id=other_id,
+        external_id=f"other-{other_id}",
+        email=f"other-{other_id}@example.com",
+        display_name="Other",
+        timezone="UTC",
+        is_active=True,
+        onboarding_completed=False,
+    )
+    db_session.add(other_user)
+    await db_session.commit()
+    return other_user
+
+
+class TestBulkEndpointsAuthBoundary:
+    @pytest.mark.asyncio
+    async def test_bulk_rotate_skips_other_users_item(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession
+    ):
+        other_user = await _make_other_user(db_session)
+        other_item = await _make_item(db_session, other_user)
+
+        response = await client.post(
+            "/api/v1/items/bulk/rotate",
+            headers=auth_headers,
+            json={"item_ids": [str(other_item.id)], "direction": "cw"},
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["rotated"] == 0
+        assert body["failed"] == 1
+        assert str(other_item.id) in body["errors"][0]
+
+        db_session.expire_all()
+        refreshed = await _get_item(db_session, other_item.id)
+        assert refreshed.updated_at == other_item.updated_at
+
+    @pytest.mark.asyncio
+    async def test_bulk_remove_background_skips_other_users_item(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession
+    ):
+        other_user = await _make_other_user(db_session)
+        other_item = await _make_item(db_session, other_user)
+
+        response = await client.post(
+            "/api/v1/items/bulk/remove-background",
+            headers=auth_headers,
+            json={"item_ids": [str(other_item.id)]},
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["queued"] == 0
+        assert body["failed"] == 1
+        assert str(other_item.id) in body["errors"][0]
+
+        db_session.expire_all()
+        refreshed = await _get_item(db_session, other_item.id)
+        assert refreshed.status == ItemStatus.ready
