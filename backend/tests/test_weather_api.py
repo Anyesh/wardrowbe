@@ -35,6 +35,8 @@ class TestWeatherApi:
                     "is_day": True,
                     "uv_index": 1.8,
                     "timestamp": datetime(2026, 5, 12, 15, 21, 35),
+                    "temp_min": 6.0,
+                    "temp_max": 14.0,
                 },
             )()
         )

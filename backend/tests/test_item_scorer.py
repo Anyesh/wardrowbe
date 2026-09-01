@@ -40,7 +40,7 @@ def _item(**kwargs) -> ClothingItem:
     return ClothingItem(**defaults)
 
 
-def _weather(temp=20, precipitation=0) -> WeatherData:
+def _weather(temp=20, precipitation=0, temp_min=None, temp_max=None, is_day=True) -> WeatherData:
     return WeatherData(
         temperature=temp,
         feels_like=temp,
@@ -50,9 +50,11 @@ def _weather(temp=20, precipitation=0) -> WeatherData:
         wind_speed=10,
         condition="clear",
         condition_code=0,
-        is_day=True,
+        is_day=is_day,
         uv_index=5,
         timestamp=datetime(2026, 3, 8, 12, 0),
+        temp_min=temp_min,
+        temp_max=temp_max,
     )
 
 
@@ -110,6 +112,89 @@ class TestWeatherScore:
     def test_cold_regular_shirt(self):
         item = _item(type="shirt")
         assert _weather_score(item, _weather(temp=5), None) == 0.7
+
+
+class TestWeatherScoreRange:
+    def test_range_ignored_when_min_max_absent(self):
+        item = _item(type="sweater", material="wool")
+        assert _weather_score(item, _weather(temp=30), None) == 0.05
+
+    def test_range_ignored_when_swing_small(self):
+        item = _item(type="sweater", material="wool")
+        weather = _weather(temp=22, temp_min=18, temp_max=24)
+        assert _weather_score(item, weather, None) == 1.0
+
+    def test_range_ignored_at_night(self):
+        item = _item(type="shirt", material="cotton")
+        weather = _weather(temp=12, temp_min=5, temp_max=30, is_day=False)
+        assert _weather_score(item, weather, None) == 1.0
+
+    def test_heavy_sweater_penalized_on_big_swing(self):
+        item = _item(type="sweater", material="wool")
+        weather = _weather(temp=12, temp_min=5, temp_max=30)
+        assert _weather_score(item, weather, None) == pytest.approx(0.525)
+
+    def test_wool_coat_penalized_on_big_swing(self):
+        item = _item(type="coat", material="wool")
+        weather = _weather(temp=12, temp_min=5, temp_max=30)
+        assert _weather_score(item, weather, None) == pytest.approx(0.525)
+
+    def test_light_jacket_beats_heavy_coat(self):
+        weather = _weather(temp=12, temp_min=5, temp_max=30)
+        jacket = _weather_score(_item(type="jacket", material="nylon"), weather, None)
+        coat = _weather_score(_item(type="coat", material="wool"), weather, None)
+        assert jacket == pytest.approx(0.80)
+        assert jacket > coat
+
+    def test_shorts_not_near_zero_on_hot_afternoon(self):
+        item = _item(type="shorts")
+        weather = _weather(temp=12, temp_min=5, temp_max=30)
+        assert _weather_score(item, weather, None) == pytest.approx(0.425)
+
+    def test_adaptable_shirt_outranks_both_extremes(self):
+        weather = _weather(temp=12, temp_min=5, temp_max=30)
+        shirt = _weather_score(_item(type="shirt", material="cotton"), weather, None)
+        sweater = _weather_score(_item(type="sweater", material="wool"), weather, None)
+        shorts = _weather_score(_item(type="shorts"), weather, None)
+        assert shirt == pytest.approx(0.85)
+        assert shirt > sweater
+        assert shirt > shorts
+
+    def test_rain_boost_still_applies_in_range_mode(self):
+        item = _item(type="jacket", material="nylon")
+        weather = _weather(temp=12, temp_min=5, temp_max=30, precipitation=60)
+        boosted = _weather_score(item, weather, None)
+        no_rain = _weather_score(item, _weather(temp=12, temp_min=5, temp_max=30), None)
+        assert boosted == pytest.approx(min(1.0, no_rain + 0.1))
+
+    def test_threshold_preferences_feed_both_bucket_evaluations(self):
+        item = _item(type="shirt")
+        prefs = _prefs(temperature_sensitivity="high")
+        weather = _weather(temp=17, temp_min=13, temp_max=21)
+        assert _weather_score(item, weather, prefs) == pytest.approx(0.75)
+
+
+class TestWeatherScoreRealItemTypes:
+    def test_cold_jacket_scores_as_warm_layer(self):
+        item = _item(type="jacket")
+        assert _weather_score(item, _weather(temp=5), None) == 1.0
+
+    def test_hot_coat_penalized(self):
+        item = _item(type="coat")
+        assert _weather_score(item, _weather(temp=30), None) == 0.05
+
+    def test_rain_boost_fires_for_real_jacket_type(self):
+        item = _item(type="jacket")
+        assert _weather_score(item, _weather(temp=18, precipitation=60), None) == 1.0
+
+    def test_cardigan_and_vest_treated_as_removable(self):
+        for item_type in ("cardigan", "vest"):
+            item = _item(type=item_type)
+            assert _weather_score(item, _weather(temp=18, precipitation=60), None) == 1.0
+
+    def test_legacy_outerwear_type_still_honored(self):
+        item = _item(type="outerwear")
+        assert _weather_score(item, _weather(temp=5), None) == 1.0
 
 
 class TestFormalityScore:
@@ -332,3 +417,41 @@ class TestScoreItems:
             recently_worn_dates={},
         )
         assert all(s.score < 0.1 for s in result)
+
+    def test_big_swing_day_shirt_outranks_sweater(self):
+        shirt = _item(type="shirt", material="cotton")
+        sweater = _item(type="sweater", material="wool")
+        filler = [_item() for _ in range(MIN_ITEMS_FOR_SCORING - 2)]
+        result = score_items(
+            items=[shirt, sweater] + filler,
+            weather=_weather(temp=12, temp_min=5, temp_max=30),
+            occasion="casual",
+            preferences=None,
+            user_today=date(2026, 3, 8),
+            current_season="spring",
+            learned_prefs=None,
+            good_pairs={},
+            recently_worn_dates={},
+        )
+        shirt_pos = next(i for i, s in enumerate(result) if s.item.id == shirt.id)
+        sweater_pos = next(i for i, s in enumerate(result) if s.item.id == sweater.id)
+        assert shirt_pos < sweater_pos
+
+    def test_without_range_data_sweater_still_beats_shirt(self):
+        shirt = _item(type="shirt", material="cotton")
+        sweater = _item(type="sweater", material="wool")
+        filler = [_item() for _ in range(MIN_ITEMS_FOR_SCORING - 2)]
+        result = score_items(
+            items=[shirt, sweater] + filler,
+            weather=_weather(temp=5),
+            occasion="casual",
+            preferences=None,
+            user_today=date(2026, 3, 8),
+            current_season="spring",
+            learned_prefs=None,
+            good_pairs={},
+            recently_worn_dates={},
+        )
+        shirt_pos = next(i for i, s in enumerate(result) if s.item.id == shirt.id)
+        sweater_pos = next(i for i, s in enumerate(result) if s.item.id == sweater.id)
+        assert sweater_pos < shirt_pos

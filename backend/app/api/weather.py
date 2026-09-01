@@ -27,6 +27,8 @@ class WeatherResponse(BaseModel):
     is_day: bool = Field(description="Whether it's daytime")
     uv_index: float = Field(description="UV index")
     timestamp: str = Field(description="Timestamp of weather data")
+    temp_min: float | None = None
+    temp_max: float | None = None
 
 
 class ForecastDayResponse(BaseModel):
@@ -99,6 +101,8 @@ async def get_current_weather(
         is_day=weather.is_day,
         uv_index=weather.uv_index,
         timestamp=weather.timestamp.isoformat(),
+        temp_min=weather.temp_min,
+        temp_max=weather.temp_max,
     )
 
 
