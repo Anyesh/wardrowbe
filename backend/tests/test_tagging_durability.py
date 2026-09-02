@@ -335,6 +335,26 @@ class TestFailureReasonReachesTheApi:
         assert resp.status_code == 200
         assert resp.json()["ai_error"] == "AI endpoint returned 404"
 
+    @pytest.mark.asyncio
+    async def test_processing_kind_exposed_on_item_response(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        # The frontend needs this to tell a background-removal failure apart
+        # from a generic AI-tagging failure and label/retry it correctly.
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path="t/bg.jpg",
+            status=ItemStatus.error,
+            processing_kind="background_removal",
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        resp = await client.get(f"/api/v1/items/{item.id}", headers=auth_headers)
+        assert resp.status_code == 200
+        assert resp.json()["processing_kind"] == "background_removal"
+
 
 class TestTaggingQueueProgress:
     @pytest.mark.asyncio

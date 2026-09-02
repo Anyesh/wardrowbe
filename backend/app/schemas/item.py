@@ -114,6 +114,7 @@ class ItemResponse(ItemBase):
     ai_description: str | None = None
     ai_error: str | None = None
     ai_started_at: datetime | None = None
+    processing_kind: str | None = None
     tagging_status: str = "pending"
     tagged_by: str | None = None
     tagged_at: datetime | None = None
