@@ -131,12 +131,9 @@ class WorkerSettings:
 
     redis_settings = get_redis_settings()
 
-    # This pool is shared with the lightweight cron jobs above (notifications,
-    # the sweep), not an AI-call ceiling - the real bound on concurrent
-    # outbound AI HTTP calls is the semaphore in ai_service.py, sized by
-    # AI_MAX_CONCURRENT_REQUESTS. Kept above that value so cron jobs always
-    # have a free slot during a big import instead of being starved by
-    # tagging jobs that are just waiting on the semaphore.
+    # The only AI concurrency bound (see ai_tagging_concurrency in config.py).
+    # The cron jobs above share this pool and arq drains one queue oldest-first,
+    # so during a large import they run after the backlog whatever this value is.
     max_jobs = get_settings().ai_tagging_concurrency
     job_timeout = worker_job_timeout_seconds()
     max_tries = TAGGING_MAX_TRIES

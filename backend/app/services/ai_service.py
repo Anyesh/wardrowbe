@@ -19,24 +19,6 @@ logger = logging.getLogger(__name__)
 
 AI_RETRY_MAX_BACKOFF_S = 30
 
-_ai_request_semaphore: asyncio.Semaphore | None = None
-_ai_request_semaphore_size: int | None = None
-
-
-def _get_request_semaphore(size: int) -> asyncio.Semaphore:
-    # Bounds real concurrent outbound AI HTTP calls, independent of arq's
-    # max_jobs (ai_tagging_concurrency) - a job above this limit waits here
-    # instead of opening its own request, so a queued call spends its wait on
-    # the semaphore (free) rather than burning ai_timeout sitting in the AI
-    # backend's own internal queue and then retrying into the same overload.
-    # Recreated if size changes, since asyncio.Semaphore's limit is fixed at
-    # construction (Settings can vary between AIService instances in tests).
-    global _ai_request_semaphore, _ai_request_semaphore_size
-    if _ai_request_semaphore is None or _ai_request_semaphore_size != size:
-        _ai_request_semaphore = asyncio.Semaphore(size)
-        _ai_request_semaphore_size = size
-    return _ai_request_semaphore
-
 
 class TextGenerationResult(BaseModel):
     content: str
@@ -492,13 +474,11 @@ class AIService:
                             request_body["logprobs"] = True
                             request_body["top_logprobs"] = 3
 
-                        semaphore = _get_request_semaphore(self.settings.ai_max_concurrent_requests)
-                        async with semaphore:
-                            response = await client.post(
-                                f"{endpoint.url}/chat/completions",
-                                headers=self._get_headers(),
-                                json=request_body,
-                            )
+                        response = await client.post(
+                            f"{endpoint.url}/chat/completions",
+                            headers=self._get_headers(),
+                            json=request_body,
+                        )
                         response.raise_for_status()
 
                         data = response.json()
@@ -694,19 +674,17 @@ class AIService:
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 for attempt in range(self.settings.ai_max_retries):
                     try:
-                        semaphore = _get_request_semaphore(self.settings.ai_max_concurrent_requests)
-                        async with semaphore:
-                            response = await client.post(
-                                f"{endpoint.url}/chat/completions",
-                                headers=self._get_headers(),
-                                json={
-                                    "model": endpoint.text_model,
-                                    "messages": messages,
-                                    "stream": False,
-                                    "temperature": 0.4,
-                                    "max_tokens": self.settings.ai_max_tokens,
-                                },
-                            )
+                        response = await client.post(
+                            f"{endpoint.url}/chat/completions",
+                            headers=self._get_headers(),
+                            json={
+                                "model": endpoint.text_model,
+                                "messages": messages,
+                                "stream": False,
+                                "temperature": 0.4,
+                                "max_tokens": self.settings.ai_max_tokens,
+                            },
+                        )
                         response.raise_for_status()
 
                         data = response.json()

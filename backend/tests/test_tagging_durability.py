@@ -11,7 +11,6 @@ from PIL import Image, ImageDraw
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.item import ClothingItem, ItemStatus
-from app.services import ai_service as ai_service_module
 from app.services.ai_service import AIService, ClothingTags
 from app.workers import tagging as tagging_module
 from app.workers.tagging import tag_item_image
@@ -435,31 +434,37 @@ class TestTaggingConcurrencySetting:
         # import time, so this isn't a behavioral proof, just a tripwire.
         assert WorkerSettings.max_jobs == get_settings().ai_tagging_concurrency
 
-    @staticmethod
-    def _reset_request_semaphore() -> None:
-        ai_service_module._ai_request_semaphore = None
-        ai_service_module._ai_request_semaphore_size = None
+    def test_ai_tagging_concurrency_defaults_to_one(self, monkeypatch):
+        from app.config import Settings
 
-    class _OkResponse:
-        status_code = 200
+        monkeypatch.delenv("AI_TAGGING_CONCURRENCY", raising=False)
 
-        def raise_for_status(self):
-            pass
-
-        def json(self):
-            return {"choices": [{"message": {"content": "{}"}}]}
+        # One at a time is the only default that holds for the self-hosted
+        # target (a single local Ollama serving requests serially): with N in
+        # flight each request's observed latency is N times the model's own
+        # time, and AI_TIMEOUT is exceeded long before the model is actually
+        # slow. Hosted/GPU backends raise this explicitly.
+        assert Settings(_env_file=None).ai_tagging_concurrency == 1
 
     @pytest.mark.asyncio
-    async def test_semaphore_bounds_concurrent_ai_requests(self):
-        # ai_tagging_concurrency only bounds arq's job pool, not real concurrent
-        # AI HTTP calls (there is no semaphore anywhere else) - this proves the
-        # semaphore in ai_service.py is what actually caps concurrency.
-        self._reset_request_semaphore()
+    async def test_ai_service_does_not_throttle_in_process(self):
+        # The arq pool (max_jobs) is the concurrency bound, on purpose: a job
+        # waiting in Redis costs nothing, while a job parked on an in-process
+        # semaphore keeps burning _tagging_call_budget and arq's job_timeout
+        # and so re-creates the #154 timeout cascade for slow local models.
+        # AIService therefore must not add its own gate.
         service = AIService()
-        service.settings = service.settings.model_copy(update={"ai_max_concurrent_requests": 2})
-
         in_flight = 0
         max_in_flight = 0
+
+        class _OkResponse:
+            status_code = 200
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"choices": [{"message": {"content": "{}"}}]}
 
         async def fake_post(*args, **kwargs):
             nonlocal in_flight, max_in_flight
@@ -467,60 +472,9 @@ class TestTaggingConcurrencySetting:
             max_in_flight = max(max_in_flight, in_flight)
             await asyncio.sleep(0.05)
             in_flight -= 1
-            return self._OkResponse()
+            return _OkResponse()
 
         with patch("httpx.AsyncClient.post", side_effect=fake_post):
-            await asyncio.gather(*[service._call_with_fallback([], "tags") for _ in range(6)])
+            await asyncio.gather(*[service._call_with_fallback([], "tags") for _ in range(3)])
 
-        assert max_in_flight == 2
-
-    @pytest.mark.asyncio
-    async def test_semaphore_avoids_client_side_timeouts_against_a_serial_backend(self):
-        # Simulates a single-threaded local Ollama: only one request is actually
-        # processed at a time. Without the semaphore, every caller opens its
-        # request (and starts its own ai_timeout clock) at once, so whoever
-        # ends up queued behind another request in the backend's own serial
-        # processing blows past ai_timeout and errors - the retry-into-the-
-        # same-overload pileup from the bug report. With the semaphore capping
-        # real concurrency to 1, callers wait their turn before even starting
-        # their request, so no request's timeout clock starts before the
-        # backend is actually free to serve it.
-        backend_lock = asyncio.Lock()
-        backend_delay = 0.1
-        ai_timeout = 0.15
-
-        def make_fake_post(client_timeout: float):
-            async def fake_post(*args, **kwargs):
-                start = asyncio.get_event_loop().time()
-                async with backend_lock:
-                    waited = asyncio.get_event_loop().time() - start
-                    if waited > client_timeout:
-                        raise httpx.ReadTimeout("simulated client timeout", request=None)
-                    await asyncio.sleep(backend_delay)
-                return self._OkResponse()
-
-            return fake_post
-
-        async def run(max_concurrent: int) -> list[Exception | None]:
-            self._reset_request_semaphore()
-            service = AIService()
-            service.settings = service.settings.model_copy(
-                update={
-                    "ai_max_concurrent_requests": max_concurrent,
-                    "ai_timeout": ai_timeout,
-                    "ai_max_retries": 1,
-                }
-            )
-            with patch("httpx.AsyncClient.post", side_effect=make_fake_post(ai_timeout)):
-                results = await asyncio.gather(
-                    *[service._call_with_fallback([], "tags") for _ in range(3)]
-                )
-            return [err for _content, err, _logprobs in results]
-
-        unbounded_errors = await run(max_concurrent=3)
-        bounded_errors = await run(max_concurrent=1)
-
-        assert any(err is not None for err in unbounded_errors), (
-            "expected the unthrottled run to reproduce the queued-then-timeout pileup"
-        )
-        assert all(err is None for err in bounded_errors)
+        assert max_in_flight == 3
