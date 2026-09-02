@@ -131,10 +131,9 @@ class WorkerSettings:
 
     redis_settings = get_redis_settings()
 
-    # This pool is shared with the lightweight cron jobs above (notifications,
-    # the sweep), not an exact AI-call ceiling - see AI_TAGGING_CONCURRENCY in
-    # .env.example for the tradeoff. Real AI-call concurrency is at or below
-    # this value.
+    # The only AI concurrency bound (see ai_tagging_concurrency in config.py).
+    # The cron jobs above share this pool and arq drains one queue oldest-first,
+    # so during a large import they run after the backlog whatever this value is.
     max_jobs = get_settings().ai_tagging_concurrency
     job_timeout = worker_job_timeout_seconds()
     max_tries = TAGGING_MAX_TRIES

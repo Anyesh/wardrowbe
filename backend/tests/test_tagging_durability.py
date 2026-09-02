@@ -433,3 +433,48 @@ class TestTaggingConcurrencySetting:
         # a hardcoded literal - both sides read the same cached settings at
         # import time, so this isn't a behavioral proof, just a tripwire.
         assert WorkerSettings.max_jobs == get_settings().ai_tagging_concurrency
+
+    def test_ai_tagging_concurrency_defaults_to_one(self, monkeypatch):
+        from app.config import Settings
+
+        monkeypatch.delenv("AI_TAGGING_CONCURRENCY", raising=False)
+
+        # One at a time is the only default that holds for the self-hosted
+        # target (a single local Ollama serving requests serially): with N in
+        # flight each request's observed latency is N times the model's own
+        # time, and AI_TIMEOUT is exceeded long before the model is actually
+        # slow. Hosted/GPU backends raise this explicitly.
+        assert Settings(_env_file=None).ai_tagging_concurrency == 1
+
+    @pytest.mark.asyncio
+    async def test_ai_service_does_not_throttle_in_process(self):
+        # The arq pool (max_jobs) is the concurrency bound, on purpose: a job
+        # waiting in Redis costs nothing, while a job parked on an in-process
+        # semaphore keeps burning _tagging_call_budget and arq's job_timeout
+        # and so re-creates the #154 timeout cascade for slow local models.
+        # AIService therefore must not add its own gate.
+        service = AIService()
+        in_flight = 0
+        max_in_flight = 0
+
+        class _OkResponse:
+            status_code = 200
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"choices": [{"message": {"content": "{}"}}]}
+
+        async def fake_post(*args, **kwargs):
+            nonlocal in_flight, max_in_flight
+            in_flight += 1
+            max_in_flight = max(max_in_flight, in_flight)
+            await asyncio.sleep(0.05)
+            in_flight -= 1
+            return _OkResponse()
+
+        with patch("httpx.AsyncClient.post", side_effect=fake_post):
+            await asyncio.gather(*[service._call_with_fallback([], "tags") for _ in range(3)])
+
+        assert max_in_flight == 3

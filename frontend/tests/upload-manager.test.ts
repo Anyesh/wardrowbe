@@ -16,6 +16,10 @@ function makeFile(name: string): File {
   return new File(['x'], name, { type: 'image/jpeg' })
 }
 
+function makeSizedFile(name: string, sizeBytes: number): File {
+  return new File([new Uint8Array(sizeBytes)], name, { type: 'image/jpeg' })
+}
+
 function jsonResponse(body: unknown, ok = true, status = 200) {
   return {
     ok,
@@ -186,6 +190,39 @@ describe('startDrain', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
+  it('splits a chunk by byte budget, not just file count, to stay under nginx\'s body-size cap', async () => {
+    // Three ~6MB files: the first two (12MB) fit under the 15MB budget, the
+    // third would push it to 18MB, so it must land in its own request.
+    const sixMb = 6 * 1024 * 1024
+    await enqueueFiles(
+      [
+        makeSizedFile('a.jpg', sixMb),
+        makeSizedFile('b.jpg', sixMb),
+        makeSizedFile('c.jpg', sixMb),
+      ],
+      false
+    )
+
+    vi.mocked(fetch).mockReset()
+    const chunkSizes: number[] = []
+    vi.mocked(fetch).mockImplementation(async (_url, init) => {
+      const formData = init?.body as FormData
+      const files = formData.getAll('images')
+      chunkSizes.push(files.length)
+      return jsonResponse({
+        total: files.length,
+        successful: files.length,
+        failed: 0,
+        results: files.map((f) => ({ filename: (f as File).name, success: true })),
+      })
+    })
+
+    await manager.startDrain()
+
+    expect(await getPendingUploads()).toHaveLength(0)
+    expect(chunkSizes).toEqual([2, 1])
+  })
+
   it('invalidates the items query after each chunk', async () => {
     const queryClient = new QueryClient()
     const spy = vi.spyOn(queryClient, 'invalidateQueries')
@@ -204,6 +241,61 @@ describe('startDrain', () => {
     await manager.startDrain()
 
     expect(spy).toHaveBeenCalledWith({ queryKey: ['items'] })
+  })
+})
+
+describe('backoff reschedule', () => {
+  it('resumes on its own once the backoff window elapses, instead of wedging until an external trigger', async () => {
+    // vi.useFakeTimers() would also stall fake-indexeddb's internal
+    // scheduling (see upload-queue.test.ts), so this captures the real
+    // setTimeout call and invokes its callback manually instead of waiting
+    // out the real delay.
+    const dateSpy = vi.spyOn(Date, 'now')
+    const timeoutSpy = vi.spyOn(globalThis, 'setTimeout')
+    try {
+      let now = Date.now()
+      dateSpy.mockImplementation(() => now)
+
+      await enqueueFiles([makeFile('a.jpg')], false)
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('network down'))
+
+      await manager.startDrain()
+      let state = await manager.getState()
+      expect(state.terminalRecords).toHaveLength(0)
+      expect(state.remaining).toBe(1)
+      // The drain loop must exit (not spin/sleep) once nothing is
+      // immediately actionable, so the UI doesn't show a stuck spinner for
+      // the whole backoff wait.
+      expect(state.draining).toBe(false)
+
+      const scheduled = timeoutSpy.mock.calls.find(
+        ([, delay]) => typeof delay === 'number' && delay > 0
+      )
+      expect(scheduled).toBeDefined()
+      const [callback] = scheduled!
+
+      vi.mocked(fetch).mockResolvedValueOnce(
+        jsonResponse({
+          total: 1,
+          successful: 1,
+          failed: 0,
+          results: [{ filename: 'a.jpg', success: true }],
+        })
+      )
+      now += 5000 // past the one-attempt backoff window the timer was armed for
+
+      // Nothing external calls startDrain() here - only the manager's own
+      // reschedule, fired by invoking the timer callback it armed.
+      ;(callback as () => void)()
+      for (let i = 0; i < 10; i++) {
+        await new Promise((r) => setTimeout(r, 0))
+      }
+
+      expect(await getPendingUploads()).toHaveLength(0)
+    } finally {
+      dateSpy.mockRestore()
+      timeoutSpy.mockRestore()
+    }
   })
 })
 
