@@ -833,7 +833,13 @@ export function useBulkRemoveBackgroundItems() {
           return {
             ...old,
             items: old.items.map((item) =>
-              !excludedSet.has(item.id) ? { ...item, status: 'processing' as const } : item
+              !excludedSet.has(item.id)
+                ? {
+                    ...item,
+                    status: 'processing' as const,
+                    processing_kind: 'background_removal' as const,
+                  }
+                : item
             ),
           };
         });
@@ -844,7 +850,13 @@ export function useBulkRemoveBackgroundItems() {
           return {
             ...old,
             items: old.items.map((item) =>
-              itemIdSet.has(item.id) ? { ...item, status: 'processing' as const } : item
+              itemIdSet.has(item.id)
+                ? {
+                    ...item,
+                    status: 'processing' as const,
+                    processing_kind: 'background_removal' as const,
+                  }
+                : item
             ),
           };
         });
@@ -975,7 +987,12 @@ export function mergeBulkUploadResponses(responses: BulkUploadResponse[]): BulkU
   );
 }
 
-export function tagProcessingLabel(item: Pick<Item, 'ai_started_at'>): 'queued' | 'analyzing' {
+export function tagProcessingLabel(
+  item: Pick<Item, 'ai_started_at' | 'processing_kind'>
+): 'queued' | 'analyzing' | 'removing_background' {
+  if (item.processing_kind === 'background_removal') {
+    return 'removing_background';
+  }
   return item.ai_started_at ? 'analyzing' : 'queued';
 }
 

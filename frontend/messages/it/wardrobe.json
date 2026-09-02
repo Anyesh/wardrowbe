@@ -48,6 +48,7 @@
     "uploading": "Caricamento in corso..."
   },
   "ai": {
+    "backgroundRemovalFailed": "Background removal failed",
     "analysisFailed": "Analisi fallita",
     "analyzing": "Analisi IA in corso...",
     "analyzingCount": "{count} in analisi",
@@ -59,6 +60,9 @@
     "failedCount": "{count} falliti",
     "queued": "Queued",
     "queuedCount": "{count} queued",
+    "removeBackgroundQueued": "Queued for background removal",
+    "removingBackground": "Removing background...",
+    "removingBackgroundElapsed": "Removing background… {elapsed}",
     "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "Tutti i tipi",

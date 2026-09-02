@@ -48,6 +48,7 @@
     "uploading": "업로드 중..."
   },
   "ai": {
+    "backgroundRemovalFailed": "Background removal failed",
     "analysisFailed": "분석 실패",
     "analyzing": "AI 분석 중...",
     "analyzingCount": "{count}개 분석 중",
@@ -59,6 +60,9 @@
     "failedCount": "{count}개 실패",
     "queued": "Queued",
     "queuedCount": "{count} queued",
+    "removeBackgroundQueued": "Queued for background removal",
+    "removingBackground": "Removing background...",
+    "removingBackgroundElapsed": "Removing background… {elapsed}",
     "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "전체 유형",
