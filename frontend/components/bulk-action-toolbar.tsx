@@ -205,20 +205,41 @@ export function BulkActionToolbar({
             </>
           )}
           {onRemoveBackground && (
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={onRemoveBackground}
-              disabled={isRemovingBackground}
-              aria-label={t('bulkActions.removeBackground')}
-            >
-              {isRemovingBackground ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Eraser className="h-4 w-4" />
-              )}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  disabled={isRemovingBackground}
+                  aria-label={t('bulkActions.removeBackground')}
+                >
+                  {isRemovingBackground ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Eraser className="h-4 w-4" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {tWardrobe('bulkActions.removeBackgroundConfirmTitle', { count: selectedCount })}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {tWardrobe('bulkActions.removeBackgroundConfirmDescription', {
+                      count: selectedCount,
+                    })}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={onRemoveBackground}>
+                    {t('confirm')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
           <AlertDialog>
             <AlertDialogTrigger asChild>

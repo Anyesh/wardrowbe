@@ -73,6 +73,8 @@
     "reanalyzeQueued": "{count, plural, one {# article mis en file d’attente pour ré-analyse} other {# articles mis en file d’attente pour ré-analyse}}",
     "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
     "removeBackgroundAlreadyDone": "{count, plural, one {# item already had its background removed} other {# items already had their background removed}}",
+    "removeBackgroundConfirmDescription": "This will remove the background from {count, plural, one {# selected item} other {# selected items}}. The original photo is kept and can be restored per item afterward.",
+    "removeBackgroundConfirmTitle": "Remove background from {count, plural, one {# item} other {# items}}?",
     "removeBackgroundError": "Failed to queue background removal",
     "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
     "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
