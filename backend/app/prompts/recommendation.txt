@@ -4,6 +4,7 @@ CONTEXT:
 - Occasion: {occasion}
 - Time of day: {time_of_day}
 - Weather: {temperature}°C (feels like {feels_like}°C), {condition}, {precipitation_chance}% chance of rain
+{temp_range_text}
 - Items are pre-ranked by suitability. Higher-numbered items are less compatible — prefer items near the top of the list.
 {preferences_text}
 

@@ -49,6 +49,19 @@ SAMPLE_FORECAST_RESPONSE = {
     },
 }
 
+SAMPLE_FORECAST_RESPONSE_WITH_DAILY_FIELDS = {
+    "daily": {
+        "time": ["2026-02-28", "2026-03-01"],
+        "temperature_2m_max": [18.0, 22.0],
+        "temperature_2m_min": [8.0, 12.0],
+        "precipitation_probability_max": [10, 40],
+        "weather_code": [0, 61],
+        "relative_humidity_2m_mean": [40, 42],
+        "wind_speed_10m_max": [12.0, 14.0],
+        "uv_index_max": [6.5, 7.0],
+    },
+}
+
 
 def _make_weather_data(**overrides) -> WeatherData:
     defaults = {
@@ -239,6 +252,248 @@ class TestGetCurrentWeather:
         assert result.precipitation_chance == 0
 
 
+class TestGetCurrentWeatherRange:
+    @pytest.mark.asyncio
+    async def test_daily_block_populates_temp_min_max(self, weather_service, mock_redis):
+        response_data = {
+            **SAMPLE_API_RESPONSE,
+            "daily": {"temperature_2m_max": [25.0], "temperature_2m_min": [15.0]},
+        }
+        mock_response = _mock_response(json_data=response_data)
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            result = await weather_service.get_current_weather(40.71, -74.01)
+
+        assert result.temp_min == pytest.approx(15.0)
+        assert result.temp_max == pytest.approx(25.0)
+
+    @pytest.mark.asyncio
+    async def test_missing_daily_key_leaves_range_none(self, weather_service, mock_redis):
+        mock_response = _mock_response(json_data=SAMPLE_API_RESPONSE)
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            result = await weather_service.get_current_weather(40.71, -74.01)
+
+        assert result.temp_min is None
+        assert result.temp_max is None
+
+    @pytest.mark.asyncio
+    async def test_null_daily_block_leaves_range_none(self, weather_service, mock_redis):
+        response_data = {**SAMPLE_API_RESPONSE, "daily": None}
+        mock_response = _mock_response(json_data=response_data)
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            result = await weather_service.get_current_weather(40.71, -74.01)
+
+        assert result.temp_min is None
+        assert result.temp_max is None
+
+    @pytest.mark.asyncio
+    async def test_empty_daily_lists_leave_range_none(self, weather_service, mock_redis):
+        response_data = {
+            **SAMPLE_API_RESPONSE,
+            "daily": {"temperature_2m_max": [], "temperature_2m_min": []},
+        }
+        mock_response = _mock_response(json_data=response_data)
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            result = await weather_service.get_current_weather(40.71, -74.01)
+
+        assert result.temp_min is None
+        assert result.temp_max is None
+
+    @pytest.mark.asyncio
+    async def test_null_entries_in_daily_lists_leave_range_none(self, weather_service, mock_redis):
+        response_data = {
+            **SAMPLE_API_RESPONSE,
+            "daily": {"temperature_2m_max": [None], "temperature_2m_min": [None]},
+        }
+        mock_response = _mock_response(json_data=response_data)
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            result = await weather_service.get_current_weather(40.71, -74.01)
+
+        assert result.temp_min is None
+        assert result.temp_max is None
+
+
+def _hourly(start_hour, temps, day="2026-02-28", precipitation=None):
+    times = []
+    for i in range(len(temps)):
+        hour = start_hour + i
+        d = day if hour < 24 else "2026-03-01"
+        times.append(f"{d}T{hour % 24:02d}:00")
+    block = {"time": times, "temperature_2m": temps}
+    block["precipitation_probability"] = precipitation or [10] + [0] * (len(temps) - 1)
+    return block
+
+
+class TestGetCurrentWeatherWindow:
+    async def _fetch(self, weather_service, response_data):
+        mock_response = _mock_response(json_data=response_data)
+        with patch("httpx.AsyncClient.get", return_value=mock_response) as mock_get:
+            result = await weather_service.get_current_weather(40.71, -74.01, use_cache=False)
+        return result, mock_get
+
+    @pytest.mark.asyncio
+    async def test_requests_full_day_of_hourly_temperatures(self, weather_service, mock_redis):
+        _, mock_get = await self._fetch(weather_service, SAMPLE_API_RESPONSE)
+        params = mock_get.call_args[1]["params"]
+        assert "temperature_2m" in params["hourly"]
+        assert params["forecast_hours"] == 24
+
+    @pytest.mark.asyncio
+    async def test_morning_window_spans_current_hour_through_evening(
+        self, weather_service, mock_redis
+    ):
+        temps = [
+            5.0,
+            7.0,
+            12.0,
+            18.0,
+            24.0,
+            29.0,
+            30.0,
+            28.0,
+            25.0,
+            22.0,
+            20.0,
+            18.0,
+            16.0,
+            14.0,
+            12.0,
+        ]
+        temps += [10.0, 9.0, 8.0, 8.0, 7.0, 7.0, 6.0, 6.0, 5.0]
+        response_data = {
+            "current": {
+                **SAMPLE_API_RESPONSE["current"],
+                "time": "2026-02-28T07:30",
+                "temperature_2m": 4.5,
+            },
+            "hourly": _hourly(7, temps),
+        }
+        result, _ = await self._fetch(weather_service, response_data)
+        assert result.window_min == pytest.approx(4.5)
+        assert result.window_max == pytest.approx(30.0)
+        assert result.precipitation_chance == 10
+
+    @pytest.mark.asyncio
+    async def test_afternoon_window_ignores_the_morning_low(self, weather_service, mock_redis):
+        temps = [
+            28.0,
+            30.0,
+            29.0,
+            26.0,
+            22.0,
+            19.0,
+            17.0,
+            15.0,
+            13.0,
+            11.0,
+            9.0,
+            8.0,
+            7.0,
+            6.0,
+            5.0,
+        ]
+        temps += [5.0, 4.0, 4.0, 3.0, 3.0, 3.0, 4.0, 6.0, 9.0]
+        response_data = {
+            "current": {
+                **SAMPLE_API_RESPONSE["current"],
+                "time": "2026-02-28T14:30",
+                "temperature_2m": 29.0,
+            },
+            "hourly": _hourly(14, temps),
+            "daily": {"temperature_2m_max": [30.0], "temperature_2m_min": [3.0]},
+        }
+        result, _ = await self._fetch(weather_service, response_data)
+        assert result.window_min == pytest.approx(15.0)
+        assert result.window_max == pytest.approx(30.0)
+        assert result.temp_min == pytest.approx(3.0)
+
+    @pytest.mark.asyncio
+    async def test_two_hours_left_still_forms_a_window(self, weather_service, mock_redis):
+        temps = [20.0, 12.0] + [10.0] * 22
+        response_data = {
+            "current": {
+                **SAMPLE_API_RESPONSE["current"],
+                "time": "2026-02-28T20:30",
+                "temperature_2m": 19.0,
+            },
+            "hourly": _hourly(20, temps),
+        }
+        result, _ = await self._fetch(weather_service, response_data)
+        assert result.window_min == pytest.approx(12.0)
+        assert result.window_max == pytest.approx(20.0)
+
+    @pytest.mark.asyncio
+    async def test_late_evening_has_no_window(self, weather_service, mock_redis):
+        temps = [20.0, 12.0] + [10.0] * 22
+        response_data = {
+            "current": {
+                **SAMPLE_API_RESPONSE["current"],
+                "time": "2026-02-28T21:30",
+                "temperature_2m": 19.0,
+            },
+            "hourly": _hourly(21, temps),
+        }
+        result, _ = await self._fetch(weather_service, response_data)
+        assert result.window_min is None
+        assert result.window_max is None
+
+    @pytest.mark.asyncio
+    async def test_window_never_crosses_midnight(self, weather_service, mock_redis):
+        temps = [20.0, 21.0, 22.0] + [40.0] * 21
+        response_data = {
+            "current": {
+                **SAMPLE_API_RESPONSE["current"],
+                "time": "2026-02-28T19:30",
+                "temperature_2m": 20.0,
+            },
+            "hourly": _hourly(19, temps),
+        }
+        result, _ = await self._fetch(weather_service, response_data)
+        assert result.window_max == pytest.approx(22.0)
+
+    @pytest.mark.asyncio
+    async def test_missing_hourly_temperatures_leave_window_none(self, weather_service, mock_redis):
+        response_data = {
+            "current": {**SAMPLE_API_RESPONSE["current"], "time": "2026-02-28T07:30"},
+            "hourly": {"precipitation_probability": [35]},
+        }
+        result, _ = await self._fetch(weather_service, response_data)
+        assert result.window_min is None
+        assert result.precipitation_chance == 35
+
+    @pytest.mark.asyncio
+    async def test_missing_current_time_leaves_window_none(self, weather_service, mock_redis):
+        response_data = {
+            "current": SAMPLE_API_RESPONSE["current"],
+            "hourly": _hourly(7, [5.0] * 24),
+        }
+        result, _ = await self._fetch(weather_service, response_data)
+        assert result.window_min is None
+
+    @pytest.mark.asyncio
+    async def test_null_hourly_entries_are_skipped(self, weather_service, mock_redis):
+        temps = [None, 8.0, None, 25.0] + [None] * 20
+        response_data = {
+            "current": {
+                **SAMPLE_API_RESPONSE["current"],
+                "time": "2026-02-28T07:30",
+                "temperature_2m": 6.0,
+            },
+            "hourly": _hourly(7, temps),
+        }
+        result, _ = await self._fetch(weather_service, response_data)
+        assert result.window_min == pytest.approx(6.0)
+        assert result.window_max == pytest.approx(25.0)
+
+    @pytest.mark.asyncio
+    async def test_all_null_hourly_entries_leave_window_none(self, weather_service, mock_redis):
+        response_data = {
+            "current": {**SAMPLE_API_RESPONSE["current"], "time": "2026-02-28T07:30"},
+            "hourly": _hourly(7, [None] * 24),
+        }
+        result, _ = await self._fetch(weather_service, response_data)
+        assert result.window_min is None
+
+
 class TestGeocodeLocationName:
     @pytest.mark.asyncio
     async def test_raises_on_invalid_json_response(self, weather_service, mock_redis):
@@ -311,6 +566,27 @@ class TestGetDailyForecast:
             with pytest.raises(WeatherServiceError, match="Failed to fetch forecast"):
                 await weather_service.get_daily_forecast(40.71, -74.01)
 
+    @pytest.mark.asyncio
+    async def test_parses_humidity_wind_uv(self, weather_service, mock_redis):
+        mock_response = _mock_response(json_data=SAMPLE_FORECAST_RESPONSE_WITH_DAILY_FIELDS)
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            result = await weather_service.get_daily_forecast(40.71, -74.01, days=2)
+
+        assert result[0].humidity == 40
+        assert result[0].wind_speed == pytest.approx(12.0)
+        assert result[0].uv_index == pytest.approx(6.5)
+        assert result[1].humidity == 42
+
+    @pytest.mark.asyncio
+    async def test_old_shaped_payload_defaults_to_none(self, weather_service, mock_redis):
+        mock_response = _mock_response(json_data=SAMPLE_FORECAST_RESPONSE)
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            result = await weather_service.get_daily_forecast(40.71, -74.01, days=2)
+
+        assert result[0].humidity is None
+        assert result[0].wind_speed is None
+        assert result[0].uv_index is None
+
 
 class TestGetTomorrowWeather:
     @pytest.mark.asyncio
@@ -324,6 +600,25 @@ class TestGetTomorrowWeather:
         assert result.condition == "light rain"
         assert result.precipitation_chance == 40
         assert result.is_day is True
+        assert result.temp_min == pytest.approx(12.0)
+        assert result.temp_max == pytest.approx(22.0)
+        assert result.window_min == pytest.approx(12.0)
+        assert result.window_max == pytest.approx(22.0)
+        assert result.humidity == 50
+        assert result.wind_speed == 0
+        assert result.uv_index == 0
+
+    @pytest.mark.asyncio
+    async def test_carries_forward_real_daily_fields(self, weather_service, mock_redis):
+        mock_response = _mock_response(json_data=SAMPLE_FORECAST_RESPONSE_WITH_DAILY_FIELDS)
+        with patch("httpx.AsyncClient.get", return_value=mock_response):
+            result = await weather_service.get_tomorrow_weather(40.71, -74.01)
+
+        assert result.humidity == 42
+        assert result.wind_speed == pytest.approx(14.0)
+        assert result.uv_index == pytest.approx(7.0)
+        assert result.temp_min == pytest.approx(12.0)
+        assert result.temp_max == pytest.approx(22.0)
 
     @pytest.mark.asyncio
     async def test_falls_back_to_current_weather(self, weather_service, mock_redis):
@@ -375,3 +670,62 @@ class TestWeatherDataSerialization:
         assert restored.temperature == original.temperature
         assert restored.condition == original.condition
         assert restored.timestamp == original.timestamp
+
+    def test_to_dict_round_trips_temp_range(self):
+        original = _make_weather_data(temp_min=15.0, temp_max=25.0)
+        data = original.to_dict()
+        assert data["temp_min"] == 15.0
+        assert data["temp_max"] == 25.0
+
+    def test_to_dict_defaults_range_to_none(self):
+        original = _make_weather_data()
+        data = original.to_dict()
+        assert data["temp_min"] is None
+        assert data["temp_max"] is None
+
+    def test_to_dict_round_trips_window(self):
+        original = _make_weather_data(window_min=18.0, window_max=24.0)
+        data = original.to_dict()
+        assert data["window_min"] == 18.0
+        assert data["window_max"] == 24.0
+
+    def test_to_dict_defaults_window_to_none(self):
+        original = _make_weather_data()
+        data = original.to_dict()
+        assert data["window_min"] is None
+        assert data["window_max"] is None
+
+
+class TestWeatherDataRedisCacheRoundTrip:
+    @pytest.mark.asyncio
+    async def test_cache_get_restores_window(self, weather_service, mock_redis):
+        cached = _make_weather_data(window_min=12.0, window_max=27.5)
+        mock_redis.get.return_value = json.dumps(cached.to_dict())
+
+        result = await weather_service._cache_get(40.71, -74.01)
+
+        assert result.window_min == pytest.approx(12.0)
+        assert result.window_max == pytest.approx(27.5)
+
+    @pytest.mark.asyncio
+    async def test_cache_set_serializes_window(self, weather_service, mock_redis):
+        data = _make_weather_data(window_min=10.0, window_max=20.0)
+        await weather_service._cache_set(40.71, -74.01, data)
+
+        stored = json.loads(mock_redis.set.call_args[0][1])
+        assert stored["window_min"] == 10.0
+        assert stored["window_max"] == 20.0
+
+    @pytest.mark.asyncio
+    async def test_cache_get_defaults_window_to_none_for_old_entries(
+        self, weather_service, mock_redis
+    ):
+        legacy_payload = _make_weather_data().to_dict()
+        del legacy_payload["window_min"]
+        del legacy_payload["window_max"]
+        mock_redis.get.return_value = json.dumps(legacy_payload)
+
+        result = await weather_service._cache_get(40.71, -74.01)
+
+        assert result.window_min is None
+        assert result.window_max is None
