@@ -53,6 +53,7 @@
     "analyzingCount": "{count}개 분석 중",
     "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count}개 분석 중 · {percent}% 완료",
+    "cancelAll": "Cancel all",
     "completeness": "AI 완성도: {percent}%",
     "confident": "{percent}% 확신",
     "dismiss": "닫기",
@@ -63,6 +64,8 @@
   },
   "allTypes": "전체 유형",
   "bulkActions": {
+    "cancelAllError": "Failed to cancel analysis",
+    "cancelAllQueued": "{count, plural, one {Cancelled # in-progress analysis} other {Cancelled # in-progress analyses}}",
     "deleteError": "아이템 삭제 실패",
     "deletePartialFailed": "{count, plural, other {아이템 #개 삭제 실패}}",
     "deleteSuccess": "{count, plural, other {아이템 #개를 삭제했어요}}",

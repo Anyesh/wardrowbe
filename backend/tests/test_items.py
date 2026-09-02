@@ -746,6 +746,201 @@ class TestCancelAnalysis:
         assert response.json()["status"] == "error"
 
 
+class TestBulkCancelAnalysis:
+    async def _create_item(
+        self,
+        db_session: AsyncSession,
+        test_user,
+        status: ItemStatus = ItemStatus.processing,
+        ai_job_id: str | None = None,
+    ) -> ClothingItem:
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path="test/bulk-cancel.jpg",
+            status=status,
+            ai_job_id=ai_job_id,
+        )
+        db_session.add(item)
+        await db_session.commit()
+        await db_session.refresh(item)
+        return item
+
+    @pytest.mark.asyncio
+    async def test_bulk_cancel_flips_processing_items_and_aborts_jobs(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        first = await self._create_item(db_session, test_user, ai_job_id="job-1")
+        second = await self._create_item(db_session, test_user, ai_job_id="job-2")
+
+        with (
+            patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool,
+            patch("app.api.items.Job") as mock_job_cls,
+        ):
+            mock_redis = AsyncMock()
+            mock_create_pool.return_value = mock_redis
+            mock_job_cls.return_value.abort = AsyncMock(return_value=True)
+
+            response = await client.post(
+                "/api/v1/items/bulk/cancel-analysis",
+                headers=auth_headers,
+                json={"item_ids": [str(first.id), str(second.id)]},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["cancelled"] == 2
+        assert body["skipped"] == 0
+        assert mock_job_cls.call_count == 2
+        mock_redis.aclose.assert_awaited_once()
+
+        for item_id in (first.id, second.id):
+            result = await db_session.execute(
+                select(ClothingItem).where(ClothingItem.id == item_id)
+            )
+            item = result.scalar_one()
+            assert item.status == ItemStatus.ready
+            assert item.ai_job_id is None
+
+    @pytest.mark.asyncio
+    async def test_bulk_cancel_skips_non_processing_items(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        processing = await self._create_item(db_session, test_user, ai_job_id="job-1")
+        ready = await self._create_item(db_session, test_user, status=ItemStatus.ready)
+
+        with (
+            patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool,
+            patch("app.api.items.Job") as mock_job_cls,
+        ):
+            mock_redis = AsyncMock()
+            mock_create_pool.return_value = mock_redis
+            mock_job_cls.return_value.abort = AsyncMock(return_value=True)
+
+            response = await client.post(
+                "/api/v1/items/bulk/cancel-analysis",
+                headers=auth_headers,
+                json={"item_ids": [str(processing.id), str(ready.id)]},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["cancelled"] == 1
+        assert body["skipped"] == 1
+        mock_job_cls.assert_called_once_with("job-1", mock_redis, _queue_name="arq:tagging")
+
+    @pytest.mark.asyncio
+    async def test_bulk_cancel_select_all_respects_excluded_ids(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        keep_running = await self._create_item(db_session, test_user, ai_job_id="job-keep")
+        to_cancel = await self._create_item(db_session, test_user, ai_job_id="job-cancel")
+
+        with (
+            patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool,
+            patch("app.api.items.Job") as mock_job_cls,
+        ):
+            mock_redis = AsyncMock()
+            mock_create_pool.return_value = mock_redis
+            mock_job_cls.return_value.abort = AsyncMock(return_value=True)
+
+            response = await client.post(
+                "/api/v1/items/bulk/cancel-analysis",
+                headers=auth_headers,
+                json={"select_all": True, "excluded_ids": [str(keep_running.id)]},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["cancelled"] == 1
+        mock_job_cls.assert_called_once_with("job-cancel", mock_redis, _queue_name="arq:tagging")
+
+        result = await db_session.execute(
+            select(ClothingItem).where(ClothingItem.id == keep_running.id)
+        )
+        assert result.scalar_one().status == ItemStatus.processing
+
+        result = await db_session.execute(
+            select(ClothingItem).where(ClothingItem.id == to_cancel.id)
+        )
+        assert result.scalar_one().status == ItemStatus.ready
+
+    @pytest.mark.asyncio
+    async def test_bulk_cancel_still_flips_to_ready_when_abort_raises(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await self._create_item(db_session, test_user, ai_job_id="job-flaky")
+
+        with (
+            patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool,
+            patch("app.api.items.Job") as mock_job_cls,
+        ):
+            mock_create_pool.return_value = AsyncMock()
+            mock_job_cls.return_value.abort = AsyncMock(side_effect=Exception("job gone"))
+
+            response = await client.post(
+                "/api/v1/items/bulk/cancel-analysis",
+                headers=auth_headers,
+                json={"item_ids": [str(item.id)]},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["cancelled"] == 1
+
+        result = await db_session.execute(select(ClothingItem).where(ClothingItem.id == item.id))
+        assert result.scalar_one().status == ItemStatus.ready
+
+    @pytest.mark.asyncio
+    async def test_bulk_cancel_redis_connect_failure_leaves_items_untouched(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await self._create_item(db_session, test_user, ai_job_id="job-1")
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_create_pool.side_effect = Exception("no redis")
+
+            response = await client.post(
+                "/api/v1/items/bulk/cancel-analysis",
+                headers=auth_headers,
+                json={"item_ids": [str(item.id)]},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["cancelled"] == 0
+        assert body["errors"]
+
+        result = await db_session.execute(select(ClothingItem).where(ClothingItem.id == item.id))
+        assert result.scalar_one().status == ItemStatus.processing
+
+    @pytest.mark.asyncio
+    async def test_bulk_cancel_unknown_item_reported_in_errors(
+        self, client: AsyncClient, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/items/bulk/cancel-analysis",
+            headers=auth_headers,
+            json={"item_ids": [str(uuid4())]},
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["cancelled"] == 0
+        assert body["skipped"] == 0
+        assert body["errors"]
+
+    @pytest.mark.asyncio
+    async def test_bulk_cancel_rejects_item_ids_and_select_all_together(
+        self, client: AsyncClient, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/items/bulk/cancel-analysis",
+            headers=auth_headers,
+            json={"item_ids": [str(uuid4())], "select_all": True},
+        )
+
+        assert response.status_code == 422
+
+
 class TestAnalysisIdempotency:
     async def _create_item(
         self,

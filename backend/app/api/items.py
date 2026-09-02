@@ -20,6 +20,8 @@ from app.schemas.item import (
     ArchiveRequest,
     BulkAnalyzeRequest,
     BulkAnalyzeResponse,
+    BulkCancelAnalysisRequest,
+    BulkCancelAnalysisResponse,
     BulkDeleteRequest,
     BulkDeleteResponse,
     BulkUploadResponse,
@@ -650,6 +652,81 @@ async def bulk_analyze_items(
         retry_after_seconds=cooldown_retry_after,
         errors=errors,
     )
+
+
+@router.post("/bulk/cancel-analysis", response_model=BulkCancelAnalysisResponse)
+async def bulk_cancel_analysis(
+    request: BulkCancelAnalysisRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> BulkCancelAnalysisResponse:
+    item_service = ItemService(db)
+    errors: list[str] = []
+
+    if request.select_all:
+        item_ids = await item_service.get_ids_by_filter(
+            user_id=current_user.id,
+            type_filter=request.filters.type if request.filters else None,
+            search=request.filters.search if request.filters else None,
+            is_archived=request.filters.is_archived
+            if request.filters and request.filters.is_archived is not None
+            else False,
+            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
+        )
+        logger.info(f"Bulk cancel-analysis select_all: {len(item_ids)} candidate items")
+    else:
+        item_ids = request.item_ids or []
+
+    items_to_process = []
+    for item_id in item_ids:
+        item = await item_service.get_by_id(item_id, current_user.id)
+        if not item:
+            errors.append(f"Item {item_id} not found or not owned by user")
+            continue
+        items_to_process.append(item)
+
+    # Only items still `processing` have anything in flight to abort; anything
+    # else (ready, error) is reported as skipped rather than an error.
+    processing_items = [item for item in items_to_process if item.status == ItemStatus.processing]
+    skipped = len(items_to_process) - len(processing_items)
+
+    if not processing_items:
+        return BulkCancelAnalysisResponse(cancelled=0, skipped=skipped, errors=errors)
+
+    redis = None
+    try:
+        redis = await create_pool(get_redis_settings())
+
+        async def abort_job(item: ClothingItem) -> None:
+            if not item.ai_job_id:
+                return
+            try:
+                job = Job(item.ai_job_id, redis, _queue_name="arq:tagging")
+                await job.abort(timeout=5)
+            except Exception as e:
+                # The guarded UPDATE below protects against a stray worker
+                # finishing after we've flipped status, so a failed/slow abort
+                # here must not block the bulk status flip.
+                logger.warning(f"Failed to abort AI job for item {item.id}: {e}")
+
+        await asyncio.gather(*(abort_job(item) for item in processing_items))
+    except Exception as e:
+        logger.error(f"Failed to connect to job queue for bulk cancel-analysis: {e}")
+        errors.append("Failed to connect to job queue; item statuses were not changed")
+        return BulkCancelAnalysisResponse(cancelled=0, skipped=skipped, errors=errors)
+    finally:
+        if redis:
+            await redis.aclose()
+
+    processing_ids = [item.id for item in processing_items]
+    result = await db.execute(
+        update(ClothingItem)
+        .where(ClothingItem.id.in_(processing_ids), ClothingItem.status == ItemStatus.processing)
+        .values(status=ItemStatus.ready, ai_job_id=None, ai_started_at=None)
+    )
+    await db.commit()
+
+    return BulkCancelAnalysisResponse(cancelled=result.rowcount, skipped=skipped, errors=errors)
 
 
 @router.get("/types")

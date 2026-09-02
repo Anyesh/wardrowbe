@@ -53,6 +53,7 @@
     "analyzingCount": "{count} werden analysiert",
     "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} werden analysiert · {percent} % fertig",
+    "cancelAll": "Cancel all",
     "completeness": "KI-Vollständigkeit: {percent} %",
     "confident": "{percent} % sicher",
     "dismiss": "Schließen",
@@ -63,6 +64,8 @@
   },
   "allTypes": "Alle Typen",
   "bulkActions": {
+    "cancelAllError": "Failed to cancel analysis",
+    "cancelAllQueued": "{count, plural, one {Cancelled # in-progress analysis} other {Cancelled # in-progress analyses}}",
     "deleteError": "Stücke konnten nicht gelöscht werden",
     "deletePartialFailed": "{count, plural, one {# Stück konnte nicht gelöscht werden} other {# Stücke konnten nicht gelöscht werden}}",
     "deleteSuccess": "{count, plural, one {# Stück gelöscht} other {# Stücke gelöscht}}",
