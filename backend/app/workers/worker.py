@@ -52,7 +52,7 @@ async def recover_stale_processing_items(ctx: dict) -> None:
     db = get_db_session(ctx)
     try:
         candidates = await db.execute(
-            select(ClothingItem.id, ClothingItem.ai_job_id).where(
+            select(ClothingItem.id, ClothingItem.ai_job_id, ClothingItem.processing_kind).where(
                 ClothingItem.status == ItemStatus.processing,
                 or_(
                     and_(
@@ -67,20 +67,28 @@ async def recover_stale_processing_items(ctx: dict) -> None:
             )
         )
         condemned = 0
-        for item_id, ai_job_id in candidates.all():
+        for item_id, ai_job_id, processing_kind in candidates.all():
             lost = ai_job_id is None
             if not lost:
                 job_status = await Job(ai_job_id, redis, _queue_name="arq:tagging").status()
                 lost = job_status in (JobStatus.not_found, JobStatus.complete)
             if lost:
+                # A background-removal row never touched AI tagging, so
+                # condemning it must not write ai_raw_response/ai_failed_at -
+                # doing so would start a bogus AI retry cooldown
+                # (claim_error_items_for_retry keys off ai_failed_at).
+                if processing_kind == "background_removal":
+                    values = {"status": ItemStatus.error}
+                else:
+                    values = {
+                        "status": ItemStatus.error,
+                        "ai_raw_response": {"error": "Job lost or timed out"},
+                        "ai_failed_at": datetime.now(UTC),
+                    }
                 result = await db.execute(
                     update(ClothingItem)
                     .where(ClothingItem.id == item_id, ClothingItem.status == ItemStatus.processing)
-                    .values(
-                        status=ItemStatus.error,
-                        ai_raw_response={"error": "Job lost or timed out"},
-                        ai_failed_at=datetime.now(UTC),
-                    )
+                    .values(**values)
                 )
                 condemned += result.rowcount
         await db.commit()
