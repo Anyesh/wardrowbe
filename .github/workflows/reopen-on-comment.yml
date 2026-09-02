@@ -1,0 +1,65 @@
+name: Reopen issue on comment
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  reopen:
+    if: >-
+      !github.event.issue.pull_request &&
+      github.event.issue.state == 'closed' &&
+      contains(github.event.comment.body, '/reopen')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const comment = context.payload.comment;
+
+            if (issue.pull_request) return;
+            if (issue.state !== 'closed') return;
+            if (comment.user.type === 'Bot') return;
+
+            const body = comment.body || '';
+            if (!/^\s*\/reopen\b/mi.test(body)) return;
+
+            const isAuthor = comment.user.login === issue.user.login;
+            const hasWriteAccess = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(comment.author_association);
+            // completed = closed as fixed, which is the case this feature exists for.
+            // == null (loose) covers both null and a missing key, so a payload variant
+            // that omits state_reason doesn't fail closed on a legitimate reopen.
+            // not_planned/duplicate are excluded on purpose: those are maintainer
+            // decisions an outside comment shouldn't override.
+            const closedAsFixed = issue.state_reason === 'completed' || issue.state_reason == null;
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            if (hasWriteAccess || (isAuthor && closedAsFixed)) {
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'open' });
+              for (const name of ['stale', 'needs-info']) {
+                try {
+                  await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name });
+                } catch (e) {
+                  if (e.status !== 404) throw e;
+                }
+              }
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: `Reopened by @${comment.user.login} via /reopen.`,
+              });
+            } else {
+              const alreadyFlagged = issue.labels.some(l => l.name === 'reopen-requested');
+              await github.rest.issues.addLabels({ owner, repo, issue_number: issue.number, labels: ['reopen-requested'] });
+              if (!alreadyFlagged) {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: issue.number,
+                  body: `Thanks for flagging this. The maintainer has been notified.`,
+                });
+              }
+            }

@@ -10,6 +10,9 @@ from app.config import get_settings
 from app.utils.redis_lock import get_redis
 
 logger = logging.getLogger(__name__)
+
+WEARING_DAY_END_HOUR = 21
+MIN_WINDOW_HOURS = 2
 settings = get_settings()
 
 
@@ -26,9 +29,15 @@ class WeatherData:
     is_day: bool
     uv_index: float
     timestamp: datetime
+    temp_min: float | None = None  # Today's forecast low, Celsius
+    temp_max: float | None = None  # Today's forecast high, Celsius
+    # Range over the remaining wearing window (current hour through WEARING_DAY_END_HOUR local,
+    # or the whole day for a day-ahead forecast). None when fewer than MIN_WINDOW_HOURS remain,
+    # so that late-evening requests score against the current reading only.
+    window_min: float | None = None
+    window_max: float | None = None
 
     def to_dict(self) -> dict:
-        """Convert to dictionary for JSON serialization."""
         return {
             "temperature": self.temperature,
             "feels_like": self.feels_like,
@@ -41,19 +50,24 @@ class WeatherData:
             "is_day": self.is_day,
             "uv_index": self.uv_index,
             "timestamp": self.timestamp.isoformat(),
+            "temp_min": self.temp_min,
+            "temp_max": self.temp_max,
+            "window_min": self.window_min,
+            "window_max": self.window_max,
         }
 
 
 @dataclass
 class DailyForecast:
-    """Daily weather forecast."""
-
     date: str  # YYYY-MM-DD
     temp_min: float
     temp_max: float
     precipitation_chance: int
     condition: str
     condition_code: int
+    humidity: int | None = None
+    wind_speed: float | None = None
+    uv_index: float | None = None
 
 
 # WMO Weather interpretation codes
@@ -285,8 +299,10 @@ class WeatherService:
                 "is_day",
                 "uv_index",
             ],
-            "hourly": ["precipitation_probability"],
-            "forecast_hours": 1,
+            "hourly": ["precipitation_probability", "temperature_2m"],
+            "daily": ["temperature_2m_max", "temperature_2m_min"],
+            "forecast_hours": 24,
+            "forecast_days": 1,
             "timezone": "auto",
         }
 
@@ -301,12 +317,18 @@ class WeatherService:
 
         current = data.get("current", {})
         hourly = data.get("hourly", {})
+        daily = data.get("daily") or {}
 
-        # Get precipitation probability for next hour
         precip_probs = hourly.get("precipitation_probability", [])
         precip_chance = precip_probs[0] if precip_probs else 0
 
         weather_code = current.get("weather_code", 0)
+
+        temp_maxs = daily.get("temperature_2m_max") or []
+        temp_mins = daily.get("temperature_2m_min") or []
+        temp_max = temp_maxs[0] if temp_maxs and temp_maxs[0] is not None else None
+        temp_min = temp_mins[0] if temp_mins and temp_mins[0] is not None else None
+        window = self._wearing_window(current, hourly)
 
         weather = WeatherData(
             temperature=current.get("temperature_2m", 0),
@@ -320,16 +342,51 @@ class WeatherService:
             is_day=bool(current.get("is_day", 1)),
             uv_index=current.get("uv_index", 0),
             timestamp=datetime.utcnow(),
+            temp_min=temp_min,
+            temp_max=temp_max,
+            window_min=window[0] if window else None,
+            window_max=window[1] if window else None,
         )
 
         await self._cache_set(latitude, longitude, weather)
 
         logger.info(
             f"Weather fetched for ({latitude}, {longitude}): "
-            f"{weather.temperature}°C, {weather.condition}"
+            f"{weather.temperature}°C (day {weather.temp_min}-{weather.temp_max}°C, "
+            f"ahead {weather.window_min}-{weather.window_max}°C), {weather.condition}"
         )
 
         return weather
+
+    @staticmethod
+    def _wearing_window(current: dict, hourly: dict) -> tuple[float, float] | None:
+        current_time = current.get("time")
+        times = hourly.get("time") or []
+        temps = hourly.get("temperature_2m") or []
+        if not current_time or not times or not temps:
+            return None
+        try:
+            now_local = datetime.fromisoformat(current_time)
+        except ValueError:
+            return None
+
+        window: list[float] = []
+        for slot_time, temp in zip(times, temps, strict=False):
+            if temp is None:
+                continue
+            try:
+                slot = datetime.fromisoformat(slot_time)
+            except ValueError:
+                continue
+            if slot.date() == now_local.date() and slot.hour <= WEARING_DAY_END_HOUR:
+                window.append(temp)
+
+        if len(window) < MIN_WINDOW_HOURS:
+            return None
+        current_temp = current.get("temperature_2m")
+        if current_temp is not None:
+            window.append(current_temp)
+        return min(window), max(window)
 
     async def get_daily_forecast(
         self, latitude: float, longitude: float, days: int = 7
@@ -359,6 +416,9 @@ class WeatherService:
                 "temperature_2m_min",
                 "precipitation_probability_max",
                 "weather_code",
+                "relative_humidity_2m_mean",
+                "wind_speed_10m_max",
+                "uv_index_max",
             ],
             "forecast_days": min(days, 16),
             "timezone": "auto",
@@ -379,6 +439,9 @@ class WeatherService:
         temp_mins = daily.get("temperature_2m_min", [])
         precip_probs = daily.get("precipitation_probability_max", [])
         weather_codes = daily.get("weather_code", [])
+        humidities = daily.get("relative_humidity_2m_mean", [])
+        wind_speeds = daily.get("wind_speed_10m_max", [])
+        uv_indexes = daily.get("uv_index_max", [])
 
         forecasts = []
         for i, date in enumerate(dates):
@@ -391,6 +454,9 @@ class WeatherService:
                     precipitation_chance=precip_probs[i] if i < len(precip_probs) else 0,
                     condition=self._interpret_weather_code(code),
                     condition_code=code,
+                    humidity=humidities[i] if i < len(humidities) else None,
+                    wind_speed=wind_speeds[i] if i < len(wind_speeds) else None,
+                    uv_index=uv_indexes[i] if i < len(uv_indexes) else None,
                 )
             )
 
@@ -427,15 +493,19 @@ class WeatherService:
         return WeatherData(
             temperature=round(avg_temp, 1),
             feels_like=round(feels_like, 1),
-            humidity=50,  # Not available in daily forecast, use typical value
+            humidity=tomorrow.humidity if tomorrow.humidity is not None else 50,
             precipitation_chance=tomorrow.precipitation_chance,
-            precipitation_mm=0,  # Not available for forecast
-            wind_speed=0,  # Not available in daily forecast
+            precipitation_mm=0,  # Open-Meteo's daily precipitation_sum is a different quantity than the mm-in-next-hour field this dataclass models
+            wind_speed=tomorrow.wind_speed if tomorrow.wind_speed is not None else 0,
             condition=tomorrow.condition,
             condition_code=tomorrow.condition_code,
             is_day=True,  # Assume daytime for outfit recommendations
-            uv_index=0,  # Not available in daily forecast
+            uv_index=tomorrow.uv_index if tomorrow.uv_index is not None else 0,
             timestamp=datetime.utcnow(),
+            temp_min=tomorrow.temp_min,
+            temp_max=tomorrow.temp_max,
+            window_min=tomorrow.temp_min,
+            window_max=tomorrow.temp_max,
         )
 
     async def check_health(self) -> dict:

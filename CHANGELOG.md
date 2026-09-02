@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.8.1...wardrowbe-v1.8.2) (2026-08-22)
+
+
+### 👷 CI/CD
+
+* build arm64 images natively instead of under QEMU ([4aae3a0](https://github.com/Anyesh/wardrowbe/commit/4aae3a0ff95b50797ce270b2e1af0f66fb4b118a))
+
+## [1.8.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.8.0...wardrowbe-v1.8.1) (2026-08-22)
+
+
+### 🐛 Bug Fixes
+
+* **images:** honor EXIF orientation on upload ([#172](https://github.com/Anyesh/wardrowbe/issues/172)) ([68d730a](https://github.com/Anyesh/wardrowbe/commit/68d730a8d2ee846b65190a1898bb7927ec6b2c56))
+* **users:** reject unknown fields on PATCH /users/me ([#168](https://github.com/Anyesh/wardrowbe/issues/168)) ([69bb1f6](https://github.com/Anyesh/wardrowbe/commit/69bb1f663415f126ab470bcffce7be54935d94d7))
+* **wardrobe:** split bulk upload chunks that exceed the server's configured limit ([#175](https://github.com/Anyesh/wardrowbe/issues/175)) ([ec0fb17](https://github.com/Anyesh/wardrowbe/commit/ec0fb17f9cd13a7317d5ed52f4a7a24325e7684c))
+* **wardrobe:** stuck upload queue records now durable and cancellable ([#163](https://github.com/Anyesh/wardrowbe/issues/163)) ([b89bc4f](https://github.com/Anyesh/wardrowbe/commit/b89bc4f35c19fa20731b274ba41a32784bd447f6))
+
+
+### 🔧 Maintenance
+
+* pin rembg to 2.0.81 ([d9ca598](https://github.com/Anyesh/wardrowbe/commit/d9ca5982183a446e33dd41c10be356567fbc2fc3))
+
 ## [1.8.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.7.0...wardrowbe-v1.8.0) (2026-08-15)
 
 

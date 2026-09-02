@@ -23,7 +23,7 @@ from app.models.outfit import (
 from app.models.preference import UserPreference
 from app.models.user import User
 from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
-from app.services.item_scorer import get_season, score_items
+from app.services.item_scorer import get_season, score_items, scoring_temp_range
 from app.services.suggestion_cache import pop_suggestion, push_suggestions
 from app.services.weather_service import (
     GeocodingServiceError,
@@ -61,6 +61,17 @@ def get_time_of_day(user: User) -> str:
         return "evening"
     else:
         return "night"
+
+
+def format_temp_range_text(weather: WeatherData) -> str:
+    temp_range = scoring_temp_range(weather)
+    if temp_range is None:
+        return ""
+    low, high = temp_range
+    return (
+        f"- Temperature ahead ranges from {low:.1f}°C to {high:.1f}°C, a large swing, "
+        "favour adaptable layers that work at both ends."
+    )
 
 
 @dataclass
@@ -807,6 +818,7 @@ class RecommendationService:
             feels_like=weather.feels_like,
             condition=weather.condition,
             precipitation_chance=weather.precipitation_chance,
+            temp_range_text=format_temp_range_text(weather),
             preferences_text=preferences_text,
             items_text=items_text,
             mandatory_items_section=mandatory_items_section,

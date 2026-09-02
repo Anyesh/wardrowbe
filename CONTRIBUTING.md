@@ -19,6 +19,13 @@ Before creating a new issue:
    - Environment details (OS, Docker version, etc.)
    - Screenshots if applicable
 
+### Reopening a Closed Issue
+
+If an issue was closed but the problem isn't actually fixed for you, comment `/reopen` on it. If
+you're the original reporter, or if the issue was closed with a resolution (not marked
+wontfix/duplicate), it reopens automatically. Otherwise it gets flagged for a maintainer to take a
+look.
+
 ### Pull Requests
 
 1. **Fork the repository** and create your branch from `main`

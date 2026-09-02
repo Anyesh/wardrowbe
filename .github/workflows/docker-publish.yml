@@ -19,9 +19,15 @@ on:
         default: ""
 
 jobs:
-  publish:
-    name: Publish ${{ matrix.service }}
-    runs-on: ubuntu-latest
+  # Each (service, platform) pair builds natively on a runner of that
+  # architecture and pushes a single-platform image by digest. This avoids
+  # QEMU-emulated arm64 builds, which crash native npm/esbuild binaries with
+  # SIGILL under emulation (see incident 2026-08-22: frontend arm64 build
+  # hung for 6h under QEMU and was force-cancelled, leaving frontend stuck on
+  # the previous version while backend published fine).
+  build:
+    name: Build ${{ matrix.service }} (${{ matrix.platform }})
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
@@ -29,19 +35,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        service: [backend, frontend]
+        platform: [linux/amd64, linux/arm64]
         include:
           - service: backend
             context: ./backend
-            tag_prefix: backend
           - service: frontend
             context: ./frontend
-            tag_prefix: frontend
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -52,6 +55,74 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GHCR rejects capitalized owners (e.g. "Anyesh"), so the image name
+      # must be lowercased before use, same as metadata-action does below.
+      - name: Set lowercase image name
+        id: image
+        run: echo "name=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/wardrowbe" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ steps.image.outputs.name }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.service }}-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}-${{ matrix.platform }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.service }}-${{ strategy.job-index }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Merges each service's per-platform digests into one multi-arch manifest
+  # list and applies the real tag set, mirroring the tags/flavor previously
+  # computed inline in the single-job build.
+  merge:
+    name: Publish ${{ matrix.service }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, frontend]
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-${{ matrix.service }}-*
+          merge-multiple: true
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Set lowercase image name
+        id: image
+        run: echo "name=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/wardrowbe" >> "$GITHUB_OUTPUT"
 
       - name: Resolve release version
         if: github.event_name == 'release' || inputs.version != ''
@@ -76,22 +147,26 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/wardrowbe
+          images: ${{ steps.image.outputs.name }}
           flavor: |
             latest=true
-            prefix=${{ matrix.tag_prefix }}-,onlatest=true
+            prefix=${{ matrix.service }}-,onlatest=true
           tags: |
             type=sha,format=long
             type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }}
             type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v7
-        with:
-          context: ${{ matrix.context }}
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+        run: |
+          # shellcheck disable=SC2046 # word splitting is intentional: expands to multiple -t flags / digest args
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf "$IMAGE@sha256:%s " *)
+
+      - name: Inspect image
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+        run: docker buildx imagetools inspect "$IMAGE:${{ steps.meta.outputs.version }}"

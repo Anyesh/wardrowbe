@@ -5,7 +5,7 @@ from io import BytesIO
 from pathlib import Path
 
 import imagehash
-from PIL import Image
+from PIL import Image, ImageOps
 
 from app.config import get_settings
 from app.services import background_removal
@@ -111,7 +111,11 @@ class ImageService:
         else:
             image = Image.open(BytesIO(image_data))
 
-        # Generate base filename
+        # iPhones (and some Android cameras) store a raw sensor image plus an EXIF
+        # orientation tag instead of rotating pixels, so portrait photos must be
+        # transposed here or they end up sideways in storage and in AI tagging.
+        image = ImageOps.exif_transpose(image)
+
         base_filename = self._generate_filename(".jpg")
         base_name = base_filename.rsplit(".", 1)[0]
 
@@ -195,6 +199,8 @@ class ImageService:
             image = self._convert_heic(image_data)
         else:
             image = Image.open(BytesIO(image_data))
+
+        image = ImageOps.exif_transpose(image)
 
         # Convert to RGB if needed for consistent hashing
         if image.mode != "RGB":

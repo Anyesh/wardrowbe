@@ -928,6 +928,40 @@ function uploadBulkItemsChunk(
   });
 }
 
+const BULK_LIMIT_ERROR = /^Maximum (\d+) images per bulk upload$/;
+
+// Same server-side cap upload-manager.ts's durable path works around: a
+// chunk sized for the default 20 gets the whole request rejected (not just
+// the excess files) on an instance where an admin lowered
+// MAX_BULK_UPLOAD_COUNT. Split and retry within the limit the server just
+// reported instead of failing every file in the chunk.
+export async function uploadFilesWithinServerLimit(
+  files: File[],
+  skipAi: boolean,
+  token: string | null | undefined,
+  onProgress: (percent: number) => void
+): Promise<BulkUploadResponse> {
+  try {
+    return await uploadBulkItemsChunk(files, skipAi, token, onProgress);
+  } catch (error) {
+    const match =
+      error instanceof ApiError && error.status === 400
+        ? error.message.match(BULK_LIMIT_ERROR)
+        : null;
+    const limit = match ? Number(match[1]) : null;
+    if (limit && limit > 0 && limit < files.length) {
+      const responses: BulkUploadResponse[] = [];
+      for (let i = 0; i < files.length; i += limit) {
+        responses.push(
+          await uploadFilesWithinServerLimit(files.slice(i, i + limit), skipAi, token, onProgress)
+        );
+      }
+      return mergeBulkUploadResponses(responses);
+    }
+    throw error;
+  }
+}
+
 export function mergeBulkUploadResponses(responses: BulkUploadResponse[]): BulkUploadResponse {
   return responses.reduce<BulkUploadResponse>(
     (acc, response) => ({
@@ -1009,7 +1043,7 @@ export function useBulkCreateItems() {
         for (let i = 0; i < chunks.length; i++) {
           const chunkFiles = chunks[i];
           try {
-            const response = await uploadBulkItemsChunk(chunkFiles, skipAi, token, (chunkPercent) => {
+            const response = await uploadFilesWithinServerLimit(chunkFiles, skipAi, token, (chunkPercent) => {
               const overall = ((i + chunkPercent / 100) / chunks.length) * 100;
               setUploadProgress(Math.round(overall));
             });

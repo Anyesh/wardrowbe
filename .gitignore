@@ -55,10 +55,13 @@ k8s/*.secret.yaml
 # Local development
 *.local
 .claude/
+.serena/
 CLAUDE.md
 deploy.sh
 screenshots/
 .scope.md
+.mcp.json
 testing/
 .playwright-mcp
 *.review.yml
+*-test.yml
