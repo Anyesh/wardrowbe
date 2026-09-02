@@ -580,6 +580,7 @@ async def bulk_analyze_items(
     for item in to_queue:
         item.status = ItemStatus.processing
         item.ai_started_at = None
+        item.processing_kind = None
     await db.commit()
 
     # Unified enqueue worklist: regular to_queue items get an arq-assigned job
@@ -1251,6 +1252,7 @@ async def trigger_ai_analysis(
     try:
         item.status = ItemStatus.processing
         item.ai_started_at = None
+        item.processing_kind = None
         await db.commit()
 
         redis = await create_pool(get_redis_settings())
