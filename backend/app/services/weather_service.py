@@ -10,6 +10,9 @@ from app.config import get_settings
 from app.utils.redis_lock import get_redis
 
 logger = logging.getLogger(__name__)
+
+WEARING_DAY_END_HOUR = 21
+MIN_WINDOW_HOURS = 2
 settings = get_settings()
 
 
@@ -28,6 +31,11 @@ class WeatherData:
     timestamp: datetime
     temp_min: float | None = None  # Today's forecast low, Celsius
     temp_max: float | None = None  # Today's forecast high, Celsius
+    # Range over the remaining wearing window (current hour through WEARING_DAY_END_HOUR local,
+    # or the whole day for a day-ahead forecast). None when fewer than MIN_WINDOW_HOURS remain,
+    # so that late-evening requests score against the current reading only.
+    window_min: float | None = None
+    window_max: float | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -44,6 +52,8 @@ class WeatherData:
             "timestamp": self.timestamp.isoformat(),
             "temp_min": self.temp_min,
             "temp_max": self.temp_max,
+            "window_min": self.window_min,
+            "window_max": self.window_max,
         }
 
 
@@ -289,9 +299,9 @@ class WeatherService:
                 "is_day",
                 "uv_index",
             ],
-            "hourly": ["precipitation_probability"],
+            "hourly": ["precipitation_probability", "temperature_2m"],
             "daily": ["temperature_2m_max", "temperature_2m_min"],
-            "forecast_hours": 1,
+            "forecast_hours": 24,
             "forecast_days": 1,
             "timezone": "auto",
         }
@@ -318,6 +328,7 @@ class WeatherService:
         temp_mins = daily.get("temperature_2m_min") or []
         temp_max = temp_maxs[0] if temp_maxs and temp_maxs[0] is not None else None
         temp_min = temp_mins[0] if temp_mins and temp_mins[0] is not None else None
+        window = self._wearing_window(current, hourly)
 
         weather = WeatherData(
             temperature=current.get("temperature_2m", 0),
@@ -333,17 +344,49 @@ class WeatherService:
             timestamp=datetime.utcnow(),
             temp_min=temp_min,
             temp_max=temp_max,
+            window_min=window[0] if window else None,
+            window_max=window[1] if window else None,
         )
 
         await self._cache_set(latitude, longitude, weather)
 
         logger.info(
             f"Weather fetched for ({latitude}, {longitude}): "
-            f"{weather.temperature}°C ({weather.temp_min}-{weather.temp_max}°C range), "
-            f"{weather.condition}"
+            f"{weather.temperature}°C (day {weather.temp_min}-{weather.temp_max}°C, "
+            f"ahead {weather.window_min}-{weather.window_max}°C), {weather.condition}"
         )
 
         return weather
+
+    @staticmethod
+    def _wearing_window(current: dict, hourly: dict) -> tuple[float, float] | None:
+        current_time = current.get("time")
+        times = hourly.get("time") or []
+        temps = hourly.get("temperature_2m") or []
+        if not current_time or not times or not temps:
+            return None
+        try:
+            now_local = datetime.fromisoformat(current_time)
+        except ValueError:
+            return None
+
+        window: list[float] = []
+        for slot_time, temp in zip(times, temps, strict=False):
+            if temp is None:
+                continue
+            try:
+                slot = datetime.fromisoformat(slot_time)
+            except ValueError:
+                continue
+            if slot.date() == now_local.date() and slot.hour <= WEARING_DAY_END_HOUR:
+                window.append(temp)
+
+        if len(window) < MIN_WINDOW_HOURS:
+            return None
+        current_temp = current.get("temperature_2m")
+        if current_temp is not None:
+            window.append(current_temp)
+        return min(window), max(window)
 
     async def get_daily_forecast(
         self, latitude: float, longitude: float, days: int = 7
@@ -461,6 +504,8 @@ class WeatherService:
             timestamp=datetime.utcnow(),
             temp_min=tomorrow.temp_min,
             temp_max=tomorrow.temp_max,
+            window_min=tomorrow.temp_min,
+            window_max=tomorrow.temp_max,
         )
 
     async def check_health(self) -> dict:

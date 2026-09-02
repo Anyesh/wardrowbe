@@ -78,17 +78,20 @@ TEMP_RANGE_MIN_SWING = 8.0
 REMOVABLE_LAYER_HOT_FLOOR = 0.6
 
 REMOVABLE_LAYER_TYPES = {"jacket", "coat", "blazer", "hoodie", "cardigan", "vest", "outerwear"}
-WARM_LAYER_TYPES = {
-    "jacket",
-    "coat",
-    "blazer",
-    "hoodie",
-    "cardigan",
-    "vest",
-    "outerwear",
-    "sweater",
-}
+RAIN_LAYER_TYPES = {"jacket", "coat", "hoodie", "outerwear"}
+WARM_LAYER_TYPES = REMOVABLE_LAYER_TYPES | {"sweater"}
+HEAVY_LAYER_TYPES = {"coat"}
 HEAVY_LAYER_MATERIALS = {"wool", "fleece", "down", "shearling"}
+HEAVY_LAYER_SUBTYPES = {
+    "puffer",
+    "parka",
+    "peacoat",
+    "overcoat",
+    "duffle",
+    "fur",
+    "shearling",
+    "down",
+}
 
 
 @dataclass
@@ -132,6 +135,22 @@ def _temp_bucket_score(
         return 1.0
 
 
+def _is_heavy_layer(item_type: str, material: str, subtype: str) -> bool:
+    return (
+        item_type in HEAVY_LAYER_TYPES
+        or material in HEAVY_LAYER_MATERIALS
+        or subtype in HEAVY_LAYER_SUBTYPES
+    )
+
+
+def scoring_temp_range(weather: WeatherData) -> tuple[float, float] | None:
+    if weather.window_min is None or weather.window_max is None:
+        return None
+    if (weather.window_max - weather.window_min) < TEMP_RANGE_MIN_SWING:
+        return None
+    return weather.window_min, weather.window_max
+
+
 def _weather_score(
     item: ClothingItem,
     weather: WeatherData,
@@ -154,23 +173,19 @@ def _weather_score(
 
     item_type = (item.type or "").lower()
     material = (item.material or "").lower()
+    subtype = (item.subtype or "").lower()
     seasons = item.season or []
 
-    use_range = (
-        weather.temp_min is not None
-        and weather.temp_max is not None
-        and (weather.temp_max - weather.temp_min) >= TEMP_RANGE_MIN_SWING
-        and weather.is_day
-    )
+    temp_range = scoring_temp_range(weather)
 
-    if use_range:
+    if temp_range is not None:
         low = _temp_bucket_score(
-            item_type, material, seasons, weather.temp_min, cold_threshold, hot_threshold
+            item_type, material, seasons, temp_range[0], cold_threshold, hot_threshold
         )
         high = _temp_bucket_score(
-            item_type, material, seasons, weather.temp_max, cold_threshold, hot_threshold
+            item_type, material, seasons, temp_range[1], cold_threshold, hot_threshold
         )
-        if item_type in REMOVABLE_LAYER_TYPES and material not in HEAVY_LAYER_MATERIALS:
+        if item_type in REMOVABLE_LAYER_TYPES and not _is_heavy_layer(item_type, material, subtype):
             high = max(high, REMOVABLE_LAYER_HOT_FLOOR)
         score = (low + high) / 2
     else:
@@ -178,7 +193,7 @@ def _weather_score(
             item_type, material, seasons, weather.temperature, cold_threshold, hot_threshold
         )
 
-    if weather.precipitation_chance > 50 and item_type in REMOVABLE_LAYER_TYPES:
+    if weather.precipitation_chance > 50 and item_type in RAIN_LAYER_TYPES:
         score = min(1.0, score + 0.1)
 
     return score

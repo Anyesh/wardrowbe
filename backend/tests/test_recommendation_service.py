@@ -140,7 +140,9 @@ class TestPromptTemplate:
             assert tod in formatted
 
 
-def _weather(temp=20, temp_min=None, temp_max=None, is_day=True) -> WeatherData:
+def _weather(
+    temp=20, temp_min=None, temp_max=None, is_day=True, window_min=None, window_max=None
+) -> WeatherData:
     return WeatherData(
         temperature=temp,
         feels_like=temp,
@@ -155,6 +157,8 @@ def _weather(temp=20, temp_min=None, temp_max=None, is_day=True) -> WeatherData:
         timestamp=datetime(2026, 3, 8, 12, 0),
         temp_min=temp_min,
         temp_max=temp_max,
+        window_min=window_min,
+        window_max=window_max,
     )
 
 
@@ -175,7 +179,7 @@ class TestPromptTemplateTempRange:
             items_text="[1] shirt",
             mandatory_items_section="",
         )
-        assert "Day range" not in formatted
+        assert "Temperature ahead" not in formatted
 
     def test_non_empty_appears_in_output(self):
         formatted = RECOMMENDATION_PROMPT.format(
@@ -185,48 +189,47 @@ class TestPromptTemplateTempRange:
             feels_like=20,
             condition="clear",
             precipitation_chance=10,
-            temp_range_text="- Day range: 5.0°C to 30.0°C (currently 12.0°C), a large swing.",
+            temp_range_text="- Temperature ahead ranges from 5.0°C to 30.0°C, a large swing.",
             preferences_text="",
             items_text="[1] shirt",
             mandatory_items_section="",
         )
-        assert "Day range: 5.0°C to 30.0°C" in formatted
+        assert "ranges from 5.0°C to 30.0°C" in formatted
 
 
 class TestTempRangeText:
     def test_empty_when_min_missing(self):
-        weather = _weather(temp=12, temp_min=None, temp_max=30)
+        weather = _weather(temp=12, window_min=None, window_max=30)
         assert format_temp_range_text(weather) == ""
 
     def test_empty_when_max_missing(self):
-        weather = _weather(temp=12, temp_min=5, temp_max=None)
+        weather = _weather(temp=12, window_min=5, window_max=None)
         assert format_temp_range_text(weather) == ""
 
     def test_empty_below_swing_threshold(self):
-        weather = _weather(temp=18, temp_min=15, temp_max=20)
+        weather = _weather(temp=18, window_min=15, window_max=20)
         assert format_temp_range_text(weather) == ""
 
-    def test_empty_at_night(self):
-        weather = _weather(temp=12, temp_min=5, temp_max=30, is_day=False)
-        assert format_temp_range_text(weather) == ""
-
-    def test_renders_above_threshold(self):
+    def test_daily_range_without_window_is_empty(self):
         weather = _weather(temp=12, temp_min=5, temp_max=30)
+        assert format_temp_range_text(weather) == ""
+
+    def test_renders_regardless_of_is_day(self):
+        weather = _weather(temp=12, window_min=5, window_max=30, is_day=False)
         text = format_temp_range_text(weather)
         assert "5.0°C" in text
         assert "30.0°C" in text
-        assert "12.0°C" in text
+        assert "currently" not in text
 
     def test_degenerate_equal_bounds(self):
-        weather = _weather(temp=20, temp_min=20, temp_max=20)
+        weather = _weather(temp=20, window_min=20, window_max=20)
         assert format_temp_range_text(weather) == ""
 
     def test_float_rounding(self):
-        weather = _weather(temp=12.34, temp_min=5.06, temp_max=30.049)
+        weather = _weather(temp=12.34, window_min=5.06, window_max=30.049)
         text = format_temp_range_text(weather)
         assert "5.1°C" in text
         assert "30.0°C" in text
-        assert "12.3°C" in text
 
 
 class TestSuggestRequestTimeOfDay:

@@ -23,7 +23,7 @@ from app.models.outfit import (
 from app.models.preference import UserPreference
 from app.models.user import User
 from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
-from app.services.item_scorer import TEMP_RANGE_MIN_SWING, get_season, score_items
+from app.services.item_scorer import get_season, score_items, scoring_temp_range
 from app.services.suggestion_cache import pop_suggestion, push_suggestions
 from app.services.weather_service import (
     GeocodingServiceError,
@@ -64,15 +64,12 @@ def get_time_of_day(user: User) -> str:
 
 
 def format_temp_range_text(weather: WeatherData) -> str:
-    if weather.temp_min is None or weather.temp_max is None:
+    temp_range = scoring_temp_range(weather)
+    if temp_range is None:
         return ""
-    if (weather.temp_max - weather.temp_min) < TEMP_RANGE_MIN_SWING:
-        return ""
-    if not weather.is_day:
-        return ""
+    low, high = temp_range
     return (
-        f"- Day range: {weather.temp_min:.1f}°C to {weather.temp_max:.1f}°C "
-        f"(currently {weather.temperature:.1f}°C), a large swing, "
+        f"- Temperature ahead ranges from {low:.1f}°C to {high:.1f}°C, a large swing, "
         "favour adaptable layers that work at both ends."
     )
 

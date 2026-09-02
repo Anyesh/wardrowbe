@@ -15,6 +15,7 @@ from app.services.item_scorer import (
     _weather_score,
     get_season,
     score_items,
+    scoring_temp_range,
 )
 from app.services.weather_service import WeatherData
 
@@ -24,6 +25,7 @@ def _item(**kwargs) -> ClothingItem:
         "id": uuid4(),
         "user_id": uuid4(),
         "type": "shirt",
+        "subtype": None,
         "image_path": "test.jpg",
         "primary_color": None,
         "colors": [],
@@ -40,7 +42,15 @@ def _item(**kwargs) -> ClothingItem:
     return ClothingItem(**defaults)
 
 
-def _weather(temp=20, precipitation=0, temp_min=None, temp_max=None, is_day=True) -> WeatherData:
+def _weather(
+    temp=20,
+    precipitation=0,
+    temp_min=None,
+    temp_max=None,
+    is_day=True,
+    window_min=None,
+    window_max=None,
+) -> WeatherData:
     return WeatherData(
         temperature=temp,
         feels_like=temp,
@@ -55,6 +65,8 @@ def _weather(temp=20, precipitation=0, temp_min=None, temp_max=None, is_day=True
         timestamp=datetime(2026, 3, 8, 12, 0),
         temp_min=temp_min,
         temp_max=temp_max,
+        window_min=window_min,
+        window_max=window_max,
     )
 
 
@@ -121,26 +133,31 @@ class TestWeatherScoreRange:
 
     def test_range_ignored_when_swing_small(self):
         item = _item(type="sweater", material="wool")
-        weather = _weather(temp=22, temp_min=18, temp_max=24)
+        weather = _weather(temp=22, window_min=18, window_max=24)
         assert _weather_score(item, weather, None) == 1.0
 
-    def test_range_ignored_at_night(self):
-        item = _item(type="shirt", material="cotton")
-        weather = _weather(temp=12, temp_min=5, temp_max=30, is_day=False)
+    def test_daily_range_alone_does_not_trigger_blend(self):
+        item = _item(type="sweater", material="wool")
+        weather = _weather(temp=12, temp_min=5, temp_max=30)
         assert _weather_score(item, weather, None) == 1.0
+
+    def test_window_applies_regardless_of_is_day(self):
+        item = _item(type="sweater", material="wool")
+        weather = _weather(temp=5, window_min=5, window_max=30, is_day=False)
+        assert _weather_score(item, weather, None) == pytest.approx(0.525)
 
     def test_heavy_sweater_penalized_on_big_swing(self):
         item = _item(type="sweater", material="wool")
-        weather = _weather(temp=12, temp_min=5, temp_max=30)
+        weather = _weather(temp=12, window_min=5, window_max=30)
         assert _weather_score(item, weather, None) == pytest.approx(0.525)
 
     def test_wool_coat_penalized_on_big_swing(self):
         item = _item(type="coat", material="wool")
-        weather = _weather(temp=12, temp_min=5, temp_max=30)
+        weather = _weather(temp=12, window_min=5, window_max=30)
         assert _weather_score(item, weather, None) == pytest.approx(0.525)
 
     def test_light_jacket_beats_heavy_coat(self):
-        weather = _weather(temp=12, temp_min=5, temp_max=30)
+        weather = _weather(temp=12, window_min=5, window_max=30)
         jacket = _weather_score(_item(type="jacket", material="nylon"), weather, None)
         coat = _weather_score(_item(type="coat", material="wool"), weather, None)
         assert jacket == pytest.approx(0.80)
@@ -148,11 +165,11 @@ class TestWeatherScoreRange:
 
     def test_shorts_not_near_zero_on_hot_afternoon(self):
         item = _item(type="shorts")
-        weather = _weather(temp=12, temp_min=5, temp_max=30)
+        weather = _weather(temp=12, window_min=5, window_max=30)
         assert _weather_score(item, weather, None) == pytest.approx(0.425)
 
     def test_adaptable_shirt_outranks_both_extremes(self):
-        weather = _weather(temp=12, temp_min=5, temp_max=30)
+        weather = _weather(temp=12, window_min=5, window_max=30)
         shirt = _weather_score(_item(type="shirt", material="cotton"), weather, None)
         sweater = _weather_score(_item(type="sweater", material="wool"), weather, None)
         shorts = _weather_score(_item(type="shorts"), weather, None)
@@ -162,16 +179,60 @@ class TestWeatherScoreRange:
 
     def test_rain_boost_still_applies_in_range_mode(self):
         item = _item(type="jacket", material="nylon")
-        weather = _weather(temp=12, temp_min=5, temp_max=30, precipitation=60)
+        weather = _weather(temp=12, window_min=5, window_max=30, precipitation=60)
         boosted = _weather_score(item, weather, None)
-        no_rain = _weather_score(item, _weather(temp=12, temp_min=5, temp_max=30), None)
+        no_rain = _weather_score(item, _weather(temp=12, window_min=5, window_max=30), None)
         assert boosted == pytest.approx(min(1.0, no_rain + 0.1))
 
     def test_threshold_preferences_feed_both_bucket_evaluations(self):
         item = _item(type="shirt")
         prefs = _prefs(temperature_sensitivity="high")
-        weather = _weather(temp=17, temp_min=13, temp_max=21)
+        weather = _weather(temp=17, window_min=13, window_max=21)
         assert _weather_score(item, weather, prefs) == pytest.approx(0.75)
+
+
+class TestWeatherScoreHeavyLayers:
+    def _swing(self, **kwargs):
+        weather = _weather(temp=12, window_min=5, window_max=30)
+        return _weather_score(_item(**kwargs), weather, None)
+
+    def test_puffer_with_unknown_material_is_heavy(self):
+        assert self._swing(type="jacket", subtype="puffer") == pytest.approx(0.525)
+
+    def test_parka_with_light_shell_material_is_heavy(self):
+        assert self._swing(type="jacket", subtype="parka", material="nylon") == pytest.approx(0.525)
+
+    def test_coat_with_unknown_material_is_heavy(self):
+        assert self._swing(type="coat") == pytest.approx(0.525)
+
+    def test_anorak_with_unknown_material_gets_removable_floor(self):
+        assert self._swing(type="jacket", subtype="anorak") == pytest.approx(0.80)
+
+    def test_jacket_with_unknown_material_and_subtype_gets_removable_floor(self):
+        assert self._swing(type="jacket") == pytest.approx(0.80)
+
+    def test_subtype_match_is_case_insensitive(self):
+        assert self._swing(type="jacket", subtype="Puffer") == pytest.approx(0.525)
+
+    def test_light_jacket_outranks_null_material_puffer(self):
+        assert self._swing(type="jacket", subtype="windbreaker") > self._swing(
+            type="jacket", subtype="puffer"
+        )
+
+
+class TestScoringTempRange:
+    def test_none_without_window(self):
+        assert scoring_temp_range(_weather(temp=12, temp_min=5, temp_max=30)) is None
+
+    def test_none_below_swing_threshold(self):
+        assert scoring_temp_range(_weather(temp=18, window_min=15, window_max=20)) is None
+
+    def test_none_when_one_bound_missing(self):
+        assert scoring_temp_range(_weather(window_min=5)) is None
+        assert scoring_temp_range(_weather(window_max=30)) is None
+
+    def test_returns_bounds_at_threshold(self):
+        assert scoring_temp_range(_weather(window_min=10, window_max=18)) == (10, 18)
 
 
 class TestWeatherScoreRealItemTypes:
@@ -187,10 +248,25 @@ class TestWeatherScoreRealItemTypes:
         item = _item(type="jacket")
         assert _weather_score(item, _weather(temp=18, precipitation=60), None) == 1.0
 
-    def test_cardigan_and_vest_treated_as_removable(self):
+    def test_cardigan_and_vest_get_removable_floor_but_no_rain_boost(self):
+        swing = _weather(temp=12, window_min=5, window_max=30)
+        rain = _weather(temp=30, precipitation=60)
         for item_type in ("cardigan", "vest"):
+            assert _weather_score(_item(type=item_type), swing, None) == pytest.approx(0.80)
+            assert _weather_score(_item(type=item_type), rain, None) == pytest.approx(0.05)
+
+    def test_rain_boost_fires_for_coat_and_hoodie(self):
+        for item_type in ("coat", "hoodie"):
             item = _item(type=item_type)
-            assert _weather_score(item, _weather(temp=18, precipitation=60), None) == 1.0
+            assert _weather_score(item, _weather(temp=30, precipitation=60), None) == pytest.approx(
+                0.15
+            )
+
+    def test_blazer_gets_no_rain_boost(self):
+        item = _item(type="blazer")
+        assert _weather_score(item, _weather(temp=30, precipitation=60), None) == pytest.approx(
+            0.05
+        )
 
     def test_legacy_outerwear_type_still_honored(self):
         item = _item(type="outerwear")
@@ -424,7 +500,7 @@ class TestScoreItems:
         filler = [_item() for _ in range(MIN_ITEMS_FOR_SCORING - 2)]
         result = score_items(
             items=[shirt, sweater] + filler,
-            weather=_weather(temp=12, temp_min=5, temp_max=30),
+            weather=_weather(temp=12, window_min=5, window_max=30),
             occasion="casual",
             preferences=None,
             user_today=date(2026, 3, 8),
