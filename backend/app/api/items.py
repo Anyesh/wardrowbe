@@ -1414,6 +1414,19 @@ async def remove_item_background(
             detail="Item has no image",
         )
 
+    if item.status == ItemStatus.processing and item.ai_job_id:
+        # A queued or running job (tagging or another background-removal run)
+        # owns image_path/medium_path/thumbnail_path - racing it here would
+        # stomp whichever write lands last.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Item has a background job in progress",
+        )
+
+    recovering_from_error = (
+        item.status == ItemStatus.error and item.processing_kind == "background_removal"
+    )
+
     hex_color = request.bg_color.lstrip("#")
     bg_color = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
@@ -1421,8 +1434,21 @@ async def remove_item_background(
         image_service = ImageService()
         result = await asyncio.to_thread(image_service.remove_background, item.image_path, bg_color)
         item.original_image_path = result["original_backup_path"]
+        if recovering_from_error:
+            item.status = ItemStatus.ready
+            item.processing_kind = None
+            item.ai_started_at = None
         await db.commit()
-        await db.refresh(item, attribute_names=["original_image_path", "updated_at"])
+        await db.refresh(
+            item,
+            attribute_names=[
+                "original_image_path",
+                "status",
+                "processing_kind",
+                "ai_started_at",
+                "updated_at",
+            ],
+        )
         return ItemResponse.model_validate(item)
     except ImportError:
         raise HTTPException(
