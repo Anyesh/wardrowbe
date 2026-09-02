@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -29,6 +30,9 @@ async def remove_item_background_job(ctx: dict, item_id: str, bg_color_hex: str)
             logger.warning(f"Item {item_id} not found for background removal job")
             return {"status": "error", "error": "Item not found"}
 
+        item.ai_started_at = datetime.now(UTC)
+        await db.commit()
+
         try:
             image_service = ImageService()
             out = await asyncio.to_thread(
@@ -36,13 +40,18 @@ async def remove_item_background_job(ctx: dict, item_id: str, bg_color_hex: str)
             )
             item.original_image_path = out["original_backup_path"]
             item.status = ItemStatus.ready
+            item.ai_started_at = None
             item.processing_kind = None
             await db.commit()
             return {"status": "success", "item_id": item_id}
         except Exception as e:
             logger.error(f"Background removal failed for item {item_id}: {e}")
+            # Kind stays "background_removal" so the grid labels and retries
+            # this as a background-removal failure, not a generic AI failure -
+            # and ai_raw_response/ai_failed_at are left untouched since this
+            # job never touched AI tagging's own failure bookkeeping.
             item.status = ItemStatus.error
-            item.processing_kind = None
+            item.ai_started_at = None
             await db.commit()
             return {"status": "error", "error": str(e)}
     finally:

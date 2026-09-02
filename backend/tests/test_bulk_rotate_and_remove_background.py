@@ -351,15 +351,51 @@ class TestRemoveItemBackgroundJob:
         assert refreshed.original_image_path is not None
         assert refreshed.original_image_path.endswith("_orig.jpg")
         assert refreshed.processing_kind is None
+        assert refreshed.ai_started_at is None
 
     @pytest.mark.asyncio
-    async def test_provider_failure_sets_error_status(self, db_session: AsyncSession, test_user):
+    async def test_sets_ai_started_at_before_provider_runs(
+        self, db_session: AsyncSession, test_user
+    ):
         item = await _make_item(
             db_session,
             test_user,
             status=ItemStatus.processing,
             ai_job_id="live-job-id",
             processing_kind="background_removal",
+        )
+        seen: dict = {}
+
+        def _remove(img):
+            # Reads the same ORM object the job mutated (shared identity map on
+            # db_session), proving the started-at write and its commit happen
+            # before the (thread-offloaded) provider call, not after.
+            seen["ai_started_at"] = item.ai_started_at
+            return Image.new("RGBA", img.size, (*BLUE, 255))
+
+        provider = MagicMock()
+        provider.remove.side_effect = _remove
+
+        with (
+            patch("app.workers.background_removal.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch("app.services.background_removal.get_provider", return_value=provider),
+        ):
+            await remove_item_background_job({}, str(item.id), "#FFFFFF")
+
+        assert seen["ai_started_at"] is not None
+
+    @pytest.mark.asyncio
+    async def test_provider_failure_sets_error_status(self, db_session: AsyncSession, test_user):
+        stale_failed_at = datetime.now(UTC) - timedelta(days=1)
+        item = await _make_item(
+            db_session,
+            test_user,
+            status=ItemStatus.processing,
+            ai_job_id="live-job-id",
+            processing_kind="background_removal",
+            ai_raw_response={"unrelated": "prior tagging failure"},
+            ai_failed_at=stale_failed_at,
         )
 
         failing_provider = MagicMock()
@@ -375,7 +411,14 @@ class TestRemoveItemBackgroundJob:
         assert result["status"] == "error"
         refreshed = await _get_item(db_session, item.id)
         assert refreshed.status == ItemStatus.error
-        assert refreshed.processing_kind is None
+        # Kind is kept on failure so the grid can label and retry it as a
+        # background-removal failure, not a generic "Analysis failed".
+        assert refreshed.processing_kind == "background_removal"
+        assert refreshed.ai_started_at is None
+        # A background-removal job never touches AI tagging's own failure
+        # bookkeeping - clobbering it here would start a bogus AI retry cooldown.
+        assert refreshed.ai_raw_response == {"unrelated": "prior tagging failure"}
+        assert refreshed.ai_failed_at == stale_failed_at
 
     @pytest.mark.asyncio
     async def test_missing_item_returns_error_without_raising(self, db_session: AsyncSession):
