@@ -773,6 +773,30 @@ export function useBulkReanalyzeItems() {
   });
 }
 
+export interface BulkCancelAnalysisResponse {
+  cancelled: number;
+  skipped: number;
+  errors: string[];
+}
+
+export function useBulkCancelAnalysis() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (params: BulkOperationParams) => {
+      if (session?.accessToken) {
+        setAccessToken(session.accessToken as string);
+      }
+      return api.post<BulkCancelAnalysisResponse>('/items/bulk/cancel-analysis', params);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['tagging-progress'] });
+    },
+  });
+}
+
 function uploadBulkItemsChunk(
   files: File[],
   skipAi: boolean,

@@ -53,6 +53,7 @@
     "analyzingCount": "{count} analyzing",
     "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} analyzing · {percent}% done",
+    "cancelAll": "Cancel all",
     "completeness": "AI completeness: {percent}%",
     "confident": "{percent}% confident",
     "dismiss": "Dismiss",
@@ -63,6 +64,8 @@
   },
   "allTypes": "All types",
   "bulkActions": {
+    "cancelAllError": "Failed to cancel analysis",
+    "cancelAllQueued": "{count, plural, one {Cancelled # in-progress analysis} other {Cancelled # in-progress analyses}}",
     "deleteError": "Failed to delete items",
     "deletePartialFailed": "{count, plural, one {Failed to delete # item} other {Failed to delete # items}}",
     "deleteSuccess": "{count, plural, one {# item deleted} other {# items deleted}}",

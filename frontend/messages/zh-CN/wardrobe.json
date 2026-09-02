@@ -53,6 +53,7 @@
     "analyzingCount": "{count} 件分析中",
     "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} 件分析中 · 已完成 {percent}%",
+    "cancelAll": "Cancel all",
     "completeness": "AI 完整度：{percent}%",
     "confident": "{percent}% 置信度",
     "dismiss": "关闭",
@@ -63,6 +64,8 @@
   },
   "allTypes": "所有类型",
   "bulkActions": {
+    "cancelAllError": "Failed to cancel analysis",
+    "cancelAllQueued": "{count, plural, one {Cancelled # in-progress analysis} other {Cancelled # in-progress analyses}}",
     "deleteError": "删除单品失败",
     "deletePartialFailed": "{count, plural, one {删除 # 件单品失败} other {删除 # 件单品失败}}",
     "deleteSuccess": "{count, plural, one {已删除 # 件单品} other {已删除 # 件单品}}",
