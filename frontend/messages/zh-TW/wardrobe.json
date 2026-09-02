@@ -72,6 +72,7 @@
     "reanalyzePartialFailed": "{count, plural, one {# 件單品排入佇列失敗} other {# 件單品排入佇列失敗}}",
     "reanalyzeQueued": "{count, plural, one {已排入 # 件單品重新分析} other {已排入 # 件單品重新分析}}",
     "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
+    "removeBackgroundAlreadyDone": "{count, plural, one {# item already had its background removed} other {# items already had their background removed}}",
     "removeBackgroundError": "Failed to queue background removal",
     "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
     "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",

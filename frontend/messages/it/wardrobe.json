@@ -72,6 +72,7 @@
     "reanalyzePartialFailed": "{count, plural, one {Impossibile mettere in coda # capo} other {Impossibile mettere in coda # capi}}",
     "reanalyzeQueued": "{count, plural, one {# capo messo in coda per la rianalisi} other {# capi messi in coda per la rianalisi}}",
     "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
+    "removeBackgroundAlreadyDone": "{count, plural, one {# item already had its background removed} other {# items already had their background removed}}",
     "removeBackgroundError": "Failed to queue background removal",
     "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
     "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",

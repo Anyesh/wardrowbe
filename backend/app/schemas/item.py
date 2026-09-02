@@ -325,6 +325,7 @@ class BulkRemoveBackgroundResponse(BaseModel):
     queued: int
     failed: int
     skipped: int = 0
+    already_done: int = 0
     errors: list[str] = Field(default_factory=list)
 
 

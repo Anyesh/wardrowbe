@@ -803,6 +803,7 @@ export interface BulkRemoveBackgroundResponse {
   queued: number;
   failed: number;
   skipped: number;
+  already_done: number;
   errors: string[];
 }
 

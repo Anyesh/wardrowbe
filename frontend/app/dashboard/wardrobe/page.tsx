@@ -571,6 +571,9 @@ export default function WardrobePage() {
       if (result.skipped > 0) {
         toast.info(t('bulkActions.removeBackgroundSkipped', { count: result.skipped }));
       }
+      if (result.already_done > 0) {
+        toast.info(t('bulkActions.removeBackgroundAlreadyDone', { count: result.already_done }));
+      }
       if (result.failed > 0) {
         toast.error(t('bulkActions.removeBackgroundPartialFailed', { count: result.failed }));
       }

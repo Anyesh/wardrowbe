@@ -213,7 +213,13 @@ class TestBulkRemoveBackground:
             )
 
         assert response.status_code == 200
-        assert response.json() == {"queued": 1, "failed": 0, "skipped": 0, "errors": []}
+        assert response.json() == {
+            "queued": 1,
+            "failed": 0,
+            "skipped": 0,
+            "already_done": 0,
+            "errors": [],
+        }
         mock_redis.enqueue_job.assert_called_once_with(
             "remove_item_background_job",
             str(item_id),
@@ -300,6 +306,107 @@ class TestBulkRemoveBackground:
         db_session.expire_all()
         refreshed = await _get_item(db_session, item_id)
         assert refreshed.status == ItemStatus.error
+
+    @pytest.mark.asyncio
+    async def test_already_done_items_are_skipped_and_reported(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        # original_image_path set means a previous run already flattened this
+        # item's background - re-running the provider over it would stomp the
+        # backup with a background-removed image of a background-removed image.
+        done = await _make_item(db_session, test_user, original_image_path="test/orig.jpg")
+        fresh = await _make_item(db_session, test_user)
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            response = await client.post(
+                "/api/v1/items/bulk/remove-background",
+                headers=auth_headers,
+                json={"item_ids": [str(done.id), str(fresh.id)]},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["queued"] == 1
+        assert body["already_done"] == 1
+        assert body["skipped"] == 0
+        mock_redis.enqueue_job.assert_called_once_with(
+            "remove_item_background_job",
+            str(fresh.id),
+            "#FFFFFF",
+            _queue_name="arq:tagging",
+        )
+
+    @pytest.mark.asyncio
+    async def test_second_identical_call_queues_nothing(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await _make_item(db_session, test_user)
+        item_id = item.id
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            first = await client.post(
+                "/api/v1/items/bulk/remove-background",
+                headers=auth_headers,
+                json={"item_ids": [str(item_id)]},
+            )
+        assert first.json()["queued"] == 1
+
+        # Simulate the job's own success write, since it never runs here.
+        db_session.expire_all()
+        refreshed = await _get_item(db_session, item_id)
+        refreshed.status = ItemStatus.ready
+        refreshed.processing_kind = None
+        refreshed.original_image_path = "test/orig.jpg"
+        await db_session.commit()
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_create_pool.return_value = mock_redis
+
+            second = await client.post(
+                "/api/v1/items/bulk/remove-background",
+                headers=auth_headers,
+                json={"item_ids": [str(item_id)]},
+            )
+
+        assert second.status_code == 200
+        body = second.json()
+        assert body["queued"] == 0
+        assert body["already_done"] == 1
+        mock_redis.enqueue_job.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_restored_item_is_queued_again(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        # original_image_path cleared (restored) means there's no backup to
+        # protect - eligible for a fresh removal run.
+        restored = await _make_item(db_session, test_user, original_image_path=None)
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "fake-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            response = await client.post(
+                "/api/v1/items/bulk/remove-background",
+                headers=auth_headers,
+                json={"item_ids": [str(restored.id)]},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["queued"] == 1
+        assert body["already_done"] == 0
+        mock_redis.enqueue_job.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_custom_bg_color_is_forwarded_to_job(

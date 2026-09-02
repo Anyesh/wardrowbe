@@ -759,7 +759,20 @@ async def bulk_remove_background_items(
         item for item in items_to_process if item.status == ItemStatus.processing and item.ai_job_id
     ]
     skipped = len(already_processing)
-    to_queue = [item for item in items_to_process if item not in already_processing]
+    # original_image_path set means a previous run already flattened this
+    # item's background - re-running the provider would stomp the existing
+    # backup with a background-removed image of a background-removed image.
+    already_done = [
+        item
+        for item in items_to_process
+        if item not in already_processing and item.original_image_path
+    ]
+    already_done_count = len(already_done)
+    to_queue = [
+        item
+        for item in items_to_process
+        if item not in already_processing and item not in already_done
+    ]
 
     for item in to_queue:
         item.status = ItemStatus.processing
@@ -810,7 +823,11 @@ async def bulk_remove_background_items(
             await redis.aclose()
 
     return BulkRemoveBackgroundResponse(
-        queued=queued, failed=failed, skipped=skipped, errors=errors
+        queued=queued,
+        failed=failed,
+        skipped=skipped,
+        already_done=already_done_count,
+        errors=errors,
     )
 
 
