@@ -53,7 +53,6 @@
     "analyzingCount": "{count} analyzing",
     "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} analyzing · {percent}% done",
-    "backgroundRemovalFailed": "Background removal failed",
     "cancelAll": "Cancel all",
     "completeness": "AI completeness: {percent}%",
     "confident": "{percent}% confident",
@@ -61,9 +60,6 @@
     "failedCount": "{count} failed",
     "queued": "Queued",
     "queuedCount": "{count} queued",
-    "removeBackgroundQueued": "Queued for background removal",
-    "removingBackground": "Removing background...",
-    "removingBackgroundElapsed": "Removing background… {elapsed}",
     "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "All types",
@@ -78,18 +74,7 @@
     "reanalyzeMany": "Queued {count} items for re-analysis. This may take a while.",
     "reanalyzePartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
     "reanalyzeQueued": "{count, plural, one {Queued # item for re-analysis} other {Queued # items for re-analysis}}",
-    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
-    "removeBackgroundAlreadyDone": "{count, plural, one {# item already had its background removed} other {# items already had their background removed}}",
-    "removeBackgroundConfirmDescription": "This will remove the background from {count, plural, one {# selected item} other {# selected items}}. The original photo is kept and can be restored per item afterward.",
-    "removeBackgroundConfirmTitle": "Remove background from {count, plural, one {# item} other {# items}}?",
-    "removeBackgroundError": "Failed to queue background removal",
-    "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
-    "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
-    "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
-    "rotateError": "Failed to rotate items",
-    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
-    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}",
-    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
   },
   "bulkDelete": {
     "confirmDescription": "This will permanently delete the selected items and their images. This action cannot be undone.",

@@ -26,7 +26,7 @@ import {
 import { AddItemDialog } from '@/components/add-item-dialog';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
-import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed } from '@/lib/hooks/use-items';
+import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed } from '@/lib/hooks/use-items';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { Item } from '@/lib/types';
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
@@ -57,7 +57,6 @@ function ItemCard({
   selected,
   onSelect,
   onRetry,
-  onRetryBackgroundRemoval,
   onCancelAnalysis,
   onClick,
   onDismissError,
@@ -68,7 +67,6 @@ function ItemCard({
   selected: boolean;
   onSelect: (id: string, checked: boolean) => void;
   onRetry?: (id: string) => void;
-  onRetryBackgroundRemoval?: (id: string) => void;
   onCancelAnalysis?: (id: string) => void;
   onClick?: () => void;
   onDismissError?: (id: string) => void;
@@ -81,7 +79,6 @@ function ItemCard({
   const colorInfo = clothingColors.find((c) => c.value === item.primary_color);
   const isProcessing = item.status === 'processing';
   const isError = item.status === 'error' && !errorDismissed;
-  const isBackgroundRemovalKind = item.processing_kind === 'background_removal';
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -137,19 +134,9 @@ function ItemCard({
           <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
             <Loader2 className="h-6 w-6 text-white animate-spin" />
             <span className="text-white text-xs font-medium">
-              {(() => {
-                const label = tagProcessingLabel(item);
-                if (label === 'removing_background') {
-                  return item.ai_started_at
-                    ? t('ai.removingBackgroundElapsed', {
-                        elapsed: formatAnalyzingElapsed(item.ai_started_at),
-                      })
-                    : t('ai.removeBackgroundQueued');
-                }
-                return label === 'analyzing' && item.ai_started_at
-                  ? t('ai.analyzingElapsed', { elapsed: formatAnalyzingElapsed(item.ai_started_at) })
-                  : t('ai.queued');
-              })()}
+              {tagProcessingLabel(item) === 'analyzing' && item.ai_started_at
+                ? t('ai.analyzingElapsed', { elapsed: formatAnalyzingElapsed(item.ai_started_at) })
+                : t('ai.queued')}
             </span>
             {onCancelAnalysis && (
               <Button
@@ -170,10 +157,8 @@ function ItemCard({
         {isError && (
           <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-2">
             <AlertCircle className="h-6 w-6 text-red-400" />
-            <span className="text-white text-xs font-medium text-center">
-              {isBackgroundRemovalKind ? t('ai.backgroundRemovalFailed') : t('ai.analysisFailed')}
-            </span>
-            {!isBackgroundRemovalKind && item.ai_error && (
+            <span className="text-white text-xs font-medium text-center">{t('ai.analysisFailed')}</span>
+            {item.ai_error && (
               <span
                 className="text-white/70 text-[10px] text-center line-clamp-2 px-1"
                 title={item.ai_error}
@@ -182,35 +167,20 @@ function ItemCard({
               </span>
             )}
             <div className="flex gap-1.5">
-              {isBackgroundRemovalKind
-                ? onRetryBackgroundRemoval && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-7 text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRetryBackgroundRemoval(item.id);
-                      }}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      {tc('retry')}
-                    </Button>
-                  )
-                : onRetry && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-7 text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRetry(item.id);
-                      }}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      {tc('retry')}
-                    </Button>
-                  )}
+              {onRetry && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRetry(item.id);
+                  }}
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  {tc('retry')}
+                </Button>
+              )}
               {onDismissError && (
                 <Button
                   size="sm"
@@ -418,9 +388,6 @@ export default function WardrobePage() {
   const bulkDelete = useBulkDeleteItems();
   const bulkReanalyze = useBulkReanalyzeItems();
   const bulkCancelAnalysis = useBulkCancelAnalysis();
-  const bulkRotate = useBulkRotateItems();
-  const bulkRemoveBackground = useBulkRemoveBackgroundItems();
-  const removeBackground = useRemoveBackground();
 
   const items = data?.items || [];
   const total = data?.total || 0;
@@ -435,10 +402,7 @@ export default function WardrobePage() {
   const queuedCount = taggingProgress?.queued ?? 0;
   const analyzingCount = taggingProgress?.analyzing ?? 0;
   const errorCount = items.filter(
-    (i) =>
-      i.status === 'error' &&
-      i.processing_kind !== 'background_removal' &&
-      !dismissedErrors.has(`${i.id}:${i.updated_at}`)
+    (i) => i.status === 'error' && !dismissedErrors.has(`${i.id}:${i.updated_at}`)
   ).length;
   const taggedTotal = taggingProgress?.total ?? 0;
   const taggedDone = taggingProgress?.completed ?? 0;
@@ -458,10 +422,6 @@ export default function WardrobePage() {
         }
       },
     });
-  };
-
-  const handleRetryBackgroundRemoval = (itemId: string) => {
-    removeBackground.mutate({ id: itemId });
   };
 
   const handleCancelAnalysis = (itemId: string) => {
@@ -592,47 +552,6 @@ export default function WardrobePage() {
       }
     } catch {
       toast.error(t('bulkActions.cancelAllError'));
-    }
-  };
-
-  const handleBulkRotate = async (direction: 'cw' | 'ccw') => {
-    const params = getBulkParams();
-    try {
-      const result = await bulkRotate.mutateAsync({ ...params, direction });
-      if (result.rotated > 0) {
-        toast.success(t('bulkActions.rotateSuccess', { count: result.rotated }));
-      }
-      if (result.skipped > 0) {
-        toast.info(t('bulkActions.rotateSkipped', { count: result.skipped }));
-      }
-      if (result.failed > 0) {
-        toast.error(t('bulkActions.rotatePartialFailed', { count: result.failed }));
-      }
-      handleClearSelection();
-    } catch {
-      toast.error(t('bulkActions.rotateError'));
-    }
-  };
-
-  const handleBulkRemoveBackground = async () => {
-    const params = getBulkParams();
-    try {
-      const result = await bulkRemoveBackground.mutateAsync(params);
-      if (result.queued > 0) {
-        toast.success(t('bulkActions.removeBackgroundQueued', { count: result.queued }));
-      }
-      if (result.skipped > 0) {
-        toast.info(t('bulkActions.removeBackgroundSkipped', { count: result.skipped }));
-      }
-      if (result.already_done > 0) {
-        toast.info(t('bulkActions.removeBackgroundAlreadyDone', { count: result.already_done }));
-      }
-      if (result.failed > 0) {
-        toast.error(t('bulkActions.removeBackgroundPartialFailed', { count: result.failed }));
-      }
-      handleClearSelection();
-    } catch {
-      toast.error(t('bulkActions.removeBackgroundError'));
     }
   };
 
@@ -889,7 +808,6 @@ export default function WardrobePage() {
                 selected={isSelected}
                 onSelect={handleSelect}
                 onRetry={handleRetry}
-                onRetryBackgroundRemoval={handleRetryBackgroundRemoval}
                 onCancelAnalysis={handleCancelAnalysis}
                 onClick={() => setDetailItemId(item.id)}
                 onDismissError={handleDismissError}
@@ -910,12 +828,8 @@ export default function WardrobePage() {
         onClear={handleClearSelection}
         onDelete={handleBulkDelete}
         onReanalyze={handleBulkReanalyze}
-        onRotate={handleBulkRotate}
-        onRemoveBackground={handleBulkRemoveBackground}
         isDeleting={bulkDelete.isPending}
         isReanalyzing={bulkReanalyze.isPending}
-        isRotating={bulkRotate.isPending}
-        isRemovingBackground={bulkRemoveBackground.isPending}
         variant="items"
         page={page}
         pageSize={pageSize}
