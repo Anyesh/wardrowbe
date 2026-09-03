@@ -43,6 +43,7 @@ export interface Item {
   ai_description?: string;
   ai_error?: string | null;
   ai_started_at?: string | null;
+  processing_kind?: 'background_removal' | null;
   tagging_status: 'pending' | 'tagged';
   tagged_by?: 'auto' | 'manual' | null;
   tagged_at?: string | null;

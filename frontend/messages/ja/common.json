@@ -11,6 +11,9 @@
     "clearSelection": "選択をクリア",
     "noneSelected": "未選択",
     "reanalyze": "再分析",
+    "removeBackground": "Remove background",
+    "rotateCcw": "Rotate left",
+    "rotateCw": "Rotate right",
     "selectAllMatching": "一致する{count}件すべてを選択"
   },
   "cancel": "キャンセル",

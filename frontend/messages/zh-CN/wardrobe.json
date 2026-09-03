@@ -48,6 +48,7 @@
     "uploading": "上传中..."
   },
   "ai": {
+    "backgroundRemovalFailed": "Background removal failed",
     "analysisFailed": "分析失败",
     "analyzing": "AI 分析中...",
     "analyzingCount": "{count} 件分析中",
@@ -60,6 +61,9 @@
     "failedCount": "{count} 件失败",
     "queued": "Queued",
     "queuedCount": "{count} queued",
+    "removeBackgroundQueued": "Queued for background removal",
+    "removingBackground": "Removing background...",
+    "removingBackgroundElapsed": "Removing background… {elapsed}",
     "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "所有类型",
@@ -74,7 +78,18 @@
     "reanalyzeMany": "已将{count}件单品加入重新分析队列，可能需要一些时间。",
     "reanalyzePartialFailed": "{count, plural, one {# 件单品加入队列失败} other {# 件单品加入队列失败}}",
     "reanalyzeQueued": "{count, plural, one {已将 # 件单品加入重新分析队列} other {已将 # 件单品加入重新分析队列}}",
-    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
+    "removeBackgroundAlreadyDone": "{count, plural, one {# item already had its background removed} other {# items already had their background removed}}",
+    "removeBackgroundConfirmDescription": "This will remove the background from {count, plural, one {# selected item} other {# selected items}}. The original photo is kept and can be restored per item afterward.",
+    "removeBackgroundConfirmTitle": "Remove background from {count, plural, one {# item} other {# items}}?",
+    "removeBackgroundError": "Failed to queue background removal",
+    "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
+    "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
+    "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
+    "rotateError": "Failed to rotate items",
+    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "这将永久删除所选单品及其图片。此操作不可撤销。",

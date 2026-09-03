@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Trash2, RefreshCw, Loader2, CheckSquare, Square, MinusSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { X, Trash2, RefreshCw, Loader2, CheckSquare, Square, MinusSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RotateCcw, RotateCw, Eraser } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -32,8 +32,12 @@ interface BulkActionToolbarProps {
   onClear: () => void;
   onDelete: () => void;
   onReanalyze?: () => void;
+  onRotate?: (direction: 'cw' | 'ccw') => void;
+  onRemoveBackground?: () => void;
   isDeleting?: boolean;
   isReanalyzing?: boolean;
+  isRotating?: boolean;
+  isRemovingBackground?: boolean;
   variant?: BulkDeleteVariant;
   // Pagination props
   page: number;
@@ -50,8 +54,12 @@ export function BulkActionToolbar({
   onClear,
   onDelete,
   onReanalyze,
+  onRotate,
+  onRemoveBackground,
   isDeleting = false,
   isReanalyzing = false,
+  isRotating = false,
+  isRemovingBackground = false,
   variant = 'items',
   page,
   pageSize,
@@ -163,6 +171,75 @@ export function BulkActionToolbar({
                 <RefreshCw className="h-4 w-4" />
               )}
             </Button>
+          )}
+          {onRotate && (
+            <>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={() => onRotate('ccw')}
+                disabled={isRotating}
+                aria-label={t('bulkActions.rotateCcw')}
+              >
+                {isRotating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={() => onRotate('cw')}
+                disabled={isRotating}
+                aria-label={t('bulkActions.rotateCw')}
+              >
+                {isRotating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RotateCw className="h-4 w-4" />
+                )}
+              </Button>
+            </>
+          )}
+          {onRemoveBackground && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  disabled={isRemovingBackground}
+                  aria-label={t('bulkActions.removeBackground')}
+                >
+                  {isRemovingBackground ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Eraser className="h-4 w-4" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {tWardrobe('bulkActions.removeBackgroundConfirmTitle', { count: selectedCount })}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {tWardrobe('bulkActions.removeBackgroundConfirmDescription', {
+                      count: selectedCount,
+                    })}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={onRemoveBackground}>
+                    {t('confirm')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
           <AlertDialog>
             <AlertDialogTrigger asChild>

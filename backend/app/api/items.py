@@ -24,6 +24,10 @@ from app.schemas.item import (
     BulkCancelAnalysisResponse,
     BulkDeleteRequest,
     BulkDeleteResponse,
+    BulkRemoveBackgroundRequest,
+    BulkRemoveBackgroundResponse,
+    BulkRotateRequest,
+    BulkRotateResponse,
     BulkUploadResponse,
     BulkUploadResult,
     ItemCreate,
@@ -578,6 +582,7 @@ async def bulk_analyze_items(
     for item in to_queue:
         item.status = ItemStatus.processing
         item.ai_started_at = None
+        item.processing_kind = None
     await db.commit()
 
     # Unified enqueue worklist: regular to_queue items get an arq-assigned job
@@ -722,11 +727,190 @@ async def bulk_cancel_analysis(
     result = await db.execute(
         update(ClothingItem)
         .where(ClothingItem.id.in_(processing_ids), ClothingItem.status == ItemStatus.processing)
-        .values(status=ItemStatus.ready, ai_job_id=None, ai_started_at=None)
+        .values(
+            status=ItemStatus.ready,
+            ai_job_id=None,
+            ai_started_at=None,
+            processing_kind=None,
+        )
     )
     await db.commit()
 
     return BulkCancelAnalysisResponse(cancelled=result.rowcount, skipped=skipped, errors=errors)
+
+
+@router.post("/bulk/rotate", response_model=BulkRotateResponse)
+async def bulk_rotate_items(
+    request: BulkRotateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> BulkRotateResponse:
+    item_service = ItemService(db)
+    image_service = ImageService()
+    rotated = 0
+    failed = 0
+    skipped = 0
+    errors: list[str] = []
+
+    if request.select_all:
+        item_ids = await item_service.get_ids_by_filter(
+            user_id=current_user.id,
+            type_filter=request.filters.type if request.filters else None,
+            search=request.filters.search if request.filters else None,
+            is_archived=request.filters.is_archived
+            if request.filters and request.filters.is_archived is not None
+            else False,
+            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
+        )
+        logger.info(f"Bulk rotate select_all: {len(item_ids)} items to rotate")
+    else:
+        item_ids = request.item_ids or []
+
+    for item_id in item_ids:
+        item = await item_service.get_by_id(item_id, current_user.id)
+        if not item:
+            errors.append(f"Item {item_id} not found or not owned by user")
+            failed += 1
+            continue
+        if not item.image_path:
+            errors.append(f"Item {item_id} has no image")
+            failed += 1
+            continue
+        # A concurrent job (e.g. background removal) may still be writing
+        # image_path/medium_path/thumbnail_path for this item - rotating it
+        # now would race that writer, so skip rather than rotate.
+        if item.status == ItemStatus.processing:
+            skipped += 1
+            continue
+        try:
+            await asyncio.to_thread(image_service.rotate_image, item.image_path, request.direction)
+            rotated += 1
+        except Exception as e:
+            logger.error(f"Failed to rotate item {item_id}: {e}")
+            errors.append(f"Failed to rotate item {item_id}")
+            failed += 1
+
+    await db.commit()
+    return BulkRotateResponse(rotated=rotated, failed=failed, skipped=skipped, errors=errors)
+
+
+@router.post("/bulk/remove-background", response_model=BulkRemoveBackgroundResponse)
+async def bulk_remove_background_items(
+    request: BulkRemoveBackgroundRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> BulkRemoveBackgroundResponse:
+    item_service = ItemService(db)
+    queued = 0
+    failed = 0
+    errors: list[str] = []
+
+    if request.select_all:
+        item_ids = await item_service.get_ids_by_filter(
+            user_id=current_user.id,
+            type_filter=request.filters.type if request.filters else None,
+            search=request.filters.search if request.filters else None,
+            is_archived=request.filters.is_archived
+            if request.filters and request.filters.is_archived is not None
+            else False,
+            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
+        )
+        logger.info(f"Bulk remove-background select_all: {len(item_ids)} items")
+    else:
+        item_ids = request.item_ids or []
+
+    items_to_process: list[ClothingItem] = []
+    for item_id in item_ids:
+        item = await item_service.get_by_id(item_id, current_user.id)
+        if not item:
+            errors.append(f"Item {item_id} not found or not owned by user")
+            failed += 1
+            continue
+        if not item.image_path:
+            errors.append(f"Item {item_id} has no image")
+            failed += 1
+            continue
+        items_to_process.append(item)
+
+    # Items already processing with a live job are skipped, not re-queued - a
+    # second job racing the first would stomp each other's original-backup
+    # write. An item stuck `processing` with no job (a previously-failed
+    # enqueue) is not considered "already processing" and gets a fresh job,
+    # mirroring bulk_analyze_items's skip check.
+    already_processing = [
+        item for item in items_to_process if item.status == ItemStatus.processing and item.ai_job_id
+    ]
+    skipped = len(already_processing)
+    # original_image_path set means a previous run already flattened this
+    # item's background - re-running the provider would stomp the existing
+    # backup with a background-removed image of a background-removed image.
+    already_done = [
+        item
+        for item in items_to_process
+        if item not in already_processing and item.original_image_path
+    ]
+    already_done_count = len(already_done)
+    to_queue = [
+        item
+        for item in items_to_process
+        if item not in already_processing and item not in already_done
+    ]
+
+    for item in to_queue:
+        item.status = ItemStatus.processing
+        item.processing_kind = "background_removal"
+        # Clear any stale ai_started_at left over from a prior tagging run -
+        # otherwise the frontend reads it as this job's elapsed "analyzing"
+        # time, showing a wildly wrong duration for what is actually a
+        # few-second background-removal job.
+        item.ai_started_at = None
+    await db.commit()
+
+    redis = None
+    try:
+        redis = await create_pool(get_redis_settings())
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis for bulk remove-background: {e}")
+        for item in to_queue:
+            item.status = ItemStatus.error
+            item.processing_kind = None
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to connect to job queue",
+        ) from None
+
+    try:
+        for item in to_queue:
+            try:
+                job = await redis.enqueue_job(
+                    "remove_item_background_job",
+                    str(item.id),
+                    request.bg_color,
+                    _queue_name="arq:tagging",
+                )
+                if job is None:
+                    raise RuntimeError("enqueue_job returned None")
+                item.ai_job_id = job.job_id
+                queued += 1
+            except Exception as e:
+                logger.error(f"Failed to queue background removal for {item.id}: {e}")
+                errors.append(f"Failed to queue background removal for item {item.id}")
+                item.status = ItemStatus.error
+                item.processing_kind = None
+                failed += 1
+        await db.commit()
+    finally:
+        if redis:
+            await redis.aclose()
+
+    return BulkRemoveBackgroundResponse(
+        queued=queued,
+        failed=failed,
+        skipped=skipped,
+        already_done=already_done_count,
+        errors=errors,
+    )
 
 
 @router.get("/types")
@@ -759,7 +943,13 @@ async def get_tagging_progress(
     # separate queries could under concurrent worker commits.
     result = await db.execute(
         select(ClothingItem.status, ClothingItem.ai_started_at.is_(None), func.count())
-        .where(ClothingItem.user_id == current_user.id, ClothingItem.is_archived.is_(False))
+        .where(
+            ClothingItem.user_id == current_user.id,
+            ClothingItem.is_archived.is_(False),
+            # Background-removal jobs reuse status=processing but aren't AI
+            # tagging - exclude them so they don't pollute this banner's counts.
+            ClothingItem.processing_kind.is_distinct_from("background_removal"),
+        )
         .group_by(ClothingItem.status, ClothingItem.ai_started_at.is_(None))
     )
     queued = 0
@@ -1161,6 +1351,7 @@ async def trigger_ai_analysis(
     try:
         item.status = ItemStatus.processing
         item.ai_started_at = None
+        item.processing_kind = None
         await db.commit()
 
         redis = await create_pool(get_redis_settings())
@@ -1241,14 +1432,17 @@ async def cancel_item_analysis(
     await db.execute(
         update(ClothingItem)
         .where(ClothingItem.id == item.id, ClothingItem.status == ItemStatus.processing)
-        .values(status=ItemStatus.ready, ai_job_id=None, ai_started_at=None)
+        .values(status=ItemStatus.ready, ai_job_id=None, ai_started_at=None, processing_kind=None)
     )
     await db.commit()
     # updated_at is recomputed by a DB-side trigger on UPDATE, so the Core update()
     # above leaves the in-memory value stale; refresh it explicitly alongside the
     # columns we changed instead of a bare refresh(), which would also expire the
     # already eager-loaded additional_images relationship and blow up serialization.
-    await db.refresh(item, attribute_names=["status", "ai_job_id", "ai_started_at", "updated_at"])
+    await db.refresh(
+        item,
+        attribute_names=["status", "ai_job_id", "ai_started_at", "processing_kind", "updated_at"],
+    )
     return ItemResponse.model_validate(item)
 
 
@@ -1319,6 +1513,19 @@ async def remove_item_background(
             detail="Item has no image",
         )
 
+    if item.status == ItemStatus.processing and item.ai_job_id:
+        # A queued or running job (tagging or another background-removal run)
+        # owns image_path/medium_path/thumbnail_path - racing it here would
+        # stomp whichever write lands last.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Item has a background job in progress",
+        )
+
+    recovering_from_error = (
+        item.status == ItemStatus.error and item.processing_kind == "background_removal"
+    )
+
     hex_color = request.bg_color.lstrip("#")
     bg_color = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
@@ -1326,8 +1533,21 @@ async def remove_item_background(
         image_service = ImageService()
         result = await asyncio.to_thread(image_service.remove_background, item.image_path, bg_color)
         item.original_image_path = result["original_backup_path"]
+        if recovering_from_error:
+            item.status = ItemStatus.ready
+            item.processing_kind = None
+            item.ai_started_at = None
         await db.commit()
-        await db.refresh(item, attribute_names=["original_image_path", "updated_at"])
+        await db.refresh(
+            item,
+            attribute_names=[
+                "original_image_path",
+                "status",
+                "processing_kind",
+                "ai_started_at",
+                "updated_at",
+            ],
+        )
         return ItemResponse.model_validate(item)
     except ImportError:
         raise HTTPException(

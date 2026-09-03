@@ -48,6 +48,7 @@
     "uploading": "アップロード中..."
   },
   "ai": {
+    "backgroundRemovalFailed": "Background removal failed",
     "analysisFailed": "分析失敗",
     "analyzing": "AI分析中...",
     "analyzingCount": "{count} 件を分析中",
@@ -60,6 +61,9 @@
     "failedCount": "{count} 件が失敗",
     "queued": "Queued",
     "queuedCount": "{count} queued",
+    "removeBackgroundQueued": "Queued for background removal",
+    "removingBackground": "Removing background...",
+    "removingBackgroundElapsed": "Removing background… {elapsed}",
     "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "すべてのタイプ",
@@ -74,7 +78,18 @@
     "reanalyzeMany": "{count} 件を再分析キューに追加しました。少し時間がかかる場合があります。",
     "reanalyzePartialFailed": "{count, plural, one {# 件のキューイングに失敗しました} other {# 件のキューイングに失敗しました}}",
     "reanalyzeQueued": "{count, plural, one {# 件を再分析キューに追加しました} other {# 件を再分析キューに追加しました}}",
-    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}"
+    "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
+    "removeBackgroundAlreadyDone": "{count, plural, one {# item already had its background removed} other {# items already had their background removed}}",
+    "removeBackgroundConfirmDescription": "This will remove the background from {count, plural, one {# selected item} other {# selected items}}. The original photo is kept and can be restored per item afterward.",
+    "removeBackgroundConfirmTitle": "Remove background from {count, plural, one {# item} other {# items}}?",
+    "removeBackgroundError": "Failed to queue background removal",
+    "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
+    "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
+    "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
+    "rotateError": "Failed to rotate items",
+    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "選択したアイテムと画像を完全に削除します。この操作は取り消せません。",
