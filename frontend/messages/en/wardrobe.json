@@ -64,7 +64,10 @@
     "removeBackgroundQueued": "Queued for background removal",
     "removingBackground": "Removing background...",
     "removingBackgroundElapsed": "Removing background… {elapsed}",
-    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}",
+    "rotateFailed": "Rotation failed",
+    "rotateQueued": "Queued for rotation",
+    "rotating": "Rotating…"
   },
   "allTypes": "All types",
   "bulkActions": {
@@ -86,10 +89,10 @@
     "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
     "removeBackgroundQueued": "{count, plural, one {Queued # item for background removal} other {Queued # items for background removal}}",
     "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
-    "rotateError": "Failed to rotate items",
-    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
-    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}",
-    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
+    "rotateError": "Failed to queue rotation",
+    "rotatePartialFailed": "{count, plural, one {Failed to queue # item for rotation} other {Failed to queue # items for rotation}}",
+    "rotateQueued": "{count, plural, one {Queued # item for rotation} other {Queued # items for rotation}}",
+    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}"
   },
   "bulkDelete": {
     "confirmDescription": "This will permanently delete the selected items and their images. This action cannot be undone.",

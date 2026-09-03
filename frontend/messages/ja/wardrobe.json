@@ -48,12 +48,12 @@
     "uploading": "アップロード中..."
   },
   "ai": {
-    "backgroundRemovalFailed": "Background removal failed",
     "analysisFailed": "分析失敗",
     "analyzing": "AI分析中...",
     "analyzingCount": "{count} 件を分析中",
     "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} 件を分析中 · {percent}% 完了",
+    "backgroundRemovalFailed": "Background removal failed",
     "cancelAll": "Cancel all",
     "completeness": "AI完了度：{percent}%",
     "confident": "信頼度 {percent}%",
@@ -64,7 +64,10 @@
     "removeBackgroundQueued": "Queued for background removal",
     "removingBackground": "Removing background...",
     "removingBackgroundElapsed": "Removing background… {elapsed}",
-    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}",
+    "rotateFailed": "Rotation failed",
+    "rotateQueued": "Queued for rotation",
+    "rotating": "Rotating…"
   },
   "allTypes": "すべてのタイプ",
   "bulkActions": {
@@ -88,8 +91,8 @@
     "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
     "rotateError": "Failed to rotate items",
     "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
-    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}",
-    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
+    "rotateQueued": "{count, plural, one {Queued # item for rotation} other {Queued # items for rotation}}",
+    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}"
   },
   "bulkDelete": {
     "confirmDescription": "選択したアイテムと画像を完全に削除します。この操作は取り消せません。",

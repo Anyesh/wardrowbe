@@ -82,6 +82,10 @@ function ItemCard({
   const isProcessing = item.status === 'processing';
   const isError = item.status === 'error' && !errorDismissed;
   const isBackgroundRemovalKind = item.processing_kind === 'background_removal';
+  const isRotateKind = item.processing_kind === 'rotate';
+  // Neither rotation nor background removal touches AI tagging, so their
+  // failures must not be reported as an analysis failure or offer its retry.
+  const isImageOpKind = isBackgroundRemovalKind || isRotateKind;
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -146,6 +150,9 @@ function ItemCard({
                       })
                     : t('ai.removeBackgroundQueued');
                 }
+                if (label === 'rotating') {
+                  return item.ai_started_at ? t('ai.rotating') : t('ai.rotateQueued');
+                }
                 return label === 'analyzing' && item.ai_started_at
                   ? t('ai.analyzingElapsed', { elapsed: formatAnalyzingElapsed(item.ai_started_at) })
                   : t('ai.queued');
@@ -171,9 +178,13 @@ function ItemCard({
           <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-2">
             <AlertCircle className="h-6 w-6 text-red-400" />
             <span className="text-white text-xs font-medium text-center">
-              {isBackgroundRemovalKind ? t('ai.backgroundRemovalFailed') : t('ai.analysisFailed')}
+              {isBackgroundRemovalKind
+                ? t('ai.backgroundRemovalFailed')
+                : isRotateKind
+                  ? t('ai.rotateFailed')
+                  : t('ai.analysisFailed')}
             </span>
-            {!isBackgroundRemovalKind && item.ai_error && (
+            {!isImageOpKind && item.ai_error && (
               <span
                 className="text-white/70 text-[10px] text-center line-clamp-2 px-1"
                 title={item.ai_error}
@@ -182,35 +193,32 @@ function ItemCard({
               </span>
             )}
             <div className="flex gap-1.5">
-              {isBackgroundRemovalKind
-                ? onRetryBackgroundRemoval && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-7 text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRetryBackgroundRemoval(item.id);
-                      }}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      {tc('retry')}
-                    </Button>
-                  )
-                : onRetry && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-7 text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRetry(item.id);
-                      }}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      {tc('retry')}
-                    </Button>
-                  )}
+              {(() => {
+                // No retry for a failed rotation: the direction the user
+                // picked is not recorded anywhere, so a one-click retry would
+                // have to guess it and could turn the image the wrong way.
+                // They re-select and rotate again from the bulk toolbar.
+                const retry = isRotateKind
+                  ? undefined
+                  : isBackgroundRemovalKind
+                    ? onRetryBackgroundRemoval
+                    : onRetry;
+                if (!retry) return null;
+                return (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      retry(item.id);
+                    }}
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    {tc('retry')}
+                  </Button>
+                );
+              })()}
               {onDismissError && (
                 <Button
                   size="sm"
@@ -438,6 +446,7 @@ export default function WardrobePage() {
     (i) =>
       i.status === 'error' &&
       i.processing_kind !== 'background_removal' &&
+      i.processing_kind !== 'rotate' &&
       !dismissedErrors.has(`${i.id}:${i.updated_at}`)
   ).length;
   const taggedTotal = taggingProgress?.total ?? 0;
@@ -463,6 +472,7 @@ export default function WardrobePage() {
   const handleRetryBackgroundRemoval = (itemId: string) => {
     removeBackground.mutate({ id: itemId });
   };
+
 
   const handleCancelAnalysis = (itemId: string) => {
     cancelAnalysis.mutate(itemId);
@@ -599,8 +609,8 @@ export default function WardrobePage() {
     const params = getBulkParams();
     try {
       const result = await bulkRotate.mutateAsync({ ...params, direction });
-      if (result.rotated > 0) {
-        toast.success(t('bulkActions.rotateSuccess', { count: result.rotated }));
+      if (result.queued > 0) {
+        toast.success(t('bulkActions.rotateQueued', { count: result.queued }));
       }
       if (result.skipped > 0) {
         toast.info(t('bulkActions.rotateSkipped', { count: result.skipped }));

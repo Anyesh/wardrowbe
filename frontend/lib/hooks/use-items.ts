@@ -618,10 +618,9 @@ export interface BulkUploadResponse {
   results: BulkUploadResult[];
 }
 
-export interface BulkDeleteResponse {
+export interface BulkDeleteResponse extends BulkBatchResponse {
   deleted: number;
   failed: number;
-  errors: string[];
 }
 
 export interface BulkOperationParams {
@@ -639,6 +638,93 @@ export interface BulkOperationParams {
   };
 }
 
+interface BulkBatchResponse {
+  errors: string[];
+  next_cursor?: string | null;
+  has_more?: boolean;
+}
+
+// The server caps how many items one bulk request touches. An explicit id list
+// is ours to keep under the cap, but a select_all is only filters here, so the
+// server walks it and hands back a cursor for the next batch.
+const MAX_BULK_BATCHES = 200;
+
+function mergeBulkBatches<T extends BulkBatchResponse>(
+  acc: T,
+  batch: T,
+  sumKeys: (keyof T)[]
+): T {
+  const merged = { ...acc, ...batch } as T;
+  for (const key of sumKeys) {
+    merged[key] = ((acc[key] as number) + (batch[key] as number)) as T[keyof T];
+  }
+  merged.errors = [...acc.errors, ...batch.errors];
+  return merged;
+}
+
+const BULK_ACTION_LIMIT_ERROR = /^Maximum (\d+) items per bulk action$/;
+
+// The server's max_bulk_action_count is admin-tunable on a self-hosted install
+// and is not exposed to the client, so it is learned from the first rejection
+// and cached, the same way the upload queue learns max_bulk_upload_count.
+let learnedBulkActionLimit: number | null = null;
+
+function bulkActionLimitFrom(error: unknown): number | null {
+  if (!(error instanceof ApiError) || error.status !== 400) return null;
+  const match = error.message.match(BULK_ACTION_LIMIT_ERROR);
+  return match ? Number(match[1]) : null;
+}
+
+async function drainIdList<T extends BulkBatchResponse>(
+  path: string,
+  params: BulkOperationParams,
+  ids: string[],
+  sumKeys: (keyof T)[]
+): Promise<T> {
+  const chunks = learnedBulkActionLimit ? chunkArray(ids, learnedBulkActionLimit) : [ids];
+  const results: T[] = [];
+
+  for (const chunk of chunks) {
+    try {
+      results.push(await api.post<T>(path, { ...params, item_ids: chunk }));
+    } catch (error) {
+      const limit = bulkActionLimitFrom(error);
+      if (limit === null || limit >= chunk.length) throw error;
+      learnedBulkActionLimit = limit;
+      results.push(await drainIdList<T>(path, params, chunk, sumKeys));
+    }
+  }
+
+  return results.reduce((acc, result) => mergeBulkBatches(acc, result, sumKeys));
+}
+
+async function drainCursor<T extends BulkBatchResponse>(
+  path: string,
+  params: BulkOperationParams,
+  sumKeys: (keyof T)[]
+): Promise<T> {
+  let batch = await api.post<T>(path, params);
+  let merged = batch;
+
+  for (let i = 0; batch.has_more && batch.next_cursor && i < MAX_BULK_BATCHES; i++) {
+    batch = await api.post<T>(path, { ...params, after_id: batch.next_cursor });
+    merged = mergeBulkBatches(merged, batch, sumKeys);
+  }
+
+  return merged;
+}
+
+export async function drainBulkAction<T extends BulkBatchResponse>(
+  path: string,
+  params: BulkOperationParams,
+  sumKeys: (keyof T)[]
+): Promise<T> {
+  if (params.item_ids?.length) {
+    return drainIdList<T>(path, params, params.item_ids, sumKeys);
+  }
+  return drainCursor<T>(path, params, sumKeys);
+}
+
 export function useBulkDeleteItems() {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
@@ -648,7 +734,10 @@ export function useBulkDeleteItems() {
       if (session?.accessToken) {
         setAccessToken(session.accessToken as string);
       }
-      return api.post<BulkDeleteResponse>('/items/bulk/delete', params);
+      return drainBulkAction<BulkDeleteResponse>('/items/bulk/delete', params, [
+        'deleted',
+        'failed',
+      ]);
     },
     onMutate: async (params) => {
       // Cancel outgoing refetches
@@ -700,13 +789,12 @@ export function useBulkDeleteItems() {
   });
 }
 
-export interface BulkAnalyzeResponse {
+export interface BulkAnalyzeResponse extends BulkBatchResponse {
   queued: number;
   failed: number;
   skipped: number;
   cooldown: number;
   retry_after_seconds: number | null;
-  errors: string[];
 }
 
 export function useBulkReanalyzeItems() {
@@ -718,7 +806,15 @@ export function useBulkReanalyzeItems() {
       if (session?.accessToken) {
         setAccessToken(session.accessToken as string);
       }
-      return api.post<BulkAnalyzeResponse>('/items/bulk/analyze', params);
+      const result = await drainBulkAction<BulkAnalyzeResponse>('/items/bulk/analyze', params, [
+        'queued',
+        'failed',
+        'skipped',
+        'cooldown',
+      ]);
+      // retry_after_seconds is a wait, not a tally: summing batches would tell
+      // the user to wait far longer than any single item actually needs.
+      return result;
     },
     onMutate: async (params) => {
       // Cancel outgoing refetches
@@ -773,10 +869,9 @@ export function useBulkReanalyzeItems() {
   });
 }
 
-export interface BulkCancelAnalysisResponse {
+export interface BulkCancelAnalysisResponse extends BulkBatchResponse {
   cancelled: number;
   skipped: number;
-  errors: string[];
 }
 
 export function useBulkCancelAnalysis() {
@@ -788,7 +883,11 @@ export function useBulkCancelAnalysis() {
       if (session?.accessToken) {
         setAccessToken(session.accessToken as string);
       }
-      return api.post<BulkCancelAnalysisResponse>('/items/bulk/cancel-analysis', params);
+      return drainBulkAction<BulkCancelAnalysisResponse>(
+        '/items/bulk/cancel-analysis',
+        params,
+        ['cancelled', 'skipped']
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
@@ -797,11 +896,10 @@ export function useBulkCancelAnalysis() {
   });
 }
 
-export interface BulkRotateResponse {
-  rotated: number;
+export interface BulkRotateResponse extends BulkBatchResponse {
+  queued: number;
   failed: number;
   skipped: number;
-  errors: string[];
 }
 
 export function useBulkRotateItems() {
@@ -813,22 +911,57 @@ export function useBulkRotateItems() {
       if (session?.accessToken) {
         setAccessToken(session.accessToken as string);
       }
-      return api.post<BulkRotateResponse>('/items/bulk/rotate', params);
+      return drainBulkAction<BulkRotateResponse>('/items/bulk/rotate', params, [
+        'queued',
+        'failed',
+        'skipped',
+      ]);
+    },
+    onMutate: async (params) => {
+      await queryClient.cancelQueries({ queryKey: ['items'] });
+      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+
+      const shouldMark = params.select_all
+        ? (id: string) => !new Set(params.excluded_ids || []).has(id)
+        : (id: string) => new Set(params.item_ids || []).has(id);
+
+      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.map((item) =>
+            shouldMark(item.id)
+              ? {
+                  ...item,
+                  status: 'processing' as const,
+                  processing_kind: 'rotate' as const,
+                  ai_started_at: null,
+                }
+              : item
+          ),
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (_err, _params, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
     },
     onSettled: () => {
-      // Rotation is synchronous server-side, so there's nothing to optimistically
-      // guess at - just refetch once the real (already-rotated) result is in.
       queryClient.invalidateQueries({ queryKey: ['items'] });
     },
   });
 }
 
-export interface BulkRemoveBackgroundResponse {
+export interface BulkRemoveBackgroundResponse extends BulkBatchResponse {
   queued: number;
   failed: number;
   skipped: number;
   already_done: number;
-  errors: string[];
 }
 
 export function useBulkRemoveBackgroundItems() {
@@ -840,7 +973,11 @@ export function useBulkRemoveBackgroundItems() {
       if (session?.accessToken) {
         setAccessToken(session.accessToken as string);
       }
-      return api.post<BulkRemoveBackgroundResponse>('/items/bulk/remove-background', params);
+      return drainBulkAction<BulkRemoveBackgroundResponse>(
+        '/items/bulk/remove-background',
+        params,
+        ['queued', 'failed', 'skipped', 'already_done']
+      );
     },
     onMutate: async (params) => {
       // Cancel outgoing refetches
@@ -1013,9 +1150,12 @@ export function mergeBulkUploadResponses(responses: BulkUploadResponse[]): BulkU
 
 export function tagProcessingLabel(
   item: Pick<Item, 'ai_started_at' | 'processing_kind'>
-): 'queued' | 'analyzing' | 'removing_background' {
+): 'queued' | 'analyzing' | 'removing_background' | 'rotating' {
   if (item.processing_kind === 'background_removal') {
     return 'removing_background';
+  }
+  if (item.processing_kind === 'rotate') {
+    return 'rotating';
   }
   return item.ai_started_at ? 'analyzing' : 'queued';
 }
