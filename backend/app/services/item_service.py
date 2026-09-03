@@ -287,7 +287,12 @@ class ItemService:
                     ClothingItem.ai_failed_at < cutoff,
                 ),
             )
-            .values(status=ItemStatus.processing, ai_started_at=None, ai_job_id=new_job_id)
+            .values(
+                status=ItemStatus.processing,
+                ai_started_at=None,
+                ai_job_id=new_job_id,
+                processing_kind=None,
+            )
             .returning(ClothingItem.id)
         )
         if result.first() is not None:
@@ -355,6 +360,7 @@ class ItemService:
                 status=ItemStatus.processing,
                 ai_started_at=None,
                 ai_job_id=text("gen_random_uuid()::text"),
+                processing_kind=None,
             )
             .returning(ClothingItem.id, ClothingItem.ai_job_id)
         )
