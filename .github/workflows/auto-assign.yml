@@ -11,7 +11,7 @@ jobs:
   assign:
     if: >-
       github.event.pull_request.user.type != 'Bot' &&
-      github.event.pull_request.user.login != 'Anyesh'
+      github.event.pull_request.user.login != github.repository_owner
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v9.0.0
@@ -21,5 +21,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              assignees: ['Anyesh'],
+              assignees: [context.repo.owner],
             });

@@ -54,6 +54,7 @@
     "analyzingCount": "{count} 件を分析中",
     "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} 件を分析中 · {percent}% 完了",
+    "cancelAll": "Cancel all",
     "completeness": "AI完了度：{percent}%",
     "confident": "信頼度 {percent}%",
     "dismiss": "閉じる",
@@ -67,6 +68,8 @@
   },
   "allTypes": "すべてのタイプ",
   "bulkActions": {
+    "cancelAllError": "Failed to cancel analysis",
+    "cancelAllQueued": "{count, plural, one {Cancelled # in-progress analysis} other {Cancelled # in-progress analyses}}",
     "deleteError": "アイテムの削除に失敗しました",
     "deletePartialFailed": "{count, plural, one {# 件のアイテムの削除に失敗しました} other {# 件のアイテムの削除に失敗しました}}",
     "deleteSuccess": "{count, plural, one {# 件のアイテムを削除しました} other {# 件のアイテムを削除しました}}",

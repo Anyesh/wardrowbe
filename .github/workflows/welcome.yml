@@ -16,15 +16,48 @@ jobs:
       (github.event_name == 'issues' && github.event.issue.user.type != 'Bot') ||
       (github.event_name == 'pull_request_target' && github.event.pull_request.user.type != 'Bot')
     runs-on: ubuntu-latest
+    env:
+      ISSUE_MESSAGE: >
+        Thanks for opening your first issue in Wardrowbe! Please make sure you've checked the
+        [CONTRIBUTING guide](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md)
+        and the deployment docs. A maintainer will take a look soon.
+      PR_MESSAGE: >
+        Thanks for your first pull request to Wardrowbe! Please make sure you've read the
+        [CONTRIBUTING guide](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md),
+        especially the PR title format section. A maintainer will review this soon.
     steps:
-      - uses: actions/first-interaction@v3.1.0
+      # actions/first-interaction v3 greets whenever the author has no prior *issues*
+      # or the repo has no prior PRs at all, so a maintainer with many PRs and zero
+      # issues is welcomed on every PR. This checks the author's history for the
+      # same kind of thing they just opened.
+      - uses: actions/github-script@v9.0.0
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          issue_message: >
-            Thanks for opening your first issue in Wardrowbe! Please make sure you've checked the
-            [CONTRIBUTING guide](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md)
-            and the deployment docs. A maintainer will take a look soon.
-          pr_message: >
-            Thanks for your first pull request to Wardrowbe! Please make sure you've read the
-            [CONTRIBUTING guide](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md),
-            especially the PR title format section. A maintainer will review this soon.
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const isPullRequest = context.eventName === 'pull_request_target';
+            const target = isPullRequest ? context.payload.pull_request : context.payload.issue;
+            const author = target.user.login;
+            const number = target.number;
+
+            const history = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, creator: author, state: 'all', per_page: 100,
+            });
+            const earlier = history.filter(
+              (item) => item.number < number && Boolean(item.pull_request) === isPullRequest,
+            );
+            if (earlier.length > 0) {
+              core.info(`${author} has ${earlier.length} earlier ${isPullRequest ? 'PRs' : 'issues'}, skipping.`);
+              return;
+            }
+
+            const body = (isPullRequest ? process.env.PR_MESSAGE : process.env.ISSUE_MESSAGE).trim();
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: number, per_page: 100,
+            });
+            if (comments.some((c) => c.body && c.body.trim() === body)) {
+              core.info('Welcome comment already present, skipping.');
+              return;
+            }
+
+            await github.rest.issues.createComment({ owner, repo, issue_number: number, body });

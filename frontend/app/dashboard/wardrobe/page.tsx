@@ -26,7 +26,7 @@ import {
 import { AddItemDialog } from '@/components/add-item-dialog';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
-import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed } from '@/lib/hooks/use-items';
+import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed } from '@/lib/hooks/use-items';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { Item } from '@/lib/types';
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
@@ -417,6 +417,7 @@ export default function WardrobePage() {
   const cancelAnalysis = useCancelAnalysis();
   const bulkDelete = useBulkDeleteItems();
   const bulkReanalyze = useBulkReanalyzeItems();
+  const bulkCancelAnalysis = useBulkCancelAnalysis();
   const bulkRotate = useBulkRotateItems();
   const bulkRemoveBackground = useBulkRemoveBackgroundItems();
   const removeBackground = useRemoveBackground();
@@ -580,6 +581,20 @@ export default function WardrobePage() {
     }
   };
 
+  const handleCancelAllAnalysis = async () => {
+    try {
+      const result = await bulkCancelAnalysis.mutateAsync({ select_all: true });
+      if (result.cancelled > 0) {
+        toast.success(t('bulkActions.cancelAllQueued', { count: result.cancelled }));
+      }
+      if (result.errors.length > 0) {
+        toast.error(t('bulkActions.cancelAllError'));
+      }
+    } catch {
+      toast.error(t('bulkActions.cancelAllError'));
+    }
+  };
+
   const handleBulkRotate = async (direction: 'cw' | 'ccw') => {
     const params = getBulkParams();
     try {
@@ -652,6 +667,17 @@ export default function WardrobePage() {
                 <Badge variant="secondary" className="gap-1 text-xs">
                   {t('ai.queuedCount', { count: queuedCount })}
                 </Badge>
+              )}
+              {(queuedCount > 0 || analyzingCount > 0) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs"
+                  disabled={bulkCancelAnalysis.isPending}
+                  onClick={handleCancelAllAnalysis}
+                >
+                  {t('ai.cancelAll')}
+                </Button>
               )}
               {errorCount > 0 && (
                 <Badge variant="destructive" className="gap-1 text-xs">

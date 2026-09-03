@@ -54,6 +54,7 @@
     "analyzingCount": "{count} in analisi",
     "analyzingElapsed": "Analyzing… {elapsed}",
     "analyzingProgress": "{count} in analisi · {percent}% completato",
+    "cancelAll": "Cancel all",
     "completeness": "Completezza IA: {percent}%",
     "confident": "{percent}% fiducia",
     "dismiss": "Ignora",
@@ -67,6 +68,8 @@
   },
   "allTypes": "Tutti i tipi",
   "bulkActions": {
+    "cancelAllError": "Failed to cancel analysis",
+    "cancelAllQueued": "{count, plural, one {Cancelled # in-progress analysis} other {Cancelled # in-progress analyses}}",
     "deleteError": "Eliminazione capi fallita",
     "deletePartialFailed": "{count, plural, one {Impossibile eliminare # capo} other {Impossibile eliminare # capi}}",
     "deleteSuccess": "{count, plural, one {# capo eliminato} other {# capi eliminati}}",

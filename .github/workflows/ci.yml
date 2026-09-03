@@ -99,17 +99,7 @@ jobs:
           STORAGE_PATH: /tmp/wardrobe
         run: |
           cd backend
-          pytest -v --tb=short
-
-      - name: Run tests with coverage
-        env:
-          TEST_DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/wardrobe_test
-          REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: test-secret-key-for-ci
-          STORAGE_PATH: /tmp/wardrobe
-        run: |
-          cd backend
-          pytest --cov=app --cov-report=xml
+          pytest -v --tb=short --cov=app --cov-report=xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v6
@@ -176,12 +166,6 @@ jobs:
         run: |
           cd frontend
           npm test -- --run
-
-      - name: Run tests with coverage
-        run: |
-          cd frontend
-          npm run test:coverage -- --run
-        continue-on-error: true
 
   frontend-build:
     name: Frontend Build
