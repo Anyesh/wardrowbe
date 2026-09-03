@@ -104,6 +104,12 @@ class Settings(BaseSettings):
     image_worker_concurrency: int = Field(default=1, ge=1)
     image_job_timeout: int = Field(default=300, ge=1)
 
+    # How many items one bulk action touches per request. Uploads have always
+    # been capped; select_all was not, so a bulk action over a whole wardrobe
+    # ran unbounded work in a single request. A select_all larger than this is
+    # walked in batches via the response cursor rather than rejected.
+    max_bulk_action_count: int = Field(default=200, ge=1)
+
     # Background removal
     bg_removal_provider: str = Field(default="rembg")  # "rembg" or "http"
     bg_removal_model: str = Field(default="u2net")  # rembg model name

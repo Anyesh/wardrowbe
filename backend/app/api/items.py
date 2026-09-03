@@ -28,6 +28,7 @@ from app.schemas.item import (
     BulkRemoveBackgroundResponse,
     BulkRotateRequest,
     BulkRotateResponse,
+    BulkSelectionRequest,
     BulkUploadResponse,
     BulkUploadResult,
     ItemCreate,
@@ -62,6 +63,48 @@ def _has_tag_content(field: str, value: Any) -> bool:
     if field == "tags" and isinstance(value, dict):
         return any(v not in _EMPTY_TAG_VALUES for v in value.values())
     return value not in _EMPTY_TAG_VALUES
+
+
+async def _resolve_bulk_item_ids(
+    item_service: ItemService,
+    user_id: UUID,
+    request: BulkSelectionRequest,
+    action: str,
+) -> tuple[list[UUID], UUID | None, bool]:
+    """Resolve one bulk request into at most max_bulk_action_count item ids.
+
+    An explicit id list is the caller's to chunk, so an oversized one is
+    rejected with the limit in the message. A select_all cannot be chunked by
+    the client, which holds filters rather than ids, so it is walked here: one
+    row beyond the cap is fetched to decide has_more without a second query.
+    """
+    limit = settings.max_bulk_action_count
+
+    if not request.select_all:
+        item_ids = request.item_ids or []
+        if len(item_ids) > limit:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Maximum {limit} items per bulk action",
+            )
+        return item_ids, None, False
+
+    filters = request.filters
+    item_ids = await item_service.get_ids_by_filter(
+        user_id=user_id,
+        type_filter=filters.type if filters else None,
+        search=filters.search if filters else None,
+        is_archived=filters.is_archived if filters and filters.is_archived is not None else False,
+        excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
+        after_id=request.after_id,
+        limit=limit + 1,
+    )
+
+    has_more = len(item_ids) > limit
+    item_ids = item_ids[:limit]
+    next_cursor = item_ids[-1] if has_more and item_ids else None
+    logger.info(f"Bulk {action} select_all: {len(item_ids)} items, has_more={has_more}")
+    return item_ids, next_cursor, has_more
 
 
 @router.get("", response_model=ItemListResponse)
@@ -452,20 +495,9 @@ async def bulk_delete_items(
     errors: list[str] = []
 
     # Get item IDs to delete
-    if request.select_all:
-        # Get all items matching filters, excluding specified ones
-        item_ids = await item_service.get_ids_by_filter(
-            user_id=current_user.id,
-            type_filter=request.filters.type if request.filters else None,
-            search=request.filters.search if request.filters else None,
-            is_archived=request.filters.is_archived
-            if request.filters and request.filters.is_archived is not None
-            else False,
-            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-        )
-        logger.info(f"Bulk delete select_all: {len(item_ids)} items to delete")
-    else:
-        item_ids = request.item_ids or []
+    item_ids, next_cursor, has_more = await _resolve_bulk_item_ids(
+        item_service, current_user.id, request, "delete"
+    )
 
     for item_id in item_ids:
         try:
@@ -491,7 +523,13 @@ async def bulk_delete_items(
             errors.append(f"Failed to delete item {item_id}")
             failed += 1
 
-    return BulkDeleteResponse(deleted=deleted, failed=failed, errors=errors)
+    return BulkDeleteResponse(
+        deleted=deleted,
+        failed=failed,
+        errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
+    )
 
 
 @router.post("/bulk/analyze", response_model=BulkAnalyzeResponse)
@@ -506,19 +544,9 @@ async def bulk_analyze_items(
     errors: list[str] = []
 
     # Get item IDs to analyze
-    if request.select_all:
-        item_ids = await item_service.get_ids_by_filter(
-            user_id=current_user.id,
-            type_filter=request.filters.type if request.filters else None,
-            search=request.filters.search if request.filters else None,
-            is_archived=request.filters.is_archived
-            if request.filters and request.filters.is_archived is not None
-            else False,
-            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-        )
-        logger.info(f"Bulk analyze select_all: {len(item_ids)} items to analyze")
-    else:
-        item_ids = request.item_ids or []
+    item_ids, next_cursor, has_more = await _resolve_bulk_item_ids(
+        item_service, current_user.id, request, "analyze"
+    )
 
     # Collect valid items first
     items_to_process = []
@@ -537,7 +565,13 @@ async def bulk_analyze_items(
             item.tagged_by = None
             item.tagged_at = None
         await db.commit()
-        return BulkAnalyzeResponse(queued=0, failed=failed, errors=errors)
+        return BulkAnalyzeResponse(
+            queued=0,
+            failed=failed,
+            errors=errors,
+            next_cursor=next_cursor,
+            has_more=has_more,
+        )
 
     # Items already processing with a live job are skipped, not re-queued - a
     # double-submit must not orphan the first job or race its ai_started_at
@@ -657,6 +691,8 @@ async def bulk_analyze_items(
         cooldown=cooldown_count,
         retry_after_seconds=cooldown_retry_after,
         errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
     )
 
 
@@ -669,19 +705,9 @@ async def bulk_cancel_analysis(
     item_service = ItemService(db)
     errors: list[str] = []
 
-    if request.select_all:
-        item_ids = await item_service.get_ids_by_filter(
-            user_id=current_user.id,
-            type_filter=request.filters.type if request.filters else None,
-            search=request.filters.search if request.filters else None,
-            is_archived=request.filters.is_archived
-            if request.filters and request.filters.is_archived is not None
-            else False,
-            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-        )
-        logger.info(f"Bulk cancel-analysis select_all: {len(item_ids)} candidate items")
-    else:
-        item_ids = request.item_ids or []
+    item_ids, next_cursor, has_more = await _resolve_bulk_item_ids(
+        item_service, current_user.id, request, "cancel-analysis"
+    )
 
     items_to_process = []
     for item_id in item_ids:
@@ -697,7 +723,13 @@ async def bulk_cancel_analysis(
     skipped = len(items_to_process) - len(processing_items)
 
     if not processing_items:
-        return BulkCancelAnalysisResponse(cancelled=0, skipped=skipped, errors=errors)
+        return BulkCancelAnalysisResponse(
+            cancelled=0,
+            skipped=skipped,
+            errors=errors,
+            next_cursor=next_cursor,
+            has_more=has_more,
+        )
 
     redis = None
     try:
@@ -719,7 +751,13 @@ async def bulk_cancel_analysis(
     except Exception as e:
         logger.error(f"Failed to connect to job queue for bulk cancel-analysis: {e}")
         errors.append("Failed to connect to job queue; item statuses were not changed")
-        return BulkCancelAnalysisResponse(cancelled=0, skipped=skipped, errors=errors)
+        return BulkCancelAnalysisResponse(
+            cancelled=0,
+            skipped=skipped,
+            errors=errors,
+            next_cursor=next_cursor,
+            has_more=has_more,
+        )
     finally:
         if redis:
             await redis.aclose()
@@ -737,7 +775,13 @@ async def bulk_cancel_analysis(
     )
     await db.commit()
 
-    return BulkCancelAnalysisResponse(cancelled=result.rowcount, skipped=skipped, errors=errors)
+    return BulkCancelAnalysisResponse(
+        cancelled=result.rowcount,
+        skipped=skipped,
+        errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
+    )
 
 
 @router.post("/bulk/rotate", response_model=BulkRotateResponse)
@@ -751,19 +795,9 @@ async def bulk_rotate_items(
     failed = 0
     errors: list[str] = []
 
-    if request.select_all:
-        item_ids = await item_service.get_ids_by_filter(
-            user_id=current_user.id,
-            type_filter=request.filters.type if request.filters else None,
-            search=request.filters.search if request.filters else None,
-            is_archived=request.filters.is_archived
-            if request.filters and request.filters.is_archived is not None
-            else False,
-            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-        )
-        logger.info(f"Bulk rotate select_all: {len(item_ids)} items to rotate")
-    else:
-        item_ids = request.item_ids or []
+    item_ids, next_cursor, has_more = await _resolve_bulk_item_ids(
+        item_service, current_user.id, request, "rotate"
+    )
 
     items_to_process: list[ClothingItem] = []
     for item_id in item_ids:
@@ -832,7 +866,14 @@ async def bulk_rotate_items(
     finally:
         await redis.aclose()
 
-    return BulkRotateResponse(queued=queued, failed=failed, skipped=skipped, errors=errors)
+    return BulkRotateResponse(
+        queued=queued,
+        failed=failed,
+        skipped=skipped,
+        errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
+    )
 
 
 @router.post("/bulk/remove-background", response_model=BulkRemoveBackgroundResponse)
@@ -846,19 +887,9 @@ async def bulk_remove_background_items(
     failed = 0
     errors: list[str] = []
 
-    if request.select_all:
-        item_ids = await item_service.get_ids_by_filter(
-            user_id=current_user.id,
-            type_filter=request.filters.type if request.filters else None,
-            search=request.filters.search if request.filters else None,
-            is_archived=request.filters.is_archived
-            if request.filters and request.filters.is_archived is not None
-            else False,
-            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-        )
-        logger.info(f"Bulk remove-background select_all: {len(item_ids)} items")
-    else:
-        item_ids = request.item_ids or []
+    item_ids, next_cursor, has_more = await _resolve_bulk_item_ids(
+        item_service, current_user.id, request, "remove-background"
+    )
 
     items_to_process: list[ClothingItem] = []
     for item_id in item_ids:
@@ -951,6 +982,8 @@ async def bulk_remove_background_items(
         skipped=skipped,
         already_done=already_done_count,
         errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
     )
 
 

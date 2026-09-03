@@ -236,6 +236,10 @@ class BulkDeleteOutfitsRequest(BaseModel):
     excluded_ids: list[UUID] | None = None
     filters: BulkOutfitFilters | None = None
 
+    # Cursor into a select_all walk; see BulkSelectionRequest in schemas/item.py
+    # for why a capped select_all is resumed rather than rejected.
+    after_id: UUID | None = None
+
     def model_post_init(self, __context):
         if not self.select_all and not self.outfit_ids:
             raise ValueError("Either outfit_ids or select_all=True must be provided")
@@ -247,6 +251,8 @@ class BulkDeleteOutfitsResponse(BaseModel):
     deleted: int
     failed: int
     errors: list[str] = Field(default_factory=list)
+    next_cursor: UUID | None = None
+    has_more: bool = False
 
 
 class FeedbackRequest(BaseModel):
@@ -637,6 +643,9 @@ async def bulk_delete_outfits(
     deleted = 0
     failed = 0
     errors: list[str] = []
+    limit = get_settings().max_bulk_action_count
+    next_cursor: UUID | None = None
+    has_more = False
 
     if request.select_all:
         list_filters = OutfitListFilters(
@@ -658,10 +667,20 @@ async def bulk_delete_outfits(
         outfit_ids = await service.get_ids_by_filter(
             list_filters,
             excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
+            after_id=request.after_id,
+            limit=limit + 1,
         )
-        logger.info(f"Bulk delete select_all: {len(outfit_ids)} outfits to delete")
+        has_more = len(outfit_ids) > limit
+        outfit_ids = outfit_ids[:limit]
+        next_cursor = outfit_ids[-1] if has_more and outfit_ids else None
+        logger.info(f"Bulk delete select_all: {len(outfit_ids)} outfits, has_more={has_more}")
     else:
         outfit_ids = request.outfit_ids or []
+        if len(outfit_ids) > limit:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Maximum {limit} outfits per bulk action",
+            )
 
     for outfit_id in outfit_ids:
         try:
@@ -685,7 +704,13 @@ async def bulk_delete_outfits(
 
     await db.commit()
 
-    return BulkDeleteOutfitsResponse(deleted=deleted, failed=failed, errors=errors)
+    return BulkDeleteOutfitsResponse(
+        deleted=deleted,
+        failed=failed,
+        errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
+    )
 
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)

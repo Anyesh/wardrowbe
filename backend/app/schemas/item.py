@@ -224,7 +224,7 @@ class BulkFilters(BaseModel):
     is_archived: bool | None = None
 
 
-class BulkDeleteRequest(BaseModel):
+class BulkSelectionRequest(BaseModel):
     # Explicit selection
     item_ids: list[UUID] | None = None
 
@@ -233,6 +233,12 @@ class BulkDeleteRequest(BaseModel):
     excluded_ids: list[UUID] | None = None
     filters: BulkFilters | None = None
 
+    # Cursor into a select_all walk: the id the previous batch stopped at. Bulk
+    # actions are capped per request, so a wardrobe larger than the cap is
+    # walked batch by batch rather than rejected outright, which is the only
+    # option a client holding filters instead of ids has.
+    after_id: UUID | None = None
+
     def model_post_init(self, __context):
         if not self.select_all and not self.item_ids:
             raise ValueError("Either item_ids or select_all=True must be provided")
@@ -240,29 +246,28 @@ class BulkDeleteRequest(BaseModel):
             raise ValueError("Cannot use both item_ids and select_all")
 
 
-class BulkDeleteResponse(BaseModel):
+class BulkBatchResponse(BaseModel):
+    # Set when a select_all walk stopped at the per-request cap; the client
+    # repeats the request with after_id=next_cursor until has_more is false.
+    next_cursor: UUID | None = None
+    has_more: bool = False
+
+
+class BulkDeleteRequest(BulkSelectionRequest):
+    pass
+
+
+class BulkDeleteResponse(BulkBatchResponse):
     deleted: int
     failed: int
     errors: list[str] = Field(default_factory=list)
 
 
-class BulkAnalyzeRequest(BaseModel):
-    # Explicit selection
-    item_ids: list[UUID] | None = None
-
-    # Select all with exceptions
-    select_all: bool = False
-    excluded_ids: list[UUID] | None = None
-    filters: BulkFilters | None = None
-
-    def model_post_init(self, __context):
-        if not self.select_all and not self.item_ids:
-            raise ValueError("Either item_ids or select_all=True must be provided")
-        if self.select_all and self.item_ids:
-            raise ValueError("Cannot use both item_ids and select_all")
+class BulkAnalyzeRequest(BulkSelectionRequest):
+    pass
 
 
-class BulkAnalyzeResponse(BaseModel):
+class BulkAnalyzeResponse(BulkBatchResponse):
     queued: int
     failed: int
     skipped: int = 0
@@ -271,80 +276,40 @@ class BulkAnalyzeResponse(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
-class BulkCancelAnalysisRequest(BaseModel):
-    # Explicit selection
-    item_ids: list[UUID] | None = None
-
-    # Select all with exceptions
-    select_all: bool = False
-    excluded_ids: list[UUID] | None = None
-    filters: BulkFilters | None = None
-
-    def model_post_init(self, __context):
-        if not self.select_all and not self.item_ids:
-            raise ValueError("Either item_ids or select_all=True must be provided")
-        if self.select_all and self.item_ids:
-            raise ValueError("Cannot use both item_ids and select_all")
+class BulkCancelAnalysisRequest(BulkSelectionRequest):
+    pass
 
 
-class BulkCancelAnalysisResponse(BaseModel):
+class BulkCancelAnalysisResponse(BulkBatchResponse):
     cancelled: int
     skipped: int = 0
     errors: list[str] = Field(default_factory=list)
 
 
-class BulkRotateRequest(BaseModel):
-    # Explicit selection
-    item_ids: list[UUID] | None = None
-
-    # Select all with exceptions
-    select_all: bool = False
-    excluded_ids: list[UUID] | None = None
-    filters: BulkFilters | None = None
-
+class BulkRotateRequest(BulkSelectionRequest):
     direction: str = Field(
         "cw",
         pattern="^(cw|ccw)$",
         description="Rotation direction applied to every selected item",
     )
 
-    def model_post_init(self, __context):
-        if not self.select_all and not self.item_ids:
-            raise ValueError("Either item_ids or select_all=True must be provided")
-        if self.select_all and self.item_ids:
-            raise ValueError("Cannot use both item_ids and select_all")
 
-
-class BulkRotateResponse(BaseModel):
+class BulkRotateResponse(BulkBatchResponse):
     queued: int
     failed: int
     skipped: int = 0
     errors: list[str] = Field(default_factory=list)
 
 
-class BulkRemoveBackgroundRequest(BaseModel):
-    # Explicit selection
-    item_ids: list[UUID] | None = None
-
-    # Select all with exceptions
-    select_all: bool = False
-    excluded_ids: list[UUID] | None = None
-    filters: BulkFilters | None = None
-
+class BulkRemoveBackgroundRequest(BulkSelectionRequest):
     bg_color: str = Field(
         default="#FFFFFF",
         pattern=r"^#[0-9A-Fa-f]{6}$",
         description="Hex color for the replacement background",
     )
 
-    def model_post_init(self, __context):
-        if not self.select_all and not self.item_ids:
-            raise ValueError("Either item_ids or select_all=True must be provided")
-        if self.select_all and self.item_ids:
-            raise ValueError("Cannot use both item_ids and select_all")
 
-
-class BulkRemoveBackgroundResponse(BaseModel):
+class BulkRemoveBackgroundResponse(BulkBatchResponse):
     queued: int
     failed: int
     skipped: int = 0

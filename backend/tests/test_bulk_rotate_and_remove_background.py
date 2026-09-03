@@ -82,7 +82,14 @@ class TestBulkRotate:
             )
 
         assert response.status_code == 200
-        assert response.json() == {"queued": 1, "failed": 0, "skipped": 0, "errors": []}
+        assert response.json() == {
+            "queued": 1,
+            "failed": 0,
+            "skipped": 0,
+            "errors": [],
+            "next_cursor": None,
+            "has_more": False,
+        }
         mock_redis.enqueue_job.assert_called_once_with(
             "rotate_item_image_job",
             str(item_id),
@@ -305,6 +312,8 @@ class TestBulkRemoveBackground:
             "skipped": 0,
             "already_done": 0,
             "errors": [],
+            "next_cursor": None,
+            "has_more": False,
         }
         mock_redis.enqueue_job.assert_called_once_with(
             "remove_item_background_job",
