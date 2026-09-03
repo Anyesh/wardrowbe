@@ -82,10 +82,6 @@ class ClothingItem(Base):
         Enum(ItemStatus, name="item_status"), default=ItemStatus.processing
     )
     ai_job_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    # Set only for non-tagging jobs that reuse status=processing (currently just
-    # background removal), so get_tagging_progress can exclude them from the
-    # site-wide AI-tagging banner. NULL for every tagging-flow row.
-    processing_kind: Mapped[str | None] = mapped_column(String(32), nullable=True)
     # Set only by tagging.py's attempt loop (from NULL), and reset to NULL only by
     # the status=processing writers in item_service.py/items.py. A future writer of
     # status=processing must reset this too, or the stale-item sweep in worker.py

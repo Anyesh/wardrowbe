@@ -10,18 +10,6 @@ describe('tagProcessingLabel', () => {
   it('reports analyzing when ai_started_at is set', () => {
     expect(tagProcessingLabel({ ai_started_at: '2026-08-12T10:00:00Z' })).toBe('analyzing')
   })
-
-  it('reports removing_background regardless of ai_started_at when the kind is background_removal', () => {
-    expect(
-      tagProcessingLabel({ ai_started_at: null, processing_kind: 'background_removal' })
-    ).toBe('removing_background')
-    expect(
-      tagProcessingLabel({
-        ai_started_at: '2026-08-12T10:00:00Z',
-        processing_kind: 'background_removal',
-      })
-    ).toBe('removing_background')
-  })
 })
 
 describe('formatAnalyzingElapsed', () => {
