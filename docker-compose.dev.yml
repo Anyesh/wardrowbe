@@ -68,6 +68,18 @@ services:
       DEBUG: "true"
       DATABASE_ECHO: "false"
 
+  image-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: watchfiles --filter python "arq app.workers.image_worker.ImageWorkerSettings" /app
+    volumes:
+      - ./backend:/app
+      - wardrobe_data:/data/wardrobe
+    environment:
+      DEBUG: "true"
+      DATABASE_ECHO: "false"
+
 volumes:
   caddy_data:
   caddy_config:

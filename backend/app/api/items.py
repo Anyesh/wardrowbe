@@ -46,6 +46,7 @@ from app.schemas.item import (
 from app.services.image_service import ImageService
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
+from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
 from app.workers.settings import get_redis_settings
 
 logger = logging.getLogger(__name__)
@@ -206,7 +207,7 @@ async def create_item(
                     "tag_item_image",
                     str(item.id),
                     full_image_path,
-                    _queue_name="arq:tagging",
+                    _queue_name=TAGGING_QUEUE,
                 )
                 item.ai_job_id = job.job_id
                 await db.commit()
@@ -362,7 +363,7 @@ async def bulk_create_items(
                             "tag_item_image",
                             str(item.id),
                             full_image_path,
-                            _queue_name="arq:tagging",
+                            _queue_name=TAGGING_QUEUE,
                         )
                         item.ai_job_id = job.job_id
                         await db.commit()
@@ -627,7 +628,7 @@ async def bulk_analyze_items(
                     str(item.id),
                     full_image_path,
                     _job_id=job_id,
-                    _queue_name="arq:tagging",
+                    _queue_name=TAGGING_QUEUE,
                 )
                 if job is None:
                     raise RuntimeError("enqueue_job returned None")
@@ -706,7 +707,7 @@ async def bulk_cancel_analysis(
             if not item.ai_job_id:
                 return
             try:
-                job = Job(item.ai_job_id, redis, _queue_name="arq:tagging")
+                job = Job(item.ai_job_id, redis, _queue_name=queue_for_kind(item.processing_kind))
                 await job.abort(timeout=5)
             except Exception as e:
                 # The guarded UPDATE below protects against a stray worker
@@ -746,10 +747,8 @@ async def bulk_rotate_items(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkRotateResponse:
     item_service = ItemService(db)
-    image_service = ImageService()
-    rotated = 0
+    queued = 0
     failed = 0
-    skipped = 0
     errors: list[str] = []
 
     if request.select_all:
@@ -766,6 +765,7 @@ async def bulk_rotate_items(
     else:
         item_ids = request.item_ids or []
 
+    items_to_process: list[ClothingItem] = []
     for item_id in item_ids:
         item = await item_service.get_by_id(item_id, current_user.id)
         if not item:
@@ -776,22 +776,63 @@ async def bulk_rotate_items(
             errors.append(f"Item {item_id} has no image")
             failed += 1
             continue
-        # A concurrent job (e.g. background removal) may still be writing
-        # image_path/medium_path/thumbnail_path for this item - rotating it
-        # now would race that writer, so skip rather than rotate.
-        if item.status == ItemStatus.processing:
-            skipped += 1
-            continue
-        try:
-            await asyncio.to_thread(image_service.rotate_image, item.image_path, request.direction)
-            rotated += 1
-        except Exception as e:
-            logger.error(f"Failed to rotate item {item_id}: {e}")
-            errors.append(f"Failed to rotate item {item_id}")
-            failed += 1
+        items_to_process.append(item)
 
+    # A concurrent job (tagging, background removal, an earlier rotate) may
+    # still be writing image_path/medium_path/thumbnail_path for this item -
+    # rotating it now would interleave two _save_all_sizes passes over the same
+    # three files, so skip rather than queue.
+    already_processing = [item for item in items_to_process if item.status == ItemStatus.processing]
+    skipped = len(already_processing)
+    to_queue = [item for item in items_to_process if item not in already_processing]
+
+    for item in to_queue:
+        item.status = ItemStatus.processing
+        item.processing_kind = "rotate"
+        # Clear any stale ai_started_at from a prior tagging run, otherwise the
+        # frontend reads it as this job's elapsed time and shows a wildly wrong
+        # duration for what is a sub-second rotation.
+        item.ai_started_at = None
     await db.commit()
-    return BulkRotateResponse(rotated=rotated, failed=failed, skipped=skipped, errors=errors)
+
+    redis = None
+    try:
+        redis = await create_pool(get_redis_settings())
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis for bulk rotate: {e}")
+        for item in to_queue:
+            item.status = ItemStatus.error
+            item.processing_kind = None
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to connect to job queue",
+        ) from None
+
+    try:
+        for item in to_queue:
+            try:
+                job = await redis.enqueue_job(
+                    "rotate_item_image_job",
+                    str(item.id),
+                    request.direction,
+                    _queue_name=IMAGE_QUEUE,
+                )
+                if job is None:
+                    raise RuntimeError("enqueue_job returned None")
+                item.ai_job_id = job.job_id
+                queued += 1
+            except Exception as e:
+                logger.error(f"Failed to queue rotation for {item.id}: {e}")
+                errors.append(f"Failed to queue rotation for item {item.id}")
+                item.status = ItemStatus.error
+                item.processing_kind = None
+                failed += 1
+        await db.commit()
+    finally:
+        await redis.aclose()
+
+    return BulkRotateResponse(queued=queued, failed=failed, skipped=skipped, errors=errors)
 
 
 @router.post("/bulk/remove-background", response_model=BulkRemoveBackgroundResponse)
@@ -887,7 +928,7 @@ async def bulk_remove_background_items(
                     "remove_item_background_job",
                     str(item.id),
                     request.bg_color,
-                    _queue_name="arq:tagging",
+                    _queue_name=IMAGE_QUEUE,
                 )
                 if job is None:
                     raise RuntimeError("enqueue_job returned None")
@@ -1331,7 +1372,7 @@ async def trigger_ai_analysis(
                     str(item_id),
                     full_image_path,
                     _job_id=job_id,
-                    _queue_name="arq:tagging",
+                    _queue_name=TAGGING_QUEUE,
                 )
                 if enqueued is None:
                     raise RuntimeError("enqueue_job returned None")
@@ -1361,7 +1402,7 @@ async def trigger_ai_analysis(
                 "tag_item_image",
                 str(item.id),
                 full_image_path,
-                _queue_name="arq:tagging",
+                _queue_name=TAGGING_QUEUE,
             )
             item.ai_job_id = job.job_id
             await db.commit()
@@ -1418,7 +1459,7 @@ async def cancel_item_analysis(
         redis = None
         try:
             redis = await create_pool(get_redis_settings())
-            job = Job(item.ai_job_id, redis, _queue_name="arq:tagging")
+            job = Job(item.ai_job_id, redis, _queue_name=queue_for_kind(item.processing_kind))
             await job.abort(timeout=5)
         except Exception as e:
             # abort failing or timing out must not block the status flip below;
@@ -1474,7 +1515,10 @@ async def rotate_item_image(
 
     try:
         image_service = ImageService()
-        image_service.rotate_image(item.image_path, direction)
+        # to_thread because rotate_image is a blocking decode/resize/encode
+        # cycle; calling it directly stalls the whole event loop for its
+        # duration, which on a large image is seconds of dead API.
+        await asyncio.to_thread(image_service.rotate_image, item.image_path, direction)
         await db.commit()
         await db.refresh(item)
         return ItemResponse.model_validate(item)

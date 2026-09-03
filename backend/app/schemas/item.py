@@ -316,7 +316,7 @@ class BulkRotateRequest(BaseModel):
 
 
 class BulkRotateResponse(BaseModel):
-    rotated: int
+    queued: int
     failed: int
     skipped: int = 0
     errors: list[str] = Field(default_factory=list)

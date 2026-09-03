@@ -135,6 +135,40 @@ services:
     networks:
       - wardrobe_net
 
+  # Local image work (rotation, background removal) on its own queue, so a bulk
+  # batch of it cannot block AI tagging behind it.
+  image-worker:
+    image: ghcr.io/anyesh/wardrowbe:backend-latest
+    container_name: wardrobe_image_worker
+    restart: unless-stopped
+    command: arq app.workers.image_worker.ImageWorkerSettings
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wardrobe}
+      REDIS_URL: redis://redis:6379
+      STORAGE_PATH: /data/uploads
+      IMAGE_WORKER_CONCURRENCY: ${IMAGE_WORKER_CONCURRENCY:-1}
+      BG_REMOVAL_PROVIDER: ${BG_REMOVAL_PROVIDER:-rembg}
+      BG_REMOVAL_MODEL: ${BG_REMOVAL_MODEL:-u2net}
+      BG_REMOVAL_URL: ${BG_REMOVAL_URL:-}
+      BG_REMOVAL_API_KEY: ${BG_REMOVAL_API_KEY:-}
+      MAX_IMAGE_MEGAPIXELS: ${MAX_IMAGE_MEGAPIXELS:-50}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - uploads_data:/data/uploads
+    dns:
+      - ${LOCAL_DNS:-8.8.8.8}
+      - 8.8.8.8
+      - 1.1.1.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - wardrobe_net
+
   # Next.js Frontend
   frontend:
     image: ghcr.io/anyesh/wardrowbe:frontend-latest

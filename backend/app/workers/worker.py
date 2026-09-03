@@ -8,7 +8,6 @@ from sqlalchemy import and_, or_, select, update
 from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus
 from app.services.ai_service import AIService
-from app.workers.background_removal import remove_item_background_job
 from app.workers.db import close_db, get_db_session, init_db
 from app.workers.notifications import (
     check_scheduled_notifications,
@@ -18,6 +17,7 @@ from app.workers.notifications import (
     send_notification,
     update_learning_profiles,
 )
+from app.workers.queues import IMAGE_PROCESSING_KINDS, TAGGING_QUEUE, queue_for_kind
 from app.workers.settings import get_redis_settings
 from app.workers.tagging import TAGGING_MAX_TRIES, tag_item_image, worker_job_timeout_seconds
 
@@ -70,14 +70,15 @@ async def recover_stale_processing_items(ctx: dict) -> None:
         for item_id, ai_job_id, processing_kind in candidates.all():
             lost = ai_job_id is None
             if not lost:
-                job_status = await Job(ai_job_id, redis, _queue_name="arq:tagging").status()
+                queue_name = queue_for_kind(processing_kind)
+                job_status = await Job(ai_job_id, redis, _queue_name=queue_name).status()
                 lost = job_status in (JobStatus.not_found, JobStatus.complete)
             if lost:
-                # A background-removal row never touched AI tagging, so
-                # condemning it must not write ai_raw_response/ai_failed_at -
+                # A rotation or background-removal row never touched AI tagging,
+                # so condemning it must not write ai_raw_response/ai_failed_at -
                 # doing so would start a bogus AI retry cooldown
                 # (claim_error_items_for_retry keys off ai_failed_at).
-                if processing_kind == "background_removal":
+                if processing_kind in IMAGE_PROCESSING_KINDS:
                     values = {"status": ItemStatus.error}
                 else:
                     values = {
@@ -119,7 +120,6 @@ async def shutdown(ctx: dict) -> None:
 class WorkerSettings:
     functions = [
         tag_item_image,
-        remove_item_background_job,
         send_notification,
         retry_failed_notifications,
         check_scheduled_notifications,
@@ -150,4 +150,4 @@ class WorkerSettings:
     health_check_interval = 30
     allow_abort_jobs = True
 
-    queue_name = "arq:tagging"
+    queue_name = TAGGING_QUEUE

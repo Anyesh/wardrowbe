@@ -97,6 +97,13 @@ class Settings(BaseSettings):
     # scale during decode (PNG, WebP) and JPEGs still absurd after an 8x draft.
     max_image_megapixels: float = Field(default=50.0, gt=0)
 
+    # Concurrency for the arq:images worker (rotation, background removal).
+    # Kept at 1 by default for the same reason as ai_tagging_concurrency: the
+    # smallest supported deployment is a Pi, and rembg inference holds a model
+    # plus its working buffers per concurrent job.
+    image_worker_concurrency: int = Field(default=1, ge=1)
+    image_job_timeout: int = Field(default=300, ge=1)
+
     # Background removal
     bg_removal_provider: str = Field(default="rembg")  # "rembg" or "http"
     bg_removal_model: str = Field(default="u2net")  # rembg model name

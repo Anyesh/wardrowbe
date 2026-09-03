@@ -10,6 +10,7 @@ resources:
   - redis.yaml
   - backend.yaml
   - worker.yaml
+  - image-worker.yaml
   - frontend.yaml
   - ingress.yaml
   - network-policy.yaml
