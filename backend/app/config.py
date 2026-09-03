@@ -90,6 +90,12 @@ class Settings(BaseSettings):
     storage_path: str = Field(default="/data/wardrobe")
     max_upload_size_mb: int = Field(default=10)
     max_bulk_upload_count: int = Field(default=20)
+    # Byte size is a poor proxy for decode cost: a 3.8MB JPEG can be 108MP,
+    # which needs ~324MB per full-resolution RGB buffer and several exist at
+    # once while variants are generated. JPEGs are drafted down before this
+    # ceiling is applied, so in practice it only rejects formats Pillow cannot
+    # scale during decode (PNG, WebP) and JPEGs still absurd after an 8x draft.
+    max_image_megapixels: float = Field(default=50.0, gt=0)
 
     # Background removal
     bg_removal_provider: str = Field(default="rembg")  # "rembg" or "http"
