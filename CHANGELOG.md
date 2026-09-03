@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.8.2...wardrowbe-v1.9.0) (2026-09-03)
+
+
+### ✨ Features
+
+* blend outfit scoring across the day's temperature range ([dd1b8f8](https://github.com/Anyesh/wardrowbe/commit/dd1b8f8e5ad4ead2472e114cc4fdb303ec31b426))
+* bulk-cancel in-progress AI analysis ([#152](https://github.com/Anyesh/wardrowbe/issues/152)) ([26f2cad](https://github.com/Anyesh/wardrowbe/commit/26f2cadaf861092e750c850df0b6d529eda3eb96))
+* **ci:** add /reopen command for closed issues ([0f7046b](https://github.com/Anyesh/wardrowbe/commit/0f7046b01aae0bf0e0fffeb96cb4b3ad492907a6))
+* **release:** notify reporters when a fix ships ([c4aeacf](https://github.com/Anyesh/wardrowbe/commit/c4aeacf6c9afeac88baad2036ceb62648fa68a8f))
+
+
+### 🐛 Bug Fixes
+
+* bound AI request concurrency and fix upload queue stall ([#152](https://github.com/Anyesh/wardrowbe/issues/152), [#154](https://github.com/Anyesh/wardrowbe/issues/154) reopened) ([bb441b6](https://github.com/Anyesh/wardrowbe/commit/bb441b63eedb61fea2a46601eefc8a6092ed8a55))
+* bound AI request concurrency and fix upload queue stall ([#152](https://github.com/Anyesh/wardrowbe/issues/152), [#154](https://github.com/Anyesh/wardrowbe/issues/154) reopened) ([7a7e0c6](https://github.com/Anyesh/wardrowbe/commit/7a7e0c6ae46ae3f4f953cb107844427c00685d95))
+* **ci:** Fix first time pr ([70ce6f9](https://github.com/Anyesh/wardrowbe/commit/70ce6f9d49b36fe1d9b7b91a8b86cb3513483968))
+* **templates:** point issue template links at the real repo ([1b863bf](https://github.com/Anyesh/wardrowbe/commit/1b863bfb03ef9f5cd66219f35646055a57faf538))
+* **worker:** make the arq pool the only AI concurrency bound ([d0170b8](https://github.com/Anyesh/wardrowbe/commit/d0170b83f42c6740ef2c5bde407da556ac1a0482))
+
+
+### 👷 CI/CD
+
+* add actionlint gate for workflow files ([3d163a1](https://github.com/Anyesh/wardrowbe/commit/3d163a1672bd76a58d1f31f4fde11d6db5d13173))
+* assign PRs to the repository owner instead of a hardcoded login ([abb2d4d](https://github.com/Anyesh/wardrowbe/commit/abb2d4dddecd76f6444089c99efafd332ff7fe22))
+* auto-assign PRs to maintainer ([0cf4b69](https://github.com/Anyesh/wardrowbe/commit/0cf4b69405d18d2172edc448ecdcf7bba8c19dbd))
+* auto-label PRs by changed path ([129ccc6](https://github.com/Anyesh/wardrowbe/commit/129ccc603451b9c63145e050d8f967d1a7e2e4c6))
+* document intentional word-splitting in docker-publish ([a7a1ea3](https://github.com/Anyesh/wardrowbe/commit/a7a1ea38811d3a953e8981cdbf59819b7bb6a0e3))
+* enforce conventional-commit PR titles ([66808c9](https://github.com/Anyesh/wardrowbe/commit/66808c99b1965de92090c7f2244b81adb0786ac0))
+* re-check PR title on synchronize ([9793a01](https://github.com/Anyesh/wardrowbe/commit/9793a01e05ec29bfb2b80a84800f8e680a470e36))
+* run each test suite once and drop the missing frontend coverage script ([ae9c2c9](https://github.com/Anyesh/wardrowbe/commit/ae9c2c949e0faf1256fae59af509ceba1c5ea16b))
+* welcome first-time issue and PR authors ([49be742](https://github.com/Anyesh/wardrowbe/commit/49be74277a03191d6c2e70f88aaab6b86b138fc2))
+* welcome only true first-time authors ([89c1023](https://github.com/Anyesh/wardrowbe/commit/89c1023feb0a19b5ed707ad54d993afb63ee9377))
+
 ## [1.8.2](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.8.1...wardrowbe-v1.8.2) (2026-08-22)
 
 
