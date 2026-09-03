@@ -268,142 +268,157 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden [&>button]:hidden">
           {/* Header - sticky */}
-          <DialogHeader className="flex flex-row items-center justify-between space-y-0 p-4 border-b flex-shrink-0">
-            <DialogTitle className="text-xl min-w-0 truncate">
+          <DialogHeader className="flex flex-row items-center gap-2 space-y-0 p-4 border-b flex-shrink-0">
+            {/* Capped on narrow screens because the title claims its content
+                width before the actions do, and a long item name otherwise
+                squeezes the scrollable row down to about one button. */}
+            <DialogTitle className="text-xl min-w-0 truncate max-w-[45%] sm:max-w-none">
               {item.name || (typeInfo ? typeInfo.label : item.type)}
             </DialogTitle>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleToggleFavorite}
-                disabled={updateItem.isPending}
-                title={t('titles.toggleFavorite')}
-              >
-                <Heart
-                  className={`h-5 w-5 ${
-                    item.favorite ? 'fill-red-500 text-red-500' : 'text-muted-foreground'
-                  }`}
-                />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowPairingsDialog(true)}
-                disabled={item.status !== 'ready'}
-                title={t('titles.findMatchingOutfits')}
-              >
-                <Layers className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleReanalyze}
-                disabled={isAnalyzing}
-                title={isAnalyzing ? t('titles.analysisInProgress') : t('titles.reanalyzeWithAI')}
-              >
-                <RefreshCw
-                  className={`h-5 w-5 ${isAnalyzing ? 'animate-spin text-primary' : ''}`}
-                />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRotate('ccw')}
-                disabled={rotateImage.isPending}
-                title={t('titles.rotateLeft')}
-              >
-                {rotateImage.isPending ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <RotateCcw className="h-5 w-5" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRotate('cw')}
-                disabled={rotateImage.isPending}
-                title={t('titles.rotateRight')}
-              >
-                {rotateImage.isPending ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <RotateCw className="h-5 w-5" />
-                )}
-              </Button>
-              {features?.background_removal && (
+            {/* The action row scrolls sideways once it stops fitting, because
+                the dialog clips its own overflow: without this the buttons
+                push the close control past the right edge on a phone and it
+                cannot be reached at all. */}
+            <div className="flex-1 min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex w-max ml-auto items-center gap-1">
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={handleRemoveBackground}
-                  disabled={removeBackground.isPending || !item.image_url}
-                  title={t('titles.removeBackground')}
+                  onClick={handleToggleFavorite}
+                  disabled={updateItem.isPending}
+                  title={t('titles.toggleFavorite')}
                 >
-                  {removeBackground.isPending ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Eraser className="h-5 w-5" />
-                  )}
+                  <Heart
+                    className={`h-5 w-5 ${
+                      item.favorite ? 'fill-red-500 text-red-500' : 'text-muted-foreground'
+                    }`}
+                  />
                 </Button>
-              )}
-              {item.original_image_path && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={handleRestoreOriginal}
-                  disabled={restoreOriginal.isPending}
-                  title={t('titles.undoBackgroundRemoval')}
+                  onClick={() => setShowPairingsDialog(true)}
+                  disabled={item.status !== 'ready'}
+                  title={t('titles.findMatchingOutfits')}
                 >
-                  {restoreOriginal.isPending ? (
+                  <Layers className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleReanalyze}
+                  disabled={isAnalyzing}
+                  title={isAnalyzing ? t('titles.analysisInProgress') : t('titles.reanalyzeWithAI')}
+                >
+                  <RefreshCw
+                    className={`h-5 w-5 ${isAnalyzing ? 'animate-spin text-primary' : ''}`}
+                  />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRotate('ccw')}
+                  disabled={rotateImage.isPending}
+                  title={t('titles.rotateLeft')}
+                >
+                  {rotateImage.isPending ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <Undo2 className="h-5 w-5" />
+                    <RotateCcw className="h-5 w-5" />
                   )}
                 </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => replaceImageInputRef.current?.click()}
-                disabled={replaceImage.isPending}
-                title={t('titles.replaceImage')}
-              >
-                {replaceImage.isPending ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <ImagePlus className="h-5 w-5" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRotate('cw')}
+                  disabled={rotateImage.isPending}
+                  title={t('titles.rotateRight')}
+                >
+                  {rotateImage.isPending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <RotateCw className="h-5 w-5" />
+                  )}
+                </Button>
+                {features?.background_removal && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRemoveBackground}
+                    disabled={removeBackground.isPending || !item.image_url}
+                    title={t('titles.removeBackground')}
+                  >
+                    {removeBackground.isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Eraser className="h-5 w-5" />
+                    )}
+                  </Button>
                 )}
-              </Button>
-              <input
-                ref={replaceImageInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    handleReplaceImage(file);
-                  }
-                  e.target.value = '';
-                }}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsEditing(!isEditing)}
-                title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
-              >
-                {isEditing ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Pencil className="h-5 w-5" />
+                {item.original_image_path && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRestoreOriginal}
+                    disabled={restoreOriginal.isPending}
+                    title={t('titles.undoBackgroundRemoval')}
+                  >
+                    {restoreOriginal.isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Undo2 className="h-5 w-5" />
+                    )}
+                  </Button>
                 )}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full" title={tc('close')}>
-                <X className="h-5 w-5" />
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => replaceImageInputRef.current?.click()}
+                  disabled={replaceImage.isPending}
+                  title={t('titles.replaceImage')}
+                >
+                  {replaceImage.isPending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-5 w-5" />
+                  )}
+                </Button>
+                <input
+                  ref={replaceImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleReplaceImage(file);
+                    }
+                    e.target.value = '';
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsEditing(!isEditing)}
+                  title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
+                >
+                  {isEditing ? (
+                    <X className="h-5 w-5" />
+                  ) : (
+                    <Pencil className="h-5 w-5" />
+                  )}
+                </Button>
+              </div>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="rounded-full flex-shrink-0"
+              title={tc('close')}
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </DialogHeader>
 
           {/* Scrollable content */}
