@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -403,8 +404,6 @@ class TestTaggingQueueProgress:
     async def test_splits_queued_from_analyzing(
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
-        from datetime import UTC, datetime
-
         db_session.add(
             ClothingItem(
                 user_id=test_user.id,
@@ -532,3 +531,63 @@ class TestTaggingConcurrencySetting:
             await asyncio.gather(*[service._call_with_fallback([], "tags") for _ in range(3)])
 
         assert max_in_flight == 3
+
+
+class TestAnalysisDuration:
+    @pytest.mark.asyncio
+    async def test_records_completion_time_on_success(self, db_session: AsyncSession, test_user):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="unknown",
+            image_path="t/done.jpg",
+            status=ItemStatus.processing,
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        with (
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch.object(AIService, "analyze_image", new_callable=AsyncMock) as analyze,
+        ):
+            analyze.return_value = ClothingTags(
+                type="shirt", primary_color="blue", colors=["blue"], confidence=0.9
+            )
+            await tag_item_image({"job_try": 1}, str(item.id), __file__)
+
+        await db_session.refresh(item)
+        assert item.ai_completed_at is not None
+        assert item.ai_started_at is not None
+        assert item.ai_completed_at >= item.ai_started_at
+
+    @pytest.mark.asyncio
+    async def test_new_attempt_clears_previous_completion_time(
+        self, db_session: AsyncSession, test_user
+    ):
+        # Both timestamps are per-attempt. Leaving the previous run's completion
+        # behind would make a re-analysis report a duration measured against an
+        # older start, so the panel would show a negative or absurd figure while
+        # the item is still analyzing.
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="unknown",
+            image_path="t/redo.jpg",
+            status=ItemStatus.processing,
+            ai_started_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ai_completed_at=datetime(2026, 1, 1, 0, 5, tzinfo=UTC),
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        with (
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch.object(AIService, "analyze_image", new_callable=AsyncMock) as analyze,
+        ):
+            analyze.side_effect = RuntimeError("upstream 500")
+            with pytest.raises(Retry):
+                await tag_item_image({"job_try": 1}, str(item.id), __file__)
+
+        await db_session.refresh(item)
+        assert item.ai_completed_at is None
+

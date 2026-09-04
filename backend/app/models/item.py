@@ -94,6 +94,11 @@ class ClothingItem(Base):
     # Set only when an actual AI tagging attempt fails (not on queue-infrastructure
     # failures), and drives the retry cooldown in ItemService.claim_error_item_for_retry.
     ai_failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Written when a tagging attempt succeeds, and cleared whenever a new attempt
+    # starts, so it always pairs with the ai_started_at of the same attempt. A
+    # re-analysis that kept the old value would report a duration spanning both
+    # runs, or a negative one.
+    ai_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ai_processed: Mapped[bool] = mapped_column(Boolean, default=False)
     ai_confidence: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
     ai_raw_response: Mapped[dict | None] = mapped_column(JSONB)
