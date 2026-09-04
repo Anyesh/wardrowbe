@@ -214,6 +214,10 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
             # Overwritten on every attempt (not set-once), so a retry's backoff wait
             # reads as "queued for retry," not "still analyzing."
             item.ai_started_at = datetime.now(UTC)
+            # Cleared with it, because the pair must describe one attempt: a
+            # re-analysis that kept the earlier completion would measure a
+            # duration across two runs.
+            item.ai_completed_at = None
 
             pref_result = await db.execute(
                 select(UserPreference).where(UserPreference.user_id == item.user_id)
@@ -293,6 +297,8 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                         or current_value == {}
                     ):
                         setattr(item, field, value)
+
+            item.ai_completed_at = datetime.now(UTC)
 
             await db.commit()
             logger.info(f"Updated item {item_id} with AI tags (status=ready)")

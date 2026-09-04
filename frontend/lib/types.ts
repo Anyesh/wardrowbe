@@ -73,6 +73,30 @@ export interface ItemListResponse {
   has_more: boolean;
 }
 
+export interface AnalysisInProgress {
+  item_id: string;
+  name?: string | null;
+  type: string;
+  image_url?: string | null;
+  started_at: string;
+}
+
+export interface AnalysisCompletion {
+  item_id: string;
+  name?: string | null;
+  type: string;
+  duration_seconds?: number | null;
+  completed_at: string;
+}
+
+export interface AnalysisFailure {
+  item_id: string;
+  name?: string | null;
+  type: string;
+  error?: string | null;
+  failed_at?: string | null;
+}
+
 export interface TaggingProgress {
   processing: number;
   queued: number;
@@ -80,6 +104,17 @@ export interface TaggingProgress {
   failed: number;
   completed: number;
   total: number;
+  // Scoped to the run in flight rather than the wardrobe, so an import into a
+  // populated wardrobe does not open at 70% and creep.
+  batch_total: number;
+  batch_completed: number;
+  batch_failed: number;
+  current: AnalysisInProgress[];
+  recent: AnalysisCompletion[];
+  failures: AnalysisFailure[];
+  avg_duration_seconds?: number | null;
+  eta_seconds?: number | null;
+  concurrency: number;
 }
 
 export interface ItemFilter {

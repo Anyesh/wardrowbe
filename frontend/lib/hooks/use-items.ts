@@ -1030,6 +1030,41 @@ export function formatAnalyzingElapsed(aiStartedAt: string, now: number = Date.n
   return `${minutes}m ${seconds}s`;
 }
 
+export function formatDurationSeconds(seconds: number | null | undefined): string | null {
+  if (seconds === null || seconds === undefined) {
+    return null;
+  }
+  const whole = Math.max(0, Math.round(seconds));
+  if (whole < 60) {
+    return `${whole}s`;
+  }
+  return `${Math.floor(whole / 60)}m ${whole % 60}s`;
+}
+
+export interface QueueSummary {
+  batchTotal: number;
+  batchDone: number;
+  batchFailed: number;
+  remaining: number;
+  percentComplete: number;
+}
+
+export function deriveQueueSummary(progress?: TaggingProgress): QueueSummary {
+  const batchTotal = progress?.batch_total ?? 0;
+  const batchDone = progress?.batch_completed ?? 0;
+  const batchFailed = progress?.batch_failed ?? 0;
+  // Failures count toward the bar but not toward "analyzed", so a run that ends
+  // with some errors still fills rather than stalling short of the end.
+  const settled = batchDone + batchFailed;
+  return {
+    batchTotal,
+    batchDone,
+    batchFailed,
+    remaining: progress?.processing ?? 0,
+    percentComplete: batchTotal > 0 ? Math.round((settled / batchTotal) * 100) : 0,
+  };
+}
+
 function failedChunkResponse(files: File[], error: unknown): BulkUploadResponse {
   const message =
     error instanceof ApiError || error instanceof NetworkError
