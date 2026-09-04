@@ -1,5 +1,5 @@
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -9,6 +9,7 @@ import pytest
 from arq import Retry
 from httpx import AsyncClient
 from PIL import Image, ImageDraw
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.item import ClothingItem, ItemStatus
@@ -591,3 +592,280 @@ class TestAnalysisDuration:
         await db_session.refresh(item)
         assert item.ai_completed_at is None
 
+
+def _ready(user_id, name: str, completed_at, started_at=None) -> ClothingItem:
+    return ClothingItem(
+        user_id=user_id,
+        type="shirt",
+        name=name,
+        image_path=f"t/{name}.jpg",
+        status=ItemStatus.ready,
+        ai_processed=True,
+        ai_started_at=started_at,
+        ai_completed_at=completed_at,
+    )
+
+
+class TestBatchProgress:
+    @pytest.mark.asyncio
+    async def test_batch_counts_the_import_not_the_wardrobe(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        # The reporter's case: 3 new items imported into a wardrobe that already
+        # holds 6 analyzed ones. Wardrobe-wide the run opens at 67% done and
+        # creeps; batch-wide it opens at 0 of 3.
+        long_ago = datetime.now(UTC) - timedelta(days=30)
+        for i in range(6):
+            db_session.add(_ready(test_user.id, f"old{i}", long_ago))
+        for i in range(3):
+            db_session.add(
+                ClothingItem(
+                    user_id=test_user.id,
+                    type="unknown",
+                    image_path=f"t/new{i}.jpg",
+                    status=ItemStatus.processing,
+                )
+            )
+        await db_session.commit()
+
+        resp = await client.get("/api/v1/items/tagging-progress", headers=auth_headers)
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["total"] == 9
+        assert body["batch_total"] == 3
+        assert body["batch_completed"] == 0
+        assert body["batch_failed"] == 0
+
+    @pytest.mark.asyncio
+    async def test_batch_completion_advances_as_items_finish(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        long_ago = datetime.now(UTC) - timedelta(days=30)
+        db_session.add(_ready(test_user.id, "old", long_ago))
+        started = datetime.now(UTC) - timedelta(seconds=40)
+        db_session.add(_ready(test_user.id, "justdone", datetime.now(UTC), started_at=started))
+        for i in range(2):
+            db_session.add(
+                ClothingItem(
+                    user_id=test_user.id,
+                    type="unknown",
+                    image_path=f"t/pending{i}.jpg",
+                    status=ItemStatus.processing,
+                )
+            )
+        await db_session.commit()
+
+        body = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+        assert body["batch_completed"] == 1
+        assert body["batch_total"] == 3
+        assert body["recent"][0]["name"] == "justdone"
+        assert body["recent"][0]["duration_seconds"] == pytest.approx(40, abs=2)
+        assert body["avg_duration_seconds"] == pytest.approx(40, abs=2)
+        # Two still queued, one at a time, at roughly 40s each.
+        assert body["eta_seconds"] == pytest.approx(80, abs=5)
+
+    @pytest.mark.asyncio
+    async def test_batch_grows_when_more_items_arrive_mid_run(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        for i in range(2):
+            db_session.add(
+                ClothingItem(
+                    user_id=test_user.id,
+                    type="unknown",
+                    image_path=f"t/first{i}.jpg",
+                    status=ItemStatus.processing,
+                )
+            )
+        await db_session.commit()
+        first = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+        assert first["batch_total"] == 2
+
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="unknown",
+                image_path="t/second.jpg",
+                status=ItemStatus.processing,
+            )
+        )
+        await db_session.commit()
+
+        second = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+        assert second["batch_total"] == 3
+
+    @pytest.mark.asyncio
+    async def test_empty_wardrobe_reports_no_batch(
+        self, client: AsyncClient, auth_headers, test_user
+    ):
+        body = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+        assert body["batch_total"] == 0
+        assert body["batch_completed"] == 0
+        assert body["current"] == []
+        assert body["recent"] == []
+        assert body["failures"] == []
+        assert body["avg_duration_seconds"] is None
+        assert body["eta_seconds"] is None
+
+    @pytest.mark.asyncio
+    async def test_queued_batch_has_no_average_and_no_eta(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        for i in range(3):
+            db_session.add(
+                ClothingItem(
+                    user_id=test_user.id,
+                    type="unknown",
+                    image_path=f"t/q{i}.jpg",
+                    status=ItemStatus.processing,
+                )
+            )
+        await db_session.commit()
+
+        body = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+        assert body["batch_total"] == 3
+        assert body["avg_duration_seconds"] is None
+        assert body["eta_seconds"] is None
+
+    @pytest.mark.asyncio
+    async def test_all_failed_batch_reports_reasons(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        now = datetime.now(UTC)
+        for i in range(2):
+            db_session.add(
+                ClothingItem(
+                    user_id=test_user.id,
+                    type="unknown",
+                    name=f"broken{i}",
+                    image_path=f"t/f{i}.jpg",
+                    status=ItemStatus.error,
+                    ai_failed_at=now,
+                    ai_raw_response={"error": "connection refused"},
+                )
+            )
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="unknown",
+                image_path="t/live.jpg",
+                status=ItemStatus.processing,
+            )
+        )
+        await db_session.commit()
+
+        body = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+        assert body["failed"] == 2
+        assert body["batch_failed"] == 2
+        assert body["batch_total"] == 3
+        assert {f["error"] for f in body["failures"]} == {"connection refused"}
+
+    @pytest.mark.asyncio
+    async def test_background_removal_stays_out_of_the_batch(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="shirt",
+                image_path="t/bg.jpg",
+                status=ItemStatus.processing,
+                processing_kind="background_removal",
+            )
+        )
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="shirt",
+                image_path="t/bgfail.jpg",
+                status=ItemStatus.error,
+                processing_kind="background_removal",
+                ai_failed_at=datetime.now(UTC),
+                ai_raw_response={"error": "rembg unreachable"},
+            )
+        )
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="unknown",
+                image_path="t/tag.jpg",
+                status=ItemStatus.processing,
+            )
+        )
+        await db_session.commit()
+
+        body = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+        assert body["batch_total"] == 1
+        assert body["batch_failed"] == 0
+        assert body["failures"] == []
+
+    @pytest.mark.asyncio
+    async def test_currently_analyzing_items_are_listed(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        started = datetime.now(UTC) - timedelta(seconds=12)
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="unknown",
+                name="inflight",
+                image_path="t/inflight.jpg",
+                thumbnail_path="t/inflight_thumb.jpg",
+                status=ItemStatus.processing,
+                ai_started_at=started,
+            )
+        )
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="unknown",
+                image_path="t/waiting.jpg",
+                status=ItemStatus.processing,
+            )
+        )
+        await db_session.commit()
+
+        body = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+        assert len(body["current"]) == 1
+        assert body["current"][0]["name"] == "inflight"
+        assert body["current"][0]["started_at"] is not None
+        assert body["current"][0]["image_url"] is not None
+
+    @pytest.mark.asyncio
+    async def test_reports_configured_concurrency(
+        self, client: AsyncClient, auth_headers, monkeypatch
+    ):
+        body = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+        from app.config import get_settings
+
+        assert body["concurrency"] == get_settings().ai_tagging_concurrency
+
+    @pytest.mark.asyncio
+    async def test_reanalysis_of_an_old_item_does_not_claim_the_wardrobe(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        # A re-analysis anchors on when the attempt started, not on the item's
+        # creation date, or every item analyzed since that old item was uploaded
+        # would be counted into this "batch".
+        long_ago = datetime.now(UTC) - timedelta(days=30)
+        for i in range(5):
+            db_session.add(_ready(test_user.id, f"since{i}", datetime.now(UTC) - timedelta(days=1)))
+        old = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            name="revisited",
+            image_path="t/revisited.jpg",
+            status=ItemStatus.processing,
+            ai_processed=True,
+            ai_started_at=datetime.now(UTC),
+        )
+        db_session.add(old)
+        await db_session.commit()
+        await db_session.execute(
+            update(ClothingItem).where(ClothingItem.id == old.id).values(created_at=long_ago)
+        )
+        await db_session.commit()
+
+        body = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+        assert body["batch_total"] == 1
+        assert body["batch_completed"] == 0
