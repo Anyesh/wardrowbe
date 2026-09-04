@@ -26,6 +26,11 @@ data:
   AI_TEXT_MODEL: "gpt-4o"
   AI_TIMEOUT: "120"
   AI_MAX_RETRIES: "3"
+  # How many items the worker analyzes at once. One at a time because a
+  # single local model serves requests serially, so N in flight multiplies
+  # each request's latency by N against AI_TIMEOUT. The backend reads it too,
+  # to report the configured value in the analysis queue panel.
+  AI_TAGGING_CONCURRENCY: "1"
 
   # Capability switches. Defaults keep internal AI on. Set AI_INTERNAL_ENABLED
   # to "false" to run with no internal AI and defer to an external agent; the
