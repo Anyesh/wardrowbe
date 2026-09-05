@@ -1,4 +1,18 @@
 {
+  "baseItem": {
+    "all": "All",
+    "basePiece": "Base item",
+    "change": "Change",
+    "chooseItem": "Choose a clothing item",
+    "chooseItemHint": "Select a shirt, pants, shoes, or any piece to build around",
+    "clear": "Clear",
+    "dialogDescription": "Select an item from your wardrobe to build this outfit around.",
+    "dialogTitle": "Choose an item for your outfit",
+    "mustInclude": "Must include",
+    "remove": "Remove",
+    "subtitle": "Choose a shirt, pants, shoes, or any item that must appear in the outfit",
+    "title": "Build around a specific piece (optional)"
+  },
   "dismissOutfit": "Dismiss outfit",
   "error": "Failed to generate outfit suggestion. Please try again.",
   "feedback": {
@@ -39,6 +53,14 @@
   },
   "loveIt": "Love it",
   "occasionPrompt": "What's the occasion?",
+  "options": {
+    "allOptions": "Compare All",
+    "chooseThis": "Choose this look",
+    "generateNew": "Generate 3 New Looks",
+    "optionNumber": "Look {number}",
+    "singleView": "Focus View",
+    "title": "{count} Outfit Options"
+  },
   "outfitPreview": {
     "familyRatings": {
       "average": "({rating} <star></star> avg)",

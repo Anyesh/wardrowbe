@@ -202,3 +202,57 @@ def test_canonical_order_full_outfit():
 def test_canonical_order_empty_list():
     result = canonical_item_order([], {})
     assert result == []
+
+
+def test_mandatory_item_overrides_earlier_duplicate():
+    ai_shirt_id, mandatory_shirt_id, pants_id = _ids(3)
+    item_type_map = {
+        ai_shirt_id: "t-shirt",
+        mandatory_shirt_id: "polo",
+        pants_id: "jeans",
+    }
+    result = deduplicate_by_body_slot(
+        [ai_shirt_id, mandatory_shirt_id, pants_id],
+        item_type_map,
+        mandatory_item_ids={mandatory_shirt_id},
+    )
+    assert mandatory_shirt_id in result
+    assert ai_shirt_id not in result
+    assert pants_id in result
+
+
+def test_mandatory_separate_drops_non_mandatory_full_body():
+    dress_id, mandatory_pants_id, shoes_id = _ids(3)
+    item_type_map = {
+        dress_id: "dress",
+        mandatory_pants_id: "pants",
+        shoes_id: "sneakers",
+    }
+    result = deduplicate_by_body_slot(
+        [dress_id, mandatory_pants_id, shoes_id],
+        item_type_map,
+        mandatory_item_ids={mandatory_pants_id},
+    )
+    assert mandatory_pants_id in result
+    assert dress_id not in result
+    assert shoes_id in result
+
+
+def test_mandatory_full_body_drops_non_mandatory_separates():
+    mandatory_dress_id, shirt_id, pants_id, shoes_id = _ids(4)
+    item_type_map = {
+        mandatory_dress_id: "dress",
+        shirt_id: "shirt",
+        pants_id: "jeans",
+        shoes_id: "boots",
+    }
+    result = deduplicate_by_body_slot(
+        [shirt_id, mandatory_dress_id, pants_id, shoes_id],
+        item_type_map,
+        mandatory_item_ids={mandatory_dress_id},
+    )
+    assert mandatory_dress_id in result
+    assert shirt_id not in result
+    assert pants_id not in result
+    assert shoes_id in result
+

@@ -1,4 +1,18 @@
 {
+  "baseItem": {
+    "all": "Alle",
+    "basePiece": "Basisteil",
+    "change": "Ändern",
+    "chooseItem": "Kleidungsstück wählen",
+    "chooseItemHint": "Wähle ein Hemd, eine Hose, Schuhe oder ein Teil als Basis",
+    "clear": "Löschen",
+    "dialogDescription": "Wähle ein Kleidungsstück aus deiner Garderobe, um dein Outfit darum aufzubauen.",
+    "dialogTitle": "Kleidungsstück für dein Outfit wählen",
+    "mustInclude": "Muss enthalten sein",
+    "remove": "Entfernen",
+    "subtitle": "Wähle ein Hemd, eine Hose, Schuhe oder ein Teil, das im Outfit vorkommen muss",
+    "title": "Um ein bestimmtes Teil aufbauen (optional)"
+  },
   "dismissOutfit": "Outfit verwerfen",
   "error": "Outfit-Vorschlag konnte nicht generiert werden. Bitte versuche es erneut.",
   "feedback": {
@@ -39,6 +53,14 @@
   },
   "loveIt": "Gefällt mir",
   "occasionPrompt": "Was ist der Anlass?",
+  "options": {
+    "allOptions": "Alle vergleichen",
+    "chooseThis": "Diesen Look wählen",
+    "generateNew": "3 neue Looks generieren",
+    "optionNumber": "Look {number}",
+    "singleView": "Einzelansicht",
+    "title": "{count} Outfit-Optionen"
+  },
   "outfitPreview": {
     "familyRatings": {
       "average": "({rating} <star></star> Ø)",

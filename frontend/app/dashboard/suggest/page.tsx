@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import {
@@ -31,6 +32,9 @@ import {
   Snowflake,
   CalendarDays,
   CloudLightning,
+  Plus,
+  X,
+  Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,12 +42,21 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { ItemPicker } from '@/components/shared/item-picker';
+import { useItem } from '@/lib/hooks/use-items';
 import { api, ApiError, setAccessToken } from '@/lib/api';
-import { Outfit, SuggestRequest } from '@/lib/types';
+import { Item, Outfit, SuggestRequest } from '@/lib/types';
 import { useOccasions } from '@/lib/hooks/use-translated-constants';
 import { useWeather, Weather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
@@ -303,93 +316,72 @@ function WeatherOverrideSection({
   );
 }
 
-function OutfitResult({
+function OutfitCard({
   outfit,
-  occasion,
+  baseItemId,
   temperatureUnit,
+  t,
   onAccept,
   onReject,
-  onTryAnother,
-  onNewRequest,
-  t,
+  showActions = true,
+  badgeLabel,
 }: {
   outfit: Outfit;
-  occasion: string;
+  baseItemId?: string;
   temperatureUnit: TempUnit;
-  onAccept: () => void;
-  onReject: () => void;
-  onTryAnother: () => void;
-  onNewRequest: () => void;
   t: Translator;
+  onAccept?: () => void;
+  onReject?: () => void;
+  showActions?: boolean;
+  badgeLabel?: string;
 }) {
   return (
-    <div className="space-y-6">
-      {/* Header with occasion and new request */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="capitalize text-sm px-3 py-1">
-            {occasion}
-          </Badge>
-          {outfit.scheduled_for && (
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <CalendarDays className="h-3 w-3" />
-              {new Date(outfit.scheduled_for + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-            </span>
+    <Card className="overflow-hidden flex flex-col h-full">
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 border-b">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+            <h3 className="font-semibold text-base truncate">
+              {outfit.reasoning || (badgeLabel ?? t('yourOutfit'))}
+            </h3>
+          </div>
+          {badgeLabel && (
+            <Badge variant="secondary" className="text-xs px-2 py-0.5 flex-shrink-0">
+              {badgeLabel}
+            </Badge>
           )}
         </div>
-        <Button variant="ghost" size="sm" onClick={onNewRequest}>
-          {t('startOver')}
-        </Button>
+        {outfit.highlights && outfit.highlights.length > 0 && (
+          <ul className="mt-2.5 space-y-1">
+            {outfit.highlights.map((highlight, index) => (
+              <li key={index} className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
+                <span className="text-primary mt-0.5">•</span>
+                <span>{highlight}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      {/* Weather info */}
-      {outfit.weather && (
-        <div className="flex items-center gap-4 text-sm text-muted-foreground p-3 rounded-lg bg-muted/50">
-          <div className="flex items-center gap-1.5">
-            <Thermometer className="h-4 w-4" />
-            <span>{formatTemp(outfit.weather.temperature, temperatureUnit)}</span>
-            <span className="text-xs opacity-70">{t('weather.feelsLikeInline', { temp: displayValue(outfit.weather.feels_like, temperatureUnit) })}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Droplets className="h-4 w-4" />
-            <span>{t('weather.rainChance', { chance: outfit.weather.precipitation_chance })}</span>
-          </div>
-          <Badge variant="outline" className="capitalize">
-            {outfit.weather.condition}
-          </Badge>
-        </div>
-      )}
-
-      {/* Outfit Card */}
-      <Card className="overflow-hidden">
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 border-b">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">{t('yourOutfit')}</h3>
-          </div>
-          {outfit.reasoning && (
-            <p className="mt-2 text-base font-medium text-foreground">{outfit.reasoning}</p>
-          )}
-          {outfit.highlights && outfit.highlights.length > 0 && (
-            <ul className="mt-3 space-y-1.5">
-              {outfit.highlights.map((highlight, index) => (
-                <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>{highlight}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {outfit.items.map((item) => (
+      <CardContent className="p-4 flex-1 flex flex-col justify-between space-y-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          {outfit.items.map((item) => {
+            const isBase = !!baseItemId && item.id === baseItemId;
+            return (
               <Link
                 key={item.id}
                 href={`/dashboard/wardrobe?item=${item.id}`}
-                className="group relative rounded-xl border overflow-hidden bg-muted/30 hover:shadow-md transition-shadow"
+                className={cn(
+                  'group relative rounded-xl border overflow-hidden bg-muted/30 hover:shadow-md transition-all',
+                  isBase && 'border-primary/60 ring-2 ring-primary/20'
+                )}
               >
                 <div className="aspect-square relative">
+                  {isBase && (
+                    <Badge className="absolute top-2 left-2 z-10 bg-primary/95 text-primary-foreground text-[10px] px-2 py-0.5 shadow-sm">
+                      {t('baseItem.basePiece')}
+                    </Badge>
+                  )}
                   {item.thumbnail_url ? (
                     <Image
                       src={item.thumbnail_url}
@@ -400,54 +392,226 @@ function OutfitResult({
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-muted">
-                      <Shirt className="h-10 w-10 text-muted-foreground/50" />
+                      <Shirt className="h-8 w-8 text-muted-foreground/50" />
                     </div>
                   )}
                 </div>
-                <div className="p-2.5">
-                  <p className="text-sm font-medium truncate">
+                <div className="p-2">
+                  <p className="text-xs sm:text-sm font-medium truncate">
                     {item.name || item.type}
                   </p>
                   {item.layer_type && (
-                    <Badge variant="secondary" className="text-xs capitalize mt-1">
+                    <Badge variant="secondary" className="text-[10px] capitalize mt-0.5">
                       {item.layer_type}
                     </Badge>
                   )}
                 </div>
               </Link>
+            );
+          })}
+        </div>
+
+        {outfit.style_notes && (
+          <div className="p-2.5 bg-muted/60 rounded-lg border text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">{t('tip')}</span> {outfit.style_notes}
+          </div>
+        )}
+
+        {showActions && (
+          <div className="pt-2 flex gap-2 justify-end border-t mt-auto">
+            {onReject && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onReject}
+                className="h-8 px-2.5 text-muted-foreground hover:text-destructive"
+                aria-label={t('dismissOutfit')}
+              >
+                <ThumbsDown className="h-4 w-4" />
+              </Button>
+            )}
+            {onAccept && (
+              <Button size="sm" onClick={onAccept} className="gap-1.5 text-xs h-8">
+                <ThumbsUp className="h-3.5 w-3.5" />
+                {t('options.chooseThis')}
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function OutfitResultsView({
+  outfits,
+  occasion,
+  temperatureUnit,
+  baseItemId,
+  activeOptionIndex,
+  onSelectOption,
+  isCompareAll,
+  onToggleCompareAll,
+  onAccept,
+  onReject,
+  onTryAnother,
+  onNewRequest,
+  t,
+}: {
+  outfits: Outfit[];
+  occasion: string;
+  temperatureUnit: TempUnit;
+  baseItemId?: string;
+  activeOptionIndex: number;
+  onSelectOption: (index: number) => void;
+  isCompareAll: boolean;
+  onToggleCompareAll: () => void;
+  onAccept: (outfit?: Outfit) => void;
+  onReject: (outfit?: Outfit) => void;
+  onTryAnother: () => void;
+  onNewRequest: () => void;
+  t: Translator;
+}) {
+  const currentOutfit = outfits[activeOptionIndex] || outfits[0];
+
+  return (
+    <div className="space-y-6">
+      {/* Header with occasion and start over */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="capitalize text-sm px-3 py-1">
+            {occasion}
+          </Badge>
+          {currentOutfit?.scheduled_for && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <CalendarDays className="h-3 w-3" />
+              {new Date(currentOutfit.scheduled_for + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            </span>
+          )}
+        </div>
+        <Button variant="ghost" size="sm" onClick={onNewRequest}>
+          {t('startOver')}
+        </Button>
+      </div>
+
+      {/* Weather info */}
+      {currentOutfit?.weather && (
+        <div className="flex items-center gap-4 text-sm text-muted-foreground p-3 rounded-lg bg-muted/50">
+          <div className="flex items-center gap-1.5">
+            <Thermometer className="h-4 w-4" />
+            <span>{formatTemp(currentOutfit.weather.temperature, temperatureUnit)}</span>
+            <span className="text-xs opacity-70">{t('weather.feelsLikeInline', { temp: displayValue(currentOutfit.weather.feels_like, temperatureUnit) })}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Droplets className="h-4 w-4" />
+            <span>{t('weather.rainChance', { chance: currentOutfit.weather.precipitation_chance })}</span>
+          </div>
+          <Badge variant="outline" className="capitalize">
+            {currentOutfit.weather.condition}
+          </Badge>
+        </div>
+      )}
+
+      {/* Options Switcher Bar (when multiple outfits exist) */}
+      {outfits.length > 1 && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-1.5 bg-muted/60 rounded-xl border">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+            {outfits.map((opt, idx) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onSelectOption(idx)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 flex-shrink-0',
+                  !isCompareAll && activeOptionIndex === idx
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                )}
+              >
+                <Sparkles className={cn("h-3.5 w-3.5", !isCompareAll && activeOptionIndex === idx ? "text-primary" : "opacity-40")} />
+                <span>{t('options.optionNumber', { number: idx + 1 })}</span>
+              </button>
             ))}
           </div>
 
-          {outfit.style_notes && (
-            <div className="mt-4 p-3 bg-muted rounded-lg border">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{t('tip')}</span> {outfit.style_notes}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-1 pt-1.5 sm:pt-0 border-t sm:border-t-0 justify-end">
+            <Button
+              variant={isCompareAll ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+              onClick={onToggleCompareAll}
+            >
+              <Layers className="h-3.5 w-3.5" />
+              <span>{isCompareAll ? t('options.singleView') : t('options.allOptions')}</span>
+            </Button>
+          </div>
+        </div>
+      )}
 
-      {/* Action buttons */}
-      <div className="flex gap-3 justify-center">
-        <Button variant="outline" size="lg" onClick={onTryAnother} className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          {t('tryAnother')}
-        </Button>
-        <Button size="lg" onClick={onAccept} className="gap-2">
-          <ThumbsUp className="h-4 w-4" />
-          {t('loveIt')}
-        </Button>
-        <Button variant="ghost" size="lg" onClick={onReject} className="px-3" aria-label={t('dismissOutfit')}>
-          <ThumbsDown className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* View: All Outfits Side-by-Side Grid */}
+      {isCompareAll ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {outfits.map((opt, idx) => (
+              <OutfitCard
+                key={opt.id}
+                outfit={opt}
+                baseItemId={baseItemId}
+                temperatureUnit={temperatureUnit}
+                t={t}
+                badgeLabel={t('options.optionNumber', { number: idx + 1 })}
+                onAccept={() => onAccept(opt)}
+                onReject={() => onReject(opt)}
+                showActions={true}
+              />
+            ))}
+          </div>
+          <div className="flex gap-3 justify-center pt-2">
+            <Button variant="outline" size="lg" onClick={onTryAnother} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              {t('options.generateNew')}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        /* View: Single Active Outfit Focus */
+        <div className="space-y-6">
+          <OutfitCard
+            outfit={currentOutfit}
+            baseItemId={baseItemId}
+            temperatureUnit={temperatureUnit}
+            t={t}
+            badgeLabel={outfits.length > 1 ? t('options.optionNumber', { number: activeOptionIndex + 1 }) : undefined}
+            onAccept={() => onAccept(currentOutfit)}
+            onReject={() => onReject(currentOutfit)}
+            showActions={false}
+          />
+
+          {/* Action buttons */}
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" size="lg" onClick={onTryAnother} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              {outfits.length > 1 ? t('options.generateNew') : t('tryAnother')}
+            </Button>
+            <Button size="lg" onClick={() => onAccept(currentOutfit)} className="gap-2">
+              <ThumbsUp className="h-4 w-4" />
+              {t('loveIt')}
+            </Button>
+            <Button variant="ghost" size="lg" onClick={() => onReject(currentOutfit)} className="px-3" aria-label={t('dismissOutfit')}>
+              <ThumbsDown className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export default function SuggestPage() {
+function SuggestContent() {
   const t = useTranslations('suggest');
+  const searchParams = useSearchParams();
+  const preselectedItemId = searchParams.get('item');
+  const { data: preselectedItem } = useItem(preselectedItemId || '');
   const { data: session } = useSession();
   const { data: weather, isLoading: weatherLoading } = useWeather();
   const { data: prefs } = usePreferences();
@@ -455,9 +619,20 @@ export default function SuggestPage() {
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
   const [occasionInitialized, setOccasionInitialized] = useState(false);
   const [weatherOverride, setWeatherOverride] = useState<WeatherOverride | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [isItemPickerOpen, setIsItemPickerOpen] = useState(false);
+  const [filterType, setFilterType] = useState<string | undefined>(undefined);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [outfit, setOutfit] = useState<Outfit | null>(null);
+  const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [activeOptionIndex, setActiveOptionIndex] = useState<number>(0);
+  const [isCompareAll, setIsCompareAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (preselectedItem && !selectedItem) {
+      setSelectedItem(preselectedItem);
+    }
+  }, [preselectedItem, selectedItem]);
 
   useEffect(() => {
     if (prefs?.default_occasion && !occasionInitialized && !selectedOccasion) {
@@ -479,6 +654,7 @@ export default function SuggestPage() {
     try {
       const request: SuggestRequest = {
         occasion: selectedOccasion,
+        include_items: selectedItem ? [selectedItem.id] : [],
       };
 
       if (weatherOverride) {
@@ -491,8 +667,9 @@ export default function SuggestPage() {
         };
       }
 
-      const result = await api.post<Outfit>('/outfits/suggest', request);
-      setOutfit(result);
+      const result = await api.post<Outfit[]>('/outfits/suggest-options', request);
+      setOutfits(result);
+      setActiveOptionIndex(0);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -505,16 +682,17 @@ export default function SuggestPage() {
     }
   };
 
-  const handleAccept = async () => {
-    if (!outfit) return;
+  const handleAccept = async (targetOutfit?: Outfit) => {
+    const outfitToAccept = targetOutfit || outfits[activeOptionIndex];
+    if (!outfitToAccept) return;
 
     if (session?.accessToken) {
       setAccessToken(session.accessToken as string);
     }
 
     try {
-      await api.post(`/outfits/${outfit.id}/accept`);
-      setOutfit(null);
+      await api.post(`/outfits/${outfitToAccept.id}/accept`);
+      setOutfits([]);
       setSelectedOccasion(null);
     } catch (err) {
       console.error('Accept error:', err);
@@ -522,35 +700,49 @@ export default function SuggestPage() {
   };
 
   const handleTryAnother = () => {
-    setOutfit(null);
+    setOutfits([]);
     handleGenerate();
   };
 
-  const handleReject = async () => {
-    if (!outfit) return;
+  const handleReject = async (targetOutfit?: Outfit) => {
+    const outfitToReject = targetOutfit || outfits[activeOptionIndex];
+    if (!outfitToReject) return;
 
     if (session?.accessToken) {
       setAccessToken(session.accessToken as string);
     }
 
     try {
-      await api.post(`/outfits/${outfit.id}/reject`);
+      await api.post(`/outfits/${outfitToReject.id}/reject`);
     } catch (err) {
       console.error('Reject error:', err);
     }
 
-    setOutfit(null);
-    handleGenerate();
+    const remaining = outfits.filter((o) => o.id !== outfitToReject.id);
+    if (remaining.length > 0) {
+      setOutfits(remaining);
+      setActiveOptionIndex((prev) => Math.min(prev, remaining.length - 1));
+    } else {
+      setOutfits([]);
+      handleGenerate();
+    }
   };
 
   const handleNewRequest = () => {
-    setOutfit(null);
+    setOutfits([]);
+    setActiveOptionIndex(0);
+    setIsCompareAll(false);
     setSelectedOccasion(null);
     setError(null);
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div
+      className={cn(
+        "mx-auto space-y-6 transition-all duration-300",
+        isCompareAll && outfits.length > 0 ? "max-w-5xl" : "max-w-2xl"
+      )}
+    >
       {/* Page header with greeting */}
       <div className="text-center space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">{t(getGreetingKey())}</h1>
@@ -566,7 +758,7 @@ export default function SuggestPage() {
         </Alert>
       )}
 
-      {!outfit ? (
+      {outfits.length === 0 ? (
         <div className="space-y-6">
           {/* Weather context */}
           <WeatherCard weather={weather} isLoading={weatherLoading} temperatureUnit={temperatureUnit} t={t} />
@@ -581,6 +773,99 @@ export default function SuggestPage() {
                   selected={selectedOccasion}
                   onSelect={setSelectedOccasion}
                 />
+              </div>
+
+              {/* Base item selection */}
+              <div className="space-y-3 pt-1 border-t">
+                <div className="space-y-0.5">
+                  <h2 className="font-semibold text-sm sm:text-base flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    {t('baseItem.title')}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {t('baseItem.subtitle')}
+                  </p>
+                </div>
+
+                {!selectedItem ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-16 border-dashed border-2 flex items-center justify-center gap-3 hover:border-primary/60 hover:bg-primary/5 transition-all text-muted-foreground hover:text-foreground"
+                    onClick={() => setIsItemPickerOpen(true)}
+                  >
+                    <div className="p-2 rounded-full bg-muted">
+                      <Plus className="h-4 w-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-sm font-medium block text-foreground">
+                        {t('baseItem.chooseItem')}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {t('baseItem.chooseItemHint')}
+                      </span>
+                    </div>
+                  </Button>
+                ) : (
+                  <div className="flex items-center justify-between p-3 rounded-xl border bg-card/80 shadow-sm gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="relative w-14 h-14 rounded-lg overflow-hidden border bg-muted flex-shrink-0">
+                        {selectedItem.thumbnail_url || selectedItem.image_url ? (
+                          <Image
+                            src={(selectedItem.thumbnail_url || selectedItem.image_url)!}
+                            alt={selectedItem.name || selectedItem.type}
+                            fill
+                            className="object-cover"
+                            sizes="56px"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-muted">
+                            <Shirt className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                            {t('baseItem.mustInclude')}
+                          </Badge>
+                          <Badge variant="secondary" className="text-[10px] capitalize px-1.5 py-0">
+                            {selectedItem.type}
+                          </Badge>
+                        </div>
+                        <p className="text-sm font-medium truncate">
+                          {selectedItem.name || selectedItem.type}
+                        </p>
+                        {selectedItem.primary_color && (
+                          <p className="text-xs text-muted-foreground capitalize truncate">
+                            {selectedItem.primary_color}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsItemPickerOpen(true)}
+                        className="text-xs"
+                      >
+                        {t('baseItem.change')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedItem(null)}
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        title={t('baseItem.remove')}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Weather override (collapsible) */}
@@ -616,10 +901,15 @@ export default function SuggestPage() {
           </Card>
         </div>
       ) : (
-        <OutfitResult
-          outfit={outfit}
+        <OutfitResultsView
+          outfits={outfits}
+          activeOptionIndex={activeOptionIndex}
+          onSelectOption={setActiveOptionIndex}
+          isCompareAll={isCompareAll}
+          onToggleCompareAll={() => setIsCompareAll(!isCompareAll)}
           occasion={selectedOccasion || 'casual'}
           temperatureUnit={temperatureUnit}
+          baseItemId={selectedItem?.id}
           onAccept={handleAccept}
           onReject={handleReject}
           onTryAnother={handleTryAnother}
@@ -627,6 +917,110 @@ export default function SuggestPage() {
           t={t}
         />
       )}
+
+      {/* Item Picker Dialog */}
+      <Dialog open={isItemPickerOpen} onOpenChange={setIsItemPickerOpen}>
+        <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              {t('baseItem.dialogTitle')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('baseItem.dialogDescription')}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Quick Category Filter Chips */}
+          <div className="flex gap-1.5 overflow-x-auto py-1 scrollbar-none">
+            {[
+              { label: t('baseItem.all'), value: undefined },
+              { label: 'Shirt', value: 'shirt' },
+              { label: 'T-Shirt', value: 't-shirt' },
+              { label: 'Pants', value: 'pants' },
+              { label: 'Jeans', value: 'jeans' },
+              { label: 'Shoes', value: 'shoes' },
+              { label: 'Sneakers', value: 'sneakers' },
+              { label: 'Jacket', value: 'jacket' },
+              { label: 'Dress', value: 'dress' },
+            ].map((cat) => (
+              <Button
+                key={cat.value ?? 'all'}
+                type="button"
+                variant={filterType === cat.value ? 'default' : 'outline'}
+                size="sm"
+                className="text-xs h-7 px-2.5 rounded-full flex-shrink-0"
+                onClick={() => setFilterType(cat.value)}
+              >
+                {cat.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex-1 overflow-hidden min-h-0 pt-1">
+            <ItemPicker
+              key={filterType ?? 'all'}
+              selectedIds={selectedItem ? new Set([selectedItem.id]) : new Set()}
+              onToggle={(item) => {
+                if (selectedItem?.id === item.id) {
+                  setSelectedItem(null);
+                } else {
+                  setSelectedItem(item);
+                  setIsItemPickerOpen(false);
+                }
+              }}
+              filterType={filterType}
+              hideNeedsWash={true}
+              heightClass="h-[340px]"
+            />
+          </div>
+
+          <div className="flex justify-between items-center pt-3 border-t mt-2">
+            {selectedItem ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedItem(null)}
+                className="text-xs text-muted-foreground hover:text-destructive"
+              >
+                {t('baseItem.clear')}
+              </Button>
+            ) : <div />}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsItemPickerOpen(false)}
+            >
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+export default function SuggestPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="space-y-2 text-center">
+            <Skeleton className="h-8 w-48 mx-auto" />
+            <Skeleton className="h-4 w-64 mx-auto" />
+          </div>
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <Skeleton className="h-24 w-full rounded-lg" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <SuggestContent />
+    </Suspense>
   );
 }

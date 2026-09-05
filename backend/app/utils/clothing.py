@@ -37,13 +37,35 @@ ITEM_ROLE: dict[str, str] = {
 }
 
 
-def deduplicate_by_body_slot(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> list[UUID]:
+def deduplicate_by_body_slot(
+    item_ids: list[UUID],
+    item_type_map: dict[UUID, str],
+    mandatory_item_ids: set[UUID] | None = None,
+) -> list[UUID]:
+    mandatory = mandatory_item_ids or set()
     seen_roles: dict[str, UUID] = {}
     result: list[UUID] = []
-    has_full_body = any(
-        ITEM_ROLE.get(item_type_map.get(iid, "")) == "full_body" for iid in item_ids
+
+    mandatory_has_full_body = any(
+        ITEM_ROLE.get(item_type_map.get(iid, "")) == "full_body" for iid in mandatory
     )
+    mandatory_has_separates = any(
+        ITEM_ROLE.get(item_type_map.get(iid, "")) in ("base_top", "bottom") for iid in mandatory
+    )
+
+    has_full_body = (
+        any(ITEM_ROLE.get(item_type_map.get(iid, "")) == "full_body" for iid in item_ids)
+        and not mandatory_has_separates
+    )
+
     for iid in item_ids:
+        if iid in mandatory:
+            role = ITEM_ROLE.get(item_type_map.get(iid, ""))
+            if role and role != "accessory":
+                seen_roles[role] = iid
+
+    for iid in item_ids:
+        is_mand = iid in mandatory
         item_type = item_type_map.get(iid, "")
         role = ITEM_ROLE.get(item_type)
         if not role:
@@ -52,17 +74,24 @@ def deduplicate_by_body_slot(item_ids: list[UUID], item_type_map: dict[UUID, str
         if role == "accessory":
             result.append(iid)
             continue
-        if has_full_body and role in ("base_top", "bottom"):
-            logger.warning(f"Removing {item_type} item {iid}: full_body item present")
-            continue
-        if role in seen_roles:
-            logger.warning(
-                f"Removing duplicate {role} item {iid} ({item_type}): "
-                f"role already filled by {seen_roles[role]}"
-            )
-            continue
+
+        if not is_mand:
+            if role == "full_body" and mandatory_has_separates:
+                logger.warning(f"Removing {item_type} item {iid}: mandatory separates present")
+                continue
+            if (has_full_body or mandatory_has_full_body) and role in ("base_top", "bottom"):
+                logger.warning(f"Removing {item_type} item {iid}: full_body item present")
+                continue
+            if role in seen_roles and seen_roles[role] != iid:
+                logger.warning(
+                    f"Removing duplicate {role} item {iid} ({item_type}): "
+                    f"role already filled by {seen_roles[role]}"
+                )
+                continue
+
         seen_roles[role] = iid
-        result.append(iid)
+        if iid not in result:
+            result.append(iid)
     return result
 
 
