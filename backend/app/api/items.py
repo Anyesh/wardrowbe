@@ -31,6 +31,7 @@ from app.schemas.item import (
     BulkRemoveBackgroundResponse,
     BulkRotateRequest,
     BulkRotateResponse,
+    BulkSelectionRequest,
     BulkUploadResponse,
     BulkUploadResult,
     ItemCreate,
@@ -50,6 +51,7 @@ from app.services.image_service import ImageService
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
 from app.utils.signed_urls import sign_image_url
+from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
 from app.workers.settings import get_redis_settings
 
 logger = logging.getLogger(__name__)
@@ -67,6 +69,48 @@ def _has_tag_content(field: str, value: Any) -> bool:
     if field == "tags" and isinstance(value, dict):
         return any(v not in _EMPTY_TAG_VALUES for v in value.values())
     return value not in _EMPTY_TAG_VALUES
+
+
+async def _resolve_bulk_item_ids(
+    item_service: ItemService,
+    user_id: UUID,
+    request: BulkSelectionRequest,
+    action: str,
+) -> tuple[list[UUID], UUID | None, bool]:
+    """Resolve one bulk request into at most max_bulk_action_count item ids.
+
+    An explicit id list is the caller's to chunk, so an oversized one is
+    rejected with the limit in the message. A select_all cannot be chunked by
+    the client, which holds filters rather than ids, so it is walked here: one
+    row beyond the cap is fetched to decide has_more without a second query.
+    """
+    limit = settings.max_bulk_action_count
+
+    if not request.select_all:
+        item_ids = request.item_ids or []
+        if len(item_ids) > limit:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Maximum {limit} items per bulk action",
+            )
+        return item_ids, None, False
+
+    filters = request.filters
+    item_ids = await item_service.get_ids_by_filter(
+        user_id=user_id,
+        type_filter=filters.type if filters else None,
+        search=filters.search if filters else None,
+        is_archived=filters.is_archived if filters and filters.is_archived is not None else False,
+        excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
+        after_id=request.after_id,
+        limit=limit + 1,
+    )
+
+    has_more = len(item_ids) > limit
+    item_ids = item_ids[:limit]
+    next_cursor = item_ids[-1] if has_more and item_ids else None
+    logger.info(f"Bulk {action} select_all: {len(item_ids)} items, has_more={has_more}")
+    return item_ids, next_cursor, has_more
 
 
 @router.get("", response_model=ItemListResponse)
@@ -212,7 +256,7 @@ async def create_item(
                     "tag_item_image",
                     str(item.id),
                     full_image_path,
-                    _queue_name="arq:tagging",
+                    _queue_name=TAGGING_QUEUE,
                 )
                 item.ai_job_id = job.job_id
                 await db.commit()
@@ -368,7 +412,7 @@ async def bulk_create_items(
                             "tag_item_image",
                             str(item.id),
                             full_image_path,
-                            _queue_name="arq:tagging",
+                            _queue_name=TAGGING_QUEUE,
                         )
                         item.ai_job_id = job.job_id
                         await db.commit()
@@ -457,20 +501,9 @@ async def bulk_delete_items(
     errors: list[str] = []
 
     # Get item IDs to delete
-    if request.select_all:
-        # Get all items matching filters, excluding specified ones
-        item_ids = await item_service.get_ids_by_filter(
-            user_id=current_user.id,
-            type_filter=request.filters.type if request.filters else None,
-            search=request.filters.search if request.filters else None,
-            is_archived=request.filters.is_archived
-            if request.filters and request.filters.is_archived is not None
-            else False,
-            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-        )
-        logger.info(f"Bulk delete select_all: {len(item_ids)} items to delete")
-    else:
-        item_ids = request.item_ids or []
+    item_ids, next_cursor, has_more = await _resolve_bulk_item_ids(
+        item_service, current_user.id, request, "delete"
+    )
 
     for item_id in item_ids:
         try:
@@ -496,7 +529,13 @@ async def bulk_delete_items(
             errors.append(f"Failed to delete item {item_id}")
             failed += 1
 
-    return BulkDeleteResponse(deleted=deleted, failed=failed, errors=errors)
+    return BulkDeleteResponse(
+        deleted=deleted,
+        failed=failed,
+        errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
+    )
 
 
 @router.post("/bulk/analyze", response_model=BulkAnalyzeResponse)
@@ -511,19 +550,9 @@ async def bulk_analyze_items(
     errors: list[str] = []
 
     # Get item IDs to analyze
-    if request.select_all:
-        item_ids = await item_service.get_ids_by_filter(
-            user_id=current_user.id,
-            type_filter=request.filters.type if request.filters else None,
-            search=request.filters.search if request.filters else None,
-            is_archived=request.filters.is_archived
-            if request.filters and request.filters.is_archived is not None
-            else False,
-            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-        )
-        logger.info(f"Bulk analyze select_all: {len(item_ids)} items to analyze")
-    else:
-        item_ids = request.item_ids or []
+    item_ids, next_cursor, has_more = await _resolve_bulk_item_ids(
+        item_service, current_user.id, request, "analyze"
+    )
 
     # Collect valid items first
     items_to_process = []
@@ -542,7 +571,13 @@ async def bulk_analyze_items(
             item.tagged_by = None
             item.tagged_at = None
         await db.commit()
-        return BulkAnalyzeResponse(queued=0, failed=failed, errors=errors)
+        return BulkAnalyzeResponse(
+            queued=0,
+            failed=failed,
+            errors=errors,
+            next_cursor=next_cursor,
+            has_more=has_more,
+        )
 
     # Items already processing with a live job are skipped, not re-queued - a
     # double-submit must not orphan the first job or race its ai_started_at
@@ -633,7 +668,7 @@ async def bulk_analyze_items(
                     str(item.id),
                     full_image_path,
                     _job_id=job_id,
-                    _queue_name="arq:tagging",
+                    _queue_name=TAGGING_QUEUE,
                 )
                 if job is None:
                     raise RuntimeError("enqueue_job returned None")
@@ -662,6 +697,8 @@ async def bulk_analyze_items(
         cooldown=cooldown_count,
         retry_after_seconds=cooldown_retry_after,
         errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
     )
 
 
@@ -674,19 +711,9 @@ async def bulk_cancel_analysis(
     item_service = ItemService(db)
     errors: list[str] = []
 
-    if request.select_all:
-        item_ids = await item_service.get_ids_by_filter(
-            user_id=current_user.id,
-            type_filter=request.filters.type if request.filters else None,
-            search=request.filters.search if request.filters else None,
-            is_archived=request.filters.is_archived
-            if request.filters and request.filters.is_archived is not None
-            else False,
-            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-        )
-        logger.info(f"Bulk cancel-analysis select_all: {len(item_ids)} candidate items")
-    else:
-        item_ids = request.item_ids or []
+    item_ids, next_cursor, has_more = await _resolve_bulk_item_ids(
+        item_service, current_user.id, request, "cancel-analysis"
+    )
 
     items_to_process = []
     for item_id in item_ids:
@@ -702,7 +729,13 @@ async def bulk_cancel_analysis(
     skipped = len(items_to_process) - len(processing_items)
 
     if not processing_items:
-        return BulkCancelAnalysisResponse(cancelled=0, skipped=skipped, errors=errors)
+        return BulkCancelAnalysisResponse(
+            cancelled=0,
+            skipped=skipped,
+            errors=errors,
+            next_cursor=next_cursor,
+            has_more=has_more,
+        )
 
     redis = None
     try:
@@ -712,7 +745,7 @@ async def bulk_cancel_analysis(
             if not item.ai_job_id:
                 return
             try:
-                job = Job(item.ai_job_id, redis, _queue_name="arq:tagging")
+                job = Job(item.ai_job_id, redis, _queue_name=queue_for_kind(item.processing_kind))
                 await job.abort(timeout=5)
             except Exception as e:
                 # The guarded UPDATE below protects against a stray worker
@@ -724,7 +757,13 @@ async def bulk_cancel_analysis(
     except Exception as e:
         logger.error(f"Failed to connect to job queue for bulk cancel-analysis: {e}")
         errors.append("Failed to connect to job queue; item statuses were not changed")
-        return BulkCancelAnalysisResponse(cancelled=0, skipped=skipped, errors=errors)
+        return BulkCancelAnalysisResponse(
+            cancelled=0,
+            skipped=skipped,
+            errors=errors,
+            next_cursor=next_cursor,
+            has_more=has_more,
+        )
     finally:
         if redis:
             await redis.aclose()
@@ -742,7 +781,13 @@ async def bulk_cancel_analysis(
     )
     await db.commit()
 
-    return BulkCancelAnalysisResponse(cancelled=result.rowcount, skipped=skipped, errors=errors)
+    return BulkCancelAnalysisResponse(
+        cancelled=result.rowcount,
+        skipped=skipped,
+        errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
+    )
 
 
 @router.post("/bulk/rotate", response_model=BulkRotateResponse)
@@ -752,26 +797,15 @@ async def bulk_rotate_items(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkRotateResponse:
     item_service = ItemService(db)
-    image_service = ImageService()
-    rotated = 0
+    queued = 0
     failed = 0
-    skipped = 0
     errors: list[str] = []
 
-    if request.select_all:
-        item_ids = await item_service.get_ids_by_filter(
-            user_id=current_user.id,
-            type_filter=request.filters.type if request.filters else None,
-            search=request.filters.search if request.filters else None,
-            is_archived=request.filters.is_archived
-            if request.filters and request.filters.is_archived is not None
-            else False,
-            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-        )
-        logger.info(f"Bulk rotate select_all: {len(item_ids)} items to rotate")
-    else:
-        item_ids = request.item_ids or []
+    item_ids, next_cursor, has_more = await _resolve_bulk_item_ids(
+        item_service, current_user.id, request, "rotate"
+    )
 
+    items_to_process: list[ClothingItem] = []
     for item_id in item_ids:
         item = await item_service.get_by_id(item_id, current_user.id)
         if not item:
@@ -782,22 +816,70 @@ async def bulk_rotate_items(
             errors.append(f"Item {item_id} has no image")
             failed += 1
             continue
-        # A concurrent job (e.g. background removal) may still be writing
-        # image_path/medium_path/thumbnail_path for this item - rotating it
-        # now would race that writer, so skip rather than rotate.
-        if item.status == ItemStatus.processing:
-            skipped += 1
-            continue
-        try:
-            await asyncio.to_thread(image_service.rotate_image, item.image_path, request.direction)
-            rotated += 1
-        except Exception as e:
-            logger.error(f"Failed to rotate item {item_id}: {e}")
-            errors.append(f"Failed to rotate item {item_id}")
-            failed += 1
+        items_to_process.append(item)
 
+    # A concurrent job (tagging, background removal, an earlier rotate) may
+    # still be writing image_path/medium_path/thumbnail_path for this item -
+    # rotating it now would interleave two _save_all_sizes passes over the same
+    # three files, so skip rather than queue.
+    already_processing = [item for item in items_to_process if item.status == ItemStatus.processing]
+    skipped = len(already_processing)
+    to_queue = [item for item in items_to_process if item not in already_processing]
+
+    for item in to_queue:
+        item.status = ItemStatus.processing
+        item.processing_kind = "rotate"
+        # Clear any stale ai_started_at from a prior tagging run, otherwise the
+        # frontend reads it as this job's elapsed time and shows a wildly wrong
+        # duration for what is a sub-second rotation.
+        item.ai_started_at = None
     await db.commit()
-    return BulkRotateResponse(rotated=rotated, failed=failed, skipped=skipped, errors=errors)
+
+    redis = None
+    try:
+        redis = await create_pool(get_redis_settings())
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis for bulk rotate: {e}")
+        for item in to_queue:
+            item.status = ItemStatus.error
+            item.processing_kind = None
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to connect to job queue",
+        ) from None
+
+    try:
+        for item in to_queue:
+            try:
+                job = await redis.enqueue_job(
+                    "rotate_item_image_job",
+                    str(item.id),
+                    request.direction,
+                    _queue_name=IMAGE_QUEUE,
+                )
+                if job is None:
+                    raise RuntimeError("enqueue_job returned None")
+                item.ai_job_id = job.job_id
+                queued += 1
+            except Exception as e:
+                logger.error(f"Failed to queue rotation for {item.id}: {e}")
+                errors.append(f"Failed to queue rotation for item {item.id}")
+                item.status = ItemStatus.error
+                item.processing_kind = None
+                failed += 1
+        await db.commit()
+    finally:
+        await redis.aclose()
+
+    return BulkRotateResponse(
+        queued=queued,
+        failed=failed,
+        skipped=skipped,
+        errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
+    )
 
 
 @router.post("/bulk/remove-background", response_model=BulkRemoveBackgroundResponse)
@@ -811,19 +893,9 @@ async def bulk_remove_background_items(
     failed = 0
     errors: list[str] = []
 
-    if request.select_all:
-        item_ids = await item_service.get_ids_by_filter(
-            user_id=current_user.id,
-            type_filter=request.filters.type if request.filters else None,
-            search=request.filters.search if request.filters else None,
-            is_archived=request.filters.is_archived
-            if request.filters and request.filters.is_archived is not None
-            else False,
-            excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-        )
-        logger.info(f"Bulk remove-background select_all: {len(item_ids)} items")
-    else:
-        item_ids = request.item_ids or []
+    item_ids, next_cursor, has_more = await _resolve_bulk_item_ids(
+        item_service, current_user.id, request, "remove-background"
+    )
 
     items_to_process: list[ClothingItem] = []
     for item_id in item_ids:
@@ -893,7 +965,7 @@ async def bulk_remove_background_items(
                     "remove_item_background_job",
                     str(item.id),
                     request.bg_color,
-                    _queue_name="arq:tagging",
+                    _queue_name=IMAGE_QUEUE,
                 )
                 if job is None:
                     raise RuntimeError("enqueue_job returned None")
@@ -916,6 +988,8 @@ async def bulk_remove_background_items(
         skipped=skipped,
         already_done=already_done_count,
         errors=errors,
+        next_cursor=next_cursor,
+        has_more=has_more,
     )
 
 
@@ -941,9 +1015,12 @@ def _tagging_scope(user_id: UUID) -> tuple:
     return (
         ClothingItem.user_id == user_id,
         ClothingItem.is_archived.is_(False),
-        # Background-removal jobs reuse status=processing but aren't AI
-        # tagging - exclude them so they don't pollute this banner's counts.
+        # Background-removal and rotation jobs reuse status=processing but
+        # aren't AI tagging - exclude them so they don't pollute this banner's
+        # counts. is_distinct_from (not not_in) so a NULL processing_kind,
+        # which every ordinary tagging item has, stays included.
         ClothingItem.processing_kind.is_distinct_from("background_removal"),
+        ClothingItem.processing_kind.is_distinct_from("rotate"),
     )
 
 
@@ -1489,7 +1566,7 @@ async def trigger_ai_analysis(
                     str(item_id),
                     full_image_path,
                     _job_id=job_id,
-                    _queue_name="arq:tagging",
+                    _queue_name=TAGGING_QUEUE,
                 )
                 if enqueued is None:
                     raise RuntimeError("enqueue_job returned None")
@@ -1519,7 +1596,7 @@ async def trigger_ai_analysis(
                 "tag_item_image",
                 str(item.id),
                 full_image_path,
-                _queue_name="arq:tagging",
+                _queue_name=TAGGING_QUEUE,
             )
             item.ai_job_id = job.job_id
             await db.commit()
@@ -1576,7 +1653,7 @@ async def cancel_item_analysis(
         redis = None
         try:
             redis = await create_pool(get_redis_settings())
-            job = Job(item.ai_job_id, redis, _queue_name="arq:tagging")
+            job = Job(item.ai_job_id, redis, _queue_name=queue_for_kind(item.processing_kind))
             await job.abort(timeout=5)
         except Exception as e:
             # abort failing or timing out must not block the status flip below;
@@ -1632,7 +1709,10 @@ async def rotate_item_image(
 
     try:
         image_service = ImageService()
-        image_service.rotate_image(item.image_path, direction)
+        # to_thread because rotate_image is a blocking decode/resize/encode
+        # cycle; calling it directly stalls the whole event loop for its
+        # duration, which on a large image is seconds of dead API.
+        await asyncio.to_thread(image_service.rotate_image, item.image_path, direction)
         await db.commit()
         await db.refresh(item)
         return ItemResponse.model_validate(item)

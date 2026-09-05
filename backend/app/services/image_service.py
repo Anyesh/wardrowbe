@@ -32,6 +32,15 @@ ALLOWED_MIME_TYPES = {
 }
 
 
+class ImageTooLargeError(ValueError):
+    def __init__(self, pixels: int, limit_pixels: int):
+        self.pixels = pixels
+        self.limit_pixels = limit_pixels
+        super().__init__(
+            f"Image is {pixels / 1_000_000:.1f}MP, above the {limit_pixels / 1_000_000:.1f}MP limit"
+        )
+
+
 class ImageService:
     def __init__(self, storage_path: str | None = None):
         self.storage_path = Path(storage_path or settings.storage_path)
@@ -58,6 +67,29 @@ class ImageService:
             pass
 
         return Image.open(BytesIO(image_data))
+
+    def _open_bounded(self, image_data: bytes, ext: str) -> Image.Image:
+        """Open an upload without ever allocating a full-resolution buffer for it.
+
+        Image.open parses only the header, and draft() picks a JPEG DCT scaling
+        factor, so both run before any pixel decode. draft never scales below the
+        requested box, so the variants generated afterwards are unaffected. It is
+        a no-op for formats that cannot scale during decode, which is why the
+        ceiling is checked on the post-draft size.
+        """
+        if ext in (".heic", ".heif"):
+            image = self._convert_heic(image_data)
+        else:
+            image = Image.open(BytesIO(image_data))
+
+        image.draft("RGB", SIZES["original"])
+
+        pixels = image.size[0] * image.size[1]
+        limit_pixels = int(settings.max_image_megapixels * 1_000_000)
+        if pixels > limit_pixels:
+            raise ImageTooLargeError(pixels, limit_pixels)
+
+        return image
 
     def _resize_image(
         self,
@@ -105,11 +137,7 @@ class ImageService:
         if ext not in ALLOWED_EXTENSIONS:
             raise ValueError(f"Unsupported file type: {ext}")
 
-        # Load image
-        if ext in (".heic", ".heif"):
-            image = self._convert_heic(image_data)
-        else:
-            image = Image.open(BytesIO(image_data))
+        image = self._open_bounded(image_data, ext)
 
         # iPhones (and some Android cameras) store a raw sensor image plus an EXIF
         # orientation tag instead of rotating pixels, so portrait photos must be
@@ -145,8 +173,7 @@ class ImageService:
             # Store relative path
             paths[size_name] = f"{user_id}/{filename}"
 
-        # Compute perceptual hash for duplicate detection
-        image_hash = self.compute_phash(image_data, original_filename)
+        image_hash = self._phash_of(image)
 
         return {
             "image_path": paths["original"],
@@ -193,22 +220,13 @@ class ImageService:
 
         Returns a 16-character hex string representing the 64-bit hash.
         """
-        ext = Path(original_filename).suffix.lower()
+        image = self._open_bounded(image_data, Path(original_filename).suffix.lower())
+        return self._phash_of(ImageOps.exif_transpose(image))
 
-        if ext in (".heic", ".heif"):
-            image = self._convert_heic(image_data)
-        else:
-            image = Image.open(BytesIO(image_data))
-
-        image = ImageOps.exif_transpose(image)
-
-        # Convert to RGB if needed for consistent hashing
+    def _phash_of(self, image: Image.Image) -> str:
         if image.mode != "RGB":
             image = image.convert("RGB")
-
-        # Compute perceptual hash
-        phash = imagehash.phash(image)
-        return str(phash)
+        return str(imagehash.phash(image))
 
     def compute_phash_from_path(self, image_path: Path) -> str:
         """Compute pHash from a file path."""

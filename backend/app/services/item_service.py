@@ -116,6 +116,8 @@ class ItemService:
         search: str | None = None,
         is_archived: bool = False,
         excluded_ids: list[UUID] | None = None,
+        after_id: UUID | None = None,
+        limit: int | None = None,
     ) -> list[UUID]:
         query = select(ClothingItem.id).where(ClothingItem.user_id == user_id)
 
@@ -137,6 +139,17 @@ class ItemService:
 
         if excluded_ids:
             query = query.where(ClothingItem.id.notin_(excluded_ids))
+
+        if after_id is not None:
+            query = query.where(ClothingItem.id > after_id)
+
+        # invariant: a capped bulk action resumes with after_id, so the order
+        # has to be total and stable across requests. id is the only column
+        # here that is both unique and never rewritten by an action mid-walk.
+        query = query.order_by(ClothingItem.id.asc())
+
+        if limit is not None:
+            query = query.limit(limit)
 
         result = await self.db.execute(query)
         return list(result.scalars().all())

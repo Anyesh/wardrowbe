@@ -30,6 +30,9 @@ spec:
         - podSelector:
             matchLabels:
               app: worker
+        - podSelector:
+            matchLabels:
+              app: image-worker
       ports:
         - protocol: TCP
           port: 5432
@@ -55,6 +58,9 @@ spec:
         - podSelector:
             matchLabels:
               app: worker
+        - podSelector:
+            matchLabels:
+              app: image-worker
       ports:
         - protocol: TCP
           port: 6379

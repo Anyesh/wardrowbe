@@ -132,13 +132,24 @@ class OutfitService:
         return clauses
 
     async def get_ids_by_filter(
-        self, filters: OutfitListFilters, excluded_ids: list[UUID] | None = None
+        self,
+        filters: OutfitListFilters,
+        excluded_ids: list[UUID] | None = None,
+        after_id: UUID | None = None,
+        limit: int | None = None,
     ) -> list[UUID]:
         clauses = self._build_filter_clauses(filters)
         if excluded_ids:
             clauses.append(Outfit.id.notin_(excluded_ids))
+        if after_id is not None:
+            clauses.append(Outfit.id > after_id)
 
-        query = select(Outfit.id).where(and_(*clauses))
+        # invariant: a capped bulk delete resumes with after_id, so the order
+        # has to be total and stable across requests.
+        query = select(Outfit.id).where(and_(*clauses)).order_by(Outfit.id.asc())
+        if limit is not None:
+            query = query.limit(limit)
+
         result = await self.db.execute(query)
         return list(result.scalars().all())
 

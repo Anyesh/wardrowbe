@@ -62,38 +62,93 @@ async def _get_item(db_session: AsyncSession, item_id) -> ClothingItem:
 
 class TestBulkRotate:
     @pytest.mark.asyncio
-    async def test_rotates_selected_items(
+    async def test_queues_selected_items_on_the_image_queue(
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
         item = await _make_item(db_session, test_user)
+        item_id = item.id
         svc = ImageService()
         before_size = Image.open(svc.get_image_path(item.image_path)).size
 
-        response = await client.post(
-            "/api/v1/items/bulk/rotate",
-            headers=auth_headers,
-            json={"item_ids": [str(item.id)], "direction": "cw"},
-        )
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "rotate-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            response = await client.post(
+                "/api/v1/items/bulk/rotate",
+                headers=auth_headers,
+                json={"item_ids": [str(item_id)], "direction": "cw"},
+            )
 
         assert response.status_code == 200
-        assert response.json() == {"rotated": 1, "failed": 0, "skipped": 0, "errors": []}
-        after_size = Image.open(svc.get_image_path(item.image_path)).size
-        assert after_size == (before_size[1], before_size[0])
+        assert response.json() == {
+            "queued": 1,
+            "failed": 0,
+            "skipped": 0,
+            "errors": [],
+            "next_cursor": None,
+            "has_more": False,
+        }
+        mock_redis.enqueue_job.assert_called_once_with(
+            "rotate_item_image_job",
+            str(item_id),
+            "cw",
+            _queue_name="arq:images",
+        )
+        # The request itself must not touch the image; that is the worker's job.
+        assert Image.open(svc.get_image_path(item.image_path)).size == before_size
+
+        db_session.expire_all()
+        refreshed = await _get_item(db_session, item_id)
+        assert refreshed.status == ItemStatus.processing
+        assert refreshed.processing_kind == "rotate"
+        assert refreshed.ai_job_id == "rotate-job-id"
+
+    @pytest.mark.asyncio
+    async def test_clears_stale_ai_started_at_when_queueing(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await _make_item(
+            db_session, test_user, ai_started_at=datetime.now(UTC) - timedelta(hours=2)
+        )
+        item_id = item.id
+
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "rotate-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            await client.post(
+                "/api/v1/items/bulk/rotate",
+                headers=auth_headers,
+                json={"item_ids": [str(item_id)]},
+            )
+
+        db_session.expire_all()
+        assert (await _get_item(db_session, item_id)).ai_started_at is None
 
     @pytest.mark.asyncio
     async def test_defaults_to_clockwise(
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
         item = await _make_item(db_session, test_user)
+        item_id = item.id
 
-        response = await client.post(
-            "/api/v1/items/bulk/rotate",
-            headers=auth_headers,
-            json={"item_ids": [str(item.id)]},
-        )
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "rotate-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            response = await client.post(
+                "/api/v1/items/bulk/rotate",
+                headers=auth_headers,
+                json={"item_ids": [str(item_id)]},
+            )
 
         assert response.status_code == 200
-        assert response.json()["rotated"] == 1
+        assert response.json()["queued"] == 1
+        assert mock_redis.enqueue_job.call_args.args[2] == "cw"
 
     @pytest.mark.asyncio
     async def test_rejects_invalid_direction(
@@ -113,15 +168,18 @@ class TestBulkRotate:
     async def test_missing_item_counts_as_failed(
         self, client: AsyncClient, auth_headers, test_user
     ):
-        response = await client.post(
-            "/api/v1/items/bulk/rotate",
-            headers=auth_headers,
-            json={"item_ids": [str(uuid4())], "direction": "cw"},
-        )
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_create_pool.return_value = AsyncMock()
+
+            response = await client.post(
+                "/api/v1/items/bulk/rotate",
+                headers=auth_headers,
+                json={"item_ids": [str(uuid4())], "direction": "cw"},
+            )
 
         assert response.status_code == 200
         body = response.json()
-        assert body["rotated"] == 0
+        assert body["queued"] == 0
         assert body["failed"] == 1
         assert len(body["errors"]) == 1
 
@@ -136,32 +194,40 @@ class TestBulkRotate:
         await db_session.commit()
         await db_session.refresh(item)
 
-        response = await client.post(
-            "/api/v1/items/bulk/rotate",
-            headers=auth_headers,
-            json={"item_ids": [str(item.id)], "direction": "cw"},
-        )
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_create_pool.return_value = AsyncMock()
+
+            response = await client.post(
+                "/api/v1/items/bulk/rotate",
+                headers=auth_headers,
+                json={"item_ids": [str(item.id)], "direction": "cw"},
+            )
 
         assert response.status_code == 200
         body = response.json()
-        assert body["rotated"] == 0
+        assert body["queued"] == 0
         assert body["failed"] == 1
 
     @pytest.mark.asyncio
-    async def test_select_all_rotates_every_item(
+    async def test_select_all_queues_every_item(
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
         await _make_item(db_session, test_user)
         await _make_item(db_session, test_user)
 
-        response = await client.post(
-            "/api/v1/items/bulk/rotate",
-            headers=auth_headers,
-            json={"select_all": True, "direction": "ccw"},
-        )
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "rotate-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            response = await client.post(
+                "/api/v1/items/bulk/rotate",
+                headers=auth_headers,
+                json={"select_all": True, "direction": "ccw"},
+            )
 
         assert response.status_code == 200
-        assert response.json()["rotated"] == 2
+        assert response.json()["queued"] == 2
 
     @pytest.mark.asyncio
     async def test_skips_items_currently_processing(
@@ -172,17 +238,44 @@ class TestBulkRotate:
         processing_item = await _make_item(db_session, test_user, status=ItemStatus.processing)
         ready_item = await _make_item(db_session, test_user)
 
-        response = await client.post(
-            "/api/v1/items/bulk/rotate",
-            headers=auth_headers,
-            json={"item_ids": [str(processing_item.id), str(ready_item.id)], "direction": "cw"},
-        )
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_redis = AsyncMock()
+            mock_redis.enqueue_job.return_value.job_id = "rotate-job-id"
+            mock_create_pool.return_value = mock_redis
+
+            response = await client.post(
+                "/api/v1/items/bulk/rotate",
+                headers=auth_headers,
+                json={"item_ids": [str(processing_item.id), str(ready_item.id)], "direction": "cw"},
+            )
 
         assert response.status_code == 200
         body = response.json()
-        assert body["rotated"] == 1
+        assert body["queued"] == 1
         assert body["skipped"] == 1
         assert body["failed"] == 0
+
+    @pytest.mark.asyncio
+    async def test_redis_failure_marks_touched_items_error(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        item = await _make_item(db_session, test_user)
+        item_id = item.id
+
+        with patch(
+            "app.api.items.create_pool", new_callable=AsyncMock, side_effect=OSError("no redis")
+        ):
+            response = await client.post(
+                "/api/v1/items/bulk/rotate",
+                headers=auth_headers,
+                json={"item_ids": [str(item_id)]},
+            )
+
+        assert response.status_code == 500
+        db_session.expire_all()
+        refreshed = await _get_item(db_session, item_id)
+        assert refreshed.status == ItemStatus.error
+        assert refreshed.processing_kind is None
 
 
 class TestBulkRemoveBackground:
@@ -219,12 +312,14 @@ class TestBulkRemoveBackground:
             "skipped": 0,
             "already_done": 0,
             "errors": [],
+            "next_cursor": None,
+            "has_more": False,
         }
         mock_redis.enqueue_job.assert_called_once_with(
             "remove_item_background_job",
             str(item_id),
             "#FFFFFF",
-            _queue_name="arq:tagging",
+            _queue_name="arq:images",
         )
 
         db_session.expire_all()
@@ -337,7 +432,7 @@ class TestBulkRemoveBackground:
             "remove_item_background_job",
             str(fresh.id),
             "#FFFFFF",
-            _queue_name="arq:tagging",
+            _queue_name="arq:images",
         )
 
     @pytest.mark.asyncio
@@ -430,7 +525,7 @@ class TestBulkRemoveBackground:
             "remove_item_background_job",
             str(item.id),
             "#000000",
-            _queue_name="arq:tagging",
+            _queue_name="arq:images",
         )
 
 
@@ -565,15 +660,18 @@ class TestBulkEndpointsAuthBoundary:
         other_item_id = other_item.id
         original_updated_at = other_item.updated_at
 
-        response = await client.post(
-            "/api/v1/items/bulk/rotate",
-            headers=auth_headers,
-            json={"item_ids": [str(other_item_id)], "direction": "cw"},
-        )
+        with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
+            mock_create_pool.return_value = AsyncMock()
+
+            response = await client.post(
+                "/api/v1/items/bulk/rotate",
+                headers=auth_headers,
+                json={"item_ids": [str(other_item_id)], "direction": "cw"},
+            )
 
         assert response.status_code == 200
         body = response.json()
-        assert body["rotated"] == 0
+        assert body["queued"] == 0
         assert body["failed"] == 1
         assert str(other_item_id) in body["errors"][0]
 
