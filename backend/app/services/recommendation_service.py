@@ -31,7 +31,7 @@ from app.services.weather_service import (
     WeatherService,
     WeatherServiceError,
 )
-from app.utils.clothing import deduplicate_by_body_slot
+from app.utils.clothing import canonical_item_order, deduplicate_by_body_slot
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_today
 
@@ -188,6 +188,38 @@ class RecommendationService:
         logger.info(f"Found {len(combinations)} worn outfit combinations in last {days} days")
         return combinations
 
+    async def _get_recently_suggested_outfit_combinations(
+        self, user: User, hours: int = 12
+    ) -> set[frozenset[UUID]]:
+        if hours <= 0:
+            return set()
+
+        cutoff_time = datetime.now(UTC) - timedelta(hours=hours)
+
+        query = (
+            select(Outfit)
+            .where(
+                and_(
+                    Outfit.user_id == user.id,
+                    Outfit.created_at >= cutoff_time,
+                )
+            )
+            .order_by(Outfit.created_at.desc())
+            .limit(10)
+            .options(selectinload(Outfit.items))
+        )
+
+        result = await self.db.execute(query)
+        recent_outfits = list(result.scalars().all())
+
+        combinations = set()
+        for outfit in recent_outfits:
+            item_ids = frozenset(outfit_item.item_id for outfit_item in outfit.items)
+            if len(item_ids) >= 2:
+                combinations.add(item_ids)
+
+        return combinations
+
     def _format_items_for_prompt(
         self,
         scored_items: list,
@@ -287,8 +319,9 @@ class RecommendationService:
         mandatory_refs = ", ".join(f"[{n}]" for n in mandatory_numbers_sorted)
         return (
             f"MANDATORY ITEMS (MUST include in every outfit):\n"
-            f"The following items are already selected and MUST appear in all 3 outfit suggestions: {mandatory_refs}\n\n"
-            f"Complete each outfit with complementary pieces from the available items above."
+            f"The following items are already selected and MUST appear in all outfit suggestions: {mandatory_refs}\n\n"
+            f"Complete each outfit with complementary pieces from the available items above. "
+            f"Every generated outfit option MUST include all mandatory items listed above ({mandatory_refs})."
         )
 
     def _format_preferences_for_prompt(
@@ -389,7 +422,7 @@ class RecommendationService:
                     worn_sets.append("[" + ", ".join(map(str, numbers)) + "]")
             if worn_sets:
                 lines.append(
-                    f"- Recently worn outfits (prefer variety, only repeat if necessary): {', '.join(worn_sets)}"
+                    f"- Recently worn or suggested outfits (prefer variety, do not repeat identical combinations): {', '.join(worn_sets)}"
                 )
 
         if lines:
@@ -560,6 +593,7 @@ class RecommendationService:
         source: OutfitSource,
         number_map: dict[int, UUID],
         scheduled_date: date | None = None,
+        mandatory_item_ids: set[UUID] | None = None,
     ) -> Outfit:
         selected_numbers = outfit_data.get("items", [])
         valid_ids = []
@@ -582,6 +616,16 @@ class RecommendationService:
                 unique_ids.append(item_id)
         valid_ids = unique_ids
 
+        # Ensure all mandatory items are included in valid_ids if they were candidates
+        if mandatory_item_ids:
+            mandatory_in_candidates = {
+                item_id for item_id in mandatory_item_ids if item_id in number_map.values()
+            }
+            for mid in mandatory_in_candidates:
+                if mid not in valid_ids:
+                    logger.info(f"Adding missing mandatory item {mid} to outfit")
+                    valid_ids.insert(0, mid)
+
         if not valid_ids:
             raise AIRecommendationError("AI did not select any valid items")
 
@@ -590,7 +634,10 @@ class RecommendationService:
             select(ClothingItem.id, ClothingItem.type).where(ClothingItem.id.in_(valid_ids))
         )
         item_type_map = {row.id: (row.type or "").lower() for row in items_result}
-        valid_ids = deduplicate_by_body_slot(valid_ids, item_type_map)
+        valid_ids = deduplicate_by_body_slot(
+            valid_ids, item_type_map, mandatory_item_ids=mandatory_item_ids
+        )
+        valid_ids = canonical_item_order(valid_ids, item_type_map)
 
         reasoning = outfit_data.get("headline") or outfit_data.get("reasoning")
         style_notes = outfit_data.get("styling_tip") or outfit_data.get("style_notes")
@@ -643,7 +690,7 @@ class RecommendationService:
         logger.info(f"Created outfit {outfit.id} with {len(valid_ids)} items")
         return outfit
 
-    async def generate_recommendation(
+    async def generate_recommendations(
         self,
         user: User,
         occasion: str,
@@ -652,9 +699,10 @@ class RecommendationService:
         include_items: list[UUID] | None = None,
         source: OutfitSource = OutfitSource.on_demand,
         time_of_day: str | None = None,
+        count: int = 1,
         single_outfit: bool = False,
         scheduled_date: date | None = None,
-    ) -> Outfit:
+    ) -> list[Outfit]:
         # Guard first so deferral is unconditional, before any location/weather work.
         require_internal_ai("text")
 
@@ -665,7 +713,7 @@ class RecommendationService:
             time_of_day = get_time_of_day(user)
 
         # Determine cache eligibility before auto-merge
-        use_cache = not exclude_items and not include_items and not single_outfit
+        use_cache = not exclude_items and not single_outfit
 
         # Auto-exclude today's rejected items for this occasion
         rejected_ids = await self._get_today_rejected_item_ids(user, occasion)
@@ -737,38 +785,50 @@ class RecommendationService:
                 candidates.extend(forced_items)
                 logger.info(f"Force-included {len(forced_items)} items in recommendation")
 
+            unresolved = include_set - {item.id for item in candidates}
+            if unresolved:
+                raise ValueError("One or more selected items could not be found or are not ready.")
+
         if len(candidates) < 2:
             raise InsufficientWardrobeError(
                 "Not enough items in wardrobe for recommendation. "
                 "Please add more items or adjust filters."
             )
 
-        # Check cache for pre-generated suggestions
-        if use_cache:
-            cached = await pop_suggestion(user.id, occasion)
-            if cached:
+        # Check cache for pre-generated suggestions (used when count is 1)
+        if use_cache and count == 1:
+            while True:
+                cached = await pop_suggestion(user.id, occasion, include_items=include_items)
+                if not cached:
+                    break
                 cached_number_map = cached.get("_number_map", {})
                 number_map = {int(k): UUID(v) for k, v in cached_number_map.items()}
 
                 cached_item_ids = set()
                 for num in cached.get("items", []):
-                    str_num = str(int(num))
-                    if str_num in cached_number_map:
-                        cached_item_ids.add(UUID(cached_number_map[str_num]))
+                    try:
+                        str_num = str(int(num))
+                        if str_num in cached_number_map:
+                            cached_item_ids.add(UUID(cached_number_map[str_num]))
+                    except (ValueError, TypeError):
+                        pass
 
                 if cached_item_ids & rejected_ids:
                     logger.info("Cached suggestion contains rejected items, skipping")
-                else:
-                    logger.info(f"Using cached suggestion for user {user.id}, occasion: {occasion}")
-                    return await self._materialize_outfit(
-                        cached,
-                        user,
-                        weather,
-                        occasion,
-                        source,
-                        number_map,
-                        scheduled_date=scheduled_date,
-                    )
+                    continue
+
+                logger.info(f"Using cached suggestion for user {user.id}, occasion: {occasion}")
+                outfit = await self._materialize_outfit(
+                    cached,
+                    user,
+                    weather,
+                    occasion,
+                    source,
+                    number_map,
+                    scheduled_date=scheduled_date,
+                    mandatory_item_ids=set(include_items) if include_items else None,
+                )
+                return [outfit]
 
         # Fetch scoring context
         recently_worn_dates = await self._get_recently_worn_dates(user)
@@ -801,11 +861,13 @@ class RecommendationService:
         mandatory_items_section = self._format_mandatory_items_section(include_items, number_map)
 
         worn_combinations = await self._get_recently_worn_outfit_combinations(user, days=7)
+        suggested_combinations = await self._get_recently_suggested_outfit_combinations(user, hours=12)
+        avoid_combinations = worn_combinations | suggested_combinations
 
         preferences_text = self._format_preferences_for_prompt(
             preferences,
             learned_prefs,
-            worn_combinations,
+            avoid_combinations,
             number_map,
             occasion=occasion,
             body_measurements=getattr(user, "body_measurements", None),
@@ -853,7 +915,7 @@ class RecommendationService:
                     raise ValueError(f"Expected dict, got {type(outfit_data)}")
                 outfit_data["_ai_model"] = result.model
                 outfit_data["_ai_endpoint"] = result.endpoint
-                return await self._materialize_outfit(
+                outfit = await self._materialize_outfit(
                     outfit_data,
                     user,
                     weather,
@@ -861,38 +923,42 @@ class RecommendationService:
                     source,
                     number_map,
                     scheduled_date=scheduled_date,
+                    mandatory_item_ids=set(include_items) if include_items else None,
                 )
+                return [outfit]
 
             # Multi-outfit parse
             outfit_list = self._parse_multi_outfit_response(result.content)
 
-            first = outfit_list[0]
-            first["_ai_model"] = result.model
-            first["_ai_endpoint"] = result.endpoint
-
-            outfit = await self._materialize_outfit(
-                first,
-                user,
-                weather,
-                occasion,
-                source,
-                number_map,
-                scheduled_date=scheduled_date,
-            )
+            outfits = []
+            for od in outfit_list[:count]:
+                od["_ai_model"] = result.model
+                od["_ai_endpoint"] = result.endpoint
+                outfit = await self._materialize_outfit(
+                    od,
+                    user,
+                    weather,
+                    occasion,
+                    source,
+                    number_map,
+                    scheduled_date=scheduled_date,
+                    mandatory_item_ids=set(include_items) if include_items else None,
+                )
+                outfits.append(outfit)
 
             # Cache remaining outfits for "Try Another"
-            if len(outfit_list) > 1:
+            if use_cache and len(outfit_list) > count:
                 serializable_map = {str(k): str(v) for k, v in number_map.items()}
                 to_cache = []
-                for od in outfit_list[1:]:
+                for od in outfit_list[count:]:
                     od["_number_map"] = serializable_map
                     od["_ai_model"] = result.model
                     od["_ai_endpoint"] = result.endpoint
                     to_cache.append(od)
-                await push_suggestions(user.id, occasion, to_cache)
+                await push_suggestions(user.id, occasion, to_cache, include_items=include_items)
                 logger.info(f"Cached {len(to_cache)} additional suggestions for user {user.id}")
 
-            return outfit
+            return outfits
 
         except AIRecommendationError:
             raise
@@ -907,6 +973,32 @@ class RecommendationService:
             raise AIRecommendationError(
                 "AI service is not available. Please check your AI endpoint configuration in Settings."
             ) from e
+
+    async def generate_recommendation(
+        self,
+        user: User,
+        occasion: str,
+        weather_override: WeatherData | None = None,
+        exclude_items: list[UUID] | None = None,
+        include_items: list[UUID] | None = None,
+        source: OutfitSource = OutfitSource.on_demand,
+        time_of_day: str | None = None,
+        single_outfit: bool = False,
+        scheduled_date: date | None = None,
+    ) -> Outfit:
+        outfits = await self.generate_recommendations(
+            user=user,
+            occasion=occasion,
+            weather_override=weather_override,
+            exclude_items=exclude_items,
+            include_items=include_items,
+            source=source,
+            time_of_day=time_of_day,
+            count=1,
+            single_outfit=single_outfit,
+            scheduled_date=scheduled_date,
+        )
+        return outfits[0]
 
 
 class InsufficientWardrobeError(Exception):

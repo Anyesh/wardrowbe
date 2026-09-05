@@ -85,10 +85,7 @@
     "removeBackgroundQueued": "Queued for background removal",
     "removingBackground": "Removing background...",
     "removingBackgroundElapsed": "Removing background… {elapsed}",
-    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}",
-    "rotateFailed": "Rotation failed",
-    "rotateQueued": "Queued for rotation",
-    "rotating": "Rotating…"
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "Tutti i tipi",
   "bulkActions": {
@@ -112,8 +109,8 @@
     "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
     "rotateError": "Failed to rotate items",
     "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
-    "rotateQueued": "{count, plural, one {Queued # item for rotation} other {Queued # items for rotation}}",
-    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}"
+    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "Questo eliminerà definitivamente i capi selezionati e le relative immagini. Questa azione non può essere annullata.",
@@ -193,7 +190,8 @@
       "rotateLeft": "Ruota a sinistra",
       "rotateRight": "Ruota a destra",
       "setAsPrimary": "Imposta come principale",
-      "toggleFavorite": "Attiva/disattiva preferito",
+      "suggestOutfit": "Crea outfit con questo capo",
+      "toggleFavorite": "Aggiungi/rimuovi dai preferiti",
       "undoBackgroundRemoval": "Annulla rimozione sfondo"
     },
     "type": "Tipo",

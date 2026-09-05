@@ -1,5 +1,5 @@
 from datetime import UTC, date, datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -433,3 +433,183 @@ class TestPromptPreRanking:
         from app.services.recommendation_service import RECOMMENDATION_PROMPT
 
         assert "pre-ranked" in RECOMMENDATION_PROMPT
+
+
+class TestIncludeItems:
+    def test_format_mandatory_items_section(self):
+        service = RecommendationService.__new__(RecommendationService)
+        id1, id2, id3 = uuid4(), uuid4(), uuid4()
+        id_to_number = {1: id1, 2: id2, 3: id3}
+
+        section = service._format_mandatory_items_section([id2], id_to_number)
+        assert "[2]" in section
+        assert "MANDATORY ITEMS" in section
+        assert "MUST appear in all outfit suggestions" in section
+
+    @pytest.mark.asyncio
+    async def test_materialize_outfit_enforces_mandatory_item_even_if_omitted_by_ai(
+        self, db_session, test_user
+    ):
+        mand_item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path=f"test/{uuid4()}.jpg",
+            status=ItemStatus.ready,
+            primary_color="blue",
+        )
+        ai_item = ClothingItem(
+            user_id=test_user.id,
+            type="pants",
+            image_path=f"test/{uuid4()}.jpg",
+            status=ItemStatus.ready,
+            primary_color="black",
+        )
+        db_session.add_all([mand_item, ai_item])
+        await db_session.commit()
+
+        service = RecommendationService(db_session)
+        weather = WeatherData(
+            temperature=20,
+            feels_like=20,
+            humidity=50,
+            precipitation_chance=0,
+            precipitation_mm=0,
+            wind_speed=0,
+            condition="clear",
+            condition_code=0,
+            is_day=True,
+            uv_index=0,
+            timestamp=datetime.utcnow(),
+        )
+        number_map = {1: mand_item.id, 2: ai_item.id}
+        # AI returned only item 2, omitting item 1
+        outfit_data = {"items": [2], "headline": "Casual day"}
+
+        outfit = await service._materialize_outfit(
+            outfit_data,
+            test_user,
+            weather,
+            occasion="casual",
+            source=OutfitSource.on_demand,
+            number_map=number_map,
+            mandatory_item_ids={mand_item.id},
+        )
+
+        outfit_item_ids = {oi.item_id for oi in outfit.items}
+        assert mand_item.id in outfit_item_ids
+        assert ai_item.id in outfit_item_ids
+
+    @pytest.mark.asyncio
+    async def test_suggest_accepts_include_items(
+        self, client, test_user, auth_headers, db_session
+    ):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path=f"test/{uuid4()}.jpg",
+            status=ItemStatus.ready,
+            primary_color="blue",
+        )
+        outfit = Outfit(
+            user_id=test_user.id,
+            occasion="casual",
+            status=OutfitStatus.pending,
+            source=OutfitSource.on_demand,
+        )
+        outfit.feedback = None
+        outfit.family_ratings = []
+        outfit.items = [OutfitItem(item=item, position=0, layer_type=None)]
+
+        db_session.add_all([item, outfit])
+        await db_session.commit()
+
+        with patch(
+            "app.api.outfits.RecommendationService.generate_recommendation",
+            new_callable=AsyncMock,
+            return_value=outfit,
+        ) as mock_generate:
+            mand_id = uuid4()
+            response = await client.post(
+                "/api/v1/outfits/suggest",
+                json={
+                    "occasion": "casual",
+                    "include_items": [str(mand_id)],
+                    "weather_override": {
+                        "temperature": 20,
+                        "condition": "clear",
+                    },
+                },
+                headers=auth_headers,
+            )
+            assert response.status_code == 200
+            assert mock_generate.call_args.kwargs["include_items"] == [mand_id]
+
+    @pytest.mark.asyncio
+    async def test_unresolved_include_item_raises_value_error(self, db_session, test_user):
+        service = RecommendationService(db_session)
+        weather_override = WeatherData(
+            temperature=20,
+            feels_like=20,
+            humidity=50,
+            precipitation_chance=0,
+            precipitation_mm=0,
+            wind_speed=0,
+            condition="clear",
+            condition_code=0,
+            is_day=True,
+            uv_index=0,
+            timestamp=datetime.utcnow(),
+        )
+        fake_id = uuid4()
+        test_user.preferences = None
+        with pytest.raises(ValueError, match="could not be found"):
+            await service.generate_recommendation(
+                user=test_user,
+                occasion="casual",
+                weather_override=weather_override,
+                include_items=[fake_id],
+            )
+
+    @pytest.mark.asyncio
+    async def test_suggest_options_endpoint_returns_multiple(self, client, auth_headers):
+        with patch.object(
+            RecommendationService,
+            "generate_recommendations",
+            AsyncMock(),
+        ) as mock_generate:
+            fake_outfits = []
+            for _ in range(3):
+                o = MagicMock()
+                o.id = uuid4()
+                o.occasion = "casual"
+                o.scheduled_for = None
+                o.status = MagicMock(value="pending")
+                o.name = None
+                o.replaces_outfit_id = None
+                o.cloned_from_outfit_id = None
+                o.source = MagicMock(value="on_demand")
+                o.reasoning = "Test"
+                o.style_notes = "Test"
+                o.season = None
+                o.formality = None
+                o.palette = None
+                o.notes = None
+                o.weather_data = None
+                o.items = []
+                o.feedback = []
+                o.family_ratings = []
+                o.created_at = datetime.utcnow()
+                fake_outfits.append(o)
+            mock_generate.return_value = fake_outfits
+
+            response = await client.post(
+                "/api/v1/outfits/suggest-options",
+                json={"occasion": "casual"},
+                headers=auth_headers,
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert isinstance(data, list)
+            assert len(data) == 3
+            assert mock_generate.call_args.kwargs["count"] == 3
+

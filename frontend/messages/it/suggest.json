@@ -1,4 +1,18 @@
 {
+  "baseItem": {
+    "all": "Tutti",
+    "basePiece": "Capo base",
+    "change": "Modifica",
+    "chooseItem": "Scegli un capo",
+    "chooseItemHint": "Seleziona una camicia, pantaloni, scarpe o un capo da cui partire",
+    "clear": "Cancella",
+    "dialogDescription": "Seleziona un capo dal tuo guardaroba attorno a cui costruire l'outfit.",
+    "dialogTitle": "Scegli un capo per il tuo outfit",
+    "mustInclude": "Da includere",
+    "remove": "Rimuovi",
+    "subtitle": "Scegli una camicia, pantaloni, scarpe o qualsiasi capo che deve comparire nell'outfit",
+    "title": "Costruisci attorno a un capo specifico (opzionale)"
+  },
   "dismissOutfit": "Ignora outfit",
   "error": "Generazione suggerimento outfit fallita. Riprova.",
   "feedback": {
@@ -39,6 +53,14 @@
   },
   "loveIt": "Mi piace",
   "occasionPrompt": "Qual è l'occasione?",
+  "options": {
+    "allOptions": "Confronta tutti",
+    "chooseThis": "Scegli questo look",
+    "generateNew": "Genera 3 nuovi look",
+    "optionNumber": "Look {number}",
+    "singleView": "Vista singola",
+    "title": "{count} opzioni di outfit"
+  },
   "outfitPreview": {
     "familyRatings": {
       "average": "({rating} <star></star> media)",

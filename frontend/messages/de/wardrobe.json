@@ -85,10 +85,7 @@
     "removeBackgroundQueued": "Queued for background removal",
     "removingBackground": "Removing background...",
     "removingBackgroundElapsed": "Removing background… {elapsed}",
-    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}",
-    "rotateFailed": "Rotation failed",
-    "rotateQueued": "Queued for rotation",
-    "rotating": "Rotating…"
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "Alle Typen",
   "bulkActions": {
@@ -112,8 +109,8 @@
     "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
     "rotateError": "Failed to rotate items",
     "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
-    "rotateQueued": "{count, plural, one {Queued # item for rotation} other {Queued # items for rotation}}",
-    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}"
+    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "Die ausgewählten Stücke und ihre Bilder werden endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
@@ -193,6 +190,7 @@
       "rotateLeft": "Nach links drehen",
       "rotateRight": "Nach rechts drehen",
       "setAsPrimary": "Als Hauptbild festlegen",
+      "suggestOutfit": "Outfit mit diesem Teil erstellen",
       "toggleFavorite": "Favorit umschalten",
       "undoBackgroundRemoval": "Hintergrundentfernung rückgängig machen"
     },

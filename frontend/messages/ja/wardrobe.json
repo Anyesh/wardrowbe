@@ -85,10 +85,7 @@
     "removeBackgroundQueued": "Queued for background removal",
     "removingBackground": "Removing background...",
     "removingBackgroundElapsed": "Removing background… {elapsed}",
-    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}",
-    "rotateFailed": "Rotation failed",
-    "rotateQueued": "Queued for rotation",
-    "rotating": "Rotating…"
+    "retryCooldown": "{seconds, plural, one {Retry available in # second} other {Retry available in # seconds}}"
   },
   "allTypes": "すべてのタイプ",
   "bulkActions": {
@@ -112,8 +109,8 @@
     "removeBackgroundSkipped": "{count, plural, one {# item already processing} other {# items already processing}}",
     "rotateError": "Failed to rotate items",
     "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
-    "rotateQueued": "{count, plural, one {Queued # item for rotation} other {Queued # items for rotation}}",
-    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}"
+    "rotateSkipped": "{count, plural, one {# item skipped (already processing)} other {# items skipped (already processing)}}",
+    "rotateSuccess": "{count, plural, one {# item rotated} other {# items rotated}}"
   },
   "bulkDelete": {
     "confirmDescription": "選択したアイテムと画像を完全に削除します。この操作は取り消せません。",
@@ -192,8 +189,9 @@
       "replaceImage": "画像を置き換え",
       "rotateLeft": "左に回転",
       "rotateRight": "右に回転",
-      "setAsPrimary": "メインに設定",
-      "toggleFavorite": "お気に入りを切替",
+      "setAsPrimary": "メイン画像に設定",
+      "suggestOutfit": "このアイテムでコーデを作成",
+      "toggleFavorite": "お気に入りを切り替え",
       "undoBackgroundRemoval": "背景削除を元に戻す"
     },
     "type": "タイプ",

@@ -236,10 +236,6 @@ class BulkDeleteOutfitsRequest(BaseModel):
     excluded_ids: list[UUID] | None = None
     filters: BulkOutfitFilters | None = None
 
-    # Cursor into a select_all walk; see BulkSelectionRequest in schemas/item.py
-    # for why a capped select_all is resumed rather than rejected.
-    after_id: UUID | None = None
-
     def model_post_init(self, __context):
         if not self.select_all and not self.outfit_ids:
             raise ValueError("Either outfit_ids or select_all=True must be provided")
@@ -251,8 +247,6 @@ class BulkDeleteOutfitsResponse(BaseModel):
     deleted: int
     failed: int
     errors: list[str] = Field(default_factory=list)
-    next_cursor: UUID | None = None
-    has_more: bool = False
 
 
 class FeedbackRequest(BaseModel):
@@ -504,6 +498,82 @@ async def suggest_outfit(
     return outfit_to_response(outfit, wore_instead_map, is_starter_suggestion=is_starter)
 
 
+@router.post("/suggest-options", response_model=list[OutfitResponse])
+async def suggest_outfit_options(
+    request: SuggestRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> list[OutfitResponse]:
+    await rate_limit_by_user(str(current_user.id), "suggest", max_requests=10, window_seconds=60)
+    weather_override = None
+    if request.weather_override:
+        w = request.weather_override
+        weather_override = WeatherData(
+            temperature=w.temperature,
+            feels_like=w.feels_like or w.temperature,
+            humidity=w.humidity,
+            precipitation_chance=w.precipitation_chance,
+            precipitation_mm=0,
+            wind_speed=0,
+            condition=w.condition,
+            condition_code=0,
+            is_day=True,
+            uv_index=0,
+            timestamp=datetime.utcnow(),
+        )
+
+    service = RecommendationService(db)
+
+    occasion = request.occasion
+    if occasion is None:
+        if current_user.preferences and current_user.preferences.default_occasion:
+            occasion = current_user.preferences.default_occasion
+        else:
+            occasion = "casual"
+
+    try:
+        outfits = await service.generate_recommendations(
+            user=current_user,
+            occasion=occasion,
+            weather_override=weather_override,
+            exclude_items=request.exclude_items,
+            include_items=request.include_items,
+            time_of_day=request.time_of_day,
+            count=3,
+        )
+    except InsufficientWardrobeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from None
+    except AIDisabledError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Internal AI is disabled; outfit suggestions are deferred to an external agent.",
+        ) from None
+    except AIRecommendationError as e:
+        logger.error(f"AI recommendation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e),
+        ) from None
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from None
+
+    item_service = ItemService(db)
+    total_items = await item_service.get_ready_item_count(current_user.id)
+    is_starter = total_items <= 5
+
+    wore_instead_map = await fetch_wore_instead_items_map(db, outfits, user_id=current_user.id)
+    return [
+        outfit_to_response(outfit, wore_instead_map, is_starter_suggestion=is_starter)
+        for outfit in outfits
+    ]
+
+
 class SuggestionCreateRequest(OutfitAttributeFields):
     model_config = ConfigDict(extra="forbid")
 
@@ -643,9 +713,6 @@ async def bulk_delete_outfits(
     deleted = 0
     failed = 0
     errors: list[str] = []
-    limit = get_settings().max_bulk_action_count
-    next_cursor: UUID | None = None
-    has_more = False
 
     if request.select_all:
         list_filters = OutfitListFilters(
@@ -667,20 +734,10 @@ async def bulk_delete_outfits(
         outfit_ids = await service.get_ids_by_filter(
             list_filters,
             excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
-            after_id=request.after_id,
-            limit=limit + 1,
         )
-        has_more = len(outfit_ids) > limit
-        outfit_ids = outfit_ids[:limit]
-        next_cursor = outfit_ids[-1] if has_more and outfit_ids else None
-        logger.info(f"Bulk delete select_all: {len(outfit_ids)} outfits, has_more={has_more}")
+        logger.info(f"Bulk delete select_all: {len(outfit_ids)} outfits to delete")
     else:
         outfit_ids = request.outfit_ids or []
-        if len(outfit_ids) > limit:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Maximum {limit} outfits per bulk action",
-            )
 
     for outfit_id in outfit_ids:
         try:
@@ -704,13 +761,7 @@ async def bulk_delete_outfits(
 
     await db.commit()
 
-    return BulkDeleteOutfitsResponse(
-        deleted=deleted,
-        failed=failed,
-        errors=errors,
-        next_cursor=next_cursor,
-        has_more=has_more,
-    )
+    return BulkDeleteOutfitsResponse(deleted=deleted, failed=failed, errors=errors)
 
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)

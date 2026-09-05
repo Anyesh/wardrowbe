@@ -9,14 +9,19 @@ CACHE_TTL = 3600
 KEY_PREFIX = "suggest"
 
 
-def _cache_key(user_id, occasion) -> str:
+def _cache_key(user_id, occasion, include_items: list | None = None) -> str:
+    if include_items:
+        items_part = ":".join(sorted(str(i) for i in include_items))
+        return f"{KEY_PREFIX}:{user_id}:{occasion}:{items_part}"
     return f"{KEY_PREFIX}:{user_id}:{occasion}"
 
 
-async def push_suggestions(user_id, occasion, suggestions: list[dict]) -> None:
+async def push_suggestions(
+    user_id, occasion, suggestions: list[dict], include_items: list | None = None
+) -> None:
     try:
         redis = await get_redis()
-        key = _cache_key(user_id, occasion)
+        key = _cache_key(user_id, occasion, include_items=include_items)
         pipe = redis.pipeline()
         for s in suggestions:
             pipe.rpush(key, json.dumps(s))
@@ -26,10 +31,12 @@ async def push_suggestions(user_id, occasion, suggestions: list[dict]) -> None:
         logger.warning("Failed to push suggestions to cache", exc_info=True)
 
 
-async def pop_suggestion(user_id, occasion) -> dict | None:
+async def pop_suggestion(
+    user_id, occasion, include_items: list | None = None
+) -> dict | None:
     try:
         redis = await get_redis()
-        key = _cache_key(user_id, occasion)
+        key = _cache_key(user_id, occasion, include_items=include_items)
         raw = await redis.lpop(key)
         if raw is None:
             return None
@@ -39,19 +46,28 @@ async def pop_suggestion(user_id, occasion) -> dict | None:
         return None
 
 
-async def clear_suggestions(user_id, occasion) -> None:
+async def clear_suggestions(
+    user_id, occasion, include_items: list | None = None
+) -> None:
     try:
         redis = await get_redis()
-        key = _cache_key(user_id, occasion)
-        await redis.delete(key)
+        base_key = _cache_key(user_id, occasion, include_items=include_items)
+        await redis.delete(base_key)
+        if include_items is None:
+            scan_iter = getattr(redis, "scan_iter", None)
+            if callable(scan_iter):
+                async for key in scan_iter(f"{base_key}:*"):
+                    await redis.delete(key)
     except Exception:
         logger.warning("Failed to clear suggestion cache", exc_info=True)
 
 
-async def has_cached(user_id, occasion) -> bool:
+async def has_cached(
+    user_id, occasion, include_items: list | None = None
+) -> bool:
     try:
         redis = await get_redis()
-        key = _cache_key(user_id, occasion)
+        key = _cache_key(user_id, occasion, include_items=include_items)
         length = await redis.llen(key)
         return length > 0
     except Exception:
