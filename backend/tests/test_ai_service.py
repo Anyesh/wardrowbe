@@ -343,3 +343,115 @@ class TestLogprobsRejection:
         assert content is None
         assert err is not None
         assert mock_post.call_count == 1
+
+
+class TestReasoningEffort:
+    """Tests for reasoning_effort configuration, rejection handling, and recovery."""
+
+    @staticmethod
+    def _reasoning_effort_rejected_response() -> httpx.Response:
+        return _mock_response(
+            {
+                "error": {
+                    "message": "Unsupported parameter: 'reasoning_effort' is not supported with this model."
+                }
+            },
+            status_code=400,
+        )
+
+    @staticmethod
+    def _success_response(content: str = '{"outfits": []}') -> httpx.Response:
+        return _mock_response(
+            {
+                "model": "gemma4:12b",
+                "choices": [{"message": {"content": content}, "finish_reason": "stop"}],
+            }
+        )
+
+    @pytest.mark.asyncio
+    async def test_generate_text_includes_default_reasoning_effort(self):
+        service = AIService()
+        mock_response = self._success_response()
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response) as mock_post:
+            await service.generate_text("suggest an outfit")
+
+        assert mock_post.call_count == 1
+        body = mock_post.call_args.kwargs["json"]
+        assert body.get("reasoning_effort") == "none"
+
+    @pytest.mark.asyncio
+    async def test_generate_text_retries_without_reasoning_effort_after_rejection(self):
+        service = AIService()
+        responses = [self._reasoning_effort_rejected_response(), self._success_response()]
+
+        with patch("httpx.AsyncClient.post", side_effect=responses) as mock_post:
+            content = await service.generate_text("suggest an outfit")
+
+        assert content == '{"outfits": []}'
+        assert mock_post.call_count == 2
+        first_body = mock_post.call_args_list[0].kwargs["json"]
+        second_body = mock_post.call_args_list[1].kwargs["json"]
+        assert first_body.get("reasoning_effort") == "none"
+        assert "reasoning_effort" not in second_body
+
+    @pytest.mark.asyncio
+    async def test_empty_content_with_ollama_reasoning_raises_truncated_error(self):
+        service = AIService()
+        # Ollama returns "reasoning", not "reasoning_content"
+        ollama_response = _mock_response(
+            {
+                "id": "chatcmpl-123",
+                "model": "gemma4:12b",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": "",
+                            "reasoning": "Let me think about styling outfits...",
+                        },
+                        "finish_reason": "length",
+                    }
+                ],
+            }
+        )
+
+        with patch("httpx.AsyncClient.post", return_value=ollama_response):
+            with pytest.raises(AIResponseTruncatedError) as exc_info:
+                await service.generate_text("suggest an outfit")
+
+        assert "reasoning" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_truncation_recovers_by_retrying_with_none(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_reasoning_effort": "high"})
+        truncated = _mock_response(
+            {
+                "id": "chatcmpl-123",
+                "model": "gemma4:12b",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": "",
+                            "reasoning": "Thinking consumed all tokens...",
+                        },
+                        "finish_reason": "length",
+                    }
+                ],
+            }
+        )
+        success = self._success_response('{"outfits": [{"items": [1, 2]}]}')
+
+        with patch("httpx.AsyncClient.post", side_effect=[truncated, success]) as mock_post:
+            result = await service.generate_text("suggest an outfit")
+
+        assert "items" in result
+        assert mock_post.call_count == 2
+        # First call had reasoning_effort="high"
+        assert mock_post.call_args_list[0].kwargs["json"].get("reasoning_effort") == "high"
+        # Recovered call switched to reasoning_effort="none"
+        assert mock_post.call_args_list[1].kwargs["json"].get("reasoning_effort") == "none"
