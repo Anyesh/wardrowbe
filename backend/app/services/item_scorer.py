@@ -220,12 +220,38 @@ def _formality_score(item: ClothingItem, occasion: str) -> float:
     return 0.15
 
 
-def _season_score(item: ClothingItem, current_season: str) -> float:
+def _season_score(
+    item: ClothingItem,
+    current_season: str,
+    weather: WeatherData | None = None,
+    preferences: UserPreference | None = None,
+) -> float:
     seasons = item.season or []
-    if not seasons:
+    if not seasons or "all-season" in seasons or current_season in seasons:
         return 1.0
-    if current_season in seasons:
-        return 1.0
+
+    if weather is not None:
+        hot_threshold = (
+            preferences.hot_threshold
+            if (preferences and preferences.hot_threshold is not None)
+            else 25
+        )
+        cold_threshold = (
+            preferences.cold_threshold
+            if (preferences and preferences.cold_threshold is not None)
+            else 10
+        )
+        if preferences and preferences.temperature_sensitivity == "high":
+            cold_threshold += 5
+            hot_threshold -= 5
+        elif preferences and preferences.temperature_sensitivity == "low":
+            cold_threshold -= 5
+            hot_threshold += 5
+
+        if weather.temperature >= hot_threshold and "summer" in seasons:
+            return 1.0
+        if weather.temperature <= cold_threshold and "winter" in seasons:
+            return 1.0
 
     adjacent = SEASON_ADJACENCY.get(current_season, [])
     if any(s in adjacent for s in seasons):
@@ -312,6 +338,43 @@ def _sort_mandatory_first(
     return sorted(scored, key=lambda s: s.item.id not in mandatory_item_ids)
 
 
+def _ensure_role_diversity(
+    scored: list[ScoredItem],
+    top_n: int = TOP_N,
+    min_per_role: int = 4,
+    mandatory_item_ids: set[UUID] | None = None,
+) -> list[ScoredItem]:
+    from app.utils.clothing import ITEM_ROLE
+
+    if len(scored) <= top_n:
+        return scored
+
+    mandatory = mandatory_item_ids or set()
+    top = list(scored[:top_n])
+
+    footwear_count = sum(1 for s in top if ITEM_ROLE.get(s.item.type) == "footwear")
+    if footwear_count < min_per_role:
+        remaining_footwear = [
+            s for s in scored[top_n:]
+            if ITEM_ROLE.get(s.item.type) == "footwear"
+        ]
+        needed = min_per_role - footwear_count
+        to_promote = remaining_footwear[:needed]
+        if to_promote:
+            promote_ids = {s.item.id for s in to_promote}
+            candidates_to_drop = [
+                i for i in range(len(top) - 1, -1, -1)
+                if top[i].item.id not in mandatory and top[i].item.id not in promote_ids
+            ]
+            drop_indices = set(candidates_to_drop[: len(to_promote)])
+            new_top = [s for i, s in enumerate(top) if i not in drop_indices] + to_promote
+            new_top.sort(key=lambda s: (s.item.id in mandatory, s.score), reverse=True)
+            remaining = [s for s in scored if s.item.id not in {x.item.id for x in new_top}]
+            return new_top + remaining
+
+    return scored
+
+
 def _pair_bonus(
     item: ClothingItem,
     top_items: list[ClothingItem],
@@ -362,7 +425,7 @@ def score_items(
     for item in items:
         ws = _weather_score(item, weather, preferences)
         fs = _formality_score(item, occasion)
-        ss = _season_score(item, current_season)
+        ss = _season_score(item, current_season, weather, preferences)
         rs = _recency_score(item, user_today, avoid_days, recently_worn_dates)
         ps = _preference_score(item, preferences, learned_prefs)
         us = _usage_score(item, median_wear) if use_underused else 1.0
@@ -392,4 +455,7 @@ def score_items(
 
     scored.sort(key=lambda s: s.score, reverse=True)
     scored = _sort_mandatory_first(scored, mandatory_item_ids)
+    scored = _ensure_role_diversity(
+        scored, TOP_N, min_per_role=4, mandatory_item_ids=mandatory_item_ids
+    )
     return scored[:TOP_N]

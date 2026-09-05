@@ -308,6 +308,28 @@ class TestSeasonScore:
         item = _item(season=[])
         assert _season_score(item, "winter") == 1.0
 
+    def test_all_season(self):
+        item = _item(season=["all-season"])
+        assert _season_score(item, "winter") == 1.0
+        assert _season_score(item, "summer") == 1.0
+        assert _season_score(item, "spring") == 1.0
+        assert _season_score(item, "fall") == 1.0
+
+    def test_summer_item_in_fall_with_hot_weather(self):
+        item = _item(season=["summer"])
+        hot_weather = _weather(temp=28)
+        assert _season_score(item, "fall", hot_weather) == 1.0
+
+    def test_summer_item_in_fall_with_cool_weather(self):
+        item = _item(season=["summer"])
+        cool_weather = _weather(temp=18)
+        assert _season_score(item, "fall", cool_weather) == 0.6
+
+    def test_winter_item_in_spring_with_cold_weather(self):
+        item = _item(season=["winter"])
+        cold_weather = _weather(temp=5)
+        assert _season_score(item, "spring", cold_weather) == 1.0
+
 
 class TestGetSeason:
     def test_northern_hemisphere(self):
@@ -531,3 +553,22 @@ class TestScoreItems:
         shirt_pos = next(i for i, s in enumerate(result) if s.item.id == shirt.id)
         sweater_pos = next(i for i, s in enumerate(result) if s.item.id == sweater.id)
         assert sweater_pos < shirt_pos
+
+    def test_ensures_footwear_represented_in_top_n(self):
+        # 75 shirts (scoring high) + 3 footwear (scoring lower)
+        shirts = [_item(type="shirt") for _ in range(75)]
+        shoes = [_item(type="sneakers") for _ in range(3)]
+        all_items = shirts + shoes
+        result = score_items(
+            items=all_items,
+            weather=_weather(temp=20),
+            occasion="casual",
+            preferences=None,
+            user_today=date(2026, 3, 8),
+            current_season="spring",
+            learned_prefs=None,
+            good_pairs={},
+            recently_worn_dates={},
+        )
+        footwear_in_result = [s for s in result if s.item.type == "sneakers"]
+        assert len(footwear_in_result) == 3
