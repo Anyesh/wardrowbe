@@ -24,9 +24,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { AddItemDialog } from '@/components/add-item-dialog';
+import { AnalysisQueuePanel } from '@/components/analysis-queue-panel';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
-import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed } from '@/lib/hooks/use-items';
+import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { Item } from '@/lib/types';
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
@@ -325,6 +326,7 @@ export default function WardrobePage() {
   const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [queuePanelOpen, setQueuePanelOpen] = useState(false);
   const [selection, setSelection] = useState<BulkSelection>({
     mode: 'none',
     selectedIds: new Set(),
@@ -442,17 +444,18 @@ export default function WardrobePage() {
   // badge at the page size, so a 100-image upload still read "20 analyzing".
   const queuedCount = taggingProgress?.queued ?? 0;
   const analyzingCount = taggingProgress?.analyzing ?? 0;
-  const errorCount = items.filter(
+  // Failures come from the server for the same reason the other two do, but
+  // dismissal is keyed on `${id}:${updated_at}` and only the current page
+  // carries those versions, so off-page failures stay counted until seen.
+  const dismissedOnPage = items.filter(
     (i) =>
       i.status === 'error' &&
       i.processing_kind !== 'background_removal' &&
       i.processing_kind !== 'rotate' &&
-      !dismissedErrors.has(`${i.id}:${i.updated_at}`)
+      dismissedErrors.has(`${i.id}:${i.updated_at}`)
   ).length;
-  const taggedTotal = taggingProgress?.total ?? 0;
-  const taggedDone = taggingProgress?.completed ?? 0;
-  const percentComplete =
-    taggedTotal > 0 ? Math.round((taggedDone / taggedTotal) * 100) : 0;
+  const errorCount = Math.max(0, (taggingProgress?.failed ?? 0) - dismissedOnPage);
+  const queueSummary = deriveQueueSummary(taggingProgress);
 
   // Clear selection when filters change (but not page - allow cross-page selection)
   useEffect(() => {
@@ -668,8 +671,11 @@ export default function WardrobePage() {
               {analyzingCount > 0 && (
                 <Badge variant="secondary" className="gap-1 text-xs">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  {taggedTotal > 0
-                    ? t('ai.analyzingProgress', { count: analyzingCount, percent: percentComplete })
+                  {queueSummary.batchTotal > 0
+                    ? t('ai.analyzingProgress', {
+                        count: analyzingCount,
+                        percent: queueSummary.percentComplete,
+                      })
                     : t('ai.analyzingCount', { count: analyzingCount })}
                 </Badge>
               )}
@@ -678,6 +684,14 @@ export default function WardrobePage() {
                   {t('ai.queuedCount', { count: queuedCount })}
                 </Badge>
               )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-xs"
+                onClick={() => setQueuePanelOpen(true)}
+              >
+                {t('ai.queue.open')}
+              </Button>
               {(queuedCount > 0 || analyzingCount > 0) && (
                 <Button
                   size="sm"
@@ -933,6 +947,13 @@ export default function WardrobePage() {
       />
 
       <AddItemDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+      <AnalysisQueuePanel
+        open={queuePanelOpen}
+        onOpenChange={setQueuePanelOpen}
+        progress={taggingProgress}
+        onRetry={handleRetry}
+        retryPending={reanalyze.isPending}
+      />
       <ItemDetailDialog
         item={detailItem}
         open={!!detailItemId}

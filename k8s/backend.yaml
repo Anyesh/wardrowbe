@@ -89,6 +89,11 @@ spec:
                 configMapKeyRef:
                   name: wardrobe-config
                   key: AI_MAX_RETRIES
+            - name: AI_TAGGING_CONCURRENCY
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: AI_TAGGING_CONCURRENCY
             - name: AI_INTERNAL_ENABLED
               valueFrom:
                 configMapKeyRef:

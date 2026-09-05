@@ -161,6 +161,30 @@ class ItemResponse(ItemBase):
         return DEFAULT_WASH_INTERVALS.get(self.type, 3)
 
 
+class AnalysisInProgress(BaseModel):
+    item_id: UUID
+    name: str | None = None
+    type: str
+    image_url: str | None = None
+    started_at: datetime
+
+
+class AnalysisCompletion(BaseModel):
+    item_id: UUID
+    name: str | None = None
+    type: str
+    duration_seconds: float | None = None
+    completed_at: datetime
+
+
+class AnalysisFailure(BaseModel):
+    item_id: UUID
+    name: str | None = None
+    type: str
+    error: str | None = None
+    failed_at: datetime | None = None
+
+
 class TaggingProgressResponse(BaseModel):
     processing: int
     queued: int
@@ -168,6 +192,18 @@ class TaggingProgressResponse(BaseModel):
     failed: int
     completed: int
     total: int
+    # Scoped to the run the user is watching rather than the whole wardrobe, so
+    # an import into a populated wardrobe reads "1 of 90" instead of opening at
+    # 69% and creeping. See get_tagging_progress for how the run is anchored.
+    batch_total: int = 0
+    batch_completed: int = 0
+    batch_failed: int = 0
+    current: list[AnalysisInProgress] = Field(default_factory=list)
+    recent: list[AnalysisCompletion] = Field(default_factory=list)
+    failures: list[AnalysisFailure] = Field(default_factory=list)
+    avg_duration_seconds: float | None = None
+    eta_seconds: float | None = None
+    concurrency: int = 1
 
 
 class ItemListResponse(BaseModel):

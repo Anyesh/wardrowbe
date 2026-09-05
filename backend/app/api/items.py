@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from arq import create_pool
 from arq.jobs import Job
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
-from sqlalchemy import func, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +17,9 @@ from app.database import get_db
 from app.models.item import ClothingItem, ItemStatus, TaggedBy, TaggingStatus
 from app.models.user import User
 from app.schemas.item import (
+    AnalysisCompletion,
+    AnalysisFailure,
+    AnalysisInProgress,
     ArchiveRequest,
     BulkAnalyzeRequest,
     BulkAnalyzeResponse,
@@ -47,6 +50,7 @@ from app.schemas.item import (
 from app.services.image_service import ImageService
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
+from app.utils.signed_urls import sign_image_url
 from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
 from app.workers.settings import get_redis_settings
 
@@ -54,6 +58,8 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 router = APIRouter(prefix="/items", tags=["Items"])
+
+RECENT_ANALYSIS_LIMIT = 10
 
 TAG_WRITEBACK_FIELDS = {"type", "subtype", "colors", "primary_color", "tags"}
 _EMPTY_TAG_VALUES = (None, "", [], {})
@@ -1005,6 +1011,135 @@ async def get_color_distribution(
     return await item_service.get_color_distribution(current_user.id)
 
 
+def _tagging_scope(user_id: UUID) -> tuple:
+    return (
+        ClothingItem.user_id == user_id,
+        ClothingItem.is_archived.is_(False),
+        # Background-removal and rotation jobs reuse status=processing but
+        # aren't AI tagging - exclude them so they don't pollute this banner's
+        # counts. is_distinct_from (not not_in) so a NULL processing_kind,
+        # which every ordinary tagging item has, stays included.
+        ClothingItem.processing_kind.is_distinct_from("background_removal"),
+        ClothingItem.processing_kind.is_distinct_from("rotate"),
+    )
+
+
+async def _analysis_batch_anchor(db: AsyncSession, user_id: UUID) -> datetime | None:
+    """Start of the analysis run the user is currently watching, or None when idle.
+
+    A run is identified by time rather than by a tracked batch id, which would
+    otherwise have to be threaded from upload through arq and back. Items still
+    waiting for their first analysis anchor on the oldest `created_at` among
+    them, because a bulk import writes all of its rows within seconds and that
+    timestamp then stays put for the whole run, including once only the last
+    item is left. Re-analyses of already-tagged items have no such cluster
+    (their `created_at` can be months old), so they anchor on when the attempt
+    itself started instead; anchoring those on creation would sweep every item
+    analyzed since that day into the batch.
+    """
+    result = await db.execute(
+        select(
+            func.min(case((ClothingItem.ai_processed.is_(False), ClothingItem.created_at))),
+            func.min(func.coalesce(ClothingItem.ai_started_at, ClothingItem.updated_at)),
+        ).where(*_tagging_scope(user_id), ClothingItem.status == ItemStatus.processing)
+    )
+    first_pass_anchor, retry_anchor = result.one()
+    return first_pass_anchor or retry_anchor
+
+
+async def _items_being_analyzed(
+    db: AsyncSession, user_id: UUID, limit: int
+) -> list[AnalysisInProgress]:
+    result = await db.execute(
+        select(
+            ClothingItem.id,
+            ClothingItem.name,
+            ClothingItem.type,
+            ClothingItem.thumbnail_path,
+            ClothingItem.image_path,
+            ClothingItem.ai_started_at,
+        )
+        .where(
+            *_tagging_scope(user_id),
+            ClothingItem.status == ItemStatus.processing,
+            ClothingItem.ai_started_at.is_not(None),
+        )
+        .order_by(ClothingItem.ai_started_at.asc())
+        .limit(limit)
+    )
+    return [
+        AnalysisInProgress(
+            item_id=row.id,
+            name=row.name,
+            type=row.type,
+            image_url=sign_image_url(row.thumbnail_path or row.image_path),
+            started_at=row.ai_started_at,
+        )
+        for row in result
+    ]
+
+
+async def _recent_completions(db: AsyncSession, user_id: UUID) -> list[AnalysisCompletion]:
+    result = await db.execute(
+        select(
+            ClothingItem.id,
+            ClothingItem.name,
+            ClothingItem.type,
+            ClothingItem.ai_started_at,
+            ClothingItem.ai_completed_at,
+        )
+        .where(*_tagging_scope(user_id), ClothingItem.ai_completed_at.is_not(None))
+        .order_by(ClothingItem.ai_completed_at.desc())
+        .limit(RECENT_ANALYSIS_LIMIT)
+    )
+    completions = []
+    for row in result:
+        duration = None
+        if row.ai_started_at is not None:
+            elapsed = (row.ai_completed_at - row.ai_started_at).total_seconds()
+            # A clock adjustment between the two writes can invert them; report
+            # no duration rather than a negative one.
+            duration = round(elapsed, 1) if elapsed >= 0 else None
+        completions.append(
+            AnalysisCompletion(
+                item_id=row.id,
+                name=row.name,
+                type=row.type,
+                duration_seconds=duration,
+                completed_at=row.ai_completed_at,
+            )
+        )
+    return completions
+
+
+async def _recent_failures(db: AsyncSession, user_id: UUID) -> list[AnalysisFailure]:
+    result = await db.execute(
+        select(
+            ClothingItem.id,
+            ClothingItem.name,
+            ClothingItem.type,
+            ClothingItem.ai_failed_at,
+            ClothingItem.ai_raw_response,
+        )
+        .where(*_tagging_scope(user_id), ClothingItem.status == ItemStatus.error)
+        .order_by(ClothingItem.ai_failed_at.desc().nullslast())
+        .limit(RECENT_ANALYSIS_LIMIT)
+    )
+    failures = []
+    for row in result:
+        raw = row.ai_raw_response if isinstance(row.ai_raw_response, dict) else {}
+        failures.append(
+            AnalysisFailure(
+                item_id=row.id,
+                name=row.name,
+                type=row.type,
+                error=raw.get("error"),
+                failed_at=row.ai_failed_at,
+            )
+        )
+    return failures
+
+
 @router.get("/tagging-progress", response_model=TaggingProgressResponse)
 async def get_tagging_progress(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -1017,13 +1152,7 @@ async def get_tagging_progress(
     # separate queries could under concurrent worker commits.
     result = await db.execute(
         select(ClothingItem.status, ClothingItem.ai_started_at.is_(None), func.count())
-        .where(
-            ClothingItem.user_id == current_user.id,
-            ClothingItem.is_archived.is_(False),
-            # Background-removal jobs reuse status=processing but aren't AI
-            # tagging - exclude them so they don't pollute this banner's counts.
-            ClothingItem.processing_kind.is_distinct_from("background_removal"),
-        )
+        .where(*_tagging_scope(current_user.id))
         .group_by(ClothingItem.status, ClothingItem.ai_started_at.is_(None))
     )
     queued = 0
@@ -1041,6 +1170,31 @@ async def get_tagging_progress(
         elif status_str == ItemStatus.error.value:
             failed += n
     processing = queued + analyzing
+
+    concurrency = get_settings().ai_tagging_concurrency
+    anchor = await _analysis_batch_anchor(db, current_user.id)
+    batch_completed = 0
+    batch_failed = 0
+    if anchor is not None:
+        batch_row = await db.execute(
+            select(
+                func.count().filter(ClothingItem.ai_completed_at >= anchor),
+                func.count().filter(
+                    ClothingItem.status == ItemStatus.error,
+                    ClothingItem.ai_failed_at >= anchor,
+                ),
+            ).where(*_tagging_scope(current_user.id))
+        )
+        batch_completed, batch_failed = batch_row.one()
+
+    current = await _items_being_analyzed(db, current_user.id, concurrency)
+    recent = await _recent_completions(db, current_user.id)
+    failures = await _recent_failures(db, current_user.id)
+
+    durations = [c.duration_seconds for c in recent if c.duration_seconds is not None]
+    avg_duration = sum(durations) / len(durations) if durations else None
+    eta = round(processing * avg_duration / max(concurrency, 1), 1) if avg_duration else None
+
     return TaggingProgressResponse(
         processing=processing,
         queued=queued,
@@ -1048,6 +1202,15 @@ async def get_tagging_progress(
         failed=failed,
         completed=total - processing - failed,
         total=total,
+        batch_total=batch_completed + batch_failed + processing,
+        batch_completed=batch_completed,
+        batch_failed=batch_failed,
+        current=current,
+        recent=recent,
+        failures=failures,
+        avg_duration_seconds=round(avg_duration, 1) if avg_duration is not None else None,
+        eta_seconds=eta,
+        concurrency=concurrency,
     )
 
 
@@ -1245,8 +1408,6 @@ async def get_item_history(
             "notes": h.notes,
         }
         if h.outfit:
-            from app.utils.signed_urls import sign_image_url
-
             entry["outfit"] = {
                 "id": str(h.outfit.id),
                 "occasion": h.outfit.occasion,
