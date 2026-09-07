@@ -483,10 +483,18 @@ class AIService:
                                 logprobs_content = lp.get("content")
 
                         used_model = data.get("model", model)
-                        logger.info(
-                            f"AI {task_name} successful via {endpoint.name} (model: {used_model})"
+                        empty_error = _empty_response_error(
+                            choice, endpoint.name, used_model, self.settings.ai_max_tokens
                         )
-                        return content, None, logprobs_content
+                        if empty_error is None:
+                            logger.info(
+                                f"AI {task_name} successful via {endpoint.name} "
+                                f"(model: {used_model})"
+                            )
+                            return content, None, logprobs_content
+
+                        last_error = empty_error
+                        logger.warning(str(empty_error))
 
                     except _AIProviderResponseError as e:
                         last_error = e
@@ -583,8 +591,12 @@ class AIService:
                 description = description[1:-1]
             tags.description = description
 
-        if tags.type == "unknown" and not tags.description and last_error:
-            raise last_error
+        # Must raise even with no last_error: a pass that yields nothing while reporting
+        # success would otherwise be stored as an "unknown" item with no failure recorded.
+        if tags.type == "unknown" and not tags.description:
+            raise last_error or AIResponseTruncatedError(
+                "no endpoint returned usable tags or a description"
+            )
 
         return tags
 
@@ -714,24 +726,13 @@ class AIService:
                         message = choice["message"]
                         content = message.get("content")
 
-                        if not content or not content.strip():
+                        empty_error = _empty_response_error(
+                            choice, endpoint.name, used_model, self.settings.ai_max_tokens
+                        )
+                        if empty_error is not None:
+                            last_error = empty_error
                             finish_reason = choice.get("finish_reason")
-                            reasoning = message.get("reasoning_content") or message.get("reasoning")
-                            if finish_reason == "length" and reasoning:
-                                detail = (
-                                    "its reasoning/thinking output consumed the entire "
-                                    "completion token budget before it produced a response"
-                                )
-                            elif finish_reason == "length":
-                                detail = "the response was cut off before any content was generated"
-                            else:
-                                detail = f"finish_reason={finish_reason!r}"
-                            last_error = AIResponseTruncatedError(
-                                f"{endpoint.name} (model: {used_model}) returned an empty "
-                                f"response: {detail}. Try raising AI_MAX_TOKENS (currently "
-                                f"{self.settings.ai_max_tokens}) or disabling extended "
-                                "thinking/reasoning mode for this model."
-                            )
+                            reasoning = _reasoning_text(message)
                             logger.warning(str(last_error))
 
                             # Drop straight to no reasoning rather than replaying the same
@@ -810,6 +811,37 @@ class AIResponseTruncatedError(RuntimeError):
     generic "AI service is not available" error even though the endpoint responded
     successfully. This error preserves the real cause so callers can surface it.
     """
+
+
+def _reasoning_text(message: dict) -> str | None:
+    return message.get("reasoning_content") or message.get("reasoning")
+
+
+def _empty_response_error(
+    choice: dict, endpoint_name: str, used_model: str, max_tokens: int
+) -> AIResponseTruncatedError | None:
+    message = choice["message"]
+    content = message.get("content")
+    if content and content.strip():
+        return None
+
+    finish_reason = choice.get("finish_reason")
+    reasoning = _reasoning_text(message)
+    if finish_reason == "length" and reasoning:
+        detail = (
+            "its reasoning/thinking output consumed the entire "
+            "completion token budget before it produced a response"
+        )
+    elif finish_reason == "length":
+        detail = "the response was cut off before any content was generated"
+    else:
+        detail = f"finish_reason={finish_reason!r}"
+
+    return AIResponseTruncatedError(
+        f"{endpoint_name} (model: {used_model}) returned an empty response: {detail}. "
+        f"Try raising AI_MAX_TOKENS (currently {max_tokens}) or disabling extended "
+        "thinking/reasoning mode for this model."
+    )
 
 
 class AIDisabledError(RuntimeError):
