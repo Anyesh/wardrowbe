@@ -267,6 +267,53 @@ class TestGenerateTextTruncatedResponse:
         assert content == '{"outfits": []}'
 
 
+class TestVisionEmptyResponse:
+    """The vision path had the same blank-completion hole the text path already closed.
+
+    A 200 carrying no content was treated as a successful tagging call, so the endpoint
+    chain stopped walking and analyze_image was left with no error to raise. The worker
+    then stored the item as type "unknown" with nothing recording that anything failed.
+    """
+
+    @staticmethod
+    def _empty_vision_response() -> dict:
+        return {
+            "model": "vision-model",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": ""},
+                    "finish_reason": "length",
+                }
+            ],
+        }
+
+    @pytest.mark.asyncio
+    async def test_blank_completion_is_not_treated_as_success(self):
+        service = AIService()
+        mock_response = _mock_response(self._empty_vision_response())
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response):
+            content, error, _ = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags"
+            )
+
+        assert content is None
+        assert isinstance(error, AIResponseTruncatedError)
+
+    @pytest.mark.asyncio
+    async def test_analyze_image_raises_instead_of_returning_unknown_tags(self):
+        service = AIService()
+        mock_response = _mock_response(self._empty_vision_response())
+
+        with (
+            patch("httpx.AsyncClient.post", return_value=mock_response),
+            patch.object(AIService, "_preprocess_image", return_value="base64data"),
+        ):
+            with pytest.raises(AIResponseTruncatedError):
+                await service.analyze_image("/fake/image.jpg")
+
+
 class TestLogprobsRejection:
     """Regression tests for issue #143: providers like Gemini reject the
 
