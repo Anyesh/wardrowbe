@@ -1,7 +1,7 @@
 import logging
 from functools import lru_cache
 
-from pydantic import Field, PostgresDsn, RedisDsn
+from pydantic import Field, PostgresDsn, RedisDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -60,6 +60,22 @@ class Settings(BaseSettings):
     ai_timeout: int = Field(default=120)
     ai_max_retries: int = Field(default=3)
     ai_max_tokens: int = Field(default=8000)
+    ai_reasoning_effort: str | None = Field(default="none")
+
+    @field_validator("ai_reasoning_effort", mode="before")
+    @classmethod
+    def normalize_reasoning_effort(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            v_clean = v.strip().lower()
+            if not v_clean:
+                return None
+            if v_clean in ("false", "off", "disabled", "0"):
+                return "none"
+            return v_clean
+        return v
+
     # arq max_jobs for the tagging worker, and deliberately the only AI
     # concurrency bound: excess jobs wait in Redis, where no clock runs. An
     # in-process gate (a semaphore in ai_service.py) must not be reintroduced,

@@ -176,6 +176,27 @@ def _response_rejects_logprobs(response: httpx.Response) -> bool:
     return response.status_code == 400 and "logprobs" in response.text.lower()
 
 
+_REASONING_EFFORT_REJECTION_MARKERS = (
+    "reasoning_effort",
+    "reasoning",
+    "think value",
+    "unsupported parameter",
+)
+
+
+def _response_rejects_reasoning_effort(response: httpx.Response) -> bool:
+    # Servers disagree on how they name the field they are rejecting. OpenAI answers
+    # "Unsupported parameter: 'reasoning_effort' ...", while Ollama releases predating the
+    # "none" effort level answer `invalid think value: "none" (must be "high", "medium",
+    # "low", true, or false)` and never mention reasoning_effort at all. Matching only the
+    # OpenAI wording would leave those Ollama users with every request failing, because the
+    # default effort is sent on every call and the strip-and-retry would never fire.
+    if response.status_code != 400:
+        return False
+    text = response.text.lower()
+    return any(marker in text for marker in _REASONING_EFFORT_REJECTION_MARKERS)
+
+
 _CONFIDENCE_FIELDS = {"type", "primary_color", "pattern", "material", "formality"}
 
 
@@ -459,6 +480,8 @@ class AIService:
             logger.info(f"Trying AI endpoint for {task_name}: {endpoint.name}")
             model = endpoint.vision_model if use_vision_model else endpoint.text_model
             use_logprobs = request_logprobs
+            use_reasoning_effort = bool(self.settings.ai_reasoning_effort)
+            current_reasoning_effort = self.settings.ai_reasoning_effort
 
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 attempt = 0
@@ -473,6 +496,8 @@ class AIService:
                         if use_logprobs:
                             request_body["logprobs"] = True
                             request_body["top_logprobs"] = 3
+                        if use_reasoning_effort and current_reasoning_effort:
+                            request_body["reasoning_effort"] = current_reasoning_effort
 
                         response = await client.post(
                             f"{endpoint.url}/chat/completions",
@@ -483,7 +508,7 @@ class AIService:
 
                         data = response.json()
                         choice = data["choices"][0]
-                        content = choice["message"]["content"]
+                        content = choice["message"].get("content")
                         logprobs_content = None
                         if use_logprobs:
                             lp = choice.get("logprobs")
@@ -509,6 +534,13 @@ class AIService:
                                 f"retrying without it: {e}"
                             )
                             use_logprobs = False
+                            continue
+                        if use_reasoning_effort and _response_rejects_reasoning_effort(e.response):
+                            logger.warning(
+                                f"{endpoint.name} rejected reasoning_effort for {task_name}, "
+                                f"retrying without it: {e}"
+                            )
+                            use_reasoning_effort = False
                             continue
                         last_error = e
                         logger.warning(f"HTTP error from {endpoint.name}: {e}")
@@ -671,19 +703,26 @@ class AIService:
         for endpoint in self._endpoints:
             logger.info(f"Trying text generation via {endpoint.name}")
 
+            use_reasoning_effort = bool(self.settings.ai_reasoning_effort)
+            current_reasoning_effort = self.settings.ai_reasoning_effort
+
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 for attempt in range(self.settings.ai_max_retries):
                     try:
+                        request_body = {
+                            "model": endpoint.text_model,
+                            "messages": messages,
+                            "stream": False,
+                            "temperature": 0.4,
+                            "max_tokens": self.settings.ai_max_tokens,
+                        }
+                        if use_reasoning_effort and current_reasoning_effort:
+                            request_body["reasoning_effort"] = current_reasoning_effort
+
                         response = await client.post(
                             f"{endpoint.url}/chat/completions",
                             headers=self._get_headers(),
-                            json={
-                                "model": endpoint.text_model,
-                                "messages": messages,
-                                "stream": False,
-                                "temperature": 0.4,
-                                "max_tokens": self.settings.ai_max_tokens,
-                            },
+                            json=request_body,
                         )
                         response.raise_for_status()
 
@@ -695,7 +734,7 @@ class AIService:
 
                         if not content or not content.strip():
                             finish_reason = choice.get("finish_reason")
-                            reasoning = message.get("reasoning_content")
+                            reasoning = message.get("reasoning_content") or message.get("reasoning")
                             if finish_reason == "length" and reasoning:
                                 detail = (
                                     "its reasoning/thinking output consumed the entire "
@@ -712,6 +751,29 @@ class AIService:
                                 "thinking/reasoning mode for this model."
                             )
                             logger.warning(str(last_error))
+
+                            # Drop straight to no reasoning rather than replaying the same
+                            # truncated request, which is what turned a single slow call into
+                            # a multi-minute hang. Only worth trying while the endpoint still
+                            # accepts the parameter at all.
+                            if (
+                                reasoning
+                                and use_reasoning_effort
+                                and current_reasoning_effort != "none"
+                            ):
+                                logger.info(
+                                    f"Retrying text generation via {endpoint.name} with "
+                                    "reasoning_effort='none' to prevent truncation"
+                                )
+                                current_reasoning_effort = "none"
+                                continue
+
+                            # A length cutoff with reasoning already at its floor is
+                            # deterministic, so retrying only multiplies the wait. Any other
+                            # empty response can be transient (temperature is non-zero), so
+                            # it keeps the normal retry budget.
+                            if finish_reason == "length":
+                                break
                             if attempt < self.settings.ai_max_retries - 1:
                                 continue
                             break
@@ -729,6 +791,12 @@ class AIService:
                         return content
 
                     except httpx.HTTPStatusError as e:
+                        if use_reasoning_effort and _response_rejects_reasoning_effort(e.response):
+                            logger.warning(
+                                f"{endpoint.name} rejected reasoning_effort, retrying without it: {e}"
+                            )
+                            use_reasoning_effort = False
+                            continue
                         last_error = e
                         logger.warning(f"HTTP error from {endpoint.name}: {e}")
                         if attempt < self.settings.ai_max_retries - 1:

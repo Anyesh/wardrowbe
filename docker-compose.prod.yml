@@ -59,6 +59,7 @@ services:
       AI_INTERNAL_ENABLED: ${AI_INTERNAL_ENABLED:-true}
       AI_VISION_ENABLED: ${AI_VISION_ENABLED:-}
       AI_TEXT_ENABLED: ${AI_TEXT_ENABLED:-}
+      AI_REASONING_EFFORT: ${AI_REASONING_EFFORT:-none}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       # OIDC (set these if using OIDC instead of forward auth)
@@ -116,6 +117,7 @@ services:
       AI_INTERNAL_ENABLED: ${AI_INTERNAL_ENABLED:-true}
       AI_VISION_ENABLED: ${AI_VISION_ENABLED:-}
       AI_TEXT_ENABLED: ${AI_TEXT_ENABLED:-}
+      AI_REASONING_EFFORT: ${AI_REASONING_EFFORT:-none}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       # Notifications
       NTFY_SERVER: ${NTFY_SERVER:-}

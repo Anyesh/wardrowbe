@@ -26,6 +26,10 @@ data:
   AI_TEXT_MODEL: "gpt-4o"
   AI_TIMEOUT: "120"
   AI_MAX_RETRIES: "3"
+  # Reasoning effort for thinking-capable models. "none" because a thinking model
+  # otherwise spends the whole completion budget on hidden monologue and returns
+  # empty content. Leave blank to send no reasoning_effort at all.
+  AI_REASONING_EFFORT: "none"
   # How many items the worker analyzes at once. One at a time because a
   # single local model serves requests serially, so N in flight multiplies
   # each request's latency by N against AI_TIMEOUT. The backend reads it too,
