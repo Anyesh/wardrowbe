@@ -6,6 +6,7 @@ from uuid import UUID
 from app.models.item import ClothingItem
 from app.models.preference import UserPreference
 from app.services.weather_service import WeatherData
+from app.utils.clothing import ITEM_ROLE
 
 OCCASION_FORMALITY = {
     "casual": ["very-casual", "casual", "smart-casual"],
@@ -73,6 +74,15 @@ SEASON_ADJACENCY = {
 
 TOP_N = 70
 MIN_ITEMS_FOR_SCORING = 50
+
+DEFAULT_COLD_THRESHOLD = 10
+DEFAULT_HOT_THRESHOLD = 25
+SENSITIVITY_SHIFT = 5
+
+# An outfit is unwearable without these, so the prompt must keep candidates for them even
+# when a whole category scores below the TOP_N cut and would otherwise be sliced away.
+ESSENTIAL_ROLES = ("footwear", "bottom")
+MIN_CANDIDATES_PER_ESSENTIAL_ROLE = 4
 
 TEMP_RANGE_MIN_SWING = 8.0
 REMOVABLE_LAYER_HOT_FLOOR = 0.6
@@ -151,13 +161,9 @@ def scoring_temp_range(weather: WeatherData) -> tuple[float, float] | None:
     return weather.window_min, weather.window_max
 
 
-def _weather_score(
-    item: ClothingItem,
-    weather: WeatherData,
-    preferences: UserPreference | None,
-) -> float:
-    cold_threshold = 10
-    hot_threshold = 25
+def _resolve_temp_thresholds(preferences: UserPreference | None) -> tuple[float, float]:
+    cold_threshold = DEFAULT_COLD_THRESHOLD
+    hot_threshold = DEFAULT_HOT_THRESHOLD
 
     if preferences:
         if preferences.cold_threshold is not None:
@@ -165,11 +171,21 @@ def _weather_score(
         if preferences.hot_threshold is not None:
             hot_threshold = preferences.hot_threshold
         if preferences.temperature_sensitivity == "high":
-            cold_threshold += 5
-            hot_threshold -= 5
+            cold_threshold += SENSITIVITY_SHIFT
+            hot_threshold -= SENSITIVITY_SHIFT
         elif preferences.temperature_sensitivity == "low":
-            cold_threshold -= 5
-            hot_threshold += 5
+            cold_threshold -= SENSITIVITY_SHIFT
+            hot_threshold += SENSITIVITY_SHIFT
+
+    return cold_threshold, hot_threshold
+
+
+def _weather_score(
+    item: ClothingItem,
+    weather: WeatherData,
+    preferences: UserPreference | None,
+) -> float:
+    cold_threshold, hot_threshold = _resolve_temp_thresholds(preferences)
 
     item_type = (item.type or "").lower()
     material = (item.material or "").lower()
@@ -220,12 +236,23 @@ def _formality_score(item: ClothingItem, occasion: str) -> float:
     return 0.15
 
 
-def _season_score(item: ClothingItem, current_season: str) -> float:
+def _season_score(
+    item: ClothingItem,
+    current_season: str,
+    weather: WeatherData | None = None,
+    preferences: UserPreference | None = None,
+) -> float:
     seasons = item.season or []
-    if not seasons:
+    if not seasons or "all-season" in seasons or current_season in seasons:
         return 1.0
-    if current_season in seasons:
-        return 1.0
+
+    if weather is not None:
+        cold_threshold, hot_threshold = _resolve_temp_thresholds(preferences)
+
+        if weather.temperature >= hot_threshold and "summer" in seasons:
+            return 1.0
+        if weather.temperature <= cold_threshold and "winter" in seasons:
+            return 1.0
 
     adjacent = SEASON_ADJACENCY.get(current_season, [])
     if any(s in adjacent for s in seasons):
@@ -312,6 +339,45 @@ def _sort_mandatory_first(
     return sorted(scored, key=lambda s: s.item.id not in mandatory_item_ids)
 
 
+def _role_of(scored_item: ScoredItem) -> str | None:
+    return ITEM_ROLE.get((scored_item.item.type or "").lower())
+
+
+def _ensure_role_diversity(
+    scored: list[ScoredItem],
+    top_n: int = TOP_N,
+    min_per_role: int = MIN_CANDIDATES_PER_ESSENTIAL_ROLE,
+    mandatory_item_ids: set[UUID] | None = None,
+) -> list[ScoredItem]:
+    if len(scored) <= top_n:
+        return scored
+
+    mandatory = mandatory_item_ids or set()
+    head = scored[:top_n]
+    tail = scored[top_n:]
+
+    promoted: list[ScoredItem] = []
+    for role in ESSENTIAL_ROLES:
+        missing = min_per_role - sum(1 for s in head if _role_of(s) == role)
+        if missing > 0:
+            promoted.extend([s for s in tail if _role_of(s) == role][:missing])
+
+    if not promoted:
+        return scored
+
+    promoted_ids = {s.item.id for s in promoted}
+    keep = [s for s in head if s.item.id in mandatory]
+    keep_ids = {s.item.id for s in keep}
+    # head is already score-ordered, so taking the front of it drops the weakest entries.
+    room = max(top_n - len(keep) - len(promoted), 0)
+    filler = [s for s in head if s.item.id not in keep_ids and s.item.id not in promoted_ids][:room]
+
+    new_head = keep + filler + promoted
+    new_head.sort(key=lambda s: (s.item.id in mandatory, s.score), reverse=True)
+    new_head_ids = {s.item.id for s in new_head}
+    return new_head + [s for s in scored if s.item.id not in new_head_ids]
+
+
 def _pair_bonus(
     item: ClothingItem,
     top_items: list[ClothingItem],
@@ -362,7 +428,7 @@ def score_items(
     for item in items:
         ws = _weather_score(item, weather, preferences)
         fs = _formality_score(item, occasion)
-        ss = _season_score(item, current_season)
+        ss = _season_score(item, current_season, weather, preferences)
         rs = _recency_score(item, user_today, avoid_days, recently_worn_dates)
         ps = _preference_score(item, preferences, learned_prefs)
         us = _usage_score(item, median_wear) if use_underused else 1.0
@@ -392,4 +458,5 @@ def score_items(
 
     scored.sort(key=lambda s: s.score, reverse=True)
     scored = _sort_mandatory_first(scored, mandatory_item_ids)
+    scored = _ensure_role_diversity(scored, TOP_N, mandatory_item_ids=mandatory_item_ids)
     return scored[:TOP_N]

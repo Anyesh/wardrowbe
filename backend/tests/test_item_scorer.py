@@ -308,6 +308,28 @@ class TestSeasonScore:
         item = _item(season=[])
         assert _season_score(item, "winter") == 1.0
 
+    def test_all_season(self):
+        item = _item(season=["all-season"])
+        assert _season_score(item, "winter") == 1.0
+        assert _season_score(item, "summer") == 1.0
+        assert _season_score(item, "spring") == 1.0
+        assert _season_score(item, "fall") == 1.0
+
+    def test_summer_item_in_fall_with_hot_weather(self):
+        item = _item(season=["summer"])
+        hot_weather = _weather(temp=28)
+        assert _season_score(item, "fall", hot_weather) == 1.0
+
+    def test_summer_item_in_fall_with_cool_weather(self):
+        item = _item(season=["summer"])
+        cool_weather = _weather(temp=18)
+        assert _season_score(item, "fall", cool_weather) == 0.6
+
+    def test_winter_item_in_spring_with_cold_weather(self):
+        item = _item(season=["winter"])
+        cold_weather = _weather(temp=5)
+        assert _season_score(item, "spring", cold_weather) == 1.0
+
 
 class TestGetSeason:
     def test_northern_hemisphere(self):
@@ -531,3 +553,86 @@ class TestScoreItems:
         shirt_pos = next(i for i, s in enumerate(result) if s.item.id == shirt.id)
         sweater_pos = next(i for i, s in enumerate(result) if s.item.id == sweater.id)
         assert sweater_pos < shirt_pos
+
+    def test_ensures_footwear_represented_in_top_n(self):
+        # 75 shirts (scoring high) + 3 footwear (scoring lower)
+        shirts = [_item(type="shirt") for _ in range(75)]
+        shoes = [_item(type="sneakers") for _ in range(3)]
+        all_items = shirts + shoes
+        result = score_items(
+            items=all_items,
+            weather=_weather(temp=20),
+            occasion="casual",
+            preferences=None,
+            user_today=date(2026, 3, 8),
+            current_season="spring",
+            learned_prefs=None,
+            good_pairs={},
+            recently_worn_dates={},
+        )
+        footwear_in_result = [s for s in result if s.item.type == "sneakers"]
+        assert len(footwear_in_result) == 3
+
+
+class TestSeasonScoreThresholds:
+    def test_high_sensitivity_lowers_the_hot_threshold(self):
+        item = _item(season=["summer"])
+        weather = _weather(temp=21)
+        assert _season_score(item, "fall", weather) == 0.6
+        sensitive = _prefs(temperature_sensitivity="high")
+        assert _season_score(item, "fall", weather, sensitive) == 1.0
+
+    def test_low_sensitivity_raises_the_hot_threshold(self):
+        item = _item(season=["summer"])
+        weather = _weather(temp=27)
+        assert _season_score(item, "fall", weather) == 1.0
+        tolerant = _prefs(temperature_sensitivity="low")
+        assert _season_score(item, "fall", weather, tolerant) == 0.6
+
+    def test_custom_cold_threshold_is_honoured(self):
+        item = _item(season=["winter"])
+        weather = _weather(temp=14)
+        assert _season_score(item, "spring", weather) == 0.6
+        assert _season_score(item, "spring", weather, _prefs(cold_threshold=15)) == 1.0
+
+
+class TestRoleDiversity:
+    def _wardrobe(self, footwear_type="sneakers"):
+        shirts = [_item(type="shirt") for _ in range(75)]
+        bottoms = [_item(type="jeans") for _ in range(3)]
+        shoes = [_item(type=footwear_type) for _ in range(3)]
+        return shirts, bottoms, shoes
+
+    def _score(self, items, **kwargs):
+        return score_items(
+            items=items,
+            weather=_weather(temp=20),
+            occasion="casual",
+            preferences=None,
+            user_today=date(2026, 3, 8),
+            current_season="spring",
+            learned_prefs=None,
+            good_pairs={},
+            recently_worn_dates={},
+            **kwargs,
+        )
+
+    def test_keeps_bottoms_as_well_as_footwear(self):
+        shirts, bottoms, shoes = self._wardrobe()
+        result = self._score(shirts + bottoms + shoes)
+        result_ids = {s.item.id for s in result}
+        assert {b.id for b in bottoms} <= result_ids
+        assert {s.id for s in shoes} <= result_ids
+
+    def test_matches_role_regardless_of_type_casing(self):
+        shirts, bottoms, shoes = self._wardrobe(footwear_type="Sneakers")
+        result = self._score(shirts + bottoms + shoes)
+        assert {s.id for s in shoes} <= {s.item.id for s in result}
+
+    def test_promotion_never_evicts_a_mandatory_item(self):
+        shirts, bottoms, shoes = self._wardrobe()
+        mandatory = shirts[-1]
+        result = self._score(shirts + bottoms + shoes, mandatory_item_ids={mandatory.id})
+        result_ids = {s.item.id for s in result}
+        assert mandatory.id in result_ids
+        assert {s.id for s in shoes} <= result_ids
