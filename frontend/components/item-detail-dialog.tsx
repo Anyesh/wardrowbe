@@ -271,17 +271,22 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden [&>button]:hidden">
           {/* Header - sticky */}
           <DialogHeader className="flex flex-row items-center gap-2 space-y-0 p-4 border-b flex-shrink-0">
-            {/* Capped on narrow screens because the title claims its content
-                width before the actions do, and a long item name otherwise
-                squeezes the scrollable row down to about one button. */}
-            <DialogTitle className="text-xl min-w-0 truncate max-w-[45%] sm:max-w-none">
+            {/* Below sm the title keeps its 45% cap and the actions stay in a
+                scrollable row, so the close control is always reachable on a
+                phone. From sm up the title becomes the flexible item and the
+                actions row is sized to its content instead, so every action
+                stays visible and the name truncates. Previously the title had
+                no cap at all from sm up: because a flex item claims its content
+                width before a flex-1 sibling does, a long name squeezed the
+                actions row and pushed edit and replace-image out of view. */}
+            <DialogTitle className="text-xl min-w-0 truncate max-w-[45%] sm:max-w-none sm:flex-1">
               {item.name || (typeInfo ? typeInfo.label : item.type)}
             </DialogTitle>
             {/* The action row scrolls sideways once it stops fitting, because
                 the dialog clips its own overflow: without this the buttons
                 push the close control past the right edge on a phone and it
                 cannot be reached at all. */}
-            <div className="flex-1 min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex-1 min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none">
               <div className="flex w-max ml-auto items-center gap-1">
                 <Button
                   variant="ghost"
