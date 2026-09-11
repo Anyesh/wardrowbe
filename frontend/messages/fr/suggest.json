@@ -1,4 +1,18 @@
 {
+  "baseItem": {
+    "all": "Tous",
+    "basePiece": "Pièce de base",
+    "change": "Changer",
+    "chooseItem": "Choisir un vêtement",
+    "chooseItemHint": "Sélectionnez une chemise, un pantalon, des chaussures ou une pièce maîtresse",
+    "clear": "Effacer",
+    "dialogDescription": "Sélectionnez un vêtement de votre garde-robe pour composer votre tenue autour.",
+    "dialogTitle": "Choisir un vêtement pour votre tenue",
+    "mustInclude": "À inclure obligatoirement",
+    "remove": "Supprimer",
+    "subtitle": "Choisissez une chemise, un pantalon, des chaussures ou un article qui doit figurer dans la tenue",
+    "title": "Composer autour d'une pièce spécifique (optionnel)"
+  },
   "dismissOutfit": "Ignorer la tenue",
   "error": "Échec de la génération de la suggestion de tenue. Veuillez réessayer.",
   "feedback": {
@@ -39,6 +53,14 @@
   },
   "loveIt": "J'adore",
   "occasionPrompt": "Quelle est l'occasion ?",
+  "options": {
+    "allOptions": "Tout comparer",
+    "chooseThis": "Choisir ce look",
+    "generateNew": "Générer 3 nouveaux looks",
+    "optionNumber": "Look {number}",
+    "singleView": "Vue détaillée",
+    "title": "{count} options de tenues"
+  },
   "outfitPreview": {
     "familyRatings": {
       "average": "({rating} <star></star> en moy.)",

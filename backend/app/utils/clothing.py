@@ -37,20 +37,54 @@ ITEM_ROLE: dict[str, str] = {
 }
 
 
-def deduplicate_by_body_slot(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> list[UUID]:
-    seen_roles: dict[str, UUID] = {}
+def deduplicate_by_body_slot(
+    item_ids: list[UUID],
+    item_type_map: dict[UUID, str],
+    mandatory_item_ids: set[UUID] | None = None,
+) -> list[UUID]:
+    requested = mandatory_item_ids or set()
     result: list[UUID] = []
-    has_full_body = any(
-        ITEM_ROLE.get(item_type_map.get(iid, "")) == "full_body" for iid in item_ids
+
+    # A mandatory item only claims a slot if the caller actually passed it in item_ids;
+    # one that never made the candidate list must not block the items that did.
+    # Mandatory items compete with each other too, first in list order wins, because two
+    # shirts or a dress plus trousers is an unwearable outfit however it was requested.
+    mandatory_roles: dict[str, UUID] = {}
+    body_claim: str | None = None
+    for iid in item_ids:
+        if iid not in requested:
+            continue
+        role = ITEM_ROLE.get(item_type_map.get(iid, ""))
+        if not role or role == "accessory" or role in mandatory_roles:
+            continue
+        if role == "full_body":
+            if body_claim == "separates":
+                continue
+            body_claim = "full_body"
+        elif role in ("base_top", "bottom"):
+            if body_claim == "full_body":
+                continue
+            body_claim = "separates"
+        mandatory_roles[role] = iid
+
+    mandatory_has_separates = body_claim == "separates"
+    has_full_body = body_claim == "full_body" or (
+        not mandatory_has_separates
+        and any(ITEM_ROLE.get(item_type_map.get(iid, "")) == "full_body" for iid in item_ids)
     )
+
+    seen_roles: dict[str, UUID] = dict(mandatory_roles)
     for iid in item_ids:
         item_type = item_type_map.get(iid, "")
         role = ITEM_ROLE.get(item_type)
-        if not role:
+        if not role or role == "accessory":
             result.append(iid)
             continue
-        if role == "accessory":
+        if mandatory_roles.get(role) == iid:
             result.append(iid)
+            continue
+        if role == "full_body" and mandatory_has_separates:
+            logger.warning(f"Removing {item_type} item {iid}: mandatory separates present")
             continue
         if has_full_body and role in ("base_top", "bottom"):
             logger.warning(f"Removing {item_type} item {iid}: full_body item present")

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import {
   Heart,
   Pencil,
@@ -79,6 +80,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const t = useTranslations('wardrobe.itemDetail');
   const tc = useTranslations('common');
   const tw = useTranslations('wardrobe');
+  const router = useRouter();
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
   const [isEditing, setIsEditing] = useState(false);
@@ -302,6 +304,18 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   title={t('titles.findMatchingOutfits')}
                 >
                   <Layers className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    onOpenChange(false);
+                    router.push(`/dashboard/suggest?item=${item.id}`);
+                  }}
+                  disabled={item.status !== 'ready'}
+                  title={t('titles.suggestOutfit')}
+                >
+                  <Sparkles className="h-5 w-5 text-primary" />
                 </Button>
                 <Button
                   variant="ghost"

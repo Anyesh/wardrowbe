@@ -193,6 +193,7 @@
       "rotateLeft": "Rotation à gauche",
       "rotateRight": "Rotation à droite",
       "setAsPrimary": "Définir comme image principale",
+      "suggestOutfit": "Créer une tenue avec cet article",
       "toggleFavorite": "Basculer le favori",
       "undoBackgroundRemoval": "Annuler la suppression de l'arrière-plan"
     },

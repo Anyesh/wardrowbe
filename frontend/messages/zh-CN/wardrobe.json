@@ -193,6 +193,7 @@
       "rotateLeft": "向左旋转",
       "rotateRight": "向右旋转",
       "setAsPrimary": "设为主图",
+      "suggestOutfit": "用这件衣物创建穿搭",
       "toggleFavorite": "切换收藏",
       "undoBackgroundRemoval": "撤销背景去除"
     },

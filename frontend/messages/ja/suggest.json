@@ -1,4 +1,18 @@
 {
+  "baseItem": {
+    "all": "すべて",
+    "basePiece": "ベースアイテム",
+    "change": "変更",
+    "chooseItem": "アイテムを選択",
+    "chooseItemHint": "シャツ、パンツ、靴など、コーデの軸にするアイテムを選択",
+    "clear": "クリア",
+    "dialogDescription": "ワードローブからコーデのベースにするアイテムを選択してください。",
+    "dialogTitle": "コーデのアイテムを選択",
+    "mustInclude": "必須アイテム",
+    "remove": "削除",
+    "subtitle": "コーデに必ず含めたいシャツ、パンツ、靴などを選んでください",
+    "title": "特定のアイテムをベースに作成（任意）"
+  },
   "dismissOutfit": "このコーデを見送る",
   "error": "コーデ提案の生成に失敗しました。もう一度お試しください。",
   "feedback": {
@@ -39,6 +53,14 @@
   },
   "loveIt": "最高",
   "occasionPrompt": "どんなシーンですか？",
+  "options": {
+    "allOptions": "すべて比較",
+    "chooseThis": "このコーデを選ぶ",
+    "generateNew": "新しく3パターン作成",
+    "optionNumber": "コーデ {number}",
+    "singleView": "個別表示",
+    "title": "{count}つのコーデ提案"
+  },
   "outfitPreview": {
     "familyRatings": {
       "average": "（平均 {rating} <star></star>）",

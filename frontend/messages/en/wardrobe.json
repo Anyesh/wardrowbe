@@ -193,6 +193,7 @@
       "rotateLeft": "Rotate left",
       "rotateRight": "Rotate right",
       "setAsPrimary": "Set as primary",
+      "suggestOutfit": "Create outfit with this item",
       "toggleFavorite": "Toggle favorite",
       "undoBackgroundRemoval": "Undo background removal"
     },

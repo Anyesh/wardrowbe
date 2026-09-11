@@ -6,6 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
@@ -249,3 +250,60 @@ class TestBulkDeleteRequestValidation:
             headers=auth_headers,
         )
         assert response.status_code == 422
+
+
+class TestBulkDeleteResourceLimits:
+    """A select_all walk must stay capped and resumable.
+
+    Nothing else in the suite exercises the cap, which is how a revert of it once slipped
+    through green.
+    """
+
+    @pytest.mark.asyncio
+    async def test_explicit_ids_over_the_cap_are_rejected(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        limit = get_settings().max_bulk_action_count
+        response = await client.post(
+            "/api/v1/outfits/bulk/delete",
+            json={"outfit_ids": [str(uuid4()) for _ in range(limit + 1)]},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert str(limit) in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_select_all_caps_each_batch_and_returns_a_cursor(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession, monkeypatch
+    ):
+        monkeypatch.setattr(get_settings(), "max_bulk_action_count", 3, raising=False)
+
+        item = _make_item(test_user.id)
+        db_session.add(item)
+        await db_session.flush()
+        db_session.add_all([_make_outfit(test_user.id, [item]) for _ in range(5)])
+        await db_session.commit()
+
+        first = await client.post(
+            "/api/v1/outfits/bulk/delete",
+            json={"select_all": True},
+            headers=auth_headers,
+        )
+        assert first.status_code == 200
+        body = first.json()
+        assert body["deleted"] == 3
+        assert body["has_more"] is True
+        assert body["next_cursor"] is not None
+
+        second = await client.post(
+            "/api/v1/outfits/bulk/delete",
+            json={"select_all": True, "after_id": body["next_cursor"]},
+            headers=auth_headers,
+        )
+        assert second.status_code == 200
+        assert second.json()["deleted"] == 2
+        assert second.json()["has_more"] is False
+
+        remaining = await db_session.execute(select(Outfit).where(Outfit.user_id == test_user.id))
+        assert remaining.scalars().all() == []

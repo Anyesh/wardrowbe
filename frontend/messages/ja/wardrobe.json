@@ -192,8 +192,9 @@
       "replaceImage": "画像を置き換え",
       "rotateLeft": "左に回転",
       "rotateRight": "右に回転",
-      "setAsPrimary": "メインに設定",
-      "toggleFavorite": "お気に入りを切替",
+      "setAsPrimary": "メイン画像に設定",
+      "suggestOutfit": "このアイテムでコーデを作成",
+      "toggleFavorite": "お気に入りを切り替え",
       "undoBackgroundRemoval": "背景削除を元に戻す"
     },
     "type": "タイプ",

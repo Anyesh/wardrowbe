@@ -193,7 +193,8 @@
       "rotateLeft": "Ruota a sinistra",
       "rotateRight": "Ruota a destra",
       "setAsPrimary": "Imposta come principale",
-      "toggleFavorite": "Attiva/disattiva preferito",
+      "suggestOutfit": "Crea outfit con questo capo",
+      "toggleFavorite": "Aggiungi/rimuovi dai preferiti",
       "undoBackgroundRemoval": "Annulla rimozione sfondo"
     },
     "type": "Tipo",

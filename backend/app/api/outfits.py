@@ -504,6 +504,82 @@ async def suggest_outfit(
     return outfit_to_response(outfit, wore_instead_map, is_starter_suggestion=is_starter)
 
 
+@router.post("/suggest-options", response_model=list[OutfitResponse])
+async def suggest_outfit_options(
+    request: SuggestRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> list[OutfitResponse]:
+    await rate_limit_by_user(str(current_user.id), "suggest", max_requests=10, window_seconds=60)
+    weather_override = None
+    if request.weather_override:
+        w = request.weather_override
+        weather_override = WeatherData(
+            temperature=w.temperature,
+            feels_like=w.feels_like or w.temperature,
+            humidity=w.humidity,
+            precipitation_chance=w.precipitation_chance,
+            precipitation_mm=0,
+            wind_speed=0,
+            condition=w.condition,
+            condition_code=0,
+            is_day=True,
+            uv_index=0,
+            timestamp=datetime.utcnow(),
+        )
+
+    service = RecommendationService(db)
+
+    occasion = request.occasion
+    if occasion is None:
+        if current_user.preferences and current_user.preferences.default_occasion:
+            occasion = current_user.preferences.default_occasion
+        else:
+            occasion = "casual"
+
+    try:
+        outfits = await service.generate_recommendations(
+            user=current_user,
+            occasion=occasion,
+            weather_override=weather_override,
+            exclude_items=request.exclude_items,
+            include_items=request.include_items,
+            time_of_day=request.time_of_day,
+            count=3,
+        )
+    except InsufficientWardrobeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from None
+    except AIDisabledError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Internal AI is disabled; outfit suggestions are deferred to an external agent.",
+        ) from None
+    except AIRecommendationError as e:
+        logger.error(f"AI recommendation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e),
+        ) from None
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from None
+
+    item_service = ItemService(db)
+    total_items = await item_service.get_ready_item_count(current_user.id)
+    is_starter = total_items <= 5
+
+    wore_instead_map = await fetch_wore_instead_items_map(db, outfits, user_id=current_user.id)
+    return [
+        outfit_to_response(outfit, wore_instead_map, is_starter_suggestion=is_starter)
+        for outfit in outfits
+    ]
+
+
 class SuggestionCreateRequest(OutfitAttributeFields):
     model_config = ConfigDict(extra="forbid")
 

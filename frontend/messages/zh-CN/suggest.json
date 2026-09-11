@@ -1,4 +1,18 @@
 {
+  "baseItem": {
+    "all": "全部",
+    "basePiece": "基础单品",
+    "change": "更改",
+    "chooseItem": "选择衣物",
+    "chooseItemHint": "选择衬衫、裤子、鞋子或作为主体的单品",
+    "clear": "清除",
+    "dialogDescription": "从衣橱中选择一件单品来围绕其搭配穿搭。",
+    "dialogTitle": "为穿搭选择单品",
+    "mustInclude": "必须包含",
+    "remove": "移除",
+    "subtitle": "选择一件必须包含在穿搭中的衬衫、裤子、鞋子或单品",
+    "title": "围绕特定单品搭配（可选）"
+  },
   "dismissOutfit": "关闭穿搭",
   "error": "生成穿搭建议失败，请重试。",
   "feedback": {
@@ -39,6 +53,14 @@
   },
   "loveIt": "喜欢",
   "occasionPrompt": "今天什么场合？",
+  "options": {
+    "allOptions": "全部对比",
+    "chooseThis": "选择这套穿搭",
+    "generateNew": "重新生成3套穿搭",
+    "optionNumber": "搭配 {number}",
+    "singleView": "单套查看",
+    "title": "{count}套穿搭方案"
+  },
   "outfitPreview": {
     "familyRatings": {
       "average": "（平均 {rating} <star></star>）",
