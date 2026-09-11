@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.9.0...wardrowbe-v1.10.0) (2026-09-11)
+
+
+### ✨ Features
+
+* **suggest:** add base item selection and 3-look comparison view ([#194](https://github.com/Anyesh/wardrowbe/issues/194)) ([6062793](https://github.com/Anyesh/wardrowbe/commit/6062793f9f862432f125548a9aa6d04f29f89f58))
+
+
+### 🐛 Bug Fixes
+
+* **ai:** bypass reasoning mode by default to prevent timeouts on thinking models ([129ef25](https://github.com/Anyesh/wardrowbe/commit/129ef256c9715efcfa4e56c3770b4f2bbb82f047))
+* **ai:** bypass reasoning mode by default to prevent timeouts on thinking models ([ea8966e](https://github.com/Anyesh/wardrowbe/commit/ea8966e0caa86c2189e0667a0ede6355918cec5b))
+* **recommendation:** support all-season items and weather-aware season scoring ([fd56d47](https://github.com/Anyesh/wardrowbe/commit/fd56d4798686d8d09d5ead1191cc14aea5ffb87e))
+* **recommendation:** support all-season items and weather-aware season scoring ([bd08b13](https://github.com/Anyesh/wardrowbe/commit/bd08b13a657012af4d4ebdd5c1e98c4c58fab122))
+
 ## [1.9.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.8.2...wardrowbe-v1.9.0) (2026-09-03)
 
 
