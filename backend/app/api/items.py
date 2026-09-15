@@ -7,7 +7,18 @@ from zoneinfo import ZoneInfo
 
 from arq import create_pool
 from arq.jobs import Job
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from sqlalchemy import case, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,7 +60,8 @@ from app.schemas.item import (
 )
 from app.services.image_service import ImageService
 from app.services.item_service import ItemService
-from app.utils.auth import get_current_user
+from app.utils.auth import can_include_signed_image_urls, get_current_user
+from app.utils.item_revision import if_match_accepts, item_revision
 from app.utils.signed_urls import sign_image_url
 from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
 from app.workers.settings import get_redis_settings
@@ -69,6 +81,12 @@ def _has_tag_content(field: str, value: Any) -> bool:
     if field == "tags" and isinstance(value, dict):
         return any(v not in _EMPTY_TAG_VALUES for v in value.values())
     return value not in _EMPTY_TAG_VALUES
+
+
+def _item_response(item: ClothingItem, request: Request) -> ItemResponse:
+    return ItemResponse.model_validate(item).set_image_urls_enabled(
+        can_include_signed_image_urls(request)
+    )
 
 
 async def _resolve_bulk_item_ids(
@@ -115,6 +133,7 @@ async def _resolve_bulk_item_ids(
 
 @router.get("", response_model=ItemListResponse)
 async def list_items(
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
@@ -156,7 +175,7 @@ async def list_items(
     )
 
     return ItemListResponse(
-        items=[ItemResponse.model_validate(item) for item in items],
+        items=[_item_response(item, request) for item in items],
         total=total,
         page=page,
         page_size=page_size,
@@ -1048,7 +1067,7 @@ async def _analysis_batch_anchor(db: AsyncSession, user_id: UUID) -> datetime | 
 
 
 async def _items_being_analyzed(
-    db: AsyncSession, user_id: UUID, limit: int
+    db: AsyncSession, user_id: UUID, limit: int, *, include_signed_image_urls: bool
 ) -> list[AnalysisInProgress]:
     result = await db.execute(
         select(
@@ -1072,7 +1091,11 @@ async def _items_being_analyzed(
             item_id=row.id,
             name=row.name,
             type=row.type,
-            image_url=sign_image_url(row.thumbnail_path or row.image_path),
+            image_url=(
+                sign_image_url(row.thumbnail_path or row.image_path)
+                if include_signed_image_urls
+                else None
+            ),
             started_at=row.ai_started_at,
         )
         for row in result
@@ -1142,6 +1165,7 @@ async def _recent_failures(db: AsyncSession, user_id: UUID) -> list[AnalysisFail
 
 @router.get("/tagging-progress", response_model=TaggingProgressResponse)
 async def get_tagging_progress(
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> TaggingProgressResponse:
@@ -1187,7 +1211,12 @@ async def get_tagging_progress(
         )
         batch_completed, batch_failed = batch_row.one()
 
-    current = await _items_being_analyzed(db, current_user.id, concurrency)
+    current = await _items_being_analyzed(
+        db,
+        current_user.id,
+        concurrency,
+        include_signed_image_urls=can_include_signed_image_urls(request),
+    )
     recent = await _recent_completions(db, current_user.id)
     failures = await _recent_failures(db, current_user.id)
 
@@ -1217,6 +1246,7 @@ async def get_tagging_progress(
 @router.get("/{item_id}", response_model=ItemResponse)
 async def get_item(
     item_id: UUID,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
@@ -1229,23 +1259,37 @@ async def get_item(
             detail="Item not found",
         )
 
-    return ItemResponse.model_validate(item)
+    return _item_response(item, request)
 
 
 @router.patch("/{item_id}", response_model=ItemResponse)
 async def update_item(
     item_id: UUID,
     item_data: ItemUpdate,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
+    if_match: Annotated[str | None, Header(alias="If-Match")] = None,
 ) -> ItemResponse:
     item_service = ItemService(db)
-    item = await item_service.get_by_id(item_id, current_user.id)
+    item = (
+        await item_service.get_by_id_for_update(item_id, current_user.id)
+        if if_match is not None
+        else await item_service.get_by_id(item_id, current_user.id)
+    )
 
     if not item:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Item not found",
+        )
+
+    if if_match is not None and not if_match_accepts(
+        if_match, item_revision(item.id, item.updated_at)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_412_PRECONDITION_FAILED,
+            detail="Item changed since it was read",
         )
 
     update_data = item_data.model_dump(exclude_unset=True)
@@ -1255,7 +1299,7 @@ async def update_item(
         item.tagged_at = datetime.now(UTC)
 
     item = await item_service.update(item, item_data)
-    return ItemResponse.model_validate(item)
+    return _item_response(item, request)
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -1366,6 +1410,7 @@ async def log_item_wear(
 @router.get("/{item_id}/history")
 async def get_item_history(
     item_id: UUID,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(10, ge=1, le=100),
@@ -1399,6 +1444,7 @@ async def get_item_history(
     )
     history = list(result.scalars().all())
 
+    include_signed_image_urls = can_include_signed_image_urls(request)
     entries = []
     for h in history:
         entry = {
@@ -1416,9 +1462,11 @@ async def get_item_history(
                         "id": str(oi.item.id),
                         "type": oi.item.type,
                         "name": oi.item.name,
-                        "thumbnail_url": sign_image_url(oi.item.thumbnail_path)
-                        if oi.item.thumbnail_path
-                        else None,
+                        "thumbnail_url": (
+                            sign_image_url(oi.item.thumbnail_path)
+                            if include_signed_image_urls and oi.item.thumbnail_path
+                            else None
+                        ),
                     }
                     for oi in sorted(h.outfit.items, key=lambda x: x.position)
                 ],

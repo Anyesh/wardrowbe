@@ -1,0 +1,25 @@
+import hashlib
+from datetime import UTC, datetime
+from uuid import UUID
+
+
+def item_revision(item_id: UUID, updated_at: datetime) -> str:
+    timestamp = (
+        updated_at.replace(tzinfo=UTC) if updated_at.tzinfo is None else updated_at.astimezone(UTC)
+    )
+    payload = f"{item_id}:{timestamp.isoformat(timespec='microseconds')}"
+    return "v1-" + hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
+
+
+def if_match_accepts(header: str, revision: str) -> bool:
+    for candidate in header.split(","):
+        candidate = candidate.strip()
+        if candidate == "*":
+            return True
+        if candidate.startswith("W/"):
+            continue
+        if len(candidate) >= 2 and candidate[0] == candidate[-1] == '"':
+            candidate = candidate[1:-1]
+        if candidate == revision:
+            return True
+    return False
