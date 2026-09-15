@@ -315,6 +315,45 @@ class TestLogprobsRejection:
         assert "top_logprobs" not in second_body
 
     @pytest.mark.asyncio
+    async def test_retries_without_logprobs_after_200_error_envelope(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        error_envelope = _mock_response({"error": {"message": "The operation was aborted"}})
+        responses = [error_envelope, self._success_response(self._TAGS_CONTENT)]
+
+        with patch("httpx.AsyncClient.post", side_effect=responses) as mock_post:
+            content, err, logprobs_content = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert err is None
+        assert content == self._TAGS_CONTENT
+        assert logprobs_content is None
+        assert mock_post.call_count == 2
+        first_body = mock_post.call_args_list[0].kwargs["json"]
+        second_body = mock_post.call_args_list[1].kwargs["json"]
+        assert first_body["logprobs"] is True
+        assert "logprobs" not in second_body
+        assert "top_logprobs" not in second_body
+
+    @pytest.mark.asyncio
+    async def test_repeated_200_error_envelope_returns_controlled_error(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        error_envelope = _mock_response({"error": {"message": "The operation was aborted"}})
+
+        with patch("httpx.AsyncClient.post", return_value=error_envelope) as mock_post:
+            content, err, logprobs_content = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert content is None
+        assert isinstance(err, RuntimeError)
+        assert "The operation was aborted" in str(err)
+        assert logprobs_content is None
+        assert mock_post.call_count == 2
+
+    @pytest.mark.asyncio
     async def test_logprobs_rejection_does_not_consume_retry_budget(self):
         service = AIService()
         service.settings = service.settings.model_copy(update={"ai_max_retries": 1})

@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 AI_RETRY_MAX_BACKOFF_S = 30
 
 
+class _AIProviderResponseError(RuntimeError):
+    """Provider returned an error payload with a successful HTTP status."""
+
+
 class TextGenerationResult(BaseModel):
     content: str
     model: str
@@ -507,6 +511,21 @@ class AIService:
                         response.raise_for_status()
 
                         data = response.json()
+                        if isinstance(data, dict) and "error" in data and "choices" not in data:
+                            if use_logprobs:
+                                logger.warning(
+                                    f"{endpoint.name} returned an error envelope for {task_name} "
+                                    "while logprobs were enabled; retrying without logprobs"
+                                )
+                                use_logprobs = False
+                                continue
+                            error = data.get("error")
+                            message = (
+                                error.get("message")
+                                if isinstance(error, dict) and isinstance(error.get("message"), str)
+                                else "provider returned an error response"
+                            )
+                            raise _AIProviderResponseError(message)
                         choice = data["choices"][0]
                         content = choice["message"].get("content")
                         logprobs_content = None
@@ -521,6 +540,9 @@ class AIService:
                         )
                         return content, None, logprobs_content
 
+                    except _AIProviderResponseError as e:
+                        last_error = e
+                        logger.warning(f"Provider error from {endpoint.name}: {e}")
                     except httpx.HTTPStatusError as e:
                         # Some providers (e.g. Gemini's OpenAI-compat endpoint, or Gemini
                         # native without the paid tier) reject the logprobs param outright.
