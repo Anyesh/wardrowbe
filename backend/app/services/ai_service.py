@@ -180,6 +180,21 @@ def _response_rejects_logprobs(response: httpx.Response) -> bool:
     return response.status_code == 400 and "logprobs" in response.text.lower()
 
 
+def _provider_error_message(data: object) -> str | None:
+    if not isinstance(data, dict) or "error" not in data or "choices" in data:
+        return None
+
+    error = data.get("error")
+    if isinstance(error, dict):
+        message = error.get("message")
+        if isinstance(message, str) and message.strip():
+            return message
+    elif isinstance(error, str) and error.strip():
+        return error
+
+    return "provider returned an error response"
+
+
 _REASONING_EFFORT_REJECTION_MARKERS = (
     "reasoning_effort",
     "reasoning",
@@ -511,7 +526,8 @@ class AIService:
                         response.raise_for_status()
 
                         data = response.json()
-                        if isinstance(data, dict) and "error" in data and "choices" not in data:
+                        provider_error = _provider_error_message(data)
+                        if provider_error is not None:
                             if use_logprobs:
                                 logger.warning(
                                     f"{endpoint.name} returned an error envelope for {task_name} "
@@ -519,13 +535,7 @@ class AIService:
                                 )
                                 use_logprobs = False
                                 continue
-                            error = data.get("error")
-                            message = (
-                                error.get("message")
-                                if isinstance(error, dict) and isinstance(error.get("message"), str)
-                                else "provider returned an error response"
-                            )
-                            raise _AIProviderResponseError(message)
+                            raise _AIProviderResponseError(provider_error)
                         choice = data["choices"][0]
                         content = choice["message"].get("content")
                         logprobs_content = None
@@ -749,6 +759,9 @@ class AIService:
                         response.raise_for_status()
 
                         data = response.json()
+                        provider_error = _provider_error_message(data)
+                        if provider_error is not None:
+                            raise _AIProviderResponseError(provider_error)
                         used_model = data.get("model", endpoint.text_model)
                         choice = data["choices"][0]
                         message = choice["message"]
@@ -812,6 +825,11 @@ class AIService:
                             )
                         return content
 
+                    except _AIProviderResponseError as e:
+                        last_error = e
+                        logger.warning(f"Provider error from {endpoint.name}: {e}")
+                        if attempt < self.settings.ai_max_retries - 1:
+                            continue
                     except httpx.HTTPStatusError as e:
                         if use_reasoning_effort and _response_rejects_reasoning_effort(e.response):
                             logger.warning(

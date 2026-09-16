@@ -267,6 +267,42 @@ class TestGenerateTextTruncatedResponse:
         assert content == '{"outfits": []}'
 
 
+class TestGenerateTextErrorEnvelope:
+    """HTTP 200 provider error envelopes must use normal retry/fallback handling."""
+
+    @staticmethod
+    def _success_response() -> httpx.Response:
+        return _mock_response(
+            {
+                "model": "text-model",
+                "choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}],
+            }
+        )
+
+    @pytest.mark.asyncio
+    async def test_generate_text_retries_after_200_error_envelope(self):
+        service = AIService()
+        error_envelope = _mock_response({"error": {"message": "The operation was aborted"}})
+
+        with patch(
+            "httpx.AsyncClient.post", side_effect=[error_envelope, self._success_response()]
+        ) as mock_post:
+            content = await service.generate_text("suggest an outfit")
+
+        assert content == "ok"
+        assert mock_post.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_generate_text_repeated_200_error_envelope_raises_controlled_error(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        error_envelope = _mock_response({"error": {"message": "The operation was aborted"}})
+
+        with patch("httpx.AsyncClient.post", return_value=error_envelope):
+            with pytest.raises(RuntimeError, match="The operation was aborted"):
+                await service.generate_text("suggest an outfit")
+
+
 class TestLogprobsRejection:
     """Regression tests for issue #143: providers like Gemini reject the
 
