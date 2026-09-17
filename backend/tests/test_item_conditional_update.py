@@ -72,3 +72,21 @@ async def test_conditional_patch_rejects_stale_revision_without_overwrite(
     current = await client.get(f"/api/v1/items/{item.id}", headers=headers)
     assert current.status_code == 200
     assert current.json()["name"] == "First writer"
+
+
+@pytest.mark.asyncio
+async def test_conditional_patch_rejects_wildcard_embedded_in_quoted_tag(
+    client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+):
+    item = await _item(db_session, test_user)
+    headers = await _api_key_headers(client, auth_headers)
+
+    response = await client.patch(
+        f"/api/v1/items/{item.id}",
+        json={"name": "Should not update"},
+        headers={**headers, "If-Match": '"other,*,tag"'},
+    )
+
+    assert response.status_code == 412, response.text
+    current = await client.get(f"/api/v1/items/{item.id}", headers=headers)
+    assert current.json()["name"] == "Original"

@@ -54,6 +54,7 @@
     "noKeys": "Nessuna chiave API.",
     "revoke": "Revoca",
     "revokeConfirm": "Revocare la chiave API \"{name}\"? L’operazione non può essere annullata.",
+    "revokeError": "Impossibile revocare la chiave API",
     "revoked": "Revocata",
     "scopes": {
       "imagesRead": "Leggi immagini",

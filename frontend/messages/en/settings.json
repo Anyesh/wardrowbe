@@ -54,6 +54,7 @@
     "noKeys": "No API keys yet.",
     "revoke": "Revoke",
     "revokeConfirm": "Revoke API key \"{name}\"? This cannot be undone.",
+    "revokeError": "Failed to revoke API key",
     "revoked": "Revoked",
     "scopes": {
       "imagesRead": "Read images",

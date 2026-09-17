@@ -54,6 +54,7 @@
     "noKeys": "Aucune clé API pour le moment.",
     "revoke": "Révoquer",
     "revokeConfirm": "Révoquer la clé API « {name} » ? Cette action est irréversible.",
+    "revokeError": "Échec de la révocation de la clé API",
     "revoked": "Révoquée",
     "scopes": {
       "imagesRead": "Lire les images",

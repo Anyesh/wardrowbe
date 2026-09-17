@@ -54,6 +54,7 @@
     "noKeys": "Noch keine API-Schlüssel.",
     "revoke": "Widerrufen",
     "revokeConfirm": "API-Schlüssel „{name}“ widerrufen? Dies kann nicht rückgängig gemacht werden.",
+    "revokeError": "API-Schlüssel konnte nicht widerrufen werden",
     "revoked": "Widerrufen",
     "scopes": {
       "imagesRead": "Bilder lesen",

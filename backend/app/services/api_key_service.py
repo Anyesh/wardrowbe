@@ -6,8 +6,9 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import case, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import attributes
 
 from app.models.api_key import ApiKey
 from app.models.user import User
@@ -102,8 +103,20 @@ class ApiKeyService:
         if not user or not user.is_active:
             return None
 
-        api_key.last_used_at = now
-        await self.db.flush()
+        result = await self.db.execute(
+            update(ApiKey)
+            .where(ApiKey.id == api_key.id)
+            .values(
+                last_used_at=case(
+                    (ApiKey.last_used_at.is_(None), now),
+                    (ApiKey.last_used_at < now, now),
+                    else_=ApiKey.last_used_at,
+                )
+            )
+            .returning(ApiKey.last_used_at)
+            .execution_options(synchronize_session=False)
+        )
+        attributes.set_committed_value(api_key, "last_used_at", result.scalar_one())
         return user, api_key
 
     async def authenticate(self, token: str, required_scope: str) -> User | None:

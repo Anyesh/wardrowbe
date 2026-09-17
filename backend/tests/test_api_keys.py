@@ -285,3 +285,23 @@ async def test_item_history_does_not_grant_signed_image_capability(
 
     assert response.status_code == 200
     assert "sig=" in response.json()[0]["outfit"]["items"][0]["thumbnail_url"]
+
+
+@pytest.mark.asyncio
+async def test_successful_use_never_moves_last_used_at_backwards(
+    client: AsyncClient, auth_headers: dict[str, str], db_session: AsyncSession
+):
+    key = await _create_key(client, auth_headers, ["items:read"])
+    stored = await db_session.get(ApiKey, UUID(key["id"]))
+    assert stored is not None
+
+    newer_timestamp = datetime.now(UTC) + timedelta(minutes=5)
+    stored.last_used_at = newer_timestamp
+    await db_session.commit()
+
+    key_headers = {"Authorization": f"Bearer {key['token']}"}
+    response = await client.get("/api/v1/items", headers=key_headers)
+    assert response.status_code == 200
+
+    await db_session.refresh(stored)
+    assert stored.last_used_at == newer_timestamp

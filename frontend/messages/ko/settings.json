@@ -54,6 +54,7 @@
     "noKeys": "아직 API 키가 없습니다.",
     "revoke": "폐기",
     "revokeConfirm": "API 키 \"{name}\"을(를) 폐기할까요? 이 작업은 되돌릴 수 없습니다.",
+    "revokeError": "API 키를 폐기하지 못했습니다",
     "revoked": "폐기됨",
     "scopes": {
       "imagesRead": "이미지 읽기",

@@ -85,6 +85,9 @@ export function ApiKeysCard() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['api-keys'] });
     },
+    onError: () => {
+      toast.error(t('apiKeys.revokeError'));
+    },
   });
 
   const deleteKey = useMutation({

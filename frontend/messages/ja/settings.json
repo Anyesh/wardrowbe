@@ -54,6 +54,7 @@
     "noKeys": "APIキーはまだありません。",
     "revoke": "無効化",
     "revokeConfirm": "APIキー「{name}」を無効化しますか？この操作は元に戻せません。",
+    "revokeError": "APIキーを無効化できませんでした",
     "revoked": "無効化済み",
     "scopes": {
       "imagesRead": "画像を読み取る",

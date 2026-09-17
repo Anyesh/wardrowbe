@@ -54,6 +54,7 @@
     "noKeys": "暂无 API 密钥。",
     "revoke": "撤销",
     "revokeConfirm": "撤销 API 密钥“{name}”？此操作无法撤销。",
+    "revokeError": "撤销 API 密钥失败",
     "revoked": "已撤销",
     "scopes": {
       "imagesRead": "读取图片",

@@ -54,6 +54,7 @@
     "noKeys": "尚無 API 金鑰。",
     "revoke": "撤銷",
     "revokeConfirm": "撤銷 API 金鑰「{name}」？此操作無法復原。",
+    "revokeError": "撤銷 API 金鑰失敗",
     "revoked": "已撤銷",
     "scopes": {
       "imagesRead": "讀取圖片",

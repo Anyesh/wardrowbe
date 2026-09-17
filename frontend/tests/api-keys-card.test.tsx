@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import React from 'react'
+import { toast } from 'sonner'
 import { ApiKeysCard } from '@/components/settings/api-keys-card'
 
 function wrapper() {
@@ -97,4 +98,23 @@ describe('ApiKeysCard', () => {
     })
   })
 
+})
+
+describe('ApiKeysCard revoke errors', () => {
+  it('shows an error when revoking a key fails', async () => {
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(response([activeKey]))
+      .mockResolvedValueOnce(response({ detail: 'server error' }, 500))
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const toastError = vi.spyOn(toast, 'error').mockImplementation(() => '')
+
+    render(<ApiKeysCard />, { wrapper: wrapper() })
+
+    expect(await screen.findByText('Automation')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('apiKeys.revoke'))
+
+    await waitFor(() => {
+      expect(toastError).toHaveBeenCalledWith('apiKeys.revokeError')
+    })
+  })
 })
