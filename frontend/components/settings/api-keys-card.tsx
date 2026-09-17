@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, KeyRound, Loader2, Plus, ShieldOff } from 'lucide-react';
+import { Copy, KeyRound, Loader2, Plus, ShieldOff, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { api, setAccessToken } from '@/lib/api';
@@ -84,6 +84,19 @@ export function ApiKeysCard() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+    },
+  });
+
+  const deleteKey = useMutation({
+    mutationFn: (keyId: string) => {
+      prepareAuth();
+      return api.delete<void>(`/auth/api-keys/${keyId}`);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+    },
+    onError: () => {
+      toast.error(t('apiKeys.deleteError'));
     },
   });
 
@@ -226,7 +239,7 @@ export function ApiKeysCard() {
                         </p>
                       )}
                     </div>
-                    {!key.revoked_at && (
+                    {!inactive ? (
                       <Button
                         variant="outline"
                         size="sm"
@@ -239,6 +252,20 @@ export function ApiKeysCard() {
                       >
                         <ShieldOff className="mr-2 h-4 w-4" />
                         {t('apiKeys.revoke')}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={deleteKey.isPending}
+                        onClick={() => {
+                          if (window.confirm(t('apiKeys.deleteConfirm', { name: key.name }))) {
+                            deleteKey.mutate(key.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t('apiKeys.delete')}
                       </Button>
                     )}
                   </div>

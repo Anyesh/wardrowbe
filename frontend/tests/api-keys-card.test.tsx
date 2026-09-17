@@ -75,4 +75,26 @@ describe('ApiKeysCard', () => {
       )
     })
   })
+
+  it('deletes a revoked API key', async () => {
+    const revokedKey = { ...activeKey, revoked_at: '2026-09-17T09:00:00Z' }
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(response([revokedKey]))
+      .mockResolvedValueOnce(response(undefined, 204))
+      .mockResolvedValueOnce(response([]))
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<ApiKeysCard />, { wrapper: wrapper() })
+
+    expect(await screen.findByText('Automation')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('apiKeys.delete'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        `/api/v1/auth/api-keys/${activeKey.id}`,
+        expect.objectContaining({ method: 'DELETE' })
+      )
+    })
+  })
+
 })

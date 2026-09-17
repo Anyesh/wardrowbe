@@ -3,6 +3,7 @@
 import hashlib
 import secrets
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import select
@@ -59,6 +60,25 @@ class ApiKeyService:
             await self.db.flush()
             await self.db.refresh(api_key)
         return api_key
+
+    async def delete(
+        self, user_id: UUID, key_id: UUID
+    ) -> Literal["deleted", "active", "not_found"]:
+        result = await self.db.execute(
+            select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == user_id)
+        )
+        api_key = result.scalar_one_or_none()
+        if api_key is None:
+            return "not_found"
+
+        now = datetime.now(UTC)
+        is_expired = api_key.expires_at is not None and api_key.expires_at <= now
+        if api_key.revoked_at is None and not is_expired:
+            return "active"
+
+        await self.db.delete(api_key)
+        await self.db.flush()
+        return "deleted"
 
     async def authenticate_with_key(
         self, token: str, required_scope: str

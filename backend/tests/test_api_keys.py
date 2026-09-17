@@ -115,6 +115,28 @@ class TestApiKeyAuthorization:
         assert (await client.get("/api/v1/items", headers=key_headers)).status_code == 401
 
     @pytest.mark.asyncio
+    async def test_delete_requires_inactive_key(
+        self, client: AsyncClient, auth_headers: dict[str, str]
+    ):
+        key = await _create_key(client, auth_headers, ["items:read"])
+
+        active_delete = await client.delete(
+            f"/api/v1/auth/api-keys/{key['id']}", headers=auth_headers
+        )
+        assert active_delete.status_code == 409
+
+        revoked = await client.post(
+            f"/api/v1/auth/api-keys/{key['id']}/revoke", headers=auth_headers
+        )
+        assert revoked.status_code == 200
+
+        deleted = await client.delete(f"/api/v1/auth/api-keys/{key['id']}", headers=auth_headers)
+        assert deleted.status_code == 204
+
+        listed = await client.get("/api/v1/auth/api-keys", headers=auth_headers)
+        assert all(item["id"] != key["id"] for item in listed.json())
+
+    @pytest.mark.asyncio
     async def test_expired_key_fails_closed(
         self, client: AsyncClient, auth_headers: dict[str, str]
     ):

@@ -589,7 +589,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <ApiKeysCard />
 
         {/* Location Section */}
         <Card>
@@ -1246,6 +1245,8 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <ApiKeysCard />
       </div>
     </div>
   );
