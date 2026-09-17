@@ -194,3 +194,67 @@ class TestOnboarding:
         assert response.status_code == 200
         data = response.json()
         assert data["onboarding_completed"] is True
+class TestBodyMeasurementHistory:
+    @pytest.mark.asyncio
+    async def test_measurement_update_exposes_time_aware_current_state(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"body_measurements": {"weight": 84.2, "chest": 106}},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
+        response = await client.get(
+            "/api/v1/users/me/body-measurements", headers=auth_headers
+        )
+        assert response.status_code == 200
+        current = response.json()["measurements"]
+        assert current["weight"]["value"] == 84.2
+        assert current["weight"]["unit"] == "kg"
+        assert current["weight"]["source"] == "manual"
+        assert current["weight"]["measured_at"] is not None
+        assert current["chest"]["value"] == 106
+        assert current["chest"]["unit"] == "cm"
+
+    @pytest.mark.asyncio
+    async def test_measurement_history_retains_previous_values_without_refreshing_unchanged_metric(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        headers = auth_headers
+        first = {"body_measurements": {"weight": 84.2, "waist": 92}}
+        assert (await client.patch("/api/v1/users/me", json=first, headers=headers)).status_code == 200
+
+        second = {"body_measurements": {"weight": 84.2, "waist": 90}}
+        assert (await client.patch("/api/v1/users/me", json=second, headers=headers)).status_code == 200
+
+        response = await client.get(
+            "/api/v1/users/me/body-measurements/history", headers=headers
+        )
+        assert response.status_code == 200
+        history = response.json()["observations"]
+        weight = [row for row in history if row["metric"] == "weight"]
+        waist = [row for row in history if row["metric"] == "waist"]
+        assert [row["value"] for row in weight] == [84.2]
+        assert [row["value"] for row in waist] == [90.0, 92.0]
+
+    @pytest.mark.asyncio
+    async def test_legacy_snapshot_has_unknown_measurement_time(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        test_user.body_measurements = {"weight": 80, "shirt_size": "L"}
+        await db_session.commit()
+
+        response = await client.get(
+            "/api/v1/users/me/body-measurements", headers=auth_headers
+        )
+        assert response.status_code == 200
+        current = response.json()["measurements"]
+        assert current["weight"] == {
+            "value": 80.0,
+            "unit": "kg",
+            "measured_at": None,
+            "source": "legacy_profile",
+        }
+        assert "shirt_size" not in current
