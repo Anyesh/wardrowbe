@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import case, select, update
+from sqlalchemy import case, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes
 
@@ -103,20 +103,29 @@ class ApiKeyService:
         if not user or not user.is_active:
             return None
 
+        usage_time = datetime.now(UTC)
         result = await self.db.execute(
             update(ApiKey)
-            .where(ApiKey.id == api_key.id)
+            .where(
+                ApiKey.id == api_key.id,
+                ApiKey.revoked_at.is_(None),
+                or_(ApiKey.expires_at.is_(None), ApiKey.expires_at > usage_time),
+                ApiKey.scopes.contains([required_scope]),
+            )
             .values(
                 last_used_at=case(
-                    (ApiKey.last_used_at.is_(None), now),
-                    (ApiKey.last_used_at < now, now),
+                    (ApiKey.last_used_at.is_(None), usage_time),
+                    (ApiKey.last_used_at < usage_time, usage_time),
                     else_=ApiKey.last_used_at,
                 )
             )
             .returning(ApiKey.last_used_at)
             .execution_options(synchronize_session=False)
         )
-        attributes.set_committed_value(api_key, "last_used_at", result.scalar_one())
+        last_used_at = result.scalar_one_or_none()
+        if last_used_at is None:
+            return None
+        attributes.set_committed_value(api_key, "last_used_at", last_used_at)
         return user, api_key
 
     async def authenticate(self, token: str, required_scope: str) -> User | None:

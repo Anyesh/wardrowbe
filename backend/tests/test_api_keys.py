@@ -1,13 +1,16 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models.api_key import ApiKey
 from app.models.item import ClothingItem, ItemHistory, ItemStatus
 from app.models.outfit import Outfit, OutfitItem
+from app.services.api_key_service import ApiKeyService
 
 
 class TestApiKeyLifecycle:
@@ -145,6 +148,54 @@ class TestApiKeyAuthorization:
         )
         key_headers = {"Authorization": f"Bearer {key['token']}"}
         assert (await client.get("/api/v1/items", headers=key_headers)).status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_concurrent_revoke_cannot_authenticate_after_revoke_commits(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        db_session: AsyncSession,
+        async_engine,
+    ):
+        key = await _create_key(client, auth_headers, ["items:read"])
+        await db_session.commit()
+
+        initial_key_read = asyncio.Event()
+        continue_auth = asyncio.Event()
+
+        class PausingSession:
+            def __init__(self, session: AsyncSession) -> None:
+                self.session = session
+                self.execute_count = 0
+
+            async def execute(self, *args, **kwargs):
+                result = await self.session.execute(*args, **kwargs)
+                self.execute_count += 1
+                if self.execute_count == 1:
+                    initial_key_read.set()
+                    await continue_auth.wait()
+                return result
+
+            async def get(self, *args, **kwargs):
+                return await self.session.get(*args, **kwargs)
+
+        session_factory = async_sessionmaker(async_engine, expire_on_commit=False)
+        async with session_factory() as auth_session, session_factory() as revoke_session:
+            service = ApiKeyService(PausingSession(auth_session))
+            auth_task = asyncio.create_task(
+                service.authenticate_with_key(key["token"], "items:read")
+            )
+
+            await initial_key_read.wait()
+            await revoke_session.execute(
+                update(ApiKey)
+                .where(ApiKey.id == UUID(key["id"]))
+                .values(revoked_at=datetime.now(UTC))
+            )
+            await revoke_session.commit()
+            continue_auth.set()
+
+            assert await auth_task is None
 
     @pytest.mark.asyncio
     async def test_successful_use_updates_last_used_without_logging_token(
