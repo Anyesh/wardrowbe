@@ -194,6 +194,8 @@ class TestOnboarding:
         assert response.status_code == 200
         data = response.json()
         assert data["onboarding_completed"] is True
+
+
 class TestBodyMeasurementHistory:
     @pytest.mark.asyncio
     async def test_measurement_update_exposes_time_aware_current_state(
@@ -206,9 +208,7 @@ class TestBodyMeasurementHistory:
         )
         assert response.status_code == 200
 
-        response = await client.get(
-            "/api/v1/users/me/body-measurements", headers=auth_headers
-        )
+        response = await client.get("/api/v1/users/me/body-measurements", headers=auth_headers)
         assert response.status_code == 200
         current = response.json()["measurements"]
         assert current["weight"]["value"] == 84.2
@@ -224,14 +224,16 @@ class TestBodyMeasurementHistory:
     ):
         headers = auth_headers
         first = {"body_measurements": {"weight": 84.2, "waist": 92}}
-        assert (await client.patch("/api/v1/users/me", json=first, headers=headers)).status_code == 200
+        assert (
+            await client.patch("/api/v1/users/me", json=first, headers=headers)
+        ).status_code == 200
 
         second = {"body_measurements": {"weight": 84.2, "waist": 90}}
-        assert (await client.patch("/api/v1/users/me", json=second, headers=headers)).status_code == 200
+        assert (
+            await client.patch("/api/v1/users/me", json=second, headers=headers)
+        ).status_code == 200
 
-        response = await client.get(
-            "/api/v1/users/me/body-measurements/history", headers=headers
-        )
+        response = await client.get("/api/v1/users/me/body-measurements/history", headers=headers)
         assert response.status_code == 200
         history = response.json()["observations"]
         weight = [row for row in history if row["metric"] == "weight"]
@@ -246,9 +248,7 @@ class TestBodyMeasurementHistory:
         test_user.body_measurements = {"weight": 80, "shirt_size": "L"}
         await db_session.commit()
 
-        response = await client.get(
-            "/api/v1/users/me/body-measurements", headers=auth_headers
-        )
+        response = await client.get("/api/v1/users/me/body-measurements", headers=auth_headers)
         assert response.status_code == 200
         current = response.json()["measurements"]
         assert current["weight"] == {

@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
 
@@ -7,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.user import User
+from app.services.body_measurement_service import MEASUREMENT_UNITS, BodyMeasurementService
 from app.services.user_service import UserService
 from app.utils.auth import get_current_user
 from app.utils.locale import SUPPORTED_LOCALES, is_supported_locale
@@ -16,6 +18,37 @@ router = APIRouter(prefix="/users/me", tags=["Users"])
 
 class OnboardingCompleteResponse(BaseModel):
     onboarding_completed: bool
+
+
+class BodyMeasurementCurrentResponse(BaseModel):
+    value: float
+    unit: str
+    measured_at: datetime | None = None
+    source: str
+
+
+class BodyMeasurementStateResponse(BaseModel):
+    measurements: dict[str, BodyMeasurementCurrentResponse]
+
+
+class BodyMeasurementWriteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    measurements: dict[str, float]
+
+
+class BodyMeasurementObservationResponse(BaseModel):
+    id: str
+    metric: str
+    value: float
+    unit: str
+    measured_at: datetime | None = None
+    source: str
+    created_at: datetime
+
+
+class BodyMeasurementHistoryResponse(BaseModel):
+    observations: list[BodyMeasurementObservationResponse]
 
 
 class UserProfileResponse(BaseModel):
@@ -82,6 +115,15 @@ async def update_profile(
                     detail=f"{key} must be a positive number",
                 )
 
+    if "body_measurements" in update_data:
+        measurement_patch = update_data["body_measurements"]
+        await BodyMeasurementService(db).record_profile_changes(current_user, measurement_patch)
+        if measurement_patch is not None:
+            update_data["body_measurements"] = {
+                **(current_user.body_measurements or {}),
+                **measurement_patch,
+            }
+
     for field, value in update_data.items():
         setattr(current_user, field, value)
 
@@ -108,6 +150,56 @@ def _user_response(user: User) -> UserProfileResponse:
         onboarding_completed=user.onboarding_completed,
         body_measurements=user.body_measurements,
     )
+
+
+@router.post("/body-measurements", response_model=BodyMeasurementStateResponse)
+async def record_body_measurements(
+    data: BodyMeasurementWriteRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> BodyMeasurementStateResponse:
+    if not data.measurements:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="at least one measurement is required",
+        )
+
+    for metric, value in data.measurements.items():
+        if metric not in MEASUREMENT_UNITS:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"unsupported body measurement: {metric}",
+            )
+        if value <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"{metric} must be a positive number",
+            )
+
+    service = BodyMeasurementService(db)
+    await service.record_measurements(current_user, data.measurements)
+    await db.flush()
+    measurements = await service.current_state(current_user)
+    await db.commit()
+    return BodyMeasurementStateResponse(measurements=measurements)
+
+
+@router.get("/body-measurements", response_model=BodyMeasurementStateResponse)
+async def get_body_measurement_state(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> BodyMeasurementStateResponse:
+    measurements = await BodyMeasurementService(db).current_state(current_user)
+    return BodyMeasurementStateResponse(measurements=measurements)
+
+
+@router.get("/body-measurements/history", response_model=BodyMeasurementHistoryResponse)
+async def get_body_measurement_history(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> BodyMeasurementHistoryResponse:
+    observations = await BodyMeasurementService(db).history(current_user)
+    return BodyMeasurementHistoryResponse(observations=observations)
 
 
 @router.post("/onboarding/complete", response_model=OnboardingCompleteResponse)

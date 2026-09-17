@@ -17,7 +17,16 @@ export interface UserProfile {
   family_id?: string;
   role: string;
   onboarding_completed: boolean;
-  body_measurements?: Record<string, number | string> | null;
+  body_measurements?: Record<string, number | string | null> | null;
+}
+
+export interface BodyMeasurementStateResponse {
+  measurements: Record<string, {
+    value: number;
+    unit: string;
+    measured_at?: string | null;
+    source: string;
+  }>;
 }
 
 export interface UserProfileUpdate {
@@ -27,7 +36,7 @@ export interface UserProfileUpdate {
   location_lat?: number;
   location_lon?: number;
   location_name?: string;
-  body_measurements?: Record<string, number | string> | null;
+  body_measurements?: Record<string, number | string | null> | null;
 }
 
 function useSetTokenIfAvailable() {
@@ -58,6 +67,23 @@ export function useUpdateUserProfile() {
         setAccessToken(session.accessToken as string);
       }
       return api.patch<UserProfile>('/users/me', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+    },
+  });
+}
+
+export function useRecordBodyMeasurements() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (measurements: Record<string, number>) => {
+      if (session?.accessToken) {
+        setAccessToken(session.accessToken as string);
+      }
+      return api.post<BodyMeasurementStateResponse>('/users/me/body-measurements', { measurements });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });

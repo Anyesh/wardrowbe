@@ -1,3 +1,4 @@
+from app.models.body_measurement import BodyMeasurementObservation
 from app.models.family import Family, FamilyInvite
 from app.models.item import ClothingItem, ItemHistory, ItemImage, WashHistory
 from app.models.learning import (
@@ -13,6 +14,7 @@ from app.models.schedule import Schedule
 from app.models.user import User
 
 __all__ = [
+    "BodyMeasurementObservation",
     "Family",
     "FamilyInvite",
     "User",

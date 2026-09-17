@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { Loader2, Save, RotateCcw, Check, Plus, Trash2, ChevronUp, ChevronDown, Server, MapPin, Navigation, Ruler } from 'lucide-react';
+import { Loader2, Save, RotateCcw, Check, X, Plus, Trash2, ChevronUp, ChevronDown, Server, MapPin, Navigation, Ruler } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { usePreferences, useUpdatePreferences, useResetPreferences, useTestAIEndpoint } from '@/lib/hooks/use-preferences';
-import { useUserProfile, useUpdateUserProfile } from '@/lib/hooks/use-user';
+import { useRecordBodyMeasurements, useUserProfile, useUpdateUserProfile } from '@/lib/hooks/use-user';
 import {
   getNetworkLocationUrl,
   formatReverseGeocodedLocation,
@@ -43,6 +43,28 @@ function convertMeasurement(value: number, key: string, from: string, to: string
     return Math.round((isWeight ? value * KG_TO_LBS : value * CM_TO_IN) * 10) / 10;
   }
   return Math.round((isWeight ? value * LBS_TO_KG : value * IN_TO_CM) * 10) / 10;
+}
+
+const NUMERIC_MEASUREMENT_KEYS = new Set(['chest', 'waist', 'hips', 'inseam', 'height', 'weight']);
+
+function convertMeasurementValues(
+  values: Record<string, string>,
+  from: string,
+  to: string,
+): Record<string, string> {
+  const converted: Record<string, string> = {};
+  for (const [key, value] of Object.entries(values)) {
+    const trimmed = value.trim();
+    if (!trimmed || !NUMERIC_MEASUREMENT_KEYS.has(key)) {
+      converted[key] = value;
+      continue;
+    }
+    const num = parseFloat(trimmed);
+    converted[key] = Number.isNaN(num)
+      ? value
+      : String(convertMeasurement(num, key, from, to));
+  }
+  return converted;
 }
 
 const BODY_MEASUREMENT_FIELDS = [
@@ -176,6 +198,7 @@ export default function SettingsPage() {
   const resetPreferences = useResetPreferences();
   const testEndpoint = useTestAIEndpoint();
   const updateUserProfile = useUpdateUserProfile();
+  const recordBodyMeasurements = useRecordBodyMeasurements();
 
   const [formData, setFormData] = useState<Partial<Preferences>>({});
   const [hasChanges, setHasChanges] = useState(false);
@@ -191,6 +214,7 @@ export default function SettingsPage() {
   // Body measurements state
   type UnitSystem = 'metric' | 'imperial';
   const [measurements, setMeasurements] = useState<Record<string, string>>({});
+  const [measurementSession, setMeasurementSession] = useState<Record<string, string>>({});
   const [measurementsDirty, setMeasurementsDirty] = useState(false);
   const [unitSystem, setUnitSystem] = useState<UnitSystem>(() => {
     if (typeof window !== 'undefined') {
@@ -377,7 +401,8 @@ export default function SettingsPage() {
     timezone !== (userProfile.timezone || 'UTC')
   );
 
-  const isDirty = hasChanges || measurementsDirty || !!hasLocationChanges;
+  const hasMeasurementSession = Object.keys(measurementSession).length > 0;
+  const isDirty = hasChanges || measurementsDirty || hasMeasurementSession || !!hasLocationChanges;
 
   useEffect(() => {
     if (!isDirty) return;
@@ -400,23 +425,30 @@ export default function SettingsPage() {
 
   const handleToggleUnits = () => {
     const newSystem: UnitSystem = unitSystem === 'metric' ? 'imperial' : 'metric';
-    const converted: Record<string, string> = {};
-    const numericKeys = ['chest', 'waist', 'hips', 'inseam', 'height', 'weight'];
-    for (const [key, value] of Object.entries(measurements)) {
-      const trimmed = value.trim();
-      if (!trimmed) { converted[key] = value; continue; }
-      if (numericKeys.includes(key)) {
-        const num = parseFloat(trimmed);
-        if (!isNaN(num)) {
-          converted[key] = String(convertMeasurement(num, key, unitSystem, newSystem));
-          continue;
-        }
-      }
-      converted[key] = value;
-    }
-    setMeasurements(converted);
+    setMeasurements((prev) => convertMeasurementValues(prev, unitSystem, newSystem));
+    setMeasurementSession((prev) => convertMeasurementValues(prev, unitSystem, newSystem));
+    unitSystemRef.current = newSystem;
     setUnitSystem(newSystem);
     localStorage.setItem('wardrowbe_unit_system', newSystem);
+  };
+
+  const handleActivateMeasurement = (key: string) => {
+    setMeasurementSession((prev) => {
+      if (Object.prototype.hasOwnProperty.call(prev, key)) return prev;
+      return { ...prev, [key]: measurements[key] ?? '' };
+    });
+  };
+
+  const handleMeasurementSessionChange = (key: string, value: string) => {
+    setMeasurementSession((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleDeactivateMeasurement = (key: string) => {
+    setMeasurementSession((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   };
 
   const handleMeasurementChange = (key: string, value: string) => {
@@ -425,27 +457,45 @@ export default function SettingsPage() {
   };
 
   const handleSaveMeasurements = async () => {
-    const parsed: Record<string, number | string> = {};
-    const numericKeys = ['chest', 'waist', 'hips', 'inseam', 'height', 'weight'];
-    for (const [key, value] of Object.entries(measurements)) {
-      const trimmed = value.trim();
-      if (!trimmed) continue;
-      if (numericKeys.includes(key)) {
-        const num = parseFloat(trimmed);
-        if (isNaN(num) || num <= 0) {
-          toast.error(t('body.errors.positiveNumber', { field: t(`body.fields.${key}`) }));
-          return;
-        }
-        parsed[key] = convertMeasurement(num, key, unitSystem, 'metric');
-      } else {
-        parsed[key] = trimmed;
+    const submittedSession = { ...measurementSession };
+    const confirmed: Record<string, number> = {};
+    for (const [key, value] of Object.entries(submittedSession)) {
+      const num = parseFloat(value.trim());
+      if (isNaN(num) || num <= 0) {
+        toast.error(t('body.errors.positiveNumber', { field: t(`body.fields.${key}`) }));
+        return;
       }
+      confirmed[key] = convertMeasurement(num, key, unitSystem, 'metric');
     }
+
     try {
-      await updateUserProfile.mutateAsync({
-        body_measurements: Object.keys(parsed).length > 0 ? parsed : null,
-      });
-      setMeasurementsDirty(false);
+      if (measurementsDirty) {
+        const sizeKeys = ['shirt_size', 'pants_size', 'dress_size', 'shoe_size'];
+        const sizeMeasurements: Record<string, string | null> = {};
+        for (const key of sizeKeys) {
+          const value = measurements[key]?.trim();
+          sizeMeasurements[key] = value || null;
+        }
+        await updateUserProfile.mutateAsync({ body_measurements: sizeMeasurements });
+        setMeasurementsDirty(false);
+      }
+
+      if (Object.keys(confirmed).length > 0) {
+        await recordBodyMeasurements.mutateAsync(confirmed);
+        const reconciledSession = convertMeasurementValues(
+          submittedSession,
+          unitSystem,
+          unitSystemRef.current,
+        );
+        setMeasurements((prev) => ({ ...prev, ...reconciledSession }));
+        setMeasurementSession((current) => {
+          const next = { ...current };
+          for (const [key, value] of Object.entries(reconciledSession)) {
+            if (next[key] === value) delete next[key];
+          }
+          return next;
+        });
+      }
       toast.success(t('body.saved'));
     } catch (e) {
       toast.error(getErrorMessage(e, t('body.saveError')));
@@ -711,6 +761,7 @@ export default function SettingsPage() {
                 {BODY_MEASUREMENT_FIELDS.map((field) => {
                   const unit = unitSystem === 'metric' ? field.unitMetric : field.unitImperial;
                   const placeholder = unitSystem === 'metric' ? field.placeholderMetric : field.placeholderImperial;
+                  const isActive = Object.prototype.hasOwnProperty.call(measurementSession, field.key);
                   return (
                     <div key={field.key} className="space-y-1">
                       <Label className="text-sm">{t(`body.fields.${field.key}`)}</Label>
@@ -719,12 +770,29 @@ export default function SettingsPage() {
                           type="number"
                           step="0.1"
                           min="0"
-                          value={measurements[field.key] ?? ''}
-                          onChange={(e) => handleMeasurementChange(field.key, e.target.value)}
-                          placeholder={placeholder}
-                          className="flex-1"
+                          value={measurementSession[field.key] ?? ''}
+                          onFocus={() => handleActivateMeasurement(field.key)}
+                          onChange={(e) => handleMeasurementSessionChange(field.key, e.target.value)}
+                          placeholder={measurements[field.key] ?? placeholder}
+                          className={`flex-1 ${isActive ? 'border-primary/60' : ''}`}
                         />
                         <span className="text-sm text-muted-foreground min-w-[2rem] text-center">{unit}</span>
+                        {isActive && (
+                          <>
+                            <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() => handleDeactivateMeasurement(field.key)}
+                              aria-label={tc('clear')}
+                              title={tc('clear')}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   );
@@ -753,13 +821,13 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {measurementsDirty && (
+            {(hasMeasurementSession || measurementsDirty) && (
               <Button
                 onClick={handleSaveMeasurements}
-                disabled={updateUserProfile.isPending}
+                disabled={recordBodyMeasurements.isPending || updateUserProfile.isPending}
                 size="sm"
               >
-                {updateUserProfile.isPending ? (
+                {recordBodyMeasurements.isPending || updateUserProfile.isPending ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{tc('saving')}</>
                 ) : (
                   <><Save className="mr-2 h-4 w-4" />{t('body.saveMeasurements')}</>
