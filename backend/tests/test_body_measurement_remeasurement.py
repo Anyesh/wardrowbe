@@ -1,5 +1,17 @@
+import asyncio
+
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from app.api.users import (
+    BodyMeasurementWriteRequest,
+    UserProfileUpdate,
+    record_body_measurements,
+    update_profile,
+)
+from app.main import app
+from app.models import User
 
 
 @pytest.mark.asyncio
@@ -93,3 +105,115 @@ async def test_partial_profile_measurement_patch_preserves_other_values(
         "waist": 104,
         "shirt_size": "L",
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("literal", ["NaN", "Infinity", "-Infinity"])
+async def test_explicit_remeasurement_rejects_non_finite_values(
+    client: AsyncClient, auth_headers, literal
+):
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as raw_client:
+        response = await raw_client.post(
+            "/api/v1/users/me/body-measurements",
+            content=f'{{"measurements":{{"waist":{literal}}}}}',
+            headers={**auth_headers, "Content-Type": "application/json"},
+        )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("literal", ["NaN", "Infinity", "-Infinity"])
+async def test_profile_patch_rejects_non_finite_measurements(
+    client: AsyncClient, auth_headers, literal
+):
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as raw_client:
+        response = await raw_client.patch(
+            "/api/v1/users/me",
+            content=f'{{"body_measurements":{{"waist":{literal}}}}}',
+            headers={**auth_headers, "Content-Type": "application/json"},
+        )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_concurrent_partial_profile_measurement_patches_preserve_both_metrics(
+    async_engine, db_session, test_user
+):
+    test_user.body_measurements = {"waist": 100, "hips": 100}
+    await db_session.commit()
+
+    maker = async_sessionmaker(
+        async_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False,
+    )
+    async with maker() as first_session, maker() as second_session:
+        first_user = await first_session.get(User, test_user.id)
+        second_user = await second_session.get(User, test_user.id)
+        assert first_user is not None
+        assert second_user is not None
+
+        await asyncio.gather(
+            update_profile(
+                UserProfileUpdate(body_measurements={"waist": 90}),
+                first_session,
+                first_user,
+            ),
+            update_profile(
+                UserProfileUpdate(body_measurements={"hips": 95}),
+                second_session,
+                second_user,
+            ),
+        )
+
+    async with maker() as verify_session:
+        saved_user = await verify_session.get(User, test_user.id)
+        assert saved_user is not None
+        assert saved_user.body_measurements["waist"] == 90
+        assert saved_user.body_measurements["hips"] == 95
+
+
+@pytest.mark.asyncio
+async def test_concurrent_explicit_remeasurements_preserve_both_metrics(
+    async_engine, db_session, test_user
+):
+    test_user.body_measurements = {"waist": 100, "hips": 100}
+    await db_session.commit()
+
+    maker = async_sessionmaker(
+        async_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False,
+    )
+    async with maker() as first_session, maker() as second_session:
+        first_user = await first_session.get(User, test_user.id)
+        second_user = await second_session.get(User, test_user.id)
+        assert first_user is not None
+        assert second_user is not None
+
+        await asyncio.gather(
+            record_body_measurements(
+                BodyMeasurementWriteRequest(measurements={"waist": 90}),
+                first_session,
+                first_user,
+            ),
+            record_body_measurements(
+                BodyMeasurementWriteRequest(measurements={"hips": 95}),
+                second_session,
+                second_user,
+            ),
+        )
+
+    async with maker() as verify_session:
+        saved_user = await verify_session.get(User, test_user.id)
+        assert saved_user is not None
+        assert saved_user.body_measurements["waist"] == 90
+        assert saved_user.body_measurements["hips"] == 95

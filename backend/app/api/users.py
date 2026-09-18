@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
@@ -109,7 +110,11 @@ async def update_profile(
     if "body_measurements" in update_data and update_data["body_measurements"] is not None:
         numeric_keys = {"chest", "waist", "hips", "inseam", "height", "weight"}
         for key, value in update_data["body_measurements"].items():
-            if key in numeric_keys and isinstance(value, (int, float)) and value <= 0:
+            if (
+                key in numeric_keys
+                and isinstance(value, (int, float))
+                and (not math.isfinite(value) or value <= 0)
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"{key} must be a positive number",
@@ -170,7 +175,7 @@ async def record_body_measurements(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"unsupported body measurement: {metric}",
             )
-        if value <= 0:
+        if not math.isfinite(value) or value <= 0:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"{metric} must be a positive number",

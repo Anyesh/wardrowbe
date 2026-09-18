@@ -26,7 +26,19 @@ def _number(value: object) -> Decimal | None:
         result = Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError):
         return None
+    if not result.is_finite():
+        return None
     return result if result > 0 else None
+
+
+async def lock_user_for_measurement_update(db: AsyncSession, user: User) -> User:
+    result = await db.execute(
+        select(User)
+        .where(User.id == user.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    return result.scalar_one()
 
 
 class BodyMeasurementService:
@@ -41,6 +53,7 @@ class BodyMeasurementService:
         source: str = "manual",
         measured_at: datetime | None = None,
     ) -> None:
+        user = await lock_user_for_measurement_update(self.db, user)
         observed_at = measured_at or datetime.now(UTC)
         snapshot = dict(user.body_measurements or {})
 
@@ -71,6 +84,7 @@ class BodyMeasurementService:
         source: str = "manual",
         measured_at: datetime | None = None,
     ) -> None:
+        user = await lock_user_for_measurement_update(self.db, user)
         old = user.body_measurements or {}
         new = new_measurements or {}
         observed_at = measured_at or datetime.now(UTC)
