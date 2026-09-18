@@ -216,6 +216,8 @@ export default function SettingsPage() {
   const [measurements, setMeasurements] = useState<Record<string, string>>({});
   const [measurementSession, setMeasurementSession] = useState<Record<string, string>>({});
   const [measurementsDirty, setMeasurementsDirty] = useState(false);
+  const dirtySizeKeysRef = useRef<Set<string>>(new Set());
+  const sizeDraftVersionRef = useRef(0);
   const [unitSystem, setUnitSystem] = useState<UnitSystem>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('wardrowbe_unit_system') as UnitSystem) || 'metric';
@@ -244,7 +246,7 @@ export default function SettingsPage() {
             const converted = convertMeasurement(value, key, 'metric', displayUnitSystem);
             initial[key] = String(converted);
           } else {
-            initial[key] = String(value);
+            initial[key] = value == null ? '' : String(value);
           }
         }
         setMeasurements(initial);
@@ -453,11 +455,15 @@ export default function SettingsPage() {
 
   const handleMeasurementChange = (key: string, value: string) => {
     setMeasurements((prev) => ({ ...prev, [key]: value }));
+    dirtySizeKeysRef.current.add(key);
+    sizeDraftVersionRef.current += 1;
     setMeasurementsDirty(true);
   };
 
   const handleSaveMeasurements = async () => {
     const submittedSession = { ...measurementSession };
+    const submittedSizeKeys = Array.from(dirtySizeKeysRef.current);
+    const submittedSizeDraftVersion = sizeDraftVersionRef.current;
     const confirmed: Record<string, number> = {};
     for (const [key, value] of Object.entries(submittedSession)) {
       const num = parseFloat(value.trim());
@@ -469,15 +475,17 @@ export default function SettingsPage() {
     }
 
     try {
-      if (measurementsDirty) {
-        const sizeKeys = ['shirt_size', 'pants_size', 'dress_size', 'shoe_size'];
+      if (measurementsDirty && submittedSizeKeys.length > 0) {
         const sizeMeasurements: Record<string, string | null> = {};
-        for (const key of sizeKeys) {
+        for (const key of submittedSizeKeys) {
           const value = measurements[key]?.trim();
           sizeMeasurements[key] = value || null;
         }
         await updateUserProfile.mutateAsync({ body_measurements: sizeMeasurements });
-        setMeasurementsDirty(false);
+        if (sizeDraftVersionRef.current === submittedSizeDraftVersion) {
+          for (const key of submittedSizeKeys) dirtySizeKeysRef.current.delete(key);
+          setMeasurementsDirty(dirtySizeKeysRef.current.size > 0);
+        }
       }
 
       if (Object.keys(confirmed).length > 0) {

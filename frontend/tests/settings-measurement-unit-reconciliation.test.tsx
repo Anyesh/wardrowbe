@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
     locale: 'en',
     role: 'user',
     onboarding_completed: true,
-    body_measurements: { waist: 101.6, shirt_size: 'M' },
+    body_measurements: { waist: 101.6, shirt_size: 'M' } as Record<string, number | string | null>,
   },
   idleMutation: () => ({
     mutate: vi.fn(),
@@ -56,7 +56,62 @@ describe('settings measurement unit reconciliation', () => {
     mocks.recordMeasurements.mockReset()
     mocks.updateProfile.mockReset()
     mocks.updateProfile.mockResolvedValue(undefined)
+    mocks.userProfile.body_measurements = { waist: 101.6, shirt_size: 'M' }
     localStorage.setItem('wardrowbe_unit_system', 'metric')
+  })
+
+  it('renders cleared size values as empty inputs instead of the text null', () => {
+    mocks.userProfile.body_measurements = { waist: 101.6, shirt_size: null }
+
+    render(<SettingsPage />)
+
+    expect(screen.getByPlaceholderText('body.sizePlaceholders.shirt_size')).toHaveValue('')
+  })
+
+  it('sends only clothing size fields edited in the current draft', async () => {
+    mocks.userProfile.body_measurements = {
+      waist: 101.6,
+      shirt_size: 'M',
+      pants_size: '32',
+      dress_size: '40',
+      shoe_size: '43',
+    }
+
+    render(<SettingsPage />)
+    const shirtSize = screen.getByPlaceholderText('body.sizePlaceholders.shirt_size')
+    fireEvent.change(shirtSize, { target: { value: 'L' } })
+    fireEvent.click(screen.getByRole('button', { name: 'body.saveMeasurements' }))
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(mocks.updateProfile).toHaveBeenCalledWith({
+      body_measurements: { shirt_size: 'L' },
+    })
+  })
+
+  it('sends an explicit null only for the clothing size field that was cleared', async () => {
+    mocks.userProfile.body_measurements = {
+      waist: 101.6,
+      shirt_size: 'M',
+      pants_size: '32',
+      dress_size: '40',
+      shoe_size: '43',
+    }
+
+    render(<SettingsPage />)
+    const shirtSize = screen.getByPlaceholderText('body.sizePlaceholders.shirt_size')
+    fireEvent.change(shirtSize, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'body.saveMeasurements' }))
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(mocks.updateProfile).toHaveBeenCalledWith({
+      body_measurements: { shirt_size: null },
+    })
   })
 
   it('keeps canonical semantics when units change during a pending save', async () => {
