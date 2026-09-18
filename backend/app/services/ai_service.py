@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 AI_RETRY_MAX_BACKOFF_S = 30
 
 
+class _AIProviderResponseError(RuntimeError):
+    pass
+
+
 class TextGenerationResult(BaseModel):
     content: str
     model: str
@@ -172,8 +176,27 @@ def compute_tag_completeness(tags: "ClothingTags") -> float:
     return round(score, 2)
 
 
+def _message_rejects_logprobs(message: str) -> bool:
+    return "logprobs" in message.lower()
+
+
 def _response_rejects_logprobs(response: httpx.Response) -> bool:
-    return response.status_code == 400 and "logprobs" in response.text.lower()
+    return response.status_code == 400 and _message_rejects_logprobs(response.text)
+
+
+def _provider_error_message(data: object) -> str | None:
+    if not isinstance(data, dict) or "error" not in data or "choices" in data:
+        return None
+
+    error = data.get("error")
+    if isinstance(error, dict):
+        message = error.get("message")
+        if isinstance(message, str) and message.strip():
+            return message
+    elif isinstance(error, str) and error.strip():
+        return error
+
+    return "provider returned an error response"
 
 
 _REASONING_EFFORT_REJECTION_MARKERS = (
@@ -184,17 +207,19 @@ _REASONING_EFFORT_REJECTION_MARKERS = (
 )
 
 
-def _response_rejects_reasoning_effort(response: httpx.Response) -> bool:
+def _message_rejects_reasoning_effort(message: str) -> bool:
     # Servers disagree on how they name the field they are rejecting. OpenAI answers
     # "Unsupported parameter: 'reasoning_effort' ...", while Ollama releases predating the
     # "none" effort level answer `invalid think value: "none" (must be "high", "medium",
     # "low", true, or false)` and never mention reasoning_effort at all. Matching only the
     # OpenAI wording would leave those Ollama users with every request failing, because the
     # default effort is sent on every call and the strip-and-retry would never fire.
-    if response.status_code != 400:
-        return False
-    text = response.text.lower()
+    text = message.lower()
     return any(marker in text for marker in _REASONING_EFFORT_REJECTION_MARKERS)
+
+
+def _response_rejects_reasoning_effort(response: httpx.Response) -> bool:
+    return response.status_code == 400 and _message_rejects_reasoning_effort(response.text)
 
 
 _CONFIDENCE_FIELDS = {"type", "primary_color", "pattern", "material", "formality"}
@@ -507,6 +532,25 @@ class AIService:
                         response.raise_for_status()
 
                         data = response.json()
+                        provider_error = _provider_error_message(data)
+                        if provider_error is not None:
+                            if use_logprobs and _message_rejects_logprobs(provider_error):
+                                logger.warning(
+                                    f"{endpoint.name} rejected logprobs for {task_name}, "
+                                    f"retrying without it: {provider_error}"
+                                )
+                                use_logprobs = False
+                                continue
+                            if use_reasoning_effort and _message_rejects_reasoning_effort(
+                                provider_error
+                            ):
+                                logger.warning(
+                                    f"{endpoint.name} rejected reasoning_effort for {task_name}, "
+                                    f"retrying without it: {provider_error}"
+                                )
+                                use_reasoning_effort = False
+                                continue
+                            raise _AIProviderResponseError(provider_error)
                         choice = data["choices"][0]
                         content = choice["message"].get("content")
                         logprobs_content = None
@@ -521,6 +565,9 @@ class AIService:
                         )
                         return content, None, logprobs_content
 
+                    except _AIProviderResponseError as e:
+                        last_error = e
+                        logger.warning(f"Provider error from {endpoint.name}: {e}")
                     except httpx.HTTPStatusError as e:
                         # Some providers (e.g. Gemini's OpenAI-compat endpoint, or Gemini
                         # native without the paid tier) reject the logprobs param outright.
@@ -727,6 +774,18 @@ class AIService:
                         response.raise_for_status()
 
                         data = response.json()
+                        provider_error = _provider_error_message(data)
+                        if provider_error is not None:
+                            if use_reasoning_effort and _message_rejects_reasoning_effort(
+                                provider_error
+                            ):
+                                logger.warning(
+                                    f"{endpoint.name} rejected reasoning_effort, "
+                                    f"retrying without it: {provider_error}"
+                                )
+                                use_reasoning_effort = False
+                                continue
+                            raise _AIProviderResponseError(provider_error)
                         used_model = data.get("model", endpoint.text_model)
                         choice = data["choices"][0]
                         message = choice["message"]
@@ -790,6 +849,11 @@ class AIService:
                             )
                         return content
 
+                    except _AIProviderResponseError as e:
+                        last_error = e
+                        logger.warning(f"Provider error from {endpoint.name}: {e}")
+                        if attempt < self.settings.ai_max_retries - 1:
+                            continue
                     except httpx.HTTPStatusError as e:
                         if use_reasoning_effort and _response_rejects_reasoning_effort(e.response):
                             logger.warning(

@@ -267,6 +267,42 @@ class TestGenerateTextTruncatedResponse:
         assert content == '{"outfits": []}'
 
 
+class TestGenerateTextErrorEnvelope:
+    """HTTP 200 provider error envelopes must use normal retry/fallback handling."""
+
+    @staticmethod
+    def _success_response() -> httpx.Response:
+        return _mock_response(
+            {
+                "model": "text-model",
+                "choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}],
+            }
+        )
+
+    @pytest.mark.asyncio
+    async def test_generate_text_retries_after_200_error_envelope(self):
+        service = AIService()
+        error_envelope = _mock_response({"error": {"message": "The operation was aborted"}})
+
+        with patch(
+            "httpx.AsyncClient.post", side_effect=[error_envelope, self._success_response()]
+        ) as mock_post:
+            content = await service.generate_text("suggest an outfit")
+
+        assert content == "ok"
+        assert mock_post.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_generate_text_repeated_200_error_envelope_raises_controlled_error(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        error_envelope = _mock_response({"error": {"message": "The operation was aborted"}})
+
+        with patch("httpx.AsyncClient.post", return_value=error_envelope):
+            with pytest.raises(RuntimeError, match="The operation was aborted"):
+                await service.generate_text("suggest an outfit")
+
+
 class TestLogprobsRejection:
     """Regression tests for issue #143: providers like Gemini reject the
 
@@ -313,6 +349,78 @@ class TestLogprobsRejection:
         assert first_body["logprobs"] is True
         assert "logprobs" not in second_body
         assert "top_logprobs" not in second_body
+
+    @pytest.mark.asyncio
+    async def test_retries_without_logprobs_after_200_error_envelope(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        error_envelope = _mock_response(
+            {"error": {"message": 'Unknown name "logprobs": Cannot find field.'}}
+        )
+        responses = [error_envelope, self._success_response(self._TAGS_CONTENT)]
+
+        with patch("httpx.AsyncClient.post", side_effect=responses) as mock_post:
+            content, err, logprobs_content = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert err is None
+        assert content == self._TAGS_CONTENT
+        assert logprobs_content is None
+        assert mock_post.call_count == 2
+        first_body = mock_post.call_args_list[0].kwargs["json"]
+        second_body = mock_post.call_args_list[1].kwargs["json"]
+        assert first_body["logprobs"] is True
+        assert "logprobs" not in second_body
+        assert "top_logprobs" not in second_body
+
+    @pytest.mark.asyncio
+    async def test_repeated_200_error_envelope_returns_controlled_error(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        error_envelope = _mock_response({"error": {"message": "The operation was aborted"}})
+
+        with patch("httpx.AsyncClient.post", return_value=error_envelope) as mock_post:
+            content, err, logprobs_content = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert content is None
+        assert isinstance(err, RuntimeError)
+        assert "The operation was aborted" in str(err)
+        assert logprobs_content is None
+        assert mock_post.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_transient_200_error_envelope_keeps_logprobs_and_backs_off(self):
+        # An overloaded provider says nothing about logprobs, so dropping them would cost
+        # the item its logprobs confidence and hammer the endpoint with no backoff.
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 2})
+        error_envelope = _mock_response({"error": {"message": "Model is overloaded"}})
+        logprobs = [{"token": "shirt", "logprob": -0.1}]
+        success = _mock_response(
+            {
+                "model": "gemini-2.0-flash",
+                "choices": [
+                    {"message": {"content": self._TAGS_CONTENT}, "logprobs": {"content": logprobs}}
+                ],
+            }
+        )
+
+        with (
+            patch("httpx.AsyncClient.post", side_effect=[error_envelope, success]) as mock_post,
+            patch("app.services.ai_service.asyncio.sleep") as mock_sleep,
+        ):
+            content, err, logprobs_content = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags", request_logprobs=True
+            )
+
+        assert err is None
+        assert content == self._TAGS_CONTENT
+        assert logprobs_content == logprobs
+        assert mock_post.call_args_list[1].kwargs["json"]["logprobs"] is True
+        mock_sleep.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_logprobs_rejection_does_not_consume_retry_budget(self):
@@ -394,6 +502,38 @@ class TestReasoningEffort:
         second_body = mock_post.call_args_list[1].kwargs["json"]
         assert first_body.get("reasoning_effort") == "none"
         assert "reasoning_effort" not in second_body
+
+    @pytest.mark.asyncio
+    async def test_generate_text_retries_without_reasoning_effort_after_200_error_envelope(self):
+        service = AIService()
+        rejected = _mock_response(
+            {"error": {"message": "Unsupported parameter: 'reasoning_effort'"}}
+        )
+        with patch(
+            "httpx.AsyncClient.post", side_effect=[rejected, self._success_response()]
+        ) as mock_post:
+            content = await service.generate_text("suggest an outfit")
+
+        assert content == '{"outfits": []}'
+        assert "reasoning_effort" not in mock_post.call_args_list[1].kwargs["json"]
+
+    @pytest.mark.asyncio
+    async def test_vision_retries_without_reasoning_effort_after_200_error_envelope(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        rejected = _mock_response(
+            {"error": {"message": "Unsupported parameter: 'reasoning_effort'"}}
+        )
+        with patch(
+            "httpx.AsyncClient.post", side_effect=[rejected, self._success_response("tags")]
+        ) as mock_post:
+            content, err, _ = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags"
+            )
+
+        assert err is None
+        assert content == "tags"
+        assert "reasoning_effort" not in mock_post.call_args_list[1].kwargs["json"]
 
     @pytest.mark.asyncio
     async def test_empty_content_with_ollama_reasoning_raises_truncated_error(self):
