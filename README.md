@@ -122,7 +122,7 @@ Get your API key from https://platform.openai.com/api-keys
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/wardrowbe.git
+git clone https://github.com/Anyesh/wardrowbe.git
 cd wardrowbe
 
 # Copy environment template
