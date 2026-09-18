@@ -3,8 +3,9 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, model_validator
 
+from app.utils.item_revision import item_revision
 from app.utils.signed_urls import sign_image_url
 
 # Default wash intervals by clothing type (wears between washes)
@@ -74,6 +75,7 @@ class ItemUpdate(BaseModel):
 
 class ItemResponse(ItemBase):
     model_config = ConfigDict(from_attributes=True)
+    _image_urls_enabled: bool = PrivateAttr(default=True)
 
     @model_validator(mode="before")
     @classmethod
@@ -136,12 +138,21 @@ class ItemResponse(ItemBase):
 
     @computed_field
     @property
-    def image_url(self) -> str:
+    def revision(self) -> str:
+        return item_revision(self.id, self.updated_at)
+
+    @computed_field
+    @property
+    def image_url(self) -> str | None:
+        if not self._image_urls_enabled:
+            return None
         return sign_image_url(self.image_path)
 
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
+        if not self._image_urls_enabled:
+            return None
         if self.thumbnail_path:
             return sign_image_url(self.thumbnail_path)
         return None
@@ -149,9 +160,17 @@ class ItemResponse(ItemBase):
     @computed_field
     @property
     def medium_url(self) -> str | None:
+        if not self._image_urls_enabled:
+            return None
         if self.medium_path:
             return sign_image_url(self.medium_path)
         return None
+
+    def set_image_urls_enabled(self, enabled: bool) -> "ItemResponse":
+        self._image_urls_enabled = enabled
+        for image in self.additional_images:
+            image.set_image_urls_enabled(enabled)
+        return self
 
     @computed_field
     @property
@@ -355,6 +374,7 @@ class BulkRemoveBackgroundResponse(BulkBatchResponse):
 
 class ItemImageResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+    _image_urls_enabled: bool = PrivateAttr(default=True)
 
     id: UUID
     item_id: UUID
@@ -366,12 +386,16 @@ class ItemImageResponse(BaseModel):
 
     @computed_field
     @property
-    def image_url(self) -> str:
+    def image_url(self) -> str | None:
+        if not self._image_urls_enabled:
+            return None
         return sign_image_url(self.image_path)
 
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
+        if not self._image_urls_enabled:
+            return None
         if self.thumbnail_path:
             return sign_image_url(self.thumbnail_path)
         return None
@@ -379,9 +403,15 @@ class ItemImageResponse(BaseModel):
     @computed_field
     @property
     def medium_url(self) -> str | None:
+        if not self._image_urls_enabled:
+            return None
         if self.medium_path:
             return sign_image_url(self.medium_path)
         return None
+
+    def set_image_urls_enabled(self, enabled: bool) -> "ItemImageResponse":
+        self._image_urls_enabled = enabled
+        return self
 
 
 class ReorderImagesRequest(BaseModel):
