@@ -140,6 +140,60 @@ async def test_profile_patch_rejects_non_finite_measurements(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("literal", ["0.00001", "100000000"])
+async def test_explicit_remeasurement_rejects_values_outside_storage_precision(
+    client: AsyncClient, auth_headers, literal
+):
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as raw_client:
+        response = await raw_client.post(
+            "/api/v1/users/me/body-measurements",
+            content=f'{{"measurements":{{"waist":{literal}}}}}',
+            headers={**auth_headers, "Content-Type": "application/json"},
+        )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("literal", ["0.00001", "100000000"])
+async def test_profile_patch_rejects_values_outside_storage_precision(
+    client: AsyncClient, auth_headers, literal
+):
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as raw_client:
+        response = await raw_client.patch(
+            "/api/v1/users/me",
+            content=f'{{"body_measurements":{{"waist":{literal}}}}}',
+            headers={**auth_headers, "Content-Type": "application/json"},
+        )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_explicit_remeasurement_uses_storage_precision_for_snapshot_and_history(
+    client: AsyncClient, auth_headers
+):
+    response = await client.post(
+        "/api/v1/users/me/body-measurements",
+        json={"measurements": {"waist": 99.12345}},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["measurements"]["waist"]["value"] == 99.1235
+    assert response.json()["measurements"]["waist"]["source"] == "manual"
+
+    profile = await client.get("/api/v1/users/me", headers=auth_headers)
+    assert profile.json()["body_measurements"]["waist"] == 99.1235
+
+    history = await client.get("/api/v1/users/me/body-measurements/history", headers=auth_headers)
+    waist = [row for row in history.json()["observations"] if row["metric"] == "waist"]
+    assert waist[0]["value"] == 99.1235
+
+
+@pytest.mark.asyncio
 async def test_concurrent_partial_profile_measurement_patches_preserve_both_metrics(
     async_engine, db_session, test_user
 ):

@@ -60,6 +60,33 @@ describe('settings measurement unit reconciliation', () => {
     localStorage.setItem('wardrowbe_unit_system', 'metric')
   })
 
+  it('formats stored metric measurements to one decimal without forcing a trailing zero', () => {
+    mocks.userProfile.body_measurements = {
+      waist: 82.34,
+      weight: 83.7124,
+      height: 178,
+    }
+
+    render(<SettingsPage />)
+
+    expect(screen.getByPlaceholderText('82.3')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('83.7')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('178')).toBeInTheDocument()
+  })
+
+  it('formats stored measurements to one decimal in imperial units', () => {
+    localStorage.setItem('wardrowbe_unit_system', 'imperial')
+    mocks.userProfile.body_measurements = {
+      waist: 82.34,
+      weight: 83.7124,
+    }
+
+    render(<SettingsPage />)
+
+    expect(screen.getByPlaceholderText('32.4')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('184.6')).toBeInTheDocument()
+  })
+
   it('writes an activated measurement through the record mutation', async () => {
     render(<SettingsPage />)
     const waist = screen.getByPlaceholderText('101.6')

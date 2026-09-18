@@ -1,4 +1,3 @@
-import math
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
@@ -9,7 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.user import User
-from app.services.body_measurement_service import MEASUREMENT_UNITS, BodyMeasurementService
+from app.services.body_measurement_service import (
+    MEASUREMENT_UNITS,
+    BodyMeasurementService,
+    normalize_measurement_value,
+)
 from app.services.user_service import UserService
 from app.utils.auth import get_current_user
 from app.utils.locale import SUPPORTED_LOCALES, is_supported_locale
@@ -110,15 +113,15 @@ async def update_profile(
     if "body_measurements" in update_data and update_data["body_measurements"] is not None:
         numeric_keys = {"chest", "waist", "hips", "inseam", "height", "weight"}
         for key, value in update_data["body_measurements"].items():
-            if (
-                key in numeric_keys
-                and isinstance(value, (int, float))
-                and (not math.isfinite(value) or value <= 0)
-            ):
+            if key not in numeric_keys:
+                continue
+            normalized = normalize_measurement_value(value)
+            if normalized is None:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"{key} must be a positive number",
+                    detail=f"{key} must be a valid positive measurement",
                 )
+            update_data["body_measurements"][key] = float(normalized)
 
     if "body_measurements" in update_data:
         measurement_patch = update_data["body_measurements"]
@@ -169,20 +172,23 @@ async def record_body_measurements(
             detail="at least one measurement is required",
         )
 
+    normalized_measurements: dict[str, float] = {}
     for metric, value in data.measurements.items():
         if metric not in MEASUREMENT_UNITS:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"unsupported body measurement: {metric}",
             )
-        if not math.isfinite(value) or value <= 0:
+        normalized = normalize_measurement_value(value)
+        if normalized is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"{metric} must be a positive number",
+                detail=f"{metric} must be a valid positive measurement",
             )
+        normalized_measurements[metric] = float(normalized)
 
     service = BodyMeasurementService(db)
-    await service.record_measurements(current_user, data.measurements)
+    await service.record_measurements(current_user, normalized_measurements)
     await db.flush()
     measurements = await service.current_state(current_user)
     await db.commit()

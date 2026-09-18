@@ -45,6 +45,11 @@ function convertMeasurement(value: number, key: string, from: string, to: string
   return Math.round((isWeight ? value * LBS_TO_KG : value * IN_TO_CM) * 10) / 10;
 }
 
+function formatMeasurementDisplay(value: number, key: string, from: string, to: string): string {
+  const converted = convertMeasurement(value, key, from, to);
+  return String(Math.round(converted * 10) / 10);
+}
+
 const NUMERIC_MEASUREMENT_KEYS = new Set(['chest', 'waist', 'hips', 'inseam', 'height', 'weight']);
 
 function convertMeasurementValues(
@@ -62,7 +67,7 @@ function convertMeasurementValues(
     const num = parseFloat(trimmed);
     converted[key] = Number.isNaN(num)
       ? value
-      : String(convertMeasurement(num, key, from, to));
+      : formatMeasurementDisplay(num, key, from, to);
   }
   return converted;
 }
@@ -243,8 +248,7 @@ export default function SettingsPage() {
         const displayUnitSystem = unitSystemRef.current;
         for (const [key, value] of Object.entries(userProfile.body_measurements)) {
           if (numericKeys.includes(key) && typeof value === 'number') {
-            const converted = convertMeasurement(value, key, 'metric', displayUnitSystem);
-            initial[key] = String(converted);
+            initial[key] = formatMeasurementDisplay(value, key, 'metric', displayUnitSystem);
           } else {
             initial[key] = value == null ? '' : String(value);
           }

@@ -1,13 +1,16 @@
 """Body measurement history and current-state projection."""
 
 from datetime import UTC, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.body_measurement import BodyMeasurementObservation
 from app.models.user import User
+
+MEASUREMENT_SCALE = Decimal("0.0001")
+MEASUREMENT_MAX = Decimal("99999999.9999")
 
 MEASUREMENT_UNITS: dict[str, str] = {
     "weight": "kg",
@@ -19,16 +22,22 @@ MEASUREMENT_UNITS: dict[str, str] = {
 }
 
 
-def _number(value: object) -> Decimal | None:
+def normalize_measurement_value(value: object) -> Decimal | None:
     if isinstance(value, bool) or value is None:
         return None
     try:
         result = Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError):
         return None
-    if not result.is_finite():
+    if not result.is_finite() or result <= 0:
         return None
-    return result if result > 0 else None
+    try:
+        normalized = result.quantize(MEASUREMENT_SCALE, rounding=ROUND_HALF_UP)
+    except InvalidOperation:
+        return None
+    if normalized <= 0 or normalized > MEASUREMENT_MAX:
+        return None
+    return normalized
 
 
 async def lock_user_for_measurement_update(db: AsyncSession, user: User) -> User:
@@ -59,7 +68,7 @@ class BodyMeasurementService:
 
         for metric, raw_value in measurements.items():
             unit = MEASUREMENT_UNITS.get(metric)
-            value = _number(raw_value)
+            value = normalize_measurement_value(raw_value)
             if unit is None or value is None:
                 raise ValueError(f"invalid body measurement: {metric}")
             self.db.add(
@@ -90,10 +99,10 @@ class BodyMeasurementService:
         observed_at = measured_at or datetime.now(UTC)
 
         for metric, unit in MEASUREMENT_UNITS.items():
-            new_value = _number(new.get(metric))
+            new_value = normalize_measurement_value(new.get(metric))
             if new_value is None:
                 continue
-            old_value = _number(old.get(metric))
+            old_value = normalize_measurement_value(old.get(metric))
             if old_value == new_value:
                 continue
             self.db.add(
@@ -113,7 +122,9 @@ class BodyMeasurementService:
             return {}
 
         current_metrics = [
-            metric for metric in MEASUREMENT_UNITS if _number(snapshot.get(metric)) is not None
+            metric
+            for metric in MEASUREMENT_UNITS
+            if normalize_measurement_value(snapshot.get(metric)) is not None
         ]
         result = await self.db.execute(
             select(BodyMeasurementObservation)
@@ -132,7 +143,7 @@ class BodyMeasurementService:
 
         state: dict[str, dict] = {}
         for metric, unit in MEASUREMENT_UNITS.items():
-            current_value = _number(snapshot.get(metric))
+            current_value = normalize_measurement_value(snapshot.get(metric))
             if current_value is None:
                 continue
             observation = latest.get(metric)
