@@ -87,6 +87,28 @@ describe('settings measurement unit reconciliation', () => {
     expect(screen.getByPlaceholderText('184.6')).toBeInTheDocument()
   })
 
+  it('confirms a single measurement with the check button', async () => {
+    mocks.userProfile.body_measurements = { weight: 83.6 }
+
+    render(<SettingsPage />)
+    const weight = screen.getByPlaceholderText('83.6')
+
+    fireEvent.focus(weight)
+    fireEvent.change(weight, { target: { value: '84.2' } })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'body.saveMeasurements body.fields.weight' }),
+    )
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(mocks.recordMeasurements).toHaveBeenCalledTimes(1)
+    expect(mocks.recordMeasurements).toHaveBeenCalledWith({ weight: 84.2 })
+    expect(weight).toHaveValue(null)
+    expect(weight).toHaveAttribute('placeholder', '84.2')
+  })
+
   it('writes an activated measurement through the record mutation', async () => {
     render(<SettingsPage />)
     const waist = screen.getByPlaceholderText('101.6')

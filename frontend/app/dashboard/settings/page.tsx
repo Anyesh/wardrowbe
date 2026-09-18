@@ -457,6 +457,47 @@ export default function SettingsPage() {
     });
   };
 
+  const handleConfirmMeasurement = async (key: string) => {
+    const rawValue = measurementSession[key];
+    if (rawValue === undefined) return;
+
+    const num = parseFloat(rawValue.trim());
+    if (isNaN(num) || num <= 0) {
+      toast.error(t('body.errors.positiveNumber', { field: t('body.fields.' + key) }));
+      return;
+    }
+
+    const submittedUnitSystem = unitSystem;
+    const canonicalValue = convertMeasurement(num, key, submittedUnitSystem, 'metric');
+
+    try {
+      await recordBodyMeasurements.mutateAsync({ [key]: canonicalValue });
+      const reconciledValue = formatMeasurementDisplay(
+        canonicalValue,
+        key,
+        'metric',
+        unitSystemRef.current,
+      );
+      setMeasurements((prev) => ({ ...prev, [key]: reconciledValue }));
+      setMeasurementSession((current) => {
+        const next = { ...current };
+        const submittedDisplayValue = formatMeasurementDisplay(
+          num,
+          key,
+          submittedUnitSystem,
+          unitSystemRef.current,
+        );
+        if (next[key] === rawValue || next[key] === submittedDisplayValue) {
+          delete next[key];
+        }
+        return next;
+      });
+      toast.success(t('body.saved'));
+    } catch (e) {
+      toast.error(getErrorMessage(e, t('body.saveError')));
+    }
+  };
+
   const handleMeasurementChange = (key: string, value: string) => {
     setMeasurements((prev) => ({ ...prev, [key]: value }));
     dirtySizeKeysRef.current.add(key);
@@ -791,7 +832,22 @@ export default function SettingsPage() {
                         <span className="text-sm text-muted-foreground min-w-[2rem] text-center">{unit}</span>
                         {isActive && (
                           <>
-                            <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0 text-primary"
+                              onClick={() => handleConfirmMeasurement(field.key)}
+                              disabled={recordBodyMeasurements.isPending}
+                              aria-label={t('body.saveMeasurements') + ' ' + t('body.fields.' + field.key)}
+                              title={t('body.saveMeasurements') + ' ' + t('body.fields.' + field.key)}
+                            >
+                              {recordBodyMeasurements.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
+                            </Button>
                             <Button
                               type="button"
                               variant="ghost"
