@@ -60,6 +60,22 @@ describe('settings measurement unit reconciliation', () => {
     localStorage.setItem('wardrowbe_unit_system', 'metric')
   })
 
+  it('writes an activated measurement through the record mutation', async () => {
+    render(<SettingsPage />)
+    const waist = screen.getByPlaceholderText('101.6')
+
+    fireEvent.focus(waist)
+    fireEvent.change(waist, { target: { value: '99.5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'body.saveMeasurements' }))
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(mocks.recordMeasurements).toHaveBeenCalledTimes(1)
+    expect(mocks.recordMeasurements).toHaveBeenCalledWith({ waist: 99.5 })
+  })
+
   it('renders cleared size values as empty inputs instead of the text null', () => {
     mocks.userProfile.body_measurements = { waist: 101.6, shirt_size: null }
 
