@@ -21,7 +21,7 @@ AI_RETRY_MAX_BACKOFF_S = 30
 
 
 class _AIProviderResponseError(RuntimeError):
-    """Provider returned an error payload with a successful HTTP status."""
+    pass
 
 
 class TextGenerationResult(BaseModel):
@@ -176,8 +176,12 @@ def compute_tag_completeness(tags: "ClothingTags") -> float:
     return round(score, 2)
 
 
+def _message_rejects_logprobs(message: str) -> bool:
+    return "logprobs" in message.lower()
+
+
 def _response_rejects_logprobs(response: httpx.Response) -> bool:
-    return response.status_code == 400 and "logprobs" in response.text.lower()
+    return response.status_code == 400 and _message_rejects_logprobs(response.text)
 
 
 def _provider_error_message(data: object) -> str | None:
@@ -203,17 +207,19 @@ _REASONING_EFFORT_REJECTION_MARKERS = (
 )
 
 
-def _response_rejects_reasoning_effort(response: httpx.Response) -> bool:
+def _message_rejects_reasoning_effort(message: str) -> bool:
     # Servers disagree on how they name the field they are rejecting. OpenAI answers
     # "Unsupported parameter: 'reasoning_effort' ...", while Ollama releases predating the
     # "none" effort level answer `invalid think value: "none" (must be "high", "medium",
     # "low", true, or false)` and never mention reasoning_effort at all. Matching only the
     # OpenAI wording would leave those Ollama users with every request failing, because the
     # default effort is sent on every call and the strip-and-retry would never fire.
-    if response.status_code != 400:
-        return False
-    text = response.text.lower()
+    text = message.lower()
     return any(marker in text for marker in _REASONING_EFFORT_REJECTION_MARKERS)
+
+
+def _response_rejects_reasoning_effort(response: httpx.Response) -> bool:
+    return response.status_code == 400 and _message_rejects_reasoning_effort(response.text)
 
 
 _CONFIDENCE_FIELDS = {"type", "primary_color", "pattern", "material", "formality"}
@@ -528,12 +534,21 @@ class AIService:
                         data = response.json()
                         provider_error = _provider_error_message(data)
                         if provider_error is not None:
-                            if use_logprobs:
+                            if use_logprobs and _message_rejects_logprobs(provider_error):
                                 logger.warning(
-                                    f"{endpoint.name} returned an error envelope for {task_name} "
-                                    "while logprobs were enabled; retrying without logprobs"
+                                    f"{endpoint.name} rejected logprobs for {task_name}, "
+                                    f"retrying without it: {provider_error}"
                                 )
                                 use_logprobs = False
+                                continue
+                            if use_reasoning_effort and _message_rejects_reasoning_effort(
+                                provider_error
+                            ):
+                                logger.warning(
+                                    f"{endpoint.name} rejected reasoning_effort for {task_name}, "
+                                    f"retrying without it: {provider_error}"
+                                )
+                                use_reasoning_effort = False
                                 continue
                             raise _AIProviderResponseError(provider_error)
                         choice = data["choices"][0]
@@ -761,6 +776,15 @@ class AIService:
                         data = response.json()
                         provider_error = _provider_error_message(data)
                         if provider_error is not None:
+                            if use_reasoning_effort and _message_rejects_reasoning_effort(
+                                provider_error
+                            ):
+                                logger.warning(
+                                    f"{endpoint.name} rejected reasoning_effort, "
+                                    f"retrying without it: {provider_error}"
+                                )
+                                use_reasoning_effort = False
+                                continue
                             raise _AIProviderResponseError(provider_error)
                         used_model = data.get("model", endpoint.text_model)
                         choice = data["choices"][0]
