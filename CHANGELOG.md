@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.10.0...wardrowbe-v1.10.1) (2026-09-18)
+
+
+### 🐛 Bug Fixes
+
+* **ai:** classify 200 error envelopes by message before stripping params ([752dcdf](https://github.com/Anyesh/wardrowbe/commit/752dcdf159c4680df444f9cde51b840a69bd19e1))
+* **ai:** handle AI error envelopes returned with HTTP 200 ([e3e5a95](https://github.com/Anyesh/wardrowbe/commit/e3e5a950541aa31b4885c51bdb8f22565a69a808))
+* **ai:** handle error envelopes in text generation ([9da5d95](https://github.com/Anyesh/wardrowbe/commit/9da5d95a0eae27baf080c05ce2117288dcd30b5e))
+* handle AI error envelopes returned with HTTP 200 ([#201](https://github.com/Anyesh/wardrowbe/issues/201)) ([2804524](https://github.com/Anyesh/wardrowbe/commit/28045246da067fe185d728045adc46c74fd43e15))
+
 ## [1.10.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.9.0...wardrowbe-v1.10.0) (2026-09-11)
 
 
