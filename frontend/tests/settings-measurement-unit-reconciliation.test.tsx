@@ -87,6 +87,23 @@ describe('settings measurement unit reconciliation', () => {
     expect(screen.getByPlaceholderText('184.6')).toBeInTheDocument()
   })
 
+  it('shows the saved measurement as a placeholder, activates it on focus, and clears the draft', () => {
+    mocks.userProfile.body_measurements = { waist: 101.6 }
+
+    render(<SettingsPage />)
+    const waist = screen.getByPlaceholderText('101.6')
+
+    expect(waist).toHaveValue(null)
+
+    fireEvent.focus(waist)
+    expect(waist).toHaveValue(101.6)
+
+    fireEvent.click(screen.getByRole('button', { name: 'clear' }))
+
+    expect(waist).toHaveValue(null)
+    expect(waist).toHaveAttribute('placeholder', '101.6')
+  })
+
   it('confirms a single measurement with the check button', async () => {
     mocks.userProfile.body_measurements = { weight: 83.6 }
 
