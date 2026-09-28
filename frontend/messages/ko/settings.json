@@ -55,10 +55,10 @@
       "shoeSize": "신발 사이즈"
     },
     "sizePlaceholders": {
-      "dress_size": "예: 8, 10",
-      "pants_size": "예: 32, 34",
+      "dress_size": "예: US 8, EU 38",
+      "pants_size": "예: W32 L32, EU 48",
       "shirt_size": "예: M, L, XL",
-      "shoe_size": "예: 10, 42"
+      "shoe_size": "예: US 10, EU 43"
     },
     "sizesLabel": "사이즈",
     "title": "신체 치수",

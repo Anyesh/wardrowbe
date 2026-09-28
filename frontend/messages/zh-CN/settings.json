@@ -55,10 +55,10 @@
       "shoeSize": "鞋码"
     },
     "sizePlaceholders": {
-      "dress_size": "例如 8、10",
-      "pants_size": "例如 32、34",
+      "dress_size": "例如 US 8、EU 38",
+      "pants_size": "例如 W32 L32、EU 48",
       "shirt_size": "例如 M、L、XL",
-      "shoe_size": "例如 10、42"
+      "shoe_size": "例如 US 10、EU 43"
     },
     "sizesLabel": "尺码",
     "title": "身体测量",
