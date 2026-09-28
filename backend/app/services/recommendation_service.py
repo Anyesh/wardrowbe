@@ -354,6 +354,8 @@ class RecommendationService:
                 body_parts.append(f"shirt size {m['shirt_size']}")
             if m.get("pants_size"):
                 body_parts.append(f"pants size {m['pants_size']}")
+            if m.get("dress_size"):
+                body_parts.append(f"dress size {m['dress_size']}")
             if m.get("shoe_size"):
                 body_parts.append(f"shoe size {m['shoe_size']}")
             if body_parts:
