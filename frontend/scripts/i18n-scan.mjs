@@ -35,7 +35,7 @@ function isCopy(raw) {
   // entity names are all letters, so they have to go before the letter test.
   const s = raw.replace(/&(?:[a-zA-Z]+|#\d+);/g, '').trim();
   if (s.length < 2) return false;
-  if (!/\p{L}\p{L}/u.test(s)) return false;
+  if (!/\p{L}.*\p{L}/u.test(s)) return false;
   if (BRAND.has(s)) return false;
   return !NOT_COPY.some((re) => re.test(s));
 }
