@@ -36,10 +36,13 @@
       "positiveNumber": "{field} must be a positive number"
     },
     "fields": {
+      "bust": "Bust",
       "chest": "Chest",
       "height": "Height",
       "hips": "Hips",
       "inseam": "Inseam",
+      "neck": "Neck",
+      "sleeve": "Sleeve",
       "waist": "Waist",
       "weight": "Weight"
     },

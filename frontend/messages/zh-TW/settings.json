@@ -36,10 +36,13 @@
       "positiveNumber": "{field}必須是正數"
     },
     "fields": {
+      "bust": "上胸圍",
       "chest": "胸圍",
       "height": "身高",
       "hips": "臀圍",
       "inseam": "內縫",
+      "neck": "領圍",
+      "sleeve": "袖長",
       "waist": "腰圍",
       "weight": "體重"
     },

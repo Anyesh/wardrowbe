@@ -36,10 +36,13 @@
       "positiveNumber": "{field} doit être un nombre positif"
     },
     "fields": {
+      "bust": "Tour de buste",
       "chest": "Poitrine",
       "height": "Taille",
       "hips": "Hanches",
       "inseam": "Entrejambe",
+      "neck": "Tour de cou",
+      "sleeve": "Longueur de manche",
       "waist": "Tour de taille",
       "weight": "Poids"
     },

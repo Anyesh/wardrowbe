@@ -194,3 +194,25 @@ class TestOnboarding:
         assert response.status_code == 200
         data = response.json()
         assert data["onboarding_completed"] is True
+
+
+class TestBodyMeasurements:
+    @pytest.mark.asyncio
+    async def test_new_measurements_round_trip(self, client: AsyncClient, test_user, auth_headers):
+        measurements = {"bust": 92, "neck": 38, "sleeve": 64, "dress_size": "US 8"}
+        response = await client.patch(
+            "/api/v1/users/me", json={"body_measurements": measurements}, headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert response.json()["body_measurements"] == measurements
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("key", ["bust", "neck", "sleeve"])
+    async def test_new_measurements_must_be_positive(
+        self, client: AsyncClient, test_user, auth_headers, key
+    ):
+        response = await client.patch(
+            "/api/v1/users/me", json={"body_measurements": {key: 0}}, headers=auth_headers
+        )
+        assert response.status_code == 422
+        assert key in response.json()["detail"]

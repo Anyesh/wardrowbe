@@ -49,10 +49,15 @@ const BODY_MEASUREMENT_FIELDS = [
   { key: 'height', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 178', placeholderImperial: 'e.g. 70' },
   { key: 'weight', unitMetric: 'kg', unitImperial: 'lbs', placeholderMetric: 'e.g. 75', placeholderImperial: 'e.g. 165' },
   { key: 'chest', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 96', placeholderImperial: 'e.g. 38' },
+  { key: 'bust', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 92', placeholderImperial: 'e.g. 36' },
   { key: 'waist', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 82', placeholderImperial: 'e.g. 32' },
   { key: 'hips', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 98', placeholderImperial: 'e.g. 39' },
   { key: 'inseam', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 81', placeholderImperial: 'e.g. 32' },
+  { key: 'neck', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 38', placeholderImperial: 'e.g. 15' },
+  { key: 'sleeve', unitMetric: 'cm', unitImperial: 'in', placeholderMetric: 'e.g. 64', placeholderImperial: 'e.g. 25' },
 ] as const;
+
+const NUMERIC_MEASUREMENT_KEYS: readonly string[] = BODY_MEASUREMENT_FIELDS.map((f) => f.key);
 
 function getErrorMessage(e: unknown, fallback: string): string {
   if (e instanceof Error) return e.message;
@@ -213,10 +218,9 @@ export default function SettingsPage() {
 
       if (userProfile.body_measurements) {
         const initial: Record<string, string> = {};
-        const numericKeys = ['chest', 'waist', 'hips', 'inseam', 'height', 'weight'];
         const displayUnitSystem = unitSystemRef.current;
         for (const [key, value] of Object.entries(userProfile.body_measurements)) {
-          if (numericKeys.includes(key) && typeof value === 'number') {
+          if (NUMERIC_MEASUREMENT_KEYS.includes(key) && typeof value === 'number') {
             const converted = convertMeasurement(value, key, 'metric', displayUnitSystem);
             initial[key] = String(converted);
           } else {
@@ -401,11 +405,10 @@ export default function SettingsPage() {
   const handleToggleUnits = () => {
     const newSystem: UnitSystem = unitSystem === 'metric' ? 'imperial' : 'metric';
     const converted: Record<string, string> = {};
-    const numericKeys = ['chest', 'waist', 'hips', 'inseam', 'height', 'weight'];
     for (const [key, value] of Object.entries(measurements)) {
       const trimmed = value.trim();
       if (!trimmed) { converted[key] = value; continue; }
-      if (numericKeys.includes(key)) {
+      if (NUMERIC_MEASUREMENT_KEYS.includes(key)) {
         const num = parseFloat(trimmed);
         if (!isNaN(num)) {
           converted[key] = String(convertMeasurement(num, key, unitSystem, newSystem));
@@ -426,11 +429,10 @@ export default function SettingsPage() {
 
   const handleSaveMeasurements = async () => {
     const parsed: Record<string, number | string> = {};
-    const numericKeys = ['chest', 'waist', 'hips', 'inseam', 'height', 'weight'];
     for (const [key, value] of Object.entries(measurements)) {
       const trimmed = value.trim();
       if (!trimmed) continue;
-      if (numericKeys.includes(key)) {
+      if (NUMERIC_MEASUREMENT_KEYS.includes(key)) {
         const num = parseFloat(trimmed);
         if (isNaN(num) || num <= 0) {
           toast.error(t('body.errors.positiveNumber', { field: t(`body.fields.${key}`) }));

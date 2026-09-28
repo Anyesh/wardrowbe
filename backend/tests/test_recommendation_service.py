@@ -436,6 +436,13 @@ class TestFormatPrefsBody:
         )
         assert "- Body: dress size 8, shoe size 10" in text
 
+    def test_bust_neck_sleeve_included(self):
+        service = RecommendationService.__new__(RecommendationService)
+        text = service._format_preferences_for_prompt(
+            None, body_measurements={"bust": 92, "neck": 38, "sleeve": 64}
+        )
+        assert "- Body: bust 92cm, neck 38cm, sleeve 64cm" in text
+
 
 class TestPromptPreRanking:
     def test_pre_ranking_hint_present(self):
