@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from uuid import UUID
 
 logger = logging.getLogger(__name__)
@@ -37,19 +38,27 @@ ITEM_ROLE: dict[str, str] = {
 }
 
 
-TOP_ROLES = frozenset({"base_top", "mid_layer"})
-BOTTOM_ROLES = frozenset({"bottom"})
+@dataclass(frozen=True)
+class WardrobeComposition:
+    base_tops: int = 0
+    layers: int = 0
+    bottoms: int = 0
+    full_body: int = 0
 
 
-def count_tops_and_bottoms(type_counts: list[tuple[str | None, int]]) -> tuple[int, int]:
-    tops = bottoms = 0
+def count_composition(type_counts: list[tuple[str | None, int]]) -> WardrobeComposition:
+    """Bucket item counts by body role. Outer layers, footwear and accessories are ignored."""
+    buckets = {"base_top": 0, "mid_layer": 0, "bottom": 0, "full_body": 0}
     for item_type, count in type_counts:
         role = ITEM_ROLE.get((item_type or "").lower())
-        if role in TOP_ROLES:
-            tops += count
-        elif role in BOTTOM_ROLES:
-            bottoms += count
-    return tops, bottoms
+        if role in buckets:
+            buckets[role] += count
+    return WardrobeComposition(
+        base_tops=buckets["base_top"],
+        layers=buckets["mid_layer"],
+        bottoms=buckets["bottom"],
+        full_body=buckets["full_body"],
+    )
 
 
 def deduplicate_by_body_slot(

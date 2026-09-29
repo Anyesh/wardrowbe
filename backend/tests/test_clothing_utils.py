@@ -2,8 +2,9 @@ from uuid import uuid4
 
 from app.utils.clothing import (
     ITEM_ROLE,
+    WardrobeComposition,
     canonical_item_order,
-    count_tops_and_bottoms,
+    count_composition,
     deduplicate_by_body_slot,
 )
 
@@ -295,21 +296,26 @@ def test_mandatory_item_absent_from_candidates_does_not_empty_its_role():
     assert result == [shirt_id, pants_id]
 
 
-def test_count_tops_and_bottoms_includes_layering_tops():
-    # Issue #209: 8 cardigans + 1 shirt vs 4 skirts must not read as "more bottoms than tops".
-    tops, bottoms = count_tops_and_bottoms([("cardigan", 8), ("shirt", 1), ("skirt", 4)])
-    assert (tops, bottoms) == (9, 4)
-
-
-def test_count_tops_and_bottoms_covers_every_top_and_bottom_type():
-    counts = [(t, 1) for t in ITEM_ROLE]
-    tops, bottoms = count_tops_and_bottoms(counts)
-    assert tops == sum(1 for r in ITEM_ROLE.values() if r in ("base_top", "mid_layer"))
-    assert bottoms == sum(1 for r in ITEM_ROLE.values() if r == "bottom")
-
-
-def test_count_tops_and_bottoms_ignores_full_body_unknown_and_none():
-    tops, bottoms = count_tops_and_bottoms(
-        [("dress", 3), ("jumpsuit", 2), ("mystery", 5), (None, 1), ("Sweater", 2), ("jeans", 1)]
+def test_count_composition_buckets_by_role():
+    c = count_composition(
+        [
+            ("cardigan", 8),
+            ("shirt", 1),
+            ("Sweater", 2),
+            ("skirt", 4),
+            ("dress", 3),
+            ("jacket", 5),
+            ("mystery", 7),
+            (None, 1),
+        ]
     )
-    assert (tops, bottoms) == (2, 1)
+    assert c == WardrobeComposition(base_tops=3, layers=8, bottoms=4, full_body=3)
+
+
+def test_count_composition_covers_every_role_in_item_role():
+    c = count_composition([(t, 1) for t in ITEM_ROLE])
+    roles = list(ITEM_ROLE.values())
+    assert c.base_tops == roles.count("base_top")
+    assert c.layers == roles.count("mid_layer")
+    assert c.bottoms == roles.count("bottom")
+    assert c.full_body == roles.count("full_body")

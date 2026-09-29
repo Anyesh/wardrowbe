@@ -12,7 +12,7 @@ from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import Outfit, OutfitStatus, UserFeedback
 from app.models.user import User
 from app.utils.auth import get_current_user
-from app.utils.clothing import count_tops_and_bottoms
+from app.utils.clothing import WardrobeComposition, count_composition
 from app.utils.signed_urls import sign_image_url
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
@@ -75,6 +75,27 @@ class AnalyticsResponse(BaseModel):
     never_worn: list[WearStats]
     acceptance_trend: list[AcceptanceRateTrend]
     insights: list[str]
+
+
+def composition_insights(c: WardrobeComposition) -> list[str]:
+    # Layers (cardigans, vests) need something underneath, so they are judged against
+    # base tops rather than counted as tops themselves.
+    if c.layers >= 3 and c.layers > 2 * c.base_tops:
+        return [
+            "Most of your tops are layers like cardigans and vests. Add a few basics to wear under them!"
+        ]
+
+    # A dress-first wardrobe doesn't need its few separates to balance.
+    if c.full_body >= c.base_tops + c.bottoms:
+        return []
+
+    if c.base_tops > 0 and c.bottoms > 0:
+        ratio = c.base_tops / c.bottoms
+        if ratio > 3:
+            return ["You have many more tops than bottoms. Consider adding pants or skirts!"]
+        if ratio < 0.5:
+            return ["You have more bottoms than tops. Consider adding some shirts!"]
+    return []
 
 
 @router.get("", response_model=AnalyticsResponse)
@@ -339,15 +360,11 @@ async def get_analytics(
 
         # Type insights
         if type_distribution:
-            tops, bottoms = count_tops_and_bottoms([(t.type, t.count) for t in type_distribution])
-            if tops > 0 and bottoms > 0:
-                ratio = tops / bottoms
-                if ratio > 3:
-                    insights.append(
-                        "You have many more tops than bottoms. Consider adding pants or skirts!"
-                    )
-                elif ratio < 0.5:
-                    insights.append("You have more bottoms than tops. Consider adding some shirts!")
+            insights.extend(
+                composition_insights(
+                    count_composition([(t.type, t.count) for t in type_distribution])
+                )
+            )
 
         # Outfit insights
         if acceptance_rate is not None:
