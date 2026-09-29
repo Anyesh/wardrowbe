@@ -180,9 +180,11 @@
       "brandName": "品牌名称",
       "itemName": "单品名称",
       "selectColor": "选择颜色",
+      "subtype": "例如：打底裤、切尔西",
       "washIntervalDefault": "默认：{count}"
     },
     "primaryColor": "主要颜色",
+    "subtype": "子类型",
     "titles": {
       "analysisInProgress": "分析进行中...",
       "deleteImage": "删除图片",
@@ -198,6 +200,7 @@
       "undoBackgroundRemoval": "撤销背景去除"
     },
     "type": "类型",
+    "unrecognizedType": "AI 识别为“{value}”，但这不是支持的类型。请在下方选择最接近的类型；可以将“{value}”保留为子类型。",
     "view": {
       "addedDate": "添加于{date}",
       "aiAnalysis": "AI 分析",

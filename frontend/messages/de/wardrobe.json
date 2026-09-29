@@ -180,9 +180,11 @@
       "brandName": "Markenname",
       "itemName": "Name des Stücks",
       "selectColor": "Farbe auswählen",
+      "subtype": "z. B. Leggings, Chelsea",
       "washIntervalDefault": "Standard: {count}"
     },
     "primaryColor": "Hauptfarbe",
+    "subtype": "Untertyp",
     "titles": {
       "analysisInProgress": "Analyse läuft...",
       "deleteImage": "Bild löschen",
@@ -198,6 +200,7 @@
       "undoBackgroundRemoval": "Hintergrundentfernung rückgängig machen"
     },
     "type": "Typ",
+    "unrecognizedType": "Die KI hat „{value}“ erkannt, das ist kein unterstützter Typ. Wähle unten den passendsten Typ; „{value}“ kannst du als Untertyp behalten.",
     "view": {
       "addedDate": "Hinzugefügt am {date}",
       "aiAnalysis": "KI-Analyse",

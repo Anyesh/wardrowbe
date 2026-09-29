@@ -17,6 +17,7 @@ import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-rati
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 
 interface OutfitPreviewDialogProps {
   outfit: Outfit;
@@ -29,6 +30,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
   const t = useTranslations('suggest.outfitPreview');
   const ts = useTranslations('suggest');
   const tc = useTranslations('common');
+  const subtypeLabel = useSubtypeLabel();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageKey, setImageKey] = useState(0); // Force image reload after rotation
   const [showRatingForm, setShowRatingForm] = useState(false);
@@ -146,7 +148,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                 </Badge>
                 {currentItem.subtype && (
                   <Badge variant="outline" className="capitalize">
-                    {currentItem.subtype}
+                    {subtypeLabel(currentItem.subtype)}
                   </Badge>
                 )}
                 {currentItem.primary_color && (

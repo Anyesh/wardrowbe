@@ -338,6 +338,32 @@ class TestFailureReasonReachesTheApi:
         assert resp.json()["ai_error"] == "AI endpoint returned 404"
 
     @pytest.mark.asyncio
+    async def test_unrecognized_type_exposed_on_item_response(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
+    ):
+        fields = tagging_module.tags_to_item_fields(
+            ClothingTags(unrecognized_type="tights"), '{"type": "tights"}'
+        )
+        assert fields["ai_raw_response"] == {
+            "raw_text": '{"type": "tights"}',
+            "unrecognized_type": "tights",
+        }
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="unknown",
+            image_path="t/u.jpg",
+            ai_raw_response=fields["ai_raw_response"],
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        resp = await client.get(f"/api/v1/items/{item.id}", headers=auth_headers)
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ai_unrecognized_type"] == "tights"
+        assert body["ai_error"] is None
+
+    @pytest.mark.asyncio
     async def test_processing_kind_exposed_on_item_response(
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):

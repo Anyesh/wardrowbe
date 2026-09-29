@@ -180,9 +180,11 @@
       "brandName": "Nome marca",
       "itemName": "Nome capo",
       "selectColor": "Seleziona colore",
+      "subtype": "es. leggings, chelsea",
       "washIntervalDefault": "Predefinito: {count}"
     },
     "primaryColor": "Colore principale",
+    "subtype": "Sottotipo",
     "titles": {
       "analysisInProgress": "Analisi in corso...",
       "deleteImage": "Elimina immagine",
@@ -198,6 +200,7 @@
       "undoBackgroundRemoval": "Annulla rimozione sfondo"
     },
     "type": "Tipo",
+    "unrecognizedType": "L’IA ha rilevato “{value}”, che non è un tipo supportato. Scegli il tipo più vicino qui sotto; puoi mantenere “{value}” come sottotipo.",
     "view": {
       "addedDate": "Aggiunto il {date}",
       "aiAnalysis": "Analisi IA",

@@ -180,9 +180,11 @@
       "brandName": "브랜드명",
       "itemName": "아이템 이름",
       "selectColor": "색상 선택",
+      "subtype": "예: 레깅스, 첼시",
       "washIntervalDefault": "기본값: {count}"
     },
     "primaryColor": "메인 색상",
+    "subtype": "세부 유형",
     "titles": {
       "analysisInProgress": "분석 진행 중...",
       "deleteImage": "이미지 삭제",
@@ -198,6 +200,7 @@
       "undoBackgroundRemoval": "배경 제거 취소"
     },
     "type": "유형",
+    "unrecognizedType": "AI가 “{value}”(으)로 인식했지만 지원되지 않는 유형입니다. 아래에서 가장 가까운 유형을 선택하세요. “{value}”는 세부 유형으로 남겨둘 수 있습니다.",
     "view": {
       "addedDate": "{date} 추가됨",
       "aiAnalysis": "AI 분석",

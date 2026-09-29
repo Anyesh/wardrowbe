@@ -20,7 +20,7 @@ export interface Item {
   id: string;
   user_id: string;
   type: string;
-  subtype?: string;
+  subtype?: string | null;
   name?: string;
   brand?: string;
   notes?: string;
@@ -42,6 +42,7 @@ export interface Item {
   ai_confidence?: number;
   ai_description?: string;
   ai_error?: string | null;
+  ai_unrecognized_type?: string | null;
   ai_started_at?: string | null;
   processing_kind?: 'background_removal' | 'rotate' | null;
   tagging_status: 'pending' | 'tagged';
@@ -225,6 +226,23 @@ export const CLOTHING_TYPES = [
   { label: 'Top', value: 'top' },
   { label: 'Vest', value: 'vest' },
 ] as const;
+
+// Suggested subtypes per type. Mirrors the SUBTYPE examples in clothing_analysis.txt.
+// Subtype is free text on the backend (and the model may answer outside this list),
+// so these are suggestions, not a closed set.
+export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
+  shirt: ['henley', 'button-down', 'oxford', 'flannel', 'hawaiian', 'camp-collar'],
+  pants: ['chinos', 'joggers', 'cargo', 'trousers', 'leggings', 'sweatpants'],
+  dress: ['sundress', 'slip-dress', 'maxi', 'midi', 'wrap', 'shirt-dress', 'a-line'],
+  jacket: ['denim-jacket', 'bomber', 'parka', 'windbreaker', 'trucker', 'anorak'],
+  shoes: ['loafers', 'oxfords', 'mules', 'flats', 'heels', 'platforms'],
+  sneakers: ['low-top', 'high-top', 'chunky', 'slip-on'],
+  boots: ['ankle', 'chelsea', 'combat', 'knee-high', 'rain'],
+  skirt: ['mini', 'midi', 'maxi', 'pleated', 'wrap', 'pencil'],
+  sweater: ['pullover', 'crewneck', 'turtleneck', 'v-neck'],
+  socks: ['ankle', 'crew', 'knee-high', 'no-show', 'dress', 'athletic'],
+  tie: ['necktie', 'bow-tie', 'bolo'],
+};
 
 export const OCCASIONS = [
   { label: 'Casual', value: 'casual' },
