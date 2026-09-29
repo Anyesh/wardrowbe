@@ -37,6 +37,21 @@ ITEM_ROLE: dict[str, str] = {
 }
 
 
+TOP_ROLES = frozenset({"base_top", "mid_layer"})
+BOTTOM_ROLES = frozenset({"bottom"})
+
+
+def count_tops_and_bottoms(type_counts: list[tuple[str | None, int]]) -> tuple[int, int]:
+    tops = bottoms = 0
+    for item_type, count in type_counts:
+        role = ITEM_ROLE.get((item_type or "").lower())
+        if role in TOP_ROLES:
+            tops += count
+        elif role in BOTTOM_ROLES:
+            bottoms += count
+    return tops, bottoms
+
+
 def deduplicate_by_body_slot(
     item_ids: list[UUID],
     item_type_map: dict[UUID, str],

@@ -12,6 +12,7 @@ from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import Outfit, OutfitStatus, UserFeedback
 from app.models.user import User
 from app.utils.auth import get_current_user
+from app.utils.clothing import count_tops_and_bottoms
 from app.utils.signed_urls import sign_image_url
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
@@ -338,16 +339,7 @@ async def get_analytics(
 
         # Type insights
         if type_distribution:
-            tops = sum(
-                t.count
-                for t in type_distribution
-                if t.type in ["shirt", "blouse", "t-shirt", "top"]
-            )
-            bottoms = sum(
-                t.count
-                for t in type_distribution
-                if t.type in ["pants", "jeans", "skirt", "shorts"]
-            )
+            tops, bottoms = count_tops_and_bottoms([(t.type, t.count) for t in type_distribution])
             if tops > 0 and bottoms > 0:
                 ratio = tops / bottoms
                 if ratio > 3:

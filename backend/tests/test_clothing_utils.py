@@ -1,6 +1,11 @@
 from uuid import uuid4
 
-from app.utils.clothing import ITEM_ROLE, canonical_item_order, deduplicate_by_body_slot
+from app.utils.clothing import (
+    ITEM_ROLE,
+    canonical_item_order,
+    count_tops_and_bottoms,
+    deduplicate_by_body_slot,
+)
 
 
 def _ids(n):
@@ -288,3 +293,23 @@ def test_mandatory_item_absent_from_candidates_does_not_empty_its_role():
         mandatory_item_ids={absent_shirt},
     )
     assert result == [shirt_id, pants_id]
+
+
+def test_count_tops_and_bottoms_includes_layering_tops():
+    # Issue #209: 8 cardigans + 1 shirt vs 4 skirts must not read as "more bottoms than tops".
+    tops, bottoms = count_tops_and_bottoms([("cardigan", 8), ("shirt", 1), ("skirt", 4)])
+    assert (tops, bottoms) == (9, 4)
+
+
+def test_count_tops_and_bottoms_covers_every_top_and_bottom_type():
+    counts = [(t, 1) for t in ITEM_ROLE]
+    tops, bottoms = count_tops_and_bottoms(counts)
+    assert tops == sum(1 for r in ITEM_ROLE.values() if r in ("base_top", "mid_layer"))
+    assert bottoms == sum(1 for r in ITEM_ROLE.values() if r == "bottom")
+
+
+def test_count_tops_and_bottoms_ignores_full_body_unknown_and_none():
+    tops, bottoms = count_tops_and_bottoms(
+        [("dress", 3), ("jumpsuit", 2), ("mystery", 5), (None, 1), ("Sweater", 2), ("jeans", 1)]
+    )
+    assert (tops, bottoms) == (2, 1)
