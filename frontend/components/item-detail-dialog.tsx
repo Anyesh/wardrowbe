@@ -76,6 +76,32 @@ interface ItemDetailDialogProps {
 
 // Images now use signed URLs from backend (item.image_url, item.thumbnail_url)
 
+interface EditForm {
+  name: string;
+  type: string;
+  subtype: string;
+  brand: string;
+  primary_color: string;
+  notes: string;
+  favorite: boolean;
+  wash_interval: number | undefined;
+}
+
+function editFormFromItem(item: Item): EditForm {
+  return {
+    name: item.name || '',
+    type: item.type,
+    // Pre-fill a rejected AI type as the subtype so picking the nearest
+    // supported type doesn't lose what the model actually saw.
+    subtype: item.subtype || (item.type === 'unknown' && item.ai_unrecognized_type) || '',
+    brand: item.brand || '',
+    primary_color: item.primary_color || '',
+    notes: item.notes || '',
+    favorite: item.favorite,
+    wash_interval: item.wash_interval ?? undefined,
+  };
+}
+
 export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogProps) {
   const t = useTranslations('wardrobe.itemDetail');
   const tc = useTranslations('common');
@@ -88,7 +114,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPairingsDialog, setShowPairingsDialog] = useState(false);
   const [imageKey, setImageKey] = useState(0);
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<EditForm>({
     name: '',
     type: '',
     subtype: '',
@@ -96,7 +122,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     primary_color: '',
     notes: '',
     favorite: false,
-    wash_interval: undefined as number | undefined,
+    wash_interval: undefined,
   });
   const [showWashHistory, setShowWashHistory] = useState(false);
   const [showWearHistory, setShowWearHistory] = useState(false);
@@ -121,18 +147,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
   useEffect(() => {
     if (item) {
-      setEditForm({
-        name: item.name || '',
-        type: item.type,
-        // Pre-fill a rejected AI type as the subtype so picking the nearest
-        // supported type doesn't lose what the model actually saw.
-        subtype: item.subtype || (item.type === 'unknown' && item.ai_unrecognized_type) || '',
-        brand: item.brand || '',
-        primary_color: item.primary_color || '',
-        notes: item.notes || '',
-        favorite: item.favorite,
-        wash_interval: item.wash_interval ?? undefined,
-      });
+      setEditForm(editFormFromItem(item));
       setIsEditing(false);
       setActiveImageIndex(0);
     }
@@ -424,7 +439,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setIsEditing(!isEditing)}
+                  onClick={() => {
+                    // Re-read the item on entering edit mode: tagging can finish while the
+                    // dialog is open (same id, so the effect above doesn't re-run).
+                    if (!isEditing) setEditForm(editFormFromItem(item));
+                    setIsEditing(!isEditing);
+                  }}
                   title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
                 >
                   {isEditing ? (
