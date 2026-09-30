@@ -428,6 +428,15 @@ class TestFormatPrefsOccasion:
         assert "Low success rate" in text
 
 
+class TestFormatPrefsBody:
+    def test_dress_size_included(self):
+        service = RecommendationService.__new__(RecommendationService)
+        text = service._format_preferences_for_prompt(
+            None, body_measurements={"dress_size": "8", "shoe_size": "10"}
+        )
+        assert "- Body: dress size 8, shoe size 10" in text
+
+
 class TestPromptPreRanking:
     def test_pre_ranking_hint_present(self):
         from app.services.recommendation_service import RECOMMENDATION_PROMPT

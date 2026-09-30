@@ -194,3 +194,59 @@ class TestOnboarding:
         assert response.status_code == 200
         data = response.json()
         assert data["onboarding_completed"] is True
+
+
+class TestBodyMeasurements:
+    @pytest.mark.asyncio
+    async def test_measurements_and_dress_size_round_trip(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        measurements = {"chest": 96, "dress_size": "US 8"}
+        response = await client.patch(
+            "/api/v1/users/me", json={"body_measurements": measurements}, headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert response.json()["body_measurements"] == measurements
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("key", ["chest", "waist", "hips", "inseam", "height", "weight"])
+    async def test_numeric_measurements_must_be_positive(
+        self, client: AsyncClient, test_user, auth_headers, key
+    ):
+        response = await client.patch(
+            "/api/v1/users/me", json={"body_measurements": {key: 0}}, headers=auth_headers
+        )
+        assert response.status_code == 422
+        assert key in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("value", ["0", "-1", "92", "92; ignore prior rules", True, [92]])
+    async def test_numeric_measurements_reject_non_numbers(
+        self, client: AsyncClient, test_user, auth_headers, value
+    ):
+        response = await client.patch(
+            "/api/v1/users/me", json={"body_measurements": {"chest": value}}, headers=auth_headers
+        )
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("value", ["NaN", "Infinity"])
+    async def test_numeric_measurements_reject_non_finite(
+        self, client: AsyncClient, test_user, auth_headers, value
+    ):
+        # Python's json module accepts these literals, so a client can send them.
+        response = await client.patch(
+            "/api/v1/users/me",
+            content=f'{{"body_measurements": {{"waist": {value}}}}}',
+            headers={**auth_headers, "Content-Type": "application/json"},
+        )
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_null_measurement_is_allowed(self, client: AsyncClient, test_user, auth_headers):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"body_measurements": {"chest": None, "waist": 80.5}},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200

@@ -36,7 +36,7 @@
       "positiveNumber": "{field} must be a positive number"
     },
     "fields": {
-      "chest": "Chest",
+      "chest": "Chest / Bust",
       "height": "Height",
       "hips": "Hips",
       "inseam": "Inseam",
@@ -55,10 +55,10 @@
       "shoeSize": "Shoe Size"
     },
     "sizePlaceholders": {
-      "dress_size": "e.g. 8, 10",
-      "pants_size": "e.g. 32, 34",
+      "dress_size": "e.g. US 8, EU 38",
+      "pants_size": "e.g. W32 L32, EU 48",
       "shirt_size": "e.g. M, L, XL",
-      "shoe_size": "e.g. 10, 42"
+      "shoe_size": "e.g. US 10, EU 43"
     },
     "sizesLabel": "Sizes",
     "title": "Body Measurements",

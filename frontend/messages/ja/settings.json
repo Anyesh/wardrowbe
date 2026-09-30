@@ -55,10 +55,10 @@
       "shoeSize": "靴サイズ"
     },
     "sizePlaceholders": {
-      "dress_size": "例：8、10",
-      "pants_size": "例：32、34",
+      "dress_size": "例：US 8、EU 38",
+      "pants_size": "例：W32 L32、EU 48",
       "shirt_size": "例：M、L、XL",
-      "shoe_size": "例：10、42"
+      "shoe_size": "例：US 10、EU 43"
     },
     "sizesLabel": "サイズ",
     "title": "ボディ測定",

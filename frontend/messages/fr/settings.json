@@ -55,10 +55,10 @@
       "shoeSize": "Pointure"
     },
     "sizePlaceholders": {
-      "dress_size": "ex. 8, 10",
-      "pants_size": "ex. 32, 34",
+      "dress_size": "ex. US 8, EU 38",
+      "pants_size": "ex. W32 L32, EU 48",
       "shirt_size": "ex. M, L, XL",
-      "shoe_size": "ex. 10, 42"
+      "shoe_size": "ex. US 10, EU 43"
     },
     "sizesLabel": "Tailles",
     "title": "Mensurations",

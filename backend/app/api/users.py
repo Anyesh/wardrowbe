@@ -1,3 +1,4 @@
+import math
 from decimal import Decimal
 from typing import Annotated
 
@@ -76,7 +77,12 @@ async def update_profile(
     if "body_measurements" in update_data and update_data["body_measurements"] is not None:
         numeric_keys = {"chest", "waist", "hips", "inseam", "height", "weight"}
         for key, value in update_data["body_measurements"].items():
-            if key in numeric_keys and isinstance(value, (int, float)) and value <= 0:
+            if key not in numeric_keys or value is None:
+                continue
+            # Numeric fields are interpolated into the AI prompt, so anything other than a
+            # real positive number (strings, bools, NaN/inf) is rejected, not just <= 0.
+            is_number = isinstance(value, (int, float)) and not isinstance(value, bool)
+            if not is_number or not math.isfinite(value) or value <= 0:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"{key} must be a positive number",
