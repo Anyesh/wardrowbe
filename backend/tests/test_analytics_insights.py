@@ -44,3 +44,16 @@ def test_outer_layers_do_not_count_as_tops():
 def test_empty_or_unknown_types_have_no_insight():
     assert _insights([]) == []
     assert _insights([("mystery", 5), (None, 2)]) == []
+
+
+def test_layers_worn_over_dresses_are_not_flagged():
+    assert _insights([("dress", 10), ("cardigan", 4), ("shirt", 1)]) == []
+
+
+def test_layers_without_dresses_or_basics_are_still_flagged():
+    assert _insights([("cardigan", 8), ("shirt", 1), ("skirt", 4)]) == [LAYERS]
+
+
+def test_dresses_and_base_tops_are_summed_for_the_layers_check():
+    assert _insights([("cardigan", 8), ("shirt", 2), ("dress", 2), ("skirt", 2)]) == []
+    assert _insights([("cardigan", 9), ("shirt", 2), ("dress", 2), ("skirt", 2)]) == [LAYERS]

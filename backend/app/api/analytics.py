@@ -79,8 +79,9 @@ class AnalyticsResponse(BaseModel):
 
 def composition_insights(c: WardrobeComposition) -> list[str]:
     # Layers (cardigans, vests) need something underneath, so they are judged against
-    # base tops rather than counted as tops themselves.
-    if c.layers >= 3 and c.layers > 2 * c.base_tops:
+    # base tops rather than counted as tops themselves. Dresses count as something to
+    # layer over too, because cardigans and vests are worn over dresses as often as over shirts.
+    if c.layers >= 3 and c.layers > 2 * (c.base_tops + c.full_body):
         return [
             "Most of your tops are layers like cardigans and vests. Add a few basics to wear under them!"
         ]
