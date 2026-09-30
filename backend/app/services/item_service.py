@@ -23,6 +23,15 @@ class ItemService:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_id_for_update(self, item_id: UUID, user_id: UUID) -> ClothingItem | None:
+        result = await self.db.execute(
+            select(ClothingItem)
+            .where(and_(ClothingItem.id == item_id, ClothingItem.user_id == user_id))
+            .with_for_update()
+            .options(selectinload(ClothingItem.additional_images))
+        )
+        return result.scalar_one_or_none()
+
     async def get_ready_item_count(self, user_id: UUID) -> int:
         result = await self.db.execute(
             select(func.count())

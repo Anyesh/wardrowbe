@@ -30,6 +30,7 @@ import { useClothingColors, useOccasions } from '@/lib/hooks/use-translated-cons
 import { toF, toCelsius } from '@/lib/temperature';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { ApiKeysCard } from '@/components/settings/api-keys-card';
 
 const CM_TO_IN = 0.393701;
 const IN_TO_CM = 2.54;
@@ -586,6 +587,7 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
 
         {/* Location Section */}
         <Card>
@@ -1242,6 +1244,8 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <ApiKeysCard />
       </div>
     </div>
   );
