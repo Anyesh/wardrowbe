@@ -102,7 +102,7 @@ jobs:
           pytest -v --tb=short --cov=app --cov-report=xml
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           files: backend/coverage.xml
           flags: backend
