@@ -212,7 +212,7 @@ async def get_analytics(
     ]
 
     # === Most/Least/Never Worn ===
-    def wear_stats_query(order_desc: bool, limit: int, never_worn: bool = False):
+    def wear_stats_query(order_desc: bool, limit: int | None, never_worn: bool = False):
         q = select(ClothingItem).where(
             and_(
                 ClothingItem.user_id == current_user.id,
@@ -274,6 +274,16 @@ async def get_analytics(
         for item in never_worn_result.scalars().all()
     ]
 
+    never_worn_count = (
+        await db.execute(
+            select(func.count()).select_from(
+                wear_stats_query(order_desc=False, limit=None, never_worn=True)
+                .order_by(None)
+                .subquery()
+            )
+        )
+    ).scalar_one()
+
     # === Acceptance Rate Trend (weekly) ===
     acceptance_trend = []
     weeks = min(days // 7, 12)  # Max 12 weeks
@@ -321,9 +331,11 @@ async def get_analytics(
         insights.append("Start by adding some items to your wardrobe!")
     else:
         # Wardrobe insights
-        if len(never_worn) > 0:
+        if never_worn_count == 1:
+            insights.append("You have 1 item you've never worn. Consider styling it!")
+        elif never_worn_count > 1:
             insights.append(
-                f"You have {len(never_worn)} items you've never worn. Consider styling them!"
+                f"You have {never_worn_count} items you've never worn. Consider styling them!"
             )
 
         # Color insights
