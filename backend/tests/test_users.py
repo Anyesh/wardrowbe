@@ -198,8 +198,10 @@ class TestOnboarding:
 
 class TestBodyMeasurements:
     @pytest.mark.asyncio
-    async def test_new_measurements_round_trip(self, client: AsyncClient, test_user, auth_headers):
-        measurements = {"bust": 92, "neck": 38, "sleeve": 64, "dress_size": "US 8"}
+    async def test_measurements_and_dress_size_round_trip(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        measurements = {"chest": 96, "dress_size": "US 8"}
         response = await client.patch(
             "/api/v1/users/me", json={"body_measurements": measurements}, headers=auth_headers
         )
@@ -207,8 +209,8 @@ class TestBodyMeasurements:
         assert response.json()["body_measurements"] == measurements
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("key", ["bust", "neck", "sleeve"])
-    async def test_new_measurements_must_be_positive(
+    @pytest.mark.parametrize("key", ["chest", "waist", "hips", "inseam", "height", "weight"])
+    async def test_numeric_measurements_must_be_positive(
         self, client: AsyncClient, test_user, auth_headers, key
     ):
         response = await client.patch(
@@ -223,7 +225,7 @@ class TestBodyMeasurements:
         self, client: AsyncClient, test_user, auth_headers, value
     ):
         response = await client.patch(
-            "/api/v1/users/me", json={"body_measurements": {"bust": value}}, headers=auth_headers
+            "/api/v1/users/me", json={"body_measurements": {"chest": value}}, headers=auth_headers
         )
         assert response.status_code == 422
 
@@ -244,7 +246,7 @@ class TestBodyMeasurements:
     async def test_null_measurement_is_allowed(self, client: AsyncClient, test_user, auth_headers):
         response = await client.patch(
             "/api/v1/users/me",
-            json={"body_measurements": {"bust": None, "waist": 80.5}},
+            json={"body_measurements": {"chest": None, "waist": 80.5}},
             headers=auth_headers,
         )
         assert response.status_code == 200

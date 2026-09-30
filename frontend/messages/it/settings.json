@@ -36,13 +36,10 @@
       "positiveNumber": "{field} deve essere un numero positivo"
     },
     "fields": {
-      "bust": "Busto",
       "chest": "Torace",
       "height": "Altezza",
       "hips": "Fianchi",
       "inseam": "Cavallo",
-      "neck": "Collo",
-      "sleeve": "Lunghezza manica",
       "waist": "Vita",
       "weight": "Peso"
     },

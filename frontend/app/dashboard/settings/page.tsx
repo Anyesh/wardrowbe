@@ -49,12 +49,9 @@ const BODY_MEASUREMENT_FIELDS = [
   { key: 'height', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '178', exampleImperial: '70' },
   { key: 'weight', unitMetric: 'kg', unitImperial: 'lbs', exampleMetric: '75', exampleImperial: '165' },
   { key: 'chest', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '96', exampleImperial: '38' },
-  { key: 'bust', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '92', exampleImperial: '36' },
   { key: 'waist', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '82', exampleImperial: '32' },
   { key: 'hips', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '98', exampleImperial: '39' },
   { key: 'inseam', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '81', exampleImperial: '32' },
-  { key: 'neck', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '38', exampleImperial: '15' },
-  { key: 'sleeve', unitMetric: 'cm', unitImperial: 'in', exampleMetric: '64', exampleImperial: '25' },
 ] as const;
 
 const NUMERIC_MEASUREMENT_KEYS: readonly string[] = BODY_MEASUREMENT_FIELDS.map((f) => f.key);

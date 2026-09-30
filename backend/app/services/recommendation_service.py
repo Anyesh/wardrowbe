@@ -344,18 +344,12 @@ class RecommendationService:
                 body_parts.append(f"weight {m['weight']}kg")
             if m.get("chest"):
                 body_parts.append(f"chest {m['chest']}cm")
-            if m.get("bust"):
-                body_parts.append(f"bust {m['bust']}cm")
             if m.get("waist"):
                 body_parts.append(f"waist {m['waist']}cm")
             if m.get("hips"):
                 body_parts.append(f"hips {m['hips']}cm")
             if m.get("inseam"):
                 body_parts.append(f"inseam {m['inseam']}cm")
-            if m.get("neck"):
-                body_parts.append(f"neck {m['neck']}cm")
-            if m.get("sleeve"):
-                body_parts.append(f"sleeve {m['sleeve']}cm")
             if m.get("shirt_size"):
                 body_parts.append(f"shirt size {m['shirt_size']}")
             if m.get("pants_size"):

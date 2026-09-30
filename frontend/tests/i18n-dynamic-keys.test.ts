@@ -43,7 +43,7 @@ const WARDROBE_SORTS = [
   'newestFirst', 'oldestFirst', 'recentlyWorn', 'leastRecentlyWorn',
   'mostWorn', 'leastWorn', 'nameAZ', 'nameZA',
 ] as const;
-const BODY_FIELDS = ['height', 'weight', 'chest', 'bust', 'waist', 'hips', 'inseam', 'neck', 'sleeve'] as const;
+const BODY_FIELDS = ['height', 'weight', 'chest', 'waist', 'hips', 'inseam'] as const;
 const SIZE_FIELDS = ['shirt_size', 'pants_size', 'dress_size', 'shoe_size'] as const;
 const STYLE_VALUES = ['bold', 'casual', 'formal', 'minimalist', 'sporty'] as const;
 const WEATHER_CONDITIONS = ['clear', 'cloudy', 'rain', 'snow'] as const;

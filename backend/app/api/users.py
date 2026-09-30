@@ -75,17 +75,7 @@ async def update_profile(
         )
 
     if "body_measurements" in update_data and update_data["body_measurements"] is not None:
-        numeric_keys = {
-            "chest",
-            "bust",
-            "waist",
-            "hips",
-            "inseam",
-            "neck",
-            "sleeve",
-            "height",
-            "weight",
-        }
+        numeric_keys = {"chest", "waist", "hips", "inseam", "height", "weight"}
         for key, value in update_data["body_measurements"].items():
             if key not in numeric_keys or value is None:
                 continue

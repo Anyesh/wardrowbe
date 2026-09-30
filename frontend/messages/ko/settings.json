@@ -36,13 +36,10 @@
       "positiveNumber": "{field}은(는) 양수여야 해요"
     },
     "fields": {
-      "bust": "버스트",
       "chest": "가슴둘레",
       "height": "키",
       "hips": "엉덩이둘레",
       "inseam": "안쪽 솔기",
-      "neck": "목둘레",
-      "sleeve": "소매 길이",
       "waist": "허리둘레",
       "weight": "체중"
     },

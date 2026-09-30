@@ -36,13 +36,10 @@
       "positiveNumber": "{field} muss eine positive Zahl sein"
     },
     "fields": {
-      "bust": "Oberweite",
       "chest": "Brust",
       "height": "Körpergröße",
       "hips": "Hüfte",
       "inseam": "Innenbeinlänge",
-      "neck": "Halsumfang",
-      "sleeve": "Ärmellänge",
       "waist": "Taille",
       "weight": "Gewicht"
     },

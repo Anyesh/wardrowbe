@@ -36,13 +36,10 @@
       "positiveNumber": "{field}は正の数で入力してください"
     },
     "fields": {
-      "bust": "バスト",
       "chest": "胸囲",
       "height": "身長",
       "hips": "ヒップ",
       "inseam": "股下",
-      "neck": "首回り",
-      "sleeve": "袖丈",
       "waist": "ウエスト",
       "weight": "体重"
     },
