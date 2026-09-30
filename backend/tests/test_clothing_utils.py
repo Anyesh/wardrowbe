@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from app.utils.clothing import (
+    _CANONICAL_ROLE_ORDER,
     ITEM_ROLE,
     WardrobeComposition,
     canonical_item_order,
@@ -134,36 +135,66 @@ def test_multiple_accessories_allowed():
     assert len(result) == 4
 
 
-def test_item_role_covers_all_clothing_analysis_types():
-    expected_types = {
-        "shirt",
-        "t-shirt",
-        "top",
-        "pants",
-        "jeans",
-        "shorts",
-        "dress",
-        "jumpsuit",
-        "skirt",
-        "jacket",
-        "coat",
-        "sweater",
-        "hoodie",
-        "blazer",
-        "vest",
-        "cardigan",
-        "polo",
-        "blouse",
-        "tank-top",
-        "shoes",
-        "sneakers",
-        "boots",
-        "sandals",
-        "socks",
-        "tie",
+def test_suit_replaces_trousers_but_keeps_shirt_and_overcoat():
+    suit, other_suit, shirt, pants, coat, tie, shoes = _ids(7)
+    item_type_map = {
+        suit: "suit",
+        other_suit: "suit",
+        shirt: "shirt",
+        pants: "pants",
+        coat: "coat",
+        tie: "tie",
+        shoes: "shoes",
     }
-    for t in expected_types:
-        assert t in ITEM_ROLE, f"Missing type '{t}' in ITEM_ROLE"
+    result = deduplicate_by_body_slot(
+        [shirt, pants, suit, other_suit, coat, tie, shoes], item_type_map
+    )
+    assert result == [shirt, suit, coat, tie, shoes]
+
+
+def test_suit_allows_a_mid_layer_under_it():
+    suit, shirt, vest = _ids(3)
+    item_type_map = {suit: "suit", shirt: "shirt", vest: "vest"}
+    assert deduplicate_by_body_slot([shirt, vest, suit], item_type_map) == [shirt, vest, suit]
+
+
+def test_first_multi_slot_item_wins_when_they_overlap():
+    dress, suit = _ids(2)
+    item_type_map = {dress: "dress", suit: "suit"}
+    assert deduplicate_by_body_slot([dress, suit], item_type_map) == [dress]
+    assert deduplicate_by_body_slot([suit, dress], item_type_map) == [suit]
+
+
+def test_two_dresses_keep_only_the_first():
+    first, second = _ids(2)
+    item_type_map = {first: "dress", second: "jumpsuit"}
+    assert deduplicate_by_body_slot([first, second], item_type_map) == [first]
+
+
+def test_mandatory_suit_beats_later_trousers_and_keeps_shirt():
+    suit, shirt, pants = _ids(3)
+    item_type_map = {suit: "suit", shirt: "shirt", pants: "pants"}
+    result = deduplicate_by_body_slot(
+        [pants, shirt, suit], item_type_map, mandatory_item_ids={suit}
+    )
+    assert result == [shirt, suit]
+
+
+def test_mandatory_trousers_beat_a_suit():
+    suit, pants = _ids(2)
+    item_type_map = {suit: "suit", pants: "pants"}
+    result = deduplicate_by_body_slot([suit, pants], item_type_map, mandatory_item_ids={pants})
+    assert result == [pants]
+
+
+def test_canonical_order_puts_suit_with_the_outer_layers():
+    shirt, suit, shoes = _ids(3)
+    item_type_map = {shirt: "shirt", suit: "suit", shoes: "shoes"}
+    assert canonical_item_order([shoes, suit, shirt], item_type_map) == [shirt, suit, shoes]
+
+
+def test_canonical_order_covers_every_item_role():
+    assert set(ITEM_ROLE.values()) <= set(_CANONICAL_ROLE_ORDER)
 
 
 def test_canonical_item_order_sorts_by_role():

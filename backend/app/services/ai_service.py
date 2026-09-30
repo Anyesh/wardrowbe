@@ -88,6 +88,7 @@ VALID_TYPES = {
     "accessories",
     "top",
     "jumpsuit",
+    "suit",
     "socks",
     "tie",
 }
@@ -139,8 +140,17 @@ VALID_MATERIALS = {
     "velvet",
     "nylon",
     "canvas",
+    "down",
+    "shearling",
 }
-VALID_FORMALITY = {"very-casual", "casual", "smart-casual", "business-casual", "formal"}
+VALID_FORMALITY = {
+    "very-casual",
+    "casual",
+    "smart-casual",
+    "business-casual",
+    "formal",
+    "very-formal",
+}
 VALID_FIT = {"slim", "regular", "relaxed", "oversized", "tailored", "cropped"}
 VALID_STYLES = {
     "casual",

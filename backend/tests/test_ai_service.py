@@ -162,6 +162,19 @@ class TestTagParsing:
         tags = service._parse_tags_from_response(response)
         assert tags.formality is None
 
+    def test_parse_very_formal(self):
+        service = AIService()
+        response = '{"type": "suit", "formality": "very-formal", "material": "shearling"}'
+        tags = service._parse_tags_from_response(response)
+        assert tags.type == "suit"
+        assert tags.formality == "very-formal"
+        assert tags.material == "shearling"
+
+    def test_parse_down_material(self):
+        service = AIService()
+        tags = service._parse_tags_from_response('{"type": "jacket", "material": "down"}')
+        assert tags.material == "down"
+
 
 class TestClothingTags:
     """Tests for ClothingTags model."""

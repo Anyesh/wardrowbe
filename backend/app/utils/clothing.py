@@ -18,6 +18,7 @@ ITEM_ROLE: dict[str, str] = {
     "skirt": "bottom",
     "dress": "full_body",
     "jumpsuit": "full_body",
+    "suit": "suit",
     "cardigan": "mid_layer",
     "vest": "mid_layer",
     "jacket": "outer_layer",
@@ -35,6 +36,12 @@ ITEM_ROLE: dict[str, str] = {
     "belt": "accessory",
     "bag": "accessory",
     "accessories": "accessory",
+}
+
+# A suit takes its own slot rather than outer_layer so an overcoat can still go over it.
+ROLE_SLOTS: dict[str, frozenset[str]] = {
+    "full_body": frozenset({"base_top", "bottom"}),
+    "suit": frozenset({"bottom", "suit"}),
 }
 
 
@@ -61,73 +68,54 @@ def count_composition(type_counts: list[tuple[str | None, int]]) -> WardrobeComp
     )
 
 
+def _slots_for_type(item_type: str) -> frozenset[str]:
+    role = ITEM_ROLE.get(item_type)
+    if not role or role == "accessory":
+        return frozenset()
+    return ROLE_SLOTS.get(role, frozenset({role}))
+
+
 def deduplicate_by_body_slot(
     item_ids: list[UUID],
     item_type_map: dict[UUID, str],
     mandatory_item_ids: set[UUID] | None = None,
 ) -> list[UUID]:
     requested = mandatory_item_ids or set()
-    result: list[UUID] = []
 
-    # A mandatory item only claims a slot if the caller actually passed it in item_ids;
+    # A mandatory item only claims its slots if the caller actually passed it in item_ids;
     # one that never made the candidate list must not block the items that did.
     # Mandatory items compete with each other too, first in list order wins, because two
     # shirts or a dress plus trousers is an unwearable outfit however it was requested.
-    mandatory_roles: dict[str, UUID] = {}
-    body_claim: str | None = None
-    for iid in item_ids:
-        if iid not in requested:
-            continue
-        role = ITEM_ROLE.get(item_type_map.get(iid, ""))
-        if not role or role == "accessory" or role in mandatory_roles:
-            continue
-        if role == "full_body":
-            if body_claim == "separates":
-                continue
-            body_claim = "full_body"
-        elif role in ("base_top", "bottom"):
-            if body_claim == "full_body":
-                continue
-            body_claim = "separates"
-        mandatory_roles[role] = iid
+    # Multi-slot items (dress, suit) then claim before single-slot ones, so a dress wins
+    # over separates wherever it appears in the list.
+    mandatory = [iid for iid in item_ids if iid in requested]
+    rest = [iid for iid in item_ids if iid not in requested]
+    multi_slot = [iid for iid in rest if len(_slots_for_type(item_type_map.get(iid, ""))) > 1]
+    multi_slot_ids = set(multi_slot)
+    single_slot = [iid for iid in rest if iid not in multi_slot_ids]
 
-    mandatory_has_separates = body_claim == "separates"
-    has_full_body = body_claim == "full_body" or (
-        not mandatory_has_separates
-        and any(ITEM_ROLE.get(item_type_map.get(iid, "")) == "full_body" for iid in item_ids)
-    )
-
-    seen_roles: dict[str, UUID] = dict(mandatory_roles)
-    for iid in item_ids:
+    claimed: dict[str, UUID] = {}
+    kept: set[UUID] = set()
+    for iid in mandatory + multi_slot + single_slot:
         item_type = item_type_map.get(iid, "")
-        role = ITEM_ROLE.get(item_type)
-        if not role or role == "accessory":
-            result.append(iid)
-            continue
-        if mandatory_roles.get(role) == iid:
-            result.append(iid)
-            continue
-        if role == "full_body" and mandatory_has_separates:
-            logger.warning(f"Removing {item_type} item {iid}: mandatory separates present")
-            continue
-        if has_full_body and role in ("base_top", "bottom"):
-            logger.warning(f"Removing {item_type} item {iid}: full_body item present")
-            continue
-        if role in seen_roles:
+        slots = _slots_for_type(item_type)
+        taken = next((slot for slot in sorted(slots) if slot in claimed), None)
+        if taken:
             logger.warning(
-                f"Removing duplicate {role} item {iid} ({item_type}): "
-                f"role already filled by {seen_roles[role]}"
+                f"Removing {item_type} item {iid}: {taken} already filled by {claimed[taken]}"
             )
             continue
-        seen_roles[role] = iid
-        result.append(iid)
-    return result
+        for slot in slots:
+            claimed[slot] = iid
+        kept.add(iid)
+    return [iid for iid in item_ids if iid in kept]
 
 
 _CANONICAL_ROLE_ORDER = [
     "full_body",
     "base_top",
     "mid_layer",
+    "suit",
     "outer_layer",
     "bottom",
     "footwear",

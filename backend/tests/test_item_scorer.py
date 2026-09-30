@@ -86,8 +86,8 @@ def _prefs(**kwargs) -> UserPreference:
 
 
 class TestWeatherScore:
-    def test_cold_outerwear_scores_high(self):
-        item = _item(type="outerwear")
+    def test_cold_coat_scores_high(self):
+        item = _item(type="coat")
         assert _weather_score(item, _weather(temp=5), None) == 1.0
 
     def test_cold_shorts_scores_low(self):
@@ -109,8 +109,8 @@ class TestWeatherScore:
         # temp=12 < 15 → cold weather, shorts get 0.05
         assert _weather_score(item, _weather(temp=12), prefs) == 0.05
 
-    def test_rain_boosts_outerwear(self):
-        item = _item(type="outerwear")
+    def test_rain_boosts_jacket(self):
+        item = _item(type="jacket")
         assert _weather_score(item, _weather(temp=18, precipitation=60), None) == 1.0
 
     def test_cold_wool_scores_high(self):
@@ -268,10 +268,6 @@ class TestWeatherScoreRealItemTypes:
             0.05
         )
 
-    def test_legacy_outerwear_type_still_honored(self):
-        item = _item(type="outerwear")
-        assert _weather_score(item, _weather(temp=5), None) == 1.0
-
 
 class TestFormalityScore:
     def test_exact_match(self):
@@ -428,7 +424,7 @@ class TestScoreItems:
     def test_sorts_descending(self):
         items = [
             _item(type="shorts"),
-            _item(type="outerwear"),
+            _item(type="coat"),
         ]
         filler = [_item() for _ in range(MIN_ITEMS_FOR_SCORING - 2)]
         all_items = items + filler
@@ -445,9 +441,9 @@ class TestScoreItems:
             recently_worn_dates={},
         )
 
-        outerwear_pos = next(i for i, s in enumerate(result) if s.item.type == "outerwear")
+        coat_pos = next(i for i, s in enumerate(result) if s.item.type == "coat")
         shorts_pos = next(i for i, s in enumerate(result) if s.item.type == "shorts")
-        assert outerwear_pos < shorts_pos
+        assert coat_pos < shorts_pos
 
     def test_returns_top_n(self):
         items = [_item() for _ in range(100)]
