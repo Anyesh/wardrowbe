@@ -87,11 +87,16 @@ class ItemResponse(ItemBase):
             if isinstance(data, dict)
             else getattr(data, "ai_raw_response", None)
         )
-        if isinstance(raw, dict) and raw.get("error"):
-            if isinstance(data, dict):
-                data["ai_error"] = raw["error"]
-            else:
-                data.ai_error = raw["error"]
+        if isinstance(raw, dict):
+            # Same idea for a type the model named but the vocabulary rejected:
+            # lets the UI say "detected 'tights', not a supported type" rather
+            # than a bare "unknown".
+            for src, dest in (("error", "ai_error"), ("unrecognized_type", "ai_unrecognized_type")):
+                if raw.get(src):
+                    if isinstance(data, dict):
+                        data[dest] = raw[src]
+                    else:
+                        setattr(data, dest, raw[src])
         return data
 
     id: UUID
@@ -113,6 +118,7 @@ class ItemResponse(ItemBase):
     ai_confidence: Decimal | None = None
     ai_description: str | None = None
     ai_error: str | None = None
+    ai_unrecognized_type: str | None = None
     ai_started_at: datetime | None = None
     processing_kind: str | None = None
     tagging_status: str = "pending"

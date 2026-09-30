@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   CLOTHING_TYPES,
@@ -54,4 +54,17 @@ export function useWeatherConditions() {
     value,
     label: t(value),
   })), [t]);
+}
+
+// Subtypes are free text, so a value outside the catalog falls back to the raw
+// value made readable ("slip-dress" -> "Slip dress") instead of a key path.
+export function useSubtypeLabel() {
+  const t = useTranslations('constants.subtypes');
+
+  return useCallback((value: string) => {
+    const key = value.toLowerCase();
+    if (t.has(key)) return t(key);
+    const spaced = value.replace(/[-_]+/g, ' ').trim();
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  }, [t]);
 }

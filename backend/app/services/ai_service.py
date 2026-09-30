@@ -49,6 +49,10 @@ class ClothingTags(BaseModel):
     logprobs_confidence: float | None = None
     description: str | None = None
     raw_response: str | None = None
+    # The model's type answer when it fell outside VALID_TYPES. Kept so "the model
+    # didn't know" (type missing) stays distinguishable from "the model answered
+    # something we don't support" (e.g. "tights"), which otherwise both read "unknown".
+    unrecognized_type: str | None = None
 
 
 TAGGING_PROMPT = load_prompt("clothing_analysis")
@@ -470,11 +474,15 @@ class AIService:
         tags = ClothingTags()
         tags.raw_response = response_text
 
-        item_type = validate_value(data.get("type"), VALID_TYPES)
+        raw_type = data.get("type")
+        item_type = validate_value(raw_type, VALID_TYPES)
         if item_type:
             tags.type = item_type
         else:
             tags.type = "unknown"
+            if isinstance(raw_type, str) and raw_type.strip():
+                tags.unrecognized_type = raw_type.strip().lower()[:50]
+                logger.warning(f"AI returned unsupported item type: {tags.unrecognized_type!r}")
 
         tags.subtype = data.get("subtype") if data.get("subtype") else None
         tags.primary_color = validate_value(data.get("primary_color"), VALID_COLORS)

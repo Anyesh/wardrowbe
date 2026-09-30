@@ -180,9 +180,11 @@
       "brandName": "品牌名稱",
       "itemName": "單品名稱",
       "selectColor": "選擇顏色",
+      "subtype": "例如：內搭褲、切爾西",
       "washIntervalDefault": "預設：{count}"
     },
     "primaryColor": "主色",
+    "subtype": "子類型",
     "titles": {
       "analysisInProgress": "分析進行中...",
       "deleteImage": "刪除圖片",
@@ -198,6 +200,7 @@
       "undoBackgroundRemoval": "復原背景移除"
     },
     "type": "類型",
+    "unrecognizedType": "AI 辨識為「{value}」，但這不是支援的類型。請在下方選擇最接近的類型；可以將「{value}」保留為子類型。",
     "view": {
       "addedDate": "新增於 {date}",
       "aiAnalysis": "AI 分析",

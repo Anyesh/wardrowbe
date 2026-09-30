@@ -180,9 +180,11 @@
       "brandName": "ブランド名",
       "itemName": "アイテム名",
       "selectColor": "色を選択",
+      "subtype": "例：レギンス、チェルシー",
       "washIntervalDefault": "デフォルト：{count}"
     },
     "primaryColor": "メインカラー",
+    "subtype": "サブタイプ",
     "titles": {
       "analysisInProgress": "分析中...",
       "deleteImage": "画像を削除",
@@ -198,6 +200,7 @@
       "undoBackgroundRemoval": "背景削除を元に戻す"
     },
     "type": "タイプ",
+    "unrecognizedType": "AIは「{value}」と判定しましたが、対応していない種類です。下から最も近い種類を選んでください。「{value}」はサブタイプとして残せます。",
     "view": {
       "addedDate": "{date}に追加",
       "aiAnalysis": "AI分析",

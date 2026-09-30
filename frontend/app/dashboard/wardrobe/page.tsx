@@ -30,7 +30,7 @@ import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolb
 import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { Item } from '@/lib/types';
-import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
+import { useClothingTypes, useClothingColors, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 import { toast } from 'sonner';
 import { formatWornAgo, getWornAgoColorClass } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -79,6 +79,7 @@ function ItemCard({
   const t = useTranslations('wardrobe');
   const tc = useTranslations('common');
   const clothingColors = useClothingColors();
+  const subtypeLabel = useSubtypeLabel();
   const colorInfo = clothingColors.find((c) => c.value === item.primary_color);
   const isProcessing = item.status === 'processing';
   const isError = item.status === 'error' && !errorDismissed;
@@ -246,7 +247,7 @@ function ItemCard({
             </p>
             <p className="text-xs text-muted-foreground capitalize">
               {item.type}
-              {item.subtype && ` • ${item.subtype}`}
+              {item.subtype && ` • ${subtypeLabel(item.subtype)}`}
               {item.tags?.logprobs_confidence != null && ` · ${t('ai.confident', { percent: Math.round(item.tags.logprobs_confidence * 100) })}`}
             </p>
           </div>

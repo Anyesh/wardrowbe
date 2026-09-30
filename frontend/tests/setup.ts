@@ -28,6 +28,7 @@ vi.mock('next-intl', () => ({
     t.raw = (key: string) => key;
     t.rich = (key: string) => key;
     t.markup = (key: string) => key;
+    t.has = () => true;
     return t;
   },
 }))

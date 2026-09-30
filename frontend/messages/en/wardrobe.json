@@ -180,9 +180,11 @@
       "brandName": "Brand name",
       "itemName": "Item name",
       "selectColor": "Select color",
+      "subtype": "e.g. leggings, chelsea",
       "washIntervalDefault": "Default: {count}"
     },
     "primaryColor": "Primary Color",
+    "subtype": "Subtype",
     "titles": {
       "analysisInProgress": "Analysis in progress...",
       "deleteImage": "Delete image",
@@ -198,6 +200,7 @@
       "undoBackgroundRemoval": "Undo background removal"
     },
     "type": "Type",
+    "unrecognizedType": "AI detected “{value}”, which isn't a supported type. Pick the closest type below; you can keep “{value}” as the subtype.",
     "view": {
       "addedDate": "Added {date}",
       "aiAnalysis": "AI Analysis",

@@ -71,6 +71,23 @@ class TestTagParsing:
         tags = service._parse_tags_from_response(response)
         assert tags.type == "unknown"
 
+    def test_rejected_type_is_kept_as_unrecognized(self):
+        service = AIService()
+        tags = service._parse_tags_from_response('{"type": " Tights ", "primary_color": "black"}')
+        assert tags.type == "unknown"
+        assert tags.unrecognized_type == "tights"
+
+    def test_missing_type_is_not_unrecognized(self):
+        service = AIService()
+        tags = service._parse_tags_from_response('{"primary_color": "black"}')
+        assert tags.type == "unknown"
+        assert tags.unrecognized_type is None
+
+    def test_valid_type_is_not_unrecognized(self):
+        service = AIService()
+        tags = service._parse_tags_from_response('{"type": "socks"}')
+        assert tags.unrecognized_type is None
+
     def test_parse_invalid_color(self):
         """Test that invalid colors are filtered out."""
         service = AIService()

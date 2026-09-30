@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CLOTHING_COLORS, CLOTHING_TYPES, OCCASIONS } from '@/lib/types';
+import { CLOTHING_COLORS, CLOTHING_SUBTYPES, CLOTHING_TYPES, OCCASIONS } from '@/lib/types';
 import { SUPPORTED_LOCALES } from '@/lib/i18n/locales';
 
 // scripts/i18n-keys.mjs resolves t('literal') call sites, but several components build the key at
@@ -51,6 +51,7 @@ const WEATHER_CONDITIONS = ['clear', 'cloudy', 'rain', 'snow'] as const;
 const DYNAMIC_KEYS: Array<[string, readonly string[]]> = [
   ['constants.types', CLOTHING_TYPES.map((t) => t.value)],
   ['constants.colors', CLOTHING_COLORS.map((c) => c.value)],
+  ['constants.subtypes', Array.from(new Set(Object.values(CLOTHING_SUBTYPES).flat()))],
   ['constants.occasions', OCCASIONS.map((o) => o.value)],
   ['constants.styles', STYLE_VALUES],
   ['constants.weatherConditions', WEATHER_CONDITIONS],

@@ -132,6 +132,8 @@ def tags_to_item_fields(tags: ClothingTags, raw_response: str | None = None) -> 
     }
     if raw_response:
         fields["ai_raw_response"] = {"raw_text": raw_response}
+    if tags.unrecognized_type:
+        fields.setdefault("ai_raw_response", {})["unrecognized_type"] = tags.unrecognized_type
     return fields
 
 

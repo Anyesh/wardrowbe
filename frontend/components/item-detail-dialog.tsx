@@ -61,8 +61,8 @@ import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
-import { Item } from '@/lib/types';
-import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
+import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
+import { useClothingTypes, useClothingColors, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 import { ColorEyedropper } from '@/components/color-eyedropper';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
 import { useFeatures } from '@/lib/hooks/use-features';
@@ -76,6 +76,32 @@ interface ItemDetailDialogProps {
 
 // Images now use signed URLs from backend (item.image_url, item.thumbnail_url)
 
+interface EditForm {
+  name: string;
+  type: string;
+  subtype: string;
+  brand: string;
+  primary_color: string;
+  notes: string;
+  favorite: boolean;
+  wash_interval: number | undefined;
+}
+
+function editFormFromItem(item: Item): EditForm {
+  return {
+    name: item.name || '',
+    type: item.type,
+    // Pre-fill a rejected AI type as the subtype so picking the nearest
+    // supported type doesn't lose what the model actually saw.
+    subtype: item.subtype || (item.type === 'unknown' && item.ai_unrecognized_type) || '',
+    brand: item.brand || '',
+    primary_color: item.primary_color || '',
+    notes: item.notes || '',
+    favorite: item.favorite,
+    wash_interval: item.wash_interval ?? undefined,
+  };
+}
+
 export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogProps) {
   const t = useTranslations('wardrobe.itemDetail');
   const tc = useTranslations('common');
@@ -83,11 +109,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const router = useRouter();
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
+  const subtypeLabel = useSubtypeLabel();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPairingsDialog, setShowPairingsDialog] = useState(false);
   const [imageKey, setImageKey] = useState(0);
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<EditForm>({
     name: '',
     type: '',
     subtype: '',
@@ -95,7 +122,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     primary_color: '',
     notes: '',
     favorite: false,
-    wash_interval: undefined as number | undefined,
+    wash_interval: undefined,
   });
   const [showWashHistory, setShowWashHistory] = useState(false);
   const [showWearHistory, setShowWearHistory] = useState(false);
@@ -120,16 +147,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
   useEffect(() => {
     if (item) {
-      setEditForm({
-        name: item.name || '',
-        type: item.type,
-        subtype: item.subtype || '',
-        brand: item.brand || '',
-        primary_color: item.primary_color || '',
-        notes: item.notes || '',
-        favorite: item.favorite,
-        wash_interval: item.wash_interval ?? undefined,
-      });
+      setEditForm(editFormFromItem(item));
       setIsEditing(false);
       setActiveImageIndex(0);
     }
@@ -144,7 +162,8 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
         data: {
           name: editForm.name || undefined,
           type: editForm.type,
-          subtype: editForm.subtype || undefined,
+          // null (not undefined) so clearing the field actually clears it server-side.
+          subtype: editForm.subtype.trim() || null,
           brand: editForm.brand || undefined,
           primary_color: editForm.primary_color || undefined,
           notes: editForm.notes || undefined,
@@ -258,6 +277,8 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const imageUrl = item.image_url || item.image_path;
   const colorInfo = clothingColors.find((c) => c.value === item.primary_color);
   const typeInfo = clothingTypes.find((type) => type.value === item.type);
+  const unrecognizedType = item.type === 'unknown' ? item.ai_unrecognized_type : null;
+  const subtypeSuggestions = CLOTHING_SUBTYPES[editForm.type] ?? [];
 
   // AI-generated tags
   const tags = item.tags || {};
@@ -418,7 +439,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setIsEditing(!isEditing)}
+                  onClick={() => {
+                    // Re-read the item on entering edit mode: tagging can finish while the
+                    // dialog is open (same id, so the effect above doesn't re-run).
+                    if (!isEditing) setEditForm(editFormFromItem(item));
+                    setIsEditing(!isEditing);
+                  }}
                   title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
                 >
                   {isEditing ? (
@@ -582,6 +608,11 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   </div>
                   <div className="space-y-2">
                     <Label>{t('type')}</Label>
+                    {unrecognizedType && (
+                      <p className="text-xs text-amber-600 dark:text-amber-500">
+                        {t('unrecognizedType', { value: unrecognizedType })}
+                      </p>
+                    )}
                     <Select
                       value={editForm.type}
                       onValueChange={(v) => setEditForm({ ...editForm, type: v })}
@@ -597,6 +628,22 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="item-subtype">{t('subtype')}</Label>
+                    <Input
+                      id="item-subtype"
+                      list="item-subtype-suggestions"
+                      maxLength={50}
+                      value={editForm.subtype}
+                      onChange={(e) => setEditForm({ ...editForm, subtype: e.target.value })}
+                      placeholder={t('placeholders.subtype')}
+                    />
+                    <datalist id="item-subtype-suggestions">
+                      {subtypeSuggestions.map((st) => (
+                        <option key={st} value={st}>{subtypeLabel(st)}</option>
+                      ))}
+                    </datalist>
                   </div>
                   <div className="space-y-2">
                     <Label>{t('brand')}</Label>
@@ -688,9 +735,14 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       <Shirt className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">{typeInfo ? typeInfo.label : item.type}</span>
                       {item.subtype && (
-                        <span className="text-muted-foreground">• {item.subtype}</span>
+                        <span className="text-muted-foreground">• {subtypeLabel(item.subtype)}</span>
                       )}
                     </div>
+                    {unrecognizedType && (
+                      <p className="text-xs text-amber-600 dark:text-amber-500">
+                        {t('unrecognizedType', { value: unrecognizedType })}
+                      </p>
+                    )}
                     {item.brand && (
                       <div className="flex items-center gap-2 text-sm">
                         <Tag className="h-4 w-4 text-muted-foreground" />
