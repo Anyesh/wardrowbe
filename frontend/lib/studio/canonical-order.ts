@@ -1,36 +1,6 @@
-export const ITEM_ROLE: Record<string, string> = {
-  shirt: 'base_top',
-  't-shirt': 'base_top',
-  blouse: 'base_top',
-  polo: 'base_top',
-  'tank-top': 'base_top',
-  top: 'base_top',
-  sweater: 'base_top',
-  pants: 'bottom',
-  jeans: 'bottom',
-  shorts: 'bottom',
-  skirt: 'bottom',
-  dress: 'full_body',
-  jumpsuit: 'full_body',
-  suit: 'suit',
-  cardigan: 'mid_layer',
-  vest: 'mid_layer',
-  jacket: 'outer_layer',
-  blazer: 'outer_layer',
-  coat: 'outer_layer',
-  hoodie: 'outer_layer',
-  shoes: 'footwear',
-  sneakers: 'footwear',
-  boots: 'footwear',
-  sandals: 'footwear',
-  socks: 'socks',
-  tie: 'neckwear',
-  hat: 'accessory',
-  scarf: 'accessory',
-  belt: 'accessory',
-  bag: 'accessory',
-  accessories: 'accessory',
-};
+import { ITEM_ROLE } from '@/lib/generated/garment-vocabulary';
+
+export { ITEM_ROLE };
 
 export const CANONICAL_ROLE_ORDER = [
   'full_body',

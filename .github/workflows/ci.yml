@@ -144,6 +144,12 @@ jobs:
           cd frontend
           npm run i18n:check
 
+      # The frontend garment lists are generated from backend/app/data/garment_vocabulary.json.
+      - name: Garment vocabulary check
+        run: |
+          cd frontend
+          npm run vocab:check
+
   frontend-test:
     name: Frontend Tests
     runs-on: ubuntu-latest
