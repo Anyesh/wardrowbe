@@ -37,23 +37,17 @@ from app.utils.signed_urls import sign_image_url
 
 logger = logging.getLogger(__name__)
 
-_COMPOSITION_SLOT_BY_ROLE = {
-    "base_top": "top",
-    "bottom": "bottom",
-    "footwear": "shoes",
-    "outer_layer": "outerwear",
-    "socks": "socks",
-    "neckwear": "neckwear",
-}
+# Stored rows predate item roles and use these names, so those roles keep them.
+_COMPOSITION_KEYS = {"base_top": "top", "footwear": "shoes", "outer_layer": "outerwear"}
 
 
 def slot_composition(item_types: Iterable[str | None]) -> dict[str, str]:
     composition: dict[str, str] = {}
     for item_type in item_types:
         normalized = (item_type or "").lower()
-        slot = _COMPOSITION_SLOT_BY_ROLE.get(ITEM_ROLE.get(normalized, ""))
-        if slot:
-            composition[slot] = normalized
+        role = ITEM_ROLE.get(normalized)
+        if role and role != "accessory":
+            composition[_COMPOSITION_KEYS.get(role, role)] = normalized
     return composition
 
 
