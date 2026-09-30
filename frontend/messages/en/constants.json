@@ -23,6 +23,31 @@
     "white": "White",
     "yellow": "Yellow"
   },
+  "formalities": {
+    "business-casual": "Business casual",
+    "casual": "Casual",
+    "formal": "Formal",
+    "smart-casual": "Smart casual",
+    "very-casual": "Very casual",
+    "very-formal": "Very formal"
+  },
+  "materials": {
+    "canvas": "Canvas",
+    "cotton": "Cotton",
+    "denim": "Denim",
+    "down": "Down",
+    "fleece": "Fleece",
+    "knit": "Knit",
+    "leather": "Leather",
+    "linen": "Linen",
+    "nylon": "Nylon",
+    "polyester": "Polyester",
+    "shearling": "Shearling",
+    "silk": "Silk",
+    "suede": "Suede",
+    "velvet": "Velvet",
+    "wool": "Wool"
+  },
   "occasions": {
     "casual": "Casual",
     "date": "Date",
@@ -30,6 +55,18 @@
     "office": "Office",
     "outdoor": "Outdoor",
     "sporty": "Sporty"
+  },
+  "roles": {
+    "accessory": "Accessory",
+    "base_top": "Base top",
+    "bottom": "Bottom",
+    "footwear": "Footwear",
+    "full_body": "Full body",
+    "mid_layer": "Mid layer",
+    "neckwear": "Neckwear",
+    "outer_layer": "Outer layer",
+    "socks": "Socks",
+    "suit": "Suit"
   },
   "styles": {
     "bold": "Bold",
@@ -126,7 +163,6 @@
     "jacket": "Jacket",
     "jeans": "Jeans",
     "jumpsuit": "Jumpsuit",
-    "other": "Other",
     "pants": "Pants",
     "polo": "Polo",
     "sandals": "Sandals",

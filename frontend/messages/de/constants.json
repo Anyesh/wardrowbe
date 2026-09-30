@@ -23,6 +23,31 @@
     "white": "Weiß",
     "yellow": "Gelb"
   },
+  "formalities": {
+    "business-casual": "Business Casual",
+    "casual": "Leger",
+    "formal": "Formell",
+    "smart-casual": "Smart Casual",
+    "very-casual": "Sehr leger",
+    "very-formal": "Sehr formell"
+  },
+  "materials": {
+    "canvas": "Canvas",
+    "cotton": "Baumwolle",
+    "denim": "Denim",
+    "down": "Daunen",
+    "fleece": "Fleece",
+    "knit": "Strick",
+    "leather": "Leder",
+    "linen": "Leinen",
+    "nylon": "Nylon",
+    "polyester": "Polyester",
+    "shearling": "Lammfell",
+    "silk": "Seide",
+    "suede": "Wildleder",
+    "velvet": "Samt",
+    "wool": "Wolle"
+  },
   "occasions": {
     "casual": "Freizeit",
     "date": "Date",
@@ -30,6 +55,18 @@
     "office": "Büro",
     "outdoor": "Outdoor",
     "sporty": "Sportlich"
+  },
+  "roles": {
+    "accessory": "Accessoire",
+    "base_top": "Basisoberteil",
+    "bottom": "Unterteil",
+    "footwear": "Schuhe",
+    "full_body": "Ganzkörper",
+    "mid_layer": "Mittlere Schicht",
+    "neckwear": "Halsbekleidung",
+    "outer_layer": "Äußere Schicht",
+    "socks": "Socken",
+    "suit": "Anzug"
   },
   "styles": {
     "bold": "Auffällig",
@@ -126,7 +163,6 @@
     "jacket": "Jacke",
     "jeans": "Jeans",
     "jumpsuit": "Jumpsuit",
-    "other": "Sonstiges",
     "pants": "Hose",
     "polo": "Poloshirt",
     "sandals": "Sandalen",

@@ -62,7 +62,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { toast } from 'sonner';
 import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
-import { useClothingTypes, useClothingColors, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
+import {
+  useClothingTypes,
+  useClothingColors,
+  useFormalityLabel,
+  useMaterialLabel,
+  useSubtypeLabel,
+} from '@/lib/hooks/use-translated-constants';
 import { ColorEyedropper } from '@/components/color-eyedropper';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
 import { useFeatures } from '@/lib/hooks/use-features';
@@ -110,6 +116,8 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
   const subtypeLabel = useSubtypeLabel();
+  const materialLabel = useMaterialLabel();
+  const formalityLabel = useFormalityLabel();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPairingsDialog, setShowPairingsDialog] = useState(false);
@@ -970,7 +978,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         )}
                         {tags.material && (
                           <Badge variant="outline" className="text-xs">
-                            {tags.material}
+                            {materialLabel(tags.material)}
                           </Badge>
                         )}
                         {tags.style?.map((s) => (
@@ -985,7 +993,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         ))}
                         {tags.formality && (
                           <Badge variant="outline" className="text-xs">
-                            {tags.formality}
+                            {formalityLabel(tags.formality)}
                           </Badge>
                         )}
                         {tags.fit && (

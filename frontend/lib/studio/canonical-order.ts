@@ -12,6 +12,7 @@ export const ITEM_ROLE: Record<string, string> = {
   skirt: 'bottom',
   dress: 'full_body',
   jumpsuit: 'full_body',
+  suit: 'suit',
   cardigan: 'mid_layer',
   vest: 'mid_layer',
   jacket: 'outer_layer',
@@ -35,6 +36,7 @@ export const CANONICAL_ROLE_ORDER = [
   'full_body',
   'base_top',
   'mid_layer',
+  'suit',
   'outer_layer',
   'bottom',
   'footwear',
@@ -42,6 +44,18 @@ export const CANONICAL_ROLE_ORDER = [
   'neckwear',
   'accessory',
 ] as const;
+
+// A suit takes its own slot rather than outer_layer so an overcoat can still go over it.
+const ROLE_SLOTS: Record<string, readonly string[]> = {
+  full_body: ['base_top', 'bottom'],
+  suit: ['bottom', 'suit'],
+};
+
+export function slotsForType(type: string): readonly string[] {
+  const role = ITEM_ROLE[type];
+  if (!role || role === 'accessory') return [];
+  return ROLE_SLOTS[role] ?? [role];
+}
 
 const ROLE_SORT_INDEX: Record<string, number> = Object.fromEntries(
   CANONICAL_ROLE_ORDER.map((role, idx) => [role, idx])

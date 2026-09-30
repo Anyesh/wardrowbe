@@ -23,6 +23,31 @@
     "white": "Bianco",
     "yellow": "Giallo"
   },
+  "formalities": {
+    "business-casual": "Business casual",
+    "casual": "Casual",
+    "formal": "Formale",
+    "smart-casual": "Smart casual",
+    "very-casual": "Molto casual",
+    "very-formal": "Molto formale"
+  },
+  "materials": {
+    "canvas": "Tela",
+    "cotton": "Cotone",
+    "denim": "Denim",
+    "down": "Piumino",
+    "fleece": "Pile",
+    "knit": "Maglia",
+    "leather": "Pelle",
+    "linen": "Lino",
+    "nylon": "Nylon",
+    "polyester": "Poliestere",
+    "shearling": "Montone",
+    "silk": "Seta",
+    "suede": "Camoscio",
+    "velvet": "Velluto",
+    "wool": "Lana"
+  },
   "occasions": {
     "casual": "Casual",
     "date": "Appuntamento",
@@ -30,6 +55,18 @@
     "office": "Ufficio",
     "outdoor": "All'aperto",
     "sporty": "Sportivo"
+  },
+  "roles": {
+    "accessory": "Accessorio",
+    "base_top": "Capo base",
+    "bottom": "Parte inferiore",
+    "footwear": "Calzature",
+    "full_body": "Capo intero",
+    "mid_layer": "Strato intermedio",
+    "neckwear": "Collo",
+    "outer_layer": "Strato esterno",
+    "socks": "Calzini",
+    "suit": "Completo"
   },
   "styles": {
     "bold": "Audace",
@@ -126,7 +163,6 @@
     "jacket": "Giacca",
     "jeans": "Jeans",
     "jumpsuit": "Tuta",
-    "other": "Altro",
     "pants": "Pantaloni",
     "polo": "Polo",
     "sandals": "Sandali",
