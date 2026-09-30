@@ -1,6 +1,12 @@
 from uuid import uuid4
 
-from app.utils.clothing import ITEM_ROLE, canonical_item_order, deduplicate_by_body_slot
+from app.utils.clothing import (
+    ITEM_ROLE,
+    WardrobeComposition,
+    canonical_item_order,
+    count_composition,
+    deduplicate_by_body_slot,
+)
 
 
 def _ids(n):
@@ -288,3 +294,28 @@ def test_mandatory_item_absent_from_candidates_does_not_empty_its_role():
         mandatory_item_ids={absent_shirt},
     )
     assert result == [shirt_id, pants_id]
+
+
+def test_count_composition_buckets_by_role():
+    c = count_composition(
+        [
+            ("cardigan", 8),
+            ("shirt", 1),
+            ("Sweater", 2),
+            ("skirt", 4),
+            ("dress", 3),
+            ("jacket", 5),
+            ("mystery", 7),
+            (None, 1),
+        ]
+    )
+    assert c == WardrobeComposition(base_tops=3, layers=8, bottoms=4, full_body=3)
+
+
+def test_count_composition_covers_every_role_in_item_role():
+    c = count_composition([(t, 1) for t in ITEM_ROLE])
+    roles = list(ITEM_ROLE.values())
+    assert c.base_tops == roles.count("base_top")
+    assert c.layers == roles.count("mid_layer")
+    assert c.bottoms == roles.count("bottom")
+    assert c.full_body == roles.count("full_body")
