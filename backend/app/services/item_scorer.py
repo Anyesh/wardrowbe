@@ -7,6 +7,7 @@ from app.models.item import ClothingItem
 from app.models.preference import UserPreference
 from app.services.weather_service import WeatherData
 from app.utils.clothing import ITEM_ROLE
+from app.utils.garment_vocabulary import FORMALITY
 
 OCCASION_FORMALITY = {
     "casual": ["very-casual", "casual", "smart-casual"],
@@ -56,14 +57,7 @@ def get_season(month: int, latitude: float | None = None) -> str:
     return _NORTH_SEASON[month]
 
 
-FORMALITY_ORDER = [
-    "very-casual",
-    "casual",
-    "smart-casual",
-    "business-casual",
-    "formal",
-    "very-formal",
-]
+FORMALITY_ORDER = list(FORMALITY)
 
 SEASON_ADJACENCY = {
     "spring": ["summer", "winter"],

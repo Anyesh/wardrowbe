@@ -5,42 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
+from app.utils.garment_vocabulary import DEFAULT_WASH_INTERVALS
 from app.utils.signed_urls import sign_image_url
-
-# Default wash intervals by clothing type (wears between washes)
-DEFAULT_WASH_INTERVALS: dict[str, int] = {
-    "t-shirt": 1,
-    "shirt": 2,
-    "blouse": 2,
-    "polo": 2,
-    "tank-top": 1,
-    "top": 2,
-    "pants": 4,
-    "jeans": 6,
-    "shorts": 3,
-    "dress": 2,
-    "jumpsuit": 2,
-    "skirt": 3,
-    "sweater": 5,
-    "cardigan": 5,
-    "vest": 5,
-    "hoodie": 4,
-    "jacket": 8,
-    "coat": 10,
-    "blazer": 5,
-    "suit": 5,
-    "shoes": 15,
-    "sneakers": 15,
-    "boots": 15,
-    "sandals": 15,
-    "socks": 1,
-    "tie": 20,
-    "hat": 20,
-    "scarf": 10,
-    "belt": 20,
-    "bag": 20,
-    "accessories": 20,
-}
 
 
 class ItemTags(BaseModel):

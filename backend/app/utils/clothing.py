@@ -2,41 +2,9 @@ import logging
 from dataclasses import dataclass
 from uuid import UUID
 
-logger = logging.getLogger(__name__)
+from app.utils.garment_vocabulary import ITEM_ROLE
 
-ITEM_ROLE: dict[str, str] = {
-    "shirt": "base_top",
-    "t-shirt": "base_top",
-    "blouse": "base_top",
-    "polo": "base_top",
-    "tank-top": "base_top",
-    "top": "base_top",
-    "sweater": "base_top",
-    "pants": "bottom",
-    "jeans": "bottom",
-    "shorts": "bottom",
-    "skirt": "bottom",
-    "dress": "full_body",
-    "jumpsuit": "full_body",
-    "suit": "suit",
-    "cardigan": "mid_layer",
-    "vest": "mid_layer",
-    "jacket": "outer_layer",
-    "blazer": "outer_layer",
-    "coat": "outer_layer",
-    "hoodie": "outer_layer",
-    "shoes": "footwear",
-    "sneakers": "footwear",
-    "boots": "footwear",
-    "sandals": "footwear",
-    "socks": "socks",
-    "tie": "neckwear",
-    "hat": "accessory",
-    "scarf": "accessory",
-    "belt": "accessory",
-    "bag": "accessory",
-    "accessories": "accessory",
-}
+logger = logging.getLogger(__name__)
 
 # A suit takes its own slot rather than outer_layer so an overcoat can still go over it.
 ROLE_SLOTS: dict[str, frozenset[str]] = {
