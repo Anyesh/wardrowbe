@@ -1,3 +1,5 @@
+import { CLOTHING_TYPE_VALUES } from '@/lib/generated/garment-vocabulary';
+
 // API response types matching backend schemas
 
 export interface ItemTags {
@@ -191,41 +193,11 @@ export const CLOTHING_COLORS = [
   { name: 'Orange', value: 'orange', hex: '#D2691E' },
 ] as const;
 
-// Clothing types (alphabetized by label). Must match the TYPE vocabulary set in
-// clothing_analysis.txt, order carries no meaning there.
-export const CLOTHING_TYPES = [
-  { label: 'Accessories', value: 'accessories' },
-  { label: 'Bag', value: 'bag' },
-  { label: 'Belt', value: 'belt' },
-  { label: 'Blazer', value: 'blazer' },
-  { label: 'Blouse', value: 'blouse' },
-  { label: 'Boots', value: 'boots' },
-  { label: 'Cardigan', value: 'cardigan' },
-  { label: 'Coat', value: 'coat' },
-  { label: 'Dress', value: 'dress' },
-  { label: 'Hat', value: 'hat' },
-  { label: 'Hoodie', value: 'hoodie' },
-  { label: 'Jacket', value: 'jacket' },
-  { label: 'Jeans', value: 'jeans' },
-  { label: 'Jumpsuit', value: 'jumpsuit' },
-  { label: 'Pants', value: 'pants' },
-  { label: 'Polo', value: 'polo' },
-  { label: 'Sandals', value: 'sandals' },
-  { label: 'Scarf', value: 'scarf' },
-  { label: 'Shirt', value: 'shirt' },
-  { label: 'Shoes', value: 'shoes' },
-  { label: 'Shorts', value: 'shorts' },
-  { label: 'Skirt', value: 'skirt' },
-  { label: 'Sneakers', value: 'sneakers' },
-  { label: 'Socks', value: 'socks' },
-  { label: 'Suit', value: 'suit' },
-  { label: 'Sweater', value: 'sweater' },
-  { label: 'T-Shirt', value: 't-shirt' },
-  { label: 'Tank Top', value: 'tank-top' },
-  { label: 'Tie', value: 'tie' },
-  { label: 'Top', value: 'top' },
-  { label: 'Vest', value: 'vest' },
-] as const;
+// Picker order is alphabetical by value. The values come from the generated vocabulary, so the
+// labels are not stored here: they are translated from constants.types at render time.
+export const CLOTHING_TYPES = [...CLOTHING_TYPE_VALUES].sort().map((value) => ({ value }));
+
+export type ClothingTypeValue = (typeof CLOTHING_TYPE_VALUES)[number];
 
 // Suggested subtypes per type. Mirrors the SUBTYPE examples in clothing_analysis.txt.
 // Subtype is free text on the backend (and the model may answer outside this list),
@@ -245,12 +217,12 @@ export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
 };
 
 export const OCCASIONS = [
-  { label: 'Casual', value: 'casual' },
-  { label: 'Office', value: 'office' },
-  { label: 'Formal', value: 'formal' },
-  { label: 'Date', value: 'date' },
-  { label: 'Sporty', value: 'sporty' },
-  { label: 'Outdoor', value: 'outdoor' },
+  { value: 'casual' },
+  { value: 'office' },
+  { value: 'formal' },
+  { value: 'date' },
+  { value: 'sporty' },
+  { value: 'outdoor' },
 ] as const;
 
 // Family types

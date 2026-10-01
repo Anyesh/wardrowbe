@@ -1,40 +1,12 @@
-export const ITEM_ROLE: Record<string, string> = {
-  shirt: 'base_top',
-  't-shirt': 'base_top',
-  blouse: 'base_top',
-  polo: 'base_top',
-  'tank-top': 'base_top',
-  top: 'base_top',
-  sweater: 'base_top',
-  pants: 'bottom',
-  jeans: 'bottom',
-  shorts: 'bottom',
-  skirt: 'bottom',
-  dress: 'full_body',
-  jumpsuit: 'full_body',
-  cardigan: 'mid_layer',
-  vest: 'mid_layer',
-  jacket: 'outer_layer',
-  blazer: 'outer_layer',
-  coat: 'outer_layer',
-  hoodie: 'outer_layer',
-  shoes: 'footwear',
-  sneakers: 'footwear',
-  boots: 'footwear',
-  sandals: 'footwear',
-  socks: 'socks',
-  tie: 'neckwear',
-  hat: 'accessory',
-  scarf: 'accessory',
-  belt: 'accessory',
-  bag: 'accessory',
-  accessories: 'accessory',
-};
+import { ITEM_ROLE } from '@/lib/generated/garment-vocabulary';
+
+export { ITEM_ROLE };
 
 export const CANONICAL_ROLE_ORDER = [
   'full_body',
   'base_top',
   'mid_layer',
+  'suit',
   'outer_layer',
   'bottom',
   'footwear',
@@ -42,6 +14,18 @@ export const CANONICAL_ROLE_ORDER = [
   'neckwear',
   'accessory',
 ] as const;
+
+// A suit takes its own slot rather than outer_layer so an overcoat can still go over it.
+const ROLE_SLOTS: Record<string, readonly string[]> = {
+  full_body: ['base_top', 'bottom'],
+  suit: ['bottom', 'suit'],
+};
+
+export function slotsForType(type: string): readonly string[] {
+  const role = ITEM_ROLE[type];
+  if (!role || role === 'accessory') return [];
+  return ROLE_SLOTS[role] ?? [role];
+}
 
 const ROLE_SORT_INDEX: Record<string, number> = Object.fromEntries(
   CANONICAL_ROLE_ORDER.map((role, idx) => [role, idx])

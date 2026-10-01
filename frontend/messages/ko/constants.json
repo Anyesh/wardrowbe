@@ -23,6 +23,31 @@
     "white": "화이트",
     "yellow": "옐로"
   },
+  "formalities": {
+    "business-casual": "비즈니스 캐주얼",
+    "casual": "캐주얼",
+    "formal": "포멀",
+    "smart-casual": "스마트 캐주얼",
+    "very-casual": "매우 캐주얼",
+    "very-formal": "매우 포멀"
+  },
+  "materials": {
+    "canvas": "캔버스",
+    "cotton": "면",
+    "denim": "데님",
+    "down": "다운",
+    "fleece": "플리스",
+    "knit": "니트",
+    "leather": "가죽",
+    "linen": "린넨",
+    "nylon": "나일론",
+    "polyester": "폴리에스터",
+    "shearling": "시어링",
+    "silk": "실크",
+    "suede": "스웨이드",
+    "velvet": "벨벳",
+    "wool": "울"
+  },
   "occasions": {
     "casual": "캐주얼",
     "date": "데이트",
@@ -30,6 +55,18 @@
     "office": "오피스",
     "outdoor": "아웃도어",
     "sporty": "스포티"
+  },
+  "roles": {
+    "accessory": "액세서리",
+    "base_top": "기본 상의",
+    "bottom": "하의",
+    "footwear": "신발",
+    "full_body": "전신",
+    "mid_layer": "미드 레이어",
+    "neckwear": "넥웨어",
+    "outer_layer": "아우터",
+    "socks": "양말",
+    "suit": "정장"
   },
   "styles": {
     "bold": "볼드",
@@ -126,7 +163,6 @@
     "jacket": "재킷",
     "jeans": "청바지",
     "jumpsuit": "점프수트",
-    "other": "기타",
     "pants": "바지",
     "polo": "폴로셔츠",
     "sandals": "샌들",

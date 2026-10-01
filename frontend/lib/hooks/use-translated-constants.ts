@@ -56,15 +56,32 @@ export function useWeatherConditions() {
   })), [t]);
 }
 
-// Subtypes are free text, so a value outside the catalog falls back to the raw
-// value made readable ("slip-dress" -> "Slip dress") instead of a key path.
-export function useSubtypeLabel() {
-  const t = useTranslations('constants.subtypes');
+type CatalogTranslator = ((key: string) => string) & { has: (key: string) => boolean };
 
+// Subtypes, materials and formalities can hold values outside the catalog (free text, or rows
+// tagged before the vocabulary changed), so an unknown value falls back to the raw value made
+// readable ("slip-dress" -> "Slip dress") instead of a key path.
+function useCatalogLabel(t: CatalogTranslator) {
   return useCallback((value: string) => {
     const key = value.toLowerCase();
     if (t.has(key)) return t(key);
     const spaced = value.replace(/[-_]+/g, ' ').trim();
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
   }, [t]);
+}
+
+export function useSubtypeLabel() {
+  return useCatalogLabel(useTranslations('constants.subtypes'));
+}
+
+export function useMaterialLabel() {
+  return useCatalogLabel(useTranslations('constants.materials'));
+}
+
+export function useFormalityLabel() {
+  return useCatalogLabel(useTranslations('constants.formalities'));
+}
+
+export function useRoleLabel() {
+  return useCatalogLabel(useTranslations('constants.roles'));
 }

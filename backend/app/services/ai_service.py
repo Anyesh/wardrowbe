@@ -13,6 +13,7 @@ from PIL import Image, ImageOps
 from pydantic import BaseModel
 
 from app.config import get_settings
+from app.utils.garment_vocabulary import FORMALITY, MATERIALS, TYPES, render_tagging_prompt
 from app.utils.prompts import load_prompt
 
 logger = logging.getLogger(__name__)
@@ -55,42 +56,11 @@ class ClothingTags(BaseModel):
     unrecognized_type: str | None = None
 
 
-TAGGING_PROMPT = load_prompt("clothing_analysis")
+TAGGING_PROMPT = render_tagging_prompt(load_prompt("clothing_analysis"))
 DESCRIPTION_PROMPT = load_prompt("clothing_description")
 
 # Valid values for validation
-VALID_TYPES = {
-    "shirt",
-    "t-shirt",
-    "pants",
-    "jeans",
-    "shorts",
-    "dress",
-    "skirt",
-    "jacket",
-    "coat",
-    "sweater",
-    "hoodie",
-    "blazer",
-    "vest",
-    "cardigan",
-    "polo",
-    "blouse",
-    "tank-top",
-    "shoes",
-    "sneakers",
-    "boots",
-    "sandals",
-    "hat",
-    "scarf",
-    "belt",
-    "bag",
-    "accessories",
-    "top",
-    "jumpsuit",
-    "socks",
-    "tie",
-}
+VALID_TYPES = set(TYPES)
 VALID_COLORS = {
     "black",
     "white",
@@ -125,22 +95,8 @@ VALID_PATTERNS = {
     "camouflage",
     "animal-print",
 }
-VALID_MATERIALS = {
-    "cotton",
-    "denim",
-    "leather",
-    "wool",
-    "polyester",
-    "silk",
-    "linen",
-    "knit",
-    "fleece",
-    "suede",
-    "velvet",
-    "nylon",
-    "canvas",
-}
-VALID_FORMALITY = {"very-casual", "casual", "smart-casual", "business-casual", "formal"}
+VALID_MATERIALS = set(MATERIALS)
+VALID_FORMALITY = set(FORMALITY)
 VALID_FIT = {"slim", "regular", "relaxed", "oversized", "tailored", "cropped"}
 VALID_STYLES = {
     "casual",

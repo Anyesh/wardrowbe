@@ -176,8 +176,9 @@ export function ItemCard({ item }: ItemCardProps) {
 
 Rules:
 
-- Add new keys to `frontend/messages/en/<namespace>.json` only. Other locales are filled in by
-  translators; an untranslated key falls back to its English text rather than breaking the page.
+- Add new keys to every `frontend/messages/<locale>/<namespace>.json`: `i18n:parity` fails when a
+  locale is missing a key that `en` has. Machine translations are fine for a first pass, and
+  translators can refine them later.
 - Reuse `common` for generic UI verbs (save, cancel, delete, loading) and `constants` for domain
   vocabulary (clothing types, colors, occasions). Do not re-declare them in a feature namespace.
 - Never build a sentence by concatenating fragments around a value. Use one ICU message:
@@ -200,10 +201,19 @@ plain string and a missing key type-checks perfectly:
 |------|---------|
 | `i18n:keys` | `t()` calls referencing keys absent from the `en` catalog |
 | `i18n:parity` | locales missing keys, or ICU placeholders dropped in translation |
-| `i18n:scan` | hardcoded user-visible strings in JSX, attributes and toasts |
+| `i18n:scan` | hardcoded user-visible strings in JSX, attributes, toasts and `label`/`title`/`placeholder`/`description` object properties |
 
 Adding a language: add it to `SUPPORTED_LOCALES` in `frontend/lib/i18n/locales.ts`, add the same
 list to `backend/app/utils/locale.py`, and create `frontend/messages/<locale>/`.
+
+### Garment vocabulary
+
+Clothing types, their outfit role and default wash interval, the tagging materials and the
+formality scale live in one file, `backend/app/data/garment_vocabulary.json`. The tagging prompt,
+the backend lists and `frontend/lib/generated/garment-vocabulary.ts` are all derived from it. After
+editing it, run `cd frontend && npm run vocab:gen`, add the labels under `constants.types`,
+`constants.materials`, `constants.formalities` and `constants.roles` in every locale, and commit the
+generated file. `npm run vocab:check` fails CI when the generated file is stale.
 
 ## Project Structure
 
@@ -213,7 +223,9 @@ list to `backend/app/utils/locale.py`, and create `frontend/messages/<locale>/`.
 backend/
 ├── app/
 │   ├── api/           # API route handlers
+│   ├── data/          # garment_vocabulary.json, the source of every type/material/formality list
 │   ├── models/        # SQLAlchemy models
+│   ├── prompts/       # AI prompt templates (<<TOKENS>> are filled from the vocabulary)
 │   ├── schemas/       # Pydantic schemas
 │   ├── services/      # Business logic
 │   ├── workers/       # Background job handlers
@@ -230,6 +242,7 @@ frontend/
 ├── components/       # React components
 │   └── ui/          # shadcn/ui components
 ├── lib/             # Utilities and API client
+│   ├── generated/   # Written by `npm run vocab:gen`, never edit by hand
 │   └── hooks/       # Custom React hooks
 └── tests/           # Test files
 ```

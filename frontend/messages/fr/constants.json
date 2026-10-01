@@ -23,6 +23,31 @@
     "white": "Blanc",
     "yellow": "Jaune"
   },
+  "formalities": {
+    "business-casual": "Business casual",
+    "casual": "Décontracté",
+    "formal": "Habillé",
+    "smart-casual": "Décontracté chic",
+    "very-casual": "Très décontracté",
+    "very-formal": "Très habillé"
+  },
+  "materials": {
+    "canvas": "Toile",
+    "cotton": "Coton",
+    "denim": "Denim",
+    "down": "Duvet",
+    "fleece": "Polaire",
+    "knit": "Maille",
+    "leather": "Cuir",
+    "linen": "Lin",
+    "nylon": "Nylon",
+    "polyester": "Polyester",
+    "shearling": "Mouton retourné",
+    "silk": "Soie",
+    "suede": "Daim",
+    "velvet": "Velours",
+    "wool": "Laine"
+  },
   "occasions": {
     "casual": "Décontracté",
     "date": "Rendez-vous",
@@ -30,6 +55,18 @@
     "office": "Bureau",
     "outdoor": "Plein air",
     "sporty": "Sportif"
+  },
+  "roles": {
+    "accessory": "Accessoire",
+    "base_top": "Haut de base",
+    "bottom": "Bas",
+    "footwear": "Chaussures",
+    "full_body": "Une pièce",
+    "mid_layer": "Couche intermédiaire",
+    "neckwear": "Accessoire de cou",
+    "outer_layer": "Couche extérieure",
+    "socks": "Chaussettes",
+    "suit": "Costume"
   },
   "styles": {
     "bold": "Audacieux",
@@ -126,7 +163,6 @@
     "jacket": "Veste",
     "jeans": "Jean",
     "jumpsuit": "Combinaison",
-    "other": "Autre",
     "pants": "Pantalon",
     "polo": "Polo",
     "sandals": "Sandales",

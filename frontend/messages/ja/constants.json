@@ -23,6 +23,31 @@
     "white": "白",
     "yellow": "イエロー"
   },
+  "formalities": {
+    "business-casual": "ビジネスカジュアル",
+    "casual": "カジュアル",
+    "formal": "フォーマル",
+    "smart-casual": "スマートカジュアル",
+    "very-casual": "とてもカジュアル",
+    "very-formal": "とてもフォーマル"
+  },
+  "materials": {
+    "canvas": "キャンバス",
+    "cotton": "コットン",
+    "denim": "デニム",
+    "down": "ダウン",
+    "fleece": "フリース",
+    "knit": "ニット",
+    "leather": "レザー",
+    "linen": "リネン",
+    "nylon": "ナイロン",
+    "polyester": "ポリエステル",
+    "shearling": "シアリング",
+    "silk": "シルク",
+    "suede": "スエード",
+    "velvet": "ベルベット",
+    "wool": "ウール"
+  },
   "occasions": {
     "casual": "カジュアル",
     "date": "デート",
@@ -30,6 +55,18 @@
     "office": "オフィス",
     "outdoor": "アウトドア",
     "sporty": "スポーティ"
+  },
+  "roles": {
+    "accessory": "アクセサリー",
+    "base_top": "ベーストップス",
+    "bottom": "ボトムス",
+    "footwear": "フットウェア",
+    "full_body": "全身",
+    "mid_layer": "ミッドレイヤー",
+    "neckwear": "ネックウェア",
+    "outer_layer": "アウター",
+    "socks": "ソックス",
+    "suit": "スーツ"
   },
   "styles": {
     "bold": "ボールド",
@@ -126,7 +163,6 @@
     "jacket": "ジャケット",
     "jeans": "ジーンズ",
     "jumpsuit": "ジャンプスーツ",
-    "other": "その他",
     "pants": "パンツ",
     "polo": "ポロシャツ",
     "sandals": "サンダル",

@@ -23,6 +23,31 @@
     "white": "白色",
     "yellow": "黃色"
   },
+  "formalities": {
+    "business-casual": "商務休閒",
+    "casual": "休閒",
+    "formal": "正式",
+    "smart-casual": "精緻休閒",
+    "very-casual": "非常休閒",
+    "very-formal": "非常正式"
+  },
+  "materials": {
+    "canvas": "帆布",
+    "cotton": "棉",
+    "denim": "丹寧",
+    "down": "羽絨",
+    "fleece": "刷毛",
+    "knit": "針織",
+    "leather": "皮革",
+    "linen": "亞麻",
+    "nylon": "尼龍",
+    "polyester": "聚酯纖維",
+    "shearling": "羊剪絨",
+    "silk": "絲綢",
+    "suede": "麂皮",
+    "velvet": "天鵝絨",
+    "wool": "羊毛"
+  },
   "occasions": {
     "casual": "休閒",
     "date": "約會",
@@ -30,6 +55,18 @@
     "office": "辦公室",
     "outdoor": "戶外",
     "sporty": "運動"
+  },
+  "roles": {
+    "accessory": "配件",
+    "base_top": "基礎上衣",
+    "bottom": "下身",
+    "footwear": "鞋履",
+    "full_body": "連身裝",
+    "mid_layer": "中間層",
+    "neckwear": "頸部配件",
+    "outer_layer": "外層",
+    "socks": "襪子",
+    "suit": "西裝"
   },
   "styles": {
     "bold": "大膽",
@@ -126,7 +163,6 @@
     "jacket": "夾克",
     "jeans": "牛仔褲",
     "jumpsuit": "連身褲",
-    "other": "其他",
     "pants": "長褲",
     "polo": "Polo 衫",
     "sandals": "涼鞋",

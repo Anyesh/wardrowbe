@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { X } from 'lucide-react';
 
+import { useRoleLabel } from '@/lib/hooks/use-translated-constants';
 import { ITEM_ROLE } from '@/lib/studio/canonical-order';
 import { cn } from '@/lib/utils';
 import type { StudioItem } from '@/lib/studio/editor-state';
@@ -13,14 +14,13 @@ interface CanvasPanelProps {
   onRemove: (itemId: string) => void;
 }
 
-function roleLabel(type: string): string {
-  const role = ITEM_ROLE[type];
-  if (!role) return type;
-  return role.replace('_', ' ');
-}
-
 export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
   const t = useTranslations('outfits.canvas');
+  const roleName = useRoleLabel();
+  const roleLabel = (type: string) => {
+    const role = ITEM_ROLE[type];
+    return role ? roleName(role) : type;
+  };
   if (items.length === 0) {
     return (
       <div className="min-h-[240px] rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 flex items-center justify-center p-6">

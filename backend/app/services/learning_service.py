@@ -11,6 +11,7 @@ This service implements a Netflix/Spotify-style recommendation learning system t
 
 import enum
 import logging
+from collections.abc import Iterable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from itertools import combinations
@@ -31,9 +32,23 @@ from app.models.learning import (
 )
 from app.models.outfit import Outfit, OutfitItem, OutfitStatus, UserFeedback
 from app.models.preference import UserPreference
+from app.utils.clothing import ITEM_ROLE
 from app.utils.signed_urls import sign_image_url
 
 logger = logging.getLogger(__name__)
+
+# Stored rows predate item roles and use these names, so those roles keep them.
+_COMPOSITION_KEYS = {"base_top": "top", "footwear": "shoes", "outer_layer": "outerwear"}
+
+
+def slot_composition(item_types: Iterable[str | None]) -> dict[str, str]:
+    composition: dict[str, str] = {}
+    for item_type in item_types:
+        normalized = (item_type or "").lower()
+        role = ITEM_ROLE.get(normalized)
+        if role and role != "accessory":
+            composition[_COMPOSITION_KEYS.get(role, role)] = normalized
+    return composition
 
 
 class PairSignalType(enum.Enum):
@@ -180,27 +195,11 @@ class LearningService:
             weather_condition = outfit.weather_data.get("condition")
 
         # Build item composition
-        item_composition = {}
+        item_composition = slot_composition(oi.item.type for oi in outfit.items)
         color_composition = {"primary_colors": []}
 
         for outfit_item in outfit.items:
             item = outfit_item.item
-            item_type = item.type.lower() if item.type else "unknown"
-
-            # Categorize by type
-            if item_type in ["shirt", "blouse", "t-shirt", "sweater", "top"]:
-                item_composition["top"] = item_type
-            elif item_type in ["pants", "jeans", "skirt", "shorts"]:
-                item_composition["bottom"] = item_type
-            elif item_type in ["sneakers", "boots", "heels", "shoes", "sandals"]:
-                item_composition["shoes"] = item_type
-            elif item_type in ["jacket", "coat", "outerwear"]:
-                item_composition["outerwear"] = item_type
-            elif item_type == "socks":
-                item_composition["socks"] = item_type
-            elif item_type == "tie":
-                item_composition["neckwear"] = item_type
-
             if item.primary_color:
                 color_composition["primary_colors"].append(item.primary_color)
 

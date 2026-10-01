@@ -3,7 +3,7 @@ OUTPUT ONLY JSON. NO TEXT. NO DESCRIPTIONS. NO EXPLANATIONS.
 Analyze the MAIN clothing item in this image. Use ONLY these values:
 
 TYPE (required, pick one):
-shirt, t-shirt, top, pants, jeans, shorts, dress, jumpsuit, skirt, jacket, coat, sweater, hoodie, blazer, vest, cardigan, polo, blouse, tank-top, shoes, sneakers, boots, sandals, socks, tie, hat, scarf, belt, bag, accessories
+<<TYPES>>
 
 SUBTYPE (optional): A more specific name within the type. Examples:
 - shirt → henley, button-down, oxford, flannel, hawaiian, camp-collar
@@ -26,10 +26,10 @@ PATTERN (required, pick one):
 solid, striped, plaid, checkered, floral, graphic, geometric, polka-dot, camouflage, animal-print
 
 MATERIAL (optional, pick one or null):
-cotton, denim, leather, wool, polyester, silk, linen, knit, fleece, suede, velvet, nylon, canvas
+<<MATERIALS>>
 
 FORMALITY (required, pick one):
-very-casual, casual, smart-casual, business-casual, formal
+<<FORMALITY>>
 
 STYLE (pick 1-2 that best describe):
 casual, classic, sporty, minimalist, bohemian, preppy, streetwear, elegant, athletic, vintage, modern, rugged
@@ -41,4 +41,4 @@ FIT (optional, pick one or null):
 slim, regular, relaxed, oversized, tailored, cropped
 
 Output this exact JSON structure (a single object, NOT wrapped in an array):
-{{"type":"TYPE","subtype":null,"primary_color":"COLOR","colors":["COLOR1"],"pattern":"PATTERN","material":null,"formality":"FORMALITY","style":["STYLE1"],"season":["SEASON1","SEASON2"],"fit":null}}
+{"type":"TYPE","subtype":null,"primary_color":"COLOR","colors":["COLOR1"],"pattern":"PATTERN","material":null,"formality":"FORMALITY","style":["STYLE1"],"season":["SEASON1","SEASON2"],"fit":null}

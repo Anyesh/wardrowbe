@@ -9,9 +9,14 @@ const SCAN_DIRS = ['app', 'components', 'lib'];
 
 // components/ui holds unmodified shadcn primitives; their strings are structural, not product copy.
 const SKIP_DIRS = new Set(['node_modules', '.next', 'components/ui']);
-const SKIP_FILES = new Set(['app/layout.tsx', 'app/providers.tsx']);
+// lib/auth.ts labels are NextAuth provider metadata, which only NextAuth's built-in sign-in page
+// renders; the app replaces that page with its own /login.
+const SKIP_FILES = new Set(['app/layout.tsx', 'app/providers.tsx', 'lib/auth.ts']);
 
 const TEXT_ATTRS = new Set(['placeholder', 'title', 'aria-label', 'alt', 'label', 'aria-description']);
+// Option lists like [{ label: 'Shirt', value: 'shirt' }] reach the screen through a prop or
+// {opt.label}, where neither the JSX-text nor the attribute check can see the literal.
+const TEXT_PROPS = new Set(['label', 'title', 'placeholder', 'description']);
 const TOAST_METHODS = new Set(['success', 'error', 'info', 'warning', 'message', 'loading']);
 
 // A literal is product copy if it reads like a sentence or label rather than an identifier,
@@ -75,6 +80,11 @@ for (const file of SCAN_DIRS.flatMap((d) => walk(join(ROOT, d)))) {
       if (init && ts.isStringLiteral(init) && isCopy(init.text)) report(node, `attr:${node.name.getText(sf)}`, init.text);
       if (init && ts.isJsxExpression(init) && init.expression && ts.isStringLiteral(init.expression) && isCopy(init.expression.text))
         report(node, `attr:${node.name.getText(sf)}`, init.expression.text);
+    }
+
+    if (ts.isPropertyAssignment(node) && TEXT_PROPS.has(node.name.getText(sf).replace(/['"]/g, ''))) {
+      const init = node.initializer;
+      if (ts.isStringLiteral(init) && isCopy(init.text)) report(node, `prop:${node.name.getText(sf)}`, init.text);
     }
 
     if (ts.isCallExpression(node)) {
