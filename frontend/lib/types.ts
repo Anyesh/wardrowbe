@@ -217,12 +217,12 @@ export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
 };
 
 export const OCCASIONS = [
-  { label: 'Casual', value: 'casual' },
-  { label: 'Office', value: 'office' },
-  { label: 'Formal', value: 'formal' },
-  { label: 'Date', value: 'date' },
-  { label: 'Sporty', value: 'sporty' },
-  { label: 'Outdoor', value: 'outdoor' },
+  { value: 'casual' },
+  { value: 'office' },
+  { value: 'formal' },
+  { value: 'date' },
+  { value: 'sporty' },
+  { value: 'outdoor' },
 ] as const;
 
 // Family types
