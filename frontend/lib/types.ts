@@ -197,6 +197,8 @@ export const CLOTHING_COLORS = [
 // labels are not stored here: they are translated from constants.types at render time.
 export const CLOTHING_TYPES = [...CLOTHING_TYPE_VALUES].sort().map((value) => ({ value }));
 
+export type ClothingTypeValue = (typeof CLOTHING_TYPE_VALUES)[number];
+
 // Suggested subtypes per type. Mirrors the SUBTYPE examples in clothing_analysis.txt.
 // Subtype is free text on the backend (and the model may answer outside this list),
 // so these are suggestions, not a closed set.
