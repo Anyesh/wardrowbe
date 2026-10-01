@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.3](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.10.2...wardrowbe-v1.10.3) (2026-10-01)
+
+
+### 🐛 Bug Fixes
+
+* give suit its own outfit slot and align the tagging vocabulary with the scorer ([68f66d4](https://github.com/Anyesh/wardrowbe/commit/68f66d47053634ebf391cc12ffeaa1a2b1ccd30f))
+* **i18n:** make i18n:scan catch copy in option-list label properties ([4e702e3](https://github.com/Anyesh/wardrowbe/commit/4e702e3ebee613b620eb11d5d5674260125e4fc0))
+* **learning:** record dresses, suits and mid layers in the outfit composition ([aa7480b](https://github.com/Anyesh/wardrowbe/commit/aa7480b430cc0bbc3586add6c4e513c4cb6ba94c))
+* **studio:** make outfit warnings slot-aware and translate role, material and formality labels ([587363d](https://github.com/Anyesh/wardrowbe/commit/587363d19bdecf6024ec086e2db94aa4a6034337))
+* **suggest:** translate the base-item type chips and type them against the vocabulary ([8c9e1c9](https://github.com/Anyesh/wardrowbe/commit/8c9e1c96c57f1842ba7cb3c14f190cfdc3c0ce2a))
+
+
+### ♻️ Refactoring
+
+* derive the tagging prompt and type lists from one vocabulary file ([abe2ada](https://github.com/Anyesh/wardrowbe/commit/abe2adadee4b3b523a0e88d2b1bca13ee0122a1c))
+* **frontend:** generate the garment lists from the vocabulary file and check them in CI ([7a8faac](https://github.com/Anyesh/wardrowbe/commit/7a8faac3761a4e22563be47ab41f24b5b62aa73d))
+* **frontend:** generate the garment lists from the vocabulary file and check them in CI ([986fd33](https://github.com/Anyesh/wardrowbe/commit/986fd33e4411e62429a82bd705ba180e66924635))
+
+
+### 📝 Documentation
+
+* list the vocabulary, prompt and generated dirs and the wider i18n scan in CONTRIBUTING ([7c45546](https://github.com/Anyesh/wardrowbe/commit/7c4554688289059596e224e7c757eb62e3a0d190))
+
 ## [1.10.2](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.10.1...wardrowbe-v1.10.2) (2026-09-30)
 
 
