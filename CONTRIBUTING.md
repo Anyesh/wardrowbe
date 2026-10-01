@@ -201,7 +201,7 @@ plain string and a missing key type-checks perfectly:
 |------|---------|
 | `i18n:keys` | `t()` calls referencing keys absent from the `en` catalog |
 | `i18n:parity` | locales missing keys, or ICU placeholders dropped in translation |
-| `i18n:scan` | hardcoded user-visible strings in JSX, attributes and toasts |
+| `i18n:scan` | hardcoded user-visible strings in JSX, attributes, toasts and `label`/`title`/`placeholder`/`description` object properties |
 
 Adding a language: add it to `SUPPORTED_LOCALES` in `frontend/lib/i18n/locales.ts`, add the same
 list to `backend/app/utils/locale.py`, and create `frontend/messages/<locale>/`.
@@ -223,7 +223,9 @@ generated file. `npm run vocab:check` fails CI when the generated file is stale.
 backend/
 ├── app/
 │   ├── api/           # API route handlers
+│   ├── data/          # garment_vocabulary.json, the source of every type/material/formality list
 │   ├── models/        # SQLAlchemy models
+│   ├── prompts/       # AI prompt templates (<<TOKENS>> are filled from the vocabulary)
 │   ├── schemas/       # Pydantic schemas
 │   ├── services/      # Business logic
 │   ├── workers/       # Background job handlers
@@ -240,6 +242,7 @@ frontend/
 ├── components/       # React components
 │   └── ui/          # shadcn/ui components
 ├── lib/             # Utilities and API client
+│   ├── generated/   # Written by `npm run vocab:gen`, never edit by hand
 │   └── hooks/       # Custom React hooks
 └── tests/           # Test files
 ```
