@@ -2,6 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
+from redis.asyncio.connection import parse_url
 
 from app.config import Settings
 from app.workers import settings as worker_settings
@@ -12,6 +13,7 @@ from app.workers import settings as worker_settings
     [
         ("redis://localhost:6379/0", {"host": "localhost", "port": 6379, "database": 0}),
         ("redis://cache:6380/4", {"host": "cache", "port": 6380, "database": 4}),
+        ("redis://%63ache:6380/4", {"host": "cache", "port": 6380, "database": 4}),
         (
             "redis://user:p%40ssword@cache:6380/4",
             {
@@ -44,6 +46,19 @@ def test_redis_url_is_preserved_for_workers(monkeypatch, url, expected):
     redis_settings = worker_settings.get_redis_settings()
     for key, value in expected.items():
         assert getattr(redis_settings, key) == value
+
+
+def test_encoded_tcp_url_uses_same_connection_as_api(monkeypatch):
+    url = "redis://us%65r:p%40ssword@%63ache:6380/4"
+    monkeypatch.setattr(worker_settings, "settings", Settings(_env_file=None, redis_url=url))
+
+    api_settings = parse_url(url)
+    worker = worker_settings.get_redis_settings()
+    assert worker.host == api_settings["host"]
+    assert worker.port == api_settings["port"]
+    assert worker.database == api_settings["db"]
+    assert worker.username == api_settings["username"]
+    assert worker.password == api_settings["password"]
 
 
 @pytest.mark.parametrize(

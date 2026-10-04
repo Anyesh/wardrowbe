@@ -9,7 +9,9 @@ settings = get_settings()
 
 def get_redis_settings() -> RedisSettings:
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
-    # redis-py decodes URL credentials; keep ARQ's connection in sync with it.
+    # redis-py decodes URL components; keep ARQ's connection in sync with it.
+    if redis_settings.unix_socket_path is None:
+        redis_settings.host = unquote(redis_settings.host)
     if redis_settings.username is not None:
         redis_settings.username = unquote(redis_settings.username)
     if redis_settings.password is not None:
