@@ -341,6 +341,7 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 | `OIDC_ISSUER_URL` | OIDC provider URL (enables SSO login) | No |
 | `OIDC_CLIENT_ID` | OIDC client ID | If OIDC |
 | `OIDC_CLIENT_SECRET` | OIDC client secret | If OIDC |
+| `OIDC_TOKEN_ENDPOINT_AUTH_METHOD` | Override OIDC token endpoint client authentication: `client_secret_basic` or `client_secret_post` | No |
 | `OIDC_SKIP_SSL_VERIFY` | Skip TLS verification for OIDC provider (self-signed certs) | No |
 | `LOCAL_DNS` | Custom DNS server for container name resolution (e.g. local OIDC host) | No |
 | `SMTP_HOST` | SMTP server for email notifications | No |
@@ -385,6 +386,8 @@ If neither is configured, the remove-background button returns a 501 with setup 
 - **OIDC Mode**: Any OIDC provider (PocketID, Authentik, Keycloak, Auth0, etc.)
 
 To enable OIDC, set `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET` in your `.env`. If your OIDC provider uses a self-signed certificate, set `OIDC_SKIP_SSL_VERIFY=true`. If your OIDC provider runs on a hostname that Docker containers can't resolve (e.g. a local DNS name), set `LOCAL_DNS` to your DNS server IP, or set `OIDC_HOST` and `OIDC_HOST_IP` to inject the hostname directly into the container's `/etc/hosts`.
+
+The OIDC client normally selects its token endpoint authentication method from provider discovery, defaulting to `client_secret_basic` when discovery does not specify a method. If your provider requires a particular method, set `OIDC_TOKEN_ENDPOINT_AUTH_METHOD` to `client_secret_basic` or `client_secret_post` on the frontend service. The value must match the provider's registered client authentication method.
 
 When registering the app in your OIDC provider, use this as the callback/redirect URI:
 

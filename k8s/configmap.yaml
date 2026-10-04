@@ -18,6 +18,7 @@ data:
   # Optional: separate OIDC client ID for mobile app
   # If unset, the web OIDC_CLIENT_ID is used for both
   OIDC_MOBILE_CLIENT_ID: ""
+  OIDC_TOKEN_ENDPOINT_AUTH_METHOD: ""
 
   # AI Configuration
   # Use any OpenAI-compatible API (OpenAI, Ollama, LocalAI, etc.)
