@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from app.config import get_settings
 from app.utils.garment_vocabulary import FORMALITY, MATERIALS, TYPES, render_tagging_prompt
+from app.utils.locale import DEFAULT_LOCALE
 from app.utils.prompts import load_prompt
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,16 @@ class ClothingTags(BaseModel):
 
 TAGGING_PROMPT = render_tagging_prompt(load_prompt("clothing_analysis"))
 DESCRIPTION_PROMPT = load_prompt("clothing_description")
+DESCRIPTION_LANGUAGES = {
+    "en": "English",
+    "zh-CN": "Simplified Chinese",
+    "zh-TW": "Traditional Chinese",
+    "ko": "Korean",
+    "ja": "Japanese",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+}
 
 # Valid values for validation
 VALID_TYPES = set(TYPES)
@@ -569,7 +580,10 @@ class AIService:
 
         return None, last_error, None
 
-    async def analyze_image(self, image_path: str | Path) -> ClothingTags:
+    async def analyze_image(
+        self, image_path: str | Path, locale: str = DEFAULT_LOCALE
+    ) -> ClothingTags:
+        """Classify an image and describe it in the owner's saved language."""
         # PIL preprocessing is CPU-bound and synchronous; run off the event loop so
         # concurrent tagging jobs don't stall each other's in-flight HTTP reads.
         image_base64 = await asyncio.to_thread(self._preprocess_image, image_path)
@@ -589,7 +603,14 @@ class AIService:
         ]
 
         messages_desc = [
-            {"role": "system", "content": DESCRIPTION_PROMPT},
+            {
+                "role": "system",
+                "content": DESCRIPTION_PROMPT.format(
+                    language=DESCRIPTION_LANGUAGES.get(
+                        locale, DESCRIPTION_LANGUAGES[DEFAULT_LOCALE]
+                    )
+                ),
+            },
             {
                 "role": "user",
                 "content": [

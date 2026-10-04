@@ -437,6 +437,7 @@ class TestTagsToColumnsProjection:
 class TestWorkerTaggingOrigin:
     @pytest.mark.asyncio
     async def test_happy_path_stamps_auto(self, db_session: AsyncSession, test_user, monkeypatch):
+        test_user.locale = "de"
         item = ClothingItem(
             user_id=test_user.id,
             type="unknown",
@@ -450,11 +451,14 @@ class TestWorkerTaggingOrigin:
             type="shirt", primary_color="blue", colors=["blue"], confidence=0.9
         )
 
+        analyzed = {}
+
         class _StubAI:
             def __init__(self, *args, **kwargs):
                 pass
 
-            async def analyze_image(self, path):
+            async def analyze_image(self, path, locale="en"):
+                analyzed["locale"] = locale
                 return stub_tags
 
         monkeypatch.setattr(tagging, "AIService", _StubAI)
@@ -466,6 +470,7 @@ class TestWorkerTaggingOrigin:
             result = await tagging.tag_item_image({}, str(item.id), __file__)
 
         assert result["status"] == "success"
+        assert analyzed["locale"] == "de"
         refreshed = await _get_item(db_session, item.id)
         assert refreshed.tagging_status == TaggingStatus.tagged
         assert refreshed.tagged_by == TaggedBy.auto
@@ -497,7 +502,7 @@ class TestWorkerTaggingOrigin:
             def __init__(self, *args, **kwargs):
                 pass
 
-            async def analyze_image(self, path):
+            async def analyze_image(self, path, locale="en"):
                 return stub_tags
 
         monkeypatch.setattr(tagging, "AIService", _StubAI)

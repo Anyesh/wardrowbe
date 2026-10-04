@@ -11,7 +11,9 @@ from sqlalchemy import select, update
 from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus, TaggedBy, TaggingStatus
 from app.models.preference import UserPreference
+from app.models.user import User
 from app.services.ai_service import AIService, ClothingTags
+from app.utils.locale import DEFAULT_LOCALE
 from app.workers.db import get_db_session
 
 logger = logging.getLogger(__name__)
@@ -205,6 +207,7 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
 
         # Get user's AI endpoints from preferences, and mark this attempt as started
         ai_endpoints = None
+        locale = DEFAULT_LOCALE
         db = get_db_session(ctx)
         try:
             # Get the item to find user_id
@@ -212,6 +215,9 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
             item = result.scalar_one_or_none()
             if item is None:
                 raise ItemVanishedError(f"Item {item_id} not visible to worker")
+
+            locale_result = await db.execute(select(User.locale).where(User.id == item.user_id))
+            locale = locale_result.scalar_one_or_none() or DEFAULT_LOCALE
 
             # Overwritten on every attempt (not set-once), so a retry's backoff wait
             # reads as "queued for retry," not "still analyzing."
@@ -238,7 +244,7 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         # Analyze with AI (uses custom endpoints if available)
         ai_service = AIService(endpoints=ai_endpoints)
         tags = await asyncio.wait_for(
-            ai_service.analyze_image(path), timeout=_tagging_call_budget(ai_service)
+            ai_service.analyze_image(path, locale=locale), timeout=_tagging_call_budget(ai_service)
         )
 
         logger.info(
