@@ -25,6 +25,7 @@
     {"value": "boots", "role": "footwear", "wash_interval": 15},
     {"value": "sandals", "role": "footwear", "wash_interval": 15},
     {"value": "socks", "role": "socks", "wash_interval": 1},
+    {"value": "tights", "role": "legwear", "wash_interval": 1},
     {"value": "tie", "role": "neckwear", "wash_interval": 20},
     {"value": "hat", "role": "accessory", "wash_interval": 20},
     {"value": "scarf", "role": "accessory", "wash_interval": 10},

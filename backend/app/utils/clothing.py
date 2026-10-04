@@ -86,6 +86,7 @@ _CANONICAL_ROLE_ORDER = [
     "suit",
     "outer_layer",
     "bottom",
+    "legwear",
     "footwear",
     "socks",
     "neckwear",

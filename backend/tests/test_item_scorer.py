@@ -125,6 +125,16 @@ class TestWeatherScore:
         item = _item(type="shirt")
         assert _weather_score(item, _weather(temp=5), None) == 0.7
 
+    def test_thermal_tights_are_suitable_in_cold_and_penalized_in_heat(self):
+        item = _item(type="tights", subtype="Thermal")
+        assert _weather_score(item, _weather(temp=5), None) == 1.0
+        assert _weather_score(item, _weather(temp=30), None) == 0.05
+
+    def test_sheer_tights_are_not_treated_as_thermal(self):
+        item = _item(type="tights", subtype="sheer")
+        assert _weather_score(item, _weather(temp=5), None) == 0.7
+        assert _weather_score(item, _weather(temp=30), None) == 0.8
+
 
 class TestWeatherScoreRange:
     def test_range_ignored_when_min_max_absent(self):

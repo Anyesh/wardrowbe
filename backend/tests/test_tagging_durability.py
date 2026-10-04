@@ -342,11 +342,11 @@ class TestFailureReasonReachesTheApi:
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
         fields = tagging_module.tags_to_item_fields(
-            ClothingTags(unrecognized_type="tights"), '{"type": "tights"}'
+            ClothingTags(unrecognized_type="culottes"), '{"type": "culottes"}'
         )
         assert fields["ai_raw_response"] == {
-            "raw_text": '{"type": "tights"}',
-            "unrecognized_type": "tights",
+            "raw_text": '{"type": "culottes"}',
+            "unrecognized_type": "culottes",
         }
         item = ClothingItem(
             user_id=test_user.id,
@@ -360,7 +360,7 @@ class TestFailureReasonReachesTheApi:
         resp = await client.get(f"/api/v1/items/{item.id}", headers=auth_headers)
         assert resp.status_code == 200
         body = resp.json()
-        assert body["ai_unrecognized_type"] == "tights"
+        assert body["ai_unrecognized_type"] == "culottes"
         assert body["ai_error"] is None
 
     @pytest.mark.asyncio

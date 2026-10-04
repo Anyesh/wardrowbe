@@ -69,7 +69,7 @@ class ItemResponse(ItemBase):
         )
         if isinstance(raw, dict):
             # Same idea for a type the model named but the vocabulary rejected:
-            # lets the UI say "detected 'tights', not a supported type" rather
+            # lets the UI say "detected 'culottes', not a supported type" rather
             # than a bare "unknown".
             for src, dest in (("error", "ai_error"), ("unrecognized_type", "ai_unrecognized_type")):
                 if raw.get(src):

@@ -16,8 +16,9 @@ SUBTYPE (optional): A more specific name within the type. Examples:
 - skirt → mini, midi, maxi, pleated, wrap, pencil
 - sweater → pullover, crewneck, turtleneck, v-neck
 - socks → ankle, crew, knee-high, no-show, dress, athletic
+- tights → sheer, opaque, patterned, thermal
 - tie → necktie, bow-tie, bolo
-Use null if the type is specific enough (e.g. jeans, hoodie, blazer).
+Treat pantyhose as tights. Use null if the type is specific enough (e.g. jeans, hoodie, blazer).
 
 PRIMARY_COLOR (required, pick one):
 black, white, gray, navy, blue, light-blue, red, burgundy, pink, green, olive, yellow, orange, purple, brown, tan, beige, cream, gold, silver

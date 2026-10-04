@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { canonicalItemOrder, ITEM_ROLE } from '@/lib/studio/canonical-order';
+import { canonicalItemOrder, ITEM_ROLE, slotsForType } from '@/lib/studio/canonical-order';
+import { computeWarnings } from '@/lib/studio/warnings';
 import {
   studioReducer,
   INITIAL_STUDIO_STATE,
@@ -54,6 +55,28 @@ describe('canonicalItemOrder', () => {
     for (const t of coreTypes) {
       expect(ITEM_ROLE[t]).toBeDefined();
     }
+  });
+
+  it('gives tights a separate slot from a skirt, dress, and socks', () => {
+    expect(ITEM_ROLE.tights).toBe('legwear');
+    expect(slotsForType('tights')).toEqual(['legwear']);
+    for (const type of ['skirt', 'dress', 'socks']) {
+      expect(slotsForType(type)).not.toContain('legwear');
+    }
+    const sorted = canonicalItemOrder([
+      makeItem('1', 'socks'),
+      makeItem('2', 'tights'),
+      makeItem('3', 'skirt'),
+    ]);
+    expect(sorted.map((item) => item.type)).toEqual(['skirt', 'tights', 'socks']);
+  });
+
+  it('does not count tights as a bottom or a second bottom', () => {
+    const t = (key: string) => key;
+    expect(computeWarnings([makeItem('1', 'shirt'), makeItem('2', 'tights')], t))
+      .toContain('warnings.noBottoms');
+    expect(computeWarnings([makeItem('1', 'skirt'), makeItem('2', 'tights')], t))
+      .not.toContain('warnings.multipleBottoms');
   });
 });
 
@@ -135,6 +158,13 @@ describe('studioReducer', () => {
 });
 
 describe('mergeAiAssist', () => {
+  it('adds tights to an outfit with a skirt and socks', () => {
+    const canvas = [makeItem('1', 'skirt'), makeItem('2', 'socks')];
+    const { merged, skipped } = mergeAiAssist(canvas, [makeItem('3', 'tights')]);
+    expect(merged.map((item) => item.type)).toEqual(['skirt', 'tights', 'socks']);
+    expect(skipped).toHaveLength(0);
+  });
+
   it('adds AI items that fill empty roles', () => {
     const canvas = [makeItem('1', 'shirt')];
     const aiItems = [makeItem('2', 'jeans'), makeItem('3', 'sneakers')];

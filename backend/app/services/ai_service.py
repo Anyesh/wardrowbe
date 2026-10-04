@@ -52,7 +52,7 @@ class ClothingTags(BaseModel):
     raw_response: str | None = None
     # The model's type answer when it fell outside VALID_TYPES. Kept so "the model
     # didn't know" (type missing) stays distinguishable from "the model answered
-    # something we don't support" (e.g. "tights"), which otherwise both read "unknown".
+    # something we don't support" (e.g. "culottes"), which otherwise both read "unknown".
     unrecognized_type: str | None = None
 
 

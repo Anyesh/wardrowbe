@@ -48,6 +48,7 @@ AVAILABLE ITEMS:
 RULES:
 - Pick exactly ONE top (shirt/blouse/sweater/t-shirt) + ONE bottom (pants/jeans/skirt/shorts) + ONE shoes
 - OR pick ONE dress + ONE shoes
+- OPTIONAL: tights can be worn under a skirt or dress; they do not replace the bottom or shoes
 - OPTIONAL: ONE bag if appropriate for the occasion
 - OPTIONAL: accessories (belt, scarf, hat, jewelry) that genuinely complement the outfit
 - For cold or rainy weather, add outerwear (jacket/coat) if available
