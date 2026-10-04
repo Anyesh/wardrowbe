@@ -332,6 +332,7 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `REDIS_URL` | Redis URL for the API and workers (default: `redis://localhost:6379/0`) | No |
 | `SECRET_KEY` | Backend secret for JWT | Yes |
 | `PUID` | Uid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
 | `PGID` | Gid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
@@ -355,6 +356,14 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 | `NEXT_PUBLIC_NETWORK_LOCATION_URL` | Override the IP geolocation provider (default: `https://ipapi.co/json/`). Only used when the fallback above is enabled | No |
 
 See [.env.example](.env.example) for all options.
+
+For deployments outside the bundled Compose stack, set the same `REDIS_URL` on the API
+and both workers. TCP and TLS URLs support credentials in the URL authority, for
+example `redis://user:password@redis:6379/2` and `rediss://redis:6379/2`.
+Unix socket URLs use an absolute path, for example
+`unix:///run/redis/redis.sock?db=2`. The only supported query parameter is `db`;
+percent-encode reserved characters in credentials and socket paths. The bundled
+Compose files set their own Redis URL for each service.
 
 ### Location Detection (Privacy Note)
 
