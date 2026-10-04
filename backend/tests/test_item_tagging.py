@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
+from arq import Retry
 from httpx import AsyncClient
 from PIL import Image
 from sqlalchemy import select
@@ -476,6 +477,49 @@ class TestWorkerTaggingOrigin:
         assert refreshed.tagged_by == TaggedBy.auto
         assert refreshed.tagged_at is not None
         assert refreshed.status == ItemStatus.ready
+
+    @pytest.mark.asyncio
+    async def test_retry_uses_updated_owner_locale(
+        self, db_session: AsyncSession, test_user, monkeypatch
+    ):
+        test_user.locale = "de"
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="unknown",
+            image_path="test/worker-retry-locale.jpg",
+            status=ItemStatus.processing,
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        analyzed_locales = []
+
+        class _StubAI:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def analyze_image(self, path, locale="en"):
+                analyzed_locales.append(locale)
+                if len(analyzed_locales) == 1:
+                    raise RuntimeError("temporary AI failure")
+                return ClothingTags(type="shirt", primary_color="blue", confidence=0.9)
+
+        monkeypatch.setattr(tagging, "AIService", _StubAI)
+
+        with (
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+        ):
+            with pytest.raises(Retry):
+                await tagging.tag_item_image({"job_try": 1}, str(item.id), __file__)
+
+            test_user.locale = "fr"
+            await db_session.commit()
+
+            result = await tagging.tag_item_image({"job_try": 2}, str(item.id), __file__)
+
+        assert result["status"] == "success"
+        assert analyzed_locales == ["de", "fr"]
 
     @pytest.mark.asyncio
     async def test_manual_origin_survives_late_worker_completion(
