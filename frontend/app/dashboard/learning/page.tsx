@@ -29,7 +29,7 @@ import {
   type StyleInsight,
   type LearnedColorScore,
 } from '@/lib/hooks/use-learning';
-import { useColorLabel } from '@/lib/hooks/use-translated-constants';
+import { useColorLabel, useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -313,6 +313,7 @@ function NoLearningData({ onRecompute, isRefreshing }: { onRecompute: () => void
 export default function LearningPage() {
   const t = useTranslations('learning');
   const colorLabel = useColorLabel();
+  const occasionLabel = useOccasionLabel();
   const locale = useLocale();
   const { data, isLoading, isError } = useLearning();
   const recompute = useRecomputeLearning();
@@ -553,7 +554,7 @@ export default function LearningPage() {
                   {profile.occasion_patterns.map((pattern) => (
                     <div key={pattern.occasion} className="p-4 rounded-lg bg-muted/50">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium capitalize">{pattern.occasion}</h4>
+                        <h4 className="font-medium">{occasionLabel(pattern.occasion)}</h4>
                         <Badge variant="outline">
                           {t('successRate', { percent: Math.round(pattern.success_rate * 100) })}
                         </Badge>

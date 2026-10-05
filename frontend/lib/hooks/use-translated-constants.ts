@@ -60,12 +60,13 @@ type CatalogTranslator = ((key: string) => string) & { has: (key: string) => boo
 
 // Subtypes, materials and formalities can hold values outside the catalog (free text, or rows
 // tagged before the vocabulary changed), so an unknown value falls back to the raw value made
-// readable ("slip-dress" -> "Slip dress") instead of a key path.
+// readable ("slip-dress" -> "Slip dress") instead of a key path. Keys are hyphenated because the
+// backend sends some values with spaces ("partly cloudy"); this matches the cloud repo's termKey.
 function useCatalogLabel(t: CatalogTranslator) {
   return useCallback((value: string) => {
-    const key = value.toLowerCase();
+    const key = value.trim().toLowerCase().replace(/\s+/g, '-');
     if (t.has(key)) return t(key);
-    const spaced = value.replace(/[-_]+/g, ' ').trim();
+    const spaced = value.replace(/[-_\s]+/g, ' ').trim();
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
   }, [t]);
 }
@@ -92,4 +93,16 @@ export function useColorLabel() {
 
 export function useRoleLabel() {
   return useCatalogLabel(useTranslations('constants.roles'));
+}
+
+// The suggest page's weather override sends 'rainy', which the backend stores on the outfit as-is,
+// while the forecast itself reports 'rain'.
+const WEATHER_CONDITION_ALIASES: Record<string, string> = { rainy: 'rain' };
+
+export function useWeatherConditionLabel() {
+  const label = useCatalogLabel(useTranslations('constants.weatherConditions'));
+  return useCallback(
+    (value: string) => label(WEATHER_CONDITION_ALIASES[value.toLowerCase()] ?? value),
+    [label]
+  );
 }

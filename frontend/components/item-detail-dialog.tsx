@@ -67,6 +67,7 @@ import {
   useClothingColors,
   useFormalityLabel,
   useMaterialLabel,
+  useOccasionLabel,
   useSubtypeLabel,
 } from '@/lib/hooks/use-translated-constants';
 import { ColorEyedropper } from '@/components/color-eyedropper';
@@ -119,6 +120,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const clothingColors = useClothingColors();
   const subtypeLabel = useSubtypeLabel();
   const materialLabel = useMaterialLabel();
+  const occasionLabel = useOccasionLabel();
   const formalityLabel = useFormalityLabel();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -873,7 +875,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         {wearStats.most_common_occasion && (
                           <div className="bg-muted/50 rounded-md p-2">
                             <p className="text-muted-foreground">{t('view.usualOccasion')}</p>
-                            <p className="font-medium text-sm capitalize">{wearStats.most_common_occasion}</p>
+                            <p className="font-medium text-sm">{occasionLabel(wearStats.most_common_occasion)}</p>
                           </div>
                         )}
                       </div>
@@ -914,7 +916,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                                   {formatDate(entry.worn_at, locale)}
                                 </span>
                                 {entry.occasion && (
-                                  <Badge variant="outline" className="text-[10px] h-4">{entry.occasion}</Badge>
+                                  <Badge variant="outline" className="text-[10px] h-4">{occasionLabel(entry.occasion)}</Badge>
                                 )}
                                 {entry.outfit && (
                                   <div className="flex -space-x-1">

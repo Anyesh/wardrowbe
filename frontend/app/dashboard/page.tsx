@@ -32,7 +32,7 @@ import Image from 'next/image';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
 import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
-import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useWeatherConditionLabel } from '@/lib/hooks/use-translated-constants';
 import { displayValue, tempSymbol, TempUnit } from '@/lib/temperature';
 import { usePendingOutfits, useAcceptOutfit, useRejectOutfit } from '@/lib/hooks/use-outfits';
 import { useSchedules, useNotificationSettings } from '@/lib/hooks/use-notifications';
@@ -46,6 +46,7 @@ function WeatherCard() {
   const { data: weather, isLoading, isError } = useWeather();
   const { data: prefs } = usePreferences();
   const t = useTranslations('dashboard');
+  const conditionLabel = useWeatherConditionLabel();
   const unit: TempUnit = prefs?.temperature_unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
 
   if (isLoading) {
@@ -101,8 +102,8 @@ function WeatherCard() {
             {t('weather.feelsLike', { temp: `${displayValue(weather.feels_like, unit)}°` })}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground capitalize mb-1">
-          {weather.condition}
+        <p className="text-sm text-muted-foreground mb-1">
+          {conditionLabel(weather.condition)}
         </p>
         {weather.precipitation_chance > 0 && (
           <p className="text-xs text-muted-foreground flex items-center gap-1">

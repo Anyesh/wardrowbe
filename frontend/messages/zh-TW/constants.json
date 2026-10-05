@@ -198,7 +198,29 @@
   "weatherConditions": {
     "clear": "晴朗",
     "cloudy": "多雲",
+    "drizzle": "毛毛雨",
+    "foggy": "起霧",
+    "freezing-drizzle": "凍毛毛雨",
+    "freezing-rain": "凍雨",
+    "heavy-drizzle": "較強毛毛雨",
+    "heavy-rain": "大雨",
+    "heavy-showers": "強陣雨",
+    "heavy-snow": "大雪",
+    "light-drizzle": "輕微毛毛雨",
+    "light-rain": "小雨",
+    "light-showers": "短暫小雨",
+    "light-snow": "小雪",
+    "light-snow-showers": "短暫小雪",
+    "mostly-sunny": "大致晴朗",
+    "partly-cloudy": "晴時多雲",
     "rain": "下雨",
-    "snow": "下雪"
+    "showers": "陣雨",
+    "snow": "下雪",
+    "snow-grains": "米雪",
+    "snow-showers": "陣雪",
+    "sunny": "晴天",
+    "thunderstorm": "雷雨",
+    "thunderstorm-with-hail": "雷雨夾冰雹",
+    "unknown": "未知"
   }
 }
