@@ -2,10 +2,10 @@ import asyncio
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import delete, func, or_, select, text
+from sqlalchemy import delete, or_, select, text
 
 from app.models import User
-from app.schemas.user import UserSyncRequest
+from app.schemas.user import UserResponse, UserSyncRequest
 from app.services.user_service import UserEmailConflictError, UserService
 
 
@@ -79,23 +79,32 @@ async def _cleanup(session_maker, *conditions):
         await cleanup.commit()
 
 
+async def _commit_users(session_maker, *users: User):
+    async with session_maker() as setup:
+        setup.add_all(users)
+        await setup.commit()
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("verified", "commit_first_before"),
+    ("verified", "commit_first_before", "squatted"),
     [
-        pytest.param(True, None, id="commit-while-second-inserts"),
-        pytest.param(False, "get_by_email", id="unverified-commit-between-lookups"),
+        pytest.param(True, None, False, id="commit-while-second-inserts"),
+        pytest.param(False, "get_by_email", False, id="unverified-commit-between-lookups"),
+        pytest.param(True, None, True, id="concurrent-reclaims"),
     ],
 )
 async def test_concurrent_first_sync_for_same_identity_creates_one_user(
-    session_maker, verified, commit_first_before
+    session_maker, verified, commit_first_before, squatted
 ):
     external_id = f"race-{uuid4()}"
-    sync = UserSyncRequest(
-        external_id=external_id, email=f"{external_id}@example.com", display_name="Race"
-    )
+    email = f"{external_id}@example.com"
+    sync = UserSyncRequest(external_id=external_id, email=email, display_name="Race")
+    squatter = User(external_id=f"squat-{uuid4()}", email=email, display_name="Squatter")
+    if squatted:
+        await _commit_users(session_maker, squatter)
     try:
-        (user_a, new_a), (user_b, new_b), _ = await _race(
+        (user_a, new_a), (user_b, new_b), emails = await _race(
             session_maker,
             sync,
             sync,
@@ -103,18 +112,14 @@ async def test_concurrent_first_sync_for_same_identity_creates_one_user(
             second_verified=verified,
             commit_first_before=commit_first_before,
         )
-
-        async with session_maker() as check:
-            rows = await check.scalar(
-                select(func.count()).select_from(User).where(User.external_id == external_id)
-            )
     finally:
-        await _cleanup(session_maker, User.external_id == external_id)
+        await _cleanup(session_maker, User.external_id.in_([external_id, squatter.external_id]))
 
-    assert new_a is True
-    assert new_b is False
+    assert (new_a, new_b) == (True, False)
     assert user_b.id == user_a.id
-    assert rows == 1
+    assert emails[external_id] == email
+    if squatted:
+        assert emails[squatter.external_id] == f"{squatter.id}@detached.invalid"
 
 
 @pytest.mark.asyncio
@@ -153,84 +158,103 @@ async def test_concurrent_first_sync_refuses_adoption_when_not_allowed(session_m
 
 
 @pytest.mark.asyncio
-async def test_sync_refuses_adoption_by_email_when_not_allowed(db_session, test_user):
-    original_external_id = test_user.external_id
-    sync = UserSyncRequest(
-        external_id=f"oidc-{uuid4()}", email=test_user.email, display_name="Attacker"
+@pytest.mark.parametrize(
+    ("caller_verified", "stored_verified", "outcome"),
+    [
+        pytest.param(True, True, "adopted", id="both-verified"),
+        pytest.param(False, True, "unverified-caller", id="caller-unverified"),
+        pytest.param(True, False, "reclaimed", id="stored-unverified"),
+        pytest.param(False, False, "unverified-caller", id="neither"),
+    ],
+)
+async def test_adoption_requires_both_verified(
+    db_session, caller_verified, stored_verified, outcome
+):
+    run = uuid4()
+    email = f"owner-{run}@example.com"
+    stored = User(external_id=f"old-{run}", email=email, display_name="Stored")
+    if stored_verified:
+        stored.email_verified = True
+    db_session.add(stored)
+    await db_session.flush()
+    await db_session.refresh(stored)
+    assert stored.email_verified is stored_verified
+    caller = UserSyncRequest(external_id=f"new-{run}", email=email, display_name="Caller")
+    service = UserService(db_session)
+
+    if outcome == "unverified-caller":
+        with pytest.raises(UserEmailConflictError, match="provider that verifies"):
+            await service.sync_from_oidc(caller, email_verified=caller_verified)
+        await db_session.refresh(stored)
+        assert (stored.external_id, stored.email) == (f"old-{run}", email)
+        return
+
+    user, is_new = await service.sync_from_oidc(caller, email_verified=caller_verified)
+    await db_session.refresh(stored)
+    if outcome == "adopted":
+        assert (is_new, user.id, user.external_id) == (False, stored.id, caller.external_id)
+        return
+
+    assert (is_new, user.email, user.email_verified) == (True, email, True)
+    assert user.id != stored.id
+    placeholder = f"{stored.id}@detached.invalid"
+    assert (stored.external_id, stored.email, stored.email_verified) == (
+        f"old-{run}",
+        placeholder,
+        False,
     )
+    UserResponse.model_validate(stored)
+    for later in (
+        UserSyncRequest(external_id=stored.external_id, email=email, display_name="Stored"),
+        UserSyncRequest(external_id=f"other-{run}", email=placeholder, display_name="Other"),
+    ):
+        with pytest.raises(UserEmailConflictError, match="^Email already in use by another"):
+            await service.sync_from_oidc(later, email_verified=True)
 
-    with pytest.raises(UserEmailConflictError):
-        await UserService(db_session).sync_from_oidc(sync, email_verified=False)
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("change_verified", "owner_exists", "outcome"),
+    [
+        pytest.param(True, False, "adopted", id="verified-change-new-owner"),
+        pytest.param(False, False, "reclaimed", id="unverified-change-new-owner"),
+        pytest.param(True, True, "in-use", id="verified-change-existing-owner"),
+        pytest.param(False, True, "reclaimed", id="unverified-change-existing-owner"),
+    ],
+)
+async def test_changed_email_is_adoptable_only_when_verified(
+    db_session, test_user, change_verified, owner_exists, outcome
+):
+    run = uuid4()
+    target = f"target-{run}@example.com"
+    change = UserSyncRequest(external_id=test_user.external_id, email=target, display_name="Me")
+    owner = UserSyncRequest(external_id=f"owner-{run}", email=target, display_name="Owner")
+    service = UserService(db_session)
+    if owner_exists:
+        await service.sync_from_oidc(
+            owner.model_copy(update={"email": f"owner-{run}@example.com"}), email_verified=True
+        )
+
+    changed, _ = await service.sync_from_oidc(change, email_verified=change_verified)
+    assert (changed.email, changed.email_verified) == (target, change_verified)
+
+    if outcome == "in-use":
+        with pytest.raises(UserEmailConflictError, match="^Email already in use by another"):
+            await service.sync_from_oidc(owner, email_verified=True)
+        return
+
+    owned, is_new = await service.sync_from_oidc(owner, email_verified=True)
     await db_session.refresh(test_user)
-    assert test_user.external_id == original_external_id
-    assert test_user.display_name == "Test User"
-
-
-@pytest.mark.asyncio
-async def test_sync_adopts_by_email_when_allowed(db_session, test_user):
-    sync = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=test_user.email, display_name="New")
-
-    user, is_new = await UserService(db_session).sync_from_oidc(sync, email_verified=True)
-
-    assert is_new is False
-    assert user.id == test_user.id
-    assert user.external_id == sync.external_id
-
-
-@pytest.mark.asyncio
-async def test_unverified_sign_up_is_never_adopted(db_session):
-    email = f"victim-{uuid4()}@example.com"
-    squatter = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Squatter")
-    owner = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Owner")
-    service = UserService(db_session)
-
-    squatted, is_new = await service.sync_from_oidc(squatter, email_verified=False)
-    assert is_new is True
-    assert squatted.email_verified is False
-
-    with pytest.raises(UserEmailConflictError):
-        await service.sync_from_oidc(owner, email_verified=True)
-
-    await db_session.refresh(squatted)
-    assert (squatted.external_id, squatted.display_name) == (squatter.external_id, "Squatter")
-
-
-@pytest.mark.asyncio
-async def test_unverified_email_change_is_never_adopted(db_session, test_user):
-    victim_email = f"victim-{uuid4()}@example.com"
-    change = UserSyncRequest(
-        external_id=test_user.external_id, email=victim_email, display_name="Squatter"
-    )
-    owner = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=victim_email, display_name="Owner")
-    service = UserService(db_session)
-
-    changed, _ = await service.sync_from_oidc(change, email_verified=False)
-    assert changed.email == victim_email
-    assert changed.email_verified is False
-
-    with pytest.raises(UserEmailConflictError):
-        await service.sync_from_oidc(owner, email_verified=True)
-
-    await db_session.refresh(test_user)
-    assert test_user.external_id == change.external_id
-
-
-@pytest.mark.asyncio
-async def test_verified_email_change_stays_adoptable(db_session, test_user):
-    new_email = f"moved-{uuid4()}@example.com"
-    change = UserSyncRequest(external_id=test_user.external_id, email=new_email, display_name="Me")
-    migrate = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=new_email, display_name="Me")
-    service = UserService(db_session)
-
-    changed, _ = await service.sync_from_oidc(change, email_verified=True)
-    assert changed.email_verified is True
-
-    adopted, is_new = await service.sync_from_oidc(migrate, email_verified=True)
-    assert is_new is False
-    assert adopted.id == test_user.id
-    assert adopted.external_id == migrate.external_id
-    assert adopted.email_verified is True
+    assert (owned.email, owned.email_verified) == (target, True)
+    assert is_new is (outcome == "reclaimed" and not owner_exists)
+    if outcome == "adopted":
+        assert (owned.id, test_user.external_id) == (test_user.id, owner.external_id)
+    else:
+        assert owned.id != test_user.id
+        assert (test_user.external_id, test_user.email) == (
+            change.external_id,
+            f"{test_user.id}@detached.invalid",
+        )
 
 
 @pytest.mark.asyncio
@@ -249,25 +273,6 @@ async def test_verified_sign_in_marks_unchanged_email_verified(db_session):
 
     user, _ = await service.sync_from_oidc(sync, email_verified=False)
     assert user.email_verified is True
-
-
-@pytest.mark.asyncio
-async def test_user_inserted_without_verification_defaults_to_unverified(db_session):
-    unique_id = uuid4()
-    user = User(
-        external_id=f"raw-{unique_id}", email=f"raw-{unique_id}@example.com", display_name="Raw"
-    )
-    db_session.add(user)
-    await db_session.flush()
-    await db_session.refresh(user)
-
-    assert user.email_verified is False
-
-
-async def _commit_users(session_maker, *users: User):
-    async with session_maker() as setup:
-        setup.add_all(users)
-        await setup.commit()
 
 
 @pytest.mark.asyncio

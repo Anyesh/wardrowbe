@@ -11,6 +11,14 @@ from sqlalchemy.orm import selectinload
 from app.models.user import User
 from app.schemas.user import UserCreate, UserSyncRequest, UserUpdate
 
+# Reserved by RFC 2606, so a detached address can never be delivered to or claimed by a sign-in.
+DETACHED_EMAIL_DOMAIN = "detached.invalid"
+EMAIL_IN_USE = "Email already in use by another account."
+UNVERIFIED_EMAIL_IN_USE = (
+    "Email already in use by another account. "
+    "Sign in with a provider that verifies this address to use it."
+)
+
 
 class UserService:
     def __init__(self, db: AsyncSession):
@@ -75,8 +83,12 @@ class UserService:
         we update the external_id. This allows seamless migration between
         auth providers (e.g., TinyAuth forward-auth to direct Pocket ID OIDC).
         That takeover requires both the caller's email and the existing account's email
-        to be verified; otherwise UserEmailConflictError is raised.
+        to be verified. A verified caller whose email is held by an unverified account
+        reclaims it instead: that account keeps its data under a detached placeholder
+        address. Any other email clash raises UserEmailConflictError.
         """
+        if sync_data.email.lower().endswith(f"@{DETACHED_EMAIL_DOMAIN}"):
+            raise UserEmailConflictError(EMAIL_IN_USE)
         user = await self.get_by_external_id(sync_data.external_id)
         if user is not None:
             return await self._sign_in_existing(user, sync_data, email_verified), False
@@ -100,20 +112,26 @@ class UserService:
             # The caller's own row, committed by a concurrent first sign-in between the
             # external_id lookup and this one: not an adoption.
             return await self._sign_in_existing(holder, sync_data, email_verified), False
-        return await self._adopt(holder, sync_data, email_verified), False
+        if not email_verified:
+            raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE)
+        if holder.email_verified:
+            return await self._adopt(holder, sync_data), False
+        return await self._insert_synced_user(sync_data, email_verified, reclaim_from=holder), True
 
     async def _sign_in_existing(
         self, user: User, sync_data: UserSyncRequest, email_verified: bool
     ) -> User:
-        email_taken = (
-            f"Cannot update email to {sync_data.email}: already in use by another account."
-        )
+        holder = None
         if user.email != sync_data.email:
-            existing_by_email = await self.get_by_email(sync_data.email)
-            if existing_by_email is not None and existing_by_email.id != user.id:
-                raise UserEmailConflictError(email_taken)
+            holder = await self.get_by_email(sync_data.email)
+            if holder is not None and holder.email_verified:
+                raise UserEmailConflictError(EMAIL_IN_USE)
+            if holder is not None and not email_verified:
+                raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE)
 
-        async with self._conflict_savepoint(email_taken):
+        async with self._conflict_savepoint(EMAIL_IN_USE):
+            if holder is not None:
+                await self._detach_email(holder)
             if user.email != sync_data.email:
                 user.email = sync_data.email
                 user.email_verified = email_verified
@@ -126,14 +144,9 @@ class UserService:
         await self.db.refresh(user)
         return user
 
-    async def _adopt(self, holder: User, sync_data: UserSyncRequest, email_verified: bool) -> User:
+    async def _adopt(self, holder: User, sync_data: UserSyncRequest) -> User:
         # Migrate an existing user to the new external_id (auth provider change):
         # email is the stable identifier, external_id can change
-        if not (email_verified and holder.email_verified):
-            raise UserEmailConflictError(
-                "Email already associated with another account. "
-                "Verified email required for migration."
-            )
         async with self._conflict_savepoint(
             "Email already associated with another account that is signing in concurrently."
         ):
@@ -157,7 +170,16 @@ class UserService:
         except IntegrityError as e:
             raise UserEmailConflictError(message) from e
 
-    async def _insert_synced_user(self, sync_data: UserSyncRequest, email_verified: bool) -> User:
+    async def _detach_email(self, holder: User) -> None:
+        # Flushed on its own because the unit of work may order the caller's insert or update
+        # of the same address ahead of this update, which would trip the unique constraint.
+        holder.email = f"{holder.id}@{DETACHED_EMAIL_DOMAIN}"
+        holder.email_verified = False
+        await self.db.flush()
+
+    async def _insert_synced_user(
+        self, sync_data: UserSyncRequest, email_verified: bool, *, reclaim_from: User | None = None
+    ) -> User:
         user = User(
             external_id=sync_data.external_id,
             email=sync_data.email,
@@ -166,8 +188,11 @@ class UserService:
             avatar_url=sync_data.avatar_url,
             last_login_at=datetime.now(UTC),
         )
-        # A savepoint so that a unique violation leaves the request's transaction usable.
+        # A savepoint so that a unique violation leaves the request's transaction usable and
+        # undoes the detach along with the insert.
         async with self.db.begin_nested():
+            if reclaim_from is not None:
+                await self._detach_email(reclaim_from)
             self.db.add(user)
             await self.db.flush()
         await self.db.refresh(user)
