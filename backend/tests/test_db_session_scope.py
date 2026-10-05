@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.database as database
 from app.api.auth import create_access_token
@@ -18,13 +18,10 @@ APP_DIR = Path(__file__).resolve().parent.parent / "app"
 
 
 @pytest.fixture
-def real_get_db(async_engine, monkeypatch):
-    test_session_maker = async_sessionmaker(
-        async_engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
-    )
-    monkeypatch.setattr(database, "async_session_maker", test_session_maker)
-    app.dependency_overrides.clear()
-    return test_session_maker
+def real_get_db(session_maker, monkeypatch):
+    monkeypatch.setattr(database, "async_session_maker", session_maker)
+    monkeypatch.setattr(app, "dependency_overrides", {})
+    return session_maker
 
 
 async def _asgi_call(method, path, body=None, headers=None, on_response_start=None):

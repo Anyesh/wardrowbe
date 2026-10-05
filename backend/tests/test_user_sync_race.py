@@ -3,16 +3,10 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import delete, func, or_, select, text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models import User
 from app.schemas.user import UserSyncRequest
 from app.services.user_service import UserEmailConflictError, UserService
-
-
-@pytest.fixture
-def session_maker(async_engine):
-    return async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def _wait_until_blocked_by(session_maker, waiter_pid: int, holder_pid: int):
