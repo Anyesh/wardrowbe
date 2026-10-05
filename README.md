@@ -413,7 +413,7 @@ Forward-auth lets an authenticating reverse proxy sign people in to Wardrowbe. I
 
 1. The proxy (TinyAuth or Authelia behind Caddy, Traefik or nginx) authenticates the browser and adds `Remote-User`, `Remote-Email`, optionally `Remote-Name`, and a static `X-Forward-Auth-Secret` header to every request it forwards.
 2. On `/login` the app signs in by itself: the backend checks the secret, then creates or finds the user keyed by `Remote-User`. A wrong or missing secret gets a 401, so headers sent without it are ignored.
-3. After sign-in, requests use Wardrowbe's own session token and the headers are not trusted per request. If the proxy starts reporting a different `Remote-User`, the old session is signed out.
+3. After sign-in, requests use Wardrowbe's own session token, and the proxy headers never sign a request in. They can only refuse one: a request that carries the right secret and a `Remote-User` other than the session's user gets a 401. So if the proxy starts reporting a different `Remote-User`, the next page load signs the old session out, and a tab that is already open has its API calls refused until it reloads.
 4. Logging out ends the Wardrowbe session, then sends the browser to the proxy's logout page so the proxy session ends too (TinyAuth's page asks for one more click).
 
 Set these in `.env`:

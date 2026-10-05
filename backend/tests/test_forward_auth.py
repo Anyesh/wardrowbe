@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import _is_dev_mode
+from app.api.auth import _is_dev_mode, create_access_token
 from app.config import Settings, get_settings
 from app.models import User
 from app.utils.auth import decode_token
@@ -50,6 +50,12 @@ def _proxy_headers(
 async def _user_by_external_id(db: AsyncSession, external_id: str) -> User | None:
     result = await db.execute(select(User).where(User.external_id == external_id))
     return result.scalar_one_or_none()
+
+
+async def _add_user(db: AsyncSession, external_id: str) -> str:
+    db.add(User(external_id=external_id, email=f"{uuid4()}@example.com", display_name="Voilà"))
+    await db.commit()
+    return external_id
 
 
 class TestForwardAuthSync:
@@ -585,19 +591,96 @@ class TestForwardAuthConfigAndStatus:
 
 class TestRequestsAfterSignIn:
     @pytest.mark.asyncio
-    async def test_bearer_user_wins_over_remote_user_headers(
+    async def test_bearer_matching_remote_user_is_accepted(
         self, client: AsyncClient, test_user: User, auth_headers: dict
     ):
-        with patch("app.api.auth.settings", _forward_auth_only()):
-            other = await client.post(SYNC_URL, headers=_proxy_headers(user="tinyauth-other"))
-            assert other.status_code == 200
+        with patch("app.utils.auth.settings", _forward_auth_only()):
+            response = await client.get(
+                "/api/v1/users/me",
+                headers={**_proxy_headers(user=test_user.external_id), **auth_headers},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["email"] == test_user.email
+
+    @pytest.mark.asyncio
+    async def test_bearer_matching_non_ascii_remote_user_is_accepted(
+        self, client: AsyncClient, db_session: AsyncSession
+    ):
+        external_id = await _add_user(db_session, f"{uuid4()}voilà")
+
+        with patch("app.utils.auth.settings", _forward_auth_only()):
+            response = await client.get(
+                "/api/v1/users/me",
+                headers={
+                    **_proxy_headers(user=external_id.encode()),
+                    "Authorization": f"Bearer {create_access_token(external_id)}",
+                },
+            )
+
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_bearer_for_a_different_remote_user_returns_401(
+        self, client: AsyncClient, auth_headers: dict
+    ):
+        with patch("app.utils.auth.settings", _forward_auth_only()):
+            response = await client.get(
+                "/api/v1/users/me",
+                headers={**_proxy_headers(user="tinyauth-other"), **auth_headers},
+            )
+
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_bearer_for_a_remote_user_differing_in_a_trailing_byte_returns_401(
+        self, client: AsyncClient, db_session: AsyncSession
+    ):
+        external_id = await _add_user(db_session, f"{uuid4()}voilà")
+
+        with patch("app.utils.auth.settings", _forward_auth_only()):
+            response = await client.get(
+                "/api/v1/users/me",
+                headers={
+                    **_proxy_headers(user=external_id.replace("à", "Ã").encode()),
+                    "Authorization": f"Bearer {create_access_token(external_id)}",
+                },
+            )
+
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "headers",
+        [
+            {"Remote-User": "tinyauth-other"},
+            {"Remote-User": "tinyauth-other", "X-Forward-Auth-Secret": "w" * 32},
+            {"Remote-User": "tinyauth-other", "X-Forward-Auth-Secret": ""},
+            {"X-Forward-Auth-Secret": PROXY_SECRET},
+            {"Remote-User": "", "X-Forward-Auth-Secret": PROXY_SECRET},
+        ],
+        ids=["no-secret", "wrong-secret", "empty-secret", "no-remote-user", "empty-remote-user"],
+    )
+    async def test_untrusted_or_absent_remote_user_is_ignored(
+        self, client: AsyncClient, test_user: User, auth_headers: dict, headers: dict
+    ):
+        with patch("app.utils.auth.settings", _forward_auth_only()):
+            response = await client.get("/api/v1/users/me", headers={**headers, **auth_headers})
+
+        assert response.status_code == 200
+        assert response.json()["email"] == test_user.email
+
+    @pytest.mark.asyncio
+    async def test_remote_user_is_ignored_when_forward_auth_is_not_configured(
+        self, client: AsyncClient, test_user: User, auth_headers: dict
+    ):
+        with patch("app.utils.auth.settings", _settings(forward_auth_secret=None)):
             response = await client.get(
                 "/api/v1/users/me",
                 headers={**_proxy_headers(user="tinyauth-other"), **auth_headers},
             )
 
         assert response.status_code == 200
-        assert response.json()["email"] == test_user.email
 
     @pytest.mark.asyncio
     async def test_proxy_headers_alone_do_not_authenticate(self, client: AsyncClient):

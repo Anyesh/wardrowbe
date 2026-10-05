@@ -1,4 +1,3 @@
-import hmac
 from datetime import datetime, timedelta
 from typing import Annotated
 from urllib.parse import urlencode
@@ -22,7 +21,11 @@ from app.schemas.user import (
 )
 from app.services.user_service import UserEmailConflictError, UserService
 from app.utils.auth import get_current_user
-from app.utils.forward_auth import proxy_header
+from app.utils.forward_auth import (
+    FORWARD_AUTH_SECRET_HEADER,
+    forward_auth_secret_matches,
+    proxy_header,
+)
 from app.utils.oidc import validate_oidc_id_token
 from app.utils.rate_limit import rate_limit_by_ip
 
@@ -53,7 +56,6 @@ def _oidc_configured() -> bool:
 
 
 MOBILE_APP_SCHEME = "wardrowbe"
-FORWARD_AUTH_SECRET_HEADER = "X-Forward-Auth-Secret"
 FORWARD_AUTH_ONLY_MOBILE_NOTICE = (
     "Forward-auth signs in browsers only. The mobile app needs OIDC: "
     "set OIDC_ISSUER_URL and OIDC_CLIENT_ID alongside FORWARD_AUTH_SECRET."
@@ -122,11 +124,7 @@ def _claims_email(oidc_claims: dict) -> str | None:
 
 
 async def _forward_auth_identity(request: Request, presented_secret: str) -> UserSyncRequest:
-    expected_secret = settings.forward_auth_secret or ""
-    secret_matches = bool(expected_secret) and hmac.compare_digest(
-        presented_secret.encode(), expected_secret.encode()
-    )
-    if not secret_matches:
+    if not forward_auth_secret_matches(presented_secret, settings.forward_auth_secret):
         # Only failures count, because browser sign-ins can all arrive from the frontend
         # container's IP, and limiting successes would lock every user out together.
         await rate_limit_by_ip(request, *SYNC_RATE_LIMIT)
