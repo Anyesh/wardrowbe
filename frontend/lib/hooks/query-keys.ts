@@ -68,8 +68,8 @@ export const queryKeys = {
   },
   pairings: {
     all: PAIRINGS,
-    list: (page: number, pageSize: number, sourceType: string | undefined) =>
-      [...PAIRINGS, page, pageSize, sourceType] as const,
+    list: (pageSize: number, sourceType: string | undefined) =>
+      [...PAIRINGS, 'list', pageSize, sourceType] as const,
     forItem: (itemId: string) => [...PAIRINGS, 'item', itemId] as const,
     forItemPage: (itemId: string, page: number, pageSize: number) =>
       [...PAIRINGS, 'item', itemId, page, pageSize] as const,
