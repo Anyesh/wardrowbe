@@ -34,7 +34,8 @@ import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDate } from '@/lib/utils';
 
 function StatCard({
   title,
@@ -112,6 +113,15 @@ function LoadingSkeleton() {
     </div>
   );
 }
+
+const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric',
+};
 
 function ColorPreferenceBar({ colorScore }: { colorScore: LearnedColorScore }) {
   const colorLabel = useColorLabel();
@@ -303,6 +313,7 @@ function NoLearningData({ onRecompute, isRefreshing }: { onRecompute: () => void
 export default function LearningPage() {
   const t = useTranslations('learning');
   const colorLabel = useColorLabel();
+  const locale = useLocale();
   const { data, isLoading, isError } = useLearning();
   const recompute = useRecomputeLearning();
   const generateInsights = useGenerateInsights();
@@ -658,7 +669,9 @@ export default function LearningPage() {
           {/* Last Updated */}
           {profile.last_computed_at && (
             <p className="text-xs text-muted-foreground text-center">
-              {t('lastUpdated', { date: new Date(profile.last_computed_at).toLocaleString() })}
+              {t('lastUpdated', {
+                date: formatDate(profile.last_computed_at, locale, DATE_TIME_OPTIONS),
+              })}
             </p>
           )}
         </>

@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn, formatDateKey } from '@/lib/utils';
+import { cn, formatDate, formatDateKey } from '@/lib/utils';
 import { useUserToday } from '@/lib/hooks/use-user';
 import {
   startOfMonth,
@@ -11,7 +11,6 @@ import {
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
-  format,
   isSameMonth,
   isSameDay,
   addMonths,
@@ -19,7 +18,7 @@ import {
 } from 'date-fns';
 import type { Outfit } from '@/lib/hooks/use-outfits';
 import { buildCalendarIndicators } from '@/lib/outfits/calendar-indicators';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
@@ -41,6 +40,7 @@ export function OutfitCalendar({
   onMonthChange,
 }: OutfitCalendarProps) {
   const t = useTranslations('outfits.calendar');
+  const locale = useLocale();
   const currentMonth = new Date(year, month - 1, 1);
 
   const outfitsByDate = useMemo(() => buildCalendarIndicators(outfits), [outfits]);
@@ -76,7 +76,7 @@ export function OutfitCalendar({
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h3 className="font-semibold text-lg">
-          {format(currentMonth, 'MMMM yyyy')}
+          {formatDate(currentMonth, locale, { month: 'long', year: 'numeric' })}
         </h3>
         <Button variant="ghost" size="icon" onClick={handleNextMonth}>
           <ChevronRight className="h-4 w-4" />
@@ -121,7 +121,7 @@ export function OutfitCalendar({
                 isDayToday && !isSelected && 'bg-accent font-semibold'
               )}
             >
-              <span>{format(day, 'd')}</span>
+              <span>{day.getDate()}</span>
               {/* Outfit indicators */}
               {(hasScheduled || hasOnDemand) && (
                 <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">

@@ -4,8 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDistanceToNow, parseISO } from 'date-fns';
 import {
   BookmarkPlus,
   CalendarPlus,
@@ -29,11 +29,13 @@ import { useWearToday } from '@/lib/hooks/use-studio';
 import { useUserToday } from '@/lib/hooks/use-user';
 import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import { getErrorMessage } from '@/lib/api';
+import { formatDate } from '@/lib/utils';
 
 export default function OutfitDetailPage() {
   const t = useTranslations('outfits');
   const tc = useTranslations('common');
   const occasionLabel = useOccasionLabel();
+  const locale = useLocale();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const outfitId = params?.id;
@@ -242,7 +244,11 @@ export default function OutfitDetailPage() {
                 >
                   <span className="text-sm">
                     {wear.scheduled_for
-                      ? format(parseISO(wear.scheduled_for), 'MMM d, yyyy')
+                      ? formatDate(wear.scheduled_for, locale, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })
                       : t('detail.undated')}
                   </span>
                   {wear.feedback?.rating && (
