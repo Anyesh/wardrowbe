@@ -24,6 +24,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/lib/utils';
+import { RATING_STARS } from '@/lib/rating';
 
 function getInitials(name: string) {
   return name
@@ -112,7 +113,7 @@ function FeedOutfitCard({
           <div className="flex items-center gap-2 text-sm">
             <Users className="h-4 w-4 text-muted-foreground" />
             <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map((star) => (
+              {RATING_STARS.map((star) => (
                 <Star
                   key={star}
                   className={`h-4 w-4 ${
@@ -163,7 +164,7 @@ function FeedOutfitCard({
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">{t('ratings.yourRating')}</span>
               <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map((star) => (
+                {RATING_STARS.map((star) => (
                   <Star
                     key={star}
                     className={`h-4 w-4 ${

@@ -6,11 +6,13 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.preference import (
     DEFAULT_AVOID_REPEAT_DAYS,
-    DEFAULT_COLD_THRESHOLD,
-    DEFAULT_HOT_THRESHOLD,
     UserPreference,
 )
 from app.schemas.preference import PreferenceUpdate
+from app.utils.scales import (
+    DEFAULT_COLD_THRESHOLD,
+    DEFAULT_HOT_THRESHOLD,
+)
 
 
 class PreferenceService:

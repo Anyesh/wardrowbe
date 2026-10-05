@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { GRID_PAGE_SIZE } from '@/lib/pagination';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { RATING_STARS } from '@/lib/rating';
 
 function StarRating({
   rating,
@@ -33,7 +34,7 @@ function StarRating({
 
   return (
     <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map((star) => (
+      {RATING_STARS.map((star) => (
         <button
           key={star}
           type="button"

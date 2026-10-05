@@ -9,11 +9,12 @@ import { useDeletePairing } from '@/lib/hooks/use-pairings';
 import { Pairing } from '@/lib/types';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { RATING_STARS } from '@/lib/rating';
 
 function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
+      {RATING_STARS.map((star) => (
         <Star
           key={star}
           className={`h-3.5 w-3.5 ${

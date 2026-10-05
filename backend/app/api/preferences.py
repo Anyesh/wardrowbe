@@ -8,14 +8,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.database import DbSession
 from app.models.preference import (
     DEFAULT_AVOID_REPEAT_DAYS,
-    DEFAULT_COLD_THRESHOLD,
-    DEFAULT_HOT_THRESHOLD,
 )
 from app.models.user import User
 from app.schemas.outfit import stored_occasion_or_default
 from app.schemas.preference import PreferenceResponse, PreferenceUpdate
 from app.services.preference_service import PreferenceService
 from app.utils.auth import get_current_user
+from app.utils.scales import (
+    DEFAULT_COLD_THRESHOLD,
+    DEFAULT_HOT_THRESHOLD,
+)
 
 router = APIRouter(prefix="/users/me/preferences", tags=["Preferences"])
 

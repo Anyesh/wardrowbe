@@ -50,11 +50,11 @@ repos:
         files: ^frontend/(app|components|lib)/.*\.tsx?$
         pass_filenames: false
 
-      # The frontend vocabulary file is generated from the backend JSON, so editing either side
+      # frontend/lib/generated is written from the backend JSON data files, so editing either side
       # without regenerating leaves the two disagreeing.
-      - id: garment-vocabulary
-        name: garment vocabulary up to date
-        entry: bash -c 'cd frontend && node scripts/gen-garment-vocabulary.mjs --check'
+      - id: shared-data
+        name: generated shared data up to date
+        entry: bash -c 'cd frontend && node scripts/gen-shared-data.mjs --check'
         language: system
-        files: ^(backend/app/data/garment_vocabulary\.json|frontend/(lib/generated/garment-vocabulary\.ts|scripts/gen-garment-vocabulary\.mjs))$
+        files: ^(backend/app/data/.*\.json|frontend/(lib/generated/.*\.ts|scripts/gen-shared-data\.mjs))$
         pass_filenames: false
