@@ -7,7 +7,6 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.api.auth import _is_dev_mode
 from app.api.outfits import StudioCreateRequest, SuggestionCreateRequest, SuggestRequest
 from app.api.users import UserProfileUpdate
 from app.config import DEFAULT_SECRET_KEY, Settings
@@ -335,13 +334,13 @@ class TestHealthEndpointInfoLeak:
 @pytest.fixture
 def oidc_claims():
     with (
-        patch("app.api.auth._is_dev_mode", return_value=False),
         patch("app.api.auth.validate_oidc_id_token") as validate,
         patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
         patch("app.api.auth.settings") as mock_settings,
     ):
         mock_settings.oidc_issuer_url = "https://auth.example.com"
         mock_settings.oidc_client_id = "test-client"
+        mock_settings.dev_mode = False
         mock_settings.oidc_configured = True
         mock_settings.oidc_mobile_client_id = None
         mock_settings.secret_key = "test-secret"
@@ -473,7 +472,7 @@ class TestAuthEmailValidation:
         external_id = f"new-{uuid4()}"
         email = f"{external_id}@example.com"
         oidc_claims.return_value = {"sub": external_id, "email": email, **(claims or {})}
-        with patch("app.api.auth._is_dev_mode", return_value=claims is None):
+        with patch("app.api.auth.settings.dev_mode", claims is None):
             response = await client.post(
                 "/api/v1/auth/sync",
                 json={
@@ -516,7 +515,7 @@ class TestAuthEmailValidation:
         body = {"external_id": external_id, "display_name": "Claim", "id_token": "fake-token"}
         if in_body:
             body["email"] = email
-        with patch("app.api.auth._is_dev_mode", return_value=dev_mode):
+        with patch("app.api.auth.settings.dev_mode", dev_mode):
             response = await client.post("/api/v1/auth/sync", json=body)
 
         assert response.status_code == expected_status
@@ -688,21 +687,6 @@ class TestDevModeAuthDecoupledFromSecretKey:
         assert settings.get_auth_mode() == "oidc"
         assert settings.validate_security() is None
 
-    def test_is_dev_mode_true_with_custom_secret_and_no_oidc(self):
-        settings = Settings(debug=True, secret_key="a-strong-custom-secret")
-        with patch("app.api.auth.settings", settings):
-            assert _is_dev_mode() is True
-
-    def test_is_dev_mode_false_when_oidc_configured_even_with_debug(self):
-        settings = Settings(
-            debug=True,
-            secret_key="a-strong-custom-secret",
-            oidc_issuer_url="https://auth.example.com",
-            oidc_client_id="test-client",
-        )
-        with patch("app.api.auth.settings", settings):
-            assert _is_dev_mode() is False
-
 
 class TestDefaultSecretKeyWithRealAuth:
     OIDC = {"oidc_issuer_url": "https://auth.example.com", "oidc_client_id": "test-client"}
@@ -741,3 +725,18 @@ class TestOidcConfigured:
             secret_key="a-strong-custom-secret", oidc_issuer_url=issuer, oidc_client_id=client_id
         )
         assert settings.oidc_configured is expected
+
+
+class TestDevModeProperty:
+    @pytest.mark.parametrize(
+        ("debug", "auth", "expected"),
+        [
+            (True, {}, True),
+            (False, {}, False),
+            (True, {"oidc_issuer_url": "https://a.example.com", "oidc_client_id": "c"}, False),
+            (True, {"forward_auth_secret": "p" * 32}, False),
+        ],
+    )
+    def test_dev_mode_is_debug_with_no_real_auth(self, debug, auth, expected):
+        settings = Settings(debug=debug, secret_key="a-strong-custom-secret", **auth)
+        assert settings.dev_mode is expected

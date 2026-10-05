@@ -191,9 +191,12 @@ class Settings(BaseSettings):
     def forward_auth_configured(self) -> bool:
         return bool(self.forward_auth_secret)
 
+    @property
+    def dev_mode(self) -> bool:
+        return self.debug and not self.oidc_configured and not self.forward_auth_configured
+
     def validate_security(self) -> str | None:
-        real_auth_configured = self.oidc_configured or self.forward_auth_configured
-        if self.secret_key == DEFAULT_SECRET_KEY and (real_auth_configured or not self.debug):
+        if self.secret_key == DEFAULT_SECRET_KEY and not self.dev_mode:
             raise RuntimeError(
                 "SECRET_KEY is still the default value. Set a secure SECRET_KEY; the default "
                 "is accepted only in DEBUG mode with neither OIDC nor forward-auth configured."
@@ -212,8 +215,7 @@ class Settings(BaseSettings):
                 f"FORWARD_AUTH_SECRET must be at least {FORWARD_AUTH_SECRET_MIN_LENGTH} characters."
             )
 
-        is_dev = self.debug and not self.oidc_configured and not self.forward_auth_configured
-        if not self.oidc_configured and not self.forward_auth_configured and not is_dev:
+        if not (self.oidc_configured or self.forward_auth_configured or self.dev_mode):
             return NO_AUTH_CONFIGURED_MESSAGE
 
         return None
@@ -223,7 +225,7 @@ class Settings(BaseSettings):
             return "forward-auth+oidc" if self.oidc_configured else "forward-auth"
         if self.oidc_configured:
             return "oidc"
-        if self.debug:
+        if self.dev_mode:
             return "dev"
         return "unknown"
 
