@@ -123,7 +123,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
           {otherItems.map((item) => (
             <div
               key={item.id}
-              className="w-14 h-14 rounded-lg bg-muted overflow-hidden relative border shadow-sm group-hover:shadow-md transition-shadow"
+              className="w-14 h-14 rounded-lg bg-muted overflow-hidden relative border shadow-xs group-hover:shadow-md transition-shadow"
             >
               {item.thumbnail_url ? (
                 <Image
@@ -162,7 +162,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
         {(pairing.reasoning || pairing.highlights) && (
           <div className="mt-2 space-y-1.5 text-xs flex-1">
             {pairing.reasoning && (
-              <p className="font-medium text-foreground break-words">{pairing.reasoning}</p>
+              <p className="font-medium text-foreground wrap-break-word">{pairing.reasoning}</p>
             )}
             {pairing.highlights && pairing.highlights.length > 0 && (
               <ul className="space-y-0.5">
@@ -180,7 +180,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
         {/* Styling tip */}
         {pairing.style_notes && (
           <div className="mt-2 p-2 bg-muted rounded border text-xs">
-            <p className="text-muted-foreground break-words">
+            <p className="text-muted-foreground wrap-break-word">
               <span className="font-medium text-foreground">{t('tip')}</span> {pairing.style_notes}
             </p>
           </div>

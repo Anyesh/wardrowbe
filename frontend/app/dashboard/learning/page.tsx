@@ -178,7 +178,7 @@ function ItemPairCard({ pair }: { pair: ItemPair }) {
         {/* Item 1 */}
         <Link
           href={`/dashboard/wardrobe/${pair.item1.id}`}
-          className="w-12 h-12 rounded bg-background overflow-hidden relative flex-shrink-0 hover:ring-2 ring-primary transition-all"
+          className="w-12 h-12 rounded bg-background overflow-hidden relative shrink-0 hover:ring-2 ring-primary transition-all"
         >
           {pair.item1.thumbnail_url ? (
             <Image
@@ -201,7 +201,7 @@ function ItemPairCard({ pair }: { pair: ItemPair }) {
         {/* Item 2 */}
         <Link
           href={`/dashboard/wardrobe/${pair.item2.id}`}
-          className="w-12 h-12 rounded bg-background overflow-hidden relative flex-shrink-0 hover:ring-2 ring-primary transition-all"
+          className="w-12 h-12 rounded bg-background overflow-hidden relative shrink-0 hover:ring-2 ring-primary transition-all"
         >
           {pair.item2.thumbnail_url ? (
             <Image
@@ -268,7 +268,7 @@ function InsightCard({
         <X className="h-4 w-4 text-muted-foreground" />
       </button>
       <div className="flex items-start gap-3 pr-6">
-        <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+        <Icon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
         <div>
           <h4 className="font-medium">{insight.title}</h4>
           <p className="text-sm text-muted-foreground mt-1">{insight.description}</p>

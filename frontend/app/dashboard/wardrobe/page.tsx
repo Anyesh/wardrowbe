@@ -124,7 +124,7 @@ function ItemCard({
           <Checkbox
             checked={selected}
             onCheckedChange={(checked) => onSelect(item.id, checked === true)}
-            className="bg-background/80 backdrop-blur-sm"
+            className="bg-background/80 backdrop-blur-xs"
           />
         </div>
         {item.favorite && (

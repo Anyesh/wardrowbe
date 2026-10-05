@@ -96,11 +96,19 @@ npm run dev
 npm test
 
 # Check types
-npm run typecheck
+npx tsc --noEmit
 
 # Run linting
 npm run lint
 ```
+
+### Frontend styles
+
+Tailwind's theme, dark-mode variant, and custom utilities live in
+`frontend/app/globals.css`. Add or change theme tokens there rather than creating a
+JavaScript Tailwind config. The shadcn component CLI reads `frontend/components.json`,
+whose Tailwind config path is empty for Tailwind v4. Keep component-specific styles in
+the existing `frontend/components/ui/` files when a shared component needs them.
 
 ## Code Style
 

@@ -196,7 +196,7 @@ export function AnalysisQueuePanel({
                       <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{describe(entry.name, entry.type)}</p>
-                        <p className="break-words text-xs text-muted-foreground">
+                        <p className="wrap-break-word text-xs text-muted-foreground">
                           {entry.error || t('unknownError')}
                         </p>
                       </div>

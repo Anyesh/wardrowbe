@@ -497,7 +497,7 @@ function OutfitsPageContent() {
           ) : listLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[5/4] rounded-lg" />
+                <Skeleton key={i} className="aspect-5/4 rounded-lg" />
               ))}
             </div>
           ) : outfits.length === 0 ? (
@@ -578,7 +578,7 @@ function OutfitsPageContent() {
             ) : calendarLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="aspect-[5/4] rounded-lg" />
+                  <Skeleton key={i} className="aspect-5/4 rounded-lg" />
                 ))}
               </div>
             ) : selectedDate && selectedDayOutfits.length === 0 ? (
@@ -657,7 +657,7 @@ export default function OutfitsPage() {
           <Skeleton className="h-10 w-48" />
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[5/4] rounded-lg" />
+              <Skeleton key={i} className="aspect-5/4 rounded-lg" />
             ))}
           </div>
         </div>

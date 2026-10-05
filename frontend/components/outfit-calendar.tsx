@@ -113,7 +113,7 @@ export function OutfitCalendar({
               className={cn(
                 'relative h-10 w-full rounded-md text-sm transition-colors',
                 'hover:bg-accent hover:text-accent-foreground',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                 !isCurrentMonth && 'text-muted-foreground/50',
                 isSelected && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
                 isDayToday && !isSelected && 'bg-accent font-semibold'

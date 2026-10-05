@@ -163,7 +163,7 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
           {outfit.items.map((item) => (
             <div
               key={item.id}
-              className="w-16 h-16 rounded-lg bg-muted overflow-hidden relative border shadow-sm group-hover:shadow-md transition-shadow"
+              className="w-16 h-16 rounded-lg bg-muted overflow-hidden relative border shadow-xs group-hover:shadow-md transition-shadow"
             >
               {item.thumbnail_url ? (
                 <Image

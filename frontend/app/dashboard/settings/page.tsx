@@ -723,7 +723,7 @@ export default function SettingsPage() {
                           placeholder={placeholder}
                           className="flex-1"
                         />
-                        <span className="text-sm text-muted-foreground min-w-[2rem] text-center">{unit}</span>
+                        <span className="text-sm text-muted-foreground min-w-8 text-center">{unit}</span>
                       </div>
                     </div>
                   );
@@ -1149,7 +1149,7 @@ export default function SettingsPage() {
                       </div>
                     )}
                     {endpointTests[index]?.status === 'error' && (
-                      <div className="text-xs p-2 bg-red-50 dark:bg-red-950 rounded text-red-600 dark:text-red-400 break-words">
+                      <div className="text-xs p-2 bg-red-50 dark:bg-red-950 rounded text-red-600 dark:text-red-400 wrap-break-word">
                         {endpointTests[index].error}
                       </div>
                     )}

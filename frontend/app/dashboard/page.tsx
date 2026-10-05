@@ -548,7 +548,7 @@ function InsightsCard() {
           <ul className="space-y-2 text-sm">
             {insights.slice(0, 3).map((insight, i) => (
               <li key={i} className="flex items-start gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 shrink-0" />
                 <span className="text-muted-foreground">{insight}</span>
               </li>
             ))}
