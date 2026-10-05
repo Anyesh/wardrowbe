@@ -53,11 +53,11 @@ describe('queryKeys equal the literal keys they replaced', () => {
       ['learning', 'item-pairs', 'i1', 5],
     ],
     ['pairings.all', queryKeys.pairings.all, ['pairings']],
-    ['pairings.list', queryKeys.pairings.list(1, 20, 'ai'), ['pairings', 1, 20, 'ai']],
+    ['pairings.list', queryKeys.pairings.list(20, 'ai'), ['pairings', 'list', 20, 'ai']],
     [
       'pairings.list (no source)',
-      queryKeys.pairings.list(1, 20, undefined),
-      ['pairings', 1, 20, undefined],
+      queryKeys.pairings.list(20, undefined),
+      ['pairings', 'list', 20, undefined],
     ],
     ['pairings.forItem', queryKeys.pairings.forItem('i1'), ['pairings', 'item', 'i1']],
     [
