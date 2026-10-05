@@ -356,6 +356,69 @@ class TestForwardAuthPrecedence:
         validator.assert_awaited_once()
 
     @pytest.mark.asyncio
+    async def test_oidc_token_through_proxy_without_remote_user_uses_oidc(
+        self, client: AsyncClient
+    ):
+        validator = AsyncMock(
+            return_value={
+                "sub": "oidc-dave",
+                "email": "dave@example.com",
+                "email_verified": True,
+            }
+        )
+        with (
+            patch("app.api.auth.settings", _forward_auth_and_oidc()),
+            patch("app.api.auth.validate_oidc_id_token", validator),
+        ):
+            response = await client.post(
+                SYNC_URL,
+                headers={"X-Forward-Auth-Secret": PROXY_SECRET},
+                json={
+                    "external_id": "oidc-dave",
+                    "display_name": "Dave",
+                    "id_token": "mobile-id-token",
+                },
+            )
+
+        assert response.status_code == 200
+        assert decode_token(response.json()["access_token"]).sub == "oidc-dave"
+        validator.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_remote_user_wins_over_body_id_token(self, client: AsyncClient):
+        validator = AsyncMock()
+        with (
+            patch("app.api.auth.settings", _forward_auth_and_oidc()),
+            patch("app.api.auth.validate_oidc_id_token", validator),
+        ):
+            response = await client.post(
+                SYNC_URL,
+                headers=_proxy_headers(),
+                json={
+                    "external_id": "oidc-mallory",
+                    "display_name": "Mallory",
+                    "id_token": "forged",
+                },
+            )
+
+        assert response.status_code == 200
+        assert decode_token(response.json()["access_token"]).sub == "tinyauth-alice"
+        validator.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_body_id_token_without_oidc_configured_stays_on_forward_auth(
+        self, client: AsyncClient
+    ):
+        with patch("app.api.auth.settings", _forward_auth_only()):
+            response = await client.post(
+                SYNC_URL,
+                headers={"X-Forward-Auth-Secret": PROXY_SECRET},
+                json={"external_id": "x", "display_name": "X", "id_token": "t"},
+            )
+
+        assert response.status_code == 400
+
+    @pytest.mark.asyncio
     async def test_oidc_path_still_requires_a_body(self, client: AsyncClient):
         with patch("app.api.auth.settings", _forward_auth_and_oidc()):
             response = await client.post(SYNC_URL)

@@ -257,7 +257,15 @@ async def sync_user(
     sync_data: UserSyncRequest | None = None,
 ) -> UserSyncResponse:
     presented_secret = request.headers.get(FORWARD_AUTH_SECRET_HEADER)
-    if presented_secret is not None:
+    # The mobile app cannot pass the proxy's login, so a route that skips the auth check but
+    # still adds the secret delivers an OIDC sync with no Remote-User; the token alone proves it.
+    oidc_sync_through_proxy = (
+        sync_data is not None
+        and bool(sync_data.id_token)
+        and _oidc_configured()
+        and not request.headers.get("Remote-User")
+    )
+    if presented_secret is not None and not oidc_sync_through_proxy:
         sync_data = await _forward_auth_identity(request, presented_secret)
         email_verified = True
     else:
