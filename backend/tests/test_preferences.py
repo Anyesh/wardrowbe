@@ -44,6 +44,20 @@ class TestPreferencesEndpoints:
         data = response.json()
         assert "orange" in data["color_avoid"]
 
+    @pytest.mark.asyncio
+    async def test_update_preferences_stores_canonical_colours(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/users/me/preferences",
+            json={"color_favorites": ["Khaki", "tan", "navy"], "color_avoid": ["Charcoal"]},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["color_favorites"] == ["tan", "navy"]
+        assert data["color_avoid"] == ["gray"]
+
 
 class TestAIEndpointPreferences:
     """Tests for AI endpoint configuration in preferences."""

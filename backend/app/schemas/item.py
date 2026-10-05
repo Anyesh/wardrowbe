@@ -5,13 +5,14 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
+from app.schemas.color import ColorList, ColorName
 from app.utils.garment_vocabulary import DEFAULT_WASH_INTERVALS
 from app.utils.signed_urls import sign_image_url
 
 
 class ItemTags(BaseModel):
-    colors: list[str] = Field(default_factory=list)
-    primary_color: str | None = None
+    colors: ColorList = Field(default_factory=list)
+    primary_color: ColorName | None = None
     pattern: str | None = None
     material: str | None = None
     style: list[str] = Field(default_factory=list)
@@ -33,8 +34,8 @@ class ItemBase(BaseModel):
 
 class ItemCreate(ItemBase):
     tags: ItemTags | None = None
-    colors: list[str] | None = None
-    primary_color: str | None = None
+    colors: ColorList | None = None
+    primary_color: ColorName | None = None
 
 
 class ItemUpdate(BaseModel):
@@ -47,8 +48,8 @@ class ItemUpdate(BaseModel):
     purchase_price: Decimal | None = Field(None, ge=0)
     favorite: bool | None = None
     tags: ItemTags | None = None
-    colors: list[str] | None = None
-    primary_color: str | None = None
+    colors: ColorList | None = None
+    primary_color: ColorName | None = None
     wash_interval: int | None = None
 
 

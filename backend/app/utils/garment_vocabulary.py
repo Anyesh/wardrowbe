@@ -29,6 +29,17 @@ def normalize_color(name: str) -> str | None:
     return COLOR_ALIASES.get(key)
 
 
+# Unlike normalize_color, unknown names pass through (lowercased) so that API
+# clients sending colours outside the vocabulary keep working.
+def canonical_color(name: str) -> str:
+    key = name.strip().lower()
+    return normalize_color(key) or key
+
+
+def canonical_colors(names: list[str]) -> list[str]:
+    return list(dict.fromkeys(c for c in map(canonical_color, names) if c))
+
+
 def render_tagging_prompt(template: str) -> str:
     return (
         template.replace("<<TYPES>>", ", ".join(TYPES))

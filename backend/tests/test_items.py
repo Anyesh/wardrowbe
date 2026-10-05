@@ -1706,3 +1706,70 @@ class TestBulkRetryCooldown:
         released = result.scalar_one()
         assert released.status == ItemStatus.error
         assert released.ai_failed_at < datetime.now(UTC) - timedelta(seconds=100)
+
+
+class TestItemColorNormalisation:
+    @pytest.mark.asyncio
+    async def test_create_item_stores_canonical_colours(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            "/api/v1/items",
+            files={"image": ("shirt.jpg", _make_test_image_bytes(), "image/jpeg")},
+            data={"colors": "Charcoal,gray", "primary_color": "Charcoal", "skip_ai": "true"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 201, response.text
+        data = response.json()
+        assert data["colors"] == ["gray"]
+        assert data["primary_color"] == "gray"
+
+    @pytest.mark.asyncio
+    async def test_update_item_stores_canonical_colours(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path="test/item.jpg",
+            status=ItemStatus.ready,
+        )
+        db_session.add(item)
+        await db_session.commit()
+        await db_session.refresh(item)
+
+        response = await client.patch(
+            f"/api/v1/items/{item.id}",
+            json={"colors": ["Charcoal", "gray", "Chartreuse"], "primary_color": "Khaki"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["colors"] == ["gray", "chartreuse"]
+        assert data["primary_color"] == "tan"
+
+    @pytest.mark.asyncio
+    async def test_update_item_tags_store_canonical_colours(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path="test/item.jpg",
+            status=ItemStatus.ready,
+        )
+        db_session.add(item)
+        await db_session.commit()
+        await db_session.refresh(item)
+
+        response = await client.patch(
+            f"/api/v1/items/{item.id}",
+            json={"tags": {"colors": ["Charcoal", "gray"], "primary_color": "charcoal"}},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["colors"] == ["gray"]
+        assert data["primary_color"] == "gray"
+        assert data["tags"]["colors"] == ["gray"]

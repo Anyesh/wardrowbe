@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from app.schemas.color import ColorList
+
 
 class AIEndpoint(BaseModel):
     name: str = Field(description="Display name for this endpoint")
@@ -78,8 +80,8 @@ class PreferenceCreate(PreferenceBase):
 
 
 class PreferenceUpdate(BaseModel):
-    color_favorites: list[str] | None = None
-    color_avoid: list[str] | None = None
+    color_favorites: ColorList | None = None
+    color_avoid: ColorList | None = None
     style_profile: StyleProfile | None = None
     default_occasion: str | None = None
     temperature_unit: str | None = Field(default=None, pattern="^(celsius|fahrenheit)$")

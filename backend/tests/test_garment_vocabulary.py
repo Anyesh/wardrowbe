@@ -27,6 +27,7 @@ from app.utils.garment_vocabulary import (
     MATERIALS,
     OCCASIONS,
     TYPES,
+    canonical_colors,
     normalize_color,
     render_tagging_prompt,
 )
@@ -154,3 +155,11 @@ def test_color_aliases_resolve_to_stored_colors():
 )
 def test_normalize_color(name, stored):
     assert normalize_color(name) == stored
+
+
+def test_canonical_colors_aliases_dedupes_and_keeps_unknowns_in_order():
+    assert canonical_colors(["Charcoal", "gray", " Chartreuse ", "", "khaki", "tan"]) == [
+        "gray",
+        "chartreuse",
+        "tan",
+    ]
