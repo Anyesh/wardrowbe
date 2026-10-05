@@ -190,14 +190,17 @@ class Settings(BaseSettings):
         return bool(self.forward_auth_secret)
 
     def validate_security(self) -> str | None:
-        if self.secret_key == DEFAULT_SECRET_KEY and not self.debug:
-            raise RuntimeError(
-                "SECRET_KEY is still the default value. "
-                "Set a secure SECRET_KEY or enable DEBUG mode for development."
-            )
-
         oidc_issuer = bool(self.oidc_issuer_url)
         oidc_client = bool(self.oidc_client_id)
+        oidc_configured = oidc_issuer and oidc_client
+
+        real_auth_configured = oidc_configured or self.forward_auth_configured
+        if self.secret_key == DEFAULT_SECRET_KEY and (real_auth_configured or not self.debug):
+            raise RuntimeError(
+                "SECRET_KEY is still the default value. Set a secure SECRET_KEY; the default "
+                "is accepted only in DEBUG mode with neither OIDC nor forward-auth configured."
+            )
+
         if oidc_issuer != oidc_client:
             raise RuntimeError(
                 "OIDC is partially configured: both OIDC_ISSUER_URL and OIDC_CLIENT_ID must be set together."
@@ -211,7 +214,6 @@ class Settings(BaseSettings):
                 f"FORWARD_AUTH_SECRET must be at least {FORWARD_AUTH_SECRET_MIN_LENGTH} characters."
             )
 
-        oidc_configured = oidc_issuer and oidc_client
         is_dev = self.debug and not oidc_configured and not self.forward_auth_configured
         if not oidc_configured and not self.forward_auth_configured and not is_dev:
             return NO_AUTH_CONFIGURED_MESSAGE

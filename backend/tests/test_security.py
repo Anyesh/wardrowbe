@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from app.api.auth import _is_dev_mode
 from app.api.outfits import StudioCreateRequest, SuggestionCreateRequest, SuggestRequest
 from app.api.users import UserProfileUpdate
-from app.config import Settings
+from app.config import DEFAULT_SECRET_KEY, Settings
 from app.models import Family, FamilyInvite, User
 from app.schemas.family import FamilyCreate, FamilyUpdate
 from app.schemas.item import LogWearRequest
@@ -702,3 +702,25 @@ class TestDevModeAuthDecoupledFromSecretKey:
         )
         with patch("app.api.auth.settings", settings):
             assert _is_dev_mode() is False
+
+
+class TestDefaultSecretKeyWithRealAuth:
+    OIDC = {"oidc_issuer_url": "https://auth.example.com", "oidc_client_id": "test-client"}
+    FORWARD_AUTH = {"forward_auth_secret": "p" * 32}
+
+    @pytest.mark.parametrize("debug", [True, False])
+    @pytest.mark.parametrize("auth", [OIDC, FORWARD_AUTH, {**OIDC, **FORWARD_AUTH}])
+    def test_default_key_is_refused_when_a_real_auth_mode_is_configured(self, debug, auth):
+        settings = Settings(debug=debug, secret_key=DEFAULT_SECRET_KEY, **auth)
+        with pytest.raises(RuntimeError, match="SECRET_KEY"):
+            settings.validate_security()
+
+    def test_default_key_is_allowed_in_pure_dev_mode(self):
+        settings = Settings(debug=True, secret_key=DEFAULT_SECRET_KEY)
+        assert settings.validate_security() is None
+        assert settings.get_auth_mode() == "dev"
+
+    def test_default_key_is_refused_without_debug(self):
+        settings = Settings(debug=False, secret_key=DEFAULT_SECRET_KEY)
+        with pytest.raises(RuntimeError, match="SECRET_KEY"):
+            settings.validate_security()
