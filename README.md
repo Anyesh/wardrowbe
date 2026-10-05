@@ -316,6 +316,20 @@ publishes `backend-<version>` / `frontend-<version>` (e.g. `backend-1.3.0`). To
 pin a deployment to a specific release, replace the `-latest` tags in the
 compose file with the version, e.g. `ghcr.io/anyesh/wardrowbe:backend-1.3.0`.
 
+### Client IPs behind a reverse proxy
+
+Sign-in rate limits key on the client's IP. Every proxy that forwards a request appends the address it received it from to `X-Forwarded-For`, and everything to the left of those entries is whatever the client sent, so the backend reads the entry `TRUSTED_PROXY_COUNT` places from the right. The Next.js frontend relays the header without adding to it, so it does not count.
+
+| Deployment | Proxies that append | `TRUSTED_PROXY_COUNT` |
+|------------|--------------------|-----------------------|
+| `docker-compose.yml`, browsers on `:3000` | none | `0` (default) |
+| `docker-compose.yml` behind Caddy or Traefik, with `:3000` and `:8000` bound to `127.0.0.1` | the proxy | `1` |
+| `docker-compose.prod.yml`, nginx reached directly | nginx | `1` (default) |
+| `docker-compose.prod.yml` behind Caddy, Traefik or another proxy on `:8080` | that proxy and nginx | `2` |
+| Kubernetes with the bundled Traefik ingress | the ingress controller | `1` (configmap) |
+
+Count a CDN or load balancer in front of these only when it appends to the header too. Too low a count is safe, since clients only end up sharing a proxy's address and its limit; too high a count lets anyone choose the IP they are limited under by sending their own header. Clients that can reach the backend without passing through every counted proxy can do the same, and when a request carries fewer entries than the count, the backend falls back to the address of the connection itself.
+
 ### Kubernetes
 
 See the [k8s/](k8s/) directory for Kubernetes manifests including:
@@ -346,6 +360,7 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 | `FORWARD_AUTH_SECRET` | Shared secret the forward-auth proxy sends as `X-Forward-Auth-Secret` (at least 32 characters; enables forward-auth) | No |
 | `TINYAUTH_URL` | TinyAuth base URL, where logout sends the browser in forward-auth mode | No |
 | `FORWARD_AUTH_LOGOUT_URL` | Proxy logout URL for Authelia and others in forward-auth mode | No |
+| `TRUSTED_PROXY_COUNT` | Reverse proxies in front of the API that append to `X-Forwarded-For` (default: 0; `docker-compose.prod.yml` and k8s set 1). See [Client IPs behind a reverse proxy](#client-ips-behind-a-reverse-proxy) | No |
 | `LOCAL_DNS` | Custom DNS server for container name resolution (e.g. local OIDC host) | No |
 | `SMTP_HOST` | SMTP server for email notifications | No |
 | `SMTP_PORT` | SMTP port (default: 587) | No |
@@ -434,6 +449,8 @@ TINYAUTH_URL=https://tinyauth.example.com
 Authelia only follows `rd` to an HTTPS address inside one of its session cookie domains; otherwise it stays on its own portal after logging out.
 
 Put the proxy in front of the frontend on `:3000` with the default `docker-compose.yml`, or in front of nginx on `:8080` with `docker-compose.prod.yml`. Only the proxy should be able to reach those ports. The prod compose already binds nginx to `127.0.0.1` and publishes nothing else; with the default compose, set `FRONTEND_PORT=127.0.0.1:3000` and `BACKEND_PORT=127.0.0.1:8000` in `.env` (or remove the `ports:` entries if the proxy shares the stack's Docker network), so nobody on your LAN can skip the proxy or watch the secret go past in plain HTTP.
+
+Then set `TRUSTED_PROXY_COUNT` to `1` with the default compose or `2` with the prod compose, so sign-in rate limits see each browser's address instead of the proxy's (see [Client IPs behind a reverse proxy](#client-ips-behind-a-reverse-proxy)).
 
 Every snippet below strips any `Remote-*` and `X-Forward-Auth-Secret` headers the client sent before the auth server's headers are set, and adds the secret on the way to Wardrowbe. Keep both steps if you adapt them to another proxy.
 

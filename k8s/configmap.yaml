@@ -56,6 +56,10 @@ data:
   # Logging
   LOG_LEVEL: "INFO"
 
+  # The ingress controller appends X-Forwarded-For; add one for each proxy or
+  # load balancer in front of it that appends too.
+  TRUSTED_PROXY_COUNT: "1"
+
   # Forward-auth logout target for the frontend: TINYAUTH_URL for TinyAuth,
   # FORWARD_AUTH_LOGOUT_URL for Authelia and others. The proxy secret itself
   # lives in secrets.yaml as forward-auth-secret.

@@ -86,6 +86,9 @@ services:
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       OIDC_CA_BUNDLE: ${OIDC_CA_BUNDLE:-}
       FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
+      # 0 because clients reach the frontend and API directly here, so any X-Forwarded-For is
+      # theirs; set 1 once a proxy is the only way in (README: Client IPs behind a reverse proxy)
+      TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-0}
     volumes:
       - wardrobe_data:/data/wardrobe
     ports:

@@ -5,11 +5,13 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
 
 from app.api.auth import create_access_token
 from app.config import Settings, get_settings
 from app.models import User
 from app.utils.auth import decode_token
+from app.utils.rate_limit import _get_client_ip
 
 PROXY_SECRET = "s" * 32
 SYNC_URL = "/api/v1/auth/sync"
@@ -334,16 +336,80 @@ class TestForwardAuthRateLimit:
         assert statuses == [200] * 15
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("trusted_proxy_count", "forwarded_for"),
+        [
+            (0, "203.0.113.{i}"),
+            (1, "203.0.113.{i}, 198.51.100.7"),
+        ],
+        ids=["direct-with-spoofed-header", "behind-one-proxy-with-spoofed-prefix"],
+    )
     async def test_failed_attempts_are_limited_without_blocking_valid_ones(
-        self, client: AsyncClient
+        self, client: AsyncClient, trusted_proxy_count: int, forwarded_for: str
     ):
         bad = _proxy_headers(secret="x" * 32)
-        with patch("app.api.auth.settings", _forward_auth_only()):
-            statuses = [(await client.post(SYNC_URL, headers=bad)).status_code for _ in range(11)]
+        with (
+            patch("app.api.auth.settings", _forward_auth_only()),
+            patch(
+                "app.utils.rate_limit.get_settings",
+                return_value=_settings(trusted_proxy_count=trusted_proxy_count),
+            ),
+        ):
+            statuses = [
+                (
+                    await client.post(
+                        SYNC_URL, headers={**bad, "X-Forwarded-For": forwarded_for.format(i=i)}
+                    )
+                ).status_code
+                for i in range(11)
+            ]
             valid = await client.post(SYNC_URL, headers=_proxy_headers())
 
         assert statuses == [401] * 10 + [429]
         assert valid.status_code == 200
+
+    @pytest.mark.parametrize(
+        ("trusted_proxy_count", "forwarded_for", "peer", "expected"),
+        [
+            (0, ["203.0.113.9"], "10.0.0.5", "10.0.0.5"),
+            (0, [], None, "unknown"),
+            (1, [], "10.0.0.5", "10.0.0.5"),
+            (1, ["198.51.100.7"], "10.0.0.5", "198.51.100.7"),
+            (1, ["203.0.113.9, 198.51.100.7"], "10.0.0.5", "198.51.100.7"),
+            (1, ["203.0.113.9", "198.51.100.7"], "10.0.0.5", "198.51.100.7"),
+            (1, [" 203.0.113.9 ,, 2001:db8::7 "], "10.0.0.5", "2001:db8::7"),
+            (2, ["203.0.113.9, 198.51.100.7, 172.18.0.1"], "10.0.0.5", "198.51.100.7"),
+            (2, ["198.51.100.7"], "10.0.0.5", "10.0.0.5"),
+            (1, ["203.0.113.9, not-an-ip"], "10.0.0.5", "10.0.0.5"),
+        ],
+        ids=[
+            "zero-hops-ignores-header",
+            "zero-hops-without-peer",
+            "no-header-uses-peer",
+            "one-hop",
+            "one-hop-spoofed-prefix",
+            "one-hop-repeated-header-lines",
+            "one-hop-whitespace-empty-entries-ipv6",
+            "two-hops-spoofed-prefix",
+            "fewer-entries-than-hops-uses-peer",
+            "malformed-trusted-entry-uses-peer",
+        ],
+    )
+    def test_client_ip_is_the_entry_the_trusted_proxies_appended(
+        self, trusted_proxy_count, forwarded_for, peer, expected
+    ):
+        request = Request(
+            {
+                "type": "http",
+                "headers": [(b"x-forwarded-for", line.encode()) for line in forwarded_for],
+                "client": (peer, 4321) if peer else None,
+            }
+        )
+        with patch(
+            "app.utils.rate_limit.get_settings",
+            return_value=_settings(trusted_proxy_count=trusted_proxy_count),
+        ):
+            assert _get_client_ip(request) == expected
 
     @pytest.mark.asyncio
     async def test_secret_is_checked_before_the_rate_limit(self, client: AsyncClient):

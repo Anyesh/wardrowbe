@@ -93,6 +93,8 @@ services:
       OIDC_CA_BUNDLE: ${OIDC_CA_BUNDLE:-}
       # The authenticating proxy must send this as X-Forward-Auth-Secret (README: Forward-auth)
       FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
+      # nginx appends X-Forwarded-For; add one for each proxy in front of it that appends too
+      TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-1}
     volumes:
       - uploads_data:/data/uploads
     dns:
