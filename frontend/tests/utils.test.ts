@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { cn, chunkArray, formatWornAgo } from '@/lib/utils'
+import { cn, chunkArray, formatWornAgo, isDeliverableEmail } from '@/lib/utils'
 
 const mockT = vi.fn((key: string, params?: Record<string, unknown>) =>
   params ? `${key}:${JSON.stringify(params)}` : key
@@ -123,5 +123,17 @@ describe('chunkArray utility', () => {
       items.slice(40, 45),
     ])
     expect(result.flat()).toEqual(items)
+  })
+})
+
+describe('isDeliverableEmail', () => {
+  it.each([
+    ['user@example.com', true],
+    ['abc@detached.invalid', false],
+    [' ABC@Detached.INVALID ', false],
+    ['', false],
+    [undefined, false],
+  ])('%j -> %s', (email, expected) => {
+    expect(isDeliverableEmail(email)).toBe(expected)
   })
 })
