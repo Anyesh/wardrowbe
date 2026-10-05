@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.user import User
-from app.schemas.user import UserCreate, UserSyncRequest, UserUpdate
+from app.schemas.user import UserSyncRequest
 
 # Reserved by RFC 2606, so a detached address can never be delivered to or claimed by a sign-in.
 DETACHED_EMAIL_DOMAIN = "detached.invalid"
@@ -42,31 +42,6 @@ class UserService:
     async def get_by_email(self, email: str) -> User | None:
         result = await self.db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
-
-    async def create(self, user_data: UserCreate) -> User:
-        user = User(
-            external_id=user_data.external_id,
-            email=user_data.email,
-            display_name=user_data.display_name,
-            avatar_url=user_data.avatar_url,
-            timezone=user_data.timezone,
-            locale=user_data.locale,
-            location_lat=user_data.location_lat,
-            location_lon=user_data.location_lon,
-            location_name=user_data.location_name,
-        )
-        self.db.add(user)
-        await self.db.flush()
-        await self.db.refresh(user)
-        return user
-
-    async def update(self, user: User, user_data: UserUpdate) -> User:
-        update_data = user_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(user, field, value)
-        await self.db.flush()
-        await self.db.refresh(user)
-        return user
 
     async def sync_from_oidc(
         self, sync_data: UserSyncRequest, *, email_verified: bool

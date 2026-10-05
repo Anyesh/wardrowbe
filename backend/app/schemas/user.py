@@ -19,20 +19,6 @@ class UserBase(BaseModel):
     location_name: str | None = Field(None, max_length=100)
 
 
-class UserCreate(UserBase):
-    external_id: str = Field(..., min_length=1, max_length=255)
-
-
-class UserUpdate(BaseModel):
-    display_name: str | None = Field(None, min_length=1, max_length=100)
-    avatar_url: str | None = None
-    timezone: str | None = Field(None, max_length=50)
-    locale: str | None = Field(None, max_length=10)
-    location_lat: Decimal | None = Field(None, ge=-90, le=90)
-    location_lon: Decimal | None = Field(None, ge=-180, le=180)
-    location_name: str | None = Field(None, max_length=100)
-
-
 class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
