@@ -288,8 +288,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const imageUrl = item.image_url || item.image_path;
   const colorInfo = findClothingColor(clothingColors, item.primary_color);
   const displayColor = item.primary_color ? colorInfo?.name ?? colorLabel(item.primary_color) : null;
-  const isCustomEditColor = editForm.primary_color &&
-    !clothingColors.some((c) => c.value === editForm.primary_color);
+  const editColorInfo = findClothingColor(clothingColors, editForm.primary_color);
+  // Select needs an option with the exact stored value to preserve it when another field changes.
+  const hasStoredColorOption = !!editForm.primary_color &&
+    editColorInfo?.value !== editForm.primary_color;
   const typeInfo = clothingTypes.find((type) => type.value === item.type);
   const unrecognizedType = item.type === 'unknown' ? item.ai_unrecognized_type : null;
   const subtypeSuggestions = CLOTHING_SUBTYPES[editForm.type] ?? [];
@@ -668,22 +670,30 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>{t('primaryColor')}</Label>
+                    <Label htmlFor="item-primary-color">{t('primaryColor')}</Label>
                     <div className="flex gap-2">
                       <Select
                         value={editForm.primary_color}
                         onValueChange={(v) => setEditForm({ ...editForm, primary_color: v })}
                       >
-                        <SelectTrigger className="flex-1">
+                        <SelectTrigger id="item-primary-color" className="flex-1">
                           <SelectValue placeholder={t('placeholders.selectColor')} />
                         </SelectTrigger>
                         <SelectContent>
-                          {isCustomEditColor && (
+                          {hasStoredColorOption && (
                             <SelectItem value={editForm.primary_color}>
-                              {colorLabel(editForm.primary_color)}
+                              <div className="flex items-center gap-2">
+                                {editColorInfo && (
+                                  <div
+                                    className="w-3 h-3 rounded-full border"
+                                    style={{ backgroundColor: editColorInfo.hex }}
+                                  />
+                                )}
+                                {editColorInfo?.name ?? colorLabel(editForm.primary_color)}
+                              </div>
                             </SelectItem>
                           )}
-                          {clothingColors.map((c) => (
+                          {clothingColors.filter((c) => !hasStoredColorOption || c.value !== editColorInfo?.value).map((c) => (
                             <SelectItem key={c.value} value={c.value}>
                               <div className="flex items-center gap-2">
                                 <div
