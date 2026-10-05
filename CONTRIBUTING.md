@@ -106,12 +106,12 @@ npm run lint
 
 The backend and frontend Docker entrypoints use POSIX `sh` and four-space indentation. Their
 ShellCheck and shfmt versions are pinned in `.pre-commit-config.yaml` and updated by Dependabot.
-Install pre-commit and Docker to run the same containerized ShellCheck hook locally.
+Install pre-commit and Docker to run the same containerized hooks locally.
 Run the same checks locally from the repository root:
 
 ```bash
 pre-commit run shellcheck --all-files
-pre-commit run shfmt --all-files
+pre-commit run shfmt-docker --all-files
 ```
 
 shfmt parses both files as POSIX shell while checking their formatting. To apply formatting,

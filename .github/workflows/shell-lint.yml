@@ -29,4 +29,4 @@ jobs:
       - name: Check POSIX entrypoints
         run: |
           pre-commit run shellcheck --all-files
-          pre-commit run shfmt --all-files
+          pre-commit run shfmt-docker --all-files

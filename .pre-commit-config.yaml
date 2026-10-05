@@ -70,6 +70,6 @@ repos:
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.14.1-1
     hooks:
-      - id: shfmt
+      - id: shfmt-docker
         args: [-d, -ln, posix, -i, "4", -ci, -sr]
         files: ^(backend|frontend)/docker-entrypoint\.sh$
