@@ -154,10 +154,12 @@ async def sync_user(
             )
 
         sync_data = sync_data.model_copy(update={"email": effective_email})
+        verified_claim = oidc_claims.get("email_verified")
         email_verified = (
             bool(claims_email)
             and claims_email == effective_email
-            and oidc_claims.get("email_verified") is True
+            # Apple sends the claim as the string "true"; nothing else counts as verified.
+            and (verified_claim is True or verified_claim == "true")
         )
     else:
         raise HTTPException(

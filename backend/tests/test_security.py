@@ -336,6 +336,11 @@ class TestProviderMigrationRequiresVerifiedEmail:
             pytest.param(True, False, 409, id="unverified-claim"),
             pytest.param(False, True, 409, id="no-email-claim"),
             pytest.param(True, True, 200, id="verified"),
+            pytest.param(True, "true", 200, id="verified-as-string"),
+            pytest.param(True, "false", 409, id="unverified-as-string"),
+            pytest.param(True, "TRUE", 409, id="other-string"),
+            pytest.param(True, 1, 409, id="non-boolean"),
+            pytest.param(True, None, 409, id="claim-missing"),
         ],
     )
     async def test_migration_requires_verified_email_claim(
@@ -349,7 +354,9 @@ class TestProviderMigrationRequiresVerifiedEmail:
         expected_status,
     ):
         original_external_id = test_user.external_id
-        oidc_claims.return_value = {"sub": "new-provider-id", "email_verified": email_verified}
+        oidc_claims.return_value = {"sub": "new-provider-id"}
+        if email_verified is not None:
+            oidc_claims.return_value["email_verified"] = email_verified
         if email_claim:
             oidc_claims.return_value["email"] = test_user.email
         response = await client.post(
