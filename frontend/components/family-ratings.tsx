@@ -9,13 +9,14 @@ import { toast } from 'sonner';
 import { useSubmitFamilyRating, useDeleteFamilyRating } from '@/lib/hooks/use-outfits';
 import { FamilyRating } from '@/lib/types';
 import { useTranslations } from 'next-intl';
+import { RATING_STARS } from '@/lib/rating';
 
 function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hovered, setHovered] = useState(0);
 
   return (
     <div className="flex gap-1" onMouseLeave={() => setHovered(0)}>
-      {[1, 2, 3, 4, 5].map((star) => (
+      {RATING_STARS.map((star) => (
         <button
           key={star}
           type="button"
@@ -136,7 +137,7 @@ export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: Famil
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium truncate">{r.user_display_name}</span>
               <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map((star) => (
+                {RATING_STARS.map((star) => (
                   <Star
                     key={star}
                     className={`h-3.5 w-3.5 ${

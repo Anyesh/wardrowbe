@@ -49,10 +49,13 @@ from app.services.suggestion_cache import clear_suggestions
 from app.services.weather_service import WeatherData
 from app.utils.auth import get_current_user
 from app.utils.rate_limit import rate_limit_by_user
+from app.utils.scales import RATING_MAX, RATING_MIN
 from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
+
+_RATING_RANGE = f"{RATING_MIN}-{RATING_MAX}"
 
 
 router = APIRouter(prefix="/outfits", tags=["Outfits"])
@@ -124,7 +127,7 @@ class FeedbackSummary(BaseModel):
 
 
 class FamilyRatingRequest(BaseModel):
-    rating: int = Field(ge=1, le=5, description="Rating 1-5")
+    rating: int = Field(ge=RATING_MIN, le=RATING_MAX, description=f"Rating {_RATING_RANGE}")
     comment: str | None = Field(None, max_length=500)
 
 
@@ -216,9 +219,15 @@ class BulkDeleteOutfitsResponse(BaseModel):
 
 class FeedbackRequest(BaseModel):
     accepted: bool | None = Field(None, description="Whether outfit was accepted")
-    rating: int | None = Field(None, ge=1, le=5, description="Overall rating 1-5")
-    comfort_rating: int | None = Field(None, ge=1, le=5, description="Comfort rating 1-5")
-    style_rating: int | None = Field(None, ge=1, le=5, description="Style rating 1-5")
+    rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Overall rating {_RATING_RANGE}"
+    )
+    comfort_rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Comfort rating {_RATING_RANGE}"
+    )
+    style_rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Style rating {_RATING_RANGE}"
+    )
     comment: str | None = Field(None, max_length=1000, description="Optional comment")
     worn: bool | None = Field(None, description="Whether the outfit was worn")
     worn_with_modifications: bool | None = Field(
@@ -1184,7 +1193,7 @@ class WoreInsteadRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[UUID] = Field(min_length=1, max_length=20)
-    rating: Annotated[int | None, Field(ge=1, le=5)] = None
+    rating: Annotated[int | None, Field(ge=RATING_MIN, le=RATING_MAX)] = None
     comment: Annotated[str | None, Field(max_length=1000)] = None
     scheduled_for: date | None = None
 

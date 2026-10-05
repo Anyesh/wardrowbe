@@ -203,8 +203,9 @@ plain string and a missing key type-checks perfectly:
 | `i18n:parity` | locales missing keys, or ICU placeholders dropped in translation |
 | `i18n:scan` | hardcoded user-visible strings in JSX, attributes, toasts and `label`/`title`/`placeholder`/`description` object properties |
 
-Adding a language: add it to `SUPPORTED_LOCALES` in `frontend/lib/i18n/locales.ts`, add the same
-list to `backend/app/utils/locale.py`, and create `frontend/messages/<locale>/`.
+Adding a language: add its code to `backend/app/data/locales.json`, run
+`cd frontend && npm run vocab:gen`, add its entry to `LOCALE_METADATA` in
+`frontend/lib/i18n/locales.ts` (tsc fails until you do), and create `frontend/messages/<locale>/`.
 
 ### Garment vocabulary
 
@@ -219,6 +220,8 @@ editing it, run `cd frontend && npm run vocab:gen`, add the labels under `consta
 `constants.colors` in every locale, and commit the generated file. Turning a stored colour into an
 alias also needs an Alembic data migration that remaps the rows already holding it.
 `npm run vocab:check` fails CI when the generated file is stale. The occasion pickers show only the short featured list in `frontend/lib/types.ts`.
+The rating scale and the temperature threshold bounds live in `backend/app/data/scales.json` and are
+generated the same way.
 
 ## Project Structure
 
@@ -228,7 +231,7 @@ alias also needs an Alembic data migration that remaps the rows already holding 
 backend/
 ├── app/
 │   ├── api/           # API route handlers
-│   ├── data/          # garment_vocabulary.json, the source of every type/material/formality/occasion/colour list
+│   ├── data/          # garment vocabulary (every type/material/formality/occasion/colour list), locale codes and scales shared with the frontend
 │   ├── models/        # SQLAlchemy models
 │   ├── prompts/       # AI prompt templates (<<TOKENS>> are filled from the vocabulary)
 │   ├── schemas/       # Pydantic schemas

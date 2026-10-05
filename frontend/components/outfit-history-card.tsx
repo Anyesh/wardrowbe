@@ -19,13 +19,14 @@ import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import { SourceBadge } from '@/components/shared/source-badge';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { RATING_STARS } from '@/lib/rating';
 
 function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg' }) {
   const sizeClass = size === 'lg' ? 'h-5 w-5' : 'h-3.5 w-3.5';
 
   return (
     <div className="flex gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
+      {RATING_STARS.map((star) => (
         <Star
           key={star}
           className={`${sizeClass} ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}

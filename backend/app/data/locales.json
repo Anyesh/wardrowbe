@@ -1,0 +1,4 @@
+{
+  "default": "en",
+  "supported": ["en", "zh-CN", "zh-TW", "ko", "ja", "fr", "de", "it"]
+}
