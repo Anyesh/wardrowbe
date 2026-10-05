@@ -87,6 +87,9 @@ interface EditForm {
   type: string;
   subtype: string;
   brand: string;
+  size: string;
+  purchase_store: string;
+  care_instructions: string;
   primary_color: string;
   notes: string;
   favorite: boolean;
@@ -101,6 +104,9 @@ function editFormFromItem(item: Item): EditForm {
     // supported type doesn't lose what the model actually saw.
     subtype: item.subtype || (item.type === 'unknown' && item.ai_unrecognized_type) || '',
     brand: item.brand || '',
+    size: item.size || '',
+    purchase_store: item.purchase_store || '',
+    care_instructions: item.care_instructions || '',
     primary_color: item.primary_color || '',
     notes: item.notes || '',
     favorite: item.favorite,
@@ -127,6 +133,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     type: '',
     subtype: '',
     brand: '',
+    size: '',
+    purchase_store: '',
+    care_instructions: '',
     primary_color: '',
     notes: '',
     favorite: false,
@@ -173,6 +182,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           // null (not undefined) so clearing the field actually clears it server-side.
           subtype: editForm.subtype.trim() || null,
           brand: editForm.brand || undefined,
+          size: editForm.size.trim() || null,
+          purchase_store: editForm.purchase_store.trim() || null,
+          care_instructions: editForm.care_instructions.trim() || null,
           primary_color: editForm.primary_color || undefined,
           notes: editForm.notes || undefined,
           favorite: editForm.favorite,
@@ -661,6 +673,35 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       placeholder={t('placeholders.brandName')}
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-item-size">{t('size')}</Label>
+                      <Input
+                        id="edit-item-size"
+                        maxLength={50}
+                        value={editForm.size}
+                        onChange={(e) => setEditForm({ ...editForm, size: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-item-purchase-store">{t('purchaseStore')}</Label>
+                      <Input
+                        id="edit-item-purchase-store"
+                        maxLength={100}
+                        value={editForm.purchase_store}
+                        onChange={(e) => setEditForm({ ...editForm, purchase_store: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-item-care-instructions">{t('careInstructions')}</Label>
+                    <Textarea
+                      id="edit-item-care-instructions"
+                      value={editForm.care_instructions}
+                      onChange={(e) => setEditForm({ ...editForm, care_instructions: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label>{t('primaryColor')}</Label>
                     <div className="flex gap-2">
@@ -755,6 +796,18 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       <div className="flex items-center gap-2 text-sm">
                         <Tag className="h-4 w-4 text-muted-foreground" />
                         <span>{item.brand}</span>
+                      </div>
+                    )}
+                    {item.size && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted-foreground">{t('size')}:</span>
+                        <span>{item.size}</span>
+                      </div>
+                    )}
+                    {item.purchase_store && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted-foreground">{t('purchaseStore')}:</span>
+                        <span>{item.purchase_store}</span>
                       </div>
                     )}
                     {colorInfo && (
@@ -1021,6 +1074,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   )}
 
                   {/* Notes */}
+                  {item.care_instructions && (
+                    <div className="space-y-1 pt-2 border-t">
+                      <p className="text-sm font-medium">{t('careInstructions')}</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.care_instructions}</p>
+                    </div>
+                  )}
                   {item.notes && (
                     <div className="space-y-1 pt-2 border-t">
                       <p className="text-sm font-medium">{t('notes')}</p>

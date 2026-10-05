@@ -29,6 +29,7 @@
       "uploadingCount": "{count, plural, one {# 件のアイテムをアップロード中...} other {# 件のアイテムをアップロード中...}}"
     },
     "bulkUpload": "一括アップロード",
+    "careInstructions": "お手入れ方法",
     "dropzone": "画像をドラッグ＆ドロップ、またはタップして選択",
     "dropzoneActive": "ここに画像をドロップ",
     "formatHint": "PNG、JPG、HEIC",
@@ -39,8 +40,10 @@
     "notesPlaceholder": "メモ",
     "previewAlt": "プレビュー",
     "primaryColor": "メインカラー",
+    "purchaseStore": "購入店舗",
     "selectPlaceholder": "選択...",
     "singleItem": "単品",
+    "size": "サイズ",
     "submit": "アイテムを追加",
     "subtitle": "衣類の写真をアップロード",
     "title": "アイテムを追加",
@@ -173,6 +176,7 @@
       "washed": "洗濯済みにしました"
     },
     "brand": "ブランド",
+    "careInstructions": "お手入れ方法",
     "name": "名前",
     "notes": "メモ",
     "placeholders": {
@@ -184,6 +188,8 @@
       "washIntervalDefault": "デフォルト：{count}"
     },
     "primaryColor": "メインカラー",
+    "purchaseStore": "購入店舗",
+    "size": "サイズ",
     "subtype": "サブタイプ",
     "titles": {
       "analysisInProgress": "分析中...",

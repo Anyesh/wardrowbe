@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -61,6 +62,9 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const [type, setType] = useState('');
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
+  const [size, setSize] = useState('');
+  const [purchaseStore, setPurchaseStore] = useState('');
+  const [careInstructions, setCareInstructions] = useState('');
   const [primaryColor, setPrimaryColor] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -140,6 +144,9 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     if (type) formData.append('type', type);
     if (name) formData.append('name', name);
     if (brand) formData.append('brand', brand);
+    if (size.trim()) formData.append('size', size.trim());
+    if (purchaseStore.trim()) formData.append('purchase_store', purchaseStore.trim());
+    if (careInstructions.trim()) formData.append('care_instructions', careInstructions.trim());
     if (primaryColor) formData.append('primary_color', primaryColor);
     if (notes) formData.append('notes', notes);
 
@@ -207,6 +214,9 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     setType('');
     setName('');
     setBrand('');
+    setSize('');
+    setPurchaseStore('');
+    setCareInstructions('');
     setPrimaryColor('');
     setNotes('');
 
@@ -368,6 +378,36 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="item-size">{t('size')}</Label>
+                    <Input
+                      id="item-size"
+                      maxLength={50}
+                      value={size}
+                      onChange={(e) => setSize(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="item-purchase-store">{t('purchaseStore')}</Label>
+                    <Input
+                      id="item-purchase-store"
+                      maxLength={100}
+                      value={purchaseStore}
+                      onChange={(e) => setPurchaseStore(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="item-care-instructions">{t('careInstructions')}</Label>
+                  <Textarea
+                    id="item-care-instructions"
+                    value={careInstructions}
+                    onChange={(e) => setCareInstructions(e.target.value)}
+                    rows={2}
+                  />
                 </div>
 
                 <div className="space-y-2">

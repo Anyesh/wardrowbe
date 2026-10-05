@@ -29,6 +29,7 @@
       "uploadingCount": "{count, plural, one {Uploading # item...} other {Uploading # items...}}"
     },
     "bulkUpload": "Bulk Upload",
+    "careInstructions": "Care instructions",
     "dropzone": "Drag & drop an image, or tap to select",
     "dropzoneActive": "Drop the image here",
     "formatHint": "PNG, JPG, or HEIC",
@@ -39,8 +40,10 @@
     "notesPlaceholder": "Notes",
     "previewAlt": "Preview",
     "primaryColor": "Primary Color",
+    "purchaseStore": "Purchase store",
     "selectPlaceholder": "Select...",
     "singleItem": "Single Item",
+    "size": "Size",
     "submit": "Add Item",
     "subtitle": "Upload photos of your clothing items",
     "title": "Add Items",
@@ -173,6 +176,7 @@
       "washed": "Item marked as washed"
     },
     "brand": "Brand",
+    "careInstructions": "Care instructions",
     "name": "Name",
     "notes": "Notes",
     "placeholders": {
@@ -184,6 +188,8 @@
       "washIntervalDefault": "Default: {count}"
     },
     "primaryColor": "Primary Color",
+    "purchaseStore": "Purchase store",
+    "size": "Size",
     "subtype": "Subtype",
     "titles": {
       "analysisInProgress": "Analysis in progress...",

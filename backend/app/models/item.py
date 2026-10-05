@@ -129,6 +129,9 @@ class ClothingItem(Base):
     # User metadata
     name: Mapped[str | None] = mapped_column(String(100))
     brand: Mapped[str | None] = mapped_column(String(100))
+    size: Mapped[str | None] = mapped_column(String(50))
+    purchase_store: Mapped[str | None] = mapped_column(String(100))
+    care_instructions: Mapped[str | None] = mapped_column(Text)
     purchase_date: Mapped[date | None] = mapped_column(Date)
     purchase_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     notes: Mapped[str | None] = mapped_column(Text)
