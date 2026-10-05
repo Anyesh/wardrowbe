@@ -296,8 +296,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   // AI-generated tags
   const tags = item.tags || {};
   const hasAiTags = !!(tags.colors?.length || tags.pattern || tags.material ||
-                   tags.style?.length || tags.season?.length || tags.formality || tags.fit ||
-                   tags.occasion?.length || tags.condition || tags.features?.length);
+                   tags.style?.length || tags.season?.length || tags.formality || tags.fit);
 
   return (
     <>
@@ -1006,21 +1005,6 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                             {tags.fit ? t('view.fitBadge', { fit: tags.fit }) : null}
                           </Badge>
                         )}
-                        {tags.occasion?.map((o: string) => (
-                          <Badge key={o} variant="outline" className="text-xs">
-                            {o}
-                          </Badge>
-                        ))}
-                        {tags.condition && (
-                          <Badge variant="outline" className="text-xs">
-                            {tags.condition}
-                          </Badge>
-                        )}
-                        {tags.features?.map((f: string) => (
-                          <Badge key={f} variant="outline" className="text-xs">
-                            {f}
-                          </Badge>
-                        ))}
                       </div>}
                     </div>
                   )}

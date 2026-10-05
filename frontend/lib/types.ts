@@ -11,10 +11,6 @@ export interface ItemTags {
   season: string[];
   formality?: string;
   fit?: string;
-  occasion?: string[];
-  brand?: string;
-  condition?: string;
-  features?: string[];
   logprobs_confidence?: number;
 }
 
