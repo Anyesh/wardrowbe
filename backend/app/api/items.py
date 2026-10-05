@@ -3,7 +3,6 @@ import logging
 from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from arq import create_pool
 from arq.jobs import Job
@@ -51,6 +50,7 @@ from app.services.image_service import ImageService
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
 from app.utils.signed_urls import sign_image_url
+from app.utils.timezone import get_user_today
 from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
 from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
 from app.workers.settings import get_redis_settings
@@ -1361,11 +1361,7 @@ async def log_item_wear(
 
     # Use user's timezone to determine today if worn_at not provided
     if request.worn_at is None:
-        try:
-            user_tz = ZoneInfo(current_user.timezone or "UTC")
-        except Exception:
-            user_tz = ZoneInfo("UTC")
-        worn_at = datetime.now(UTC).astimezone(user_tz).date()
+        worn_at = get_user_today(current_user)
     else:
         worn_at = request.worn_at
 
@@ -1461,7 +1457,7 @@ async def get_item_wear_stats(
             detail="Item not found",
         )
 
-    return await item_service.get_wear_stats(item, current_user.timezone or "UTC")
+    return await item_service.get_wear_stats(item, get_user_today(current_user))
 
 
 @router.post("/{item_id}/wash", response_model=ItemResponse)
@@ -1488,11 +1484,7 @@ async def log_item_wash(
 
     # Use user's timezone to determine today if washed_at not provided
     if request.washed_at is None:
-        try:
-            user_tz = ZoneInfo(current_user.timezone or "UTC")
-        except Exception:
-            user_tz = ZoneInfo("UTC")
-        washed_at = datetime.now(UTC).astimezone(user_tz).date()
+        washed_at = get_user_today(current_user)
     else:
         washed_at = request.washed_at
 

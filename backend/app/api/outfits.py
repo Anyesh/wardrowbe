@@ -1,8 +1,7 @@
 import logging
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from typing import Annotated, Literal
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
@@ -44,6 +43,7 @@ from app.services.weather_service import WeatherData
 from app.utils.auth import get_current_user
 from app.utils.rate_limit import rate_limit_by_user
 from app.utils.signed_urls import sign_image_url
+from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
 
@@ -71,14 +71,6 @@ VALID_OCCASIONS = {
     "hiking",
     "weekend",
 }
-
-
-def get_user_today(user: User) -> date:
-    try:
-        user_tz = ZoneInfo(user.timezone or "UTC")
-    except Exception:
-        user_tz = ZoneInfo("UTC")
-    return datetime.now(UTC).astimezone(user_tz).date()
 
 
 router = APIRouter(prefix="/outfits", tags=["Outfits"])

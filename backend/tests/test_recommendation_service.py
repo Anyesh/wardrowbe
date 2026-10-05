@@ -52,7 +52,7 @@ class TestGetTimeOfDay:
     def test_time_buckets(self, hour, expected):
         user = _make_user("UTC")
         mock_dt = datetime(2026, 3, 8, hour, 30, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -61,7 +61,7 @@ class TestGetTimeOfDay:
     def test_respects_user_timezone(self):
         user = _make_user("Asia/Kolkata")
         mock_dt = datetime(2026, 3, 8, 13, 30, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -70,7 +70,7 @@ class TestGetTimeOfDay:
     def test_invalid_timezone_falls_back_to_utc(self):
         user = _make_user("Invalid/Timezone")
         mock_dt = datetime(2026, 3, 8, 9, 0, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -80,7 +80,7 @@ class TestGetTimeOfDay:
         user = _make_user()
         user.timezone = None
         mock_dt = datetime(2026, 3, 8, 22, 0, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)

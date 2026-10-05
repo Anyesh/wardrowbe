@@ -1,7 +1,6 @@
 from collections import Counter
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -509,14 +508,7 @@ class ItemService:
         )
         return list(result.scalars().all())
 
-    async def get_wear_stats(self, item: ClothingItem, user_timezone: str = "UTC") -> dict:
-        # Calculate today's date in user's timezone
-        try:
-            user_tz = ZoneInfo(user_timezone)
-        except Exception:
-            user_tz = ZoneInfo("UTC")
-        user_today = datetime.now(UTC).astimezone(user_tz).date()
-
+    async def get_wear_stats(self, item: ClothingItem, user_today: date) -> dict:
         # Days since last worn
         days_since_last_worn = None
         if item.last_worn_at:

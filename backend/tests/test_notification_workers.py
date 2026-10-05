@@ -120,6 +120,25 @@ class TestCheckScheduledNotifications:
         assert schedule.last_triggered_at is not None
 
     @pytest.mark.asyncio
+    async def test_bad_stored_timezone_matches_schedule_as_utc(
+        self, db_session: AsyncSession, schedule_user: User
+    ):
+        schedule_user.timezone = "Mars/Olympus_Mons"
+        schedule = _make_due_schedule(schedule_user)
+        db_session.add(schedule)
+        await db_session.commit()
+
+        ctx = {"redis": MagicMock(enqueue_job=AsyncMock())}
+
+        with (
+            patch("app.workers.notifications.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+        ):
+            result = await check_scheduled_notifications(ctx)
+
+        assert result["enqueued"] == 1
+
+    @pytest.mark.asyncio
     async def test_recently_triggered_schedule_is_skipped(
         self, db_session: AsyncSession, schedule_user: User
     ):
@@ -260,6 +279,41 @@ class TestProcessScheduledNotification:
             .all()
         )
         assert (row.channel, row.status) == ("ntfy", NotificationStatus.sent)
+
+    @pytest.mark.asyncio
+    async def test_bad_stored_timezone_targets_utc_today(
+        self, db_session: AsyncSession, schedule_user: User, ntfy_channel
+    ):
+        schedule_user.timezone = "Mars/Olympus_Mons"
+        schedule = _make_due_schedule(schedule_user)
+        outfit = Outfit(
+            user_id=schedule_user.id,
+            occasion="casual",
+            scheduled_for=datetime.now(UTC).date(),
+            status=OutfitStatus.pending,
+            source=OutfitSource.scheduled,
+        )
+        db_session.add_all([schedule, outfit])
+        await db_session.commit()
+
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock(return_value=outfit)
+
+        with (
+            patch("app.workers.notifications.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch(
+                "app.workers.notifications.RecommendationService",
+                return_value=mock_rec_service,
+            ),
+            patch("app.workers.notifications.WeatherService"),
+            patch.object(httpx.AsyncClient, "post", _fake_post()),
+        ):
+            result = await process_scheduled_notification({"job_try": 1}, str(schedule.id))
+
+        assert result == {"status": "sent", "outfit_id": str(outfit.id)}
+        kwargs = mock_rec_service.generate_recommendation.call_args.kwargs
+        assert kwargs["scheduled_date"] == datetime.now(UTC).date()
 
     @pytest.mark.asyncio
     async def test_only_disabled_channels_returns_skipped(
@@ -520,6 +574,22 @@ class TestWashReminderChannels:
         assert "Black Jeans" in attachment["text"]
         [reminder] = await self._reminders(db_session, dirty_user)
         assert reminder.channel == "mattermost"
+        assert reminder.status == NotificationStatus.sent
+
+    @pytest.mark.asyncio
+    async def test_bad_stored_timezone_still_gets_reminder(
+        self, db_session: AsyncSession, dirty_user: User
+    ):
+        dirty_user.timezone = "Mars/Olympus_Mons"
+        await db_session.commit()
+        topic = f"laundry-{uuid.uuid4().hex[:12]}"
+        await self._add_channel(
+            db_session, dirty_user, "ntfy", {"server": "https://ntfy.sh", "topic": topic}, 1
+        )
+
+        await self._run(db_session, _fake_post())
+
+        [reminder] = await self._reminders(db_session, dirty_user)
         assert reminder.status == NotificationStatus.sent
 
     @pytest.mark.asyncio

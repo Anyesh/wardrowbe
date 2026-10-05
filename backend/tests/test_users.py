@@ -1,5 +1,9 @@
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
 
 
 class TestUserMe:
@@ -76,6 +80,85 @@ class TestUserUpdate:
 
         unchanged = await client.get("/api/v1/users/me", headers=auth_headers)
         assert unchanged.json()["timezone"] != "Europe/Amsterdam"
+
+
+class TestUserTimezone:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "timezone", ["Mars/Olympus_Mons", "", "utc", "America", "../etc/passwd", None]
+    )
+    async def test_unknown_timezone_rejected(
+        self, client: AsyncClient, test_user, auth_headers, timezone
+    ):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"timezone": timezone},
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+        response = await client.get("/api/v1/users/me", headers=auth_headers)
+        assert response.json()["timezone"] == "UTC"
+
+
+class TestBadStoredTimezone:
+    @pytest_asyncio.fixture
+    async def bad_tz_user(self, db_session: AsyncSession, test_user: User) -> User:
+        test_user.timezone = "Mars/Olympus_Mons"
+        await db_session.commit()
+        return test_user
+
+    @pytest.mark.asyncio
+    async def test_profile_still_loads(self, client: AsyncClient, bad_tz_user, auth_headers):
+        response = await client.get("/api/v1/users/me", headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json()["timezone"] == "Mars/Olympus_Mons"
+
+    @pytest.mark.asyncio
+    async def test_session_still_loads(self, client: AsyncClient, bad_tz_user, auth_headers):
+        response = await client.get("/api/v1/auth/session", headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json()["timezone"] == "Mars/Olympus_Mons"
+
+    @pytest.mark.asyncio
+    async def test_location_save_resending_the_stored_timezone_succeeds(
+        self, client: AsyncClient, bad_tz_user, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={
+                "location_lat": 27.7172,
+                "location_lon": 85.324,
+                "location_name": "Kathmandu",
+                "timezone": "Mars/Olympus_Mons",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["location_name"] == "Kathmandu"
+
+    @pytest.mark.asyncio
+    async def test_switching_to_another_unknown_timezone_is_rejected(
+        self, client: AsyncClient, bad_tz_user, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"timezone": "Mars/Valles_Marineris"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_switching_to_a_real_timezone_succeeds(
+        self, client: AsyncClient, bad_tz_user, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"timezone": "Asia/Kathmandu"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["timezone"] == "Asia/Kathmandu"
 
 
 class TestUserLocale:

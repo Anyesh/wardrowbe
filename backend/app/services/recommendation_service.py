@@ -4,7 +4,6 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,7 +32,7 @@ from app.services.weather_service import (
 )
 from app.utils.clothing import canonical_item_order, deduplicate_by_body_slot
 from app.utils.prompts import load_prompt
-from app.utils.timezone import get_user_today
+from app.utils.timezone import get_user_now, get_user_today
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +47,7 @@ SINGLE_OUTFIT_FORMAT = (
 
 
 def get_time_of_day(user: User) -> str:
-    try:
-        user_tz = ZoneInfo(user.timezone or "UTC")
-    except Exception:
-        user_tz = ZoneInfo("UTC")
-    hour = datetime.now(UTC).astimezone(user_tz).hour
+    hour = get_user_now(user).hour
     if 6 <= hour < 12:
         return "morning"
     elif 12 <= hour < 17:

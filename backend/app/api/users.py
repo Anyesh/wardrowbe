@@ -10,6 +10,7 @@ from app.models.user import User
 from app.services.user_service import UserService
 from app.utils.auth import get_current_user
 from app.utils.locale import SUPPORTED_LOCALES, is_supported_locale
+from app.utils.timezone import is_valid_timezone
 
 router = APIRouter(prefix="/users/me", tags=["Users"])
 
@@ -71,6 +72,15 @@ async def update_profile(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"locale must be one of: {', '.join(SUPPORTED_LOCALES)}",
+        )
+
+    # The settings page resends the stored timezone with every location save, so a
+    # zone stored before validation existed must not block that save.
+    new_timezone = update_data.get("timezone", current_user.timezone)
+    if new_timezone != current_user.timezone and not is_valid_timezone(new_timezone):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="timezone must be an IANA timezone name such as Europe/London",
         )
 
     if "body_measurements" in update_data and update_data["body_measurements"] is not None:
