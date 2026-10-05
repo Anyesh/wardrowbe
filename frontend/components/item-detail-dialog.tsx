@@ -74,7 +74,15 @@ import { ColorEyedropper } from '@/components/color-eyedropper';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
 import { useFeatures } from '@/lib/hooks/use-features';
 import { useLocale, useTranslations } from 'next-intl';
-import { PurchaseFieldError, formatPurchaseAmount, formatPurchaseDate, normalizePurchaseAmount, validatePurchaseFields } from '@/lib/purchase-fields';
+import {
+  PurchaseFieldError,
+  PurchaseFields,
+  changedPurchaseFields,
+  formatPurchaseAmount,
+  formatPurchaseDate,
+  normalizePurchaseAmount,
+  validatePurchaseFields,
+} from '@/lib/purchase-fields';
 
 interface ItemDetailDialogProps {
   item: Item | null;
@@ -143,6 +151,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     favorite: false,
     wash_interval: undefined,
   });
+  const purchaseBaselineRef = useRef<PurchaseFields>({ purchase_date: '', purchase_price: '' });
   const [showWashHistory, setShowWashHistory] = useState(false);
   const [showWearHistory, setShowWearHistory] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -166,7 +175,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
   useEffect(() => {
     if (item) {
-      setEditForm(editFormFromItem(item));
+      const form = editFormFromItem(item);
+      setEditForm(form);
+      purchaseBaselineRef.current = {
+        purchase_date: form.purchase_date,
+        purchase_price: form.purchase_price,
+      };
       setPurchaseError(null);
       setIsEditing(false);
       setActiveImageIndex(0);
@@ -191,8 +205,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           brand: editForm.brand || undefined,
           primary_color: editForm.primary_color || undefined,
           notes: editForm.notes || undefined,
-          purchase_date: editForm.purchase_date || null,
-          purchase_price: purchaseAmount || null,
+          ...changedPurchaseFields(editForm, purchaseBaselineRef.current),
           favorite: editForm.favorite,
           wash_interval: editForm.wash_interval,
         },
@@ -469,7 +482,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     // Re-read the item on entering edit mode: tagging can finish while the
                     // dialog is open (same id, so the effect above doesn't re-run).
                     if (!isEditing) {
-                      setEditForm(editFormFromItem(item));
+                      const form = editFormFromItem(item);
+                      setEditForm(form);
+                      purchaseBaselineRef.current = {
+                        purchase_date: form.purchase_date,
+                        purchase_price: form.purchase_price,
+                      };
                       setPurchaseError(null);
                     }
                     setIsEditing(!isEditing);

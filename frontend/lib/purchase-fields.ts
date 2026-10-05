@@ -1,5 +1,25 @@
 export type PurchaseFieldError = 'date' | 'amount' | null;
 
+export interface PurchaseFields {
+  purchase_date: string;
+  purchase_price: string;
+}
+
+export function changedPurchaseFields(current: PurchaseFields, original: PurchaseFields): {
+  purchase_date?: string | null;
+  purchase_price?: string | null;
+} {
+  const changes: { purchase_date?: string | null; purchase_price?: string | null } = {};
+  if (current.purchase_date !== original.purchase_date) {
+    changes.purchase_date = current.purchase_date || null;
+  }
+  const currentAmount = normalizePurchaseAmount(current.purchase_price);
+  if (currentAmount !== normalizePurchaseAmount(original.purchase_price)) {
+    changes.purchase_price = currentAmount || null;
+  }
+  return changes;
+}
+
 export function normalizePurchaseAmount(amount: string): string {
   // Accept either decimal separator, but do not accept grouping punctuation.
   return amount.trim().replace(',', '.');

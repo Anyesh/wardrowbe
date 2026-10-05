@@ -43,7 +43,7 @@ Self-hosted wardrobe management with AI-powered outfit recommendations. Take pho
 ## Features
 
 - **Photo-based wardrobe** - Upload photos, AI extracts clothing details automatically
-- **Purchase details** - Optionally record a garment's purchase date and amount when adding or editing it; currency is not stored
+- **Purchase details** - Optionally record a garment's purchase date and amount in the wardrobe's single-item add and edit forms; currency is not stored
 - **Smart recommendations** - Outfits matched to weather, occasion, and your preferences
 - **Scheduled notifications** - Daily outfit suggestions via ntfy/Mattermost/email
 - **Family support** - Manage wardrobes for household members
