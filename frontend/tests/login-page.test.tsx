@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import LoginPage from '@/app/login/page'
-import { FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors'
+import { FORWARD_AUTH_ACCOUNT_CONFLICT, FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors'
 
 const nav = vi.hoisted(() => ({
   params: new URLSearchParams(),
@@ -94,6 +94,25 @@ describe('login page in forward-auth mode', () => {
 
     expect(await screen.findByText('forwardAuth.serverError')).toBeInTheDocument()
     expect(screen.queryByText('forwardAuth.headersMissing')).not.toBeInTheDocument()
+  })
+
+  it('shows an account conflict instead of a server error when the email belongs to another account', async () => {
+    auth.signIn.mockResolvedValue({ ok: false, error: FORWARD_AUTH_ACCOUNT_CONFLICT, status: 401, url: null })
+
+    renderLogin()
+
+    expect(await screen.findByText('forwardAuth.accountConflict')).toBeInTheDocument()
+    expect(screen.queryByText('forwardAuth.serverError')).not.toBeInTheDocument()
+    expect(screen.queryByText('forwardAuth.headersMissing')).not.toBeInTheDocument()
+  })
+
+  it('shows the account conflict carried in the error query parameter', async () => {
+    nav.params = new URLSearchParams(`error=${FORWARD_AUTH_ACCOUNT_CONFLICT}`)
+
+    renderLogin()
+
+    expect(await screen.findByText('forwardAuth.accountConflict')).toBeInTheDocument()
+    expect(auth.signIn).not.toHaveBeenCalled()
   })
 
   it('shows the server error carried in the error query parameter', async () => {

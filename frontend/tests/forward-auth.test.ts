@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { Account, User } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
 import { authOptions, authorizeForwardAuth } from '@/lib/auth'
-import { FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors'
+import { FORWARD_AUTH_ACCOUNT_CONFLICT, FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors'
 
 const SECRET = 'proxy-shared-secret-that-is-long-enough'
 
@@ -140,7 +140,16 @@ describe('forward-auth authorize', () => {
     expect(await authorizeForwardAuth(proxyHeaders())).toBeNull()
   })
 
-  it.each([500, 503, 409])('fails as a server error when the backend answers %i', async (status) => {
+  it('fails as an account conflict when the backend answers 409', async () => {
+    mockFetch(
+      new Response(JSON.stringify({ detail: 'already in use by another account.' }), { status: 409 })
+    )
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(authorizeForwardAuth(proxyHeaders())).rejects.toThrow(FORWARD_AUTH_ACCOUNT_CONFLICT)
+  })
+
+  it.each([500, 503])('fails as a server error when the backend answers %i', async (status) => {
     mockFetch(new Response(JSON.stringify({ detail: 'Internal Server Error' }), { status }))
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
