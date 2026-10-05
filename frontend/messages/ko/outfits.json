@@ -38,6 +38,7 @@
     "pairing": "페어링",
     "replacement": "대체",
     "studio": "스튜디오",
+    "woreInsteadFallback": "{occasion} (대신 착용)",
     "worn": "착용함"
   },
   "cloneToLookbook": {

@@ -38,6 +38,7 @@
     "pairing": "搭配",
     "replacement": "替换",
     "studio": "工作室",
+    "woreInsteadFallback": "{occasion}(改穿)",
     "worn": "已穿着"
   },
   "cloneToLookbook": {

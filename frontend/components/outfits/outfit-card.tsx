@@ -88,6 +88,9 @@ function getSourceBadge(outfit: Outfit, t: OutfitCardTranslator): {
 
 function getCardTitle(outfit: Outfit, t: OutfitCardTranslator, occasionLabel: (value: string) => string): string {
   if (outfit.name) return outfit.name;
+  if (outfit.replaces_outfit_id) {
+    return t('woreInsteadFallback', { occasion: occasionLabel(outfit.occasion) });
+  }
   if (outfit.reasoning) return outfit.reasoning;
   if (outfit.highlights && outfit.highlights.length > 0) {
     return outfit.highlights[0];

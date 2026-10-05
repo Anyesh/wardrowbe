@@ -90,6 +90,9 @@ export default function OutfitDetailPage() {
 
   const title =
     outfit.name ||
+    (outfit.replaces_outfit_id
+      ? t('cards.woreInsteadFallback', { occasion: occasionLabel(outfit.occasion) })
+      : null) ||
     outfit.reasoning ||
     t('cards.outfitFallback', { occasion: occasionLabel(outfit.occasion) });
 

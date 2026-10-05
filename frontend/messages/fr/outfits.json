@@ -38,6 +38,7 @@
     "pairing": "Association",
     "replacement": "Remplacement",
     "studio": "Studio",
+    "woreInsteadFallback": "{occasion} (porté à la place)",
     "worn": "Portées"
   },
   "cloneToLookbook": {
