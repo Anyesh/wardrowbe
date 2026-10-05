@@ -15,16 +15,14 @@ def session_maker(async_engine):
     return async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
-async def _wait_for_blocked_insert(session_maker):
+async def _wait_until_blocked_by(session_maker, waiter_pid: int, holder_pid: int):
     for _ in range(100):
         async with session_maker() as probe:
-            waiting = await probe.scalar(
-                text(
-                    "SELECT count(*) FROM pg_stat_activity "
-                    "WHERE wait_event_type = 'Lock' AND datname = current_database()"
-                )
+            blocked = await probe.scalar(
+                text("SELECT CAST(:holder AS integer) = ANY(pg_blocking_pids(:waiter))"),
+                {"holder": holder_pid, "waiter": waiter_pid},
             )
-        if waiting:
+        if blocked:
             return
         await asyncio.sleep(0.05)
     raise AssertionError("second sync never blocked on the first sync's uncommitted insert")
@@ -32,10 +30,12 @@ async def _wait_for_blocked_insert(session_maker):
 
 async def _race_two_first_syncs(session_maker, first: UserSyncRequest, second: UserSyncRequest):
     async with session_maker() as session_a, session_maker() as session_b:
+        pid_a = await session_a.scalar(text("SELECT pg_backend_pid()"))
+        pid_b = await session_b.scalar(text("SELECT pg_backend_pid()"))
         user_a, new_a = await UserService(session_a).sync_from_oidc(first)
         task_b = asyncio.create_task(UserService(session_b).sync_from_oidc(second))
         try:
-            await _wait_for_blocked_insert(session_maker)
+            await _wait_until_blocked_by(session_maker, pid_b, pid_a)
             await session_a.commit()
             user_b, new_b = await task_b
         finally:
