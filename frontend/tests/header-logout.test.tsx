@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { signOut } from 'next-auth/react'
 import { Header } from '@/components/header'
+import { queryKeys } from '@/lib/hooks/query-keys'
 
 vi.mock('@/components/locale-switcher', () => ({ LocaleSwitcher: () => null }))
 
@@ -53,7 +54,7 @@ describe('header logout', () => {
   it('ends the proxy session through /auth/logout in forward-auth mode', async () => {
     mockAuthConfig(true)
     const client = renderHeader()
-    await waitFor(() => expect(client.getQueryData(['auth-config'])).toBeDefined())
+    await waitFor(() => expect(client.getQueryData(queryKeys.authConfig)).toBeDefined())
 
     fireEvent.click(screen.getByRole('button', { name: 'signOut' }))
 
@@ -64,7 +65,7 @@ describe('header logout', () => {
   it('keeps the NextAuth sign-out redirect outside forward-auth mode', async () => {
     mockAuthConfig(false)
     const client = renderHeader()
-    await waitFor(() => expect(client.getQueryData(['auth-config'])).toBeDefined())
+    await waitFor(() => expect(client.getQueryData(queryKeys.authConfig)).toBeDefined())
 
     fireEvent.click(screen.getByRole('button', { name: 'signOut' }))
 

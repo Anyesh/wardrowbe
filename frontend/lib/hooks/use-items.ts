@@ -9,6 +9,7 @@ import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, Taggin
 import { chunkArray } from '@/lib/utils';
 import { enqueueFiles } from '@/lib/upload-queue';
 import { startDrain } from '@/lib/upload-manager';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 // Must not exceed the backend's MAX_BULK_UPLOAD_COUNT setting, or every chunk
 // larger than the server's limit fails with a 400.
@@ -17,10 +18,10 @@ const BULK_UPLOAD_CHUNK_SIZE = 20;
 // Outfit and calendar payloads embed each item's primary image, so they go
 // stale whenever that image changes, not only the item caches.
 function invalidatePrimaryImageQueries(queryClient: QueryClient, itemId: string) {
-  queryClient.invalidateQueries({ queryKey: ['items'] });
-  queryClient.invalidateQueries({ queryKey: ['item', itemId] });
-  queryClient.invalidateQueries({ queryKey: ['outfits'] });
-  queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.item(itemId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.outfits.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
 }
 
 export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
@@ -28,7 +29,7 @@ export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['items', filters, page, pageSize],
+    queryKey: queryKeys.items.list(filters, page, pageSize),
     queryFn: async () => {
       const params: Record<string, string> = {
         page: String(page),
@@ -65,7 +66,7 @@ export function useTaggingProgress() {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['tagging-progress'],
+    queryKey: queryKeys.taggingProgress,
     queryFn: () => api.get<TaggingProgress>('/items/tagging-progress'),
     enabled: status !== 'loading',
     refetchInterval: (query) => {
@@ -81,7 +82,7 @@ export function useItem(itemId: string) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['item', itemId],
+    queryKey: queryKeys.item(itemId),
     queryFn: () => api.get<Item>(`/items/${itemId}`),
     enabled: !!itemId && status !== 'loading',
   });
@@ -127,7 +128,7 @@ export function useCreateItem() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -142,13 +143,13 @@ export function useUpdateItem() {
       return api.patch<Item>(`/items/${id}`, data);
     },
     onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['items'] });
-      await queryClient.cancelQueries({ queryKey: ['item', id] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
+      await queryClient.cancelQueries({ queryKey: queryKeys.item(id) });
 
-      const previousListData = queryClient.getQueriesData({ queryKey: ['items'] });
-      const previousItemData = queryClient.getQueryData<Item>(['item', id]);
+      const previousListData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
+      const previousItemData = queryClient.getQueryData<Item>(queryKeys.item(id));
 
-      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
         if (!old) return old;
         return {
           ...old,
@@ -157,7 +158,7 @@ export function useUpdateItem() {
       });
 
       if (previousItemData) {
-        queryClient.setQueryData<Item>(['item', id], { ...previousItemData, ...data });
+        queryClient.setQueryData<Item>(queryKeys.item(id), { ...previousItemData, ...data });
       }
 
       return { previousListData, previousItemData };
@@ -169,14 +170,14 @@ export function useUpdateItem() {
         });
       }
       if (context?.previousItemData) {
-        queryClient.setQueryData(['item', variables.id], context.previousItemData);
+        queryClient.setQueryData(queryKeys.item(variables.id), context.previousItemData);
       }
     },
     onSuccess: (updatedItem, variables) => {
       // Use the server's authoritative copy (server-derived fields like updated_at)
       // rather than the optimistic merge, since the response is already in hand.
-      queryClient.setQueryData(['item', variables.id], updatedItem);
-      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+      queryClient.setQueryData(queryKeys.item(variables.id), updatedItem);
+      queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
         if (!old) return old;
         return {
           ...old,
@@ -185,8 +186,8 @@ export function useUpdateItem() {
       });
     },
     onSettled: (_data, _error, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.item(variables.id) });
     },
   });
 }
@@ -267,13 +268,13 @@ export function useDeleteItem() {
     },
     onMutate: async (deletedId) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
 
       // Optimistically remove from all item queries
-      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
         if (!old) return old;
         return {
           ...old,
@@ -294,8 +295,8 @@ export function useDeleteItem() {
     },
     onSettled: () => {
       // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item-types'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.itemTypes });
     },
   });
 }
@@ -310,7 +311,7 @@ export function useArchiveItem() {
       return api.post<Item>(`/items/${id}/archive`, { reason });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -333,8 +334,8 @@ export function useLogWear() {
       return api.post<Item>(`/items/${id}/wear`, { worn_at, occasion });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.item(variables.id) });
     },
   });
 }
@@ -359,9 +360,9 @@ export function useLogWash() {
       return api.post<Item>(`/items/${id}/wash`, { washed_at, method, notes });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['wash-history', variables.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.item(variables.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.washHistory(variables.id) });
     },
   });
 }
@@ -371,7 +372,7 @@ export function useWashHistory(itemId: string) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['wash-history', itemId],
+    queryKey: queryKeys.washHistory(itemId),
     queryFn: () => api.get<WashHistoryEntry[]>(`/items/${itemId}/wash-history`),
     enabled: !!itemId && status !== 'loading',
   });
@@ -391,7 +392,7 @@ export function useItemWearStats(itemId: string) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['wear-stats', itemId],
+    queryKey: queryKeys.wearStats(itemId),
     queryFn: () => api.get<WearStats>(`/items/${itemId}/wear-stats`),
     enabled: !!itemId && status !== 'loading',
   });
@@ -419,7 +420,7 @@ export function useItemWearHistory(itemId: string, limit = 10) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['wear-history', itemId],
+    queryKey: queryKeys.wearHistory(itemId),
     queryFn: () => api.get<WearHistoryEntry[]>(`/items/${itemId}/history?limit=${limit}`),
     enabled: !!itemId && status !== 'loading',
   });
@@ -455,8 +456,8 @@ export function useAddItemImage() {
       return response.json() as Promise<ItemImage>;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.itemId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.item(variables.itemId) });
     },
   });
 }
@@ -471,8 +472,8 @@ export function useDeleteItemImage() {
       return api.delete(`/items/${itemId}/images/${imageId}`);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.itemId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.item(variables.itemId) });
     },
   });
 }
@@ -518,7 +519,7 @@ export function useItemTypes() {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['item-types'],
+    queryKey: queryKeys.itemTypes,
     queryFn: () => api.get<Array<{ type: string; count: number }>>('/items/types'),
     enabled: status !== 'loading',
   });
@@ -529,7 +530,7 @@ export function useColorDistribution() {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['color-distribution'],
+    queryKey: queryKeys.colorDistribution,
     queryFn: () => api.get<Array<{ color: string; count: number }>>('/items/colors'),
     enabled: status !== 'loading',
   });
@@ -547,7 +548,7 @@ export function useReanalyzeItem() {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -562,7 +563,7 @@ export function useCancelAnalysis() {
       return api.post<Item>(`/items/${id}/cancel-analysis`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -712,16 +713,16 @@ export function useBulkDeleteItems() {
     },
     onMutate: async (params) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
 
       // Optimistically update UI
       if (params.select_all) {
         // If select_all, remove all items except excluded ones
         const excludedSet = new Set(params.excluded_ids || []);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -732,7 +733,7 @@ export function useBulkDeleteItems() {
       } else if (params.item_ids) {
         // Remove specific items
         const deletedSet = new Set(params.item_ids);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -754,8 +755,8 @@ export function useBulkDeleteItems() {
     },
     onSettled: () => {
       // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item-types'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.itemTypes });
     },
   });
 }
@@ -787,15 +788,15 @@ export function useBulkReanalyzeItems() {
     },
     onMutate: async (params) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
 
       // Optimistically set items to processing status
       if (params.select_all) {
         const excludedSet = new Set(params.excluded_ids || []);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -808,7 +809,7 @@ export function useBulkReanalyzeItems() {
         });
       } else if (params.item_ids) {
         const itemIdSet = new Set(params.item_ids);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -833,7 +834,7 @@ export function useBulkReanalyzeItems() {
     },
     onSettled: () => {
       // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -857,8 +858,8 @@ export function useBulkCancelAnalysis() {
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['tagging-progress'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.taggingProgress });
     },
   });
 }
@@ -883,14 +884,14 @@ export function useBulkRotateItems() {
       ]);
     },
     onMutate: async (params) => {
-      await queryClient.cancelQueries({ queryKey: ['items'] });
-      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
 
       const shouldMark = params.select_all
         ? (id: string) => !new Set(params.excluded_ids || []).has(id)
         : (id: string) => new Set(params.item_ids || []).has(id);
 
-      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
         if (!old) return old;
         return {
           ...old,
@@ -917,7 +918,7 @@ export function useBulkRotateItems() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -944,15 +945,15 @@ export function useBulkRemoveBackgroundItems() {
     },
     onMutate: async (params) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
 
       // Optimistically set items to processing status, mirroring useBulkReanalyzeItems
       if (params.select_all) {
         const excludedSet = new Set(params.excluded_ids || []);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -969,7 +970,7 @@ export function useBulkRemoveBackgroundItems() {
         });
       } else if (params.item_ids) {
         const itemIdSet = new Set(params.item_ids);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -998,7 +999,7 @@ export function useBulkRemoveBackgroundItems() {
     },
     onSettled: () => {
       // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -1243,7 +1244,7 @@ export function useBulkCreateItems() {
       setUploadProgress(0);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
     onSettled: () => {
       setUploadProgress(0);

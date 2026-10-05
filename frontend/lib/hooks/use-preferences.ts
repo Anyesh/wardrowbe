@@ -5,13 +5,14 @@ import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { Preferences } from '@/lib/types';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export function usePreferences() {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['preferences'],
+    queryKey: queryKeys.preferences,
     queryFn: () => api.get<Preferences>('/users/me/preferences'),
     enabled: status !== 'loading',
   });
@@ -27,7 +28,7 @@ export function useUpdatePreferences() {
       return api.patch<Preferences>('/users/me/preferences', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['preferences'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences });
     },
   });
 }
@@ -42,7 +43,7 @@ export function useResetPreferences() {
       return api.post<Preferences>('/users/me/preferences/reset');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['preferences'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences });
     },
   });
 }

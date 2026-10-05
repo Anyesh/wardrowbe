@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export interface ColorDistribution {
   color: string;
@@ -61,7 +62,7 @@ export function useAnalytics(days = 30) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['analytics', days],
+    queryKey: queryKeys.analytics.summary(days),
     queryFn: () => api.get<AnalyticsData>('/analytics', {
       params: { days: String(days) },
     }),

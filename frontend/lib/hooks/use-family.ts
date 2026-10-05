@@ -6,13 +6,14 @@ import { api } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { Family, FamilyCreateResponse, JoinFamilyResponse, FamilyMember } from '@/lib/types';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export function useFamily() {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['family'],
+    queryKey: queryKeys.family,
     queryFn: () => api.get<Family>('/families/me'),
     enabled: status !== 'loading',
     retry: false, // Don't retry on 404 (user not in family)
@@ -40,7 +41,7 @@ export function useCreateFamily() {
       return api.post<FamilyCreateResponse>('/families', { name });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -55,7 +56,7 @@ export function useUpdateFamily() {
       return api.patch<Family>('/families/me', { name });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -70,7 +71,7 @@ export function useJoinFamily() {
       return api.post<JoinFamilyResponse>('/families/join', { invite_code: inviteCode });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -85,7 +86,7 @@ export function useJoinFamilyByToken() {
       return api.post<JoinFamilyResponse>('/families/join-by-token', { token });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -100,7 +101,7 @@ export function useLeaveFamily() {
       return api.post<{ message: string }>('/families/me/leave');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -115,7 +116,7 @@ export function useRegenerateInviteCode() {
       return api.post<{ invite_code: string }>('/families/me/regenerate-code');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -133,7 +134,7 @@ export function useInviteMember() {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -148,7 +149,7 @@ export function useCancelInvite() {
       return api.delete(`/families/me/invites/${inviteId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -163,7 +164,7 @@ export function useUpdateMemberRole() {
       return api.patch<FamilyMember>(`/families/me/members/${memberId}`, { role });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -178,7 +179,7 @@ export function useRemoveMember() {
       return api.delete(`/families/me/members/${memberId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }

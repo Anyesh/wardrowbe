@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { applySessionToken } from '@/lib/hooks/use-session-token';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 interface Features {
   background_removal: boolean;
@@ -15,7 +16,7 @@ export function useFeatures() {
   applySessionToken(session);
 
   return useQuery({
-    queryKey: ['features'],
+    queryKey: queryKeys.features,
     queryFn: () => api.get<Features>('/health/features'),
     enabled: status !== 'loading',
     staleTime: 5 * 60 * 1000,

@@ -10,13 +10,14 @@ import {
   GeneratePairingsRequest,
   GeneratePairingsResponse,
 } from '@/lib/types';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export function usePairings(page = 1, pageSize = 20, sourceType?: string) {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['pairings', page, pageSize, sourceType],
+    queryKey: queryKeys.pairings.list(page, pageSize, sourceType),
     queryFn: async () => {
       const params: Record<string, string> = {
         page: String(page),
@@ -36,7 +37,7 @@ export function useItemPairings(itemId: string, page = 1, pageSize = 20) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['pairings', 'item', itemId, page, pageSize],
+    queryKey: queryKeys.pairings.forItemPage(itemId, page, pageSize),
     queryFn: async () => {
       const params: Record<string, string> = {
         page: String(page),
@@ -66,8 +67,8 @@ export function useGeneratePairings() {
       });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['pairings'] });
-      queryClient.invalidateQueries({ queryKey: ['pairings', 'item', variables.itemId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pairings.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pairings.forItem(variables.itemId) });
     },
   });
 }
@@ -82,7 +83,7 @@ export function useDeletePairing() {
       return api.delete(`/pairings/${pairingId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pairings'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pairings.all });
     },
   });
 }

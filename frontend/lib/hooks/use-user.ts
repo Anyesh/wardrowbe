@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { getTodayDateStringInTimezone, resolveTimezone } from '@/lib/utils';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export interface UserProfile {
   id: string;
@@ -38,7 +39,7 @@ export function useUserProfile() {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['user-profile'],
+    queryKey: queryKeys.userProfile,
     queryFn: () => api.get<UserProfile>('/users/me'),
     enabled: status !== 'loading',
   });
@@ -67,7 +68,7 @@ export function useUpdateUserProfile({ toastsOwnErrors = false } = {}) {
       return api.patch<UserProfile>('/users/me', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.userProfile });
     },
   });
 }
