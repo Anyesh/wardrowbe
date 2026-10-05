@@ -59,3 +59,37 @@ class TestFamilyInviteEmail:
 
         assert response.status_code == 201
         send.assert_not_awaited()
+
+
+class TestFamilyInviteEmailValidation:
+    @pytest.mark.asyncio
+    async def test_invite_accepts_local_domain(
+        self, client: AsyncClient, test_user, auth_headers, monkeypatch
+    ):
+        monkeypatch.setattr(
+            "app.services.notification_providers.get_settings", lambda: Settings(_env_file=None)
+        )
+        await client.post("/api/v1/families", json={"name": "Household"}, headers=auth_headers)
+
+        response = await client.post(
+            "/api/v1/families/me/invite",
+            json={"email": " Bob@Home.local"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 201
+        assert response.json()["email"] == "bob@home.local"
+
+    @pytest.mark.asyncio
+    async def test_invite_rejects_malformed_email(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        await client.post("/api/v1/families", json={"name": "Household"}, headers=auth_headers)
+
+        response = await client.post(
+            "/api/v1/families/me/invite",
+            json={"email": "not-an-email"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422

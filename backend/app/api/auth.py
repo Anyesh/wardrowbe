@@ -138,7 +138,7 @@ async def sync_user(
 
         claims_email = oidc_claims.get("email", "").lower().strip()
         if sync_data.email:
-            request_email = sync_data.email.lower().strip()
+            request_email = sync_data.email
             if claims_email and claims_email != request_email:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,

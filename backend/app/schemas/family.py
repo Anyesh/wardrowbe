@@ -1,7 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.email import EmailAddress
 
 
 class FamilyMember(BaseModel):
@@ -67,7 +69,7 @@ class JoinFamilyResponse(BaseModel):
 
 
 class InviteMemberRequest(BaseModel):
-    email: EmailStr
+    email: EmailAddress
     role: str = Field(default="member", pattern="^(admin|member)$")
 
 

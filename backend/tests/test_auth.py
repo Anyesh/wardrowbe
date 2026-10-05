@@ -127,6 +127,41 @@ class TestAuthSync:
         assert response.status_code == 400
         assert "email" in response.json()["detail"].lower()
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("email", ["admin@nas.local", "alice@fae2e.test", "me@pi.localhost"])
+    async def test_sync_then_session_accepts_special_use_domains(
+        self, client: AsyncClient, email: str
+    ):
+        synced = await client.post(
+            "/api/v1/auth/sync",
+            json={"external_id": f"nas-{email}", "email": email, "display_name": "NAS User"},
+        )
+        assert synced.status_code == 200
+        token = synced.json()["access_token"]
+
+        session = await client.get(
+            "/api/v1/auth/session", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert session.status_code == 200
+        assert session.json()["email"] == email
+
+    @pytest.mark.asyncio
+    async def test_sync_normalises_email_case_and_whitespace(self, client: AsyncClient):
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={"external_id": "nas-upper", "email": "  Admin@NAS.Local ", "display_name": "A"},
+        )
+        assert response.status_code == 200
+        assert response.json()["email"] == "admin@nas.local"
+
+    @pytest.mark.asyncio
+    async def test_sync_rejects_malformed_email(self, client: AsyncClient):
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={"external_id": "garbage", "email": "not-an-email", "display_name": "G"},
+        )
+        assert response.status_code == 422
+
 
 class TestMobileCallback:
     @pytest.mark.asyncio

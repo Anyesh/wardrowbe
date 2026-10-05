@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.email import EmailAddress
 from app.utils.locale import DEFAULT_LOCALE
 
 
@@ -35,7 +36,9 @@ class UserResponse(UserBase):
 
 class UserSyncRequest(BaseModel):
     external_id: str = Field(..., description="Subject ID from OIDC provider")
-    email: str | None = Field(None, description="Email address; derived from ID token when omitted")
+    email: EmailAddress | None = Field(
+        None, description="Email address; derived from ID token when omitted"
+    )
     display_name: str = Field(..., min_length=1, max_length=100)
     avatar_url: str | None = None
     id_token: str | None = Field(

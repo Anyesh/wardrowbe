@@ -326,35 +326,35 @@ class TestAuthEmailValidation:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("dev_mode", "email_template"),
+        ("dev_mode", "email_template", "in_body", "expected_status"),
         [
-            pytest.param(True, "{}@detached.invalid", id="dev-exact"),
-            pytest.param(True, "{}@DETACHED.Invalid", id="dev-uppercase"),
-            pytest.param(True, "  {}@detached.invalid ", id="dev-padded"),
-            pytest.param(False, "{}@Detached.INVALID", id="oidc-uppercase"),
+            pytest.param(True, "{}@detached.invalid", True, 422, id="dev-exact"),
+            pytest.param(True, "{}@DETACHED.Invalid", True, 422, id="dev-uppercase"),
+            pytest.param(True, "  {}@detached.invalid ", True, 422, id="dev-padded"),
+            pytest.param(False, "{}@Detached.INVALID", True, 422, id="oidc-body"),
+            pytest.param(False, "{}@Detached.INVALID", False, 409, id="oidc-claim-only"),
         ],
     )
     async def test_sync_refuses_a_detached_placeholder_address(
-        self, client, db_session, oidc_claims, dev_mode, email_template
+        self,
+        client,
+        db_session,
+        oidc_claims,
+        dev_mode,
+        email_template,
+        in_body,
+        expected_status,
     ):
         external_id = f"claim-{uuid4()}"
         email = email_template.format(uuid4())
         oidc_claims.return_value = {"sub": external_id, "email": email, "email_verified": True}
+        body = {"external_id": external_id, "display_name": "Claim", "id_token": "fake-token"}
+        if in_body:
+            body["email"] = email
         with patch("app.api.auth._is_dev_mode", return_value=dev_mode):
-            response = await client.post(
-                "/api/v1/auth/sync",
-                json={
-                    "external_id": external_id,
-                    "email": email,
-                    "display_name": "Claim",
-                    "id_token": "fake-token",
-                },
-            )
+            response = await client.post("/api/v1/auth/sync", json=body)
 
-        assert (response.status_code, response.json()["detail"]) == (
-            409,
-            "Email already in use by another account.",
-        )
+        assert response.status_code == expected_status
         assert await UserService(db_session).get_by_external_id(external_id) is None
 
 
