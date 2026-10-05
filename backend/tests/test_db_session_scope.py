@@ -11,6 +11,8 @@ import app.database as database
 from app.api.auth import create_access_token
 from app.main import app
 from app.models import User
+from app.services.preference_service import PreferenceService
+from app.services.user_service import UserService
 
 APP_DIR = Path(__file__).resolve().parent.parent / "app"
 
@@ -109,22 +111,39 @@ async def test_sync_commits_new_user_before_response_starts(real_get_db, monkeyp
 @pytest.mark.asyncio
 async def test_authenticated_request_shares_one_session(real_get_db, monkeypatch, test_user):
     opened: list[AsyncSession] = []
+    seen_by_auth: list[AsyncSession] = []
+    seen_by_endpoint: list[AsyncSession] = []
 
     def counting_session_maker():
         session = real_get_db()
         opened.append(session)
         return session
 
+    original_user_service_init = UserService.__init__
+    original_preference_service_init = PreferenceService.__init__
+
+    def recording_user_service_init(self, db):
+        seen_by_auth.append(db)
+        original_user_service_init(self, db)
+
+    def recording_preference_service_init(self, db):
+        seen_by_endpoint.append(db)
+        original_preference_service_init(self, db)
+
     monkeypatch.setattr(database, "async_session_maker", counting_session_maker)
+    monkeypatch.setattr(UserService, "__init__", recording_user_service_init)
+    monkeypatch.setattr(PreferenceService, "__init__", recording_preference_service_init)
 
     status, _ = await _asgi_call(
         "GET",
-        "/api/v1/users/me",
+        "/api/v1/users/me/preferences",
         headers={"Authorization": f"Bearer {create_access_token(test_user.external_id)}"},
     )
 
     assert status == 200
     assert len(opened) == 1
+    assert seen_by_auth and seen_by_endpoint
+    assert all(db is opened[0] for db in seen_by_auth + seen_by_endpoint)
 
 
 def test_session_is_injected_only_through_db_session_alias():
