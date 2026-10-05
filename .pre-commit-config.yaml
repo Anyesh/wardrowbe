@@ -1,3 +1,5 @@
+default_stages: [pre-commit]
+
 repos:
   # Backend: Ruff linting and formatting
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -15,12 +17,18 @@ repos:
     hooks:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
+        stages: [pre-commit, manual]
       - id: end-of-file-fixer
+        stages: [pre-commit, manual]
       - id: check-merge-conflict
+        stages: [pre-commit, manual]
       - id: check-yaml
         args: [--allow-multiple-documents]
+        stages: [pre-commit, manual]
       - id: check-toml
+        stages: [pre-commit, manual]
       - id: check-json
+        stages: [pre-commit, manual]
 
   # Frontend: TypeScript and ESLint
   - repo: local

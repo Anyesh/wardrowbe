@@ -77,13 +77,12 @@ pip install -r requirements.txt
 pytest
 
 # Run linting
-pip install ruff==0.16.8
-ruff check .
-ruff format --check .
+pip install pre-commit
+pre-commit run ruff-check --all-files
+pre-commit run ruff-format --all-files
 ```
 
-The Ruff version in CI and `.pre-commit-config.yaml` is pinned to `0.16.8`.
-Use that version locally when reproducing lint or format failures.
+CI and local hooks use the Ruff version pinned in `.pre-commit-config.yaml`.
 
 ### Local hooks
 
@@ -99,6 +98,8 @@ prek run --all-files
 
 Both runners use the same configuration. The frontend hooks require frontend
 dependencies installed with `npm ci`.
+CI uses the hooks' `manual` stage for repository hygiene and runs the Ruff hooks
+in the backend lint job; local commits run both via the default `pre-commit` stage.
 
 ### Frontend Development
 

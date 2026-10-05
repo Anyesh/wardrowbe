@@ -16,26 +16,6 @@ jobs:
       - name: Run actionlint
         run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
 
-  repository-hygiene:
-    name: Repository Hygiene
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install pre-commit
-        run: pip install pre-commit==4.6.2
-
-      - name: Check repository files
-        run: |
-          for hook in trailing-whitespace end-of-file-fixer check-merge-conflict check-yaml check-toml check-json; do
-            pre-commit run "$hook" --all-files
-          done
-
   backend-lint:
     name: Backend Lint
     runs-on: ubuntu-latest
@@ -53,17 +33,16 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
-          pip install ruff==0.16.8
+          pip install pre-commit==4.6.2
+
+      - name: Check repository hygiene
+        run: pre-commit run --hook-stage manual --all-files
 
       - name: Run Ruff linter
-        run: |
-          cd backend
-          ruff check .
+        run: pre-commit run ruff-check --all-files
 
       - name: Run Ruff formatter check
-        run: |
-          cd backend
-          ruff format --check .
+        run: pre-commit run ruff-format --all-files
 
       - name: Check migration heads
         run: python backend/scripts/check_migration_heads.py
