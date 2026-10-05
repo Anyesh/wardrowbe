@@ -25,7 +25,8 @@ import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-rati
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDate } from '@/lib/utils';
 
 function getInitials(name: string) {
   return name
@@ -90,6 +91,7 @@ function FeedOutfitCard({
   const t = useTranslations('family');
   const tc = useTranslations('common');
   const occasionLabel = useOccasionLabel();
+  const locale = useLocale();
   const [showRatingForm, setShowRatingForm] = useState(false);
   const myRating = outfit.family_ratings?.find((r) => r.user_id === currentMemberId);
 
@@ -105,11 +107,13 @@ function FeedOutfitCard({
             </Badge>
           </div>
           <span className="text-xs text-muted-foreground">
-            {outfit.scheduled_for ? new Date(outfit.scheduled_for).toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            }) : t('feed.lookbook')}
+            {outfit.scheduled_for
+              ? formatDate(outfit.scheduled_for, locale, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
+              : t('feed.lookbook')}
           </span>
         </div>
 

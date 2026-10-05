@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Shirt,
   Sparkles,
@@ -56,7 +56,7 @@ import { applySessionToken } from '@/lib/hooks/use-session-token';
 import { ClothingTypeValue, CurrentWeather, Item, Outfit, SuggestRequest } from '@/lib/types';
 import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
-import { cn } from '@/lib/utils';
+import { cn, formatShortDate } from '@/lib/utils';
 import { TempUnit, formatTemp, displayValue, toF, toCelsius } from '@/lib/temperature';
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
@@ -425,6 +425,7 @@ function OutfitResultsView({
   onNewRequest: () => void;
   t: Translator;
 }) {
+  const locale = useLocale();
   const currentOutfit = outfits[activeOptionIndex] || outfits[0];
 
   return (
@@ -438,7 +439,7 @@ function OutfitResultsView({
           {currentOutfit?.scheduled_for && (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarDays className="h-3 w-3" />
-              {new Date(currentOutfit.scheduled_for + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+              {formatShortDate(currentOutfit.scheduled_for, locale)}
             </span>
           )}
         </div>

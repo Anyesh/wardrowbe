@@ -75,6 +75,41 @@ export function parseDateString(dateStr: string): Date {
   return new Date(year, month - 1, day);
 }
 
+const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const SHORT_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+};
+
+// Built from the local calendar fields, not toISOString(), because the UTC day
+// differs from the user's day for several hours around midnight.
+export function formatDateKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+// A bare YYYY-MM-DD goes through parseDateString because new Date() would read
+// it as UTC midnight and show the previous day west of UTC.
+function toDate(value: string | Date): Date {
+  if (value instanceof Date) return value;
+  return DATE_KEY_PATTERN.test(value) ? parseDateString(value) : new Date(value);
+}
+
+export function formatDate(
+  value: string | Date,
+  locale: string,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  return toDate(value).toLocaleDateString(locale, options);
+}
+
+export function formatShortDate(value: string | Date, locale: string): string {
+  return formatDate(value, locale, SHORT_DATE_OPTIONS);
+}
+
 /**
  * Calculate the number of calendar days between a date string and today in the user's timezone.
  * Returns the difference in days where:

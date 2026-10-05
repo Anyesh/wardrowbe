@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import type { FamilyRating, Outfit, OutfitStatus } from '@/lib/types';
+import { formatDateKey } from '@/lib/utils';
 import { queryKeys } from '@/lib/hooks/query-keys';
 import { invalidateOutfitCaches } from '@/lib/hooks/cache-invalidation';
 
@@ -222,10 +223,8 @@ export function useCalendarOutfits(year: number, month: number, filters: OutfitF
   const { status } = useSession();
   useSetTokenIfAvailable();
 
-  // Calculate date range for the month
-  const date_from = `${year}-${String(month).padStart(2, '0')}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const date_to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  const date_from = formatDateKey(new Date(year, month - 1, 1));
+  const date_to = formatDateKey(new Date(year, month, 0));
 
   const params: Record<string, string> = {
     page: '1',
