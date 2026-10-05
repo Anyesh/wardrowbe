@@ -412,6 +412,9 @@ Uses [Open-Meteo](https://open-meteo.com/) - free, no API key needed.
 ### Backend
 
 ```bash
+# Install test dependencies once in the running backend container
+docker compose exec backend python -m pip install -r requirements-test.txt
+
 # Run tests (requires running containers)
 docker compose exec backend python -m pytest tests/ -v --tb=short
 

@@ -55,6 +55,9 @@ def test_signed_image_link_expires_after_its_deadline(lifetime: int, elapsed: in
     expires = query["expires"][0]
     signature = query["sig"][0]
 
+    with patch.object(signed_urls.time, "time", return_value=now):
+        assert signed_urls.verify_signature(path, expires, signature)
+
     with patch.object(signed_urls.time, "time", return_value=now + lifetime + elapsed):
         assert not signed_urls.verify_signature(path, expires, signature)
 
