@@ -1,3 +1,4 @@
+import ipaddress
 import logging
 from uuid import UUID
 
@@ -10,12 +11,27 @@ logger = logging.getLogger(__name__)
 
 
 def _get_client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    if request.client:
-        return request.client.host
-    return "unknown"
+    peer = request.client.host if request.client else "unknown"
+    hops = get_settings().trusted_proxy_count
+    if hops == 0:
+        return peer
+
+    # Repeated header lines are the same list as one comma-joined line, so a proxy that adds its
+    # own line instead of appending to the client's still counts from the right.
+    entries = [
+        entry.strip()
+        for line in request.headers.getlist("x-forwarded-for")
+        for entry in line.split(",")
+        if entry.strip()
+    ]
+    # Fewer entries than trusted proxies means the request skipped part of the chain, so any
+    # entry may have been written by the client; the socket peer is the one address it cannot forge.
+    if len(entries) < hops:
+        return peer
+    try:
+        return str(ipaddress.ip_address(entries[-hops]))
+    except ValueError:
+        return peer
 
 
 async def check_rate_limit(key: str, limit: int, window_seconds: int) -> None:

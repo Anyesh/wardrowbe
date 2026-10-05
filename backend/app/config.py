@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     def strip_app_url_trailing_slash(cls, v: str) -> str:
         return v.rstrip("/")
 
+    # How many reverse proxies in front of the API append to X-Forwarded-For. The client IP that
+    # rate limits key on is that many entries from the right, because everything further left is
+    # whatever the client sent. 0 ignores the header and uses the socket peer. Counting too few
+    # only merges clients into one bucket; counting too many lets a client pick its own key.
+    trusted_proxy_count: int = Field(default=0, ge=0)
+
     # CORS
     cors_origins: list[str] = Field(default=["http://localhost:3000", "http://localhost:8081"])
 
