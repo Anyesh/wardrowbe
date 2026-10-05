@@ -369,6 +369,10 @@ Remove image backgrounds from wardrobe items. Two backends supported:
 cd backend
 uv sync --locked --extra background-removal  # local Python development
 ```
+When running the backend locally, keep `--extra background-removal` on `uv run`
+commands too. `uv run` syncs the environment and can remove extras omitted from the
+command, for example: `uv run --locked --extra background-removal uvicorn app.main:app --reload`.
+
 The Docker image already includes this extra. No config is needed. Change model with `BG_REMOVAL_MODEL` (default: `u2net`, options: `isnet-general-use`, `silueta`, `u2netp`).
 
 **HTTP provider (e.g. [withoutbg](https://github.com/nicholasgasior/withoutbg)):**
