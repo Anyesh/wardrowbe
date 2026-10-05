@@ -1,0 +1,25 @@
+name: Dockerfile lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  hadolint:
+    name: Hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Lint all Dockerfiles
+        run: |
+          docker run --rm --mount "type=bind,src=$PWD,dst=/repo,readonly" -w /repo \
+            ghcr.io/hadolint/hadolint@sha256:27086352fd5e1907ea2b934eb1023f217c5ae087992eb59fde121dce9c9ff21e \
+            backend/Dockerfile frontend/Dockerfile frontend/Dockerfile.dev

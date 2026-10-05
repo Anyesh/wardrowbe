@@ -102,6 +102,19 @@ npm run typecheck
 npm run lint
 ```
 
+### Dockerfile checks
+
+CI runs Hadolint 2.14.0 against all three Dockerfiles. To run the same check locally,
+install [Hadolint](https://github.com/hadolint/hadolint) and run from the repository root:
+
+```bash
+hadolint backend/Dockerfile frontend/Dockerfile frontend/Dockerfile.dev
+```
+
+The shared `.hadolint.yaml` reports informational suggestions and fails on warnings or
+errors. The inline exceptions for package version pins keep system packages current
+when the base image's Debian or Alpine repository changes.
+
 ## Code Style
 
 ### Python (Backend)
