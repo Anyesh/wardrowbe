@@ -16,6 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn, formatRelativeDate } from '@/lib/utils';
 import type { Outfit } from '@/lib/hooks/use-outfits';
+import { useOutfitTitle } from '@/lib/hooks/use-outfit-title';
 import { useUserToday } from '@/lib/hooks/use-user';
 import { useOccasionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { useLocale, useTranslations, type createTranslator } from 'next-intl';
@@ -86,17 +87,6 @@ function getSourceBadge(outfit: Outfit, t: OutfitCardTranslator): {
   };
 }
 
-function getCardTitle(outfit: Outfit, t: OutfitCardTranslator, occasionLabel: (value: string) => string): string {
-  if (outfit.name) return outfit.name;
-  if (outfit.replaces_outfit_id) {
-    return t('woreInsteadFallback', { occasion: occasionLabel(outfit.occasion) });
-  }
-  if (outfit.reasoning) return outfit.reasoning;
-  if (outfit.highlights && outfit.highlights.length > 0) {
-    return outfit.highlights[0];
-  }
-  return t('outfitFallback', { occasion: occasionLabel(outfit.occasion) });
-}
 function getMetaLabel(outfit: Outfit, t: OutfitCardTranslator, locale: string, today: string): string {
   if (!outfit.scheduled_for) return t('lookbookTemplate');
   try {
@@ -112,6 +102,7 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
   const locale = useLocale();
   const getUserToday = useUserToday();
   const occasionLabel = useOccasionLabel();
+  const getTitle = useOutfitTitle();
   const badge = getSourceBadge(outfit, t);
   const visibleItems = outfit.items.slice(0, 4);
   const overflow = outfit.items.length - visibleItems.length;
@@ -193,7 +184,7 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
         </div>
         <div className="p-3 space-y-1">
           <h3 className="text-sm font-semibold leading-tight truncate">
-            {getCardTitle(outfit, t, occasionLabel)}
+            {getTitle(outfit)}
           </h3>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <Badge variant="outline" className="capitalize">

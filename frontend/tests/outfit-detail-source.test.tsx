@@ -32,10 +32,6 @@ vi.mock('@/lib/hooks/use-studio', () => ({
   useWearToday: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 vi.mock('@/lib/hooks/use-user', () => ({ useUserToday: () => () => '2026-10-05' }))
-vi.mock('@/lib/hooks/use-translated-constants', () => ({
-  useOccasionLabel: () => (v: string) => v,
-  useTypeLabel: () => (v: string) => v,
-}))
 vi.mock('@/components/shared/lineage-card', () => ({ LineageCard: () => null }))
 vi.mock('@/components/shared/clone-to-lookbook-dialog', () => ({
   CloneToLookbookDialog: () => null,
@@ -53,6 +49,7 @@ describe('outfit detail source label', () => {
       outfits: messages('de', 'outfits'),
       common: messages('de', 'common'),
       history: messages('de', 'history'),
+      constants: messages('de', 'constants'),
     }
     render(
       <NextIntlClientProvider locale="de" messages={de} onError={() => {}}>
@@ -70,13 +67,14 @@ describe('outfit detail source label', () => {
       outfits: messages('de', 'outfits'),
       common: messages('de', 'common'),
       history: messages('de', 'history'),
+      constants: messages('de', 'constants'),
     }
     render(
       <NextIntlClientProvider locale="de" messages={de} onError={() => {}}>
         <OutfitDetailPage />
       </NextIntlClientProvider>,
     )
-    expect(screen.getByRole('heading', { name: 'casual (stattdessen getragen)' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: `${de.constants.occasions.casual} (stattdessen getragen)` })).toBeInTheDocument()
     outfit.name = 'Look'
     outfit.replaces_outfit_id = null
   })
