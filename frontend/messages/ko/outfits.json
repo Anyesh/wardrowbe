@@ -41,6 +41,7 @@
     "worn": "착용함"
   },
   "cloneToLookbook": {
+    "defaultName": "{occasion} · {date}",
     "description": "이 룩에 이름을 붙이면 나중에 찾아서 다시 입을 수 있어요.",
     "errorEmpty": "이름을 입력해 주세요",
     "name": "이름",

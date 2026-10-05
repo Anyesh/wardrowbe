@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCloneToLookbook } from '@/lib/hooks/use-studio';
+import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import { getErrorMessage } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { useLocale, useTranslations } from 'next-intl';
@@ -27,11 +28,6 @@ interface CloneToLookbookDialogProps {
   onSuccess?: (newOutfitId: string) => void;
 }
 
-function defaultCloneName(occasion: string, locale: string): string {
-  const occasionTitle = occasion.charAt(0).toUpperCase() + occasion.slice(1);
-  return `${occasionTitle} — ${formatDate(new Date(), locale, { month: 'short', day: 'numeric' })}`;
-}
-
 export function CloneToLookbookDialog({
   open,
   sourceOutfitId,
@@ -40,10 +36,16 @@ export function CloneToLookbookDialog({
   onSuccess,
 }: CloneToLookbookDialogProps) {
   const locale = useLocale();
-  const [name, setName] = useState(() => defaultCloneName(sourceOccasion, locale));
-  const clone = useCloneToLookbook(sourceOutfitId);
   const t = useTranslations('outfits.cloneToLookbook');
   const tc = useTranslations('common');
+  const occasionLabel = useOccasionLabel();
+  const [name, setName] = useState(() =>
+    t('defaultName', {
+      occasion: occasionLabel(sourceOccasion),
+      date: formatDate(new Date(), locale, { month: 'short', day: 'numeric' }),
+    })
+  );
+  const clone = useCloneToLookbook(sourceOutfitId);
 
   const handleConfirm = async () => {
     const trimmed = name.trim();
