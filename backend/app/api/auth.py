@@ -167,11 +167,12 @@ async def _forward_auth_identity(
             email=remote_email,
             display_name=display_name,
         )
-    except ValidationError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The auth proxy sent a Remote-Email that is not a valid email address",
-        ) from None
+    except ValidationError as e:
+        if any(error["loc"] == ("external_id",) for error in e.errors()):
+            detail = "The auth proxy sent a Remote-User longer than 255 characters"
+        else:
+            detail = "The auth proxy sent a Remote-Email that is not a valid email address"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail) from None
     return sync_data, "forward_auth", True
 
 
