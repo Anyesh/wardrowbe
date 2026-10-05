@@ -2,15 +2,26 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import constants from '@/messages/en/constants.json';
-import { FORMALITY_VALUES, ITEM_ROLE, MATERIAL_VALUES } from '@/lib/generated/garment-vocabulary';
-import { CLOTHING_TYPES } from '@/lib/types';
+import {
+  FORMALITY_VALUES,
+  ITEM_ROLE,
+  MATERIAL_VALUES,
+  OCCASION_VALUES,
+} from '@/lib/generated/garment-vocabulary';
+import { SUPPORTED_LOCALES } from '@/lib/i18n/locales';
+import { FEATURED_OCCASIONS, CLOTHING_TYPES } from '@/lib/types';
 
 const VOCABULARY_PATH = resolve(__dirname, '..', '..', 'backend', 'app', 'data', 'garment_vocabulary.json');
 const vocabulary = JSON.parse(readFileSync(VOCABULARY_PATH, 'utf8')) as {
   types: Array<{ value: string; role: string }>;
   materials: string[];
   formality: string[];
+  occasions: Array<{ value: string; formality?: string[] }>;
 };
+
+const MESSAGES_PATH = resolve(__dirname, '..', 'messages');
+const occasionLabels = (locale: string): Record<string, string> =>
+  JSON.parse(readFileSync(resolve(MESSAGES_PATH, locale, 'constants.json'), 'utf8')).occasions ?? {};
 
 const sorted = (values: Iterable<string>) => Array.from(values).sort();
 
@@ -20,6 +31,16 @@ describe('garment vocabulary', () => {
     expect(ITEM_ROLE).toEqual(Object.fromEntries(vocabulary.types.map((t) => [t.value, t.role])));
     expect([...MATERIAL_VALUES]).toEqual(vocabulary.materials);
     expect([...FORMALITY_VALUES]).toEqual(vocabulary.formality);
+    expect([...OCCASION_VALUES]).toEqual(vocabulary.occasions.map((o) => o.value));
+  });
+
+  it('features only occasions the backend accepts', () => {
+    const accepted = new Set<string>(OCCASION_VALUES);
+    expect(FEATURED_OCCASIONS.filter((o) => !accepted.has(o.value))).toEqual([]);
+  });
+
+  it.each(SUPPORTED_LOCALES)('labels exactly the vocabulary occasions in %s', (locale) => {
+    expect(sorted(Object.keys(occasionLabels(locale)))).toEqual(sorted(OCCASION_VALUES));
   });
 
   it('has exactly one English label per type, material, formality and role', () => {

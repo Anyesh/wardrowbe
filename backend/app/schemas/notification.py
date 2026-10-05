@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
+from app.schemas.outfit import Occasion
+
 
 class NotificationChannel(StrEnum):
     ntfy = "ntfy"
@@ -101,26 +103,13 @@ class NotificationSettingsResponse(NotificationSettingsBase):
         from_attributes = True
 
 
-VALID_OCCASIONS = {"casual", "office", "formal", "date", "sporty", "outdoor", "work", "party"}
-
-
 # Schedule schemas
 class ScheduleBase(BaseModel):
     day_of_week: int  # 0=Monday, 6=Sunday (day to WEAR the outfit)
     notification_time: str  # HH:MM format
-    occasion: str = "casual"
+    occasion: Occasion = "casual"
     enabled: bool = True
     notify_day_before: bool = False  # If True, notification comes evening before
-
-    @field_validator("occasion")
-    @classmethod
-    def validate_occasion(cls, v: str) -> str:
-        v = v.strip().lower()
-        if v not in VALID_OCCASIONS:
-            raise ValueError(
-                f"Invalid occasion. Must be one of: {', '.join(sorted(VALID_OCCASIONS))}"
-            )
-        return v
 
     @field_validator("day_of_week")
     @classmethod
@@ -144,20 +133,9 @@ class ScheduleCreate(ScheduleBase):
 class ScheduleUpdate(BaseModel):
     day_of_week: int | None = None
     notification_time: str | None = None
-    occasion: str | None = None
+    occasion: Occasion | None = None
     enabled: bool | None = None
     notify_day_before: bool | None = None
-
-    @field_validator("occasion")
-    @classmethod
-    def validate_occasion(cls, v: str | None) -> str | None:
-        if v is not None:
-            v = v.strip().lower()
-            if v not in VALID_OCCASIONS:
-                raise ValueError(
-                    f"Invalid occasion. Must be one of: {', '.join(sorted(VALID_OCCASIONS))}"
-                )
-        return v
 
     @field_validator("notification_time")
     @classmethod

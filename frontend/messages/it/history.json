@@ -22,8 +22,7 @@
   },
   "filters": {
     "allOccasions": "Tutte le occasioni",
-    "allStatus": "Tutti gli stati",
-    "workout": "Allenamento"
+    "allStatus": "Tutti gli stati"
   },
   "loadError": "Caricamento cronologia fallito. Riprova.",
   "noOutfitsForDate": "Nessun outfit per {date}",

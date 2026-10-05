@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useAcceptOutfit, useRejectOutfit, type Outfit, type OutfitSource, type WoreInsteadItem } from '@/lib/hooks/use-outfits';
+import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
@@ -116,6 +117,7 @@ interface OutfitHistoryCardProps {
 
 export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHistoryCardProps) {
   const t = useTranslations('history.card');
+  const occasionLabel = useOccasionLabel();
   const acceptOutfit = useAcceptOutfit();
   const rejectOutfit = useRejectOutfit();
   const [previewItem, setPreviewItem] = useState<WoreInsteadItem | null>(null);
@@ -148,7 +150,7 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
           <SourceBadge source={outfit.source} />
           <div className="flex items-center gap-1.5">
             <Badge variant="secondary" className="capitalize text-xs">
-              {outfit.occasion}
+              {occasionLabel(outfit.occasion)}
             </Badge>
             <StatusIcon status={outfit.status} />
           </div>

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Writes lib/generated/garment-vocabulary.ts from the backend vocabulary file, which is the only
-// place garment types, roles, materials and formality levels are edited by hand. Run with --check
-// to fail when the committed output is stale. It reads ../backend, which is outside the frontend
-// Docker build context, so it must never run from build or prebuild.
+// place garment types, roles, materials, formality levels and occasions are edited by hand. Run
+// with --check to fail when the committed output is stale. It reads ../backend, which is outside
+// the frontend Docker build context, so it must never run from build or prebuild.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,7 +15,7 @@ const quote = (value) => `'${value}'`;
 const key = (value) => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(value) ? value : quote(value));
 const list = (values) => `[${values.map(quote).join(', ')}] as const`;
 
-function render({ types, materials, formality }) {
+function render({ types, materials, formality, occasions }) {
   const roles = types.map(({ value, role }) => `  ${key(value)}: ${quote(role)},`).join('\n');
   return [
     '// Generated from backend/app/data/garment_vocabulary.json by scripts/gen-garment-vocabulary.mjs.',
@@ -23,6 +23,7 @@ function render({ types, materials, formality }) {
     `export const CLOTHING_TYPE_VALUES = ${list(types.map((t) => t.value))};`,
     `export const MATERIAL_VALUES = ${list(materials)};`,
     `export const FORMALITY_VALUES = ${list(formality)};`,
+    `export const OCCASION_VALUES = ${list(occasions.map((o) => o.value))};`,
     '',
     'export const ITEM_ROLE: Record<string, string> = {',
     roles,

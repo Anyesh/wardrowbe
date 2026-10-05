@@ -49,12 +49,28 @@
     "wool": "ウール"
   },
   "occasions": {
+    "beach": "ビーチ",
+    "brunch": "ブランチ",
+    "business-casual": "ビジネスカジュアル",
     "casual": "カジュアル",
     "date": "デート",
+    "dinner": "ディナー",
     "formal": "フォーマル",
+    "gym": "ジム",
+    "hiking": "ハイキング",
+    "interview": "面接",
+    "lounge": "ラウンジ",
     "office": "オフィス",
     "outdoor": "アウトドア",
-    "sporty": "スポーティ"
+    "party": "パーティー",
+    "running": "ランニング",
+    "smart-casual": "スマートカジュアル",
+    "sport": "スポーツ",
+    "sporty": "スポーティ",
+    "travel": "旅行",
+    "wedding": "結婚式",
+    "weekend": "週末",
+    "work": "仕事"
   },
   "roles": {
     "accessory": "アクセサリー",

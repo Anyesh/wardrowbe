@@ -22,8 +22,7 @@
   },
   "filters": {
     "allOccasions": "Toutes les occasions",
-    "allStatus": "Tous les statuts",
-    "workout": "Sport"
+    "allStatus": "Tous les statuts"
   },
   "loadError": "Échec du chargement de l'historique. Veuillez réessayer.",
   "noOutfitsForDate": "Aucune tenue pour le {date}",

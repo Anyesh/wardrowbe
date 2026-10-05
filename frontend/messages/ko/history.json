@@ -22,8 +22,7 @@
   },
   "filters": {
     "allOccasions": "전체 상황",
-    "allStatus": "전체 상태",
-    "workout": "운동"
+    "allStatus": "전체 상태"
   },
   "loadError": "기록을 불러오지 못했어요. 다시 시도해 주세요.",
   "noOutfitsForDate": "{date}에 코디가 없어요",

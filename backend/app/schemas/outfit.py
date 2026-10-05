@@ -1,8 +1,23 @@
 from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AfterValidator, BaseModel, Field, field_validator
+
+from app.utils.garment_vocabulary import OCCASIONS
 
 MAX_AUTHORING_TEXT_LENGTH = 2000
+VALID_OCCASIONS = frozenset(OCCASIONS)
+
+
+def _normalize_occasion(value: str) -> str:
+    occasion = value.strip().lower()
+    if occasion not in VALID_OCCASIONS:
+        raise ValueError(
+            f"Invalid occasion '{occasion}'. Must be one of: {', '.join(sorted(VALID_OCCASIONS))}"
+        )
+    return occasion
+
+
+Occasion = Annotated[str, Field(max_length=50), AfterValidator(_normalize_occasion)]
 
 
 class OutfitAttributeFields(BaseModel):

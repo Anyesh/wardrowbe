@@ -49,12 +49,28 @@
     "wool": "Laine"
   },
   "occasions": {
+    "beach": "Plage",
+    "brunch": "Brunch",
+    "business-casual": "Business casual",
     "casual": "Décontracté",
     "date": "Rendez-vous",
+    "dinner": "Dîner",
     "formal": "Habillé",
+    "gym": "Salle de sport",
+    "hiking": "Randonnée",
+    "interview": "Entretien",
+    "lounge": "Détente",
     "office": "Bureau",
     "outdoor": "Plein air",
-    "sporty": "Sportif"
+    "party": "Soirée",
+    "running": "Course à pied",
+    "smart-casual": "Décontracté chic",
+    "sport": "Sport",
+    "sporty": "Sportif",
+    "travel": "Voyage",
+    "wedding": "Mariage",
+    "weekend": "Week-end",
+    "work": "Travail"
   },
   "roles": {
     "accessory": "Accessoire",

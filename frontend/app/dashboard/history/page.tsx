@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCalendarOutfits, type Outfit, type OutfitFilters } from '@/lib/hooks/use-outfits';
+import { useOccasions } from '@/lib/hooks/use-translated-constants';
 import { OutfitCalendar } from '@/components/outfit-calendar';
 import { OutfitHistoryCard } from '@/components/outfit-history-card';
 import { FeedbackDialog } from '@/components/feedback-dialog';
@@ -92,7 +93,7 @@ function CalendarSkeleton() {
 
 export default function HistoryPage() {
   const t = useTranslations('history');
-  const tc = useTranslations('constants');
+  const occasions = useOccasions();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -158,11 +159,11 @@ export default function HistoryPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('filters.allOccasions')}</SelectItem>
-            <SelectItem value="casual">{tc('occasions.casual')}</SelectItem>
-            <SelectItem value="office">{tc('occasions.office')}</SelectItem>
-            <SelectItem value="formal">{tc('occasions.formal')}</SelectItem>
-            <SelectItem value="date">{tc('occasions.date')}</SelectItem>
-            <SelectItem value="workout">{t('filters.workout')}</SelectItem>
+            {occasions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>

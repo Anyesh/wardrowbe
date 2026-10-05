@@ -22,8 +22,7 @@
   },
   "filters": {
     "allOccasions": "All occasions",
-    "allStatus": "All status",
-    "workout": "Workout"
+    "allStatus": "All status"
   },
   "loadError": "Failed to load history. Please try again.",
   "noOutfitsForDate": "No outfits for {date}",

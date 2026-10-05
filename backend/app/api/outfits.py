@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -21,7 +21,7 @@ from app.models.outfit import (
 )
 from app.models.user import User
 from app.schemas.item import DEFAULT_WASH_INTERVALS
-from app.schemas.outfit import MAX_AUTHORING_TEXT_LENGTH, OutfitAttributeFields
+from app.schemas.outfit import MAX_AUTHORING_TEXT_LENGTH, Occasion, OutfitAttributeFields
 from app.services.ai_service import AIDisabledError
 from app.services.external_outfit_service import ExternalOutfitService
 from app.services.item_service import ItemService
@@ -47,31 +47,6 @@ from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
 
-VALID_OCCASIONS = {
-    "casual",
-    "office",
-    "work",
-    "formal",
-    "smart-casual",
-    "business-casual",
-    "date",
-    "party",
-    "sporty",
-    "sport",
-    "outdoor",
-    "travel",
-    "lounge",
-    "beach",
-    "interview",
-    "wedding",
-    "dinner",
-    "brunch",
-    "gym",
-    "running",
-    "hiking",
-    "weekend",
-}
-
 
 router = APIRouter(prefix="/outfits", tags=["Outfits"])
 
@@ -85,22 +60,7 @@ class WeatherOverrideRequest(BaseModel):
 
 
 class SuggestRequest(BaseModel):
-    occasion: str | None = None
-
-    @field_validator("occasion")
-    @classmethod
-    def validate_occasion(cls, v: str | None) -> str | None:
-        if v is None:
-            return None
-        v = v.strip().lower()
-        if len(v) > 50:
-            raise ValueError("Occasion must be 50 characters or less")
-        if v not in VALID_OCCASIONS:
-            raise ValueError(
-                f"Invalid occasion '{v}'. Must be one of: {', '.join(sorted(VALID_OCCASIONS))}"
-            )
-        return v
-
+    occasion: Occasion | None = None
     time_of_day: Literal["morning", "afternoon", "evening", "night", "full day"] | None = None
     weather_override: WeatherOverrideRequest | None = None
     exclude_items: list[UUID] = Field(default_factory=list, description="Items to exclude")
@@ -576,23 +536,13 @@ class SuggestionCreateRequest(OutfitAttributeFields):
     model_config = ConfigDict(extra="forbid")
 
     items: list[UUID] = Field(min_length=1, max_length=20)
-    occasion: str = Field(max_length=50)
+    occasion: Occasion
     name: Annotated[str | None, Field(max_length=100)] = None
     scheduled_for: date | None = Field(
         default=None, description="Defaults to the user's current date"
     )
     reasoning: Annotated[str | None, Field(max_length=MAX_AUTHORING_TEXT_LENGTH)] = None
     style_notes: Annotated[str | None, Field(max_length=MAX_AUTHORING_TEXT_LENGTH)] = None
-
-    @field_validator("occasion")
-    @classmethod
-    def validate_occasion(cls, v: str) -> str:
-        v = v.strip().lower()
-        if v not in VALID_OCCASIONS:
-            raise ValueError(
-                f"Invalid occasion '{v}'. Must be one of: {', '.join(sorted(VALID_OCCASIONS))}"
-            )
-        return v
 
 
 @router.post("/suggestions", response_model=OutfitResponse, status_code=status.HTTP_201_CREATED)
@@ -1227,21 +1177,11 @@ class StudioCreateRequest(OutfitAttributeFields):
     model_config = ConfigDict(extra="forbid")
 
     items: list[UUID] = Field(min_length=1, max_length=20)
-    occasion: str = Field(max_length=50)
+    occasion: Occasion
     name: Annotated[str | None, Field(max_length=100)] = None
     scheduled_for: date | None = None
     mark_worn: bool = False
     source_item_id: UUID | None = None
-
-    @field_validator("occasion")
-    @classmethod
-    def validate_occasion(cls, v: str) -> str:
-        v = v.strip().lower()
-        if v not in VALID_OCCASIONS:
-            raise ValueError(
-                f"Invalid occasion '{v}'. Must be one of: {', '.join(sorted(VALID_OCCASIONS))}"
-            )
-        return v
 
 
 class WoreInsteadRequest(BaseModel):

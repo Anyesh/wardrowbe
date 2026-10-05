@@ -12,6 +12,12 @@ DEFAULT_WASH_INTERVALS: dict[str, int] = {
 MATERIALS: tuple[str, ...] = tuple(_DATA["materials"])
 # Ordered from least to most formal; the scorer measures distance along this scale.
 FORMALITY: tuple[str, ...] = tuple(_DATA["formality"])
+OCCASIONS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["occasions"])
+OCCASION_FORMALITY: dict[str, tuple[str, ...]] = {
+    entry["value"]: tuple(entry["formality"])
+    for entry in _DATA["occasions"]
+    if "formality" in entry
+}
 
 
 def render_tagging_prompt(template: str) -> str:

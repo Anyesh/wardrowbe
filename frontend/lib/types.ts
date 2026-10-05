@@ -1,4 +1,4 @@
-import { CLOTHING_TYPE_VALUES } from '@/lib/generated/garment-vocabulary';
+import { CLOTHING_TYPE_VALUES, OCCASION_VALUES } from '@/lib/generated/garment-vocabulary';
 
 // API response types matching backend schemas
 
@@ -216,14 +216,15 @@ export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
   tie: ['necktie', 'bow-tie', 'bolo'],
 };
 
-export const OCCASIONS = [
-  { value: 'casual' },
-  { value: 'office' },
-  { value: 'formal' },
-  { value: 'date' },
-  { value: 'sporty' },
-  { value: 'outdoor' },
-] as const;
+export type Occasion = (typeof OCCASION_VALUES)[number];
+
+// Pickers offer only these so that the chip row stays short; the backend accepts every value in
+// OCCASION_VALUES, and outfits created through the API can carry any of them.
+const FEATURED_OCCASION_VALUES = ['casual', 'office', 'formal', 'date', 'sporty', 'outdoor'] as const satisfies readonly Occasion[];
+
+export type FeaturedOccasion = (typeof FEATURED_OCCASION_VALUES)[number];
+
+export const FEATURED_OCCASIONS = FEATURED_OCCASION_VALUES.map((value) => ({ value }));
 
 // Family types
 export interface FamilyMember {

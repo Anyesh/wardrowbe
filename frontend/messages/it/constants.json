@@ -49,12 +49,28 @@
     "wool": "Lana"
   },
   "occasions": {
+    "beach": "Spiaggia",
+    "brunch": "Brunch",
+    "business-casual": "Business casual",
     "casual": "Casual",
     "date": "Appuntamento",
+    "dinner": "Cena",
     "formal": "Formale",
+    "gym": "Palestra",
+    "hiking": "Escursionismo",
+    "interview": "Colloquio",
+    "lounge": "Relax",
     "office": "Ufficio",
     "outdoor": "All'aperto",
-    "sporty": "Sportivo"
+    "party": "Festa",
+    "running": "Corsa",
+    "smart-casual": "Smart casual",
+    "sport": "Sport",
+    "sporty": "Sportivo",
+    "travel": "Viaggio",
+    "wedding": "Matrimonio",
+    "weekend": "Fine settimana",
+    "work": "Lavoro"
   },
   "roles": {
     "accessory": "Accessorio",

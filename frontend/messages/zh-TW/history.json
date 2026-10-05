@@ -22,8 +22,7 @@
   },
   "filters": {
     "allOccasions": "所有場合",
-    "allStatus": "所有狀態",
-    "workout": "運動"
+    "allStatus": "所有狀態"
   },
   "loadError": "載入歷史紀錄失敗，請重試。",
   "noOutfitsForDate": "{date} 沒有穿搭",

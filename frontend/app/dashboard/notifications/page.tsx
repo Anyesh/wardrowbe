@@ -59,7 +59,7 @@ import {
 import { ChannelCard } from '@/components/notifications/channel-card';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { isDeliverableEmail } from '@/lib/utils';
-import { useOccasions } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useOccasions } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
 
 const DAY_KEYS = [
@@ -307,9 +307,8 @@ function ScheduleCard({
   onDelete: () => void;
 }) {
   const t = useTranslations('notifications');
-  const occasions = useOccasions();
+  const occasionLabel = useOccasionLabel();
   const day = DAY_KEYS.find((d) => d.value === schedule.day_of_week);
-  const occasion = occasions.find((o) => o.value === schedule.occasion);
 
   // Calculate which day the notification actually comes
   const notifyDay = schedule.notify_day_before
@@ -329,7 +328,7 @@ function ScheduleCard({
             <p className="text-sm text-muted-foreground">
               {t('schedule.summary', {
                 time: schedule.notification_time,
-                occasion: occasion?.label || schedule.occasion,
+                occasion: occasionLabel(schedule.occasion),
               })}
             </p>
           </div>

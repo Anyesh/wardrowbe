@@ -22,8 +22,7 @@
   },
   "filters": {
     "allOccasions": "Alle Anlässe",
-    "allStatus": "Alle Status",
-    "workout": "Sport"
+    "allStatus": "Alle Status"
   },
   "loadError": "Verlauf konnte nicht geladen werden. Bitte versuche es erneut.",
   "noOutfitsForDate": "Keine Outfits für {date}",

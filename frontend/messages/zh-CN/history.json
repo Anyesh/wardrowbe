@@ -22,8 +22,7 @@
   },
   "filters": {
     "allOccasions": "所有场合",
-    "allStatus": "所有状态",
-    "workout": "运动"
+    "allStatus": "所有状态"
   },
   "loadError": "加载历史记录失败，请重试。",
   "noOutfitsForDate": "{date}没有穿搭",

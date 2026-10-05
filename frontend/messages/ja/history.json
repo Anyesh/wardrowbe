@@ -22,8 +22,7 @@
   },
   "filters": {
     "allOccasions": "すべてのシーン",
-    "allStatus": "すべてのステータス",
-    "workout": "ワークアウト"
+    "allStatus": "すべてのステータス"
   },
   "loadError": "履歴の読み込みに失敗しました。もう一度お試しください。",
   "noOutfitsForDate": "{date}にコーデはありません",

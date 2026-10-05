@@ -26,11 +26,13 @@ import { LineageCard } from '@/components/shared/lineage-card';
 import { CloneToLookbookDialog } from '@/components/shared/clone-to-lookbook-dialog';
 import { useDeleteOutfit, useOutfit, useOutfits } from '@/lib/hooks/use-outfits';
 import { useWearToday } from '@/lib/hooks/use-studio';
+import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import { getErrorMessage } from '@/lib/api';
 
 export default function OutfitDetailPage() {
   const t = useTranslations('outfits');
   const tc = useTranslations('common');
+  const occasionLabel = useOccasionLabel();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const outfitId = params?.id;
@@ -84,7 +86,7 @@ export default function OutfitDetailPage() {
   const title =
     outfit.name ||
     outfit.reasoning ||
-    t('cards.outfitFallback', { occasion: outfit.occasion });
+    t('cards.outfitFallback', { occasion: occasionLabel(outfit.occasion) });
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -101,7 +103,7 @@ export default function OutfitDetailPage() {
         <h1 className="text-2xl font-bold tracking-tight capitalize">{title}</h1>
         <div className="flex items-center gap-2 mt-2">
           <Badge variant="outline" className="capitalize">
-            {outfit.occasion}
+            {occasionLabel(outfit.occasion)}
           </Badge>
           <Badge variant="outline" className="capitalize">
             {outfit.source.replace('_', ' ')}

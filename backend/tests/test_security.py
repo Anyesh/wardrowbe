@@ -7,10 +7,23 @@ import pytest
 from pydantic import ValidationError
 
 from app.api.auth import _is_dev_mode
+from app.api.outfits import StudioCreateRequest, SuggestionCreateRequest, SuggestRequest
 from app.config import Settings
 from app.models import Family, FamilyInvite, User
 from app.schemas.notification import NtfyConfig, ScheduleBase, ScheduleUpdate
 from app.services.user_service import UserService
+from app.utils.garment_vocabulary import OCCASIONS
+
+ITEM_ID = "00000000-0000-0000-0000-000000000001"
+OCCASION_REQUESTS = {
+    "suggest": lambda occasion: SuggestRequest(occasion=occasion),
+    "authoring": lambda occasion: SuggestionCreateRequest(items=[ITEM_ID], occasion=occasion),
+    "studio": lambda occasion: StudioCreateRequest(items=[ITEM_ID], occasion=occasion),
+    "schedule": lambda occasion: ScheduleBase(
+        day_of_week=0, notification_time="08:00", occasion=occasion
+    ),
+    "schedule-update": lambda occasion: ScheduleUpdate(occasion=occasion),
+}
 
 
 class TestAIEndpointSchemeValidation:
@@ -150,6 +163,23 @@ class TestScheduleOccasionValidation:
     def test_update_accepts_valid(self):
         update = ScheduleUpdate(occasion="formal")
         assert update.occasion == "formal"
+
+
+class TestSharedOccasionVocabulary:
+    @pytest.mark.parametrize("build", OCCASION_REQUESTS.values(), ids=OCCASION_REQUESTS.keys())
+    @pytest.mark.parametrize("occasion", OCCASIONS)
+    def test_every_request_accepts_every_occasion(self, build, occasion):
+        assert build(occasion).occasion == occasion
+
+    @pytest.mark.parametrize("build", OCCASION_REQUESTS.values(), ids=OCCASION_REQUESTS.keys())
+    @pytest.mark.parametrize("occasion", ["space-walk", "pairing", ""])
+    def test_every_request_rejects_unknown_occasions(self, build, occasion):
+        with pytest.raises(ValidationError):
+            build(occasion)
+
+    @pytest.mark.parametrize("build", OCCASION_REQUESTS.values(), ids=OCCASION_REQUESTS.keys())
+    def test_every_request_normalizes_case_and_whitespace(self, build):
+        assert build("  Wedding ").occasion == "wedding"
 
 
 class TestMattermostWebhookValidation:

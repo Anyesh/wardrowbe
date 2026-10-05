@@ -12,10 +12,12 @@ from app.services.item_scorer import (
     RAIN_LAYER_TYPES,
     WARM_LAYER_TYPES,
 )
+from app.services.pairing_service import PAIRING_OCCASION
 from app.utils.clothing import _CANONICAL_ROLE_ORDER, ITEM_ROLE
 from app.utils.garment_vocabulary import (
     FORMALITY,
     MATERIALS,
+    OCCASIONS,
     TYPES,
     render_tagging_prompt,
 )
@@ -32,6 +34,7 @@ def test_vocabulary_entries_are_unique():
     assert len(set(TYPES)) == len(TYPES)
     assert len(set(MATERIALS)) == len(MATERIALS)
     assert len(set(FORMALITY)) == len(FORMALITY)
+    assert len(set(OCCASIONS)) == len(OCCASIONS)
 
 
 def test_every_type_has_a_known_role_and_a_positive_wash_interval():
@@ -74,3 +77,28 @@ def test_scorer_layer_types_are_real_types():
 
 def test_scorer_heavy_materials_are_real_materials():
     assert HEAVY_LAYER_MATERIALS <= VALID_MATERIALS
+
+
+# The union of the suggestion, studio, authoring and schedule validators before they shared one
+# list; schedules accepted only the first eight.
+PRE_VOCABULARY_OCCASIONS = {
+    "casual", "office", "work", "formal", "smart-casual", "business-casual", "date", "party",
+    "sporty", "sport", "outdoor", "travel", "lounge", "beach", "interview", "wedding", "dinner",
+    "brunch", "gym", "running", "hiking", "weekend",
+}  # fmt: skip
+
+
+def test_occasions_are_the_union_every_validator_accepted():
+    assert set(OCCASIONS) == PRE_VOCABULARY_OCCASIONS
+
+
+def test_server_set_pairing_occasion_cannot_be_authored():
+    assert PAIRING_OCCASION not in OCCASIONS
+
+
+def test_scorer_occasion_formality_comes_from_the_vocabulary():
+    assert set(OCCASION_FORMALITY) == {
+        "casual", "work", "office", "formal", "sporty", "outdoor", "date", "party",
+    }  # fmt: skip
+    assert set(OCCASION_FORMALITY) <= set(OCCASIONS)
+    assert OCCASION_FORMALITY["formal"] == ("business-casual", "formal", "very-formal")

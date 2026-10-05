@@ -33,5 +33,29 @@
     {"value": "accessories", "role": "accessory", "wash_interval": 20}
   ],
   "materials": ["cotton", "denim", "leather", "wool", "polyester", "silk", "linen", "knit", "fleece", "suede", "velvet", "nylon", "canvas", "down", "shearling"],
-  "formality": ["very-casual", "casual", "smart-casual", "business-casual", "formal", "very-formal"]
+  "formality": ["very-casual", "casual", "smart-casual", "business-casual", "formal", "very-formal"],
+  "occasions": [
+    {"value": "casual", "formality": ["very-casual", "casual", "smart-casual"]},
+    {"value": "office", "formality": ["smart-casual", "business-casual", "formal"]},
+    {"value": "work", "formality": ["smart-casual", "business-casual", "formal"]},
+    {"value": "formal", "formality": ["business-casual", "formal", "very-formal"]},
+    {"value": "smart-casual"},
+    {"value": "business-casual"},
+    {"value": "date", "formality": ["smart-casual", "business-casual", "formal"]},
+    {"value": "party", "formality": ["smart-casual", "business-casual", "formal"]},
+    {"value": "sporty", "formality": ["very-casual", "casual"]},
+    {"value": "sport"},
+    {"value": "outdoor", "formality": ["very-casual", "casual"]},
+    {"value": "travel"},
+    {"value": "lounge"},
+    {"value": "beach"},
+    {"value": "interview"},
+    {"value": "wedding"},
+    {"value": "dinner"},
+    {"value": "brunch"},
+    {"value": "gym"},
+    {"value": "running"},
+    {"value": "hiking"},
+    {"value": "weekend"}
+  ]
 }

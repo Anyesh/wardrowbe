@@ -172,6 +172,29 @@ class TestSchedules:
         assert data["notification_time"] == "07:00"
 
     @pytest.mark.asyncio
+    async def test_create_schedule_accepts_any_suggestion_occasion(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/notifications/schedules",
+            json={"day_of_week": 5, "notification_time": "09:00", "occasion": "wedding"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 201
+        assert response.json()["occasion"] == "wedding"
+
+    @pytest.mark.asyncio
+    async def test_create_schedule_rejects_unknown_occasion(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/notifications/schedules",
+            json={"day_of_week": 5, "notification_time": "09:00", "occasion": "space-walk"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
     async def test_update_schedule(self, client: AsyncClient, test_user, auth_headers, db_session):
         schedule = Schedule(
             user_id=test_user.id,

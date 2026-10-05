@@ -49,12 +49,28 @@
     "wool": "羊毛"
   },
   "occasions": {
+    "beach": "海滩",
+    "brunch": "早午餐",
+    "business-casual": "商务休闲",
     "casual": "休闲",
     "date": "约会",
+    "dinner": "晚餐",
     "formal": "正式",
+    "gym": "健身房",
+    "hiking": "徒步",
+    "interview": "面试",
+    "lounge": "居家",
     "office": "办公",
     "outdoor": "户外",
-    "sporty": "运动"
+    "party": "派对",
+    "running": "跑步",
+    "smart-casual": "精致休闲",
+    "sport": "体育",
+    "sporty": "运动",
+    "travel": "旅行",
+    "wedding": "婚礼",
+    "weekend": "周末",
+    "work": "工作"
   },
   "roles": {
     "accessory": "配饰",
