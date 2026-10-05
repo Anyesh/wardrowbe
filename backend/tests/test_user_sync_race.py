@@ -82,15 +82,22 @@ async def _race(
                     except UserEmailConflictError as e:
                         results[task] = e
                     # Reading through the session proves a conflict left its transaction usable.
-                    emails = dict(
-                        (await session.execute(select(User.external_id, User.email))).all()
-                    )
+                    await session.execute(select(1))
                     await session.commit()
         finally:
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
+    async with session_maker() as check:
+        emails = dict((await check.execute(select(User.external_id, User.email))).all())
     return (first_result, *(results[task] for task in tasks), emails)
+
+
+def _outcome(result, names: dict) -> str | tuple[str, bool]:
+    if isinstance(result, UserEmailConflictError):
+        return "conflict"
+    user, is_new = result
+    return names.get(user.id, "new"), is_new
 
 
 async def _cleanup(session_maker, *conditions):
@@ -205,12 +212,7 @@ async def test_reclaim_racing_another_sign_in_acts_on_the_committed_holder(
     finally:
         await _cleanup(session_maker, User.external_id.in_(external_ids.values()))
 
-    outcomes = {first_user.id: "first", holder.id: "holder"}
-    assert (
-        "conflict"
-        if isinstance(other_result, UserEmailConflictError)
-        else (outcomes.get(other_result[0].id, "new"), other_result[1])
-    ) == other_becomes
+    assert _outcome(other_result, {first_user.id: "first", holder.id: "holder"}) == other_becomes
     assert {role: emails.get(external_ids[role]) for role in external_ids} == {
         role: emails_by_kind.get(final.get(role)) for role in external_ids
     }
@@ -246,38 +248,36 @@ async def test_verified_burst_against_an_unverified_first_sign_in_reclaims_once(
 
 
 @pytest.mark.asyncio
-async def test_concurrent_first_sync_with_same_email_adopts_the_committed_user(session_maker):
-    email = f"race-{uuid4()}@example.com"
-    first = UserSyncRequest(external_id=f"dev-{uuid4()}", email=email, display_name="First")
-    second = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Second")
+@pytest.mark.parametrize(
+    ("second_verified", "second_becomes", "stored_as"),
+    [
+        pytest.param(True, ("first", False), "second", id="verified-adopts"),
+        pytest.param(False, "conflict", "first", id="unverified-is-refused"),
+    ],
+)
+async def test_concurrent_first_sync_with_same_email_adopts_only_when_verified(
+    session_maker, second_verified, second_becomes, stored_as
+):
+    run = uuid4()
+    email = f"race-{run}@example.com"
+    syncs = {
+        role: UserSyncRequest(external_id=f"{role}-{run}", email=email, display_name=role)
+        for role in ("first", "second")
+    }
     try:
-        (user_a, _), (user_b, new_b), _ = await _race(session_maker, first, second)
+        (user_a, _), second_result, _ = await _race(
+            session_maker, syncs["first"], syncs["second"], others_verified=second_verified
+        )
 
         async with session_maker() as check:
             users = (await check.scalars(select(User).where(User.email == email))).all()
     finally:
         await _cleanup(session_maker, User.email == email)
 
-    assert new_b is False
-    assert user_b.id == user_a.id
-    assert [(u.id, u.external_id) for u in users] == [(user_a.id, second.external_id)]
-
-
-@pytest.mark.asyncio
-async def test_concurrent_first_sync_refuses_adoption_when_not_allowed(session_maker):
-    email = f"race-{uuid4()}@example.com"
-    first = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Owner")
-    second = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Attacker")
-    try:
-        _, conflict, _ = await _race(session_maker, first, second, others_verified=False)
-
-        async with session_maker() as check:
-            users = (await check.scalars(select(User).where(User.email == email))).all()
-    finally:
-        await _cleanup(session_maker, User.email == email)
-
-    assert isinstance(conflict, UserEmailConflictError)
-    assert [(u.external_id, u.display_name) for u in users] == [(first.external_id, "Owner")]
+    assert _outcome(second_result, {user_a.id: "first"}) == second_becomes
+    assert [(u.id, u.external_id, u.display_name) for u in users] == [
+        (user_a.id, f"{stored_as}-{run}", stored_as)
+    ]
 
 
 async def _stored_holder(db_session, run, *, verified: bool) -> User:
@@ -313,14 +313,14 @@ async def test_unverified_caller_can_neither_adopt_nor_reclaim_a_held_email(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("stored_verified", "is_new", "stored_after"),
+    ("stored_verified", "is_new", "same_row", "stored_after"),
     [
-        pytest.param(True, False, ("new", "owner"), id="adopts-verified-holder"),
-        pytest.param(False, True, ("old", "detached"), id="reclaims-from-unverified-holder"),
+        pytest.param(True, False, True, ("new", "owner"), id="adopts-verified-holder"),
+        pytest.param(False, True, False, ("old", "detached"), id="reclaims-from-unverified-holder"),
     ],
 )
 async def test_verified_caller_adopts_a_verified_holder_or_reclaims_from_an_unverified_one(
-    db_session, stored_verified, is_new, stored_after
+    db_session, stored_verified, is_new, same_row, stored_after
 ):
     run = uuid4()
     stored = await _stored_holder(db_session, run, verified=stored_verified)
@@ -335,7 +335,7 @@ async def test_verified_caller_adopts_a_verified_holder_or_reclaims_from_an_unve
     user, created = await UserService(db_session).sync_from_oidc(caller, email_verified=True)
 
     await db_session.refresh(stored)
-    assert (created, user.id == stored.id) == (is_new, not is_new)
+    assert (created, user.id == stored.id) == (is_new, same_row)
     assert (user.external_id, user.email, user.email_verified) == (
         caller.external_id,
         names["owner"],
@@ -346,17 +346,26 @@ async def test_verified_caller_adopts_a_verified_holder_or_reclaims_from_an_unve
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("change_verified", "owner_exists", "is_new", "me_after"),
+    ("change_verified", "owner_exists", "is_new", "same_row", "me_after"),
     [
-        pytest.param(True, False, False, ("owner", "target"), id="verified-change-is-adopted"),
-        pytest.param(False, False, True, ("me", "detached"), id="unverified-change-is-reclaimed"),
         pytest.param(
-            False, True, False, ("me", "detached"), id="unverified-change-is-reclaimed-by-owner"
+            True, False, False, True, ("owner", "target"), id="verified-change-is-adopted"
+        ),
+        pytest.param(
+            False, False, True, False, ("me", "detached"), id="unverified-change-is-reclaimed"
+        ),
+        pytest.param(
+            False,
+            True,
+            False,
+            False,
+            ("me", "detached"),
+            id="unverified-change-is-reclaimed-by-owner",
         ),
     ],
 )
 async def test_changed_email_is_adopted_when_verified_and_reclaimed_when_not(
-    db_session, test_user, change_verified, owner_exists, is_new, me_after
+    db_session, test_user, change_verified, owner_exists, is_new, same_row, me_after
 ):
     run = uuid4()
     target = f"target-{run}@example.com"
@@ -380,7 +389,7 @@ async def test_changed_email_is_adopted_when_verified_and_reclaimed_when_not(
 
     await db_session.refresh(test_user)
     assert (owned.email, owned.email_verified, created) == (target, True, is_new)
-    assert (owned.id == test_user.id) is (me_after[0] == "owner")
+    assert (owned.id == test_user.id) is same_row
     assert (test_user.external_id, test_user.email) == tuple(names[name] for name in me_after)
 
 
