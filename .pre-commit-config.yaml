@@ -14,14 +14,14 @@ repos:
     hooks:
       - id: frontend-typecheck
         name: Frontend TypeScript check
-        entry: bash -c 'cd frontend && npx tsc --noEmit'
+        entry: bash -c 'cd frontend && pnpm run typecheck'
         language: system
         files: ^frontend/.*\.(ts|tsx)$
         pass_filenames: false
 
       - id: frontend-lint
         name: Frontend ESLint
-        entry: bash -c 'cd frontend && npm run lint'
+        entry: bash -c 'cd frontend && pnpm run lint'
         language: system
         files: ^frontend/.*\.(ts|tsx)$
         pass_filenames: false

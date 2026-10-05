@@ -1,5 +1,5 @@
 // Generated from backend/app/data/garment_vocabulary.json by scripts/gen-garment-vocabulary.mjs.
-// Do not edit by hand; run `npm run vocab:gen`.
+// Do not edit by hand; run `pnpm run vocab:gen`.
 export const CLOTHING_TYPE_VALUES = ['shirt', 't-shirt', 'top', 'pants', 'jeans', 'shorts', 'dress', 'jumpsuit', 'skirt', 'jacket', 'coat', 'sweater', 'hoodie', 'blazer', 'suit', 'vest', 'cardigan', 'polo', 'blouse', 'tank-top', 'shoes', 'sneakers', 'boots', 'sandals', 'socks', 'tie', 'hat', 'scarf', 'belt', 'bag', 'accessories'] as const;
 export const MATERIAL_VALUES = ['cotton', 'denim', 'leather', 'wool', 'polyester', 'silk', 'linen', 'knit', 'fleece', 'suede', 'velvet', 'nylon', 'canvas', 'down', 'shearling'] as const;
 export const FORMALITY_VALUES = ['very-casual', 'casual', 'smart-casual', 'business-casual', 'formal', 'very-formal'] as const;
