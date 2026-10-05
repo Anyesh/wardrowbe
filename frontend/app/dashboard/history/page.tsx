@@ -26,7 +26,8 @@ import { OutfitStatusFilter } from '@/components/outfit-status';
 import { FeedbackDialog } from '@/components/feedback-dialog';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import { isSameDay, parseISO } from 'date-fns';
-import { formatDate } from '@/lib/utils';
+import { formatDate, parseDateString } from '@/lib/utils';
+import { useUserToday } from '@/lib/hooks/use-user';
 
 function EmptyHistory({ t }: { t: (key: string) => string }) {
   return (
@@ -105,10 +106,15 @@ export default function HistoryPage() {
   const t = useTranslations('history');
   const occasions = useOccasions();
   const locale = useLocale();
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(now);
+  const todayKey = useUserToday()();
+  const today = useMemo(() => parseDateString(todayKey), [todayKey]);
+  // Null until the user navigates, so that the view follows the profile timezone once it loads
+  // instead of freezing on the browser's day from the first render.
+  const [viewedMonth, setViewedMonth] = useState<{ year: number; month: number } | null>(null);
+  const [pickedDate, setPickedDate] = useState<Date | null>(null);
+  const year = viewedMonth?.year ?? today.getFullYear();
+  const month = viewedMonth?.month ?? today.getMonth() + 1;
+  const selectedDate = pickedDate ?? today;
   const [filters, setFilters] = useState<OutfitFilters>({});
   const [feedbackOutfit, setFeedbackOutfit] = useState<Outfit | null>(null);
   const [previewOutfit, setPreviewOutfit] = useState<Outfit | null>(null);
@@ -124,8 +130,7 @@ export default function HistoryPage() {
   }, [data?.outfits, selectedDate]);
 
   const handleMonthChange = (newYear: number, newMonth: number) => {
-    setYear(newYear);
-    setMonth(newMonth);
+    setViewedMonth({ year: newYear, month: newMonth });
   };
 
   const handleOccasionChange = (value: string) => {
@@ -190,7 +195,7 @@ export default function HistoryPage() {
                 month={month}
                 outfits={data?.outfits || []}
                 selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
+                onSelectDate={setPickedDate}
                 onMonthChange={handleMonthChange}
               />
             )}

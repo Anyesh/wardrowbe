@@ -24,16 +24,12 @@ import {
   type OutfitFilters,
 } from '@/lib/hooks/use-outfits';
 import { cn, formatDateKey, formatShortDate, parseDateString } from '@/lib/utils';
+import { useUserToday } from '@/lib/hooks/use-user';
 import { GRID_PAGE_SIZE } from '@/lib/pagination';
 
 interface MonthRef {
   year: number;
   month: number;
-}
-
-function currentMonthRef(): MonthRef {
-  const now = new Date();
-  return { year: now.getFullYear(), month: now.getMonth() + 1 };
 }
 
 function formatMonthParam(ref: MonthRef): string {
@@ -152,7 +148,15 @@ function OutfitsPageContent() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [defaultChecked, setDefaultChecked] = useState(false);
-  const [monthRef, setMonthRef] = useState<MonthRef>(urlMonth ?? currentMonthRef());
+  const todayKey = useUserToday()();
+  // Null until the user or URL picks a month, so that the calendar follows the profile timezone
+  // once it loads instead of freezing on the browser's month from the first render.
+  const [pickedMonth, setPickedMonth] = useState<MonthRef | null>(urlMonth);
+  const monthRef = useMemo<MonthRef>(() => {
+    if (pickedMonth) return pickedMonth;
+    const today = parseDateString(todayKey);
+    return { year: today.getFullYear(), month: today.getMonth() + 1 };
+  }, [pickedMonth, todayKey]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selection, setSelection] = useState<BulkSelection>({
@@ -163,7 +167,7 @@ function OutfitsPageContent() {
 
   useEffect(() => {
     if (urlMonth && (urlMonth.year !== monthRef.year || urlMonth.month !== monthRef.month)) {
-      setMonthRef(urlMonth);
+      setPickedMonth(urlMonth);
     }
   }, [urlMonth, monthRef.year, monthRef.month]);
 
@@ -286,14 +290,14 @@ function OutfitsPageContent() {
 
   const handleMonthChange = (year: number, month: number) => {
     const nextRef = { year, month };
-    setMonthRef(nextRef);
+    setPickedMonth(nextRef);
     setSelectedDate(null);
     updateQuery({ month: nextRef });
   };
 
   const handleShiftMonth = (delta: number) => {
     const nextRef = shiftMonth(monthRef, delta);
-    setMonthRef(nextRef);
+    setPickedMonth(nextRef);
     setSelectedDate(null);
     updateQuery({ month: nextRef });
   };

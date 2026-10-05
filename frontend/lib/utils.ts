@@ -20,30 +20,32 @@ export function chunkArray<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
-/**
- * Get today's date in a specific timezone.
- * Returns a Date object representing midnight in the given timezone.
- */
-export function getTodayInTimezone(timezone: string = 'UTC'): Date {
+// Invariant: the returned Date's local fields hold the wall clock in `timezone`, so getDay() and
+// getHours() read that zone's time; its instant is not the real one.
+export function getWallClockInTimezone(timezone: string = 'UTC'): Date {
+  const now = new Date();
   try {
-    const now = new Date();
-    // Format date in the target timezone to get the local date
-    const formatter = new Intl.DateTimeFormat('en-CA', {
+    const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: timezone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    });
-    const parts = formatter.formatToParts(now);
-    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
-    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
-    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
-    return new Date(year, month, day);
-  } catch {
-    // Fallback to local date if timezone is invalid
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(now);
+    const field = (type: Intl.DateTimeFormatPartTypes) =>
+      parseInt(parts.find((p) => p.type === type)?.value || '0');
+    return new Date(field('year'), field('month') - 1, field('day'), field('hour'), field('minute'));
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes());
   }
+}
+
+export function getTodayInTimezone(timezone: string = 'UTC'): Date {
+  const clock = getWallClockInTimezone(timezone);
+  return new Date(clock.getFullYear(), clock.getMonth(), clock.getDate());
 }
 
 export function getTodayDateStringInTimezone(timezone: string = 'UTC'): string {
