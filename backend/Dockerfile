@@ -14,8 +14,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt requirements-extras.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-extras.txt
 
-# Pre-download rembg model so first request is instant
-RUN python -c "from rembg import new_session; new_session()"
+# REMBG_HOME is outside /root because the app runs as non-root uids. The models dir is
+# 1777 because PUID remapping changes appuser's numeric uid, so a build-time chown would not survive.
+ARG BG_REMOVAL_MODEL=u2net
+ENV REMBG_HOME=/opt/rembg
+RUN python -c "from rembg import new_session; new_session('$BG_REMOVAL_MODEL')" \
+    && chmod -R a+rX /opt/rembg \
+    && chmod 1777 /opt/rembg/models
+
+# Set after the bake so root does not create the directory and lock out other uids.
+ENV NUMBA_CACHE_DIR=/tmp/numba_cache
 
 # Copy application code
 COPY . .
