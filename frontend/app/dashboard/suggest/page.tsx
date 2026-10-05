@@ -51,7 +51,8 @@ import {
 import { ItemPicker } from '@/components/shared/item-picker';
 import { OccasionChips } from '@/components/shared/occasion-chips';
 import { useItem } from '@/lib/hooks/use-items';
-import { api, ApiError, setAccessToken } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
+import { applySessionToken } from '@/lib/hooks/use-session-token';
 import { ClothingTypeValue, CurrentWeather, Item, Outfit, SuggestRequest } from '@/lib/types';
 import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
@@ -612,9 +613,7 @@ function SuggestContent() {
   const handleGenerate = async () => {
     if (!selectedOccasion) return;
 
-    if (session?.accessToken) {
-      setAccessToken(session.accessToken as string);
-    }
+    applySessionToken(session);
 
     setIsGenerating(true);
     setError(null);
@@ -654,9 +653,7 @@ function SuggestContent() {
     const outfitToAccept = targetOutfit || outfits[activeOptionIndex];
     if (!outfitToAccept) return;
 
-    if (session?.accessToken) {
-      setAccessToken(session.accessToken as string);
-    }
+    applySessionToken(session);
 
     try {
       await api.post(`/outfits/${outfitToAccept.id}/accept`);
@@ -681,9 +678,7 @@ function SuggestContent() {
     const outfitToReject = targetOutfit || outfits[activeOptionIndex];
     if (!outfitToReject) return;
 
-    if (session?.accessToken) {
-      setAccessToken(session.accessToken as string);
-    }
+    applySessionToken(session);
 
     try {
       await api.post(`/outfits/${outfitToReject.id}/reject`);

@@ -2,20 +2,14 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import {
   Pairing,
   PairingListResponse,
   GeneratePairingsRequest,
   GeneratePairingsResponse,
 } from '@/lib/types';
-
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
 
 export function usePairings(page = 1, pageSize = 20, sourceType?: string) {
   const { status } = useSession();
@@ -66,9 +60,7 @@ export function useGeneratePairings() {
       itemId: string;
       numPairings?: number;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<GeneratePairingsResponse>(`/pairings/generate/${itemId}`, {
         num_pairings: numPairings,
       });
@@ -86,9 +78,7 @@ export function useDeletePairing() {
 
   return useMutation({
     mutationFn: async (pairingId: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/pairings/${pairingId}`);
     },
     onSuccess: () => {

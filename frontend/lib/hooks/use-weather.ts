@@ -2,15 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
 import type { CurrentWeather } from '@/lib/types';
-
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
 
 export function useWeather() {
   const { status } = useSession();

@@ -2,15 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { Preferences } from '@/lib/types';
-
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
 
 export function usePreferences() {
   const { status } = useSession();
@@ -29,9 +23,7 @@ export function useUpdatePreferences() {
 
   return useMutation({
     mutationFn: (data: Partial<Preferences>) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<Preferences>('/users/me/preferences', data);
     },
     onSuccess: () => {
@@ -46,9 +38,7 @@ export function useResetPreferences() {
 
   return useMutation({
     mutationFn: () => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Preferences>('/users/me/preferences/reset');
     },
     onSuccess: () => {
@@ -70,9 +60,7 @@ export function useTestAIEndpoint() {
 
   return useMutation({
     mutationFn: (url: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<AITestResult>('/users/me/preferences/test-ai-endpoint', { url });
     },
   });

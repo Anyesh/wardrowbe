@@ -3,17 +3,15 @@
 import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSession, signOut } from 'next-auth/react';
-import { api, setAccessToken, ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
+import { applySessionToken } from '@/lib/hooks/use-session-token';
 import type { UserProfile } from './use-user';
 
 export function useAuth() {
   const { data: session, status } = useSession();
   const signingOut = useRef(false);
 
-  // Set access token if available from NextAuth
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
+  applySessionToken(session);
 
   const hasToken = !!session?.accessToken;
   const syncError = session?.syncError;

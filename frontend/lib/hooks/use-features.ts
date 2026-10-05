@@ -2,7 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { applySessionToken } from '@/lib/hooks/use-session-token';
 
 interface Features {
   background_removal: boolean;
@@ -11,9 +12,7 @@ interface Features {
 
 export function useFeatures() {
   const { data: session, status } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
+  applySessionToken(session);
 
   return useQuery({
     queryKey: ['features'],
