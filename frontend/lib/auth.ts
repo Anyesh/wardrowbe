@@ -2,6 +2,7 @@ import type { NextAuthOptions, User } from 'next-auth';
 import type { OAuthConfig } from 'next-auth/providers/oauth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { Provider } from 'next-auth/providers/index';
+import { FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
 
 interface OIDCProfile {
   sub: string;
@@ -106,6 +107,9 @@ function headerValue(headers: IncomingHeaders, name: string): string | undefined
 
 // The backend alone verifies the secret; the frontend only relays what the proxy sent so that
 // it holds no forward-auth configuration that could drift from the backend's.
+// The backend answers 400 or 401 only when the proxy's headers or shared secret are wrong.
+const PROXY_HEADER_REJECTIONS = new Set([400, 401]);
+
 export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<User | null> {
   const remoteUser = headerValue(headers, 'remote-user');
   const remoteEmail = headerValue(headers, 'remote-email');
@@ -132,10 +136,13 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
         display_name: (headerValue(headers, 'remote-name') || remoteEmail.split('@')[0]).slice(0, 100),
       }),
     });
-    if (!response.ok) {
+    if (PROXY_HEADER_REJECTIONS.has(response.status)) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Forward-auth sync rejected:', errorData.detail || response.status);
       return null;
+    }
+    if (!response.ok) {
+      throw new Error(`Forward-auth sync answered ${response.status}`);
     }
     const syncData = await response.json();
     return {
@@ -149,7 +156,9 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
     };
   } catch (error) {
     console.error('Forward-auth sync failed:', error);
-    return null;
+    // NextAuth turns a thrown message into the sign-in error code, so the login page can tell
+    // a backend fault apart from headers the proxy did not pass.
+    throw new Error(FORWARD_AUTH_SERVER_ERROR);
   }
 }
 

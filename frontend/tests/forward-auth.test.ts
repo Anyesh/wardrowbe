@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { Account, User } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
 import { authOptions, authorizeForwardAuth } from '@/lib/auth'
+import { FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors'
 
 const SECRET = 'proxy-shared-secret-that-is-long-enough'
 
@@ -112,18 +113,28 @@ describe('forward-auth authorize', () => {
     expect(spy).not.toHaveBeenCalled()
   })
 
-  it('refuses when the backend rejects the secret', async () => {
-    mockFetch(new Response(JSON.stringify({ detail: 'Invalid forward-auth secret' }), { status: 401 }))
+  it.each([
+    [401, 'Invalid forward-auth secret'],
+    [400, 'Remote-Email is not a valid email address'],
+  ])('refuses as a header problem when the backend answers %i', async (status, detail) => {
+    mockFetch(new Response(JSON.stringify({ detail }), { status }))
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     expect(await authorizeForwardAuth(proxyHeaders())).toBeNull()
   })
 
-  it('refuses when the backend is unreachable', async () => {
+  it.each([500, 503, 409])('fails as a server error when the backend answers %i', async (status) => {
+    mockFetch(new Response(JSON.stringify({ detail: 'Internal Server Error' }), { status }))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(authorizeForwardAuth(proxyHeaders())).rejects.toThrow(FORWARD_AUTH_SERVER_ERROR)
+  })
+
+  it('fails as a server error when the backend is unreachable', async () => {
     global.fetch = vi.fn().mockRejectedValue(new TypeError('fetch failed')) as unknown as typeof fetch
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    expect(await authorizeForwardAuth(proxyHeaders())).toBeNull()
+    await expect(authorizeForwardAuth(proxyHeaders())).rejects.toThrow(FORWARD_AUTH_SERVER_ERROR)
   })
 
   it('is registered as a NextAuth provider that reads the request headers', async () => {

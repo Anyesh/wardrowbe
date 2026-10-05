@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import LoginPage from '@/app/login/page'
+import { FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors'
 
 const nav = vi.hoisted(() => ({
   params: new URLSearchParams(),
@@ -84,6 +85,24 @@ describe('login page in forward-auth mode', () => {
     renderLogin()
 
     expect(await screen.findByText('forwardAuth.headersMissing')).toBeInTheDocument()
+  })
+
+  it('shows a server error instead of blaming the proxy when the backend fails', async () => {
+    auth.signIn.mockResolvedValue({ ok: false, error: FORWARD_AUTH_SERVER_ERROR, status: 401, url: null })
+
+    renderLogin()
+
+    expect(await screen.findByText('forwardAuth.serverError')).toBeInTheDocument()
+    expect(screen.queryByText('forwardAuth.headersMissing')).not.toBeInTheDocument()
+  })
+
+  it('shows the server error carried in the error query parameter', async () => {
+    nav.params = new URLSearchParams(`error=${FORWARD_AUTH_SERVER_ERROR}`)
+
+    renderLogin()
+
+    expect(await screen.findByText('forwardAuth.serverError')).toBeInTheDocument()
+    expect(auth.signIn).not.toHaveBeenCalled()
   })
 
   it.each([
