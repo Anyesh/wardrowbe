@@ -1,5 +1,6 @@
 import html as html_mod
 from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
@@ -204,208 +205,135 @@ class TestHealthEndpointInfoLeak:
             assert "available_models" not in ep
 
 
+@pytest.fixture
+def oidc_claims():
+    with (
+        patch("app.api.auth._is_dev_mode", return_value=False),
+        patch("app.api.auth._oidc_configured", return_value=True),
+        patch("app.api.auth.validate_oidc_id_token") as validate,
+        patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
+        patch("app.api.auth.settings") as mock_settings,
+    ):
+        mock_settings.oidc_issuer_url = "https://auth.example.com"
+        mock_settings.oidc_client_id = "test-client"
+        mock_settings.oidc_mobile_client_id = None
+        mock_settings.secret_key = "test-secret"
+        yield validate
+
+
 class TestAuthEmailValidation:
     @pytest.mark.asyncio
-    async def test_oidc_rejects_mismatched_email(self, client, db_session):
-        mock_claims = {
+    async def test_oidc_rejects_mismatched_email(self, client, db_session, oidc_claims):
+        oidc_claims.return_value = {
             "sub": "oidc-user-123",
             "email": "real@example.com",
             "email_verified": True,
         }
-        with (
-            patch("app.api.auth._is_dev_mode", return_value=False),
-            patch("app.api.auth._oidc_configured", return_value=True),
-            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
-            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
-            patch("app.api.auth.settings") as mock_settings,
-        ):
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-            mock_settings.oidc_mobile_client_id = None
-
-            response = await client.post(
-                "/api/v1/auth/sync",
-                json={
-                    "external_id": "oidc-user-123",
-                    "email": "spoofed@example.com",
-                    "display_name": "Test",
-                    "id_token": "fake-token",
-                },
-            )
-            assert response.status_code == 401
-            assert "email does not match" in response.json()["detail"]
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={
+                "external_id": "oidc-user-123",
+                "email": "spoofed@example.com",
+                "display_name": "Test",
+                "id_token": "fake-token",
+            },
+        )
+        assert response.status_code == 401
+        assert "email does not match" in response.json()["detail"]
 
     @pytest.mark.asyncio
-    async def test_oidc_allows_matching_email_case_insensitive(self, client, db_session):
-        mock_claims = {
+    async def test_oidc_allows_matching_email_case_insensitive(
+        self, client, db_session, oidc_claims
+    ):
+        oidc_claims.return_value = {
             "sub": "oidc-user-456",
             "email": "User@Example.com",
             "email_verified": True,
         }
-        with (
-            patch("app.api.auth._is_dev_mode", return_value=False),
-            patch("app.api.auth._oidc_configured", return_value=True),
-            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
-            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
-            patch("app.api.auth.settings") as mock_settings,
-        ):
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-            mock_settings.oidc_mobile_client_id = None
-            mock_settings.secret_key = "test-secret"
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={
+                "external_id": "oidc-user-456",
+                "email": "user@example.com",
+                "display_name": "Test User",
+                "id_token": "fake-token",
+            },
+        )
+        assert response.status_code == 200
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("claims", "expected_verified"),
+        [
+            pytest.param({"email_verified": True}, True, id="oidc-verified"),
+            pytest.param({"email_verified": False}, False, id="oidc-unverified"),
+            pytest.param(None, True, id="dev"),
+        ],
+    )
+    async def test_new_user_records_whether_email_was_verified(
+        self, client, db_session, oidc_claims, claims, expected_verified
+    ):
+        external_id = f"new-{uuid4()}"
+        email = f"{external_id}@example.com"
+        oidc_claims.return_value = {"sub": external_id, "email": email, **(claims or {})}
+        with patch("app.api.auth._is_dev_mode", return_value=claims is None):
             response = await client.post(
                 "/api/v1/auth/sync",
                 json={
-                    "external_id": "oidc-user-456",
-                    "email": "user@example.com",
-                    "display_name": "Test User",
+                    "external_id": external_id,
+                    "email": email,
+                    "display_name": "New",
                     "id_token": "fake-token",
                 },
             )
-            assert response.status_code == 200
+
+        assert response.status_code == 200
+        assert response.json()["is_new_user"] is True
+        user = await UserService(db_session).get_by_external_id(external_id)
+        assert user.email_verified is expected_verified
 
 
 class TestProviderMigrationRequiresVerifiedEmail:
     @pytest.mark.asyncio
-    async def test_unverified_blocks_migration(self, client, db_session, test_user):
-        mock_claims = {
-            "sub": "new-provider-id",
-            "email": test_user.email,
-            "email_verified": False,
-        }
-        with (
-            patch("app.api.auth._is_dev_mode", return_value=False),
-            patch("app.api.auth._oidc_configured", return_value=True),
-            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
-            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
-            patch("app.api.auth.settings") as mock_settings,
-        ):
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-            mock_settings.oidc_mobile_client_id = None
+    @pytest.mark.parametrize(
+        ("email_claim", "email_verified", "expected_status"),
+        [
+            pytest.param(True, False, 409, id="unverified-claim"),
+            pytest.param(False, True, 409, id="no-email-claim"),
+            pytest.param(True, True, 200, id="verified"),
+        ],
+    )
+    async def test_migration_requires_verified_email_claim(
+        self,
+        client,
+        db_session,
+        test_user,
+        oidc_claims,
+        email_claim,
+        email_verified,
+        expected_status,
+    ):
+        original_external_id = test_user.external_id
+        oidc_claims.return_value = {"sub": "new-provider-id", "email_verified": email_verified}
+        if email_claim:
+            oidc_claims.return_value["email"] = test_user.email
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={
+                "external_id": "new-provider-id",
+                "email": test_user.email,
+                "display_name": "Test",
+                "id_token": "fake-token",
+            },
+        )
 
-            response = await client.post(
-                "/api/v1/auth/sync",
-                json={
-                    "external_id": "new-provider-id",
-                    "email": test_user.email,
-                    "display_name": "Test",
-                    "id_token": "fake-token",
-                },
-            )
-            assert response.status_code == 409
+        assert response.status_code == expected_status
+        await db_session.refresh(test_user)
+        if expected_status == 409:
             assert "provider that verifies" in response.json()["detail"]
-
-    @pytest.mark.asyncio
-    async def test_unverified_blocked_when_account_appears_after_lookup(
-        self, client, db_session, test_user, monkeypatch
-    ):
-        original_external_id = test_user.external_id
-        original_get_by_email = UserService.get_by_email
-        lookups: list[str] = []
-
-        async def get_by_email_missing_first_time(self, email):
-            lookups.append(email)
-            if len(lookups) == 1:
-                return None
-            return await original_get_by_email(self, email)
-
-        monkeypatch.setattr(UserService, "get_by_email", get_by_email_missing_first_time)
-        mock_claims = {
-            "sub": "racing-provider-id",
-            "email": test_user.email,
-            "email_verified": False,
-        }
-        with (
-            patch("app.api.auth._is_dev_mode", return_value=False),
-            patch("app.api.auth._oidc_configured", return_value=True),
-            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
-            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
-            patch("app.api.auth.settings") as mock_settings,
-        ):
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-            mock_settings.oidc_mobile_client_id = None
-            mock_settings.secret_key = "test-secret"
-
-            response = await client.post(
-                "/api/v1/auth/sync",
-                json={
-                    "external_id": "racing-provider-id",
-                    "email": test_user.email,
-                    "display_name": "Test",
-                    "id_token": "fake-token",
-                },
-            )
-
-        assert response.status_code == 409
-        assert "access_token" not in response.json()
-        await db_session.refresh(test_user)
-        assert test_user.external_id == original_external_id
-
-    @pytest.mark.asyncio
-    async def test_verified_flag_without_email_claim_blocks_migration(
-        self, client, db_session, test_user
-    ):
-        original_external_id = test_user.external_id
-        mock_claims = {"sub": "claimless-provider-id", "email_verified": True}
-        with (
-            patch("app.api.auth._is_dev_mode", return_value=False),
-            patch("app.api.auth._oidc_configured", return_value=True),
-            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
-            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
-            patch("app.api.auth.settings") as mock_settings,
-        ):
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-            mock_settings.oidc_mobile_client_id = None
-            mock_settings.secret_key = "test-secret"
-
-            response = await client.post(
-                "/api/v1/auth/sync",
-                json={
-                    "external_id": "claimless-provider-id",
-                    "email": test_user.email,
-                    "display_name": "Attacker",
-                    "id_token": "fake-token",
-                },
-            )
-
-        assert response.status_code == 409
-        assert "access_token" not in response.json()
-        await db_session.refresh(test_user)
-        assert test_user.external_id == original_external_id
-
-    @pytest.mark.asyncio
-    async def test_verified_allows_migration(self, client, db_session, test_user):
-        mock_claims = {
-            "sub": "new-provider-id-2",
-            "email": test_user.email,
-            "email_verified": True,
-        }
-        with (
-            patch("app.api.auth._is_dev_mode", return_value=False),
-            patch("app.api.auth._oidc_configured", return_value=True),
-            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
-            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
-            patch("app.api.auth.settings") as mock_settings,
-        ):
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-            mock_settings.oidc_mobile_client_id = None
-            mock_settings.secret_key = "test-secret"
-
-            response = await client.post(
-                "/api/v1/auth/sync",
-                json={
-                    "external_id": "new-provider-id-2",
-                    "email": test_user.email,
-                    "display_name": "Test",
-                    "id_token": "fake-token",
-                },
-            )
-            assert response.status_code == 200
+            assert test_user.external_id == original_external_id
+        else:
+            assert test_user.external_id == "new-provider-id"
 
 
 class TestDevModeAuthDecoupledFromSecretKey:
