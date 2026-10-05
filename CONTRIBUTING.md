@@ -79,6 +79,10 @@ pytest
 # Run linting
 ruff check .
 ruff format .
+
+# Type-check shared utilities (the initial ty scope)
+python -m pip install ty==0.0.84
+ty check
 ```
 
 ### Frontend Development

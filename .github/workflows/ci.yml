@@ -34,6 +34,7 @@ jobs:
           cd backend
           pip install -r requirements.txt
           pip install ruff
+          pip install ty==0.0.84
 
       - name: Run Ruff linter
         run: |
@@ -44,6 +45,11 @@ jobs:
         run: |
           cd backend
           ruff format --check .
+
+      - name: Type-check backend utilities
+        run: |
+          cd backend
+          ty check
 
       - name: Check migration heads
         run: python backend/scripts/check_migration_heads.py
