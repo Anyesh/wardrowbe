@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, getAccessToken, ApiError, NetworkError } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
@@ -10,19 +10,12 @@ import { chunkArray } from '@/lib/utils';
 import { enqueueFiles } from '@/lib/upload-queue';
 import { startDrain } from '@/lib/upload-manager';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { invalidateItemCaches, invalidatePrimaryImageQueries } from '@/lib/hooks/cache-invalidation';
+import { processingPollInterval } from '@/lib/hooks/query-timing';
 
 // Must not exceed the backend's MAX_BULK_UPLOAD_COUNT setting, or every chunk
 // larger than the server's limit fails with a 400.
 const BULK_UPLOAD_CHUNK_SIZE = 20;
-
-// Outfit and calendar payloads embed each item's primary image, so they go
-// stale whenever that image changes, not only the item caches.
-function invalidatePrimaryImageQueries(queryClient: QueryClient, itemId: string) {
-  queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
-  queryClient.invalidateQueries({ queryKey: queryKeys.item(itemId) });
-  queryClient.invalidateQueries({ queryKey: queryKeys.outfits.all });
-  queryClient.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
-}
 
 export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
   const { data: session, status } = useSession();
@@ -48,11 +41,9 @@ export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
       return api.get<ItemListResponse>('/items', { params });
     },
     enabled: status !== 'loading',
-    // Poll more frequently when items are processing (every 5 seconds), otherwise every 30 seconds
     refetchInterval: (query) => {
       const data = query.state.data as ItemListResponse | undefined;
-      const hasProcessing = data?.items?.some((item) => item.status === 'processing');
-      return hasProcessing ? 5000 : 30000;
+      return processingPollInterval(!!data?.items?.some((item) => item.status === 'processing'));
     },
     // Tagging runs server-side in the worker, so it keeps going while the tab is
     // hidden. Without this the polling stops and the UI looks frozen, which reads
@@ -71,7 +62,7 @@ export function useTaggingProgress() {
     enabled: status !== 'loading',
     refetchInterval: (query) => {
       const data = query.state.data as TaggingProgress | undefined;
-      return data && data.processing > 0 ? 5000 : 30000;
+      return processingPollInterval(!!data && data.processing > 0);
     },
     refetchIntervalInBackground: true,
   });
@@ -186,8 +177,7 @@ export function useUpdateItem() {
       });
     },
     onSettled: (_data, _error, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.item(variables.id) });
+      invalidateItemCaches(queryClient, variables.id);
     },
   });
 }
@@ -334,8 +324,7 @@ export function useLogWear() {
       return api.post<Item>(`/items/${id}/wear`, { worn_at, occasion });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.item(variables.id) });
+      invalidateItemCaches(queryClient, variables.id);
     },
   });
 }
@@ -456,8 +445,7 @@ export function useAddItemImage() {
       return response.json() as Promise<ItemImage>;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.item(variables.itemId) });
+      invalidateItemCaches(queryClient, variables.itemId);
     },
   });
 }
@@ -472,8 +460,7 @@ export function useDeleteItemImage() {
       return api.delete(`/items/${itemId}/images/${imageId}`);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.item(variables.itemId) });
+      invalidateItemCaches(queryClient, variables.itemId);
     },
   });
 }

@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { SLOW_STALE_TIME } from '@/lib/hooks/query-timing';
 
 // Types for learning API responses
 export interface LearnedColorScore {
@@ -104,7 +105,7 @@ export function useLearning() {
     queryKey: queryKeys.learning.all,
     queryFn: () => api.get<LearningInsightsData>('/learning'),
     enabled: status !== 'loading',
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: SLOW_STALE_TIME,
   });
 }
 
@@ -177,6 +178,6 @@ export function useItemPairSuggestions(itemId: string, limit = 5) {
       params: { limit: String(limit) },
     }),
     enabled: status !== 'loading' && !!itemId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: SLOW_STALE_TIME,
   });
 }

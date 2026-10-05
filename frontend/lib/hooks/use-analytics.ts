@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { SLOW_STALE_TIME } from '@/lib/hooks/query-timing';
 
 export interface ColorDistribution {
   color: string;
@@ -67,6 +68,6 @@ export function useAnalytics(days = 30) {
       params: { days: String(days) },
     }),
     enabled: status !== 'loading',
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: SLOW_STALE_TIME,
   });
 }

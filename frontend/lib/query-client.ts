@@ -1,6 +1,7 @@
 import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ApiError, NetworkError } from '@/lib/api';
+import { DEFAULT_STALE_TIME } from '@/lib/hooks/query-timing';
 
 function handleError(error: unknown) {
   if (error instanceof NetworkError) {
@@ -22,7 +23,7 @@ export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000,
+        staleTime: DEFAULT_STALE_TIME,
         retry: (failureCount, error) => {
           // Don't retry on auth errors or client errors
           if (error instanceof ApiError && error.status >= 400 && error.status < 500) {

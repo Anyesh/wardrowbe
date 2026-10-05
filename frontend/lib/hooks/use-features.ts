@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { applySessionToken } from '@/lib/hooks/use-session-token';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { SLOW_STALE_TIME } from '@/lib/hooks/query-timing';
 
 interface Features {
   background_removal: boolean;
@@ -19,6 +20,6 @@ export function useFeatures() {
     queryKey: queryKeys.features,
     queryFn: () => api.get<Features>('/health/features'),
     enabled: status !== 'loading',
-    staleTime: 5 * 60 * 1000,
+    staleTime: SLOW_STALE_TIME,
   });
 }

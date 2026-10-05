@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import type { FamilyRating, Outfit, OutfitStatus } from '@/lib/types';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { invalidateOutfitCaches } from '@/lib/hooks/cache-invalidation';
 
 export type {
   FeedbackSummary,
@@ -112,11 +113,7 @@ export function useAcceptOutfit() {
   return useMutation({
     mutationFn: (outfitId: string) => api.post<Outfit>(`/outfits/${outfitId}/accept`),
     onSuccess: (_, outfitId) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.outfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.outfit(outfitId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.pendingOutfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+      invalidateOutfitCaches(queryClient, outfitId);
     },
   });
 }
@@ -127,11 +124,7 @@ export function useRejectOutfit() {
   return useMutation({
     mutationFn: (outfitId: string) => api.post<Outfit>(`/outfits/${outfitId}/reject`),
     onSuccess: (_, outfitId) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.outfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.outfit(outfitId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.pendingOutfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+      invalidateOutfitCaches(queryClient, outfitId);
     },
   });
 }
@@ -143,11 +136,7 @@ export function useSubmitFeedback() {
     mutationFn: ({ outfitId, feedback }: { outfitId: string; feedback: FeedbackData }) =>
       api.post<FeedbackResponse>(`/outfits/${outfitId}/feedback`, feedback),
     onSuccess: (_, { outfitId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.outfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.outfit(outfitId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.pendingOutfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+      invalidateOutfitCaches(queryClient, outfitId);
     },
   });
 }
@@ -158,10 +147,7 @@ export function useDeleteOutfit() {
   return useMutation({
     mutationFn: (outfitId: string) => api.delete<void>(`/outfits/${outfitId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.outfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.pendingOutfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+      invalidateOutfitCaches(queryClient);
     },
   });
 }
@@ -227,10 +213,7 @@ export function useBulkDeleteOutfits() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.outfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.pendingOutfits.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
+      invalidateOutfitCaches(queryClient);
     },
   });
 }
