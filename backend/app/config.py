@@ -121,7 +121,7 @@ class Settings(BaseSettings):
     smtp_from_email: str | None = None
     # Storage
     storage_path: str = Field(default="/data/wardrobe")
-    max_upload_size_mb: int = Field(default=10)
+    max_upload_size_mb: int = Field(default=50, ge=1)
     max_bulk_upload_count: int = Field(default=20)
     # Byte size is a poor proxy for decode cost: a 3.8MB JPEG can be 108MP,
     # which needs ~324MB per full-resolution RGB buffer and several exist at

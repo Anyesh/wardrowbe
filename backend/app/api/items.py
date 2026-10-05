@@ -51,6 +51,7 @@ from app.services.image_service import ImageService
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
 from app.utils.signed_urls import sign_image_url
+from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
 from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
 from app.workers.settings import get_redis_settings
 
@@ -111,6 +112,16 @@ async def _resolve_bulk_item_ids(
     next_cursor = item_ids[-1] if has_more and item_ids else None
     logger.info(f"Bulk {action} select_all: {len(item_ids)} items, has_more={has_more}")
     return item_ids, next_cursor, has_more
+
+
+async def _read_image_or_413(image: UploadFile) -> bytes:
+    try:
+        return await read_upload_within_limit(image, settings.max_upload_size_mb)
+    except UploadTooLargeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=str(e),
+        ) from None
 
 
 @router.get("", response_model=ItemListResponse)
@@ -183,7 +194,7 @@ async def create_item(
     image_service = ImageService()
     item_service = ItemService(db)
 
-    content = await image.read()
+    content = await _read_image_or_413(image)
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service.validate_image(content, content_type):
@@ -350,7 +361,14 @@ async def bulk_create_items(
                         continue
 
                 # Read and validate image
-                content = await upload_file.read()
+                try:
+                    content = await read_upload_within_limit(
+                        upload_file, settings.max_upload_size_mb
+                    )
+                except UploadTooLargeError as e:
+                    results.append(BulkUploadResult(filename=filename, success=False, error=str(e)))
+                    failed += 1
+                    continue
                 content_type = upload_file.content_type or "application/octet-stream"
 
                 if not image_service.validate_image(content, content_type):
@@ -1868,7 +1886,7 @@ async def replace_item_image(
         )
 
     image_service = ImageService()
-    content = await image.read()
+    content = await _read_image_or_413(image)
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service.validate_image(content, content_type):
@@ -1954,7 +1972,7 @@ async def add_item_image(
 
     # Process image
     image_service_inst = ImageService()
-    content = await image.read()
+    content = await _read_image_or_413(image)
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service_inst.validate_image(content, content_type):

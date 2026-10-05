@@ -89,6 +89,35 @@ describe('startDrain', () => {
     expect(state.terminalRecords[0].lastError).toBe('Invalid image format')
   })
 
+  it('fails only the oversize file in a chunk, without retrying the rest', async () => {
+    await enqueueFiles([makeFile('a.jpg'), makeFile('big.jpg'), makeFile('c.jpg')], false)
+    vi.mocked(fetch).mockReset()
+    vi.mocked(fetch).mockImplementationOnce(async (_url, init) => {
+      const names = (init?.body as FormData).getAll('images').map((f) => (f as File).name)
+      const results = names.map((filename) =>
+        filename === 'big.jpg'
+          ? { filename, success: false, error: 'File exceeds the 50 MB upload limit' }
+          : { filename, success: true }
+      )
+      return jsonResponse({ total: 3, successful: 2, failed: 1, results })
+    })
+
+    await manager.startDrain()
+
+    const state = await manager.getState()
+    expect(state.remaining).toBe(0)
+    expect(state.terminalRecords).toEqual([
+      expect.objectContaining({
+        filename: 'big.jpg',
+        lastError: 'File exceeds the 50 MB upload limit',
+      }),
+    ])
+    const pending = await getPendingUploads()
+    expect(pending.map((r) => r.filename)).toEqual(['big.jpg'])
+    expect(pending[0].attempts).toBe(0)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
   it('retries a whole-chunk network failure and eventually gives up as terminal', async () => {
     const dateSpy = vi.spyOn(Date, 'now')
     try {
