@@ -47,3 +47,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+
+  # Keep the shell tools and other pinned pre-commit hooks updated.
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
