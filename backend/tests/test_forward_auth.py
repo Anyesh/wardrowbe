@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -33,7 +34,7 @@ def _forward_auth_and_oidc() -> Settings:
 
 
 def _proxy_headers(
-    user: str = "tinyauth-alice",
+    user: str | bytes = "tinyauth-alice",
     email: str = "Alice@Example.com",
     name: str | bytes = "Alice",
     secret: str = PROXY_SECRET,
@@ -265,6 +266,54 @@ class TestForwardAuthRejections:
 
         assert response.status_code == 200
         assert decode_token(response.json()["access_token"]).sub == "u" * 255
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "user,expected",
+        [
+            ("voilà".encode(), "voilà"),
+            ("voilÃ".encode(), "voilÃ"),
+            ("bob\u00a0".encode(), "bob\u00a0"),
+            (b"carol\t ", "carol"),
+        ],
+    )
+    async def test_remote_user_is_decoded_before_trimming(
+        self, client: AsyncClient, user: bytes, expected: str
+    ):
+        prefix = str(uuid4())
+        with patch("app.api.auth.settings", _forward_auth_only()):
+            response = await client.post(
+                SYNC_URL,
+                headers=_proxy_headers(
+                    user=f" {prefix}".encode() + user, email=f"{prefix}@example.com"
+                ),
+            )
+
+        assert response.status_code == 200
+        assert decode_token(response.json()["access_token"]).sub == f"{prefix}{expected}"
+
+    @pytest.mark.asyncio
+    async def test_remote_users_differing_in_a_trailing_byte_get_separate_accounts(
+        self, client: AsyncClient
+    ):
+        prefix = str(uuid4())
+        with patch("app.api.auth.settings", _forward_auth_only()):
+            first = await client.post(
+                SYNC_URL,
+                headers=_proxy_headers(
+                    user=f"{prefix}voilà".encode(), email=f"{prefix}-a@example.com"
+                ),
+            )
+            second = await client.post(
+                SYNC_URL,
+                headers=_proxy_headers(
+                    user=f"{prefix}voilÃ".encode(), email=f"{prefix}-b@example.com"
+                ),
+            )
+
+        assert first.status_code == 200
+        assert second.status_code == 200
+        assert first.json()["id"] != second.json()["id"]
 
 
 class TestForwardAuthRateLimit:

@@ -22,6 +22,7 @@ from app.schemas.user import (
 )
 from app.services.user_service import UserEmailConflictError, UserService
 from app.utils.auth import get_current_user
+from app.utils.forward_auth import proxy_header
 from app.utils.oidc import validate_oidc_id_token
 from app.utils.rate_limit import rate_limit_by_ip
 
@@ -120,16 +121,6 @@ def _claims_email(oidc_claims: dict) -> str | None:
         raise _invalid_email_claim() from None
 
 
-def _proxy_header(request: Request, name: str) -> str:
-    value = request.headers.get(name, "").strip()
-    # Starlette decodes header bytes as latin-1, but proxies send UTF-8 names and ids
-    # verbatim, so a non-ASCII Remote-Name would otherwise arrive as mojibake.
-    try:
-        return value.encode("latin-1").decode("utf-8")
-    except UnicodeError:
-        return value
-
-
 async def _forward_auth_identity(request: Request, presented_secret: str) -> UserSyncRequest:
     expected_secret = settings.forward_auth_secret or ""
     secret_matches = bool(expected_secret) and hmac.compare_digest(
@@ -144,15 +135,15 @@ async def _forward_auth_identity(request: Request, presented_secret: str) -> Use
             detail="Invalid forward-auth secret",
         )
 
-    remote_user = _proxy_header(request, "Remote-User")
-    remote_email = _proxy_header(request, "Remote-Email")
+    remote_user = proxy_header(request.headers, "Remote-User")
+    remote_email = proxy_header(request.headers, "Remote-Email")
     if not remote_user or not remote_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The auth proxy must send Remote-User and Remote-Email headers",
         )
 
-    display_name = _proxy_header(request, "Remote-Name") or remote_user
+    display_name = proxy_header(request.headers, "Remote-Name") or remote_user
     try:
         return UserSyncRequest(
             external_id=remote_user,
