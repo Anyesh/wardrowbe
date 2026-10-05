@@ -321,7 +321,7 @@ class TestAuthEmailValidation:
             pytest.param(True, "{}@DETACHED.Invalid", True, 422, id="dev-uppercase"),
             pytest.param(True, "  {}@detached.invalid ", True, 422, id="dev-padded"),
             pytest.param(False, "{}@Detached.INVALID", True, 422, id="oidc-body"),
-            pytest.param(False, "{}@Detached.INVALID", False, 409, id="oidc-claim-only"),
+            pytest.param(False, "{}@Detached.INVALID", False, 400, id="oidc-claim-only"),
         ],
     )
     async def test_sync_refuses_a_detached_placeholder_address(
@@ -527,3 +527,60 @@ class TestDevModeAuthDecoupledFromSecretKey:
             mock_settings.oidc_client_id = "test-client"
 
             assert _is_dev_mode() is False
+
+
+class TestOidcEmailClaimValidation:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("claim_email", "request_email", "expected_status", "expected_detail"),
+        [
+            pytest.param("not-an-email", None, 400, "not a valid email address", id="malformed"),
+            pytest.param("a@b@example.com", None, 400, "not a valid email address", id="two-ats"),
+            pytest.param(["x@example.com"], None, 400, "not a valid email address", id="non-str"),
+            pytest.param(
+                "not-an-email",
+                "user@example.com",
+                400,
+                "not a valid email address",
+                id="malformed-with-request-email",
+            ),
+            pytest.param(None, None, 400, "email claim", id="missing"),
+        ],
+    )
+    async def test_bad_or_missing_claim_is_refused(
+        self,
+        client,
+        db_session,
+        oidc_claims,
+        claim_email,
+        request_email,
+        expected_status,
+        expected_detail,
+    ):
+        oidc_claims.return_value = {"sub": "oidc-claim-user", "email_verified": True}
+        if claim_email is not None:
+            oidc_claims.return_value["email"] = claim_email
+        body = {"external_id": "oidc-claim-user", "display_name": "Claim", "id_token": "t"}
+        if request_email is not None:
+            body["email"] = request_email
+
+        response = await client.post("/api/v1/auth/sync", json=body)
+
+        assert response.status_code == expected_status
+        assert expected_detail in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_valid_claim_is_stored_normalised(self, client, db_session, oidc_claims):
+        oidc_claims.return_value = {
+            "sub": "oidc-claim-user",
+            "email": "  Alice@NAS.local ",
+            "email_verified": True,
+        }
+
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={"external_id": "oidc-claim-user", "display_name": "Claim", "id_token": "t"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["email"] == "alice@nas.local"
