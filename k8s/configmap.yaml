@@ -49,8 +49,11 @@ data:
   # Logging
   LOG_LEVEL: "INFO"
 
-  # Auth
-  AUTH_TRUST_HEADER: "false"
+  # Forward-auth logout target for the frontend: TINYAUTH_URL for TinyAuth,
+  # FORWARD_AUTH_LOGOUT_URL for Authelia and others. The proxy secret itself
+  # lives in secrets.yaml as forward-auth-secret.
+  FORWARD_AUTH_LOGOUT_URL: ""
+  TINYAUTH_URL: ""
 
   # Optional: ntfy.sh server for push notifications
   NTFY_SERVER: ""

@@ -66,6 +66,18 @@ spec:
                   name: wardrobe-config
                   key: OIDC_END_SESSION_URL
                   optional: true
+            - name: FORWARD_AUTH_LOGOUT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: FORWARD_AUTH_LOGOUT_URL
+                  optional: true
+            - name: TINYAUTH_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: TINYAUTH_URL
+                  optional: true
             - name: NODE_TLS_REJECT_UNAUTHORIZED
               value: "0"
           resources:

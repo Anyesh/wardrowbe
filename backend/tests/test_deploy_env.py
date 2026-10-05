@@ -12,14 +12,14 @@ SETTINGS_KEYS = {name.upper() for name in Settings.model_fields}
 # Read by docker-entrypoint.sh to remap appuser before the app starts, never by Settings.
 ENTRYPOINT_KEYS = {"PUID", "PGID"}
 
-# Nothing reads these. They stay listed until the branch removing forward-auth lands,
-# because deleting them here would conflict with that work.
-UNREAD_KEYS_REMOVED_ELSEWHERE = {"AUTH_TRUST_HEADER", "AUTH_HEADER_NAME"}
-
 # wardrobe-config is shared with the postgres and frontend Deployments, which read these.
-K8S_NON_BACKEND_KEYS = {"POSTGRES_USER", "POSTGRES_DB", "NEXTAUTH_URL"}
-
-ALLOWED_NON_SETTINGS_KEYS = ENTRYPOINT_KEYS | UNREAD_KEYS_REMOVED_ELSEWHERE
+K8S_NON_BACKEND_KEYS = {
+    "POSTGRES_USER",
+    "POSTGRES_DB",
+    "NEXTAUTH_URL",
+    "FORWARD_AUTH_LOGOUT_URL",
+    "TINYAUTH_URL",
+}
 
 
 def _load_repo_yaml(relative_path):
@@ -53,7 +53,7 @@ def test_notification_settings_reach_the_worker(compose):
 def test_every_compose_key_is_a_setting(compose):
     for name in BACKEND_SERVICES:
         keys = set(compose["services"][name]["environment"])
-        unknown = keys - SETTINGS_KEYS - ALLOWED_NON_SETTINGS_KEYS
+        unknown = keys - SETTINGS_KEYS - ENTRYPOINT_KEYS
         assert not unknown, f"{name} passes keys no Settings field reads: {sorted(unknown)}"
 
 
@@ -84,14 +84,13 @@ def test_k8s_backend_deployments_share_secret_env():
         for filename in ("backend.yaml", "worker.yaml", "image-worker.yaml")
     }
 
-    assert names["backend.yaml"] - {"OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET"} == names["worker.yaml"]
+    backend_only = {"OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET", "FORWARD_AUTH_SECRET"}
+    assert names["backend.yaml"] - backend_only == names["worker.yaml"]
     assert names["image-worker.yaml"] - {"BG_REMOVAL_API_KEY"} == names["worker.yaml"]
 
 
 def test_every_k8s_configmap_key_is_read():
     (configmap,) = _load_repo_yaml("k8s/configmap.yaml")
 
-    unknown = (
-        set(configmap["data"]) - SETTINGS_KEYS - ALLOWED_NON_SETTINGS_KEYS - K8S_NON_BACKEND_KEYS
-    )
+    unknown = set(configmap["data"]) - SETTINGS_KEYS - ENTRYPOINT_KEYS - K8S_NON_BACKEND_KEYS
     assert not unknown, f"wardrobe-config holds keys nothing reads: {sorted(unknown)}"
