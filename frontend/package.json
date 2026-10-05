@@ -14,7 +14,7 @@
     "i18n:keys": "node scripts/i18n-keys.mjs",
     "i18n:parity": "node scripts/i18n-check.mjs",
     "i18n:scan": "node scripts/i18n-scan.mjs",
-    "i18n:check": "pnpm run i18n:keys && pnpm run i18n:parity && pnpm run i18n:scan",
+    "i18n:check": "node scripts/i18n-keys.mjs && node scripts/i18n-check.mjs && node scripts/i18n-scan.mjs",
     "vocab:gen": "node scripts/gen-garment-vocabulary.mjs",
     "vocab:check": "node scripts/gen-garment-vocabulary.mjs --check"
   },

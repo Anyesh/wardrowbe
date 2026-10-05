@@ -83,29 +83,29 @@ ruff format .
 
 ### Frontend Development
 
-The frontend pins pnpm in `frontend/package.json`; Corepack selects that version.
+The frontend pins pnpm in `frontend/package.json`; `corepack pnpm` selects that version
+even when a different pnpm is installed globally.
 Use pnpm for dependency changes and commit `frontend/pnpm-lock.yaml` with the
 manifest. Installations reject new, unreviewed dependency build scripts; review
 the script before recording a narrow decision in `frontend/pnpm-workspace.yaml`.
 
 ```bash
 cd frontend
-corepack enable
 
 # Install dependencies
-pnpm install --frozen-lockfile
+corepack pnpm install --frozen-lockfile
 
 # Run dev server (if not using Docker)
-pnpm run dev
+corepack pnpm run dev
 
 # Run tests
-pnpm test
+corepack pnpm test
 
 # Check types
-pnpm run typecheck
+corepack pnpm run typecheck
 
 # Run linting
-pnpm run lint
+corepack pnpm run lint
 ```
 
 ## Code Style
@@ -197,7 +197,7 @@ Before pushing:
 
 ```bash
 cd frontend
-pnpm run i18n:check
+corepack pnpm run i18n:check
 ```
 
 That runs three gates, none of which `tsc`, ESLint or Vitest can replace, because `t()` takes a
@@ -217,9 +217,9 @@ list to `backend/app/utils/locale.py`, and create `frontend/messages/<locale>/`.
 Clothing types, their outfit role and default wash interval, the tagging materials and the
 formality scale live in one file, `backend/app/data/garment_vocabulary.json`. The tagging prompt,
 the backend lists and `frontend/lib/generated/garment-vocabulary.ts` are all derived from it. After
-editing it, run `cd frontend && pnpm run vocab:gen`, add the labels under `constants.types`,
+editing it, run `cd frontend && corepack pnpm run vocab:gen`, add the labels under `constants.types`,
 `constants.materials`, `constants.formalities` and `constants.roles` in every locale, and commit the
-generated file. `pnpm run vocab:check` fails CI when the generated file is stale.
+generated file. `corepack pnpm run vocab:check` fails CI when the generated file is stale.
 
 ## Project Structure
 
@@ -248,7 +248,7 @@ frontend/
 ├── components/       # React components
 │   └── ui/          # shadcn/ui components
 ├── lib/             # Utilities and API client
-│   ├── generated/   # Written by `pnpm run vocab:gen`, never edit by hand
+│   ├── generated/   # Written by `corepack pnpm run vocab:gen`, never edit by hand
 │   └── hooks/       # Custom React hooks
 └── tests/           # Test files
 ```
@@ -279,10 +279,10 @@ pytest tests/test_items.py::TestItemList::test_list_items_empty
 cd frontend
 
 # Run all tests
-pnpm test
+corepack pnpm test
 
 # Run in watch mode
-pnpm exec vitest --watch
+corepack pnpm exec vitest --watch
 ```
 
 ## Database Migrations

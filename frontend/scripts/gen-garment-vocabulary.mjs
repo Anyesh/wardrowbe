@@ -19,7 +19,7 @@ function render({ types, materials, formality }) {
   const roles = types.map(({ value, role }) => `  ${key(value)}: ${quote(role)},`).join('\n');
   return [
     '// Generated from backend/app/data/garment_vocabulary.json by scripts/gen-garment-vocabulary.mjs.',
-    '// Do not edit by hand; run `pnpm run vocab:gen`.',
+    '// Do not edit by hand; run `corepack pnpm run vocab:gen`.',
     `export const CLOTHING_TYPE_VALUES = ${list(types.map((t) => t.value))};`,
     `export const MATERIAL_VALUES = ${list(materials)};`,
     `export const FORMALITY_VALUES = ${list(formality)};`,
@@ -36,7 +36,7 @@ const expected = render(JSON.parse(readFileSync(SOURCE, 'utf8')));
 if (process.argv.includes('--check')) {
   const current = existsSync(OUTPUT) ? readFileSync(OUTPUT, 'utf8') : null;
   if (current !== expected) {
-    console.error('garment-vocabulary.ts is out of date with backend/app/data/garment_vocabulary.json; run `pnpm run vocab:gen`.');
+    console.error('garment-vocabulary.ts is out of date with backend/app/data/garment_vocabulary.json; run `corepack pnpm run vocab:gen`.');
     process.exit(1);
   }
   console.log('vocab-check: OK');

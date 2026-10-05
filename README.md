@@ -425,21 +425,20 @@ ruff check --fix backend/app/ && ruff format backend/app/
 
 ### Frontend
 
-Use Node.js 24 and enable Corepack so the frontend's pinned pnpm version is used.
+Use Node.js 24 and invoke pnpm through Corepack so the frontend's pinned version is used.
 
 ```bash
 cd frontend
-corepack enable
-pnpm install --frozen-lockfile
+corepack pnpm install --frozen-lockfile
 
 # Run dev server
-pnpm run dev
+corepack pnpm run dev
 
 # Run tests
-pnpm test
+corepack pnpm test
 
 # Build
-pnpm run build
+corepack pnpm run build
 ```
 
 ### API Documentation
@@ -455,9 +454,8 @@ Available when running:
 ```bash
 # Check for type errors
 cd frontend
-corepack enable
-pnpm install --frozen-lockfile
-pnpm run typecheck
+corepack pnpm install --frozen-lockfile
+corepack pnpm run typecheck
 
 # If you see errors, please report them as a bug
 ```
@@ -519,9 +517,8 @@ docker compose logs frontend -f
 
 # Alternative: Run frontend locally for development
 cd frontend
-corepack enable
-pnpm install --frozen-lockfile
-pnpm run dev
+corepack pnpm install --frozen-lockfile
+corepack pnpm run dev
 # Then access at http://localhost:3000
 ```
 
