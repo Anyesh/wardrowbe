@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, getAccessToken, ApiError, NetworkError } from '@/lib/api';
+import { api, API_BASE_PATH, getAccessToken, ApiError, NetworkError } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
 import { chunkArray } from '@/lib/utils';
@@ -96,7 +96,7 @@ export function useCreateItem() {
       let response: Response;
       try {
         // Use the Next.js proxy path for client-side requests
-        response = await fetch('/api/v1/items', {
+        response = await fetch(`${API_BASE_PATH}/items`, {
           method: 'POST',
           body: formData,
           credentials: 'include',
@@ -229,7 +229,7 @@ export function useReplaceItemImage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/v1/items/${itemId}/image`, {
+      const response = await fetch(`${API_BASE_PATH}/items/${itemId}/image`, {
         method: 'PUT',
         body: formData,
         credentials: 'include',
@@ -432,7 +432,7 @@ export function useAddItemImage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/v1/items/${itemId}/images`, {
+      const response = await fetch(`${API_BASE_PATH}/items/${itemId}/images`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -1046,7 +1046,7 @@ function uploadBulkItemsChunk(
       reject(new NetworkError('Upload was cancelled.'));
     });
 
-    xhr.open('POST', '/api/v1/items/bulk');
+    xhr.open('POST', `${API_BASE_PATH}/items/bulk`);
     xhr.withCredentials = true;
     if (token) {
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);

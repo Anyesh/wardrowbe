@@ -2,6 +2,7 @@ import type { NextAuthOptions, User } from 'next-auth';
 import type { OAuthConfig } from 'next-auth/providers/oauth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { Provider } from 'next-auth/providers/index';
+import { API_BASE_PATH } from '@/lib/api';
 import { FORWARD_AUTH_ACCOUNT_CONFLICT, FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
 import { decodeProxyHeader } from '@/lib/proxy-headers';
 
@@ -138,7 +139,7 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
     return new Error(FORWARD_AUTH_SERVER_ERROR);
   };
 
-  const response = await fetch(`${backendUrl()}/api/v1/auth/sync`, {
+  const response = await fetch(`${backendUrl()}${API_BASE_PATH}/auth/sync`, {
     method: 'POST',
     headers: forwarded,
     // The backend takes identity from the headers; the body only satisfies the request schema.
@@ -208,7 +209,7 @@ export const authOptions: NextAuthOptions = {
       // Session update triggered - refresh user data from backend
       if (trigger === 'update' && token.accessToken) {
         try {
-          const response = await fetch(`${apiUrl}/api/v1/users/me`, {
+          const response = await fetch(`${apiUrl}${API_BASE_PATH}/users/me`, {
             headers: {
               'Authorization': `Bearer ${token.accessToken}`,
             },
@@ -243,7 +244,7 @@ export const authOptions: NextAuthOptions = {
       // Initial sign in - sync with backend and get API token
       if (user) {
         try {
-          const response = await fetch(`${apiUrl}/api/v1/auth/sync`, {
+          const response = await fetch(`${apiUrl}${API_BASE_PATH}/auth/sync`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
