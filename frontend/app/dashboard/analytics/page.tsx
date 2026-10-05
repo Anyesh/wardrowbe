@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
+import { AcceptanceTrendChart } from '@/components/acceptance-trend-chart';
 import { useColorLabel } from '@/lib/hooks/use-translated-constants';
 import { useAnalyticsInsightLines } from '@/lib/hooks/use-insight-text';
 import { colorSwatch } from '@/lib/colors';
@@ -144,35 +145,6 @@ function ItemCard({ item }: { item: { id: string; name: string | null; type: str
       </div>
       <Badge variant="secondary">{t('wearCount', { count: item.wear_count })}</Badge>
     </Link>
-  );
-}
-
-function AcceptanceTrendChart({ data }: { data: { period: string; rate: number; total: number }[] }) {
-  const t = useTranslations('analytics');
-  const maxTotal = Math.max(...data.map((d) => d.total), 1);
-
-  return (
-    <div className="space-y-2">
-      {data.map((week, i) => (
-        <div key={i} className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground w-16 flex-shrink-0">{week.period}</span>
-          <div className="flex-1 flex items-center gap-2">
-            <div
-              className="h-4 bg-primary/20 rounded relative overflow-hidden"
-              style={{ width: `${(week.total / maxTotal) * 100}%`, minWidth: week.total > 0 ? '20px' : '0' }}
-            >
-              <div
-                className="absolute inset-y-0 left-0 bg-primary rounded"
-                style={{ width: `${week.rate}%` }}
-              />
-            </div>
-            {week.total > 0 && (
-              <span className="text-xs text-muted-foreground">{t('percent', { value: week.rate.toFixed(0) })}</span>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }
 

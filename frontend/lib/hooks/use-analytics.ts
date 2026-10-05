@@ -31,6 +31,7 @@ export interface WearStats {
 
 export interface AcceptanceRateTrend {
   period: string;
+  period_start: string;
   total: number;
   accepted: number;
   rejected: number;
