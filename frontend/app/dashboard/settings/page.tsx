@@ -29,7 +29,7 @@ import {
 import { Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
 import { useClothingColors, useOccasions } from '@/lib/hooks/use-translated-constants';
 import { toF, toCelsius } from '@/lib/temperature';
-import { TEMPERATURE_THRESHOLDS_CELSIUS } from '@/lib/generated/scales';
+import { AVOID_REPEAT_DAYS, TEMPERATURE_THRESHOLDS_CELSIUS } from '@/lib/generated/scales';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
@@ -986,10 +986,10 @@ export default function SettingsPage() {
                 <Label>{t('recommendations.avoidRepeatDays')}</Label>
                 <Input
                   type="number"
-                  value={formData.avoid_repeat_days ?? 7}
-                  onChange={(e) => updateField('avoid_repeat_days', e.target.value === '' ? 7 : parseInt(e.target.value))}
-                  min={0}
-                  max={30}
+                  value={formData.avoid_repeat_days ?? AVOID_REPEAT_DAYS.default}
+                  onChange={(e) => updateField('avoid_repeat_days', e.target.value === '' ? AVOID_REPEAT_DAYS.default : parseInt(e.target.value))}
+                  min={AVOID_REPEAT_DAYS.min}
+                  max={AVOID_REPEAT_DAYS.max}
                 />
               </div>
               <div className="space-y-2">

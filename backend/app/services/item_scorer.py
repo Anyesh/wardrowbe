@@ -4,14 +4,12 @@ from statistics import median
 from uuid import UUID
 
 from app.models.item import ClothingItem
-from app.models.preference import (
-    DEFAULT_AVOID_REPEAT_DAYS,
-    UserPreference,
-)
+from app.models.preference import UserPreference
 from app.services.weather_service import WeatherData
 from app.utils.clothing import ITEM_ROLE
 from app.utils.garment_vocabulary import FORMALITY, OCCASION_FORMALITY
 from app.utils.scales import (
+    DEFAULT_AVOID_REPEAT_DAYS,
     DEFAULT_COLD_THRESHOLD,
     DEFAULT_HOT_THRESHOLD,
 )

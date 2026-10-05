@@ -18,6 +18,11 @@ HOT_THRESHOLD_MIN: int = _HOT["min"]
 HOT_THRESHOLD_MAX: int = _HOT["max"]
 DEFAULT_HOT_THRESHOLD: int = _HOT["default"]
 
+_AVOID_REPEAT = _DATA["avoid_repeat_days"]
+AVOID_REPEAT_DAYS_MIN: int = _AVOID_REPEAT["min"]
+AVOID_REPEAT_DAYS_MAX: int = _AVOID_REPEAT["max"]
+DEFAULT_AVOID_REPEAT_DAYS: int = _AVOID_REPEAT["default"]
+
 
 def rating_to_unit(rating: float) -> float:
     return (rating - RATING_MIN) / (RATING_MAX - RATING_MIN)

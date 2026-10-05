@@ -56,7 +56,11 @@ function renderLocales({ default: defaultLocale, supported }) {
   ];
 }
 
-function renderScales({ rating, temperature_thresholds_celsius: thresholds }) {
+function renderScales({
+  rating,
+  temperature_thresholds_celsius: thresholds,
+  avoid_repeat_days: avoidRepeat,
+}) {
   const bound = ({ min, max, default: fallback }) =>
     `{ min: ${min}, max: ${max}, default: ${fallback} }`;
   return [
@@ -67,6 +71,8 @@ function renderScales({ rating, temperature_thresholds_celsius: thresholds }) {
     `  cold: ${bound(thresholds.cold)},`,
     `  hot: ${bound(thresholds.hot)},`,
     '} as const;',
+    '',
+    `export const AVOID_REPEAT_DAYS = ${bound(avoidRepeat)} as const;`,
   ];
 }
 
