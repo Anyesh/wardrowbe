@@ -77,6 +77,7 @@
     "name": "名前",
     "namePlaceholder": "金曜のブランチ",
     "nameRequired": "（ルックブックには必須）",
+    "required": "必須",
     "occasion": "シーン",
     "pickOccasion": "保存する前にシーンを選んでください。",
     "skippedItem": "{name}をスキップ：{reason}",

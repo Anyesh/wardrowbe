@@ -35,6 +35,10 @@ import { DEFAULT_STYLE_PROFILE } from '@/lib/preferences';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
+// Kept out of the catalogs because model names are example input, identical in every locale.
+const EXAMPLE_VISION_MODEL = 'moondream';
+const EXAMPLE_TEXT_MODEL = 'phi3:mini';
+
 const CM_TO_IN = 0.393701;
 const IN_TO_CM = 2.54;
 const KG_TO_LBS = 2.20462;
@@ -1189,7 +1193,7 @@ export default function SettingsPage() {
                             updated[index] = { ...updated[index], vision_model: e.target.value };
                             updateField('ai_endpoints', updated);
                           }}
-                          placeholder="moondream"
+                          placeholder={EXAMPLE_VISION_MODEL}
                           className="h-8"
                         />
                       </div>
@@ -1202,7 +1206,7 @@ export default function SettingsPage() {
                             updated[index] = { ...updated[index], text_model: e.target.value };
                             updateField('ai_endpoints', updated);
                           }}
-                          placeholder="phi3:mini"
+                          placeholder={EXAMPLE_TEXT_MODEL}
                           className="h-8"
                         />
                       </div>

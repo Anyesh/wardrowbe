@@ -77,6 +77,7 @@
     "name": "Nom",
     "namePlaceholder": "Brunch du vendredi",
     "nameRequired": "(requis pour le lookbook)",
+    "required": "obligatoire",
     "occasion": "Occasion",
     "pickOccasion": "Choisissez une occasion avant de sauvegarder.",
     "skippedItem": "{name} ignoré : {reason}",
