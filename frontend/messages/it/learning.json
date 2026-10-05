@@ -52,7 +52,7 @@
     "averageRating": "Valutazione media",
     "feedbackGiven": "Feedback dati",
     "notEnoughData": "Dati insufficienti",
-    "outOf5Stars": "su 5 stelle",
+    "outOfStars": "su {max, plural, one {# stella} other {# stelle}}",
     "outfitsRated": "{count, plural, one {{count} outfit valutato} other {{count} outfit valutati}}",
     "rateMoreOutfits": "Valuta più outfit",
     "rateOutfitStyles": "Valuta gli stili degli outfit",

@@ -52,7 +52,7 @@
     "averageRating": "Note moyenne",
     "feedbackGiven": "Retours donnés",
     "notEnoughData": "Pas assez de données",
-    "outOf5Stars": "sur 5 étoiles",
+    "outOfStars": "sur {max, plural, one {# étoile} other {# étoiles}}",
     "outfitsRated": "{count, plural, one {{count} tenue notée} other {{count} tenues notées}}",
     "rateMoreOutfits": "Évaluez plus de tenues",
     "rateOutfitStyles": "Évaluez les styles de tenues",

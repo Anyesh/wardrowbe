@@ -52,7 +52,7 @@
     "averageRating": "平均评分",
     "feedbackGiven": "已提交反馈",
     "notEnoughData": "数据不足",
-    "outOf5Stars": "满分5星",
+    "outOfStars": "满分{max}星",
     "outfitsRated": "{count, plural, one {已评价 {count} 套穿搭} other {已评价 {count} 套穿搭}}",
     "rateMoreOutfits": "再多评几套",
     "rateOutfitStyles": "评价穿搭风格",

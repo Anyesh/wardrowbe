@@ -52,7 +52,7 @@
     "averageRating": "Average Rating",
     "feedbackGiven": "Feedback Given",
     "notEnoughData": "Not enough data",
-    "outOf5Stars": "out of 5 stars",
+    "outOfStars": "out of {max, plural, one {# star} other {# stars}}",
     "outfitsRated": "{count, plural, one {{count} outfit rated} other {{count} outfits rated}}",
     "rateMoreOutfits": "Rate more outfits",
     "rateOutfitStyles": "Rate outfit styles",

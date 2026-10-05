@@ -120,7 +120,7 @@ const rows: Row[] = [
     setup: setLearning,
     hasData: [
       'stats.suggestionsAccepted',
-      'stats.outOf5Stars',
+      'stats.outOfStars',
       'stats.styleSatisfaction',
     ],
     noData: ['stats.notEnoughData', 'stats.rateMoreOutfits', 'stats.rateOutfitStyles'],

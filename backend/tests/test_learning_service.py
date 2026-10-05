@@ -307,6 +307,7 @@ class TestAcceptanceRateOfZero:
         analytics = await client.get("/api/v1/analytics", headers=auth_headers)
 
         assert learning.json()["overall_acceptance_rate"] == pytest.approx(learning_rate)
+        assert insights.json()["profile"]["overall_acceptance_rate"] == pytest.approx(learning_rate)
         assert insights.json()["preference_suggestions"]["confidence"] == pytest.approx(
             learning_rate
         )

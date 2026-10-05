@@ -52,7 +52,7 @@
     "averageRating": "平均評価",
     "feedbackGiven": "フィードバック済み",
     "notEnoughData": "データ不足",
-    "outOf5Stars": "5つ星中",
+    "outOfStars": "{max}つ星中",
     "outfitsRated": "{count, plural, one {{count} 件のコーデを評価} other {{count} 件のコーデを評価}}",
     "rateMoreOutfits": "もっとコーデを評価",
     "rateOutfitStyles": "コーデスタイルを評価",
