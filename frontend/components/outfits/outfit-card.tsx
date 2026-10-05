@@ -27,7 +27,9 @@ interface OutfitCardProps {
   onSelect?: (id: string, checked: boolean) => void;
 }
 
-function getSourceBadge(outfit: Outfit, t: any): {
+type CardTranslator = ReturnType<typeof useTranslations<'outfits.cards'>>;
+
+function getSourceBadge(outfit: Outfit, t: CardTranslator): {
   label: string;
   icon: React.ReactNode;
   className: string;
@@ -78,7 +80,7 @@ function getSourceBadge(outfit: Outfit, t: any): {
   };
 }
 
-function getCardTitle(outfit: Outfit, t: any): string {
+function getCardTitle(outfit: Outfit, t: CardTranslator): string {
   if (outfit.name) return outfit.name;
   if (outfit.reasoning) return outfit.reasoning;
   if (outfit.highlights && outfit.highlights.length > 0) {
@@ -88,7 +90,7 @@ function getCardTitle(outfit: Outfit, t: any): string {
     outfit.occasion.charAt(0).toUpperCase() + outfit.occasion.slice(1);
   return t('outfitFallback', { occasion });
 }
-function getMetaLabel(outfit: Outfit, t: any): string {
+function getMetaLabel(outfit: Outfit, t: CardTranslator): string {
   if (!outfit.scheduled_for) return t('lookbookTemplate');
   try {
     return formatDistanceToNow(parseISO(outfit.scheduled_for), {

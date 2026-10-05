@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Resolved per request, not at module scope: next.config.js rewrites are serialized into
+// Resolved per request, not at module scope: next.config.ts rewrites are serialized into
 // routes-manifest.json at build time, so a rewrite cannot honor a runtime BACKEND_URL in the
 // prebuilt image. Route handlers are the only proxy layer that reads env at request time.
 function backendUrl(): string {

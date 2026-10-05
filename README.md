@@ -453,7 +453,7 @@ Available when running:
 # Check for type errors
 cd frontend
 npm install
-npx tsc --noEmit
+npm run typecheck
 
 # If you see errors, please report them as a bug
 ```

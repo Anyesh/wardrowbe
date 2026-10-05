@@ -260,7 +260,7 @@ describe('backoff reschedule', () => {
       vi.mocked(fetch).mockRejectedValueOnce(new Error('network down'))
 
       await manager.startDrain()
-      let state = await manager.getState()
+      const state = await manager.getState()
       expect(state.terminalRecords).toHaveLength(0)
       expect(state.remaining).toBe(1)
       // The drain loop must exit (not spin/sleep) once nothing is
