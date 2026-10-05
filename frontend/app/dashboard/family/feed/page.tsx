@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
 import {
   Loader2,
   Users,
@@ -19,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useFamily } from '@/lib/hooks/use-family';
+import { useCurrentFamilyMember, useFamily } from '@/lib/hooks/use-family';
 import { useFamilyOutfits, type Outfit, type OutfitSource } from '@/lib/hooks/use-outfits';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
@@ -276,11 +275,9 @@ function NoFamilyState() {
 
 function FeedContent() {
   const t = useTranslations('family');
-  const { data: session } = useSession();
   const { data: family, isLoading: familyLoading } = useFamily();
-  const currentEmail = session?.user?.email;
-  const currentMember = family?.members.find((m) => m.email === currentEmail);
-  const otherMembers = family?.members.filter((m) => m.email !== currentEmail) ?? [];
+  const currentMember = useCurrentFamilyMember(family);
+  const otherMembers = family?.members.filter((m) => m.id !== currentMember?.id) ?? [];
 
   const [selectedMember, setSelectedMember] = useState<string | undefined>(undefined);
   const [previewOutfit, setPreviewOutfit] = useState<Outfit | null>(null);

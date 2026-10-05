@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -44,6 +43,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  useCurrentFamilyMember,
   useFamily,
   useCreateFamily,
   useJoinFamily,
@@ -199,8 +199,8 @@ function NoFamilyView() {
 function FamilyView() {
   const t = useTranslations('family');
   const tc = useTranslations('common');
-  const { data: session } = useSession();
   const { data: family, isLoading } = useFamily();
+  const currentMember = useCurrentFamilyMember(family);
   const [copied, setCopied] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
@@ -227,9 +227,6 @@ function FamilyView() {
     return <NoFamilyView />;
   }
 
-  // Match by email since session user id (external_id) differs from member id (UUID)
-  const currentEmail = session?.user?.email;
-  const currentMember = family.members.find((m) => m.email === currentEmail);
   const isAdmin = currentMember?.role === 'admin';
 
   const copyInviteCode = () => {
@@ -445,7 +442,7 @@ function FamilyView() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{member.display_name}</span>
-                      {member.email === currentEmail && (
+                      {member.id === currentMember?.id && (
                         <Badge variant="secondary" className="text-xs">
                           {tc('you')}
                         </Badge>
@@ -460,7 +457,7 @@ function FamilyView() {
                     <p className="text-sm text-muted-foreground">{member.email}</p>
                   </div>
                 </div>
-                {isAdmin && member.email !== currentEmail && (
+                {isAdmin && member.id !== currentMember?.id && (
                   <div className="flex items-center gap-2">
                     <Select
                       value={member.role}
