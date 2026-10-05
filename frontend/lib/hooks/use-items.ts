@@ -13,9 +13,10 @@ import { queryKeys } from '@/lib/hooks/query-keys';
 import { invalidateItemCaches, invalidatePrimaryImageQueries } from '@/lib/hooks/cache-invalidation';
 import { processingPollInterval } from '@/lib/hooks/query-timing';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
+import { fetchBulkUploadLimit } from '@/lib/hooks/use-features';
 
-// Must not exceed the backend's MAX_BULK_UPLOAD_COUNT setting, or every chunk
-// larger than the server's limit fails with a 400.
+// Capped at the server's max_bulk_upload_count from /health/features, because a
+// chunk over that limit fails as a whole with a 400.
 const BULK_UPLOAD_CHUNK_SIZE = 20;
 
 export function useItems(filters: ItemFilter = {}, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
@@ -1054,7 +1055,15 @@ function uploadBulkItemsChunk(
   });
 }
 
+// The backend's wording is matched verbatim; it is the fallback when
+// /health/features does not report the limit.
 const BULK_LIMIT_ERROR = /^Maximum (\d+) images per bulk upload$/;
+
+export function bulkUploadLimitFromDetail(detail: unknown): number | null {
+  if (typeof detail !== 'string') return null;
+  const match = detail.match(BULK_LIMIT_ERROR);
+  return match ? Number(match[1]) : null;
+}
 
 // Same server-side cap upload-manager.ts's durable path works around: a
 // chunk sized for the default 20 gets the whole request rejected (not just
@@ -1070,11 +1079,10 @@ export async function uploadFilesWithinServerLimit(
   try {
     return await uploadBulkItemsChunk(files, skipAi, token, onProgress);
   } catch (error) {
-    const match =
+    const limit =
       error instanceof ApiError && error.status === 400
-        ? error.message.match(BULK_LIMIT_ERROR)
+        ? bulkUploadLimitFromDetail(error.message)
         : null;
-    const limit = match ? Number(match[1]) : null;
     if (limit && limit > 0 && limit < files.length) {
       const responses: BulkUploadResponse[] = [];
       for (let i = 0; i < files.length; i += limit) {
@@ -1206,7 +1214,9 @@ export function useBulkCreateItems() {
       let unprotected: BulkUploadResponse | null = null;
       if (unprotectedFiles.length > 0) {
         const token = session?.accessToken || getAccessToken();
-        const chunks = chunkArray(unprotectedFiles, BULK_UPLOAD_CHUNK_SIZE);
+        const serverLimit = await fetchBulkUploadLimit(queryClient);
+        const chunkSize = Math.min(BULK_UPLOAD_CHUNK_SIZE, serverLimit ?? BULK_UPLOAD_CHUNK_SIZE);
+        const chunks = chunkArray(unprotectedFiles, chunkSize);
         const responses: BulkUploadResponse[] = [];
 
         for (let i = 0; i < chunks.length; i++) {
