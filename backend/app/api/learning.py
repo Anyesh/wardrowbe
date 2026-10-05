@@ -8,9 +8,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import DbSession
 from app.models.learning import UserLearningProfile
 from app.models.user import User
 from app.services.learning_service import LearningService
@@ -117,7 +116,7 @@ def _interpret_score(score: float) -> str:
 
 @router.get("", response_model=LearningInsightsResponse)
 async def get_learning_insights(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> LearningInsightsResponse:
     """
@@ -255,7 +254,7 @@ async def get_learning_insights(
 
 @router.post("/recompute", response_model=LearningProfileResponse)
 async def recompute_learning_profile(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> LearningProfileResponse:
     """
@@ -344,7 +343,7 @@ async def recompute_learning_profile(
 
 @router.post("/generate-insights", response_model=list[InsightResponse])
 async def generate_insights(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[InsightResponse]:
     """
@@ -373,7 +372,7 @@ async def generate_insights(
 @router.post("/insights/{insight_id}/acknowledge")
 async def acknowledge_insight(
     insight_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     """Mark an insight as acknowledged/dismissed."""
@@ -393,7 +392,7 @@ async def acknowledge_insight(
 @router.get("/item-pairs/{item_id}", response_model=list[dict])
 async def get_item_pair_suggestions(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(5, ge=1, le=20),
 ) -> list[dict]:

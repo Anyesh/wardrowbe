@@ -4,9 +4,8 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import DbSession
 from app.models.user import User
 from app.schemas.family import (
     FamilyCreate,
@@ -53,7 +52,7 @@ def require_family_admin(user: User) -> None:
 
 @router.get("/me", response_model=FamilyResponse)
 async def get_my_family(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> FamilyResponse:
     if current_user.family_id is None:
@@ -105,7 +104,7 @@ async def get_my_family(
 @router.post("", response_model=FamilyCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_family(
     family_data: FamilyCreate,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> FamilyCreateResponse:
     if current_user.family_id is not None:
@@ -129,7 +128,7 @@ async def create_family(
 @router.patch("/me", response_model=FamilyResponse)
 async def update_family(
     family_data: FamilyUpdate,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> FamilyResponse:
     require_family_admin(current_user)
@@ -179,7 +178,7 @@ async def update_family(
 
 @router.post("/me/regenerate-code", response_model=InviteCodeResponse)
 async def regenerate_invite_code(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> InviteCodeResponse:
     require_family_admin(current_user)
@@ -202,7 +201,7 @@ async def regenerate_invite_code(
 @router.post("/join", response_model=JoinFamilyResponse)
 async def join_family(
     request: JoinFamilyRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> JoinFamilyResponse:
     if current_user.family_id is not None:
@@ -232,7 +231,7 @@ async def join_family(
 @router.post("/join-by-token", response_model=JoinFamilyResponse)
 async def join_family_by_token(
     request: JoinByTokenRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> JoinFamilyResponse:
     if current_user.family_id is not None:
@@ -275,7 +274,7 @@ async def join_family_by_token(
 
 @router.post("/me/leave", response_model=MessageResponse)
 async def leave_family(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> MessageResponse:
     if current_user.family_id is None:
@@ -300,7 +299,7 @@ async def leave_family(
 @router.post("/me/invite", response_model=InviteResponse, status_code=status.HTTP_201_CREATED)
 async def invite_member(
     invite_data: InviteMemberRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> InviteResponse:
     require_family_admin(current_user)
@@ -341,7 +340,7 @@ async def invite_member(
 @router.delete("/me/invites/{invite_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def cancel_invite(
     invite_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     require_family_admin(current_user)
@@ -370,7 +369,7 @@ async def cancel_invite(
 async def update_member_role(
     member_id: UUID,
     request: UpdateMemberRoleRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> FamilyMember:
     require_family_admin(current_user)
@@ -413,7 +412,7 @@ async def update_member_role(
 @router.delete("/me/members/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_member(
     member_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     require_family_admin(current_user)

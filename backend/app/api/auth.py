@@ -5,10 +5,9 @@ from urllib.parse import urlencode
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.database import get_db
+from app.database import DbSession
 from app.models.user import User
 from app.schemas.user import (
     AuthConfigOIDC,
@@ -95,7 +94,7 @@ async def auth_status() -> AuthStatusResponse:
 async def sync_user(
     request: Request,
     sync_data: UserSyncRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
 ) -> UserSyncResponse:
     await rate_limit_by_ip(request, "auth_sync", 10, 60)
     if _is_dev_mode():

@@ -4,9 +4,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import DbSession
 from app.models.user import User
 from app.services.user_service import UserService
 from app.utils.auth import get_current_user
@@ -61,7 +60,7 @@ async def get_profile(
 @router.patch("", response_model=UserProfileResponse)
 async def update_profile(
     data: UserProfileUpdate,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> UserProfileResponse:
     update_data = data.model_dump(exclude_unset=True)
@@ -118,7 +117,7 @@ def _user_response(user: User) -> UserProfileResponse:
 
 @router.post("/onboarding/complete", response_model=OnboardingCompleteResponse)
 async def complete_onboarding(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OnboardingCompleteResponse:
     user_service = UserService(db)

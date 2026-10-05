@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.database import get_db
+from app.database import DbSession
 from app.models.item import ClothingItem, ItemStatus, TaggedBy, TaggingStatus
 from app.models.user import User
 from app.schemas.item import (
@@ -115,7 +115,7 @@ async def _resolve_bulk_item_ids(
 
 @router.get("", response_model=ItemListResponse)
 async def list_items(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -166,7 +166,7 @@ async def list_items(
 
 @router.post("", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_item(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     image: UploadFile = File(...),
     type: str | None = Form(None),  # Optional - AI will detect if not provided
@@ -274,7 +274,7 @@ async def create_item(
 
 @router.post("/bulk", response_model=BulkUploadResponse, status_code=status.HTTP_201_CREATED)
 async def bulk_create_items(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     images: list[UploadFile] = File(..., description="Multiple image files to upload"),
     skip_ai: bool = Form(False),
@@ -491,7 +491,7 @@ async def bulk_create_items(
 @router.post("/bulk/delete", response_model=BulkDeleteResponse)
 async def bulk_delete_items(
     request: BulkDeleteRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkDeleteResponse:
     item_service = ItemService(db)
@@ -541,7 +541,7 @@ async def bulk_delete_items(
 @router.post("/bulk/analyze", response_model=BulkAnalyzeResponse)
 async def bulk_analyze_items(
     request: BulkAnalyzeRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkAnalyzeResponse:
     item_service = ItemService(db)
@@ -705,7 +705,7 @@ async def bulk_analyze_items(
 @router.post("/bulk/cancel-analysis", response_model=BulkCancelAnalysisResponse)
 async def bulk_cancel_analysis(
     request: BulkCancelAnalysisRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkCancelAnalysisResponse:
     item_service = ItemService(db)
@@ -793,7 +793,7 @@ async def bulk_cancel_analysis(
 @router.post("/bulk/rotate", response_model=BulkRotateResponse)
 async def bulk_rotate_items(
     request: BulkRotateRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkRotateResponse:
     item_service = ItemService(db)
@@ -885,7 +885,7 @@ async def bulk_rotate_items(
 @router.post("/bulk/remove-background", response_model=BulkRemoveBackgroundResponse)
 async def bulk_remove_background_items(
     request: BulkRemoveBackgroundRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkRemoveBackgroundResponse:
     item_service = ItemService(db)
@@ -995,7 +995,7 @@ async def bulk_remove_background_items(
 
 @router.get("/types")
 async def get_item_types(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[dict]:
     item_service = ItemService(db)
@@ -1004,7 +1004,7 @@ async def get_item_types(
 
 @router.get("/colors")
 async def get_color_distribution(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[dict]:
     item_service = ItemService(db)
@@ -1142,7 +1142,7 @@ async def _recent_failures(db: AsyncSession, user_id: UUID) -> list[AnalysisFail
 
 @router.get("/tagging-progress", response_model=TaggingProgressResponse)
 async def get_tagging_progress(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> TaggingProgressResponse:
     # Wardrobe-wide, not page-scoped: the client can only see the page it asked
@@ -1217,7 +1217,7 @@ async def get_tagging_progress(
 @router.get("/{item_id}", response_model=ItemResponse)
 async def get_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1236,7 +1236,7 @@ async def get_item(
 async def update_item(
     item_id: UUID,
     item_data: ItemUpdate,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1261,7 +1261,7 @@ async def update_item(
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     item_service = ItemService(db)
@@ -1290,7 +1290,7 @@ async def delete_item(
 async def archive_item(
     item_id: UUID,
     request: ArchiveRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1309,7 +1309,7 @@ async def archive_item(
 @router.post("/{item_id}/restore", response_model=ItemResponse)
 async def restore_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1329,7 +1329,7 @@ async def restore_item(
 async def log_item_wear(
     item_id: UUID,
     request: LogWearRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1366,7 +1366,7 @@ async def log_item_wear(
 @router.get("/{item_id}/history")
 async def get_item_history(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(10, ge=1, le=100),
 ) -> list[dict]:
@@ -1431,7 +1431,7 @@ async def get_item_history(
 @router.get("/{item_id}/wear-stats")
 async def get_item_wear_stats(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     item_service = ItemService(db)
@@ -1450,7 +1450,7 @@ async def get_item_wear_stats(
 async def log_item_wash(
     item_id: UUID,
     request: LogWashRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1492,7 +1492,7 @@ async def log_item_wash(
 @router.get("/{item_id}/wash-history", response_model=list[WashHistoryResponse])
 async def get_item_wash_history(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(10, ge=1, le=100),
 ) -> list[WashHistoryResponse]:
@@ -1512,7 +1512,7 @@ async def get_item_wash_history(
 @router.post("/{item_id}/analyze", response_model=dict)
 async def trigger_ai_analysis(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     item_service = ItemService(db)
@@ -1615,7 +1615,7 @@ async def trigger_ai_analysis(
 @router.post("/{item_id}/retag", response_model=ItemResponse)
 async def retag_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1634,7 +1634,7 @@ async def retag_item(
 @router.post("/{item_id}/cancel-analysis", response_model=ItemResponse)
 async def cancel_item_analysis(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1684,7 +1684,7 @@ async def cancel_item_analysis(
 @router.post("/{item_id}/rotate", response_model=ItemResponse)
 async def rotate_item_image(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     direction: str = Query(
         "cw",
@@ -1733,7 +1733,7 @@ async def rotate_item_image(
 async def remove_item_background(
     item_id: UUID,
     request: RemoveBackgroundRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1810,7 +1810,7 @@ async def remove_item_background(
 @router.post("/{item_id}/restore-original", response_model=ItemResponse)
 async def restore_item_original(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1854,7 +1854,7 @@ async def restore_item_original(
 @router.put("/{item_id}/image", response_model=ItemResponse)
 async def replace_item_image(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     image: UploadFile = File(...),
 ) -> ItemResponse:
@@ -1926,7 +1926,7 @@ async def replace_item_image(
 )
 async def add_item_image(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     image: UploadFile = File(...),
 ) -> ItemImageResponse:
@@ -1993,7 +1993,7 @@ async def add_item_image(
 async def delete_item_image(
     item_id: UUID,
     image_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     from sqlalchemy import select
@@ -2038,7 +2038,7 @@ async def delete_item_image(
 async def reorder_item_images(
     item_id: UUID,
     request: ReorderImagesRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[ItemImageResponse]:
     from sqlalchemy import select
@@ -2072,7 +2072,7 @@ async def reorder_item_images(
 async def set_primary_image(
     item_id: UUID,
     image_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     from sqlalchemy import select
