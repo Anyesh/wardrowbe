@@ -24,7 +24,7 @@ describe('queryKeys equal the literal keys they replaced', () => {
     ['taggingProgress', queryKeys.taggingProgress, ['tagging-progress']],
     ['washHistory', queryKeys.washHistory('i1'), ['wash-history', 'i1']],
     ['wearStats', queryKeys.wearStats('i1'), ['wear-stats', 'i1']],
-    ['wearHistory', queryKeys.wearHistory('i1'), ['wear-history', 'i1']],
+    ['wearHistory', queryKeys.wearHistory('i1', 20), ['wear-history', 'i1', 20]],
     ['outfits.all', queryKeys.outfits.all, ['outfits']],
     ['outfits.list', queryKeys.outfits.list(outfitFilters, 1, 20), ['outfits', outfitFilters, 1, 20]],
     ['outfit', queryKeys.outfit('o1'), ['outfit', 'o1']],
