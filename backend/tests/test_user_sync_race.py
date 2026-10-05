@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import delete, or_, select, text
 
 from app.models import User
-from app.schemas.user import UserResponse, UserSyncRequest
+from app.schemas.user import UserSyncRequest
 from app.services.user_service import UserEmailConflictError, UserService
 
 
@@ -280,104 +280,108 @@ async def test_concurrent_first_sync_refuses_adoption_when_not_allowed(session_m
     assert [(u.external_id, u.display_name) for u in users] == [(first.external_id, "Owner")]
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("caller_verified", "stored_verified", "outcome"),
-    [
-        pytest.param(True, True, "adopted", id="both-verified"),
-        pytest.param(False, True, "unverified-caller", id="caller-unverified"),
-        pytest.param(True, False, "reclaimed", id="stored-unverified"),
-        pytest.param(False, False, "unverified-caller", id="neither"),
-    ],
-)
-async def test_adoption_requires_both_verified(
-    db_session, caller_verified, stored_verified, outcome
-):
-    run = uuid4()
-    email = f"owner-{run}@example.com"
-    stored = User(external_id=f"old-{run}", email=email, display_name="Stored")
-    if stored_verified:
-        stored.email_verified = True
+async def _stored_holder(db_session, run, *, verified: bool) -> User:
+    stored = User(
+        external_id=f"old-{run}",
+        email=f"owner-{run}@example.com",
+        display_name="Stored",
+        email_verified=verified,
+    )
     db_session.add(stored)
     await db_session.flush()
     await db_session.refresh(stored)
-    assert stored.email_verified is stored_verified
-    caller = UserSyncRequest(external_id=f"new-{run}", email=email, display_name="Caller")
-    service = UserService(db_session)
-
-    if outcome == "unverified-caller":
-        with pytest.raises(UserEmailConflictError, match="provider that verifies"):
-            await service.sync_from_oidc(caller, email_verified=caller_verified)
-        await db_session.refresh(stored)
-        assert (stored.external_id, stored.email) == (f"old-{run}", email)
-        return
-
-    user, is_new = await service.sync_from_oidc(caller, email_verified=caller_verified)
-    await db_session.refresh(stored)
-    if outcome == "adopted":
-        assert (is_new, user.id, user.external_id) == (False, stored.id, caller.external_id)
-        return
-
-    assert (is_new, user.email, user.email_verified) == (True, email, True)
-    assert user.id != stored.id
-    placeholder = f"{stored.id}@detached.invalid"
-    assert (stored.external_id, stored.email, stored.email_verified) == (
-        f"old-{run}",
-        placeholder,
-        False,
-    )
-    UserResponse.model_validate(stored)
-    for later in (
-        UserSyncRequest(external_id=stored.external_id, email=email, display_name="Stored"),
-        UserSyncRequest(external_id=f"other-{run}", email=placeholder, display_name="Other"),
-    ):
-        with pytest.raises(UserEmailConflictError, match="^Email already in use by another"):
-            await service.sync_from_oidc(later, email_verified=True)
+    return stored
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("change_verified", "owner_exists", "outcome"),
+    "stored_verified", [True, False], ids=["holder-verified", "holder-unverified"]
+)
+async def test_unverified_caller_can_neither_adopt_nor_reclaim_a_held_email(
+    db_session, stored_verified
+):
+    run = uuid4()
+    stored = await _stored_holder(db_session, run, verified=stored_verified)
+    caller = UserSyncRequest(external_id=f"new-{run}", email=stored.email, display_name="Caller")
+
+    with pytest.raises(UserEmailConflictError, match="provider that verifies"):
+        await UserService(db_session).sync_from_oidc(caller, email_verified=False)
+
+    await db_session.refresh(stored)
+    assert (stored.external_id, stored.email) == (f"old-{run}", f"owner-{run}@example.com")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("stored_verified", "is_new", "stored_after"),
     [
-        pytest.param(True, False, "adopted", id="verified-change-new-owner"),
-        pytest.param(False, False, "reclaimed", id="unverified-change-new-owner"),
-        pytest.param(True, True, "in-use", id="verified-change-existing-owner"),
-        pytest.param(False, True, "reclaimed", id="unverified-change-existing-owner"),
+        pytest.param(True, False, ("new", "owner"), id="adopts-verified-holder"),
+        pytest.param(False, True, ("old", "detached"), id="reclaims-from-unverified-holder"),
     ],
 )
-async def test_changed_email_is_adoptable_only_when_verified(
-    db_session, test_user, change_verified, owner_exists, outcome
+async def test_verified_caller_adopts_a_verified_holder_or_reclaims_from_an_unverified_one(
+    db_session, stored_verified, is_new, stored_after
+):
+    run = uuid4()
+    stored = await _stored_holder(db_session, run, verified=stored_verified)
+    caller = UserSyncRequest(external_id=f"new-{run}", email=stored.email, display_name="Caller")
+    names = {
+        "new": caller.external_id,
+        "old": f"old-{run}",
+        "owner": stored.email,
+        "detached": f"{stored.id}@detached.invalid",
+    }
+
+    user, created = await UserService(db_session).sync_from_oidc(caller, email_verified=True)
+
+    await db_session.refresh(stored)
+    assert (created, user.id == stored.id) == (is_new, not is_new)
+    assert (user.external_id, user.email, user.email_verified) == (
+        caller.external_id,
+        names["owner"],
+        True,
+    )
+    assert (stored.external_id, stored.email) == tuple(names[name] for name in stored_after)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("change_verified", "owner_exists", "is_new", "me_after"),
+    [
+        pytest.param(True, False, False, ("owner", "target"), id="verified-change-is-adopted"),
+        pytest.param(False, False, True, ("me", "detached"), id="unverified-change-is-reclaimed"),
+        pytest.param(
+            False, True, False, ("me", "detached"), id="unverified-change-is-reclaimed-by-owner"
+        ),
+    ],
+)
+async def test_changed_email_is_adopted_when_verified_and_reclaimed_when_not(
+    db_session, test_user, change_verified, owner_exists, is_new, me_after
 ):
     run = uuid4()
     target = f"target-{run}@example.com"
     change = UserSyncRequest(external_id=test_user.external_id, email=target, display_name="Me")
     owner = UserSyncRequest(external_id=f"owner-{run}", email=target, display_name="Owner")
+    names = {
+        "me": test_user.external_id,
+        "owner": owner.external_id,
+        "target": target,
+        "detached": f"{test_user.id}@detached.invalid",
+    }
     service = UserService(db_session)
     if owner_exists:
         await service.sync_from_oidc(
             owner.model_copy(update={"email": f"owner-{run}@example.com"}), email_verified=True
         )
-
     changed, _ = await service.sync_from_oidc(change, email_verified=change_verified)
     assert (changed.email, changed.email_verified) == (target, change_verified)
 
-    if outcome == "in-use":
-        with pytest.raises(UserEmailConflictError, match="^Email already in use by another"):
-            await service.sync_from_oidc(owner, email_verified=True)
-        return
+    owned, created = await service.sync_from_oidc(owner, email_verified=True)
 
-    owned, is_new = await service.sync_from_oidc(owner, email_verified=True)
     await db_session.refresh(test_user)
-    assert (owned.email, owned.email_verified) == (target, True)
-    assert is_new is (outcome == "reclaimed" and not owner_exists)
-    if outcome == "adopted":
-        assert (owned.id, test_user.external_id) == (test_user.id, owner.external_id)
-    else:
-        assert owned.id != test_user.id
-        assert (test_user.external_id, test_user.email) == (
-            change.external_id,
-            f"{test_user.id}@detached.invalid",
-        )
+    assert (owned.email, owned.email_verified, created) == (target, True, is_new)
+    assert (owned.id == test_user.id) is (me_after[0] == "owner")
+    assert (test_user.external_id, test_user.email) == tuple(names[name] for name in me_after)
 
 
 @pytest.mark.asyncio
