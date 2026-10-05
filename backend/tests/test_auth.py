@@ -128,7 +128,9 @@ class TestAuthSync:
         assert "email" in response.json()["detail"].lower()
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("email", ["admin@nas.local", "alice@fae2e.test", "me@pi.localhost"])
+    @pytest.mark.parametrize(
+        "email", ["admin@nas.local", "alice@fae2e.test", "me@pi.localhost", "bob@home.arpa"]
+    )
     async def test_sync_then_session_accepts_special_use_domains(
         self, client: AsyncClient, email: str
     ):
@@ -155,10 +157,13 @@ class TestAuthSync:
         assert response.json()["email"] == "admin@nas.local"
 
     @pytest.mark.asyncio
-    async def test_sync_rejects_malformed_email(self, client: AsyncClient):
+    @pytest.mark.parametrize("email", ["not-an-email", "x@nowhere.invalid", "x@hidden.onion"])
+    async def test_sync_rejects_malformed_or_non_lan_reserved_email(
+        self, client: AsyncClient, email: str
+    ):
         response = await client.post(
             "/api/v1/auth/sync",
-            json={"external_id": "garbage", "email": "not-an-email", "display_name": "G"},
+            json={"external_id": f"garbage-{email}", "email": email, "display_name": "G"},
         )
         assert response.status_code == 422
 
