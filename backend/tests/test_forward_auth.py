@@ -5,7 +5,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import _is_dev_mode, create_access_token
+from app.api.auth import create_access_token
 from app.config import Settings, get_settings
 from app.models import User, UserIdentity
 from app.schemas.user import UserSyncRequest
@@ -556,10 +556,7 @@ class TestForwardAuthRateLimit:
 
 class TestForwardAuthPrecedence:
     def test_debug_with_secret_is_not_dev_mode(self):
-        with patch(
-            "app.api.auth.settings", _settings(debug=True, forward_auth_secret=PROXY_SECRET)
-        ):
-            assert _is_dev_mode() is False
+        assert _settings(debug=True, forward_auth_secret=PROXY_SECRET).dev_mode is False
 
     @pytest.mark.asyncio
     async def test_debug_with_secret_takes_forward_auth_branch(

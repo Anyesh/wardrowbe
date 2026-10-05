@@ -55,10 +55,6 @@ def create_access_token(
     return jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
 
 
-def _is_dev_mode() -> bool:
-    return settings.debug and not settings.forward_auth_configured and not settings.oidc_configured
-
-
 MOBILE_APP_SCHEME = "wardrowbe"
 FORWARD_AUTH_ONLY_MOBILE_NOTICE = (
     "Forward-auth signs in browsers only. The mobile app needs OIDC: "
@@ -88,7 +84,7 @@ async def get_auth_config() -> AuthConfigResponse:
             if oidc_enabled
             else None,
         ),
-        dev_mode=_is_dev_mode(),
+        dev_mode=settings.dev_mode,
         forward_auth=forward_auth,
         mobile_notice=FORWARD_AUTH_ONLY_MOBILE_NOTICE
         if forward_auth and not oidc_enabled
@@ -230,7 +226,7 @@ async def _body_identity(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Request body is required",
         )
-    if _is_dev_mode():
+    if settings.dev_mode:
         if not sync_data.email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
