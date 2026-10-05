@@ -411,7 +411,7 @@ export function useItemWearHistory(itemId: string, limit = 10) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: queryKeys.wearHistory(itemId),
+    queryKey: queryKeys.wearHistory(itemId, limit),
     queryFn: () => api.get<WearHistoryEntry[]>(`/items/${itemId}/history?limit=${limit}`),
     enabled: !!itemId && status !== 'loading',
   });

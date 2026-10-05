@@ -33,7 +33,7 @@ export const queryKeys = {
   taggingProgress: ['tagging-progress'] as const,
   washHistory: (itemId: string) => ['wash-history', itemId] as const,
   wearStats: (itemId: string) => ['wear-stats', itemId] as const,
-  wearHistory: (itemId: string) => ['wear-history', itemId] as const,
+  wearHistory: (itemId: string, limit: number) => ['wear-history', itemId, limit] as const,
 
   outfits: {
     all: OUTFITS,
