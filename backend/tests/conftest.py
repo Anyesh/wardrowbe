@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import subprocess
 
@@ -111,6 +112,17 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield ac
 
     app.dependency_overrides.clear()
+
+
+# configure_logging is a once-per-process startup call, so a test that runs worker startup or the
+# API lifespan would otherwise leave its handler and level on "app" for every later test.
+@pytest.fixture(autouse=True)
+def _restore_app_logger():
+    logger = logging.getLogger("app")
+    saved_level, saved_handlers = logger.level, list(logger.handlers)
+    yield
+    logger.setLevel(saved_level)
+    logger.handlers = saved_handlers
 
 
 @pytest_asyncio.fixture(autouse=True)

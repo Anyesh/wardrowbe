@@ -8,15 +8,15 @@ from app.config import Settings
 from app.logging_config import configure_logging
 from app.workers import image_worker, worker
 
+# Captured at collection, before any test has run startup code in this process.
+_PRISTINE_APP_LOGGER = (logging.getLogger("app").level, list(logging.getLogger("app").handlers))
+
 
 @pytest.fixture
 def app_logger():
     logger = logging.getLogger("app")
-    saved_level, saved_handlers = logger.level, list(logger.handlers)
     logger.handlers = []
-    yield logger
-    logger.setLevel(saved_level)
-    logger.handlers = saved_handlers
+    return logger
 
 
 def test_log_level_is_case_insensitive():
@@ -85,3 +85,16 @@ async def test_every_entrypoint_configures_app_logging(app_logger, monkeypatch, 
 
     assert app_logger.level == logging.WARNING
     assert len(app_logger.handlers) == 1
+
+
+# These two run in file order: the first configures logging the way worker startup does,
+# without the app_logger fixture, and the second checks nothing of it survived.
+def test_unisolated_configure_logging_changes_the_app_logger():
+    configure_logging(Settings(log_level="DEBUG"))
+
+    assert logging.getLogger("app").handlers
+
+
+def test_app_logger_is_restored_between_tests():
+    logger = logging.getLogger("app")
+    assert (logger.level, logger.handlers) == _PRISTINE_APP_LOGGER
