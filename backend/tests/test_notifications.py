@@ -324,7 +324,7 @@ class TestOutfitNotificationLinks:
         monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
         dispatcher = NotificationDispatcher(db_session)
 
-        message = dispatcher._build_outfit_message(outfit)
+        message = dispatcher._build_outfit_message(outfit, test_user)
         email = build_notification_email("to@example.com", message)
 
         assert message.url == "https://x.com/dashboard/history"
@@ -416,6 +416,7 @@ class TestDispatcherDelivery:
             weather_data={"temperature": 20, "condition": "Sunny"},
             reasoning="Light layers",
             style_notes="Roll the sleeves",
+            ai_raw_response={"highlights": ["Breathable linen"]},
         )
         db_session.add(outfit)
         await db_session.commit()
@@ -430,6 +431,89 @@ class TestDispatcherDelivery:
             return httpx.Response(200, json={"id": "m"}, request=request)
 
         return AsyncMock(side_effect=post)
+
+    async def _send_only_via(
+        self,
+        db_session: AsyncSession,
+        test_user,
+        outfit,
+        channel: str,
+        config: dict,
+        for_tomorrow: bool = False,
+    ) -> tuple[AsyncMock, AsyncMock]:
+        db_session.add(
+            NotificationSettings(user_id=test_user.id, channel=channel, priority=1, config=config)
+        )
+        await db_session.commit()
+        post = self._post(failing=set())
+        email_send = AsyncMock(return_value={"success": True})
+
+        with (
+            patch.object(httpx.AsyncClient, "post", post),
+            patch.object(EmailProvider, "send", email_send),
+        ):
+            await NotificationDispatcher(db_session).send_outfit_notification(
+                test_user.id, outfit.id, for_tomorrow=for_tomorrow
+            )
+        return post, email_send
+
+    @pytest.mark.asyncio
+    async def test_mattermost_outfit_greets_user_and_shows_weather(
+        self, db_session: AsyncSession, test_user, outfit
+    ):
+        post, _ = await self._send_only_via(
+            db_session,
+            test_user,
+            outfit,
+            "mattermost",
+            {"webhook_url": "https://chat.example.com/hooks/abc"},
+        )
+
+        payload = post.call_args.kwargs["json"]
+        assert payload["text"] == (
+            f"Good morning, {test_user.display_name}! Here's your outfit suggestion for today:"
+        )
+        [attachment] = payload["attachments"]
+        assert attachment["title"] == "Today's Outfit: Casual | 20\u00b0C, Sunny"
+        assert attachment["title_link"].endswith("/dashboard/history")
+        assert "Light layers" in attachment["text"]
+
+    @pytest.mark.asyncio
+    async def test_email_outfit_has_weather_line_under_heading(
+        self, db_session: AsyncSession, test_user, outfit, monkeypatch
+    ):
+        settings = Settings(_env_file=None, smtp_host="smtp.example.com", smtp_user="mailer")
+        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+
+        _, email_send = await self._send_only_via(
+            db_session,
+            test_user,
+            outfit,
+            "email",
+            {"address": "a@example.com"},
+            for_tomorrow=True,
+        )
+
+        email = email_send.call_args.args[0]
+        assert email.subject == "Tomorrow's Outfit: Casual"
+        assert "<h2" in email.html_body and "Tomorrow&#x27;s Outfit: Casual</h2>" in email.html_body
+        assert "20\u00b0C, Sunny (forecast)" in email.html_body
+        assert "20\u00b0C, Sunny (forecast)" in email.text_body
+
+    @pytest.mark.asyncio
+    async def test_expo_outfit_body_is_reasoning_and_tip_only(
+        self, db_session: AsyncSession, test_user, outfit
+    ):
+        token = "ExponentPushToken[abc]"
+        post, _ = await self._send_only_via(
+            db_session, test_user, outfit, "expo_push", {"push_token": token}
+        )
+
+        payload = post.call_args.kwargs["json"]
+        assert payload["to"] == token
+        assert payload["title"] == "Today's Casual - 20\u00b0C"
+        assert payload["body"] == "Light layers \u2022 Tip: Roll the sleeves"
+        assert payload["data"] == {"outfit_id": str(outfit.id), "screen": "history"}
 
     @pytest.mark.asyncio
     async def test_uses_priority_order_and_stops_at_first_success(

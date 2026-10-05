@@ -26,12 +26,26 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class NotificationMessage:
+    """Channel-neutral content; each provider renders the fields its medium can show.
+
+    `title`/`short_body` suit compact push surfaces, while `heading`, `subtitle` and
+    `greeting` are for long-form channels (email, chat) and fall back to `title`/`body`.
+    """
+
     title: str
     body: str
     url: str | None = None
     url_label: str = "Open Wardrowbe"
     tags: list[str] = field(default_factory=list)
     data: dict = field(default_factory=dict)
+    heading: str | None = None
+    subtitle: str | None = None
+    greeting: str | None = None
+    short_body: str | None = None
+
+    @property
+    def full_heading(self) -> str:
+        return self.heading or self.title
 
 
 def _header_value(value: str) -> str:
@@ -194,10 +208,10 @@ class MattermostProvider:
     async def deliver(self, message: NotificationMessage) -> dict:
         return await self.send(
             MattermostMessage(
-                text=f"**{message.title}**",
+                text=message.greeting or "",
                 attachments=[
                     MattermostAttachment(
-                        title=message.url_label if message.url else "",
+                        title=" | ".join(filter(None, [message.full_heading, message.subtitle])),
                         title_link=message.url,
                         text=message.body,
                     )
@@ -356,7 +370,7 @@ class ExpoPushProvider:
             ExpoPushMessage(
                 to=self.push_token,
                 title=message.title,
-                body=message.body,
+                body=message.short_body or message.body,
                 data=message.data or None,
             )
         )
@@ -453,8 +467,15 @@ def build_notification_email(to: str, message: NotificationMessage) -> EmailMess
         f'<p style="color: #374151; line-height: 1.6;">{_html_lines(paragraph)}</p>'
         for paragraph in message.body.split("\n\n")
     )
+    heading = html.escape(message.full_heading)
+    subtitle_html = ""
+    text_parts = [message.full_heading]
+    if message.subtitle:
+        subtitle_html = f"""
+    <p style="color: #6B7280; margin: 0;">{html.escape(message.subtitle)}</p>"""
+        text_parts.append(message.subtitle)
+    text_parts.append(message.body)
     cta_html = ""
-    text_body = message.body
     if message.url:
         cta_html = f"""
     <div style="text-align: center; margin: 30px 0;">
@@ -463,16 +484,21 @@ def build_notification_email(to: str, message: NotificationMessage) -> EmailMess
             {html.escape(message.url_label)}
         </a>
     </div>"""
-        text_body = f"{message.body}\n\n{message.url_label}: {message.url}"
+        text_parts.append(f"{message.url_label}: {message.url}")
     html_body = f"""\
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <h2 style="color: #111827;">{html.escape(message.title)}</h2>
+    <h2 style="color: #111827;">{heading}</h2>{subtitle_html}
     {paragraphs}{cta_html}
     <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
     <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{home_url}" style="color: #9CA3AF;">Wardrowbe</a>
         &middot; <a href="{settings_url}" style="color: #9CA3AF;">Manage notification settings</a></p>
 </div>"""
-    return EmailMessage(to=to, subject=message.title, html_body=html_body, text_body=text_body)
+    return EmailMessage(
+        to=to,
+        subject=message.full_heading,
+        html_body=html_body,
+        text_body="\n\n".join(text_parts),
+    )
 
 
 def build_family_invite_email(

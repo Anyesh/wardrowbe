@@ -244,7 +244,8 @@ class NotificationDispatcher:
         user_result = await self.db.execute(
             select(User).where(User.id == user_id, User.is_active.is_(True))
         )
-        if not user_result.scalar_one_or_none():
+        user = user_result.scalar_one_or_none()
+        if not user:
             raise ValueError("User not found")
 
         outfit_result = await self.db.execute(
@@ -256,7 +257,9 @@ class NotificationDispatcher:
         if not outfit:
             raise ValueError("Outfit not found")
 
-        results = await self.deliver(user_id, self._build_outfit_message(outfit, for_tomorrow))
+        results = await self.deliver(
+            user_id, self._build_outfit_message(outfit, user, for_tomorrow)
+        )
         if not results:
             return [
                 NotificationResult(
@@ -302,7 +305,8 @@ class NotificationDispatcher:
         user_result = await self.db.execute(
             select(User).where(User.id == notification.user_id, User.is_active.is_(True))
         )
-        if not user_result.scalar_one_or_none():
+        user = user_result.scalar_one_or_none()
+        if not user:
             return NotificationResult(
                 channel=notification.channel,
                 status=NotificationStatus.failed,
@@ -339,42 +343,58 @@ class NotificationDispatcher:
                 error=f"Channel {notification.channel} not configured or disabled",
             )
 
-        return await send_via_channel(channel_config, self._build_outfit_message(outfit))
+        return await send_via_channel(channel_config, self._build_outfit_message(outfit, user))
 
     def _build_outfit_message(
-        self, outfit: Outfit, for_tomorrow: bool = False
+        self, outfit: Outfit, user: User, for_tomorrow: bool = False
     ) -> NotificationMessage:
         weather = outfit.weather_data or {}
         temp = weather.get("temperature")
-        condition = str(weather.get("condition", "")).lower()
+        condition = str(weather.get("condition") or "")
         day_label = "Tomorrow" if for_tomorrow else "Today"
+        occasion = outfit.occasion.title()
 
         if temp is not None:
-            title = f"{day_label}'s {outfit.occasion.title()} - {temp}\u00b0C"
+            title = f"{day_label}'s {occasion} - {temp}\u00b0C"
         else:
-            title = f"{day_label}'s {outfit.occasion.title()} Outfit"
+            title = f"{day_label}'s {occasion} Outfit"
 
-        parts = []
-        if outfit.reasoning:
-            parts.append(outfit.reasoning)
+        subtitle = None
+        if outfit.weather_data:
+            subtitle = ", ".join(
+                filter(None, [f"{temp if temp is not None else '?'}\u00b0C", condition])
+            )
+            if for_tomorrow:
+                subtitle += " (forecast)"
 
         highlights = []
         if isinstance(outfit.ai_raw_response, dict):
             highlights = outfit.ai_raw_response.get("highlights", [])
-        if highlights and isinstance(highlights, list):
-            parts.append("\n".join(f"- {h}" for h in highlights[:3]))
+        if not isinstance(highlights, list):
+            highlights = []
 
-        if outfit.style_notes:
-            parts.append(f"Tip: {outfit.style_notes}")
+        tip = f"Tip: {outfit.style_notes}" if outfit.style_notes else None
+        highlight_lines = "\n".join(f"- {h}" for h in highlights[:3]) or None
+        body_parts = list(filter(None, [outfit.reasoning, highlight_lines, tip]))
+        short_parts = list(filter(None, [outfit.reasoning, tip]))
 
+        greeting = "Good evening" if for_tomorrow else "Good morning"
+        lowered = condition.lower()
         tag = next(
-            (tag for words, tag in WEATHER_TAGS if any(w in condition for w in words)),
+            (tag for words, tag in WEATHER_TAGS if any(w in lowered for w in words)),
             "shirt",
         )
 
         return NotificationMessage(
             title=title,
-            body="\n\n".join(parts) if parts else "Your outfit is ready.",
+            heading=f"{day_label}'s Outfit: {occasion}",
+            subtitle=subtitle,
+            greeting=(
+                f"{greeting}, {user.display_name}! "
+                f"Here's your outfit suggestion for {day_label.lower()}:"
+            ),
+            body="\n\n".join(body_parts) if body_parts else "Your outfit is ready.",
+            short_body=" \u2022 ".join(short_parts) if short_parts else "Your outfit is ready!",
             url=self.settings.app_link("/dashboard/history"),
             url_label="View Outfit",
             tags=[tag],

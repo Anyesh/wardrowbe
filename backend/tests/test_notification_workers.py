@@ -490,8 +490,10 @@ class TestWashReminderChannels:
         calls = _posts_to(post, {webhook})
         assert len(calls) == 1
         payload = calls[0].kwargs["json"]
-        assert "Laundry Reminder" in payload["text"]
-        assert "Black Jeans" in payload["attachments"][0]["text"]
+        [attachment] = payload["attachments"]
+        assert attachment["title"] == "Laundry Reminder"
+        assert attachment["title_link"].endswith("/dashboard/wardrobe")
+        assert "Black Jeans" in attachment["text"]
         [reminder] = await self._reminders(db_session, dirty_user)
         assert reminder.channel == "mattermost"
         assert reminder.status == NotificationStatus.sent
