@@ -71,6 +71,7 @@ import {
   useSubtypeLabel,
 } from '@/lib/hooks/use-translated-constants';
 import { ColorEyedropper } from '@/components/color-eyedropper';
+import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
 import { useFeatures } from '@/lib/hooks/use-features';
 import { useLocale, useTranslations } from 'next-intl';
@@ -438,7 +439,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 <input
                   ref={replaceImageInputRef}
                   type="file"
-                  accept="image/*"
+                  accept={ACCEPTED_IMAGE_INPUT}
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -589,7 +590,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       )}
                       <input
                         type="file"
-                        accept="image/*"
+                        accept={ACCEPTED_IMAGE_INPUT}
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];

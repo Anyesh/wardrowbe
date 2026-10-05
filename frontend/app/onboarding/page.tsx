@@ -42,6 +42,7 @@ import { StyleProfile } from '@/lib/types';
 import { useClothingColors, useClothingTypes } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
   const t = useTranslations('onboarding');
@@ -692,7 +693,7 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
               <input
                 type="file"
                 className="hidden"
-                accept="image/*"
+                accept={ACCEPTED_IMAGE_INPUT}
                 capture="environment"
                 onChange={handleFileChange}
               />
