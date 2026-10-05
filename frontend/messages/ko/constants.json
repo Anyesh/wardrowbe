@@ -198,7 +198,29 @@
   "weatherConditions": {
     "clear": "맑음",
     "cloudy": "흐림",
+    "drizzle": "이슬비",
+    "foggy": "안개",
+    "freezing-drizzle": "어는 이슬비",
+    "freezing-rain": "어는 비",
+    "heavy-drizzle": "강한 이슬비",
+    "heavy-rain": "폭우",
+    "heavy-showers": "강한 소나기",
+    "heavy-snow": "폭설",
+    "light-drizzle": "약한 이슬비",
+    "light-rain": "약한 비",
+    "light-showers": "약한 소나기",
+    "light-snow": "약한 눈",
+    "light-snow-showers": "약한 눈보라",
+    "mostly-sunny": "대체로 맑음",
+    "partly-cloudy": "구름 조금",
     "rain": "비",
-    "snow": "눈"
+    "showers": "소나기",
+    "snow": "눈",
+    "snow-grains": "싸락눈",
+    "snow-showers": "눈보라",
+    "sunny": "화창함",
+    "thunderstorm": "뇌우",
+    "thunderstorm-with-hail": "우박을 동반한 뇌우",
+    "unknown": "알 수 없음"
   }
 }

@@ -50,6 +50,7 @@ import {
 } from '@/components/ui/collapsible';
 import { ItemPicker } from '@/components/shared/item-picker';
 import { OccasionChips } from '@/components/shared/occasion-chips';
+import { useOccasionLabel, useWeatherConditionLabel } from '@/lib/hooks/use-translated-constants';
 import { useItem } from '@/lib/hooks/use-items';
 import { api, ApiError } from '@/lib/api';
 import { applySessionToken } from '@/lib/hooks/use-session-token';
@@ -105,6 +106,7 @@ interface WeatherOverride {
 }
 
 function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: CurrentWeather; isLoading: boolean; temperatureUnit: TempUnit; t: Translator }) {
+  const conditionLabel = useWeatherConditionLabel();
   if (isLoading) {
     return (
       <Card className="border-muted">
@@ -154,7 +156,7 @@ function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: Cur
                 <span className="text-4xl font-semibold tracking-tight">{displayValue(weather.temperature, temperatureUnit)}</span>
                 <span className="text-lg text-muted-foreground">{temperatureUnit === 'fahrenheit' ? '°F' : '°C'}</span>
               </div>
-              <p className="text-sm text-muted-foreground capitalize">{weather.condition}</p>
+              <p className="text-sm text-muted-foreground">{conditionLabel(weather.condition)}</p>
             </div>
           </div>
           <div className="text-right text-sm text-muted-foreground space-y-1">
@@ -426,6 +428,8 @@ function OutfitResultsView({
   t: Translator;
 }) {
   const locale = useLocale();
+  const conditionLabel = useWeatherConditionLabel();
+  const occasionLabel = useOccasionLabel();
   const currentOutfit = outfits[activeOptionIndex] || outfits[0];
 
   return (
@@ -433,8 +437,8 @@ function OutfitResultsView({
       {/* Header with occasion and start over */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="capitalize text-sm px-3 py-1">
-            {occasion}
+          <Badge variant="secondary" className="text-sm px-3 py-1">
+            {occasionLabel(occasion)}
           </Badge>
           {currentOutfit?.scheduled_for && (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -460,8 +464,8 @@ function OutfitResultsView({
             <Droplets className="h-4 w-4" />
             <span>{t('weather.rainChance', { chance: currentOutfit.weather.precipitation_chance })}</span>
           </div>
-          <Badge variant="outline" className="capitalize">
-            {currentOutfit.weather.condition}
+          <Badge variant="outline">
+            {conditionLabel(currentOutfit.weather.condition)}
           </Badge>
         </div>
       )}

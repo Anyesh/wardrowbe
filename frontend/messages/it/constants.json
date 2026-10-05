@@ -198,7 +198,29 @@
   "weatherConditions": {
     "clear": "Sereno",
     "cloudy": "Nuvoloso",
+    "drizzle": "Pioviggine",
+    "foggy": "Nebbia",
+    "freezing-drizzle": "Pioviggine gelata",
+    "freezing-rain": "Pioggia gelata",
+    "heavy-drizzle": "Pioviggine intensa",
+    "heavy-rain": "Pioggia forte",
+    "heavy-showers": "Rovesci forti",
+    "heavy-snow": "Neve forte",
+    "light-drizzle": "Pioviggine leggera",
+    "light-rain": "Pioggia leggera",
+    "light-showers": "Rovesci leggeri",
+    "light-snow": "Neve leggera",
+    "light-snow-showers": "Deboli rovesci di neve",
+    "mostly-sunny": "Prevalentemente soleggiato",
+    "partly-cloudy": "Parzialmente nuvoloso",
     "rain": "Pioggia",
-    "snow": "Neve"
+    "showers": "Rovesci",
+    "snow": "Neve",
+    "snow-grains": "Granelli di neve",
+    "snow-showers": "Rovesci di neve",
+    "sunny": "Soleggiato",
+    "thunderstorm": "Temporale",
+    "thunderstorm-with-hail": "Temporale con grandine",
+    "unknown": "Sconosciuto"
   }
 }

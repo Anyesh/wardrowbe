@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatShortDate } from '@/lib/utils';
-import { useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 
 export type OutfitPreview = Pick<
   Outfit,
@@ -46,6 +46,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
   const tc = useTranslations('common');
   const locale = useLocale();
   const subtypeLabel = useSubtypeLabel();
+  const occasionLabel = useOccasionLabel();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageKey, setImageKey] = useState(0); // Force image reload after rotation
   const [showRatingForm, setShowRatingForm] = useState(false);
@@ -85,7 +86,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
         {/* Header - sticky */}
         <div className="flex items-center justify-between p-4 pb-2 border-b flex-shrink-0">
           <div>
-            <h2 className="text-lg font-semibold capitalize">{t('title', { occasion: outfit.occasion })}</h2>
+            <h2 className="text-lg font-semibold">{t('title', { occasion: occasionLabel(outfit.occasion) })}</h2>
             <div className="flex items-center gap-2 mt-0.5">
               {outfit.scheduled_for && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
