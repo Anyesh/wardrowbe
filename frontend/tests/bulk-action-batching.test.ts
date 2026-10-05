@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
 
 interface RotateResponse {
   queued: number
@@ -27,6 +27,12 @@ async function freshDrain() {
 }
 
 let fetchMock: ReturnType<typeof vi.fn>
+
+// The first cold import transforms the whole hook graph, which can outlast the per-test timeout
+// on a loaded machine; a timed-out case then fires its fetch into the next case's mock.
+beforeAll(async () => {
+  await import('@/lib/hooks/use-items')
+}, 60_000)
 
 beforeEach(() => {
   fetchMock = vi.fn()
