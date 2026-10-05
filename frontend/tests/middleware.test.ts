@@ -66,6 +66,16 @@ describe('forward-auth user-switch middleware', () => {
     expect(clearedCookies(response)).toEqual([])
   })
 
+  it('matches a non-ASCII proxy user that Node read as Latin-1', async () => {
+    const latin1 = String.fromCharCode(...Array.from(new TextEncoder().encode('josé')))
+    const response = await middleware(
+      request('/dashboard', { remoteUser: latin1, cookies: { [SESSION]: await sessionFor('josé') } })
+    )
+
+    expect(response.headers.get('x-middleware-next')).toBe('1')
+    expect(clearedCookies(response)).toEqual([])
+  })
+
   it('lets the request through when nobody is signed in yet', async () => {
     const response = await middleware(request('/dashboard', { remoteUser: 'alice' }))
 

@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { decodeProxyHeader } from '@/lib/proxy-headers';
 import { clearSessionCookies, sessionCookie } from '@/lib/session-cookies';
 
 // A proxy that switches users keeps the old NextAuth session cookie, and a GET to
 // /api/auth/signout only renders a confirmation page, so the session is ended here.
 export async function middleware(request: NextRequest) {
-  const remoteUser = request.headers.get('remote-user');
-  if (!remoteUser) return NextResponse.next();
+  const rawRemoteUser = request.headers.get('remote-user');
+  if (!rawRemoteUser) return NextResponse.next();
+  const remoteUser = decodeProxyHeader(rawRemoteUser);
 
   const { name, secure } = sessionCookie();
   const token = await getToken({ req: request, cookieName: name, secureCookie: secure });
