@@ -114,33 +114,44 @@ async def _commit_users(session_maker, *users: User):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("verified", "commit_first_before"),
+    ("first_is_new", "first_verified", "other_verified", "commit_first_before", "verified_after"),
     [
-        pytest.param(True, None, id="commit-while-second-inserts"),
-        pytest.param(False, "get_by_email", id="unverified-commit-between-lookups"),
+        pytest.param(True, True, True, None, True, id="commit-while-second-inserts"),
+        pytest.param(
+            True, False, False, "get_by_email", False, id="unverified-commit-between-lookups"
+        ),
+        pytest.param(False, True, True, "get_by_email", True, id="verified-twins-move-email"),
+        pytest.param(False, True, False, "get_by_email", True, id="verified-move-then-unverified"),
+        pytest.param(False, False, True, "get_by_email", True, id="unverified-move-then-verified"),
+        pytest.param(False, False, False, "get_by_email", False, id="unverified-twins-move-email"),
     ],
 )
-async def test_concurrent_first_sync_for_same_identity_creates_one_user(
-    session_maker, verified, commit_first_before
+async def test_concurrent_syncs_of_one_identity_converge_on_one_user(
+    session_maker, first_is_new, first_verified, other_verified, commit_first_before, verified_after
 ):
     external_id = f"race-{uuid4()}"
     email = f"{external_id}@example.com"
     sync = UserSyncRequest(external_id=external_id, email=email, display_name="Race")
+    if not first_is_new:
+        await _commit_users(
+            session_maker,
+            User(external_id=external_id, email=f"old-{email}", display_name="Stored"),
+        )
     try:
         (user_a, new_a), (user_b, new_b), emails = await _race(
             session_maker,
             sync,
             sync,
-            first_verified=verified,
-            others_verified=verified,
+            first_verified=first_verified,
+            others_verified=other_verified,
             commit_first_before=commit_first_before,
         )
     finally:
         await _cleanup(session_maker, User.external_id == external_id)
 
-    assert (new_a, new_b) == (True, False)
+    assert (new_a, new_b) == (first_is_new, False)
     assert user_b.id == user_a.id
-    assert emails[external_id] == email
+    assert (emails[external_id], user_b.email_verified) == (email, verified_after)
 
 
 @pytest.mark.asyncio

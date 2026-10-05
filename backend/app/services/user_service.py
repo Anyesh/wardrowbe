@@ -110,6 +110,10 @@ class UserService:
         holder = None
         if user.email != sync_data.email:
             holder = await self.get_by_email(sync_data.email)
+            if holder is not None and holder.id == user.id:
+                # A twin sync of this identity committed the same move after this attempt read
+                # the row: retry against the committed row rather than treat it as a clash.
+                raise _RowChanged
             if holder is not None and holder.email_verified:
                 raise UserEmailConflictError(EMAIL_IN_USE)
             if holder is not None and not email_verified:
