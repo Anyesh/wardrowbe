@@ -247,6 +247,25 @@ class TestForwardAuthRejections:
         assert response.status_code == 400
         assert "Remote-User" in response.json()["detail"]
 
+    @pytest.mark.asyncio
+    async def test_overlong_remote_user_returns_400(
+        self, client: AsyncClient, db_session: AsyncSession
+    ):
+        with patch("app.api.auth.settings", _forward_auth_only()):
+            response = await client.post(SYNC_URL, headers=_proxy_headers(user="u" * 256))
+
+        assert response.status_code == 400
+        assert "Remote-User" in response.json()["detail"]
+        assert await _user_by_external_id(db_session, "u" * 256) is None
+
+    @pytest.mark.asyncio
+    async def test_remote_user_at_the_column_limit_is_accepted(self, client: AsyncClient):
+        with patch("app.api.auth.settings", _forward_auth_only()):
+            response = await client.post(SYNC_URL, headers=_proxy_headers(user="u" * 255))
+
+        assert response.status_code == 200
+        assert decode_token(response.json()["access_token"]).sub == "u" * 255
+
 
 class TestForwardAuthRateLimit:
     @pytest.mark.asyncio
