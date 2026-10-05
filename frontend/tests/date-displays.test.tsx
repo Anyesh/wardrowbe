@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import HistoryPage from '@/app/dashboard/history/page'
 import { OutfitCalendar } from '@/components/outfit-calendar'
+import { OutfitCard } from '@/components/outfits/outfit-card'
 import type { Outfit } from '@/lib/hooks/use-outfits'
 
 const intl = vi.hoisted(() => ({ locale: 'en' }))
@@ -10,8 +11,12 @@ const intl = vi.hoisted(() => ({ locale: 'en' }))
 // t() would be invisible; this one echoes them back.
 vi.mock('next-intl', () => ({
   useLocale: () => intl.locale,
-  useTranslations: () => (key: string, params?: Record<string, unknown>) =>
-    params && 'date' in params ? `${key}: ${params.date}` : key,
+  useTranslations: () =>
+    Object.assign(
+      (key: string, params?: Record<string, unknown>) =>
+        params && 'date' in params ? `${key}: ${params.date}` : key,
+      { has: () => false },
+    ),
 }))
 
 const calendarOutfits = vi.hoisted(() => ({
@@ -33,18 +38,21 @@ const CASES = [
     heading: 'Monday, October 5',
     emptyDate: 'noOutfitsForDate: October 5, 2026',
     month: 'October 2026',
+    relative: 'in 3 days',
   },
   {
     locale: 'de',
     heading: 'Montag, 5. Oktober',
     emptyDate: 'noOutfitsForDate: 5. Oktober 2026',
     month: 'Oktober 2026',
+    relative: 'in 3 Tagen',
   },
   {
     locale: 'ja',
     heading: '10月5日月曜日',
     emptyDate: 'noOutfitsForDate: 2026年10月5日',
     month: '2026年10月',
+    relative: '3 日後',
   },
 ]
 
@@ -58,7 +66,7 @@ afterEach(() => {
   intl.locale = 'en'
 })
 
-describe.each(CASES)('date displays under $locale', ({ locale, heading, emptyDate, month }) => {
+describe.each(CASES)('date displays under $locale', ({ locale, heading, emptyDate, month, relative }) => {
   beforeEach(() => {
     intl.locale = locale
   })
@@ -81,5 +89,11 @@ describe.each(CASES)('date displays under $locale', ({ locale, heading, emptyDat
       />,
     )
     expect(screen.getByRole('heading', { level: 3 }).textContent).toBe(month)
+  })
+
+  it('renders the outfit card date relative to today on the app locale', () => {
+    const outfit = { ...calendarOutfits.outfits[0], scheduled_for: '2026-10-08', name: 'n', items: [] }
+    render(<OutfitCard outfit={outfit as unknown as Outfit} />)
+    expect(screen.getByText(relative)).toBeInTheDocument()
   })
 })

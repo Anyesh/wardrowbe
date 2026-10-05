@@ -110,6 +110,25 @@ export function formatShortDate(value: string | Date, locale: string): string {
   return formatDate(value, locale, SHORT_DATE_OPTIONS);
 }
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+// Taken from the local calendar fields through Date.UTC so that a daylight-saving
+// change between the two dates cannot make a day 23 or 25 hours long.
+function calendarDayNumber(date: Date): number {
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / MS_PER_DAY;
+}
+
+// Calendar-day granularity because callers pass date keys with no time of day.
+export function formatRelativeDate(value: string | Date, locale: string, now: Date = new Date()): string {
+  const days = calendarDayNumber(toDate(value)) - calendarDayNumber(now);
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const distance = Math.abs(days);
+  if (distance < 7) return format.format(days, 'day');
+  if (distance < 30) return format.format(Math.round(days / 7), 'week');
+  if (distance < 365) return format.format(Math.round(days / 30), 'month');
+  return format.format(Math.round(days / 365), 'year');
+}
+
 /**
  * Calculate the number of calendar days between a date string and today in the user's timezone.
  * Returns the difference in days where:
