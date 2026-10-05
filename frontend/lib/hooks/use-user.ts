@@ -52,9 +52,13 @@ export function useUserProfile() {
 
 // Returns a getter rather than a value so that a page left open past midnight dates the
 // action by when it happens, not when the page rendered.
-export function useUserToday(): () => string {
+export function useUserTimezone(): string {
   const { data: profile } = useUserProfile();
-  const timezone = profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+export function useUserToday(): () => string {
+  const timezone = useUserTimezone();
   return useCallback(() => getTodayDateStringInTimezone(timezone), [timezone]);
 }
 

@@ -308,6 +308,9 @@ export interface WeatherData {
   window_max?: number | null;
 }
 
+// /weather/current serves the same snapshot outfits store, minus the wearing-window range.
+export type CurrentWeather = Omit<WeatherData, 'window_min' | 'window_max'>;
+
 export interface WoreInsteadItem {
   id: string;
   type: string;

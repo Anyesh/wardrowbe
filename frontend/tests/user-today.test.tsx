@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
-import { useUserToday } from '@/lib/hooks/use-user'
+import { useUserTimezone, useUserToday } from '@/lib/hooks/use-user'
 import { getTodayDateStringInTimezone } from '@/lib/utils'
 
 vi.mock('@/lib/api', () => ({
@@ -52,5 +52,19 @@ describe('useUserToday', () => {
     const { result } = renderHook(() => useUserToday(), { wrapper })
     const browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone
     expect(result.current()).toBe(getTodayDateStringInTimezone(browserZone))
+  })
+})
+
+describe('useUserTimezone', () => {
+  it('reads the profile timezone', async () => {
+    vi.mocked(api.get).mockResolvedValue({ timezone: 'America/Los_Angeles' })
+    const { result } = renderHook(() => useUserTimezone(), { wrapper })
+    await waitFor(() => expect(result.current).toBe('America/Los_Angeles'))
+  })
+
+  it('falls back to the browser timezone, not UTC, until the profile loads', () => {
+    vi.mocked(api.get).mockReturnValue(new Promise(() => {}))
+    const { result } = renderHook(() => useUserTimezone(), { wrapper })
+    expect(result.current).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone)
   })
 })

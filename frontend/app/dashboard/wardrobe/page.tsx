@@ -28,7 +28,7 @@ import { AnalysisQueuePanel } from '@/components/analysis-queue-panel';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
 import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
-import { useUserProfile } from '@/lib/hooks/use-user';
+import { useUserTimezone } from '@/lib/hooks/use-user';
 import { Item } from '@/lib/types';
 import { useClothingTypes, useClothingColors, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 import { toast } from 'sonner';
@@ -321,8 +321,7 @@ function EmptyWardrobe({ onAddClick }: { onAddClick: () => void }) {
 export default function WardrobePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { data: userProfile } = useUserProfile();
-  const userTimezone = userProfile?.timezone || 'UTC';
+  const userTimezone = useUserTimezone();
   const t = useTranslations('wardrobe');
   const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();

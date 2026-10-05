@@ -52,8 +52,8 @@ import { ItemPicker } from '@/components/shared/item-picker';
 import { OccasionChips } from '@/components/shared/occasion-chips';
 import { useItem } from '@/lib/hooks/use-items';
 import { api, ApiError, setAccessToken } from '@/lib/api';
-import { ClothingTypeValue, Item, Outfit, SuggestRequest } from '@/lib/types';
-import { useWeather, Weather } from '@/lib/hooks/use-weather';
+import { ClothingTypeValue, CurrentWeather, Item, Outfit, SuggestRequest } from '@/lib/types';
+import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
 import { cn } from '@/lib/utils';
 import { TempUnit, formatTemp, displayValue, toF, toCelsius } from '@/lib/temperature';
@@ -86,7 +86,7 @@ function getGreetingKey(): string {
 }
 
 // Get weather-based outfit hint key
-function getWeatherHintKey(weather: Weather): string {
+function getWeatherHintKey(weather: CurrentWeather): string {
   const temp = weather.temperature;
   const condition = weather.condition.toLowerCase();
 
@@ -103,7 +103,7 @@ interface WeatherOverride {
   condition: 'sunny' | 'cloudy' | 'rainy';
 }
 
-function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: Weather; isLoading: boolean; temperatureUnit: TempUnit; t: Translator }) {
+function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: CurrentWeather; isLoading: boolean; temperatureUnit: TempUnit; t: Translator }) {
   if (isLoading) {
     return (
       <Card className="border-muted">

@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useUserToday } from '@/lib/hooks/use-user';
 import {
   startOfMonth,
   endOfMonth,
@@ -13,7 +14,6 @@ import {
   format,
   isSameMonth,
   isSameDay,
-  isToday,
   addMonths,
   subMonths,
 } from 'date-fns';
@@ -44,6 +44,7 @@ export function OutfitCalendar({
   const currentMonth = new Date(year, month - 1, 1);
 
   const outfitsByDate = useMemo(() => buildCalendarIndicators(outfits), [outfits]);
+  const todayKey = useUserToday()();
 
   // Generate calendar days
   const calendarDays = useMemo(() => {
@@ -103,13 +104,14 @@ export function OutfitCalendar({
           const hasOnDemand = indicators?.onDemand;
           const isSelected = selectedDate && isSameDay(day, selectedDate);
           const isCurrentMonth = isSameMonth(day, currentMonth);
-          const isDayToday = isToday(day);
+          const isDayToday = dateKey === todayKey;
 
           return (
             <button
               key={dateKey}
               type="button"
               onClick={() => onSelectDate(day)}
+              aria-current={isDayToday ? 'date' : undefined}
               className={cn(
                 'relative h-10 w-full rounded-md text-sm transition-colors',
                 'hover:bg-accent hover:text-accent-foreground',
