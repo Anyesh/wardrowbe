@@ -46,10 +46,6 @@ ALLOWED_EXTENSIONS = frozenset(IMAGE_MIME_TYPES)
 ALLOWED_MIME_TYPES = frozenset(IMAGE_MIME_TYPES.values())
 
 
-def get_full_path(relative_path: str) -> str:
-    return f"{settings.storage_path}/{relative_path}"
-
-
 def _flatten_to_rgb(image: Image.Image) -> Image.Image:
     if image.mode in ("RGBA", "P", "LA"):
         background = Image.new("RGB", image.size, (255, 255, 255))
