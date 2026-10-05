@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { signIn, getProviders, useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useAuthConfig } from '@/lib/hooks/use-auth-config';
 
 function OIDCLoginButton({ callbackUrl }: { callbackUrl: string }) {
   const t = useTranslations('auth');
@@ -88,6 +89,75 @@ function DevLogin({ callbackUrl }: { callbackUrl: string }) {
   );
 }
 
+type ForwardSignInState = 'idle' | 'signingIn' | 'failed';
+
+// Lives in LoginContent rather than ForwardLogin so that the one-shot guard survives the
+// skeleton swapping ForwardLogin out while the session reloads.
+function useForwardSignIn(auto: boolean) {
+  const [state, setState] = useState<ForwardSignInState>('idle');
+  const attempted = useRef(false);
+
+  const signInThroughProxy = useCallback(async () => {
+    setState('signingIn');
+    // redirect: false keeps a failure on this page; a redirect would go through
+    // pages.error ('/login?error=...') and lose the reason.
+    const result = await signIn('forward-auth', { redirect: false });
+    if (!result?.ok || result.error) {
+      setState('failed');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!auto || attempted.current) return;
+    attempted.current = true;
+    void signInThroughProxy();
+  }, [auto, signInThroughProxy]);
+
+  return { state, signInThroughProxy };
+}
+
+function ForwardLogin({
+  state,
+  failed,
+  loggedOut,
+  onSignIn,
+}: {
+  state: ForwardSignInState;
+  failed: boolean;
+  loggedOut: boolean;
+  onSignIn: () => void;
+}) {
+  const t = useTranslations('auth');
+
+  return (
+    <div className="space-y-4">
+      {failed && state !== 'signingIn' && (
+        <div className="rounded-md bg-destructive/15 p-4 text-sm text-destructive">
+          {t('forwardAuth.headersMissing')}
+        </div>
+      )}
+      {loggedOut && !failed && state === 'idle' && (
+        <p className="text-center text-sm text-muted-foreground">{t('forwardAuth.signedOut')}</p>
+      )}
+      <button
+        type="button"
+        onClick={onSignIn}
+        disabled={state === 'signingIn'}
+        className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+      >
+        {state === 'signingIn' ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {t('signingIn')}
+          </>
+        ) : (
+          t('forwardAuth.continue')
+        )}
+      </button>
+    </div>
+  );
+}
+
 function BackendError({ message }: { message: string }) {
   const t = useTranslations('auth');
 
@@ -105,6 +175,7 @@ function LoginContent() {
   const { data: session, status } = useSession();
   const error = searchParams.get('error');
   const syncErrorParam = searchParams.get('syncError');
+  const loggedOut = searchParams.get('loggedOut') === '1';
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const [backendError, setBackendError] = useState<string | null>(null);
   const t = useTranslations('auth');
@@ -131,19 +202,30 @@ function LoginContent() {
 
   const syncError = syncErrorParam || session?.syncError;
 
-  const [authMode, setAuthMode] = useState<'loading' | 'oidc' | 'dev' | 'unconfigured'>('loading');
+  const [providerMode, setProviderMode] = useState<'loading' | 'oidc' | 'dev' | 'unconfigured'>('loading');
+  const authConfig = useAuthConfig();
 
   useEffect(() => {
     getProviders().then((providers) => {
       if (providers?.['oidc']) {
-        setAuthMode('oidc');
+        setProviderMode('oidc');
       } else if (providers?.['dev-credentials']) {
-        setAuthMode('dev');
+        setProviderMode('dev');
       } else {
-        setAuthMode('unconfigured');
+        setProviderMode('unconfigured');
       }
     });
   }, []);
+
+  const authMode = authConfig.isPending
+    ? 'loading'
+    : authConfig.data?.forward_auth
+      ? 'forward'
+      : providerMode;
+
+  const forward = useForwardSignIn(
+    authMode === 'forward' && status === 'unauthenticated' && !error && !loggedOut
+  );
 
   if (status === 'loading' || authMode === 'loading') {
     return (
@@ -159,7 +241,7 @@ function LoginContent() {
 
       {!backendError && syncError && <BackendError message={syncError} />}
 
-      {error && !backendError && !syncError && (
+      {error && authMode !== 'forward' && !backendError && !syncError && (
         <div className="rounded-md bg-destructive/15 p-4 text-sm text-destructive">
           {error === 'OAuthSignin' && t('errors.OAuthSignin')}
           {error === 'OAuthCallback' && t('errors.OAuthCallback')}
@@ -173,6 +255,14 @@ function LoginContent() {
       )}
 
       <div className="space-y-4">
+        {authMode === 'forward' && (
+          <ForwardLogin
+            state={forward.state}
+            failed={forward.state === 'failed' || !!error}
+            loggedOut={loggedOut}
+            onSignIn={forward.signInThroughProxy}
+          />
+        )}
         {authMode === 'oidc' && <OIDCLoginButton callbackUrl={callbackUrl} />}
         {authMode === 'dev' && <DevLogin callbackUrl={callbackUrl} />}
         {authMode === 'unconfigured' && (
