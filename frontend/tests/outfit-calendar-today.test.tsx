@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OutfitCalendar } from '@/components/outfit-calendar'
@@ -12,8 +12,13 @@ vi.mock('@/lib/api', () => ({
 
 const originalTz = process.env.TZ
 
+// The profile is seeded rather than fetched so that the render does not race a waitFor timeout
+// when the full suite runs in parallel.
 function wrapper({ children }: { children: ReactNode }) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  })
+  client.setQueryData(['user-profile'], { timezone: 'America/Los_Angeles' })
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
 }
 
@@ -31,8 +36,7 @@ afterEach(() => {
 })
 
 describe('OutfitCalendar', () => {
-  it("marks today by the user's profile timezone", async () => {
-    vi.mocked(api.get).mockResolvedValue({ timezone: 'America/Los_Angeles' })
+  it("marks today by the user's profile timezone", () => {
     render(
       <OutfitCalendar
         year={2026}
@@ -45,9 +49,7 @@ describe('OutfitCalendar', () => {
       { wrapper }
     )
 
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: '5' })).toHaveAttribute('aria-current', 'date')
-    )
+    expect(screen.getByRole('button', { name: '5' })).toHaveAttribute('aria-current', 'date')
     expect(screen.getByRole('button', { name: '6' })).not.toHaveAttribute('aria-current')
   })
 })
