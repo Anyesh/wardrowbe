@@ -264,30 +264,28 @@ export interface WashHistoryEntry {
   created_at: string;
 }
 
-// Family rating types
 export interface FamilyRating {
   id: string;
   user_id: string;
   user_display_name: string;
-  user_avatar_url?: string;
+  user_avatar_url: string | null;
   rating: number;
-  comment?: string;
+  comment: string | null;
   created_at: string;
 }
 
-// Outfit types
 export interface OutfitItem {
   id: string;
   type: string;
-  subtype?: string;
-  name?: string;
-  primary_color?: string;
+  subtype: string | null;
+  name: string | null;
+  primary_color: string | null;
   colors: string[];
-  image_path: string;
-  thumbnail_path?: string;
-  image_url?: string;
-  thumbnail_url?: string;
-  layer_type?: string;
+  image_path: string | null;
+  thumbnail_path: string | null;
+  image_url: string | null;
+  thumbnail_url: string | null;
+  layer_type: string | null;
   position: number;
 }
 
@@ -296,36 +294,73 @@ export interface WeatherData {
   feels_like: number;
   humidity: number;
   precipitation_chance: number;
+  precipitation_mm: number;
+  wind_speed: number;
   condition: string;
+  condition_code: number;
+  is_day: boolean;
+  uv_index: number;
+  timestamp: string;
+  // Optional because outfits stored before the forecast range existed lack these keys.
+  temp_min?: number | null;
+  temp_max?: number | null;
+  window_min?: number | null;
+  window_max?: number | null;
+}
+
+export interface WoreInsteadItem {
+  id: string;
+  type: string;
+  name: string | null;
+  thumbnail_path: string | null;
+  thumbnail_url: string | null;
 }
 
 export interface FeedbackSummary {
-  rating?: number;
-  comment?: string;
-  worn_at?: string;
+  rating: number | null;
+  comment: string | null;
+  worn_at: string | null;
+  actually_worn: boolean | null;
+  wore_instead_items: WoreInsteadItem[] | null;
 }
+
+export const OUTFIT_STATUSES = [
+  'pending',
+  'sent',
+  'viewed',
+  'accepted',
+  'rejected',
+  'skipped',
+  'expired',
+] as const;
+
+export type OutfitStatus = (typeof OUTFIT_STATUSES)[number];
 
 export type OutfitSource = 'scheduled' | 'on_demand' | 'manual' | 'pairing' | 'external';
 
 export interface Outfit {
   id: string;
   occasion: string;
-  scheduled_for: string;
-  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+  scheduled_for: string | null;
+  status: OutfitStatus;
+  name: string | null;
+  replaces_outfit_id: string | null;
+  cloned_from_outfit_id: string | null;
   source: OutfitSource;
-  reasoning?: string;
-  style_notes?: string;
-  season?: string | null;
-  formality?: string | null;
-  palette?: string[] | null;
-  notes?: string | null;
-  highlights?: string[];
-  weather?: WeatherData;
+  reasoning: string | null;
+  style_notes: string | null;
+  season: string | null;
+  formality: string | null;
+  palette: string[] | null;
+  notes: string | null;
+  highlights: string[] | null;
+  weather: WeatherData | null;
   items: OutfitItem[];
-  feedback?: FeedbackSummary;
-  family_ratings?: FamilyRating[];
-  family_rating_average?: number;
-  family_rating_count?: number;
+  feedback: FeedbackSummary | null;
+  family_ratings: FamilyRating[] | null;
+  family_rating_average: number | null;
+  family_rating_count: number | null;
+  is_starter_suggestion: boolean;
   created_at: string;
 }
 
@@ -346,17 +381,43 @@ export interface SuggestRequest {
 export interface SourceItem {
   id: string;
   type: string;
-  subtype?: string;
-  name?: string;
-  primary_color?: string;
+  subtype: string | null;
+  name: string | null;
+  primary_color: string | null;
   image_path: string;
-  thumbnail_path?: string;
-  image_url?: string;
-  thumbnail_url?: string;
+  thumbnail_path: string | null;
+  image_url: string;
+  thumbnail_url: string | null;
 }
 
-export interface Pairing extends Outfit {
-  source_item?: SourceItem;
+export interface PairingItem extends OutfitItem {
+  image_path: string;
+  image_url: string;
+}
+
+export interface Pairing
+  extends Pick<
+    Outfit,
+    | 'id'
+    | 'occasion'
+    | 'status'
+    | 'source'
+    | 'reasoning'
+    | 'style_notes'
+    | 'season'
+    | 'formality'
+    | 'palette'
+    | 'notes'
+    | 'highlights'
+    | 'family_ratings'
+    | 'family_rating_average'
+    | 'family_rating_count'
+    | 'created_at'
+  > {
+  scheduled_for: string;
+  source_item: SourceItem | null;
+  items: PairingItem[];
+  feedback: Pick<FeedbackSummary, 'rating' | 'comment' | 'worn_at'> | null;
 }
 
 export interface PairingListResponse {
