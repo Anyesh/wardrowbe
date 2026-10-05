@@ -4,12 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.models.preference import (
-    DEFAULT_AVOID_REPEAT_DAYS,
-    UserPreference,
-)
+from app.models.preference import UserPreference
 from app.schemas.preference import PreferenceUpdate
 from app.utils.scales import (
+    DEFAULT_AVOID_REPEAT_DAYS,
     DEFAULT_COLD_THRESHOLD,
     DEFAULT_HOT_THRESHOLD,
 )

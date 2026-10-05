@@ -2,7 +2,12 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_LOCALE, LOCALE_METADATA, SUPPORTED_LOCALES } from '@/lib/i18n/locales';
-import { RATING_MAX, RATING_MIN, TEMPERATURE_THRESHOLDS_CELSIUS } from '@/lib/generated/scales';
+import {
+  AVOID_REPEAT_DAYS,
+  RATING_MAX,
+  RATING_MIN,
+  TEMPERATURE_THRESHOLDS_CELSIUS,
+} from '@/lib/generated/scales';
 import { RATING_STARS } from '@/lib/rating';
 
 const DATA_DIR = resolve(__dirname, '..', '..', 'backend', 'app', 'data');
@@ -31,6 +36,7 @@ describe('scales', () => {
     expect(RATING_MIN).toBe(scales.rating.min);
     expect(RATING_MAX).toBe(scales.rating.max);
     expect(TEMPERATURE_THRESHOLDS_CELSIUS).toEqual(scales.temperature_thresholds_celsius);
+    expect(AVOID_REPEAT_DAYS).toEqual(scales.avoid_repeat_days);
   });
 
   it('render one star per rating step', () => {

@@ -7,3 +7,5 @@ export const TEMPERATURE_THRESHOLDS_CELSIUS = {
   cold: { min: -20, max: 30, default: 10 },
   hot: { min: 10, max: 45, default: 25 },
 } as const;
+
+export const AVOID_REPEAT_DAYS = { min: 0, max: 30, default: 7 } as const;

@@ -8,8 +8,11 @@ from app.api.outfits import FamilyRatingRequest, FeedbackRequest
 from app.schemas.preference import PreferenceBase, PreferenceUpdate
 from app.utils.locale import DEFAULT_LOCALE, SUPPORTED_LOCALES
 from app.utils.scales import (
+    AVOID_REPEAT_DAYS_MAX,
+    AVOID_REPEAT_DAYS_MIN,
     COLD_THRESHOLD_MAX,
     COLD_THRESHOLD_MIN,
+    DEFAULT_AVOID_REPEAT_DAYS,
     DEFAULT_COLD_THRESHOLD,
     DEFAULT_HOT_THRESHOLD,
     HOT_THRESHOLD_MAX,
@@ -47,6 +50,27 @@ def test_scales_come_from_the_shared_file():
         hot["max"],
         hot["default"],
     )
+
+    avoid = data["avoid_repeat_days"]
+    assert (AVOID_REPEAT_DAYS_MIN, AVOID_REPEAT_DAYS_MAX, DEFAULT_AVOID_REPEAT_DAYS) == (
+        avoid["min"],
+        avoid["max"],
+        avoid["default"],
+    )
+
+
+@pytest.mark.parametrize("schema", [PreferenceBase, PreferenceUpdate])
+def test_avoid_repeat_days_bounds_are_inclusive(schema):
+    assert (
+        schema(avoid_repeat_days=AVOID_REPEAT_DAYS_MIN).avoid_repeat_days == AVOID_REPEAT_DAYS_MIN
+    )
+    assert (
+        schema(avoid_repeat_days=AVOID_REPEAT_DAYS_MAX).avoid_repeat_days == AVOID_REPEAT_DAYS_MAX
+    )
+    with pytest.raises(ValidationError):
+        schema(avoid_repeat_days=AVOID_REPEAT_DAYS_MIN - 1)
+    with pytest.raises(ValidationError):
+        schema(avoid_repeat_days=AVOID_REPEAT_DAYS_MAX + 1)
 
 
 @pytest.mark.parametrize("rating", [RATING_MIN, RATING_MAX])

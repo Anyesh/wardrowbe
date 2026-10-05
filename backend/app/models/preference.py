@@ -7,12 +7,14 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.utils.scales import DEFAULT_COLD_THRESHOLD, DEFAULT_HOT_THRESHOLD
+from app.utils.scales import (
+    DEFAULT_AVOID_REPEAT_DAYS,
+    DEFAULT_COLD_THRESHOLD,
+    DEFAULT_HOT_THRESHOLD,
+)
 
 if TYPE_CHECKING:
     from app.models.user import User
-
-DEFAULT_AVOID_REPEAT_DAYS = 7
 
 
 class UserPreference(Base):
