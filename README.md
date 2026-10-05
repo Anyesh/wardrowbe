@@ -482,7 +482,10 @@ Traefik applies the middlewares in the listed order, and an empty `customrequest
 > [!WARNING]
 > If this database ever ran in development mode, anyone could have signed in under any email address they typed. On first forward-auth sign-in, a proxy user whose `Remote-Email` matches an existing account takes that account over (the same rule as OIDC sign-in). Check the existing users' emails before turning forward-auth on.
 
-The mobile app cannot sign in through a forward-auth proxy, so it needs OIDC. Both can be configured at once: set `OIDC_ISSUER_URL` and `OIDC_CLIENT_ID` alongside `FORWARD_AUTH_SECRET`, and browsers use the proxy while the app uses OIDC. The app has to reach Wardrowbe through a hostname or path that skips the forward-auth check, since it cannot complete the proxy's login page. An OIDC sign-in that arrives there carrying `X-Forward-Auth-Secret` but no `Remote-User` is still verified as OIDC.
+The mobile app cannot sign in through a forward-auth proxy, so it needs OIDC. Both can be configured at once: set `OIDC_ISSUER_URL` and `OIDC_CLIENT_ID` alongside `FORWARD_AUTH_SECRET`, and browsers use the proxy while the app uses OIDC. The app has to reach Wardrowbe through a hostname or path that skips the forward-auth check, since it cannot complete the proxy's login page.
+
+> [!WARNING]
+> Do not add `X-Forward-Auth-Secret` on the route the app uses. The app signs in with OIDC and never needs the secret, and a route that skips the proxy's check but still adds it lets anyone sign in as any user by sending their own `Remote-User` and `Remote-Email`. If your proxy can only add the secret on every route, that route must also strip every client-supplied `Remote-*` header first, as the snippets above do. An OIDC sign-in that then arrives with the secret but no `Remote-User` is still verified as OIDC.
 
 ### Notifications
 
