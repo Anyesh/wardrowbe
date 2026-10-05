@@ -86,7 +86,7 @@ services:
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       OIDC_CA_BUNDLE: ${OIDC_CA_BUNDLE:-}
-      AUTH_TRUST_HEADER: ${AUTH_TRUST_HEADER:-false}
+      FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
     volumes:
       - wardrobe_data:/data/wardrobe
     ports:
@@ -113,6 +113,8 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
       DEV_MODE: ${DEBUG:-false}
+      FORWARD_AUTH_LOGOUT_URL: ${FORWARD_AUTH_LOGOUT_URL:-}
+      TINYAUTH_URL: ${TINYAUTH_URL:-}
       PUID: ${PUID:-1001}
       PGID: ${PGID:-1001}
     ports:
