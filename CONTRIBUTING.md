@@ -43,6 +43,24 @@ look.
 - Python 3.11+ (for backend development)
 - An AI service (Ollama recommended for development)
 
+### Git hooks
+
+Install [prek](https://prek.j178.dev/installation/), then enable the repository hooks from
+the repository root:
+
+```bash
+prek install
+prek run
+```
+
+`prek run` checks staged files. Use `prek run --all-files` to check the whole
+repository. The existing `.pre-commit-config.yaml` defines the hooks for prek;
+the frontend hooks require installed frontend dependencies.
+
+If this checkout already has a pre-commit Git hook, `prek install` preserves it
+and runs both hooks during migration. After checking that the old hook contains
+only pre-commit, run `prek install --force` to replace it.
+
 ### Local Development
 
 ```bash
