@@ -16,6 +16,7 @@
     "title": "No pairings yet"
   },
   "generate": {
+    "colorAndType": "{color} {type}",
     "description": "AI will create complete outfits featuring this item",
     "failed": "Failed to generate pairings",
     "generate": "Generate Outfits",

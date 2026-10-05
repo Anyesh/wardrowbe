@@ -10,6 +10,7 @@ import { Pairing } from '@/lib/types';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { StarRatingDisplay } from '@/components/shared/star-rating';
+import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
 interface PairingCardProps {
   pairing: Pairing;
@@ -18,6 +19,7 @@ interface PairingCardProps {
 }
 
 export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('pairings.card');
   const deletePairing = useDeletePairing();
 
@@ -114,14 +116,14 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
               {item.thumbnail_url ? (
                 <Image
                   src={item.thumbnail_url}
-                  alt={item.name || item.type}
+                  alt={item.name || typeLabel(item.type)}
                   fill
                   className="object-cover"
                   sizes="56px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                  {item.type}
+                  {typeLabel(item.type)}
                 </div>
               )}
             </div>

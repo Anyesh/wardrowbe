@@ -15,6 +15,7 @@ import { computeWarnings } from '@/lib/studio/warnings';
 import type { StudioItem } from '@/lib/studio/editor-state';
 import type { Outfit, OutfitItem } from '@/lib/hooks/use-outfits';
 import { useTranslations } from 'next-intl';
+import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
 interface DetailsPanelProps {
   items: StudioItem[];
@@ -44,6 +45,7 @@ export function DetailsPanel({
   onOccasionChange,
   onAiMerge,
 }: DetailsPanelProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('outfits.details');
   const [aiLoading, setAiLoading] = useState(false);
   const warnings = computeWarnings(items, t);
@@ -68,7 +70,7 @@ export function DetailsPanel({
       if (skipped.length > 0) {
         for (const { item, reason } of skipped) {
           toast.info(
-            t('skippedItem', { name: item.name || item.type, reason })
+            t('skippedItem', { name: item.name || typeLabel(item.type), reason })
           );
         }
       } else if (merged.length > items.length) {

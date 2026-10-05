@@ -50,7 +50,7 @@ import {
 } from '@/components/ui/collapsible';
 import { ItemPicker } from '@/components/shared/item-picker';
 import { OccasionChips } from '@/components/shared/occasion-chips';
-import { useOccasionLabel, useWeatherConditionLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useWeatherConditionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { useItem } from '@/lib/hooks/use-items';
 import { api, ApiError } from '@/lib/api';
 import { applySessionToken } from '@/lib/hooks/use-session-token';
@@ -290,6 +290,7 @@ function OutfitCard({
   showActions?: boolean;
   badgeLabel?: string;
 }) {
+  const typeLabel = useTypeLabel();
   return (
     <Card className="overflow-hidden flex flex-col h-full">
       <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 border-b">
@@ -340,7 +341,7 @@ function OutfitCard({
                   {item.thumbnail_url ? (
                     <Image
                       src={item.thumbnail_url}
-                      alt={item.name || item.type}
+                      alt={item.name || typeLabel(item.type)}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform"
                       sizes="(max-width: 640px) 50vw, 33vw"
@@ -353,7 +354,7 @@ function OutfitCard({
                 </div>
                 <div className="p-2">
                   <p className="text-xs sm:text-sm font-medium truncate">
-                    {item.name || item.type}
+                    {item.name || typeLabel(item.type)}
                   </p>
                   {item.layer_type && (
                     <Badge variant="secondary" className="text-[10px] capitalize mt-0.5">
@@ -580,6 +581,7 @@ const BASE_ITEM_FILTER_TYPES = [
 ] as const satisfies readonly ClothingTypeValue[];
 
 function SuggestContent() {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('suggest');
   const tCommon = useTranslations('common');
   const tTypes = useTranslations('constants.types');
@@ -788,7 +790,7 @@ function SuggestContent() {
                         {selectedItem.thumbnail_url || selectedItem.image_url ? (
                           <Image
                             src={(selectedItem.thumbnail_url || selectedItem.image_url)!}
-                            alt={selectedItem.name || selectedItem.type}
+                            alt={selectedItem.name || typeLabel(selectedItem.type)}
                             fill
                             className="object-cover"
                             sizes="56px"
@@ -805,11 +807,11 @@ function SuggestContent() {
                             {t('baseItem.mustInclude')}
                           </Badge>
                           <Badge variant="secondary" className="text-[10px] capitalize px-1.5 py-0">
-                            {selectedItem.type}
+                            {typeLabel(selectedItem.type)}
                           </Badge>
                         </div>
                         <p className="text-sm font-medium truncate">
-                          {selectedItem.name || selectedItem.type}
+                          {selectedItem.name || typeLabel(selectedItem.type)}
                         </p>
                         {selectedItem.primary_color && (
                           <p className="text-xs text-muted-foreground capitalize truncate">

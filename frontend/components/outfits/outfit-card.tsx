@@ -17,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn, formatRelativeDate } from '@/lib/utils';
 import type { Outfit } from '@/lib/hooks/use-outfits';
 import { useUserToday } from '@/lib/hooks/use-user';
-import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { useLocale, useTranslations, type createTranslator } from 'next-intl';
 import type outfitsMessages from '@/messages/en/outfits.json';
 
@@ -104,6 +104,7 @@ function getMetaLabel(outfit: Outfit, t: OutfitCardTranslator, locale: string, t
 }
 
 export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: OutfitCardProps) {
+  const typeLabel = useTypeLabel();
   const t: OutfitCardTranslator = useTranslations('outfits.cards');
   const locale = useLocale();
   const getUserToday = useUserToday();
@@ -152,7 +153,7 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
                 {item.thumbnail_url || item.image_url ? (
                   <Image
                     src={(item.thumbnail_url || item.image_url)!}
-                    alt={item.name || item.type}
+                    alt={item.name || typeLabel(item.type)}
                     fill
                     className="object-cover"
                     sizes="(max-width: 640px) 25vw, 15vw"
@@ -161,7 +162,7 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="text-[10px] text-muted-foreground">
-                      {item.type}
+                      {typeLabel(item.type)}
                     </span>
                   </div>
                 )}

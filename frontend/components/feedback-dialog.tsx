@@ -20,6 +20,7 @@ import { GRID_PAGE_SIZE } from '@/lib/pagination';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { StarRatingInput } from '@/components/shared/star-rating';
+import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
 export type FeedbackTarget = Pick<Outfit, 'id' | 'items'> & {
   feedback: Pick<FeedbackSummary, 'rating' | 'comment'> | null;
@@ -46,6 +47,7 @@ interface AccumulatedItem {
 }
 
 export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('suggest.feedback');
   const tc = useTranslations('common');
   const [step, setStep] = useState<FeedbackStep>('wear-question');
@@ -327,7 +329,7 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
                     >
                       <Image
                         src={item.thumbnail_url || item.image_url || item.image_path}
-                        alt={item.name || item.type}
+                        alt={item.name || typeLabel(item.type)}
                         fill
                         className="object-cover"
                         sizes="(max-width: 640px) 33vw, 25vw"
@@ -342,7 +344,7 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
                       )}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
                         <span className="text-[10px] sm:text-xs text-white font-medium truncate block">
-                          {item.name || item.type}
+                          {item.name || typeLabel(item.type)}
                         </span>
                       </div>
                     </button>

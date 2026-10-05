@@ -74,6 +74,7 @@ import {
   useSeasonLabel,
   useStyleLabel,
   useSubtypeLabel,
+  useTypeLabel,
 } from '@/lib/hooks/use-translated-constants';
 import { ColorEyedropper } from '@/components/color-eyedropper';
 import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
@@ -117,6 +118,7 @@ function editFormFromItem(item: Item): EditForm {
 }
 
 export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('wardrobe.itemDetail');
   const tc = useTranslations('common');
   const tw = useTranslations('wardrobe');
@@ -505,7 +507,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       <Image
                         key={`${currentImage.id}-${imageKey}`}
                         src={currentImage.url}
-                        alt={item.name || item.type}
+                        alt={item.name || typeLabel(item.type)}
                         fill
                         className="object-cover"
                         sizes="(max-width: 640px) 100vw, 50vw"
@@ -934,12 +936,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                                       <div
                                         key={oi.id}
                                         className="w-5 h-5 rounded-full bg-muted border-2 border-background overflow-hidden"
-                                        title={oi.name || oi.type}
+                                        title={oi.name || typeLabel(oi.type)}
                                       >
                                         {oi.thumbnail_url && (
                                           <Image
                                             src={oi.thumbnail_url}
-                                            alt={oi.name || oi.type}
+                                            alt={oi.name || typeLabel(oi.type)}
                                             width={20}
                                             height={20}
                                             className="object-cover w-full h-full"
@@ -1060,7 +1062,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           <AlertDialogHeader>
             <AlertDialogTitle>{t('actions.deleteConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('actions.deleteDescription', { name: item.name || item.type })}
+              {t('actions.deleteDescription', { name: item.name || typeLabel(item.type) })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

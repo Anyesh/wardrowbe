@@ -31,7 +31,10 @@ vi.mock('@/lib/hooks/use-studio', () => ({
   useWearToday: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 vi.mock('@/lib/hooks/use-user', () => ({ useUserToday: () => () => '2026-10-05' }))
-vi.mock('@/lib/hooks/use-translated-constants', () => ({ useOccasionLabel: () => (v: string) => v }))
+vi.mock('@/lib/hooks/use-translated-constants', () => ({
+  useOccasionLabel: () => (v: string) => v,
+  useTypeLabel: () => (v: string) => v,
+}))
 vi.mock('@/components/shared/lineage-card', () => ({ LineageCard: () => null }))
 vi.mock('@/components/shared/clone-to-lookbook-dialog', () => ({
   CloneToLookbookDialog: () => null,

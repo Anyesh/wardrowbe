@@ -19,6 +19,7 @@ import { Item, Pairing } from '@/lib/types';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useColorLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
 interface GeneratePairingsDialogProps {
   item: Item | null;
@@ -33,6 +34,8 @@ export function GeneratePairingsDialog({
   open,
   onOpenChange,
 }: GeneratePairingsDialogProps) {
+  const typeLabel = useTypeLabel();
+  const colorLabel = useColorLabel();
   const [numPairings, setNumPairings] = useState(3);
   const [generatedPairings, setGeneratedPairings] = useState<Pairing[] | null>(null);
   const generatePairings = useGeneratePairings();
@@ -92,17 +95,17 @@ export function GeneratePairingsDialog({
               <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden relative border-2 border-primary/30">
                 <Image
                   src={imageUrl}
-                  alt={item.name || item.type}
+                  alt={item.name || typeLabel(item.type)}
                   fill
                   className="object-cover"
                   sizes="64px"
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{item.name || item.type}</p>
+                <p className="font-medium truncate">{item.name || typeLabel(item.type)}</p>
                 {item.primary_color && (
-                  <p className="text-sm text-muted-foreground capitalize">
-                    {item.primary_color} {item.type}
+                  <p className="text-sm text-muted-foreground">
+                    {t('colorAndType', { color: colorLabel(item.primary_color), type: typeLabel(item.type) })}
                   </p>
                 )}
               </div>
@@ -157,7 +160,7 @@ export function GeneratePairingsDialog({
                       {pairingItem.thumbnail_url ? (
                         <Image
                           src={pairingItem.thumbnail_url}
-                          alt={pairingItem.type}
+                          alt={typeLabel(pairingItem.type)}
                           fill
                           className="object-cover"
                           sizes="32px"

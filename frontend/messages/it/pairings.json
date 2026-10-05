@@ -16,6 +16,7 @@
     "title": "Nessun abbinamento ancora"
   },
   "generate": {
+    "colorAndType": "{type} {color}",
     "description": "L'IA creerà outfit completi con questo capo come protagonista",
     "failed": "Generazione abbinamenti fallita",
     "generate": "Genera outfit",

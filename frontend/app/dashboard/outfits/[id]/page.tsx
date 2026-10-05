@@ -27,11 +27,12 @@ import { CloneToLookbookDialog } from '@/components/shared/clone-to-lookbook-dia
 import { useDeleteOutfit, useOutfit, useOutfits } from '@/lib/hooks/use-outfits';
 import { useWearToday } from '@/lib/hooks/use-studio';
 import { useUserToday } from '@/lib/hooks/use-user';
-import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { getErrorMessage } from '@/lib/api';
 import { formatDate, formatRelativeDate } from '@/lib/utils';
 
 export default function OutfitDetailPage() {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('outfits');
   const tc = useTranslations('common');
   const occasionLabel = useOccasionLabel();
@@ -167,7 +168,7 @@ export default function OutfitDetailPage() {
                   {item.thumbnail_url || item.image_url ? (
                     <Image
                       src={(item.thumbnail_url || item.image_url)!}
-                      alt={item.name || item.type}
+                      alt={item.name || typeLabel(item.type)}
                       fill
                       className="object-cover transition-transform group-hover:scale-105"
                       sizes="(max-width: 640px) 33vw, 20vw"
@@ -175,13 +176,13 @@ export default function OutfitDetailPage() {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <span className="text-xs text-muted-foreground">
-                        {item.type}
+                        {typeLabel(item.type)}
                       </span>
                     </div>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 truncate">
-                  {item.name || item.type}
+                  {item.name || typeLabel(item.type)}
                 </p>
               </Link>
             ))}
