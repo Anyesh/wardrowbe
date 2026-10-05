@@ -746,6 +746,7 @@ function SuggestContent() {
                 <OccasionChips
                   selected={selectedOccasion}
                   onSelect={setSelectedOccasion}
+                  extraOccasions={[prefs?.default_occasion]}
                 />
               </div>
 
