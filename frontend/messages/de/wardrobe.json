@@ -267,5 +267,12 @@
     "daysAgo": "Vor {days} T. getragen",
     "today": "Heute getragen",
     "yesterday": "Gestern getragen"
+  },
+  "purchase": {
+    "date": "Kaufdatum",
+    "amount": "Kaufbetrag",
+    "amountHint": "Die Währung wird nicht gespeichert.",
+    "invalidDate": "Geben Sie ein gültiges Kaufdatum ein.",
+    "invalidAmount": "Geben Sie einen Betrag zwischen 0 und 99.999.999,99 mit höchstens zwei Nachkommastellen ein."
   }
 }

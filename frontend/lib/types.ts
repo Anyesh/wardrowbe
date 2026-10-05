@@ -26,8 +26,8 @@ export interface Item {
   name?: string;
   brand?: string;
   notes?: string;
-  purchase_date?: string;
-  purchase_price?: number;
+  purchase_date?: string | null;
+  purchase_price?: string | number | null;
   favorite: boolean;
   image_path: string;
   thumbnail_path?: string;

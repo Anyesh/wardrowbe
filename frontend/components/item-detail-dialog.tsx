@@ -10,6 +10,7 @@ import {
   X,
   Loader2,
   Calendar,
+  Receipt,
   Tag,
   Palette,
   Shirt,
@@ -72,7 +73,8 @@ import {
 import { ColorEyedropper } from '@/components/color-eyedropper';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
 import { useFeatures } from '@/lib/hooks/use-features';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { PurchaseFieldError, formatPurchaseAmount, formatPurchaseDate, normalizePurchaseAmount, validatePurchaseFields } from '@/lib/purchase-fields';
 
 interface ItemDetailDialogProps {
   item: Item | null;
@@ -89,6 +91,8 @@ interface EditForm {
   brand: string;
   primary_color: string;
   notes: string;
+  purchase_date: string;
+  purchase_price: string;
   favorite: boolean;
   wash_interval: number | undefined;
 }
@@ -103,6 +107,8 @@ function editFormFromItem(item: Item): EditForm {
     brand: item.brand || '',
     primary_color: item.primary_color || '',
     notes: item.notes || '',
+    purchase_date: item.purchase_date || '',
+    purchase_price: item.purchase_price == null ? '' : String(item.purchase_price),
     favorite: item.favorite,
     wash_interval: item.wash_interval ?? undefined,
   };
@@ -110,6 +116,8 @@ function editFormFromItem(item: Item): EditForm {
 
 export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogProps) {
   const t = useTranslations('wardrobe.itemDetail');
+  const tp = useTranslations('wardrobe.purchase');
+  const locale = useLocale();
   const tc = useTranslations('common');
   const tw = useTranslations('wardrobe');
   const router = useRouter();
@@ -119,6 +127,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const materialLabel = useMaterialLabel();
   const formalityLabel = useFormalityLabel();
   const [isEditing, setIsEditing] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<PurchaseFieldError>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPairingsDialog, setShowPairingsDialog] = useState(false);
   const [imageKey, setImageKey] = useState(0);
@@ -129,6 +138,8 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     brand: '',
     primary_color: '',
     notes: '',
+    purchase_date: '',
+    purchase_price: '',
     favorite: false,
     wash_interval: undefined,
   });
@@ -156,6 +167,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   useEffect(() => {
     if (item) {
       setEditForm(editFormFromItem(item));
+      setPurchaseError(null);
       setIsEditing(false);
       setActiveImageIndex(0);
     }
@@ -164,6 +176,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   if (!item) return null;
 
   const handleSave = async () => {
+    const purchaseAmount = normalizePurchaseAmount(editForm.purchase_price);
+    const error = validatePurchaseFields(editForm.purchase_date, purchaseAmount);
+    setPurchaseError(error);
+    if (error) return;
     try {
       await updateItem.mutateAsync({
         id: item.id,
@@ -175,6 +191,8 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           brand: editForm.brand || undefined,
           primary_color: editForm.primary_color || undefined,
           notes: editForm.notes || undefined,
+          purchase_date: editForm.purchase_date || null,
+          purchase_price: purchaseAmount || null,
           favorite: editForm.favorite,
           wash_interval: editForm.wash_interval,
         },
@@ -450,7 +468,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   onClick={() => {
                     // Re-read the item on entering edit mode: tagging can finish while the
                     // dialog is open (same id, so the effect above doesn't re-run).
-                    if (!isEditing) setEditForm(editFormFromItem(item));
+                    if (!isEditing) {
+                      setEditForm(editFormFromItem(item));
+                      setPurchaseError(null);
+                    }
                     setIsEditing(!isEditing);
                   }}
                   title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
@@ -700,6 +721,31 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       rows={3}
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-purchase-date">{tp('date')}</Label>
+                      <Input
+                        id="edit-purchase-date"
+                        type="date"
+                        value={editForm.purchase_date}
+                        aria-invalid={purchaseError === 'date'}
+                        onChange={(e) => { setEditForm({ ...editForm, purchase_date: e.target.value }); setPurchaseError(null); }}
+                      />
+                      {purchaseError === 'date' && <p role="alert" className="text-xs text-destructive">{tp('invalidDate')}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-purchase-amount">{tp('amount')}</Label>
+                      <Input
+                        id="edit-purchase-amount"
+                        inputMode="decimal"
+                        value={editForm.purchase_price}
+                        aria-invalid={purchaseError === 'amount'}
+                        onChange={(e) => { setEditForm({ ...editForm, purchase_price: e.target.value }); setPurchaseError(null); }}
+                      />
+                      {purchaseError === 'amount' && <p role="alert" className="text-xs text-destructive">{tp('invalidAmount')}</p>}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{tp('amountHint')}</p>
                   <div className="space-y-2">
                     <Label>{t('washInterval')} ({t('view.wears')})</Label>
                     <Input
@@ -755,6 +801,18 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       <div className="flex items-center gap-2 text-sm">
                         <Tag className="h-4 w-4 text-muted-foreground" />
                         <span>{item.brand}</span>
+                      </div>
+                    )}
+                    {item.purchase_date && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{tp('date')}: {formatPurchaseDate(item.purchase_date, locale)}</span>
+                      </div>
+                    )}
+                    {item.purchase_price != null && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Receipt className="h-4 w-4 text-muted-foreground" />
+                        <span>{tp('amount')}: {formatPurchaseAmount(item.purchase_price, locale)}</span>
                       </div>
                     )}
                     {colorInfo && (

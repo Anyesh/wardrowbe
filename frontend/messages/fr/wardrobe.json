@@ -267,5 +267,12 @@
     "daysAgo": "Porté il y a {days} j",
     "today": "Porté aujourd'hui",
     "yesterday": "Porté hier"
+  },
+  "purchase": {
+    "date": "Date d’achat",
+    "amount": "Montant de l’achat",
+    "amountHint": "La devise n’est pas enregistrée.",
+    "invalidDate": "Saisissez une date d’achat valide.",
+    "invalidAmount": "Saisissez un montant compris entre 0 et 99 999 999,99 avec deux décimales au maximum."
   }
 }

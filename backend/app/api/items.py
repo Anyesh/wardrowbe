@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Annotated, Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -176,6 +177,8 @@ async def create_item(
     notes: str | None = Form(None),
     colors: str | None = Form(None),
     primary_color: str | None = Form(None),
+    purchase_date: date | None = Form(None),
+    purchase_price: Decimal | None = Form(None, ge=0, max_digits=10, decimal_places=2),
     favorite: bool = Form(False),
     skip_ai: bool = Form(False),
 ) -> ItemResponse:
@@ -232,6 +235,8 @@ async def create_item(
         notes=notes,
         colors=color_list,
         primary_color=primary_color,
+        purchase_date=purchase_date,
+        purchase_price=purchase_price,
         favorite=favorite,
     )
 

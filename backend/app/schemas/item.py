@@ -27,7 +27,7 @@ class ItemBase(BaseModel):
     brand: str | None = Field(None, max_length=100)
     notes: str | None = None
     purchase_date: date | None = None
-    purchase_price: Decimal | None = Field(None, ge=0)
+    purchase_price: Decimal | None = Field(None, ge=0, max_digits=10, decimal_places=2)
     favorite: bool = False
 
 
@@ -44,7 +44,7 @@ class ItemUpdate(BaseModel):
     brand: str | None = Field(None, max_length=100)
     notes: str | None = None
     purchase_date: date | None = None
-    purchase_price: Decimal | None = Field(None, ge=0)
+    purchase_price: Decimal | None = Field(None, ge=0, max_digits=10, decimal_places=2)
     favorite: bool | None = None
     tags: ItemTags | None = None
     colors: list[str] | None = None

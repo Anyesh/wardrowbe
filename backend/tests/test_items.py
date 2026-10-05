@@ -118,6 +118,45 @@ class TestItemCRUD:
     """Tests for item CRUD operations."""
 
     @pytest.mark.asyncio
+    async def test_purchase_fields_round_trip_and_clear(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            "/api/v1/items",
+            files={"image": ("shirt.jpg", _make_test_image_bytes(), "image/jpeg")},
+            data={
+                "type": "shirt",
+                "skip_ai": "true",
+                "purchase_date": "2026-03-14",
+                "purchase_price": "124.50",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 201, response.json()
+        created = response.json()
+        assert created["purchase_date"] == "2026-03-14"
+        assert created["purchase_price"] == "124.50"
+
+        response = await client.patch(
+            f"/api/v1/items/{created['id']}",
+            json={"purchase_date": None, "purchase_price": None},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.json()
+        assert response.json()["purchase_date"] is None
+        assert response.json()["purchase_price"] is None
+
+    @pytest.mark.asyncio
+    async def test_purchase_amount_rejects_more_than_two_decimal_places(
+        self, client: AsyncClient, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/items",
+            files={"image": ("shirt.jpg", _make_test_image_bytes(), "image/jpeg")},
+            data={"skip_ai": "true", "purchase_price": "12.345"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
     async def test_get_item_not_found(self, client: AsyncClient, test_user, auth_headers):
         """Test getting a non-existent item."""
         response = await client.get(f"/api/v1/items/{uuid4()}", headers=auth_headers)
