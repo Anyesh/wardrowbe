@@ -1,4 +1,5 @@
 import html as html_mod
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -7,6 +8,7 @@ from pydantic import ValidationError
 
 from app.api.auth import _is_dev_mode
 from app.config import Settings
+from app.models import Family, FamilyInvite, User
 from app.schemas.notification import NtfyConfig, ScheduleBase, ScheduleUpdate
 from app.services.user_service import UserService
 
@@ -334,6 +336,59 @@ class TestProviderMigrationRequiresVerifiedEmail:
             assert test_user.external_id == original_external_id
         else:
             assert test_user.external_id == "new-provider-id"
+
+
+class TestInviteRequiresVerifiedEmail:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("invited_email", "email_verified", "expected_status", "expected_error"),
+        [
+            pytest.param(None, True, 200, None, id="verified"),
+            pytest.param(None, False, 403, "EMAIL_NOT_VERIFIED", id="unverified"),
+            pytest.param("someone-else@example.com", True, 403, None, id="different-email"),
+        ],
+    )
+    async def test_join_by_token(
+        self,
+        client,
+        db_session,
+        test_user,
+        auth_headers,
+        invited_email,
+        email_verified,
+        expected_status,
+        expected_error,
+    ):
+        run = uuid4()
+        inviter = User(
+            external_id=f"inviter-{run}", email=f"inviter-{run}@example.com", display_name="Inviter"
+        )
+        db_session.add(inviter)
+        await db_session.flush()
+        family = Family(name="Family", created_by=inviter.id, invite_code=run.hex[:12])
+        db_session.add(family)
+        await db_session.flush()
+        db_session.add(
+            FamilyInvite(
+                family_id=family.id,
+                email=invited_email or test_user.email,
+                token=f"token-{run}",
+                invited_by=inviter.id,
+                expires_at=datetime.now(UTC) + timedelta(days=1),
+            )
+        )
+        test_user.email_verified = email_verified
+        await db_session.flush()
+
+        response = await client.post(
+            "/api/v1/families/join-by-token", json={"token": f"token-{run}"}, headers=auth_headers
+        )
+
+        assert response.status_code == expected_status
+        if expected_error is not None:
+            assert response.json()["detail"]["error_code"] == expected_error
+        await db_session.refresh(test_user)
+        assert (test_user.family_id == family.id) is (expected_status == 200)
 
 
 class TestDevModeAuthDecoupledFromSecretKey:

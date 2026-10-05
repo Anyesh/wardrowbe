@@ -2,6 +2,7 @@
   "default": "Qualcosa è andato storto. Riprova.",
   "invite": {
     "alreadyInFamily": "Sei già in una famiglia.",
+    "emailNotVerified": "Il tuo provider di accesso non ha verificato il tuo indirizzo email. Verificalo e accedi di nuovo per accettare questo invito.",
     "invalidLink": "Questo link di invito non è valido o è scaduto.",
     "wrongEmail": "Questo invito è stato inviato a un indirizzo email diverso."
   },

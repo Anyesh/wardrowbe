@@ -254,6 +254,14 @@ async def join_family_by_token(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This invite was sent to a different email address",
         )
+    if not current_user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "message": "Your sign-in provider has not verified this email address",
+                "error_code": "EMAIL_NOT_VERIFIED",
+            },
+        )
 
     family = await family_service.accept_invite_by_token(invite, current_user)
     await db.commit()
