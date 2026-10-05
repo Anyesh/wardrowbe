@@ -6,6 +6,7 @@ import { signOut } from 'next-auth/react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { useAuthConfig } from '@/lib/hooks/use-auth-config';
 import { useTranslations } from 'next-intl';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 
@@ -16,13 +17,21 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
+  const authConfig = useAuthConfig();
   const t = useTranslations('nav');
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (authConfig.data?.forward_auth) {
+      // The proxy session outlives the NextAuth one, so /auth/logout has to end it too or
+      // /login would sign the user straight back in.
+      await signOut({ redirect: false });
+      window.location.assign('/auth/logout');
+      return;
+    }
     signOut({ callbackUrl: '/login' });
   };
 
