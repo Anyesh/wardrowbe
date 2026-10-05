@@ -131,10 +131,15 @@ jobs:
           cd frontend
           npm run lint
 
+      - name: Run Oxlint
+        run: |
+          cd frontend
+          npm run lint:oxlint
+
       - name: Type check
         run: |
           cd frontend
-          npx tsc --noEmit
+          npm run typecheck
 
       # Missing translation keys and unwrapped strings are invisible to tsc, eslint and vitest,
       # because t() takes a plain string. Without this step they only surface as raw key paths

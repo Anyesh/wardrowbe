@@ -35,24 +35,6 @@ function StatusIcon({ status }: { status: Outfit['status'] }) {
   }
 }
 
-function StatusBadge({ status }: { status: Outfit['status'] }) {
-  const t = useTranslations('history');
-  const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    accepted: 'default',
-    rejected: 'destructive',
-    viewed: 'secondary',
-    sent: 'outline',
-    pending: 'outline',
-    expired: 'secondary',
-  };
-
-  return (
-    <Badge variant={variants[status] || 'outline'} className="capitalize">
-      {t(`status.${status}`)}
-    </Badge>
-  );
-}
-
 function SourceBadge({ source }: { source: OutfitSource }) {
   const t = useTranslations('history');
   const config: Record<OutfitSource, { icon: typeof Calendar; label: string; className: string }> = {

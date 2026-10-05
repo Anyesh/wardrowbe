@@ -18,7 +18,6 @@ import { useItemTypes } from '@/lib/hooks/use-items';
 import { PairingCard } from '@/components/pairing-card';
 import { FeedbackDialog } from '@/components/feedback-dialog';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
-import { Pairing } from '@/lib/types';
 import { Outfit } from '@/lib/hooks/use-outfits';
 
 function EmptyPairings({ t }: { t: (key: string) => string }) {

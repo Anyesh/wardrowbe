@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
   const appUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
   const endSessionUrl = process.env.OIDC_END_SESSION_URL;
   const tinyAuthUrl = process.env.TINYAUTH_URL;

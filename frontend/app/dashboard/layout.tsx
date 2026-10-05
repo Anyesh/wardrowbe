@@ -23,7 +23,7 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const t = useTranslations('dashboard');
 
-  const { user, isAuthenticated, isLoading, error } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     // If auth check completed and user is not authenticated, redirect to login

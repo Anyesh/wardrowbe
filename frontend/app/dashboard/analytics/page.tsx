@@ -396,7 +396,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Acceptance Trend */}
-      {acceptance_trend.length > 0 && acceptance_trend.some((t) => t.total > 0) && (
+      {acceptance_trend.some((t) => t.total > 0) && (
         <Card>
           <CardHeader>
             <CardTitle>{t('insights.acceptanceTrend.title')}</CardTitle>

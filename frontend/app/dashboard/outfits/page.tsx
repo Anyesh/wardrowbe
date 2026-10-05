@@ -50,19 +50,6 @@ function parseMonthParam(val: string | null): MonthRef | null {
   return { year: y, month: m };
 }
 
-function shiftMonth(ref: MonthRef, delta: number): MonthRef {
-  const d = new Date(ref.year, ref.month - 1 + delta, 1);
-  return { year: d.getFullYear(), month: d.getMonth() + 1 };
-}
-
-function outfitDateSet(outfits: Outfit[]): Set<string> {
-  const set = new Set<string>();
-  for (const o of outfits) {
-    if (o.scheduled_for) set.add(o.scheduled_for);
-  }
-  return set;
-}
-
 function outfitsByDate(outfits: Outfit[]): Map<string, Outfit[]> {
   const map = new Map<string, Outfit[]>();
   for (const o of outfits) {
@@ -293,15 +280,7 @@ function OutfitsPageContent() {
     updateQuery({ month: nextRef });
   };
 
-  const handleShiftMonth = (delta: number) => {
-    const nextRef = shiftMonth(monthRef, delta);
-    setMonthRef(nextRef);
-    setSelectedDate(null);
-    updateQuery({ month: nextRef });
-  };
-
   const calendarOutfits: Outfit[] = calendarQuery.data?.outfits ?? [];
-  const dateSet = useMemo(() => outfitDateSet(calendarOutfits), [calendarOutfits]);
   const dateMap = useMemo(() => outfitsByDate(calendarOutfits), [calendarOutfits]);
   const selectedDayOutfits: Outfit[] = selectedDate
     ? dateMap.get(selectedDate) ?? []
