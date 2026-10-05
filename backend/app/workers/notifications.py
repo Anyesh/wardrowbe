@@ -44,34 +44,6 @@ async def reset_schedule_trigger(ctx: dict, schedule_id: str) -> None:
         logger.warning(f"Best-effort recovery failed for schedule {schedule_id}: {e}")
 
 
-async def send_notification(ctx: dict, user_id: str, outfit_id: str):
-    logger.info(f"Sending notification for outfit {outfit_id} to user {user_id}")
-
-    db = get_db_session(ctx)
-    try:
-        dispatcher = NotificationDispatcher(db)
-
-        results = await dispatcher.send_outfit_notification(user_id=user_id, outfit_id=outfit_id)
-
-        await db.commit()
-
-        # Log results
-        for result in results:
-            logger.info(
-                f"Notification result: channel={result.channel}, status={result.status.value}, "
-                f"error={result.error}"
-            )
-
-        return {"success": any(r.status == NotificationStatus.sent for r in results)}
-
-    except Exception:
-        logger.exception(f"Failed to send notification for outfit {outfit_id}")
-        await db.rollback()
-        raise
-    finally:
-        await db.close()
-
-
 async def _retry_notification(
     db: AsyncSession, dispatcher: NotificationDispatcher, notification: Notification
 ) -> bool:

@@ -938,16 +938,14 @@ class TestWorkerFunctionRegistry:
         func_names = [f.__name__ for f in WorkerSettings.functions]
         assert "process_scheduled_notification" in func_names
 
-    def test_all_enqueued_functions_are_registered(self):
+    def test_registry_is_exactly_the_enqueued_and_cron_functions(self):
         func_names = {f.__name__ for f in WorkerSettings.functions}
-        required = {
+        expected = {
             "tag_item_image",
-            "send_notification",
             "process_scheduled_notification",
             "retry_failed_notifications",
             "check_scheduled_notifications",
             "check_wash_reminders",
             "update_learning_profiles",
         }
-        missing = required - func_names
-        assert not missing, f"Functions enqueued but not registered in WorkerSettings: {missing}"
+        assert func_names == expected
