@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Star, Check, X, ChevronLeft, Search, Loader2 } from 'lucide-react';
+import { Check, X, ChevronLeft, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,37 +19,7 @@ import { cn } from '@/lib/utils';
 import { GRID_PAGE_SIZE } from '@/lib/pagination';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { RATING_STARS } from '@/lib/rating';
-
-function StarRating({
-  rating,
-  onRate,
-  size = 'sm',
-}: {
-  rating: number;
-  onRate?: (rating: number) => void;
-  size?: 'sm' | 'lg';
-}) {
-  const sizeClass = size === 'lg' ? 'h-6 w-6' : 'h-4 w-4';
-
-  return (
-    <div className="flex gap-1">
-      {RATING_STARS.map((star) => (
-        <button
-          key={star}
-          type="button"
-          onClick={() => onRate?.(star)}
-          disabled={!onRate}
-          className={onRate ? 'cursor-pointer hover:scale-110 transition-transform' : 'cursor-default'}
-        >
-          <Star
-            className={`${sizeClass} ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
-          />
-        </button>
-      ))}
-    </div>
-  );
-}
+import { StarRatingInput } from '@/components/shared/star-rating';
 
 export type FeedbackTarget = Pick<Outfit, 'id' | 'items'> & {
   feedback: Pick<FeedbackSummary, 'rating' | 'comment'> | null;
@@ -276,7 +246,7 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
             <div className="space-y-4 py-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">{t('overallRating')}</label>
-                <StarRating rating={rating} onRate={setRating} size="lg" />
+                <StarRatingInput value={rating} onChange={setRating} />
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">{t('commentsOptional')}</label>

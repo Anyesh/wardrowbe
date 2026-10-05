@@ -54,6 +54,8 @@
   "previous": "上一步",
   "previousPage": "上一页",
   "privacyMatters": "你的隐私很重要",
+  "rateStars": "{count, plural, other {评为 # 星}}",
+  "ratedStars": "评分 {rating}/{max}",
   "remove": "移除",
   "retry": "重试",
   "save": "保存",
