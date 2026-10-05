@@ -3,6 +3,7 @@ import type { OAuthConfig } from 'next-auth/providers/oauth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { Provider } from 'next-auth/providers/index';
 import { FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
+import { decodeProxyHeader } from '@/lib/proxy-headers';
 
 interface OIDCProfile {
   sub: string;
@@ -119,6 +120,11 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
     return null;
   }
 
+  const userId = decodeProxyHeader(remoteUser);
+  const remoteName = headerValue(headers, 'remote-name');
+
+  // The raw header strings are relayed as-is, because fetch only accepts Latin-1 header values and
+  // the backend applies the same UTF-8 decoding to the bytes.
   const forwarded: Record<string, string> = { 'content-type': 'application/json' };
   for (const name of FORWARDED_HEADERS) {
     const value = headerValue(headers, name);
@@ -131,9 +137,9 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
       headers: forwarded,
       // The backend takes identity from the headers; the body only satisfies the request schema.
       body: JSON.stringify({
-        external_id: remoteUser,
+        external_id: userId,
         email: remoteEmail,
-        display_name: (headerValue(headers, 'remote-name') || remoteEmail.split('@')[0]).slice(0, 100),
+        display_name: (remoteName ? decodeProxyHeader(remoteName) : remoteEmail.split('@')[0]).slice(0, 100),
       }),
     });
     if (PROXY_HEADER_REJECTIONS.has(response.status)) {
@@ -146,7 +152,7 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
     }
     const syncData = await response.json();
     return {
-      id: remoteUser,
+      id: userId,
       email: syncData.email,
       name: syncData.display_name,
       accessToken: syncData.access_token,

@@ -79,6 +79,23 @@ describe('forward-auth authorize', () => {
     })
   })
 
+  it('keys the user by the UTF-8 Remote-User while relaying the raw header bytes', async () => {
+    const spy = mockFetch(new Response(JSON.stringify(SYNC_RESPONSE), { status: 200 }))
+    const latin1 = (v: string) => String.fromCharCode(...Array.from(new TextEncoder().encode(v)))
+
+    const user = await authorizeForwardAuth(
+      proxyHeaders({ 'remote-user': latin1('josé'), 'remote-name': latin1('José Müller') })
+    )
+
+    const init = spy.mock.calls[0][1] as RequestInit
+    expect(init.headers).toMatchObject({ 'remote-user': latin1('josé') })
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      external_id: 'josé',
+      display_name: 'José Müller',
+    })
+    expect(user).toMatchObject({ id: 'josé' })
+  })
+
   it('never returns the proxy secret', async () => {
     mockFetch(new Response(JSON.stringify(SYNC_RESPONSE), { status: 200 }))
 
