@@ -801,6 +801,18 @@ export default function OnboardingPage() {
     completeOnboarding();
   };
 
+  const redirectTo = isLoading
+    ? null
+    : !isAuthenticated
+      ? '/login'
+      : user?.onboarding_completed
+        ? '/dashboard'
+        : null;
+
+  useEffect(() => {
+    if (redirectTo) router.push(redirectTo);
+  }, [redirectTo, router]);
+
   // Show loading state while checking authentication
   if (isLoading) {
     return (
@@ -810,17 +822,7 @@ export default function OnboardingPage() {
     );
   }
 
-  // Redirect to login if not authenticated (API call failed)
-  if (!isAuthenticated) {
-    router.push('/login');
-    return null;
-  }
-
-  // If user already completed onboarding, redirect to dashboard
-  if (user?.onboarding_completed) {
-    router.push('/dashboard');
-    return null;
-  }
+  if (redirectTo) return null;
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
