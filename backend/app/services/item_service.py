@@ -431,32 +431,61 @@ class ItemService:
         notes: str | None = None,
         outfit_id: UUID | None = None,
     ) -> ItemHistory:
-        # Create history entry
-        history = ItemHistory(
-            item_id=item.id,
-            outfit_id=outfit_id,
-            worn_at=worn_at,
-            occasion=occasion,
-            notes=notes,
+        [history] = await self.record_wears(
+            item.user_id, [item.id], worn_at, occasion=occasion, notes=notes, outfit_id=outfit_id
         )
-        self.db.add(history)
-
-        # Update item stats
-        item.wear_count += 1
-        item.last_worn_at = worn_at
-
-        # Update wash tracking
-        item.wears_since_wash += 1
-        effective_interval = (
-            item.wash_interval
-            if item.wash_interval is not None
-            else DEFAULT_WASH_INTERVALS.get(item.type, 3)
-        )
-        item.needs_wash = item.wears_since_wash >= effective_interval
-
-        await self.db.flush()
-        await self.db.refresh(history)
         return history
+
+    # Every wear, logged on an item or by wearing an outfit, goes through here so that the
+    # counters, wash tracking and the item's wear history cannot disagree.
+    async def record_wears(
+        self,
+        user_id: UUID,
+        item_ids: list[UUID],
+        worn_at: date,
+        *,
+        occasion: str | None = None,
+        notes: str | None = None,
+        outfit_id: UUID | None = None,
+    ) -> list[ItemHistory]:
+        result = await self.db.execute(
+            select(ClothingItem).where(
+                ClothingItem.id.in_(item_ids), ClothingItem.user_id == user_id
+            )
+        )
+        histories = []
+        for item in result.scalars().all():
+            effective_interval = (
+                item.wash_interval
+                if item.wash_interval is not None
+                else DEFAULT_WASH_INTERVALS.get(item.type, 3)
+            )
+            # Updated in SQL so that concurrent wears both count, and last_worn_at only moves
+            # forward when an older wear is logged late.
+            await self.db.execute(
+                update(ClothingItem)
+                .where(ClothingItem.id == item.id)
+                .values(
+                    wear_count=ClothingItem.wear_count + 1,
+                    last_worn_at=func.greatest(
+                        func.coalesce(ClothingItem.last_worn_at, worn_at), worn_at
+                    ),
+                    wears_since_wash=ClothingItem.wears_since_wash + 1,
+                    needs_wash=ClothingItem.wears_since_wash + 1 >= effective_interval,
+                )
+            )
+            history = ItemHistory(
+                item_id=item.id,
+                outfit_id=outfit_id,
+                worn_at=worn_at,
+                occasion=occasion,
+                notes=notes,
+            )
+            self.db.add(history)
+            histories.append(history)
+            self.db.expire(item)
+        await self.db.flush()
+        return histories
 
     async def log_wash(
         self,
