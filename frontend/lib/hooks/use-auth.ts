@@ -7,6 +7,7 @@ import { api, ApiError } from '@/lib/api';
 import { applySessionToken } from '@/lib/hooks/use-session-token';
 import type { UserProfile } from './use-user';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { SLOW_STALE_TIME } from '@/lib/hooks/query-timing';
 
 export function useAuth() {
   const { data: session, status } = useSession();
@@ -23,7 +24,7 @@ export function useAuth() {
     // Only fetch when session is loaded AND we have an access token
     enabled: status === 'authenticated' && hasToken,
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: SLOW_STALE_TIME,
     refetchOnWindowFocus: false,
   });
 
