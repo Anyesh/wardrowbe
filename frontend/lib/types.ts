@@ -166,32 +166,7 @@ export interface Preferences {
   ai_endpoints: AIEndpoint[];
 }
 
-// Color options for the app
-// Hex values tuned for typical clothing colors, not pure/saturated colors
-export const CLOTHING_COLORS = [
-  { name: 'Black', value: 'black', hex: '#1a1a1a' },
-  { name: 'Charcoal', value: 'charcoal', hex: '#36454F' },
-  { name: 'Gray', value: 'gray', hex: '#808080' },
-  { name: 'White', value: 'white', hex: '#FAFAFA' },
-  { name: 'Cream', value: 'cream', hex: '#F5F5DC' },
-  { name: 'Beige', value: 'beige', hex: '#D4C4A8' },
-  { name: 'Tan', value: 'tan', hex: '#C9B896' },
-  { name: 'Khaki', value: 'khaki', hex: '#A89F6B' },
-  { name: 'Olive', value: 'olive', hex: '#707B52' },
-  { name: 'Army Green', value: 'army-green', hex: '#5B6340' },
-  { name: 'Green', value: 'green', hex: '#4A7C59' },
-  { name: 'Teal', value: 'teal', hex: '#367588' },
-  { name: 'Navy', value: 'navy', hex: '#1B2A4A' },
-  { name: 'Blue', value: 'blue', hex: '#4A7DB8' },
-  { name: 'Brown', value: 'brown', hex: '#8B5A3C' },
-  { name: 'Dark Brown', value: 'dark-brown', hex: '#5C4033' },
-  { name: 'Burgundy', value: 'burgundy', hex: '#722F37' },
-  { name: 'Red', value: 'red', hex: '#C44536' },
-  { name: 'Pink', value: 'pink', hex: '#E8A0B0' },
-  { name: 'Purple', value: 'purple', hex: '#6B5B7A' },
-  { name: 'Yellow', value: 'yellow', hex: '#D4A84B' },
-  { name: 'Orange', value: 'orange', hex: '#D2691E' },
-] as const;
+export { CLOTHING_COLORS } from '@/lib/generated/garment-vocabulary';
 
 // Picker order is alphabetical by value. The values come from the generated vocabulary, so the
 // labels are not stored here: they are translated from constants.types at render time.

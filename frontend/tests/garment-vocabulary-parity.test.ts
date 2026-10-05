@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import constants from '@/messages/en/constants.json';
 import {
+  CLOTHING_COLORS,
+  COLOR_ALIASES,
   FORMALITY_VALUES,
   ITEM_ROLE,
   MATERIAL_VALUES,
@@ -17,11 +19,13 @@ const vocabulary = JSON.parse(readFileSync(VOCABULARY_PATH, 'utf8')) as {
   materials: string[];
   formality: string[];
   occasions: Array<{ value: string; formality?: string[] }>;
+  colors: Array<{ value: string; hex: string }>;
+  color_aliases: Record<string, string>;
 };
 
 const MESSAGES_PATH = resolve(__dirname, '..', 'messages');
-const occasionLabels = (locale: string): Record<string, string> =>
-  JSON.parse(readFileSync(resolve(MESSAGES_PATH, locale, 'constants.json'), 'utf8')).occasions ?? {};
+const constantLabels = (locale: string, group: 'occasions' | 'colors'): Record<string, string> =>
+  JSON.parse(readFileSync(resolve(MESSAGES_PATH, locale, 'constants.json'), 'utf8'))[group] ?? {};
 
 const sorted = (values: Iterable<string>) => Array.from(values).sort();
 
@@ -32,6 +36,16 @@ describe('garment vocabulary', () => {
     expect([...MATERIAL_VALUES]).toEqual(vocabulary.materials);
     expect([...FORMALITY_VALUES]).toEqual(vocabulary.formality);
     expect([...OCCASION_VALUES]).toEqual(vocabulary.occasions.map((o) => o.value));
+    expect(CLOTHING_COLORS).toEqual(vocabulary.colors);
+    expect(COLOR_ALIASES).toEqual(vocabulary.color_aliases);
+  });
+
+  it('gives every stored colour a six-digit hex swatch', () => {
+    expect(CLOTHING_COLORS.filter((c) => !/^#[0-9A-Fa-f]{6}$/.test(c.hex))).toEqual([]);
+  });
+
+  it.each(SUPPORTED_LOCALES)('labels exactly the stored colours in %s', (locale) => {
+    expect(sorted(Object.keys(constantLabels(locale, 'colors')))).toEqual(sorted(CLOTHING_COLORS.map((c) => c.value)));
   });
 
   it('features only occasions the backend accepts', () => {
@@ -40,7 +54,7 @@ describe('garment vocabulary', () => {
   });
 
   it.each(SUPPORTED_LOCALES)('labels exactly the vocabulary occasions in %s', (locale) => {
-    expect(sorted(Object.keys(occasionLabels(locale)))).toEqual(sorted(OCCASION_VALUES));
+    expect(sorted(Object.keys(constantLabels(locale, 'occasions')))).toEqual(sorted(OCCASION_VALUES));
   });
 
   it('has exactly one English label per type, material, formality and role', () => {

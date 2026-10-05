@@ -18,6 +18,15 @@ OCCASION_FORMALITY: dict[str, tuple[str, ...]] = {
     for entry in _DATA["occasions"]
     if "formality" in entry
 }
+COLORS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["colors"])
+COLOR_ALIASES: dict[str, str] = dict(_DATA["color_aliases"])
+
+
+def normalize_color(name: str) -> str | None:
+    key = name.strip().lower()
+    if key in COLORS:
+        return key
+    return COLOR_ALIASES.get(key)
 
 
 def render_tagging_prompt(template: str) -> str:
@@ -25,4 +34,5 @@ def render_tagging_prompt(template: str) -> str:
         template.replace("<<TYPES>>", ", ".join(TYPES))
         .replace("<<MATERIALS>>", ", ".join(MATERIALS))
         .replace("<<FORMALITY>>", ", ".join(FORMALITY))
+        .replace("<<COLORS>>", ", ".join(COLORS))
     )

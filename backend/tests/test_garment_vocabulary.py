@@ -3,7 +3,13 @@ import re
 import pytest
 
 from app.schemas.item import DEFAULT_WASH_INTERVALS
-from app.services.ai_service import TAGGING_PROMPT, VALID_FORMALITY, VALID_MATERIALS, VALID_TYPES
+from app.services.ai_service import (
+    TAGGING_PROMPT,
+    VALID_COLORS,
+    VALID_FORMALITY,
+    VALID_MATERIALS,
+    VALID_TYPES,
+)
 from app.services.item_scorer import (
     FORMALITY_ORDER,
     HEAVY_LAYER_MATERIALS,
@@ -15,10 +21,13 @@ from app.services.item_scorer import (
 from app.services.pairing_service import PAIRING_OCCASION
 from app.utils.clothing import _CANONICAL_ROLE_ORDER, ITEM_ROLE
 from app.utils.garment_vocabulary import (
+    COLOR_ALIASES,
+    COLORS,
     FORMALITY,
     MATERIALS,
     OCCASIONS,
     TYPES,
+    normalize_color,
     render_tagging_prompt,
 )
 from app.utils.prompts import load_prompt
@@ -35,6 +44,7 @@ def test_vocabulary_entries_are_unique():
     assert len(set(MATERIALS)) == len(MATERIALS)
     assert len(set(FORMALITY)) == len(FORMALITY)
     assert len(set(OCCASIONS)) == len(OCCASIONS)
+    assert len(set(COLORS)) == len(COLORS)
 
 
 def test_every_type_has_a_known_role_and_a_positive_wash_interval():
@@ -44,7 +54,7 @@ def test_every_type_has_a_known_role_and_a_positive_wash_interval():
 
 def test_prompt_template_tokens_are_all_rendered():
     template = load_prompt("clothing_analysis")
-    for token in ("<<TYPES>>", "<<MATERIALS>>", "<<FORMALITY>>"):
+    for token in ("<<TYPES>>", "<<MATERIALS>>", "<<FORMALITY>>", "<<COLORS>>"):
         assert token in template
     assert "<<" not in render_tagging_prompt(template)
 
@@ -58,7 +68,11 @@ def test_type_lists_agree():
 
 @pytest.mark.parametrize(
     ("heading", "vocabulary"),
-    [("MATERIAL", VALID_MATERIALS), ("FORMALITY", VALID_FORMALITY)],
+    [
+        ("MATERIAL", VALID_MATERIALS),
+        ("FORMALITY", VALID_FORMALITY),
+        ("PRIMARY_COLOR", VALID_COLORS),
+    ],
 )
 def test_prompt_offers_exactly_the_validated_vocabulary(heading, vocabulary):
     assert _prompt_options(heading) == vocabulary
@@ -102,3 +116,41 @@ def test_scorer_occasion_formality_comes_from_the_vocabulary():
     }  # fmt: skip
     assert set(OCCASION_FORMALITY) <= set(OCCASIONS)
     assert OCCASION_FORMALITY["formal"] == ("business-casual", "formal", "very-formal")
+
+
+# The colours the tagger validated before the vocabulary owned them. Dropping one would orphan the
+# items already stored with it, so a removal needs a data migration, not just a vocabulary edit.
+PRE_VOCABULARY_COLORS = {
+    "black", "white", "gray", "navy", "blue", "light-blue", "red", "burgundy", "pink", "green",
+    "olive", "yellow", "orange", "purple", "brown", "tan", "beige", "cream", "gold", "silver",
+}  # fmt: skip
+
+
+def test_stored_colors_are_the_set_the_tagger_validated():
+    assert set(COLORS) == PRE_VOCABULARY_COLORS
+    assert set(COLORS) == VALID_COLORS
+
+
+def test_color_aliases_resolve_to_stored_colors():
+    assert set(COLOR_ALIASES.values()) <= set(COLORS)
+    assert not set(COLOR_ALIASES) & set(COLORS)
+    assert all(alias == alias.lower().strip() for alias in COLOR_ALIASES)
+
+
+@pytest.mark.parametrize(
+    ("name", "stored"),
+    [
+        ("charcoal", "gray"),
+        ("khaki", "tan"),
+        ("teal", "blue"),
+        ("army-green", "olive"),
+        ("dark-brown", "brown"),
+        (" Grey ", "gray"),
+        ("light-blue", "light-blue"),
+        ("gold", "gold"),
+        ("chartreuse", None),
+        ("", None),
+    ],
+)
+def test_normalize_color(name, stored):
+    assert normalize_color(name) == stored
