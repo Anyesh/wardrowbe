@@ -15,7 +15,7 @@ const quote = (value) => `'${value}'`;
 const key = (value) => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(value) ? value : quote(value));
 const list = (values) => `[${values.map(quote).join(', ')}] as const`;
 
-function render({ types, materials, formality, occasions, colors, color_aliases: colorAliases }) {
+function render({ roles: roleOrder, types, materials, formality, occasions, colors, color_aliases: colorAliases }) {
   const roles = types.map(({ value, role }) => `  ${key(value)}: ${quote(role)},`).join('\n');
   const swatches = colors.map(({ value, hex }) => `  { value: ${quote(value)}, hex: ${quote(hex)} },`).join('\n');
   const aliases = Object.entries(colorAliases)
@@ -28,6 +28,7 @@ function render({ types, materials, formality, occasions, colors, color_aliases:
     `export const MATERIAL_VALUES = ${list(materials)};`,
     `export const FORMALITY_VALUES = ${list(formality)};`,
     `export const OCCASION_VALUES = ${list(occasions.map((o) => o.value))};`,
+    `export const ROLE_VALUES = ${list(roleOrder)};`,
     '',
     'export const ITEM_ROLE: Record<string, string> = {',
     roles,

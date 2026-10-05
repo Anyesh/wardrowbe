@@ -1,19 +1,8 @@
-import { ITEM_ROLE } from '@/lib/generated/garment-vocabulary';
+import { ITEM_ROLE, ROLE_VALUES } from '@/lib/generated/garment-vocabulary';
 
 export { ITEM_ROLE };
 
-export const CANONICAL_ROLE_ORDER = [
-  'full_body',
-  'base_top',
-  'mid_layer',
-  'suit',
-  'outer_layer',
-  'bottom',
-  'footwear',
-  'socks',
-  'neckwear',
-  'accessory',
-] as const;
+export const CANONICAL_ROLE_ORDER = ROLE_VALUES;
 
 // A suit takes its own slot rather than outer_layer so an overcoat can still go over it.
 const ROLE_SLOTS: Record<string, readonly string[]> = {
