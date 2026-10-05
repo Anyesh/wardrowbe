@@ -441,6 +441,35 @@ class TestInviteRequiresVerifiedEmail:
         assert (test_user.family_id == family.id) is (expected_status == 200)
 
 
+class TestDetachedAccount:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("path", "email_of"),
+        [
+            pytest.param("/api/v1/auth/session", lambda body: body["email"], id="session"),
+            pytest.param(
+                "/api/v1/families/me", lambda body: body["members"][0]["email"], id="family"
+            ),
+        ],
+    )
+    async def test_reads_return_the_placeholder_address(
+        self, client, db_session, test_user, auth_headers, path, email_of
+    ):
+        family = Family(name="Family", created_by=test_user.id, invite_code=uuid4().hex[:12])
+        db_session.add(family)
+        await db_session.flush()
+        placeholder = f"{test_user.id}@detached.invalid"
+        test_user.family_id = family.id
+        test_user.email = placeholder
+        test_user.email_verified = False
+        await db_session.flush()
+
+        response = await client.get(path, headers=auth_headers)
+
+        assert response.status_code == 200
+        assert email_of(response.json()) == placeholder
+
+
 class TestDevModeAuthDecoupledFromSecretKey:
     def test_get_auth_mode_dev_with_custom_secret_key(self):
         settings = Settings(debug=True, secret_key="a-strong-custom-secret")
