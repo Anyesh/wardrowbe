@@ -72,13 +72,14 @@ source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 
 # Install dependencies
 pip install -r requirements.txt
+pip install pre-commit
 
 # Run tests
 pytest
 
-# Run linting
-ruff check .
-ruff format .
+# Run linting from the repository root
+(cd .. && pre-commit run ruff-check --all-files)
+(cd .. && pre-commit run ruff-format --all-files)
 ```
 
 ### Frontend Development
