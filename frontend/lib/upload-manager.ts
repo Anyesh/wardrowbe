@@ -13,10 +13,12 @@ import {
   type QueuedUpload,
 } from '@/lib/upload-queue';
 import {
+  bulkUploadLimitFromDetail,
   mergeBulkUploadResponses,
   type BulkUploadErrorCode,
   type BulkUploadResponse,
 } from '@/lib/hooks/use-items';
+import { fetchBulkUploadLimit } from '@/lib/hooks/use-features';
 import { queryKeys } from '@/lib/hooks/query-keys';
 
 // A flat file-count chunk (previously 20) doesn't account for file size: 20
@@ -30,7 +32,6 @@ const BULK_UPLOAD_CHUNK_SIZE = 8;
 const BULK_UPLOAD_MAX_BYTES = 15 * 1024 * 1024;
 const MAX_ATTEMPTS = 5;
 const RETRY_BACKOFF_BASE_MS = 5000;
-const BULK_LIMIT_ERROR = /^Maximum (\d+) images per bulk upload$/;
 
 class BulkLimitExceededError extends Error {
   constructor(public readonly limit: number) {
@@ -57,12 +58,11 @@ function isRetryable(errorCode: BulkUploadErrorCode | null): boolean {
   return errorCode === null || !PERMANENT_ERROR_CODES.has(errorCode);
 }
 
-// The server's configured max_bulk_upload_count (admin-tunable, self-hosted)
-// isn't exposed to the client, so a chunk sized for the default of 20 gets
-// the WHOLE request rejected - not just the excess files - on an instance
-// where an admin lowered it below 20. Cached at module scope so once the
-// real limit is learned, later drain passes stop re-discovering it via a
-// failed request on every pass.
+// The server's max_bulk_upload_count (admin-tunable, self-hosted) rejects the
+// WHOLE request, not just the excess files, when a chunk exceeds it. Each
+// drain pass caps chunks at the limit /health/features reports; when that is
+// unavailable, the limit is learned from the 400 and cached here at module
+// scope so later passes stop re-discovering it via a failed request.
 let effectiveChunkSize = BULK_UPLOAD_CHUNK_SIZE;
 
 export interface TerminalRecord {
@@ -165,10 +165,9 @@ async function uploadChunk(chunk: QueuedUpload[]): Promise<BulkUploadResponse> {
     }
     if (response.status === 400) {
       const body = await response.json().catch(() => null);
-      const match =
-        typeof body?.detail === 'string' ? body.detail.match(BULK_LIMIT_ERROR) : null;
-      if (match) {
-        throw new BulkLimitExceededError(Number(match[1]));
+      const limit = bulkUploadLimitFromDetail(body?.detail);
+      if (limit !== null) {
+        throw new BulkLimitExceededError(limit);
       }
     }
     throw new Error(`Bulk upload request failed with status ${response.status}`);
@@ -220,10 +219,12 @@ async function drainOnce(): Promise<boolean> {
   // rather than threading a per-file flag through the endpoint.
   const skipAi = actionable[0].skipAi;
   const matching = actionable.filter((r) => r.skipAi === skipAi);
+  const serverLimit = queryClient ? await fetchBulkUploadLimit(queryClient) : null;
+  const maxFiles = Math.min(effectiveChunkSize, serverLimit ?? effectiveChunkSize);
   const chunk: QueuedUpload[] = [];
   let chunkBytes = 0;
   for (const record of matching) {
-    if (chunk.length >= effectiveChunkSize) break;
+    if (chunk.length >= maxFiles) break;
     // Always take at least one file, even if it alone exceeds the budget -
     // a single oversized file must still make progress, not stall forever.
     if (chunk.length > 0 && chunkBytes + record.size > BULK_UPLOAD_MAX_BYTES) break;
