@@ -39,6 +39,8 @@ import { useSchedules, useNotificationSettings } from '@/lib/hooks/use-notificat
 import { useFamily } from '@/lib/hooks/use-family';
 import { toast } from 'sonner';
 import { formatShortDate } from '@/lib/utils';
+import { findNextSchedule } from '@/lib/schedules';
+import { useUserTimezone } from '@/lib/hooks/use-user';
 
 function WeatherCard() {
   const { data: weather, isLoading, isError } = useWeather();
@@ -262,41 +264,15 @@ function PendingOutfitsCard() {
 
 function NextScheduledCard() {
   const { data: schedules, isLoading } = useSchedules();
+  const timezone = useUserTimezone();
   const t = useTranslations('dashboard');
   const tDays = useTranslations('notifications');
   const occasionLabel = useOccasionLabel();
 
-  const nextSchedule = useMemo(() => {
-    if (!schedules || schedules.length === 0) return null;
-
-    const enabledSchedules = schedules.filter((s) => s.enabled);
-    if (enabledSchedules.length === 0) return null;
-
-    const now = new Date();
-    const currentDay = now.getDay();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-
-    // Find the next scheduled notification
-    let closest: { schedule: typeof enabledSchedules[0]; daysUntil: number; minutesUntil: number } | null = null;
-
-    for (const schedule of enabledSchedules) {
-      const [hours, minutes] = schedule.notification_time.split(':').map(Number);
-      const scheduleMinutes = hours * 60 + minutes;
-
-      let daysUntil = schedule.day_of_week - currentDay;
-      if (daysUntil < 0 || (daysUntil === 0 && scheduleMinutes <= currentTime)) {
-        daysUntil += 7;
-      }
-
-      const minutesUntil = daysUntil === 0 ? scheduleMinutes - currentTime : scheduleMinutes;
-
-      if (!closest || daysUntil < closest.daysUntil || (daysUntil === closest.daysUntil && minutesUntil < closest.minutesUntil)) {
-        closest = { schedule, daysUntil, minutesUntil };
-      }
-    }
-
-    return closest;
-  }, [schedules]);
+  const nextSchedule = useMemo(
+    () => (schedules ? findNextSchedule(schedules, timezone) : null),
+    [schedules, timezone]
+  );
 
   if (isLoading) {
     return (
