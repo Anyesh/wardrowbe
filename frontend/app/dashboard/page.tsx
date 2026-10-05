@@ -30,6 +30,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
+import { useAnalyticsInsightLines } from '@/lib/hooks/use-insight-text';
 import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
 import { useOccasionLabel, useWeatherConditionLabel } from '@/lib/hooks/use-translated-constants';
@@ -486,6 +487,7 @@ function InsightsCard() {
   const { data: analytics, isLoading } = useAnalytics();
   const t = useTranslations('dashboard');
   const tc = useTranslations('common');
+  const insights = useAnalyticsInsightLines(analytics);
 
   if (isLoading) {
     return (
@@ -505,8 +507,6 @@ function InsightsCard() {
       </Card>
     );
   }
-
-  const insights = analytics?.insights || [];
 
   return (
     <Card>

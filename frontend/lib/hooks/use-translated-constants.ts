@@ -87,6 +87,10 @@ export function useOccasionLabel() {
   return useCatalogLabel(useTranslations('constants.occasions'));
 }
 
+export function useStyleLabel() {
+  return useCatalogLabel(useTranslations('constants.styles'));
+}
+
 export function useColorLabel() {
   return useCatalogLabel(useTranslations('constants.colors'));
 }

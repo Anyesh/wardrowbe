@@ -1,4 +1,14 @@
 {
+  "insightColorHeavy": "你的衣橱以{color}为主（{percent}），不妨增加一些其他颜色！",
+  "insightGreatTaste": "品味不错！你采纳了 {percent} 的推荐。",
+  "insightLimitedColors": "你的衣橱颜色比较单一，试试新的颜色吧！",
+  "insightManyRejections": "你拒绝了不少推荐，可以更新一下风格偏好。",
+  "insightMoreBottomsThanTops": "你的下装比上装多，可以添加几件衬衫！",
+  "insightMoreTopsThanBottoms": "你的上装比下装多得多，可以添加一些裤子或半身裙！",
+  "insightMostlyLayers": "你的上装大多是开衫、马甲这类叠穿单品，再添几件内搭基础款吧！",
+  "insightNeverWorn": "{count, plural, one {你有 # 件单品从未穿过，试着搭配一下吧！} other {你有 # 件单品从未穿过，试着搭配一下吧！}}",
+  "insightNoOutfitsThisWeek": "本周你还没有生成过穿搭，去获取一套推荐吧！",
+  "insightStartAdding": "先往衣橱里添加一些单品吧！",
   "insights": {
     "acceptanceTrend": {
       "description": "你对建议的反馈变化",
