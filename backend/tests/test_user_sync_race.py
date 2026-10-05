@@ -22,28 +22,36 @@ async def _wait_until_blocked_by(session_maker, waiter_pid: int, holder_pid: int
     raise AssertionError("second sync never blocked on the first sync's uncommitted insert")
 
 
-async def _race_two_first_syncs(
+async def _race(
     session_maker,
     first: UserSyncRequest,
     second: UserSyncRequest,
     *,
+    first_verified: bool = True,
     second_verified: bool = True,
 ):
     async with session_maker() as session_a, session_maker() as session_b:
         pid_a = await session_a.scalar(text("SELECT pg_backend_pid()"))
         pid_b = await session_b.scalar(text("SELECT pg_backend_pid()"))
-        user_a, new_a = await UserService(session_a).sync_from_oidc(first, email_verified=True)
+        first_result = await UserService(session_a).sync_from_oidc(
+            first, email_verified=first_verified
+        )
         task_b = asyncio.create_task(
             UserService(session_b).sync_from_oidc(second, email_verified=second_verified)
         )
         try:
             await _wait_until_blocked_by(session_maker, pid_b, pid_a)
             await session_a.commit()
-            user_b, new_b = await task_b
+            try:
+                second_result = await task_b
+            except UserEmailConflictError as e:
+                second_result = e
         finally:
             task_b.cancel()
+        # Reading through the second session proves a conflict left its transaction usable.
+        emails = dict((await session_b.execute(select(User.external_id, User.email))).all())
         await session_b.commit()
-    return (user_a, new_a), (user_b, new_b)
+    return first_result, second_result, emails
 
 
 async def _cleanup(session_maker, *conditions):
@@ -59,7 +67,7 @@ async def test_concurrent_first_sync_for_same_identity_creates_one_user(session_
         external_id=external_id, email=f"{external_id}@example.com", display_name="Race"
     )
     try:
-        (user_a, new_a), (user_b, new_b) = await _race_two_first_syncs(session_maker, sync, sync)
+        (user_a, new_a), (user_b, new_b), _ = await _race(session_maker, sync, sync)
 
         async with session_maker() as check:
             rows = await check.scalar(
@@ -80,7 +88,7 @@ async def test_concurrent_first_sync_with_same_email_adopts_the_committed_user(s
     first = UserSyncRequest(external_id=f"dev-{uuid4()}", email=email, display_name="First")
     second = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Second")
     try:
-        (user_a, _), (user_b, new_b) = await _race_two_first_syncs(session_maker, first, second)
+        (user_a, _), (user_b, new_b), _ = await _race(session_maker, first, second)
 
         async with session_maker() as check:
             users = (await check.scalars(select(User).where(User.email == email))).all()
@@ -98,14 +106,14 @@ async def test_concurrent_first_sync_refuses_adoption_when_not_allowed(session_m
     first = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Owner")
     second = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Attacker")
     try:
-        with pytest.raises(UserEmailConflictError):
-            await _race_two_first_syncs(session_maker, first, second, second_verified=False)
+        _, conflict, _ = await _race(session_maker, first, second, second_verified=False)
 
         async with session_maker() as check:
             users = (await check.scalars(select(User).where(User.email == email))).all()
     finally:
         await _cleanup(session_maker, User.email == email)
 
+    assert isinstance(conflict, UserEmailConflictError)
     assert [(u.external_id, u.display_name) for u in users] == [(first.external_id, "Owner")]
 
 
@@ -227,26 +235,6 @@ async def _commit_users(session_maker, *users: User):
         await setup.commit()
 
 
-async def _race_conflicting_syncs(session_maker, first: UserSyncRequest, second: UserSyncRequest):
-    async with session_maker() as session_a, session_maker() as session_b:
-        pid_a = await session_a.scalar(text("SELECT pg_backend_pid()"))
-        pid_b = await session_b.scalar(text("SELECT pg_backend_pid()"))
-        await UserService(session_a).sync_from_oidc(first, email_verified=True)
-        task_b = asyncio.create_task(
-            UserService(session_b).sync_from_oidc(second, email_verified=True)
-        )
-        try:
-            await _wait_until_blocked_by(session_maker, pid_b, pid_a)
-            await session_a.commit()
-            with pytest.raises(UserEmailConflictError):
-                await task_b
-        finally:
-            task_b.cancel()
-        emails = (await session_b.execute(select(User.external_id, User.email))).all()
-        await session_b.commit()
-    return dict(emails)
-
-
 @pytest.mark.asyncio
 async def test_concurrent_email_changes_to_same_address_conflict_cleanly(session_maker):
     run = uuid4()
@@ -255,7 +243,7 @@ async def test_concurrent_email_changes_to_same_address_conflict_cleanly(session
     second = User(external_id=f"b-{run}", email=f"b-{run}@example.com", display_name="B")
     await _commit_users(session_maker, first, second)
     try:
-        emails = await _race_conflicting_syncs(
+        _, conflict, emails = await _race(
             session_maker,
             UserSyncRequest(external_id=first.external_id, email=target, display_name="A"),
             UserSyncRequest(external_id=second.external_id, email=target, display_name="B"),
@@ -263,6 +251,7 @@ async def test_concurrent_email_changes_to_same_address_conflict_cleanly(session
     finally:
         await _cleanup(session_maker, User.external_id.in_([first.external_id, second.external_id]))
 
+    assert isinstance(conflict, UserEmailConflictError)
     assert emails[first.external_id] == target
     assert emails[second.external_id] == f"b-{run}@example.com"
 
@@ -281,7 +270,7 @@ async def test_adoption_racing_a_first_sign_in_of_the_same_identity_conflicts_cl
     )
     await _commit_users(session_maker, existing)
     try:
-        emails = await _race_conflicting_syncs(
+        _, conflict, emails = await _race(
             session_maker,
             UserSyncRequest(
                 external_id=external_id, email=f"fresh-{run}@example.com", display_name="Fresh"
@@ -295,5 +284,6 @@ async def test_adoption_racing_a_first_sign_in_of_the_same_identity_conflicts_cl
             User.email == existing.email,
         )
 
+    assert isinstance(conflict, UserEmailConflictError)
     assert emails[existing.external_id] == existing.email
     assert emails[external_id] == f"fresh-{run}@example.com"
