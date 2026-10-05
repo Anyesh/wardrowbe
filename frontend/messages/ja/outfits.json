@@ -38,6 +38,7 @@
     "pairing": "ペアリング",
     "replacement": "差し替え",
     "studio": "スタジオ",
+    "woreInsteadFallback": "{occasion}(代わりに着用)",
     "worn": "着用済み"
   },
   "cloneToLookbook": {

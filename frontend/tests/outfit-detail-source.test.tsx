@@ -13,11 +13,12 @@ vi.mock('next/navigation', () => ({
 }))
 
 const outfit = vi.hoisted(() => ({
+  replaces_outfit_id: null as string | null,
   id: 'o1',
   scheduled_for: '2026-10-05',
   source: 'on_demand',
   occasion: 'casual',
-  name: 'Look',
+  name: 'Look' as string | null,
   items: [],
   feedback: null,
 }))
@@ -60,5 +61,23 @@ describe('outfit detail source label', () => {
     )
     expect(screen.getByText(de.history.sourceBadges.onDemand)).toBeInTheDocument()
     expect(screen.queryByText('on demand')).not.toBeInTheDocument()
+  })
+
+  it('shows the translated wore-instead title for an unnamed replacement', () => {
+    outfit.name = null
+    outfit.replaces_outfit_id = 'o0'
+    const de = {
+      outfits: messages('de', 'outfits'),
+      common: messages('de', 'common'),
+      history: messages('de', 'history'),
+    }
+    render(
+      <NextIntlClientProvider locale="de" messages={de} onError={() => {}}>
+        <OutfitDetailPage />
+      </NextIntlClientProvider>,
+    )
+    expect(screen.getByRole('heading', { name: 'casual (stattdessen getragen)' })).toBeInTheDocument()
+    outfit.name = 'Look'
+    outfit.replaces_outfit_id = null
   })
 })
