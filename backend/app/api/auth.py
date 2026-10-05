@@ -48,11 +48,7 @@ def create_access_token(external_id: str, expires_delta: timedelta | None = None
 
 
 def _is_dev_mode() -> bool:
-    return settings.debug and not settings.forward_auth_configured and not _oidc_configured()
-
-
-def _oidc_configured() -> bool:
-    return bool(settings.oidc_issuer_url and settings.oidc_client_id)
+    return settings.debug and not settings.forward_auth_configured and not settings.oidc_configured
 
 
 MOBILE_APP_SCHEME = "wardrowbe"
@@ -74,7 +70,7 @@ async def mobile_oidc_callback(request: Request) -> RedirectResponse:
 
 @router.get("/config", response_model=AuthConfigResponse)
 async def get_auth_config() -> AuthConfigResponse:
-    oidc_enabled = _oidc_configured()
+    oidc_enabled = settings.oidc_configured
     forward_auth = settings.forward_auth_configured
     return AuthConfigResponse(
         oidc=AuthConfigOIDC(
@@ -227,7 +223,7 @@ async def _body_identity(sync_data: UserSyncRequest | None) -> tuple[UserSyncReq
                 detail="email is required",
             )
         return sync_data, True
-    if _oidc_configured():
+    if settings.oidc_configured:
         return await _oidc_identity(sync_data)
     if settings.forward_auth_configured:
         raise HTTPException(
@@ -252,7 +248,7 @@ async def sync_user(
     oidc_sync_through_proxy = (
         sync_data is not None
         and bool(sync_data.id_token)
-        and _oidc_configured()
+        and settings.oidc_configured
         and not request.headers.get("Remote-User")
     )
     if presented_secret is not None and not oidc_sync_through_proxy:

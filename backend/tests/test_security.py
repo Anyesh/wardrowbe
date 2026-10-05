@@ -336,13 +336,13 @@ class TestHealthEndpointInfoLeak:
 def oidc_claims():
     with (
         patch("app.api.auth._is_dev_mode", return_value=False),
-        patch("app.api.auth._oidc_configured", return_value=True),
         patch("app.api.auth.validate_oidc_id_token") as validate,
         patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
         patch("app.api.auth.settings") as mock_settings,
     ):
         mock_settings.oidc_issuer_url = "https://auth.example.com"
         mock_settings.oidc_client_id = "test-client"
+        mock_settings.oidc_configured = True
         mock_settings.oidc_mobile_client_id = None
         mock_settings.secret_key = "test-secret"
         yield validate
@@ -724,3 +724,20 @@ class TestDefaultSecretKeyWithRealAuth:
         settings = Settings(debug=False, secret_key=DEFAULT_SECRET_KEY)
         with pytest.raises(RuntimeError, match="SECRET_KEY"):
             settings.validate_security()
+
+
+class TestOidcConfigured:
+    @pytest.mark.parametrize(
+        ("issuer", "client_id", "expected"),
+        [
+            ("https://auth.example.com", "test-client", True),
+            ("https://auth.example.com", None, False),
+            (None, "test-client", False),
+            (None, None, False),
+        ],
+    )
+    def test_needs_both_issuer_and_client_id(self, issuer, client_id, expected):
+        settings = Settings(
+            secret_key="a-strong-custom-secret", oidc_issuer_url=issuer, oidc_client_id=client_id
+        )
+        assert settings.oidc_configured is expected
