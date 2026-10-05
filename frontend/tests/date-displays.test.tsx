@@ -56,6 +56,8 @@ const CASES = [
   },
 ]
 
+const TODAY = { en: 'today', de: 'heute', ja: '今日' }
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(2026, 9, 5, 12))
@@ -95,5 +97,12 @@ describe.each(CASES)('date displays under $locale', ({ locale, heading, emptyDat
     const outfit = { ...calendarOutfits.outfits[0], scheduled_for: '2026-10-08', name: 'n', items: [] }
     render(<OutfitCard outfit={outfit as unknown as Outfit} />)
     expect(screen.getByText(relative)).toBeInTheDocument()
+  })
+
+  it('counts the outfit card date from the profile today, not the browser day', () => {
+    vi.setSystemTime(new Date(2026, 9, 9, 12))
+    const outfit = { ...calendarOutfits.outfits[0], scheduled_for: '2026-10-05', name: 'n', items: [] }
+    render(<OutfitCard outfit={outfit as unknown as Outfit} />)
+    expect(screen.getByText(TODAY[locale as keyof typeof TODAY])).toBeInTheDocument()
   })
 })

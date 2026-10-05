@@ -118,9 +118,10 @@ function calendarDayNumber(date: Date): number {
   return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / MS_PER_DAY;
 }
 
-// Calendar-day granularity because callers pass date keys with no time of day.
-export function formatRelativeDate(value: string | Date, locale: string, now: Date = new Date()): string {
-  const days = calendarDayNumber(toDate(value)) - calendarDayNumber(now);
+// `today` is a date key from the user's profile timezone, not the browser clock, so that
+// "today" and "tomorrow" agree with every other date the app derives from useUserToday().
+export function formatRelativeDate(value: string | Date, locale: string, today: string): string {
+  const days = calendarDayNumber(toDate(value)) - calendarDayNumber(parseDateString(today));
   const format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   const distance = Math.abs(days);
   if (distance < 7) return format.format(days, 'day');

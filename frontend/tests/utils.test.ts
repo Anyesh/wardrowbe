@@ -7,6 +7,7 @@ import {
   formatRelativeDate,
   formatShortDate,
   formatWornAgo,
+  getTodayDateStringInTimezone,
   isDeliverableEmail,
 } from '@/lib/utils'
 
@@ -235,7 +236,7 @@ describe('date helpers', () => {
   })
 
   describe('formatRelativeDate', () => {
-    const now = new Date(2026, 9, 5, 12)
+    const today = '2026-10-05'
 
     it.each([
       ['en', ['in 3 days', '3 days ago', 'tomorrow', 'today']],
@@ -244,24 +245,29 @@ describe('date helpers', () => {
     ])('words the distance in calendar days on the %s locale', (locale, expected) => {
       expect(
         ['2026-10-08', '2026-10-02', '2026-10-06', '2026-10-05'].map((key) =>
-          formatRelativeDate(key, locale as string, now)
+          formatRelativeDate(key, locale as string, today)
         )
       ).toEqual(expected)
     })
 
     it('switches to weeks, months and years as the distance grows', () => {
-      expect(formatRelativeDate('2026-10-19', 'en', now)).toBe('in 2 weeks')
-      expect(formatRelativeDate('2026-08-05', 'en', now)).toBe('2 months ago')
-      expect(formatRelativeDate('2025-10-05', 'en', now)).toBe('last year')
+      expect(formatRelativeDate('2026-10-19', 'en', today)).toBe('in 2 weeks')
+      expect(formatRelativeDate('2026-08-05', 'en', today)).toBe('2 months ago')
+      expect(formatRelativeDate('2025-10-05', 'en', today)).toBe('last year')
     })
 
     it('counts a day across a daylight-saving change as one day', () => {
       inTimezone('America/New_York')
-      expect(formatRelativeDate('2026-03-08', 'en', new Date(2026, 2, 9, 0, 30))).toBe('yesterday')
+      expect(formatRelativeDate('2026-03-08', 'en', '2026-03-09')).toBe('yesterday')
     })
 
-    it('ignores the time of day of now', () => {
-      expect(formatRelativeDate('2026-10-06', 'en', new Date(2026, 9, 5, 23, 59))).toBe('tomorrow')
+    it('counts from the given today, not the browser day', () => {
+      inTimezone('America/Los_Angeles')
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-10-06T03:00:00Z'))
+      const today = getTodayDateStringInTimezone('America/Los_Angeles')
+      expect(formatRelativeDate('2026-10-05', 'en', today)).toBe('today')
+      expect(formatRelativeDate('2026-10-06', 'en', today)).toBe('tomorrow')
     })
   })
 })
