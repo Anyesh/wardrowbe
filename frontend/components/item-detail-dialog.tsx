@@ -65,9 +65,14 @@ import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
 import {
   useClothingTypes,
   useClothingColors,
+  useColorLabel,
+  useFitLabel,
   useFormalityLabel,
   useMaterialLabel,
   useOccasionLabel,
+  usePatternLabel,
+  useSeasonLabel,
+  useStyleLabel,
   useSubtypeLabel,
 } from '@/lib/hooks/use-translated-constants';
 import { ColorEyedropper } from '@/components/color-eyedropper';
@@ -123,6 +128,11 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const materialLabel = useMaterialLabel();
   const occasionLabel = useOccasionLabel();
   const formalityLabel = useFormalityLabel();
+  const colorLabel = useColorLabel();
+  const patternLabel = usePatternLabel();
+  const styleLabel = useStyleLabel();
+  const seasonLabel = useSeasonLabel();
+  const fitLabel = useFitLabel();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPairingsDialog, setShowPairingsDialog] = useState(false);
@@ -972,12 +982,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       {hasAiTags && <div className="flex flex-wrap gap-1.5">
                         {tags.colors?.map((color) => (
                           <Badge key={color} variant="outline" className="text-xs">
-                            {color}
+                            {colorLabel(color)}
                           </Badge>
                         ))}
                         {tags.pattern && (
                           <Badge variant="outline" className="text-xs">
-                            {tags.pattern}
+                            {patternLabel(tags.pattern)}
                           </Badge>
                         )}
                         {tags.material && (
@@ -987,12 +997,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         )}
                         {tags.style?.map((s) => (
                           <Badge key={s} variant="outline" className="text-xs">
-                            {s}
+                            {styleLabel(s)}
                           </Badge>
                         ))}
                         {tags.season?.map((s) => (
                           <Badge key={s} variant="outline" className="text-xs">
-                            {s}
+                            {seasonLabel(s)}
                           </Badge>
                         ))}
                         {tags.formality && (
@@ -1002,7 +1012,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         )}
                         {tags.fit && (
                           <Badge variant="outline" className="text-xs">
-                            {tags.fit ? t('view.fitBadge', { fit: tags.fit }) : null}
+                            {t('view.fitBadge', { fit: fitLabel(tags.fit) })}
                           </Badge>
                         )}
                       </div>}

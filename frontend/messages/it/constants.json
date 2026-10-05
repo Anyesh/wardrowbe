@@ -21,6 +21,14 @@
     "white": "Bianco",
     "yellow": "Giallo"
   },
+  "fits": {
+    "cropped": "Corto",
+    "oversized": "Oversize",
+    "regular": "Regolare",
+    "relaxed": "Morbido",
+    "slim": "Slim",
+    "tailored": "Sartoriale"
+  },
   "formalities": {
     "business-casual": "Business casual",
     "casual": "Casual",
@@ -70,6 +78,18 @@
     "weekend": "Fine settimana",
     "work": "Lavoro"
   },
+  "patterns": {
+    "animal-print": "Animalier",
+    "camouflage": "Mimetico",
+    "checkered": "A quadretti",
+    "floral": "Floreale",
+    "geometric": "Geometrico",
+    "graphic": "Grafico",
+    "plaid": "Scozzese",
+    "polka-dot": "A pois",
+    "solid": "Tinta unita",
+    "striped": "A righe"
+  },
   "roles": {
     "accessory": "Accessorio",
     "base_top": "Capo base",
@@ -82,12 +102,28 @@
     "socks": "Calzini",
     "suit": "Completo"
   },
+  "seasons": {
+    "all-season": "Tutte le stagioni",
+    "fall": "Autunno",
+    "spring": "Primavera",
+    "summer": "Estate",
+    "winter": "Inverno"
+  },
   "styles": {
+    "athletic": "Atletico",
+    "bohemian": "Bohémien",
     "bold": "Audace",
     "casual": "Casual",
+    "classic": "Classico",
+    "elegant": "Elegante",
     "formal": "Formale",
     "minimalist": "Minimalista",
-    "sporty": "Sportivo"
+    "modern": "Moderno",
+    "preppy": "Preppy",
+    "rugged": "Robusto",
+    "sporty": "Sportivo",
+    "streetwear": "Streetwear",
+    "vintage": "Vintage"
   },
   "subtypes": {
     "a-line": "Svasato",

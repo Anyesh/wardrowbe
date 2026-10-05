@@ -21,6 +21,14 @@
     "white": "白",
     "yellow": "イエロー"
   },
+  "fits": {
+    "cropped": "クロップド",
+    "oversized": "オーバーサイズ",
+    "regular": "レギュラー",
+    "relaxed": "リラックス",
+    "slim": "スリム",
+    "tailored": "テーラード"
+  },
   "formalities": {
     "business-casual": "ビジネスカジュアル",
     "casual": "カジュアル",
@@ -70,6 +78,18 @@
     "weekend": "週末",
     "work": "仕事"
   },
+  "patterns": {
+    "animal-print": "アニマル柄",
+    "camouflage": "迷彩",
+    "checkered": "チェッカー",
+    "floral": "花柄",
+    "geometric": "幾何学柄",
+    "graphic": "グラフィック",
+    "plaid": "タータンチェック",
+    "polka-dot": "ドット",
+    "solid": "無地",
+    "striped": "ストライプ"
+  },
   "roles": {
     "accessory": "アクセサリー",
     "base_top": "ベーストップス",
@@ -82,12 +102,28 @@
     "socks": "ソックス",
     "suit": "スーツ"
   },
+  "seasons": {
+    "all-season": "オールシーズン",
+    "fall": "秋",
+    "spring": "春",
+    "summer": "夏",
+    "winter": "冬"
+  },
   "styles": {
+    "athletic": "アスレチック",
+    "bohemian": "ボヘミアン",
     "bold": "ボールド",
     "casual": "カジュアル",
+    "classic": "クラシック",
+    "elegant": "エレガント",
     "formal": "フォーマル",
     "minimalist": "ミニマリスト",
-    "sporty": "スポーティ"
+    "modern": "モダン",
+    "preppy": "プレッピー",
+    "rugged": "ラギッド",
+    "sporty": "スポーティ",
+    "streetwear": "ストリート",
+    "vintage": "ヴィンテージ"
   },
   "subtypes": {
     "a-line": "Aライン",

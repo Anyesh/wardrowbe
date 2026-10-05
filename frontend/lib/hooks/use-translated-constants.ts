@@ -95,6 +95,18 @@ export function useColorLabel() {
   return useCatalogLabel(useTranslations('constants.colors'));
 }
 
+export function usePatternLabel() {
+  return useCatalogLabel(useTranslations('constants.patterns'));
+}
+
+export function useFitLabel() {
+  return useCatalogLabel(useTranslations('constants.fits'));
+}
+
+export function useSeasonLabel() {
+  return useCatalogLabel(useTranslations('constants.seasons'));
+}
+
 export function useRoleLabel() {
   return useCatalogLabel(useTranslations('constants.roles'));
 }

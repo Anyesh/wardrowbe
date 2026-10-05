@@ -21,6 +21,14 @@
     "white": "白色",
     "yellow": "黄色"
   },
+  "fits": {
+    "cropped": "短款",
+    "oversized": "宽松廓形",
+    "regular": "标准",
+    "relaxed": "休闲宽松",
+    "slim": "修身",
+    "tailored": "合体剪裁"
+  },
   "formalities": {
     "business-casual": "商务休闲",
     "casual": "休闲",
@@ -70,6 +78,18 @@
     "weekend": "周末",
     "work": "工作"
   },
+  "patterns": {
+    "animal-print": "动物纹",
+    "camouflage": "迷彩",
+    "checkered": "方格",
+    "floral": "花卉",
+    "geometric": "几何",
+    "graphic": "图案印花",
+    "plaid": "格纹",
+    "polka-dot": "波点",
+    "solid": "纯色",
+    "striped": "条纹"
+  },
   "roles": {
     "accessory": "配饰",
     "base_top": "基础上装",
@@ -82,12 +102,28 @@
     "socks": "袜子",
     "suit": "西装"
   },
+  "seasons": {
+    "all-season": "四季",
+    "fall": "秋季",
+    "spring": "春季",
+    "summer": "夏季",
+    "winter": "冬季"
+  },
   "styles": {
+    "athletic": "运动",
+    "bohemian": "波西米亚",
     "bold": "大胆",
     "casual": "休闲",
+    "classic": "经典",
+    "elegant": "优雅",
     "formal": "正式",
     "minimalist": "极简",
-    "sporty": "运动"
+    "modern": "现代",
+    "preppy": "学院",
+    "rugged": "硬朗",
+    "sporty": "运动",
+    "streetwear": "街头",
+    "vintage": "复古"
   },
   "subtypes": {
     "a-line": "A字",
