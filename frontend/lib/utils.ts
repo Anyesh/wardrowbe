@@ -60,7 +60,7 @@ export function parseDateString(dateStr: string): Date {
 export function getDaysSinceDateInTimezone(dateStr: string, timezone: string = 'UTC'): number {
   const today = getTodayInTimezone(timezone);
   const targetDate = parseDateString(dateStr);
-  
+
   // Calculate difference in days
   const diffTime = today.getTime() - targetDate.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));

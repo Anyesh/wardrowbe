@@ -51,7 +51,7 @@ export function useAuth() {
   }, [userQuery.error, status, hasToken, syncError]);
 
   const isAuthenticated = userQuery.isSuccess && !!userQuery.data;
- 
+
   const isLoading = status === 'loading' || (status === 'authenticated' && userQuery.isPending);
 
   return {

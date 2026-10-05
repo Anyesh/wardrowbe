@@ -1,13 +1,26 @@
 repos:
   # Backend: Ruff linting and formatting
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+    rev: v0.16.8
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
         files: ^backend/
       - id: ruff-format
         files: ^backend/
+
+  # Fast repository-wide checks; keep this config compatible with pre-commit and prek.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-toml
+      - id: check-json
 
   # Frontend: TypeScript and ESLint
   - repo: local
