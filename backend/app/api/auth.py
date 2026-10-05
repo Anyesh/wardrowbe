@@ -1,3 +1,4 @@
+import hmac
 from datetime import datetime, timedelta
 from typing import Annotated
 from urllib.parse import urlencode
@@ -5,8 +6,9 @@ from urllib.parse import urlencode
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
+from pydantic import ValidationError
 
-from app.config import get_settings
+from app.config import NO_AUTH_CONFIGURED_MESSAGE, get_settings
 from app.database import DbSession
 from app.models.user import User
 from app.schemas.email import normalise_email
@@ -42,7 +44,7 @@ def create_access_token(external_id: str, expires_delta: timedelta | None = None
 
 
 def _is_dev_mode() -> bool:
-    return settings.debug and not _oidc_configured()
+    return settings.debug and not settings.forward_auth_configured and not _oidc_configured()
 
 
 def _oidc_configured() -> bool:
@@ -50,6 +52,12 @@ def _oidc_configured() -> bool:
 
 
 MOBILE_APP_SCHEME = "wardrowbe"
+FORWARD_AUTH_SECRET_HEADER = "X-Forward-Auth-Secret"
+FORWARD_AUTH_ONLY_MOBILE_NOTICE = (
+    "Forward-auth signs in browsers only. The mobile app needs OIDC: "
+    "set OIDC_ISSUER_URL and OIDC_CLIENT_ID alongside FORWARD_AUTH_SECRET."
+)
+SYNC_RATE_LIMIT = ("auth_sync", 10, 60)
 
 
 @router.get("/mobile-callback")
@@ -64,6 +72,7 @@ async def mobile_oidc_callback(request: Request) -> RedirectResponse:
 @router.get("/config", response_model=AuthConfigResponse)
 async def get_auth_config() -> AuthConfigResponse:
     oidc_enabled = _oidc_configured()
+    forward_auth = settings.forward_auth_configured
     return AuthConfigResponse(
         oidc=AuthConfigOIDC(
             enabled=oidc_enabled,
@@ -73,6 +82,10 @@ async def get_auth_config() -> AuthConfigResponse:
             else None,
         ),
         dev_mode=_is_dev_mode(),
+        forward_auth=forward_auth,
+        mobile_notice=FORWARD_AUTH_ONLY_MOBILE_NOTICE
+        if forward_auth and not oidc_enabled
+        else None,
     )
 
 
@@ -83,10 +96,7 @@ async def auth_status() -> AuthStatusResponse:
         return AuthStatusResponse(
             configured=False,
             mode=mode,
-            error=(
-                "No authentication method configured. "
-                "Set OIDC_ISSUER_URL + OIDC_CLIENT_ID, or enable DEBUG mode."
-            ),
+            error=NO_AUTH_CONFIGURED_MESSAGE,
         )
     return AuthStatusResponse(configured=True, mode=mode)
 
@@ -110,97 +120,159 @@ def _claims_email(oidc_claims: dict) -> str | None:
         raise _invalid_email_claim() from None
 
 
-@router.post("/sync", response_model=UserSyncResponse)
-async def sync_user(
-    request: Request,
-    sync_data: UserSyncRequest,
-    db: DbSession,
-) -> UserSyncResponse:
-    await rate_limit_by_ip(request, "auth_sync", 10, 60)
+def _proxy_header(request: Request, name: str) -> str:
+    value = request.headers.get(name, "").strip()
+    # Starlette decodes header bytes as latin-1, but proxies send UTF-8 names and ids
+    # verbatim, so a non-ASCII Remote-Name would otherwise arrive as mojibake.
+    try:
+        return value.encode("latin-1").decode("utf-8")
+    except UnicodeError:
+        return value
+
+
+async def _forward_auth_identity(request: Request, presented_secret: str) -> UserSyncRequest:
+    expected_secret = settings.forward_auth_secret or ""
+    secret_matches = bool(expected_secret) and hmac.compare_digest(
+        presented_secret.encode(), expected_secret.encode()
+    )
+    if not secret_matches:
+        # Only failures count, because browser sign-ins can all arrive from the frontend
+        # container's IP, and limiting successes would lock every user out together.
+        await rate_limit_by_ip(request, *SYNC_RATE_LIMIT)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid forward-auth secret",
+        )
+
+    remote_user = _proxy_header(request, "Remote-User")
+    remote_email = _proxy_header(request, "Remote-Email")
+    if not remote_user or not remote_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The auth proxy must send Remote-User and Remote-Email headers",
+        )
+
+    display_name = _proxy_header(request, "Remote-Name") or remote_user
+    try:
+        return UserSyncRequest(
+            external_id=remote_user,
+            email=remote_email,
+            display_name=display_name,
+        )
+    except ValidationError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The auth proxy sent a Remote-Email that is not a valid email address",
+        ) from None
+
+
+async def _oidc_identity(sync_data: UserSyncRequest) -> tuple[UserSyncRequest, bool]:
+    if not sync_data.id_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="OIDC id_token is required for authentication",
+        )
+
+    valid_audiences = [settings.oidc_client_id]
+    if settings.oidc_mobile_client_id and settings.oidc_mobile_client_id != settings.oidc_client_id:
+        valid_audiences.append(settings.oidc_mobile_client_id)
+
+    try:
+        oidc_claims = await validate_oidc_id_token(
+            sync_data.id_token,
+            settings.oidc_issuer_url,
+            valid_audiences,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+        ) from None
+
+    if oidc_claims.get("sub") != sync_data.external_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token subject does not match external_id",
+        )
+
+    claims_email = _claims_email(oidc_claims)
+    if sync_data.email:
+        request_email = sync_data.email
+        if claims_email and claims_email != request_email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token email does not match request email",
+            )
+        effective_email = request_email
+    elif claims_email:
+        effective_email = claims_email
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No email provided by OIDC provider. Configure your provider to include the email claim.",
+        )
+
+    # Validated again rather than copied so the blank-name fallback sees the token's email.
+    sync_data = UserSyncRequest.model_validate({**sync_data.model_dump(), "email": effective_email})
+    verified_claim = oidc_claims.get("email_verified")
+    email_verified = (
+        bool(claims_email)
+        and claims_email == effective_email
+        # Apple sends the claim as the string "true"; nothing else counts as verified.
+        and (verified_claim is True or verified_claim == "true")
+    )
+    return sync_data, email_verified
+
+
+async def _body_identity(sync_data: UserSyncRequest | None) -> tuple[UserSyncRequest, bool]:
+    if sync_data is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Request body is required",
+        )
     if _is_dev_mode():
-        email_verified = True
         if not sync_data.email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="email is required",
             )
-    elif _oidc_configured():
-        if not sync_data.id_token:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="OIDC id_token is required for authentication",
-            )
-
-        valid_audiences = [settings.oidc_client_id]
-        if (
-            settings.oidc_mobile_client_id
-            and settings.oidc_mobile_client_id != settings.oidc_client_id
-        ):
-            valid_audiences.append(settings.oidc_mobile_client_id)
-
-        try:
-            oidc_claims = await validate_oidc_id_token(
-                sync_data.id_token,
-                settings.oidc_issuer_url,
-                valid_audiences,
-            )
-        except ValueError as e:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=str(e),
-            ) from None
-
-        if oidc_claims.get("sub") != sync_data.external_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token subject does not match external_id",
-            )
-
-        claims_email = _claims_email(oidc_claims)
-        if sync_data.email:
-            request_email = sync_data.email
-            if claims_email and claims_email != request_email:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Token email does not match request email",
-                )
-            effective_email = request_email
-        elif claims_email:
-            effective_email = claims_email
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No email provided by OIDC provider. Configure your provider to include the email claim.",
-            )
-
-        # Validated again rather than copied so the blank-name fallback sees the token's email.
-        sync_data = UserSyncRequest.model_validate(
-            {**sync_data.model_dump(), "email": effective_email}
-        )
-        verified_claim = oidc_claims.get("email_verified")
-        email_verified = (
-            bool(claims_email)
-            and claims_email == effective_email
-            # Apple sends the claim as the string "true"; nothing else counts as verified.
-            and (verified_claim is True or verified_claim == "true")
-        )
-    else:
+        return sync_data, True
+    if _oidc_configured():
+        return await _oidc_identity(sync_data)
+    if settings.forward_auth_configured:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No authentication method configured",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sign in through the forward-auth proxy",
         )
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="No authentication method configured",
+    )
 
-    user_service = UserService(db)
+
+@router.post("/sync", response_model=UserSyncResponse)
+async def sync_user(
+    request: Request,
+    db: DbSession,
+    sync_data: UserSyncRequest | None = None,
+) -> UserSyncResponse:
+    presented_secret = request.headers.get(FORWARD_AUTH_SECRET_HEADER)
+    if presented_secret is not None:
+        sync_data = await _forward_auth_identity(request, presented_secret)
+        email_verified = True
+    else:
+        await rate_limit_by_ip(request, *SYNC_RATE_LIMIT)
+        sync_data, email_verified = await _body_identity(sync_data)
 
     try:
-        user, is_new = await user_service.sync_from_oidc(sync_data, email_verified=email_verified)
+        user, is_new = await UserService(db).sync_from_oidc(
+            sync_data, email_verified=email_verified
+        )
     except UserEmailConflictError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
         ) from None
-
-    access_token = create_access_token(user.external_id)
 
     return UserSyncResponse(
         id=user.id,
@@ -208,7 +280,7 @@ async def sync_user(
         display_name=user.display_name,
         is_new_user=is_new,
         onboarding_completed=user.onboarding_completed,
-        access_token=access_token,
+        access_token=create_access_token(user.external_id),
     )
 
 

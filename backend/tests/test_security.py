@@ -689,17 +689,16 @@ class TestDevModeAuthDecoupledFromSecretKey:
         assert settings.validate_security() is None
 
     def test_is_dev_mode_true_with_custom_secret_and_no_oidc(self):
-        with patch("app.api.auth.settings") as mock_settings:
-            mock_settings.debug = True
-            mock_settings.oidc_issuer_url = None
-            mock_settings.oidc_client_id = None
-
+        settings = Settings(debug=True, secret_key="a-strong-custom-secret")
+        with patch("app.api.auth.settings", settings):
             assert _is_dev_mode() is True
 
     def test_is_dev_mode_false_when_oidc_configured_even_with_debug(self):
-        with patch("app.api.auth.settings") as mock_settings:
-            mock_settings.debug = True
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-
+        settings = Settings(
+            debug=True,
+            secret_key="a-strong-custom-secret",
+            oidc_issuer_url="https://auth.example.com",
+            oidc_client_id="test-client",
+        )
+        with patch("app.api.auth.settings", settings):
             assert _is_dev_mode() is False
