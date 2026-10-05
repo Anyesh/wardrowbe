@@ -52,7 +52,7 @@
     "averageRating": "평균 평점",
     "feedbackGiven": "제공한 피드백",
     "notEnoughData": "데이터 부족",
-    "outOf5Stars": "5점 만점",
+    "outOfStars": "{max}점 만점",
     "outfitsRated": "{count, plural, other {코디 {count}개 평가함}}",
     "rateMoreOutfits": "코디를 더 평가해 주세요",
     "rateOutfitStyles": "코디 스타일을 평가하세요",

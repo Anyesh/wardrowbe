@@ -37,6 +37,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/lib/utils';
+import { RATING_MAX } from '@/lib/generated/scales';
 
 function StatCard({
   title,
@@ -438,7 +439,9 @@ export default function LearningPage() {
             <StatCard
               title={t('stats.averageRating')}
               value={profile.average_rating != null ? profile.average_rating.toFixed(1) : '-'}
-              description={profile.average_rating != null ? t('stats.outOf5Stars') : t('stats.rateMoreOutfits')}
+              description={profile.average_rating != null
+                ? t('stats.outOfStars', { max: RATING_MAX })
+                : t('stats.rateMoreOutfits')}
               icon={Sparkles}
             />
             <StatCard
