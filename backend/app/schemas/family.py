@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.family import FamilyRole
 from app.schemas.email import EmailAddress
 from app.schemas.text import SingleLineName
 
@@ -52,7 +53,7 @@ class FamilyCreateResponse(BaseModel):
     id: UUID
     name: str
     invite_code: str
-    role: str = "admin"
+    role: FamilyRole = FamilyRole.admin
 
 
 class JoinFamilyRequest(BaseModel):
@@ -66,12 +67,12 @@ class JoinByTokenRequest(BaseModel):
 class JoinFamilyResponse(BaseModel):
     family_id: UUID
     family_name: str
-    role: str = "member"
+    role: FamilyRole = FamilyRole.member
 
 
 class InviteMemberRequest(BaseModel):
     email: EmailAddress
-    role: str = Field(default="member", pattern="^(admin|member)$")
+    role: FamilyRole = FamilyRole.member
 
 
 class InviteResponse(BaseModel):
@@ -89,7 +90,7 @@ class InviteCodeResponse(BaseModel):
 
 
 class UpdateMemberRoleRequest(BaseModel):
-    role: str = Field(..., pattern="^(admin|member)$")
+    role: FamilyRole
 
 
 class MessageResponse(BaseModel):

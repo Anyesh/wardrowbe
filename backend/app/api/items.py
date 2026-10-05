@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.database import DbSession
-from app.models.item import ClothingItem, ItemStatus, TaggedBy, TaggingStatus
+from app.models.item import ClothingItem, ItemStatus, ProcessingKind, TaggedBy, TaggingStatus
 from app.models.user import User
 from app.schemas.item import (
     AnalysisCompletion,
@@ -854,7 +854,7 @@ async def bulk_rotate_items(
 
     for item in to_queue:
         item.status = ItemStatus.processing
-        item.processing_kind = "rotate"
+        item.processing_kind = ProcessingKind.rotate
         # Clear any stale ai_started_at from a prior tagging run, otherwise the
         # frontend reads it as this job's elapsed time and shows a wildly wrong
         # duration for what is a sub-second rotation.
@@ -962,7 +962,7 @@ async def bulk_remove_background_items(
 
     for item in to_queue:
         item.status = ItemStatus.processing
-        item.processing_kind = "background_removal"
+        item.processing_kind = ProcessingKind.background_removal
         # Clear any stale ai_started_at left over from a prior tagging run -
         # otherwise the frontend reads it as this job's elapsed "analyzing"
         # time, showing a wildly wrong duration for what is actually a
@@ -1045,8 +1045,8 @@ def _tagging_scope(user_id: UUID) -> tuple:
         # aren't AI tagging - exclude them so they don't pollute this banner's
         # counts. is_distinct_from (not not_in) so a NULL processing_kind,
         # which every ordinary tagging item has, stays included.
-        ClothingItem.processing_kind.is_distinct_from("background_removal"),
-        ClothingItem.processing_kind.is_distinct_from("rotate"),
+        ClothingItem.processing_kind.is_distinct_from(ProcessingKind.background_removal),
+        ClothingItem.processing_kind.is_distinct_from(ProcessingKind.rotate),
     )
 
 
@@ -1779,7 +1779,8 @@ async def remove_item_background(
         )
 
     recovering_from_error = (
-        item.status == ItemStatus.error and item.processing_kind == "background_removal"
+        item.status == ItemStatus.error
+        and item.processing_kind == ProcessingKind.background_removal
     )
 
     hex_color = request.bg_color.lstrip("#")

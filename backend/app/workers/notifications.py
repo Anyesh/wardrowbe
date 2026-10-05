@@ -10,7 +10,7 @@ from app.config import get_settings
 from app.models.item import ClothingItem
 from app.models.learning import UserLearningProfile
 from app.models.notification import Notification, NotificationStatus
-from app.models.outfit import Outfit, OutfitSource, OutfitStatus
+from app.models.outfit import Outfit, OutfitSource, OutfitStatus, TimeOfDay
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.services.ai_service import AIDisabledError
@@ -226,7 +226,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             occasion=schedule.occasion,
             source=OutfitSource.scheduled,
             weather_override=weather_override,
-            time_of_day="full day" if is_for_tomorrow else None,
+            time_of_day=TimeOfDay.full_day if is_for_tomorrow else None,
             single_outfit=True,
             scheduled_date=target_date,
         )
