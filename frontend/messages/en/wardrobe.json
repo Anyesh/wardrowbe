@@ -267,5 +267,12 @@
     "daysAgo": "Worn {days}d ago",
     "today": "Worn today",
     "yesterday": "Worn yesterday"
+  },
+  "purchase": {
+    "date": "Purchase date",
+    "amount": "Purchase amount",
+    "amountHint": "Currency is not stored.",
+    "invalidDate": "Enter a valid purchase date.",
+    "invalidAmount": "Enter an amount from 0 to 99,999,999.99 with no more than two decimal places."
   }
 }

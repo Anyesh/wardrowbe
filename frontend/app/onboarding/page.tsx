@@ -37,6 +37,7 @@ import { api, setAccessToken } from '@/lib/api';
 import { StyleProfile } from '@/lib/types';
 import { useClothingColors, useClothingTypes } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
+import { PurchaseFieldError, normalizePurchaseAmount, validatePurchaseFields } from '@/lib/purchase-fields';
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
   const t = useTranslations('onboarding');
@@ -606,8 +607,12 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [itemType, setItemType] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState('');
+  const [purchaseAmount, setPurchaseAmount] = useState('');
+  const [purchaseError, setPurchaseError] = useState<PurchaseFieldError>(null);
   const createItem = useCreateItem();
   const t = useTranslations('onboarding');
+  const tp = useTranslations('wardrobe.purchase');
   const clothingTypes = useClothingTypes();
 
   // Clean up blob URL on unmount or when preview changes on unmount or when preview changes
@@ -642,9 +647,16 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
   const handleUpload = async () => {
     if (!file || !itemType) return;
 
+    const normalizedAmount = normalizePurchaseAmount(purchaseAmount);
+    const error = validatePurchaseFields(purchaseDate, normalizedAmount);
+    setPurchaseError(error);
+    if (error) return;
+
     const formData = new FormData();
     formData.append('image', file);
     formData.append('type', itemType);
+    if (purchaseDate) formData.append('purchase_date', purchaseDate);
+    if (normalizedAmount) formData.append('purchase_price', normalizedAmount);
 
     try {
       await createItem.mutateAsync(formData);
@@ -702,20 +714,47 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
           )}
 
           {file && (
-            <div className="space-y-2">
-              <Label htmlFor="item-type">{t('firstItem.typeLabel')}</Label>
-              <Select value={itemType} onValueChange={setItemType}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('firstItem.typePlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {clothingTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="item-type">{t('firstItem.typeLabel')}</Label>
+                <Select value={itemType} onValueChange={setItemType}>
+                  <SelectTrigger id="item-type">
+                    <SelectValue placeholder={t('firstItem.typePlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clothingTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="first-item-purchase-date">{tp('date')}</Label>
+                  <Input
+                    id="first-item-purchase-date"
+                    type="date"
+                    value={purchaseDate}
+                    aria-invalid={purchaseError === 'date'}
+                    onChange={(e) => { setPurchaseDate(e.target.value); setPurchaseError(null); }}
+                  />
+                  {purchaseError === 'date' && <p role="alert" className="text-xs text-destructive">{tp('invalidDate')}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="first-item-purchase-amount">{tp('amount')}</Label>
+                  <Input
+                    id="first-item-purchase-amount"
+                    inputMode="decimal"
+                    value={purchaseAmount}
+                    aria-invalid={purchaseError === 'amount'}
+                    onChange={(e) => { setPurchaseAmount(e.target.value); setPurchaseError(null); }}
+                  />
+                  {purchaseError === 'amount' && <p role="alert" className="text-xs text-destructive">{tp('invalidAmount')}</p>}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">{tp('amountHint')}</p>
             </div>
           )}
 

@@ -267,5 +267,12 @@
     "daysAgo": "Indossato {days}g fa",
     "today": "Indossato oggi",
     "yesterday": "Indossato ieri"
+  },
+  "purchase": {
+    "date": "Data di acquisto",
+    "amount": "Importo dell’acquisto",
+    "amountHint": "La valuta non viene salvata.",
+    "invalidDate": "Inserisci una data di acquisto valida.",
+    "invalidAmount": "Inserisci un importo da 0 a 99.999.999,99 con al massimo due decimali."
   }
 }

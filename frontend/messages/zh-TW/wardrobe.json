@@ -267,5 +267,12 @@
     "daysAgo": "{days} 天前穿過",
     "today": "今天穿過",
     "yesterday": "昨天穿過"
+  },
+  "purchase": {
+    "date": "購買日期",
+    "amount": "購買金額",
+    "amountHint": "不會儲存幣別。",
+    "invalidDate": "請輸入有效的購買日期。",
+    "invalidAmount": "請輸入 0 至 99,999,999.99 之間的金額，最多保留兩位小數。"
   }
 }

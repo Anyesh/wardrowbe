@@ -38,6 +38,7 @@ import {
 import { useCreateItem, useBulkCreateItems, BulkUploadResponse } from '@/lib/hooks/use-items';
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
+import { PurchaseFieldError, normalizePurchaseAmount, validatePurchaseFields } from '@/lib/purchase-fields';
 
 interface AddItemDialogProps {
   open: boolean;
@@ -52,6 +53,7 @@ interface FileWithPreview {
 
 export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const t = useTranslations('wardrobe.addItem');
+  const tp = useTranslations('wardrobe.purchase');
   const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
@@ -63,6 +65,9 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const [brand, setBrand] = useState('');
   const [primaryColor, setPrimaryColor] = useState('');
   const [notes, setNotes] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState('');
+  const [purchaseAmount, setPurchaseAmount] = useState('');
+  const [purchaseError, setPurchaseError] = useState<PurchaseFieldError>(null);
 
   // Bulk upload state
   const [bulkFiles, setBulkFiles] = useState<FileWithPreview[]>([]);
@@ -134,6 +139,11 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
     if (!file) return;
 
+    const normalizedAmount = normalizePurchaseAmount(purchaseAmount);
+    const error = validatePurchaseFields(purchaseDate, normalizedAmount);
+    setPurchaseError(error);
+    if (error) return;
+
     const formData = new FormData();
     formData.append('image', file);
     // Type is optional - AI will detect if not provided
@@ -142,6 +152,8 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     if (brand) formData.append('brand', brand);
     if (primaryColor) formData.append('primary_color', primaryColor);
     if (notes) formData.append('notes', notes);
+    if (purchaseDate) formData.append('purchase_date', purchaseDate);
+    if (normalizedAmount) formData.append('purchase_price', normalizedAmount);
 
     try {
       await createItem.mutateAsync(formData);
@@ -209,6 +221,9 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     setBrand('');
     setPrimaryColor('');
     setNotes('');
+    setPurchaseDate('');
+    setPurchaseAmount('');
+    setPurchaseError(null);
 
     // Bulk upload cleanup - also clean up from the ref
     bulkFiles.forEach((f) => {
@@ -379,6 +394,31 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                     placeholder={t('notesInputPlaceholder')}
                   />
                 </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="purchase-date">{tp('date')}</Label>
+                    <Input
+                      id="purchase-date"
+                      type="date"
+                      value={purchaseDate}
+                      aria-invalid={purchaseError === 'date'}
+                      onChange={(e) => { setPurchaseDate(e.target.value); setPurchaseError(null); }}
+                    />
+                    {purchaseError === 'date' && <p role="alert" className="text-xs text-destructive">{tp('invalidDate')}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="purchase-amount">{tp('amount')}</Label>
+                    <Input
+                      id="purchase-amount"
+                      inputMode="decimal"
+                      value={purchaseAmount}
+                      aria-invalid={purchaseError === 'amount'}
+                      onChange={(e) => { setPurchaseAmount(e.target.value); setPurchaseError(null); }}
+                    />
+                    {purchaseError === 'amount' && <p role="alert" className="text-xs text-destructive">{tp('invalidAmount')}</p>}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">{tp('amountHint')}</p>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

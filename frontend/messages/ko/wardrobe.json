@@ -267,5 +267,12 @@
     "daysAgo": "{days}일 전 착용",
     "today": "오늘 착용",
     "yesterday": "어제 착용"
+  },
+  "purchase": {
+    "date": "구매일",
+    "amount": "구매 금액",
+    "amountHint": "통화는 저장되지 않습니다.",
+    "invalidDate": "올바른 구매일을 입력하세요.",
+    "invalidAmount": "0부터 99,999,999.99까지의 금액을 소수점 이하 두 자리 이내로 입력하세요."
   }
 }

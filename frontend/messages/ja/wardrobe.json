@@ -267,5 +267,12 @@
     "daysAgo": "{days}日前に着用",
     "today": "今日着用",
     "yesterday": "昨日着用"
+  },
+  "purchase": {
+    "date": "購入日",
+    "amount": "購入金額",
+    "amountHint": "通貨は保存されません。",
+    "invalidDate": "有効な購入日を入力してください。",
+    "invalidAmount": "0から99,999,999.99までの金額を小数点以下2桁以内で入力してください。"
   }
 }
