@@ -1,3 +1,0 @@
-# Optional dependencies — install for extra features
-# Background removal (adds ~500MB for model weights)
-rembg[cpu]==2.0.81
