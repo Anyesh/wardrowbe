@@ -4,7 +4,7 @@ import pytest
 from PIL import Image
 
 from app.models.user import User
-from app.services.image_service import ImageService
+from app.services.image_service import VARIANTS, ImageService
 
 GREEN = (10, 200, 30)
 
@@ -43,3 +43,29 @@ class TestExifOrientation:
 
         stored = Image.open(svc.get_image_path(paths["image_path"]))
         assert stored.size == (600, 400)
+
+
+class TestVariantTable:
+    def test_variant_sizes_and_qualities(self):
+        assert [(v.path_field, v.suffix, v.max_px, v.quality) for v in VARIANTS] == [
+            ("image_path", "", 2400, 95),
+            ("medium_path", "_medium", 800, 90),
+            ("thumbnail_path", "_thumb", 400, 88),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_stored_variants_follow_the_table(self, test_user: User):
+        svc = ImageService()
+        data = _jpeg_with_orientation(orientation=1, size=(3000, 1500))
+
+        paths = await svc.process_and_store(
+            user_id=test_user.id, image_data=data, original_filename="wide.jpg"
+        )
+
+        assert paths["medium_path"].endswith("_medium.jpg")
+        assert paths["thumbnail_path"].endswith("_thumb.jpg")
+        for variant in VARIANTS:
+            assert Image.open(svc.get_image_path(paths[variant.path_field])).size == (
+                variant.max_px,
+                variant.max_px // 2,
+            )

@@ -48,7 +48,7 @@ from app.services.suggestion_cache import clear_suggestions
 from app.services.weather_service import WeatherData
 from app.utils.auth import get_current_user
 from app.utils.rate_limit import rate_limit_by_user
-from app.utils.signed_urls import sign_image_url
+from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
@@ -94,16 +94,12 @@ class OutfitItemResponse(BaseModel):
     @computed_field
     @property
     def image_url(self) -> str | None:
-        if self.image_path:
-            return sign_image_url(self.image_path)
-        return None
+        return sign_optional(self.image_path)
 
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
-        if self.thumbnail_path:
-            return sign_image_url(self.thumbnail_path)
-        return None
+        return sign_optional(self.thumbnail_path)
 
 
 class WoreInsteadItem(BaseModel):
@@ -115,9 +111,7 @@ class WoreInsteadItem(BaseModel):
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
-        if self.thumbnail_path:
-            return sign_image_url(self.thumbnail_path)
-        return None
+        return sign_optional(self.thumbnail_path)
 
 
 class FeedbackSummary(BaseModel):
