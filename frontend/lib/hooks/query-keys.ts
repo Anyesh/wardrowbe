@@ -13,6 +13,9 @@ const FAMILY_OUTFITS = ['familyOutfits'] as const;
 const ANALYTICS = ['analytics'] as const;
 const LEARNING = ['learning'] as const;
 const PAIRINGS = ['pairings'] as const;
+const ITEM = ['item'] as const;
+const WEAR_STATS = ['wear-stats'] as const;
+const WEAR_HISTORY = ['wear-history'] as const;
 
 export const queryKeys = {
   authConfig: ['auth-config'] as const,
@@ -28,13 +31,21 @@ export const queryKeys = {
     list: (filters: ItemFilter, page: number, pageSize: number) =>
       [...ITEMS, filters, page, pageSize] as const,
   },
-  item: (itemId: string) => ['item', itemId] as const,
+  item: (itemId: string) => [...ITEM, itemId] as const,
+  everyItem: ITEM,
   itemTypes: ['item-types'] as const,
   colorDistribution: ['color-distribution'] as const,
   taggingProgress: ['tagging-progress'] as const,
   washHistory: (itemId: string) => ['wash-history', itemId] as const,
-  wearStats: (itemId: string) => ['wear-stats', itemId] as const,
-  wearHistory: (itemId: string, limit: number) => ['wear-history', itemId, limit] as const,
+  wearStats: {
+    all: WEAR_STATS,
+    item: (itemId: string) => [...WEAR_STATS, itemId] as const,
+  },
+  wearHistory: {
+    all: WEAR_HISTORY,
+    item: (itemId: string) => [...WEAR_HISTORY, itemId] as const,
+    list: (itemId: string, limit: number) => [...WEAR_HISTORY, itemId, limit] as const,
+  },
 
   outfits: {
     all: OUTFITS,

@@ -10,7 +10,11 @@ import { chunkArray } from '@/lib/utils';
 import { enqueueFiles } from '@/lib/upload-queue';
 import { startDrain } from '@/lib/upload-manager';
 import { queryKeys } from '@/lib/hooks/query-keys';
-import { invalidateItemCaches, invalidatePrimaryImageQueries } from '@/lib/hooks/cache-invalidation';
+import {
+  invalidateItemCaches,
+  invalidateItemWearCaches,
+  invalidatePrimaryImageQueries,
+} from '@/lib/hooks/cache-invalidation';
 import { processingPollInterval } from '@/lib/hooks/query-timing';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 import { fetchBulkUploadLimit } from '@/lib/hooks/use-features';
@@ -326,7 +330,7 @@ export function useLogWear() {
       return api.post<Item>(`/items/${id}/wear`, { worn_at, occasion });
     },
     onSuccess: (_, variables) => {
-      invalidateItemCaches(queryClient, variables.id);
+      invalidateItemWearCaches(queryClient, variables.id);
     },
   });
 }
@@ -383,7 +387,7 @@ export function useItemWearStats(itemId: string) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: queryKeys.wearStats(itemId),
+    queryKey: queryKeys.wearStats.item(itemId),
     queryFn: () => api.get<WearStats>(`/items/${itemId}/wear-stats`),
     enabled: !!itemId && status !== 'loading',
   });
@@ -411,7 +415,7 @@ export function useItemWearHistory(itemId: string, limit = 10) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: queryKeys.wearHistory(itemId, limit),
+    queryKey: queryKeys.wearHistory.list(itemId, limit),
     queryFn: () => api.get<WearHistoryEntry[]>(`/items/${itemId}/history?limit=${limit}`),
     enabled: !!itemId && status !== 'loading',
   });
