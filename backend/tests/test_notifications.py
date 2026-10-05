@@ -1,5 +1,5 @@
 import base64
-from datetime import date, time
+from datetime import date, time, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -24,6 +24,7 @@ from app.services.notification_providers import (
     build_notification_email,
 )
 from app.services.notification_service import NotificationDispatcher
+from app.utils.timezone import get_user_today
 
 
 class TestNotificationSettings:
@@ -607,3 +608,37 @@ class TestDispatcherDelivery:
         assert row.channel == "mattermost"
         assert row.status == NotificationStatus.retrying
         assert row.error_message == "HTTP 500: down"
+
+    @pytest.mark.parametrize(("days_ahead", "day_label"), [(1, "Tomorrow"), (0, "Today")])
+    @pytest.mark.asyncio
+    async def test_retry_labels_the_day_from_the_outfit_date(
+        self, db_session: AsyncSession, test_user, outfit, days_ahead, day_label
+    ):
+        webhook = "https://chat.example.com/hooks/abc"
+        outfit.scheduled_for = get_user_today(test_user) + timedelta(days=days_ahead)
+        db_session.add(
+            NotificationSettings(
+                user_id=test_user.id,
+                channel="mattermost",
+                priority=1,
+                config={"webhook_url": webhook},
+            )
+        )
+        notification = Notification(
+            user_id=test_user.id,
+            outfit_id=outfit.id,
+            channel="mattermost",
+            status=NotificationStatus.retrying,
+            payload={"occasion": outfit.occasion},
+            attempts=1,
+        )
+        db_session.add(notification)
+        await db_session.commit()
+        post = self._post(failing=set())
+
+        with patch.object(httpx.AsyncClient, "post", post):
+            result = await NotificationDispatcher(db_session).retry_notification(notification)
+
+        assert result.status == NotificationStatus.sent
+        [attachment] = post.call_args.kwargs["json"]["attachments"]
+        assert attachment["title"].startswith(f"{day_label}'s Outfit: Casual")

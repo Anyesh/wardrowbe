@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, timedelta
 from uuid import UUID
 
 from sqlalchemy import and_, select
@@ -17,6 +17,7 @@ from app.services.notification_providers import (
     build_provider,
     send_via_channel,
 )
+from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
 
@@ -343,7 +344,12 @@ class NotificationDispatcher:
                 error=f"Channel {notification.channel} not configured or disabled",
             )
 
-        return await send_via_channel(channel_config, self._build_outfit_message(outfit, user))
+        # Derived at send time rather than stored, so a retry that lands after the user's
+        # midnight still names the outfit's day correctly.
+        for_tomorrow = outfit.scheduled_for == get_user_today(user) + timedelta(days=1)
+        return await send_via_channel(
+            channel_config, self._build_outfit_message(outfit, user, for_tomorrow)
+        )
 
     def _build_outfit_message(
         self, outfit: Outfit, user: User, for_tomorrow: bool = False
