@@ -5,7 +5,7 @@ import { signIn, getProviders, useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
+import { FORWARD_AUTH_ACCOUNT_CONFLICT, FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
 import { useAuthConfig } from '@/lib/hooks/use-auth-config';
 
 function OIDCLoginButton({ callbackUrl }: { callbackUrl: string }) {
@@ -91,10 +91,18 @@ function DevLogin({ callbackUrl }: { callbackUrl: string }) {
 }
 
 type ForwardSignInState = 'idle' | 'signingIn' | 'failed';
-type ForwardFailure = 'headers' | 'server';
+type ForwardFailure = 'headers' | 'server' | 'conflict';
+
+const FORWARD_FAILURE_MESSAGES = {
+  headers: 'forwardAuth.headersMissing',
+  server: 'forwardAuth.serverError',
+  conflict: 'forwardAuth.accountConflict',
+} as const;
 
 function forwardFailureFor(errorCode: string | null | undefined): ForwardFailure {
-  return errorCode === FORWARD_AUTH_SERVER_ERROR ? 'server' : 'headers';
+  if (errorCode === FORWARD_AUTH_SERVER_ERROR) return 'server';
+  if (errorCode === FORWARD_AUTH_ACCOUNT_CONFLICT) return 'conflict';
+  return 'headers';
 }
 
 // Lives in LoginContent rather than ForwardLogin so that the one-shot guard survives the
@@ -141,7 +149,7 @@ function ForwardLogin({
     <div className="space-y-4">
       {failure && state !== 'signingIn' && (
         <div className="rounded-md bg-destructive/15 p-4 text-sm text-destructive">
-          {failure === 'server' ? t('forwardAuth.serverError') : t('forwardAuth.headersMissing')}
+          {t(FORWARD_FAILURE_MESSAGES[failure])}
         </div>
       )}
       {loggedOut && !failure && state === 'idle' && (

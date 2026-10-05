@@ -2,7 +2,7 @@ import type { NextAuthOptions, User } from 'next-auth';
 import type { OAuthConfig } from 'next-auth/providers/oauth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { Provider } from 'next-auth/providers/index';
-import { FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
+import { FORWARD_AUTH_ACCOUNT_CONFLICT, FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
 import { decodeProxyHeader } from '@/lib/proxy-headers';
 
 interface OIDCProfile {
@@ -131,41 +131,52 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
     if (value) forwarded[name] = value;
   }
 
-  try {
-    const response = await fetch(`${backendUrl()}/api/v1/auth/sync`, {
-      method: 'POST',
-      headers: forwarded,
-      // The backend takes identity from the headers; the body only satisfies the request schema.
-      body: JSON.stringify({
-        external_id: userId,
-        email: remoteEmail,
-        display_name: (remoteName ? decodeProxyHeader(remoteName) : remoteEmail.split('@')[0]).slice(0, 100),
-      }),
-    });
-    if (PROXY_HEADER_REJECTIONS.has(response.status)) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Forward-auth sync rejected:', errorData.detail || response.status);
-      return null;
-    }
-    if (!response.ok) {
-      throw new Error(`Forward-auth sync answered ${response.status}`);
-    }
-    const syncData = await response.json();
-    return {
-      id: userId,
-      email: syncData.email,
-      name: syncData.display_name,
-      accessToken: syncData.access_token,
-      backendUserId: syncData.id,
-      isNewUser: syncData.is_new_user,
-      onboardingCompleted: syncData.onboarding_completed,
-    };
-  } catch (error) {
+  // NextAuth turns a thrown message into the sign-in error code, so the login page can tell
+  // a backend fault apart from headers the proxy did not pass.
+  const serverError = (error: unknown) => {
     console.error('Forward-auth sync failed:', error);
-    // NextAuth turns a thrown message into the sign-in error code, so the login page can tell
-    // a backend fault apart from headers the proxy did not pass.
-    throw new Error(FORWARD_AUTH_SERVER_ERROR);
+    return new Error(FORWARD_AUTH_SERVER_ERROR);
+  };
+
+  const response = await fetch(`${backendUrl()}/api/v1/auth/sync`, {
+    method: 'POST',
+    headers: forwarded,
+    // The backend takes identity from the headers; the body only satisfies the request schema.
+    body: JSON.stringify({
+      external_id: userId,
+      email: remoteEmail,
+      display_name: (remoteName ? decodeProxyHeader(remoteName) : remoteEmail.split('@')[0]).slice(0, 100),
+    }),
+  }).catch((error: unknown) => {
+    throw serverError(error);
+  });
+
+  if (PROXY_HEADER_REJECTIONS.has(response.status)) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Forward-auth sync rejected:', errorData.detail || response.status);
+    return null;
   }
+  // A 409 means Remote-Email already belongs to a different account, which retrying cannot fix.
+  if (response.status === 409) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Forward-auth sync conflict:', errorData.detail || response.status);
+    throw new Error(FORWARD_AUTH_ACCOUNT_CONFLICT);
+  }
+  if (!response.ok) {
+    throw serverError(`Forward-auth sync answered ${response.status}`);
+  }
+  const syncData = await response.json().catch((error: unknown) => {
+    throw serverError(error);
+  });
+  return {
+    id: userId,
+    email: syncData.email,
+    name: syncData.display_name,
+    accessToken: syncData.access_token,
+    backendUserId: syncData.id,
+    isNewUser: syncData.is_new_user,
+    onboardingCompleted: syncData.onboarding_completed,
+  };
 }
 
 const ForwardAuthProvider = CredentialsProvider({
