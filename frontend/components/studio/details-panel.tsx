@@ -106,7 +106,7 @@ export function DetailsPanel({
       <div className="space-y-2">
         <Label className="flex items-center gap-1">
           {t('occasion')}
-          <span className="text-destructive" aria-label="required">*</span>
+          <span className="text-destructive" aria-label={t('required')}>*</span>
         </Label>
         <OccasionChips selected={occasion} onSelect={onOccasionChange} />
         {!occasion && (
