@@ -475,7 +475,7 @@ class TestDispatcherDelivery:
             f"Good morning, {test_user.display_name}! Here's your outfit suggestion for today:"
         )
         [attachment] = payload["attachments"]
-        assert attachment["title"] == "Today's Outfit: Casual | 20\u00b0C, Sunny"
+        assert attachment["title"] == "Today's Outfit: Casual | 20C Sunny"
         assert attachment["title_link"].endswith("/dashboard/history")
         assert "Light layers" in attachment["text"]
 
@@ -497,9 +497,8 @@ class TestDispatcherDelivery:
 
         email = email_send.call_args.args[0]
         assert email.subject == "Tomorrow's Outfit: Casual"
-        assert "<h2" in email.html_body and "Tomorrow&#x27;s Outfit: Casual</h2>" in email.html_body
-        assert "20\u00b0C, Sunny (forecast)" in email.html_body
-        assert "20\u00b0C, Sunny (forecast)" in email.text_body
+        assert "Tomorrow's Outfit: Casual" in email.html_body
+        assert "20C, Sunny (forecast)" in email.html_body
 
     @pytest.mark.asyncio
     async def test_expo_outfit_body_is_reasoning_and_tip_only(

@@ -14,6 +14,7 @@ from app.models.user import User
 from app.services.notification_providers import (
     NotificationMessage,
     NotificationResult,
+    WeatherSummary,
     build_provider,
     send_via_channel,
 )
@@ -356,7 +357,7 @@ class NotificationDispatcher:
     ) -> NotificationMessage:
         weather = outfit.weather_data or {}
         temp = weather.get("temperature")
-        condition = str(weather.get("condition") or "")
+        condition = weather.get("condition")
         day_label = "Tomorrow" if for_tomorrow else "Today"
         occasion = outfit.occasion.title()
 
@@ -365,27 +366,20 @@ class NotificationDispatcher:
         else:
             title = f"{day_label}'s {occasion} Outfit"
 
-        subtitle = None
-        if outfit.weather_data:
-            subtitle = ", ".join(
-                filter(None, [f"{temp if temp is not None else '?'}\u00b0C", condition])
-            )
-            if for_tomorrow:
-                subtitle += " (forecast)"
-
         highlights = []
         if isinstance(outfit.ai_raw_response, dict):
             highlights = outfit.ai_raw_response.get("highlights", [])
         if not isinstance(highlights, list):
             highlights = []
+        highlights = [str(h) for h in highlights[:3]]
 
-        tip = f"Tip: {outfit.style_notes}" if outfit.style_notes else None
-        highlight_lines = "\n".join(f"- {h}" for h in highlights[:3]) or None
-        body_parts = list(filter(None, [outfit.reasoning, highlight_lines, tip]))
-        short_parts = list(filter(None, [outfit.reasoning, tip]))
+        tip_line = f"Tip: {outfit.style_notes}" if outfit.style_notes else None
+        highlight_lines = "\n".join(f"* {h}" for h in highlights) or None
+        body_parts = list(filter(None, [outfit.reasoning, highlight_lines, tip_line]))
+        short_parts = list(filter(None, [outfit.reasoning, tip_line]))
 
         greeting = "Good evening" if for_tomorrow else "Good morning"
-        lowered = condition.lower()
+        lowered = str(condition or "").lower()
         tag = next(
             (tag for words, tag in WEATHER_TAGS if any(w in lowered for w in words)),
             "shirt",
@@ -393,14 +387,25 @@ class NotificationDispatcher:
 
         return NotificationMessage(
             title=title,
+            body="\n\n".join(body_parts) if body_parts else "Your outfit is ready.",
+            short_body=" \u2022 ".join(short_parts) if short_parts else "Your outfit is ready!",
             heading=f"{day_label}'s Outfit: {occasion}",
-            subtitle=subtitle,
             greeting=(
                 f"{greeting}, {user.display_name}! "
                 f"Here's your outfit suggestion for {day_label.lower()}:"
             ),
-            body="\n\n".join(body_parts) if body_parts else "Your outfit is ready.",
-            short_body=" \u2022 ".join(short_parts) if short_parts else "Your outfit is ready!",
+            weather=(
+                WeatherSummary(
+                    temperature=temp,
+                    condition=str(condition) if condition is not None else None,
+                    forecast=for_tomorrow,
+                )
+                if outfit.weather_data
+                else None
+            ),
+            lead=outfit.reasoning,
+            highlights=highlights,
+            tip=outfit.style_notes,
             url=self.settings.app_link("/dashboard/history"),
             url_label="View Outfit",
             tags=[tag],

@@ -25,11 +25,19 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
+class WeatherSummary:
+    temperature: float | int | None
+    condition: str | None
+    forecast: bool = False
+
+
+@dataclass
 class NotificationMessage:
     """Channel-neutral content; each provider renders the fields its medium can show.
 
-    `title`/`short_body` suit compact push surfaces, while `heading`, `subtitle` and
-    `greeting` are for long-form channels (email, chat) and fall back to `title`/`body`.
+    `title`, `body` and `short_body` are plain text for compact push surfaces. Long-form
+    channels (email, chat) render `heading`, `greeting`, `weather` and the structured
+    `lead`/`highlights`/`tip` sections, falling back to `title`/`body` when they are unset.
     """
 
     title: str
@@ -39,13 +47,20 @@ class NotificationMessage:
     tags: list[str] = field(default_factory=list)
     data: dict = field(default_factory=dict)
     heading: str | None = None
-    subtitle: str | None = None
     greeting: str | None = None
     short_body: str | None = None
+    weather: WeatherSummary | None = None
+    lead: str | None = None
+    highlights: list[str] = field(default_factory=list)
+    tip: str | None = None
 
     @property
     def full_heading(self) -> str:
         return self.heading or self.title
+
+    @property
+    def has_sections(self) -> bool:
+        return bool(self.lead or self.highlights or self.tip)
 
 
 def _header_value(value: str) -> str:
@@ -165,6 +180,26 @@ class MattermostMessage:
     attachments: list[MattermostAttachment] = field(default_factory=list)
 
 
+def _mattermost_weather(weather: WeatherSummary | None) -> str:
+    if weather is None:
+        return ""
+    temperature = "?" if weather.temperature is None else weather.temperature
+    return f" | {temperature}C {weather.condition or ''}"
+
+
+def _mattermost_text(message: NotificationMessage) -> str:
+    if not message.has_sections:
+        return message.body
+    parts = []
+    if message.lead:
+        parts.append(f"**{message.lead}**")
+    if message.highlights:
+        parts.append("\n".join(f"- {h}" for h in message.highlights))
+    if message.tip:
+        parts.append(f"_Tip: {message.tip}_")
+    return "\n\n".join(parts)
+
+
 class MattermostProvider:
     def __init__(self, config: MattermostConfig):
         self.webhook_url = config.webhook_url
@@ -211,9 +246,9 @@ class MattermostProvider:
                 text=message.greeting or "",
                 attachments=[
                     MattermostAttachment(
-                        title=" | ".join(filter(None, [message.full_heading, message.subtitle])),
+                        title=f"{message.full_heading}{_mattermost_weather(message.weather)}",
                         title_link=message.url,
-                        text=message.body,
+                        text=_mattermost_text(message),
                     )
                 ],
             )
@@ -455,49 +490,128 @@ async def send_via_channel(
     )
 
 
-def _html_lines(text: str) -> str:
-    return "<br>".join(html.escape(line) for line in text.split("\n"))
+def _html_text(text: str) -> str:
+    return "<br>".join(html.escape(line, quote=False) for line in text.split("\n"))
+
+
+def _email_weather_html(weather: WeatherSummary | None) -> str:
+    if weather is None:
+        return ""
+    temperature = "?" if weather.temperature is None else weather.temperature
+    condition = html.escape(weather.condition or "Unknown", quote=False)
+    forecast_note = " (forecast)" if weather.forecast else ""
+    return f"""
+    <p style="color: #6B7280; margin: 0;">
+        {temperature}C, {condition}{forecast_note}
+    </p>
+    """
+
+
+def _email_highlights_html(highlights: list[str]) -> str:
+    if not highlights:
+        return ""
+    items_html = "".join(
+        f'<li style="color: #4B5563; margin: 5px 0;">{html.escape(h, quote=False)}</li>'
+        for h in highlights
+    )
+    return f"""
+    <ul style="margin: 15px 0; padding-left: 20px;">
+        {items_html}
+    </ul>
+    """
+
+
+def _email_tip_html(tip: str | None) -> str:
+    if not tip:
+        return ""
+    return f"""
+    <div style="background: #F3F4F6; border-radius: 8px; padding: 12px; margin: 15px 0; border: 1px solid #E5E7EB;">
+        <p style="color: #4B5563; margin: 0;">
+            <strong style="color: #1F2937;">Tip:</strong> {html.escape(tip, quote=False)}
+        </p>
+    </div>
+    """
+
+
+def _email_cta_html(message: NotificationMessage) -> str:
+    if not message.url:
+        return ""
+    return f"""
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{html.escape(message.url)}"
+           style="background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; margin: 5px;">
+            {html.escape(message.url_label, quote=False)}
+        </a>
+    </div>
+    """
+
+
+def _email_text(message: NotificationMessage) -> str:
+    lead = message.lead if message.has_sections else message.body
+    parts = [f"Wardrowbe - {message.full_heading}"]
+    if lead:
+        parts.append(lead)
+    if message.highlights:
+        parts.append("\n".join(f"- {h}" for h in message.highlights))
+    if message.tip:
+        parts.append(f"Tip: {message.tip}")
+    if message.url:
+        parts.append(f"{message.url_label}: {message.url}")
+    return "\n\n".join(parts)
 
 
 def build_notification_email(to: str, message: NotificationMessage) -> EmailMessage:
-    settings = get_settings()
-    home_url = settings.app_link()
-    settings_url = settings.app_link("/dashboard/notifications")
-    paragraphs = "".join(
-        f'<p style="color: #374151; line-height: 1.6;">{_html_lines(paragraph)}</p>'
-        for paragraph in message.body.split("\n\n")
-    )
-    heading = html.escape(message.full_heading)
-    subtitle_html = ""
-    text_parts = [message.full_heading]
-    if message.subtitle:
-        subtitle_html = f"""
-    <p style="color: #6B7280; margin: 0;">{html.escape(message.subtitle)}</p>"""
-        text_parts.append(message.subtitle)
-    text_parts.append(message.body)
-    cta_html = ""
-    if message.url:
-        cta_html = f"""
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="{html.escape(message.url)}"
-           style="background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">
-            {html.escape(message.url_label)}
-        </a>
-    </div>"""
-        text_parts.append(f"{message.url_label}: {message.url}")
-    html_body = f"""\
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <h2 style="color: #111827;">{heading}</h2>{subtitle_html}
-    {paragraphs}{cta_html}
-    <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
-    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{home_url}" style="color: #9CA3AF;">Wardrowbe</a>
-        &middot; <a href="{settings_url}" style="color: #9CA3AF;">Manage notification settings</a></p>
-</div>"""
+    settings_url = get_settings().app_link("/dashboard/notifications")
+    lead = message.lead if message.has_sections else message.body
+    lead_html = ""
+    if lead:
+        lead_html = f"""
+        <p style="color: #1F2937; font-weight: 600; margin: 0 0 10px 0;">
+            {_html_text(lead)}
+        </p>"""
+    html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #1F2937; margin: 0;">Wardrowbe</h1>
+    </div>
+
+    <div style="background: #F9FAFB; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <h2 style="color: #1F2937; margin: 0 0 10px 0;">
+            {html.escape(message.full_heading, quote=False)}
+        </h2>
+        {_email_weather_html(message.weather)}
+    </div>
+
+    <div style="background: #F3F4F6; border-radius: 8px; padding: 15px; margin: 20px 0;">{lead_html}
+        {_email_highlights_html(message.highlights)}
+    </div>
+
+    {_email_tip_html(message.tip)}
+
+    {_email_cta_html(message)}
+
+    <div style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 40px;">
+        <p>Sent by Wardrowbe</p>
+        <p>
+            <a href="{html.escape(settings_url)}" style="color: #6B7280;">
+                Manage notification settings
+            </a>
+        </p>
+    </div>
+</body>
+</html>
+"""
     return EmailMessage(
         to=to,
         subject=message.full_heading,
         html_body=html_body,
-        text_body="\n\n".join(text_parts),
+        text_body=_email_text(message),
     )
 
 
