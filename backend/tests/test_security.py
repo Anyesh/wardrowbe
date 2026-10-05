@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from app.api.auth import _is_dev_mode
 from app.config import Settings
 from app.schemas.notification import NtfyConfig, ScheduleBase, ScheduleUpdate
+from app.services.user_service import UserService
 
 
 class TestAIEndpointSchemeValidation:
@@ -295,6 +296,53 @@ class TestProviderMigrationRequiresVerifiedEmail:
             )
             assert response.status_code == 409
             assert "Verified email required" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_unverified_blocked_when_account_appears_after_lookup(
+        self, client, db_session, test_user, monkeypatch
+    ):
+        original_external_id = test_user.external_id
+        original_get_by_email = UserService.get_by_email
+        lookups: list[str] = []
+
+        async def get_by_email_missing_first_time(self, email):
+            lookups.append(email)
+            if len(lookups) == 1:
+                return None
+            return await original_get_by_email(self, email)
+
+        monkeypatch.setattr(UserService, "get_by_email", get_by_email_missing_first_time)
+        mock_claims = {
+            "sub": "racing-provider-id",
+            "email": test_user.email,
+            "email_verified": False,
+        }
+        with (
+            patch("app.api.auth._is_dev_mode", return_value=False),
+            patch("app.api.auth._oidc_configured", return_value=True),
+            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
+            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
+            patch("app.api.auth.settings") as mock_settings,
+        ):
+            mock_settings.oidc_issuer_url = "https://auth.example.com"
+            mock_settings.oidc_client_id = "test-client"
+            mock_settings.oidc_mobile_client_id = None
+            mock_settings.secret_key = "test-secret"
+
+            response = await client.post(
+                "/api/v1/auth/sync",
+                json={
+                    "external_id": "racing-provider-id",
+                    "email": test_user.email,
+                    "display_name": "Test",
+                    "id_token": "fake-token",
+                },
+            )
+
+        assert response.status_code == 409
+        assert "access_token" not in response.json()
+        await db_session.refresh(test_user)
+        assert test_user.external_id == original_external_id
 
     @pytest.mark.asyncio
     async def test_verified_allows_migration(self, client, db_session, test_user):

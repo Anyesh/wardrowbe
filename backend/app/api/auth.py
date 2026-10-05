@@ -98,6 +98,7 @@ async def sync_user(
 ) -> UserSyncResponse:
     await rate_limit_by_ip(request, "auth_sync", 10, 60)
     if _is_dev_mode():
+        allow_email_adoption = True
         if not sync_data.email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -153,16 +154,7 @@ async def sync_user(
             )
 
         sync_data = sync_data.model_copy(update={"email": effective_email})
-
-        # Check provider migration: different external_id, same email requires verified email
-        user_service_check = UserService(db)
-        existing_user = await user_service_check.get_by_email(effective_email)
-        if existing_user and existing_user.external_id != sync_data.external_id:
-            if oidc_claims.get("email_verified") is not True:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Email already associated with another account. Verified email required for migration.",
-                )
+        allow_email_adoption = oidc_claims.get("email_verified") is True
     else:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -172,7 +164,9 @@ async def sync_user(
     user_service = UserService(db)
 
     try:
-        user, is_new = await user_service.sync_from_oidc(sync_data)
+        user, is_new = await user_service.sync_from_oidc(
+            sync_data, allow_email_adoption=allow_email_adoption
+        )
     except UserEmailConflictError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
