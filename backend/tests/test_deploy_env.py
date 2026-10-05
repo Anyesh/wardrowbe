@@ -12,9 +12,9 @@ SETTINGS_KEYS = {name.upper() for name in Settings.model_fields}
 # Read by docker-entrypoint.sh to remap appuser before the app starts, never by Settings.
 ENTRYPOINT_KEYS = {"PUID", "PGID"}
 
-# Nothing reads these. They stay listed until the branches removing forward-auth and
-# OIDC_SKIP_SSL_VERIFY land, because deleting them here would conflict with that work.
-UNREAD_KEYS_REMOVED_ELSEWHERE = {"AUTH_TRUST_HEADER", "AUTH_HEADER_NAME", "OIDC_SKIP_SSL_VERIFY"}
+# Nothing reads these. They stay listed until the branch removing forward-auth lands,
+# because deleting them here would conflict with that work.
+UNREAD_KEYS_REMOVED_ELSEWHERE = {"AUTH_TRUST_HEADER", "AUTH_HEADER_NAME"}
 
 # wardrobe-config is shared with the postgres and frontend Deployments, which read these.
 K8S_NON_BACKEND_KEYS = {"POSTGRES_USER", "POSTGRES_DB", "NEXTAUTH_URL"}

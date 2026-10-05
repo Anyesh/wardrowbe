@@ -94,7 +94,6 @@ services:
       # Auth header from TinyAuth
       AUTH_TRUST_HEADER: ${AUTH_TRUST_HEADER:-true}
       AUTH_HEADER_NAME: "Remote-User"
-      OIDC_SKIP_SSL_VERIFY: ${OIDC_SKIP_SSL_VERIFY:-false}
     volumes:
       - uploads_data:/data/uploads
     dns:
