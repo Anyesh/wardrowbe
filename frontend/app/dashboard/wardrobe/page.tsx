@@ -944,9 +944,7 @@ export default function WardrobePage() {
         isRotating={bulkRotate.isPending}
         isRemovingBackground={bulkRemoveBackground.isPending}
         variant="items"
-        page={page}
-        pageSize={pageSize}
-        onPageChange={handlePageChange}
+        pagination={{ page, pageSize, onPageChange: handlePageChange }}
       />
 
       <AddItemDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />

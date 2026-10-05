@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
@@ -68,10 +74,7 @@ export interface FeedbackResponse {
   created_at: string;
 }
 
-export function useOutfits(filters: OutfitFilters = {}, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
-  const { status } = useSession();
-  useSetTokenIfAvailable();
-
+function outfitListParams(filters: OutfitFilters, page: number, pageSize: number) {
   const params: Record<string, string> = {
     page: String(page),
     page_size: String(pageSize),
@@ -91,11 +94,50 @@ export function useOutfits(filters: OutfitFilters = {}, page = 1, pageSize = DEF
   if (filters.cloned_from_outfit_id)
     params.cloned_from_outfit_id = filters.cloned_from_outfit_id;
 
+  return params;
+}
+
+export function useOutfits(filters: OutfitFilters = {}, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
   return useQuery({
     queryKey: queryKeys.outfits.list(filters, page, pageSize),
-    queryFn: () => api.get<OutfitListResponse>('/outfits', { params }),
+    queryFn: () =>
+      api.get<OutfitListResponse>('/outfits', {
+        params: outfitListParams(filters, page, pageSize),
+      }),
     enabled: status !== 'loading',
   });
+}
+
+export function useInfiniteOutfits(filters: OutfitFilters = {}, pageSize = DEFAULT_PAGE_SIZE) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
+  return useInfiniteQuery({
+    queryKey: queryKeys.outfits.infinite(filters, pageSize),
+    queryFn: ({ pageParam }) =>
+      api.get<OutfitListResponse>('/outfits', {
+        params: outfitListParams(filters, pageParam, pageSize),
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => (lastPage.has_more ? lastPage.page + 1 : undefined),
+    enabled: status !== 'loading',
+  });
+}
+
+type CachedOutfitList = OutfitListResponse | InfiniteData<OutfitListResponse, number>;
+
+// Every entry under queryKeys.outfits.all is either a single page or the infinite list's pages,
+// so the optimistic updaters must rewrite both shapes.
+function mapCachedOutfitPages(
+  cached: CachedOutfitList | undefined,
+  update: (page: OutfitListResponse) => OutfitListResponse,
+): CachedOutfitList | undefined {
+  if (!cached) return cached;
+  if ('pages' in cached) return { ...cached, pages: cached.pages.map(update) };
+  return update(cached);
 }
 
 export function useOutfit(outfitId: string | undefined) {
@@ -185,24 +227,22 @@ export function useBulkDeleteOutfits() {
 
       if (params.select_all) {
         const excludedSet = new Set(params.excluded_ids || []);
-        queryClient.setQueriesData({ queryKey: queryKeys.outfits.all }, (old: OutfitListResponse | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            outfits: old.outfits.filter((outfit) => excludedSet.has(outfit.id)),
+        queryClient.setQueriesData<CachedOutfitList>({ queryKey: queryKeys.outfits.all }, (old) =>
+          mapCachedOutfitPages(old, (page) => ({
+            ...page,
+            outfits: page.outfits.filter((outfit) => excludedSet.has(outfit.id)),
             total: excludedSet.size,
-          };
-        });
+          })),
+        );
       } else if (params.outfit_ids) {
         const deletedSet = new Set(params.outfit_ids);
-        queryClient.setQueriesData({ queryKey: queryKeys.outfits.all }, (old: OutfitListResponse | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            outfits: old.outfits.filter((outfit) => !deletedSet.has(outfit.id)),
-            total: old.total - params.outfit_ids!.length,
-          };
-        });
+        queryClient.setQueriesData<CachedOutfitList>({ queryKey: queryKeys.outfits.all }, (old) =>
+          mapCachedOutfitPages(old, (page) => ({
+            ...page,
+            outfits: page.outfits.filter((outfit) => !deletedSet.has(outfit.id)),
+            total: page.total - deletedSet.size,
+          })),
+        );
       }
 
       return { previousData };
