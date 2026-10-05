@@ -730,7 +730,7 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="first-item-purchase-date">{tp('date')}</Label>
                   <Input
