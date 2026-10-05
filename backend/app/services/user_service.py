@@ -77,7 +77,9 @@ class UserService:
         # attempt means a concurrent sign-in committed a change to this identity's or this
         # email's row; the next attempt re-reads and decides again. Three attempts cover the
         # longest observed chain (insert loses to the first sign-in, reclaim loses to a twin
-        # request, then the twin's row is found), and the rest is headroom.
+        # request, then the twin's row is found), and the rest is headroom. Three or more distinct
+        # verified identities racing for one email can still exhaust it, and by design they get
+        # the retryable CONCURRENT_SIGN_IN conflict rather than an unbounded loop.
         for _ in range(SYNC_ATTEMPTS):
             try:
                 return await self._sync_once(sync_data, email_verified)
@@ -100,6 +102,10 @@ class UserService:
             return await self._sign_in_existing(holder, sync_data, email_verified), False
         if not email_verified:
             raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE)
+        # Commit order decides a reclaim racing the holder's own verifying sign-in. If the holder
+        # verified first, this caller adopts it here. If the reclaim commits first, the holder
+        # stays detached and its sync gets EMAIL_IN_USE, because two verified accounts are never
+        # merged automatically; an admin resolves that case.
         if holder.email_verified:
             return await self._adopt(holder, sync_data), False
         return await self._insert_synced_user(sync_data, email_verified, reclaim_from=holder), True
