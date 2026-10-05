@@ -12,7 +12,7 @@ import type { FamilyRating, Outfit, OutfitStatus } from '@/lib/types';
 import { formatDateKey } from '@/lib/utils';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/pagination';
 import { queryKeys } from '@/lib/hooks/query-keys';
-import { invalidateOutfitCaches } from '@/lib/hooks/cache-invalidation';
+import { invalidateEveryItemWearCache, invalidateOutfitCaches } from '@/lib/hooks/cache-invalidation';
 
 export type {
   FeedbackSummary,
@@ -179,8 +179,9 @@ export function useSubmitFeedback() {
   return useMutation({
     mutationFn: ({ outfitId, feedback }: { outfitId: string; feedback: FeedbackData }) =>
       api.post<FeedbackResponse>(`/outfits/${outfitId}/feedback`, feedback),
-    onSuccess: (_, { outfitId }) => {
+    onSuccess: (_, { outfitId, feedback }) => {
       invalidateOutfitCaches(queryClient, outfitId);
+      if (feedback.worn) invalidateEveryItemWearCache(queryClient);
     },
   });
 }
