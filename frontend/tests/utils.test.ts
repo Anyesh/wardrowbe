@@ -91,6 +91,22 @@ describe('formatWornAgo', () => {
     const result = formatWornAgo(dateStr)
     expect(result).toBe('wornAgo.today')
   })
+
+  it('counts whole days across a daylight-saving change in the browser zone', () => {
+    const originalTz = process.env.TZ
+    process.env.TZ = 'Australia/Sydney'
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-05T03:00:00Z'))
+    try {
+      expect(formatWornAgo('2026-10-04', 'Australia/Sydney', mockT)).toBe('wornAgo.yesterday')
+      expect(formatWornAgo('2026-09-30', 'Australia/Sydney', mockT)).toBe(
+        'wornAgo.daysAgo:{"days":5}'
+      )
+    } finally {
+      vi.useRealTimers()
+      process.env.TZ = originalTz
+    }
+  })
 })
 
 describe('chunkArray utility', () => {
