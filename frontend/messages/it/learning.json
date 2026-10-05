@@ -25,6 +25,11 @@
   "insightHelpUsLearnTitle": "Aiutaci a conoscere il tuo stile",
   "insightStyleLeaningDescription": "In base al tuo feedback, preferisci gli stili {styles}.",
   "insightStyleLeaningTitle": "Il tuo stile: {style}",
+  "interpretationDisliked": "poco apprezzato",
+  "interpretationLiked": "apprezzato",
+  "interpretationNeutral": "neutro",
+  "interpretationStronglyDisliked": "per niente apprezzato",
+  "interpretationStronglyLiked": "molto apprezzato",
   "lastUpdated": "Ultimo aggiornamento del profilo di apprendimento: {date}",
   "loadError": "Caricamento dati di apprendimento fallito. Riprova.",
   "noData": {
@@ -81,5 +86,9 @@
     "description": "Come ti vesti per diverse condizioni",
     "layers": "~{count} strati",
     "title": "Preferenze meteo"
-  }
+  },
+  "weatherTypeCold": "Freddo",
+  "weatherTypeCool": "Fresco",
+  "weatherTypeHot": "Caldo",
+  "weatherTypeMild": "Mite"
 }

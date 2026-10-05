@@ -25,6 +25,11 @@
   "insightHelpUsLearnTitle": "취향을 알려주세요",
   "insightStyleLeaningDescription": "피드백을 보면 {styles} 스타일에 끌리시는 것 같아요.",
   "insightStyleLeaningTitle": "내 스타일: {style}",
+  "interpretationDisliked": "싫어함",
+  "interpretationLiked": "좋아함",
+  "interpretationNeutral": "보통",
+  "interpretationStronglyDisliked": "매우 싫어함",
+  "interpretationStronglyLiked": "매우 좋아함",
   "lastUpdated": "학습 프로필 마지막 업데이트: {date}",
   "loadError": "학습 데이터를 불러오지 못했어요. 다시 시도해 주세요.",
   "noData": {
@@ -81,5 +86,9 @@
     "description": "날씨별 옷차림 경향",
     "layers": "약 {count}겹",
     "title": "날씨 선호도"
-  }
+  },
+  "weatherTypeCold": "추움",
+  "weatherTypeCool": "쌀쌀함",
+  "weatherTypeHot": "더움",
+  "weatherTypeMild": "온화함"
 }

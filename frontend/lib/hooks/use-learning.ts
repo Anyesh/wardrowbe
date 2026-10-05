@@ -10,7 +10,9 @@ import type { InsightParams } from '@/lib/insights';
 export interface LearnedColorScore {
   color: string;
   score: number;
-  interpretation: string; // "strongly liked", "liked", "neutral", "disliked", "strongly disliked"
+  // English label kept for older APIs; interpretation_key picks the translated one.
+  interpretation: string;
+  interpretation_key?: string;
 }
 
 export interface LearnedStyleScore {

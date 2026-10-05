@@ -12,7 +12,7 @@ from app.models.item import ClothingItem, ItemStatus
 from app.models.learning import ItemPairScore, StyleInsight, UserLearningProfile
 from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus, UserFeedback
 from app.models.user import User
-from app.services.learning_service import LearningService, insight_message
+from app.services.learning_service import LearningService, insight_message, score_interpretation
 
 
 def _make_outfit_with_feedback(user_id, items_data, accepted=True, rating=4, occasion="casual"):
@@ -625,3 +625,40 @@ async def test_learning_api_sends_insight_keys_alongside_the_english_text(
     assert insight["message_key"] == "insightColorLoved"
     assert insight["message_params"] == {"color": "navy"}
     assert insight["title"] == "You love navy!"
+
+
+@pytest.mark.parametrize(
+    ("score", "key"),
+    [
+        (0.5, "stronglyLiked"),
+        (0.2, "liked"),
+        (0.0, "neutral"),
+        (-0.3, "disliked"),
+        (-0.9, "stronglyDisliked"),
+    ],
+)
+def test_score_interpretation_keys(score, key):
+    assert score_interpretation(score) == key
+
+
+@pytest.mark.asyncio
+async def test_learning_api_sends_colour_interpretation_keys(
+    client, db_session, test_user, auth_headers
+):
+    db_session.add(
+        UserLearningProfile(
+            user_id=test_user.id,
+            learned_color_scores={"navy": 0.6, "orange": -0.3},
+            last_computed_at=datetime.now(UTC),
+        )
+    )
+    await db_session.commit()
+
+    response = await client.get("/api/v1/learning", headers=auth_headers)
+
+    assert response.status_code == 200
+    colors = response.json()["profile"]["color_preferences"]
+    assert [(c["color"], c["interpretation"], c["interpretation_key"]) for c in colors] == [
+        ("navy", "strongly liked", "stronglyLiked"),
+        ("orange", "disliked", "disliked"),
+    ]

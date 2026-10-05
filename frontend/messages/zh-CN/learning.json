@@ -25,6 +25,11 @@
   "insightHelpUsLearnTitle": "帮我们了解你的风格",
   "insightStyleLeaningDescription": "根据你的反馈，你偏向{styles}风格。",
   "insightStyleLeaningTitle": "你的风格：{style}",
+  "interpretationDisliked": "不喜欢",
+  "interpretationLiked": "喜欢",
+  "interpretationNeutral": "一般",
+  "interpretationStronglyDisliked": "非常不喜欢",
+  "interpretationStronglyLiked": "非常喜欢",
   "lastUpdated": "学习档案上次更新：{date}",
   "loadError": "加载学习数据失败，请重试。",
   "noData": {
@@ -81,5 +86,9 @@
     "description": "你在不同天气下的穿着习惯",
     "layers": "约 {count} 层",
     "title": "天气偏好"
-  }
+  },
+  "weatherTypeCold": "寒冷",
+  "weatherTypeCool": "凉爽",
+  "weatherTypeHot": "炎热",
+  "weatherTypeMild": "温和"
 }

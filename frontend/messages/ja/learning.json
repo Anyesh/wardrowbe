@@ -25,6 +25,11 @@
   "insightHelpUsLearnTitle": "あなたのスタイルを教えてください",
   "insightStyleLeaningDescription": "フィードバックから、{styles}のスタイルを好む傾向があります。",
   "insightStyleLeaningTitle": "あなたのスタイル：{style}",
+  "interpretationDisliked": "好きではない",
+  "interpretationLiked": "好き",
+  "interpretationNeutral": "どちらでもない",
+  "interpretationStronglyDisliked": "とても好きではない",
+  "interpretationStronglyLiked": "とても好き",
   "lastUpdated": "学習プロフィール最終更新：{date}",
   "loadError": "学習データの読み込みに失敗しました。もう一度お試しください。",
   "noData": {
@@ -81,5 +86,9 @@
     "description": "異なる天候での着こなし傾向",
     "layers": "約{count}枚重ね",
     "title": "天気の好み"
-  }
+  },
+  "weatherTypeCold": "寒い",
+  "weatherTypeCool": "涼しい",
+  "weatherTypeHot": "暑い",
+  "weatherTypeMild": "穏やか"
 }

@@ -12,7 +12,11 @@ from sqlalchemy import select
 from app.database import DbSession
 from app.models.learning import StyleInsight, UserLearningProfile
 from app.models.user import User
-from app.services.learning_service import LearningService, insight_message
+from app.services.learning_service import (
+    LearningService,
+    insight_message,
+    score_interpretation,
+)
 from app.utils.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -26,7 +30,9 @@ class LearnedColorScore(BaseModel):
 
     color: str
     score: float
-    interpretation: str  # "strongly liked", "liked", "neutral", "disliked", "strongly disliked"
+    # English label kept for older clients; interpretation_key picks the translated one.
+    interpretation: str
+    interpretation_key: str | None = None
 
 
 class LearnedStyleScore(BaseModel):
@@ -118,18 +124,20 @@ class LearningInsightsResponse(BaseModel):
     preference_suggestions: dict
 
 
-def _interpret_score(score: float) -> str:
-    """Convert numeric score to human-readable interpretation."""
-    if score >= 0.5:
-        return "strongly liked"
-    elif score >= 0.2:
-        return "liked"
-    elif score >= -0.2:
-        return "neutral"
-    elif score >= -0.5:
-        return "disliked"
-    else:
-        return "strongly disliked"
+_INTERPRETATION_EN = {
+    "stronglyLiked": "strongly liked",
+    "liked": "liked",
+    "neutral": "neutral",
+    "disliked": "disliked",
+    "stronglyDisliked": "strongly disliked",
+}
+
+
+def _color_score(color: str, score: float) -> LearnedColorScore:
+    key = score_interpretation(score)
+    return LearnedColorScore(
+        color=color, score=score, interpretation=_INTERPRETATION_EN[key], interpretation_key=key
+    )
 
 
 def _profile_response(profile: UserLearningProfile | None) -> LearningProfileResponse:
@@ -167,7 +175,7 @@ def _profile_response(profile: UserLearningProfile | None) -> LearningProfileRes
         if profile.average_style_rating is not None
         else None,
         color_preferences=[
-            LearnedColorScore(color=color, score=score, interpretation=_interpret_score(score))
+            _color_score(color, score)
             for color, score in sorted(color_scores.items(), key=lambda x: x[1], reverse=True)
         ],
         style_preferences=[
