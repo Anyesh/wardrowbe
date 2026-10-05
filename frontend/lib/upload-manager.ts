@@ -17,6 +17,7 @@ import {
   type BulkUploadErrorCode,
   type BulkUploadResponse,
 } from '@/lib/hooks/use-items';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 // A flat file-count chunk (previously 20) doesn't account for file size: 20
 // modern phone photos routinely exceed nginx's default 50MB
@@ -265,7 +266,7 @@ async function drainOnce(): Promise<boolean> {
     }
   }
 
-  queryClient?.invalidateQueries({ queryKey: ['items'] });
+  queryClient?.invalidateQueries({ queryKey: queryKeys.items.all });
   await emit();
   return true;
 }

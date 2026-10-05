@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export interface AuthConfig {
   oidc: {
@@ -16,7 +17,7 @@ export interface AuthConfig {
 
 export function useAuthConfig() {
   return useQuery({
-    queryKey: ['auth-config'],
+    queryKey: queryKeys.authConfig,
     queryFn: () => api.get<AuthConfig>('/auth/config'),
     staleTime: Infinity,
     retry: false,

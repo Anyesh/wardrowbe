@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
 import type { Outfit } from '@/lib/hooks/use-outfits';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export interface StudioCreatePayload {
   items: string[];
@@ -21,9 +22,9 @@ export function useCreateStudioOutfit() {
     mutationFn: (payload: StudioCreatePayload) =>
       api.post<Outfit>('/outfits/studio', payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['outfits'] });
-      qc.invalidateQueries({ queryKey: ['analytics'] });
-      qc.invalidateQueries({ queryKey: ['learning'] });
+      qc.invalidateQueries({ queryKey: queryKeys.outfits.all });
+      qc.invalidateQueries({ queryKey: queryKeys.analytics.all });
+      qc.invalidateQueries({ queryKey: queryKeys.learning.all });
     },
   });
 }
@@ -42,12 +43,12 @@ export function useCreateWoreInstead(originalOutfitId: string) {
     mutationFn: (payload: WoreInsteadPayload) =>
       api.post<Outfit>(`/outfits/${originalOutfitId}/wore-instead`, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['outfits'] });
-      qc.invalidateQueries({ queryKey: ['outfit', originalOutfitId] });
-      qc.invalidateQueries({ queryKey: ['pendingOutfits'] });
-      qc.invalidateQueries({ queryKey: ['calendarOutfits'] });
-      qc.invalidateQueries({ queryKey: ['analytics'] });
-      qc.invalidateQueries({ queryKey: ['learning'] });
+      qc.invalidateQueries({ queryKey: queryKeys.outfits.all });
+      qc.invalidateQueries({ queryKey: queryKeys.outfit(originalOutfitId) });
+      qc.invalidateQueries({ queryKey: queryKeys.pendingOutfits.all });
+      qc.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
+      qc.invalidateQueries({ queryKey: queryKeys.analytics.all });
+      qc.invalidateQueries({ queryKey: queryKeys.learning.all });
     },
   });
 }
@@ -59,7 +60,7 @@ export function useCloneToLookbook(sourceOutfitId: string) {
     mutationFn: (payload: { name: string }) =>
       api.post<Outfit>(`/outfits/${sourceOutfitId}/clone-to-lookbook`, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['outfits'] });
+      qc.invalidateQueries({ queryKey: queryKeys.outfits.all });
     },
   });
 }
@@ -71,9 +72,9 @@ export function useWearToday(templateId: string) {
     mutationFn: (payload: { scheduled_for?: string | null }) =>
       api.post<Outfit>(`/outfits/${templateId}/wear-today`, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['outfits'] });
-      qc.invalidateQueries({ queryKey: ['calendarOutfits'] });
-      qc.invalidateQueries({ queryKey: ['items'] });
+      qc.invalidateQueries({ queryKey: queryKeys.outfits.all });
+      qc.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
+      qc.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -90,8 +91,8 @@ export function usePatchOutfit() {
     mutationFn: ({ id, payload }: { id: string; payload: PatchOutfitPayload }) =>
       api.patch<Outfit>(`/outfits/${id}`, payload),
     onSuccess: (_, { id }) => {
-      qc.invalidateQueries({ queryKey: ['outfit', id] });
-      qc.invalidateQueries({ queryKey: ['outfits'] });
+      qc.invalidateQueries({ queryKey: queryKeys.outfit(id) });
+      qc.invalidateQueries({ queryKey: queryKeys.outfits.all });
     },
   });
 }

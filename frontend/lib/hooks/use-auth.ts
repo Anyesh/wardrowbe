@@ -6,6 +6,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { api, ApiError } from '@/lib/api';
 import { applySessionToken } from '@/lib/hooks/use-session-token';
 import type { UserProfile } from './use-user';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export function useAuth() {
   const { data: session, status } = useSession();
@@ -17,7 +18,7 @@ export function useAuth() {
   const syncError = session?.syncError;
 
   const userQuery = useQuery({
-    queryKey: ['auth-user'],
+    queryKey: queryKeys.authUser,
     queryFn: () => api.get<UserProfile>('/users/me'),
     // Only fetch when session is loaded AND we have an access token
     enabled: status === 'authenticated' && hasToken,

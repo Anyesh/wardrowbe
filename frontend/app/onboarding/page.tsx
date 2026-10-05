@@ -39,6 +39,7 @@ import { applySessionToken } from '@/lib/hooks/use-session-token';
 import { StyleProfile } from '@/lib/types';
 import { useClothingColors, useClothingTypes } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
   const t = useTranslations('onboarding');
@@ -791,7 +792,7 @@ export default function OnboardingPage() {
       applySessionToken(session);
       await api.post('/users/me/onboarding/complete');
       // Invalidate cached user data so dashboard sees onboarding_completed: true
-      await queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.authUser });
       // Redirect to dashboard
       router.push('/dashboard');
     } catch (error) {
