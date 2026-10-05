@@ -47,7 +47,7 @@ from app.schemas.item import (
     TaggingProgressResponse,
     WashHistoryResponse,
 )
-from app.services.image_service import ImageService, get_full_path
+from app.services.image_service import ImageService
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
 from app.utils.signed_urls import sign_optional
@@ -262,7 +262,7 @@ async def create_item(
         try:
             redis = await create_pool(get_redis_settings())
             try:
-                full_image_path = get_full_path(image_paths["image_path"])
+                full_image_path = str(image_service.get_image_path(image_paths["image_path"]))
                 job = await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
@@ -431,7 +431,9 @@ async def bulk_create_items(
                     # `processing` whenever the AI is fast enough to win the race.
                     await db.commit()
                     try:
-                        full_image_path = get_full_path(image_paths["image_path"])
+                        full_image_path = str(
+                            image_service.get_image_path(image_paths["image_path"])
+                        )
                         job = await redis.enqueue_job(
                             "tag_item_image",
                             str(item.id),
@@ -685,10 +687,11 @@ async def bulk_analyze_items(
             detail="Failed to connect to job queue",
         ) from None
 
+    image_service = ImageService()
     try:
         for item, job_id in to_enqueue:
             try:
-                full_image_path = get_full_path(item.image_path)
+                full_image_path = str(image_service.get_image_path(item.image_path))
                 job = await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
@@ -1545,6 +1548,8 @@ async def trigger_ai_analysis(
         await db.commit()
         return {"status": "deferred", "reason": "vision disabled"}
 
+    image_service = ImageService()
+
     if item.status == ItemStatus.processing and item.ai_job_id:
         # Dedup: a live job already owns this item. If ai_job_id is None instead,
         # a prior enqueue silently failed and there's nothing to dedup against -
@@ -1576,7 +1581,7 @@ async def trigger_ai_analysis(
         try:
             redis = await create_pool(get_redis_settings())
             try:
-                full_image_path = get_full_path(image_path)
+                full_image_path = str(image_service.get_image_path(image_path))
                 enqueued = await redis.enqueue_job(
                     "tag_item_image",
                     str(item_id),
@@ -1607,7 +1612,7 @@ async def trigger_ai_analysis(
 
         redis = await create_pool(get_redis_settings())
         try:
-            full_image_path = get_full_path(item.image_path)
+            full_image_path = str(image_service.get_image_path(item.image_path))
             job = await redis.enqueue_job(
                 "tag_item_image",
                 str(item.id),
