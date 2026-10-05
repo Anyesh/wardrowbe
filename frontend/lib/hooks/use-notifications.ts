@@ -11,10 +11,15 @@ function useSetTokenIfAvailable() {
   }
 }
 
+export type NotificationChannel = 'ntfy' | 'mattermost' | 'email' | 'expo_push';
+
+// expo_push is registered by the mobile app through /notifications/push-token, never from the form.
+export type ManualNotificationChannel = Exclude<NotificationChannel, 'expo_push'>;
+
 export interface NotificationSettings {
   id: string;
   user_id: string;
-  channel: 'ntfy' | 'mattermost' | 'email';
+  channel: NotificationChannel;
   enabled: boolean;
   priority: number;
   config: Record<string, string>;
@@ -64,7 +69,7 @@ export function useCreateNotificationSetting() {
 
   return useMutation({
     mutationFn: async (data: {
-      channel: 'ntfy' | 'mattermost' | 'email';
+      channel: ManualNotificationChannel;
       enabled: boolean;
       priority: number;
       config: Record<string, string>;

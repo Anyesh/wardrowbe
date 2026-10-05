@@ -28,6 +28,7 @@
       "mattermostWebhook": "Créez un webhook entrant dans les paramètres Mattermost",
       "topicSubscribe": "Abonnez-vous à ce sujet dans votre application ntfy"
     },
+    "mobileAppRegistered": "Enregistré depuis l’application mobile",
     "noChannels": "Aucun canal de notification configuré",
     "noChannelsDesc": "Ajoutez un canal pour commencer à recevoir des suggestions de tenues",
     "placeholders": {
@@ -41,6 +42,7 @@
     "title": "Canaux de notification",
     "types": {
       "email": "E-mail",
+      "expo_push": "Notifications push de l’application mobile",
       "mattermost": "Mattermost",
       "ntfy": "Notifications push ntfy"
     },

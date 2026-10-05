@@ -6,19 +6,15 @@ import {
   Bell,
   Plus,
   Trash2,
-  Send,
   Clock,
   Loader2,
   Settings2,
   Calendar,
-  Mail,
-  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -57,9 +53,10 @@ import {
   useCreateSchedule,
   useUpdateSchedule,
   useDeleteSchedule,
-  NotificationSettings,
+  ManualNotificationChannel,
   Schedule,
 } from '@/lib/hooks/use-notifications';
+import { ChannelCard } from '@/components/notifications/channel-card';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { isDeliverableEmail } from '@/lib/utils';
 import { useOccasions } from '@/lib/hooks/use-translated-constants';
@@ -75,87 +72,8 @@ const DAY_KEYS = [
   { value: 6, key: 'sunday' as const },
 ];
 
-const CHANNEL_ICONS: Record<string, React.ReactNode> = {
-  ntfy: <Bell className="h-5 w-5" />,
-  mattermost: <MessageSquare className="h-5 w-5" />,
-  email: <Mail className="h-5 w-5" />,
-};
-
-const CHANNEL_LABELS: Record<string, string> = {
-  ntfy: 'ntfy Push',
-  mattermost: 'Mattermost',
-  email: 'Email',
-};
-
-function ChannelCard({
-  setting,
-  onTest,
-  onToggle,
-  onDelete,
-  testing,
-}: {
-  setting: NotificationSettings;
-  onTest: () => void;
-  onToggle: (enabled: boolean) => void;
-  onDelete: () => void;
-  testing: boolean;
-}) {
-  const t = useTranslations('notifications');
-  const channelLabels: Record<string, string> = {
-    ntfy: t('channels.types.ntfy'),
-    mattermost: t('channels.types.mattermost'),
-    email: t('channels.types.email'),
-  };
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-              {CHANNEL_ICONS[setting.channel]}
-            </div>
-            <div>
-              <p className="font-medium">{channelLabels[setting.channel] || CHANNEL_LABELS[setting.channel]}</p>
-              <p className="text-sm text-muted-foreground">
-                {setting.channel === 'ntfy' && setting.config.topic}
-                {setting.channel === 'mattermost' && t('channels.webhookConfigured')}
-                {setting.channel === 'email' && setting.config.address}
-              </p>
-            </div>
-          </div>
-          <Switch checked={setting.enabled} onCheckedChange={onToggle} />
-        </div>
-        <div className="flex items-center gap-2 mt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onTest}
-            disabled={testing || !setting.enabled}
-          >
-            {testing ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-            ) : (
-              <Send className="h-4 w-4 mr-1" />
-            )}
-            {t('channels.test')}
-          </Button>
-          <Badge variant="secondary">{t('channels.priority', { level: setting.priority })}</Badge>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto text-destructive hover:text-destructive"
-            onClick={onDelete}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 interface ChannelFormData {
-  channel: 'ntfy' | 'mattermost' | 'email';
+  channel: ManualNotificationChannel;
   enabled: boolean;
   priority: number;
   config: Record<string, string>;
@@ -175,7 +93,7 @@ function AddChannelDialog({
   const t = useTranslations('notifications');
   const tc = useTranslations('common');
   const [open, setOpen] = useState(false);
-  const [channel, setChannel] = useState<'ntfy' | 'mattermost' | 'email'>('ntfy');
+  const [channel, setChannel] = useState<ManualNotificationChannel>('ntfy');
   const [config, setConfig] = useState<Record<string, string>>({});
   const [ntfyDefaults, setNtfyDefaults] = useState<{ server: string; token: string } | null>(null);
 
@@ -270,7 +188,7 @@ function AddChannelDialog({
               <Label>{t('channels.channelType')}</Label>
               <Select
                 value={channel}
-                onValueChange={(v: 'ntfy' | 'mattermost' | 'email') => {
+                onValueChange={(v: ManualNotificationChannel) => {
                   setChannel(v);
                   setConfig({});
                 }}
