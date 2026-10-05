@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import Select, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -14,6 +14,10 @@ from app.schemas.user import UserSyncRequest
 # Reserved by RFC 2606, so a detached address can never be delivered to or claimed by a sign-in.
 DETACHED_EMAIL_DOMAIN = "detached.invalid"
 EMAIL_IN_USE = "Email already in use by another account."
+CONCURRENT_SIGN_IN = (
+    "Email already associated with another account that is signing in concurrently."
+)
+SYNC_ATTEMPTS = 5
 UNVERIFIED_EMAIL_IN_USE = (
     "Email already in use by another account. "
     "Sign in with a provider that verifies this address to use it."
@@ -36,11 +40,15 @@ class UserService:
         if load_preferences:
             query = query.options(selectinload(User.preferences))
 
-        result = await self.db.execute(query)
-        return result.scalar_one_or_none()
+        return await self._fetch_current(query)
 
     async def get_by_email(self, email: str) -> User | None:
-        result = await self.db.execute(select(User).where(User.email == email))
+        return await self._fetch_current(select(User).where(User.email == email))
+
+    async def _fetch_current(self, query: Select) -> User | None:
+        # populate_existing because a sync attempt that lost a race leaves the row's earlier
+        # state in the identity map, and the next attempt must decide on the committed state.
+        result = await self.db.execute(query.execution_options(populate_existing=True))
         return result.scalar_one_or_none()
 
     async def sync_from_oidc(
@@ -60,26 +68,29 @@ class UserService:
         That takeover requires both the caller's email and the existing account's email
         to be verified. A verified caller whose email is held by an unverified account
         reclaims it instead: that account keeps its data under a detached placeholder
-        address. Any other email clash raises UserEmailConflictError.
+        address. Any other email clash, or a sign-in that keeps losing races, raises
+        UserEmailConflictError.
         """
-        if sync_data.email.lower().endswith(f"@{DETACHED_EMAIL_DOMAIN}"):
+        if sync_data.email.strip().lower().endswith(f"@{DETACHED_EMAIL_DOMAIN}"):
             raise UserEmailConflictError(EMAIL_IN_USE)
+        # Every write below only applies to the row state the decision was made on, so a lost
+        # attempt means a concurrent sign-in committed a change to this identity's or this
+        # email's row; the next attempt re-reads and decides again. Three attempts cover the
+        # longest observed chain (insert loses to the first sign-in, reclaim loses to a twin
+        # request, then the twin's row is found), and the rest is headroom.
+        for _ in range(SYNC_ATTEMPTS):
+            try:
+                return await self._sync_once(sync_data, email_verified)
+            except _RowChanged:
+                continue
+        raise UserEmailConflictError(CONCURRENT_SIGN_IN)
+
+    async def _sync_once(
+        self, sync_data: UserSyncRequest, email_verified: bool
+    ) -> tuple[User, bool]:
         user = await self.get_by_external_id(sync_data.external_id)
         if user is not None:
             return await self._sign_in_existing(user, sync_data, email_verified), False
-        try:
-            return await self._sign_in_first_time(sync_data, email_verified)
-        except IntegrityError:
-            # Two first sign-ins for one identity or email race: the other request committed its
-            # row after our lookups, so a second pass sees it and continues against it.
-            user = await self.get_by_external_id(sync_data.external_id)
-            if user is not None:
-                return await self._sign_in_existing(user, sync_data, email_verified), False
-            return await self._sign_in_first_time(sync_data, email_verified)
-
-    async def _sign_in_first_time(
-        self, sync_data: UserSyncRequest, email_verified: bool
-    ) -> tuple[User, bool]:
         holder = await self.get_by_email(sync_data.email)
         if holder is None:
             return await self._insert_synced_user(sync_data, email_verified), True
@@ -104,53 +115,69 @@ class UserService:
             if holder is not None and not email_verified:
                 raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE)
 
-        async with self._conflict_savepoint(EMAIL_IN_USE):
+        values = {"display_name": sync_data.display_name, "last_login_at": datetime.now(UTC)}
+        if sync_data.avatar_url:
+            values["avatar_url"] = sync_data.avatar_url
+        if user.email != sync_data.email:
+            values |= {"email": sync_data.email, "email_verified": email_verified}
+        elif email_verified:
+            values["email_verified"] = True
+        async with self._attempt_savepoint():
             if holder is not None:
                 await self._detach_email(holder)
-            if user.email != sync_data.email:
-                user.email = sync_data.email
-                user.email_verified = email_verified
-            elif email_verified:
-                user.email_verified = True
-            user.display_name = sync_data.display_name
-            if sync_data.avatar_url:
-                user.avatar_url = sync_data.avatar_url
-            user.last_login_at = datetime.now(UTC)
+            await self._update_unchanged(user, **values)
         await self.db.refresh(user)
         return user
 
     async def _adopt(self, holder: User, sync_data: UserSyncRequest) -> User:
         # Migrate an existing user to the new external_id (auth provider change):
         # email is the stable identifier, external_id can change
-        async with self._conflict_savepoint(
-            "Email already associated with another account that is signing in concurrently."
-        ):
-            holder.external_id = sync_data.external_id
-            holder.email_verified = True
-            holder.display_name = sync_data.display_name
-            if sync_data.avatar_url:
-                holder.avatar_url = sync_data.avatar_url
-            holder.last_login_at = datetime.now(UTC)
+        values = {
+            "external_id": sync_data.external_id,
+            "display_name": sync_data.display_name,
+            "last_login_at": datetime.now(UTC),
+        }
+        if sync_data.avatar_url:
+            values["avatar_url"] = sync_data.avatar_url
+        async with self._attempt_savepoint():
+            await self._update_unchanged(holder, **values)
         await self.db.refresh(holder)
         return holder
 
+    async def _detach_email(self, holder: User) -> None:
+        await self._update_unchanged(
+            holder, email=f"{holder.id}@{DETACHED_EMAIL_DOMAIN}", email_verified=False
+        )
+
+    async def _update_unchanged(self, read: User, **values: object) -> None:
+        # A compare-and-swap rather than SELECT ... FOR UPDATE: the decision was made on `read`,
+        # and Postgres re-evaluates this WHERE against the committed row once any concurrent
+        # writer releases it, so a holder that verified its email, moved to another address or
+        # was adopted meanwhile is left alone, without locking every row the sync only reads.
+        result = await self.db.execute(
+            update(User)
+            .where(
+                User.id == read.id,
+                User.external_id == read.external_id,
+                User.email == read.email,
+                User.email_verified.is_(read.email_verified),
+            )
+            .values(**values)
+            .execution_options(synchronize_session=False)
+        )
+        if result.rowcount != 1:
+            raise _RowChanged
+
     @asynccontextmanager
-    async def _conflict_savepoint(self, message: str) -> AsyncIterator[None]:
-        # Changes must be made inside the block: begin_nested() flushes pending state before
-        # the savepoint opens, and only what flushes inside it is rolled back on a unique
-        # violation, which keeps the request's transaction usable for the 409.
+    async def _attempt_savepoint(self) -> AsyncIterator[None]:
+        # A savepoint so that a lost race undoes this attempt's writes and leaves the request's
+        # transaction usable for the next attempt or the 409. A unique violation means a
+        # concurrent sign-in committed the identity or email after this attempt's reads.
         try:
             async with self.db.begin_nested():
                 yield
         except IntegrityError as e:
-            raise UserEmailConflictError(message) from e
-
-    async def _detach_email(self, holder: User) -> None:
-        # Flushed on its own because the unit of work may order the caller's insert or update
-        # of the same address ahead of this update, which would trip the unique constraint.
-        holder.email = f"{holder.id}@{DETACHED_EMAIL_DOMAIN}"
-        holder.email_verified = False
-        await self.db.flush()
+            raise _RowChanged from e
 
     async def _insert_synced_user(
         self, sync_data: UserSyncRequest, email_verified: bool, *, reclaim_from: User | None = None
@@ -163,9 +190,7 @@ class UserService:
             avatar_url=sync_data.avatar_url,
             last_login_at=datetime.now(UTC),
         )
-        # A savepoint so that a unique violation leaves the request's transaction usable and
-        # undoes the detach along with the insert.
-        async with self.db.begin_nested():
+        async with self._attempt_savepoint():
             if reclaim_from is not None:
                 await self._detach_email(reclaim_from)
             self.db.add(user)
@@ -183,4 +208,8 @@ class UserService:
 
 
 class UserEmailConflictError(Exception):
+    pass
+
+
+class _RowChanged(Exception):
     pass

@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import AsyncExitStack
 from uuid import uuid4
 
 import pytest
@@ -9,68 +10,87 @@ from app.schemas.user import UserResponse, UserSyncRequest
 from app.services.user_service import UserEmailConflictError, UserService
 
 
-async def _wait_until_blocked_by(session_maker, waiter_pid: int, holder_pid: int):
+async def _wait_until_blocked_by(session_maker, waiter_pid: int, racer_pids: list[int]):
+    # Any racer counts, because twins of one identity can queue behind each other's
+    # uncommitted external_id before reaching the first sync's rows.
     for _ in range(100):
         async with session_maker() as probe:
             blocked = await probe.scalar(
-                text("SELECT CAST(:holder AS integer) = ANY(pg_blocking_pids(:waiter))"),
-                {"holder": holder_pid, "waiter": waiter_pid},
+                text("SELECT pg_blocking_pids(:waiter) && CAST(:racers AS integer[])"),
+                {"racers": racer_pids, "waiter": waiter_pid},
             )
         if blocked:
             return
         await asyncio.sleep(0.05)
-    raise AssertionError("second sync never blocked on the first sync's uncommitted insert")
+    raise AssertionError("a racing sync never blocked on the first sync's uncommitted rows")
 
 
 async def _race(
     session_maker,
     first: UserSyncRequest,
-    second: UserSyncRequest,
-    *,
+    *others: UserSyncRequest,
     first_verified: bool = True,
-    second_verified: bool = True,
+    others_verified: bool = True,
     commit_first_before: str | None = None,
 ):
-    # By default the first sync commits once the second is blocked on its uncommitted rows;
-    # commit_first_before instead names a UserService method that the second sync pauses at
-    # until the first has committed, to land the commit between two of its lookups.
-    async with session_maker() as session_a, session_maker() as session_b:
+    # By default the first sync commits once every other sync is blocked on its uncommitted
+    # rows; commit_first_before instead names a UserService method that the others pause at
+    # until the first has committed, to land the commit between two of their lookups. Each
+    # other sync commits as soon as it returns, releasing any sync still blocked on its rows.
+    async with AsyncExitStack() as stack:
+        session_a = await stack.enter_async_context(session_maker())
+        sessions = [await stack.enter_async_context(session_maker()) for _ in others]
         pid_a = await session_a.scalar(text("SELECT pg_backend_pid()"))
-        pid_b = await session_b.scalar(text("SELECT pg_backend_pid()"))
+        pids = [await session.scalar(text("SELECT pg_backend_pid()")) for session in sessions]
         first_result = await UserService(session_a).sync_from_oidc(
             first, email_verified=first_verified
         )
-        service_b = UserService(session_b)
-        reached, committed = asyncio.Event(), asyncio.Event()
-        if commit_first_before is not None:
-            original = getattr(service_b, commit_first_before)
+        committed = asyncio.Event()
+        reached = []
+        tasks = {}
+        for sync, session in zip(others, sessions, strict=True):
+            service = UserService(session)
+            if commit_first_before is not None:
+                original = getattr(service, commit_first_before)
+                arrived = asyncio.Event()
+                reached.append(arrived.wait())
 
-            async def paused(*args, **kwargs):
-                reached.set()
-                await committed.wait()
-                return await original(*args, **kwargs)
+                async def paused(*args, _original=original, _arrived=arrived, **kwargs):
+                    _arrived.set()
+                    await committed.wait()
+                    return await _original(*args, **kwargs)
 
-            setattr(service_b, commit_first_before, paused)
-        task_b = asyncio.create_task(
-            service_b.sync_from_oidc(second, email_verified=second_verified)
-        )
+                setattr(service, commit_first_before, paused)
+            task = asyncio.create_task(service.sync_from_oidc(sync, email_verified=others_verified))
+            tasks[task] = session
+        results = {}
         try:
             if commit_first_before is None:
-                await _wait_until_blocked_by(session_maker, pid_b, pid_a)
+                for pid in pids:
+                    await _wait_until_blocked_by(session_maker, pid, [pid_a, *pids])
             else:
-                await asyncio.wait_for(reached.wait(), timeout=5)
+                await asyncio.wait_for(asyncio.gather(*reached), timeout=5)
             await session_a.commit()
             committed.set()
-            try:
-                second_result = await task_b
-            except UserEmailConflictError as e:
-                second_result = e
+            pending = dict(tasks)
+            while pending:
+                done, _ = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                for task in done:
+                    session = pending.pop(task)
+                    try:
+                        results[task] = task.result()
+                    except UserEmailConflictError as e:
+                        results[task] = e
+                    # Reading through the session proves a conflict left its transaction usable.
+                    emails = dict(
+                        (await session.execute(select(User.external_id, User.email))).all()
+                    )
+                    await session.commit()
         finally:
-            task_b.cancel()
-        # Reading through the second session proves a conflict left its transaction usable.
-        emails = dict((await session_b.execute(select(User.external_id, User.email))).all())
-        await session_b.commit()
-    return first_result, second_result, emails
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+    return (first_result, *(results[task] for task in tasks), emails)
 
 
 async def _cleanup(session_maker, *conditions):
@@ -87,39 +107,142 @@ async def _commit_users(session_maker, *users: User):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("verified", "commit_first_before", "squatted"),
+    ("verified", "commit_first_before"),
     [
-        pytest.param(True, None, False, id="commit-while-second-inserts"),
-        pytest.param(False, "get_by_email", False, id="unverified-commit-between-lookups"),
-        pytest.param(True, None, True, id="concurrent-reclaims"),
+        pytest.param(True, None, id="commit-while-second-inserts"),
+        pytest.param(False, "get_by_email", id="unverified-commit-between-lookups"),
     ],
 )
 async def test_concurrent_first_sync_for_same_identity_creates_one_user(
-    session_maker, verified, commit_first_before, squatted
+    session_maker, verified, commit_first_before
 ):
     external_id = f"race-{uuid4()}"
     email = f"{external_id}@example.com"
     sync = UserSyncRequest(external_id=external_id, email=email, display_name="Race")
-    squatter = User(external_id=f"squat-{uuid4()}", email=email, display_name="Squatter")
-    if squatted:
-        await _commit_users(session_maker, squatter)
     try:
         (user_a, new_a), (user_b, new_b), emails = await _race(
             session_maker,
             sync,
             sync,
             first_verified=verified,
-            second_verified=verified,
+            others_verified=verified,
             commit_first_before=commit_first_before,
         )
     finally:
-        await _cleanup(session_maker, User.external_id.in_([external_id, squatter.external_id]))
+        await _cleanup(session_maker, User.external_id == external_id)
 
     assert (new_a, new_b) == (True, False)
     assert user_b.id == user_a.id
     assert emails[external_id] == email
-    if squatted:
-        assert emails[squatter.external_id] == f"{squatter.id}@detached.invalid"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("first", "other", "other_becomes", "final"),
+    [
+        pytest.param(
+            ("caller", "claimed", True),
+            ("caller", "claimed", True),
+            ("first", False),
+            {"holder": "detached", "caller": "claimed"},
+            id="same-identity-reclaims",
+        ),
+        pytest.param(
+            ("caller", "claimed", True),
+            ("rival", "claimed", True),
+            ("first", False),
+            {"holder": "detached", "rival": "claimed"},
+            id="two-identities-reclaim",
+        ),
+        pytest.param(
+            ("holder", "claimed", True),
+            ("caller", "claimed", True),
+            ("holder", False),
+            {"caller": "claimed"},
+            id="holder-verifies-before-reclaim",
+        ),
+        pytest.param(
+            ("caller", "claimed", True),
+            ("holder", "claimed", True),
+            "conflict",
+            {"holder": "detached", "caller": "claimed"},
+            id="reclaim-before-holder-verifies",
+        ),
+        pytest.param(
+            ("holder", "moved", False),
+            ("caller", "claimed", True),
+            ("new", True),
+            {"holder": "moved", "caller": "claimed"},
+            id="holder-moves-before-reclaim",
+        ),
+    ],
+)
+async def test_reclaim_racing_another_sign_in_acts_on_the_committed_holder(
+    session_maker, first, other, other_becomes, final
+):
+    run = uuid4()
+    emails_by_kind = {"claimed": f"claimed-{run}@example.com", "moved": f"moved-{run}@example.com"}
+    holder = User(
+        external_id=f"holder-{run}", email=emails_by_kind["claimed"], display_name="Holder"
+    )
+    await _commit_users(session_maker, holder)
+    emails_by_kind["detached"] = f"{holder.id}@detached.invalid"
+    external_ids = {role: f"{role}-{run}" for role in ("holder", "caller", "rival")}
+
+    def sync(role, email_kind):
+        return UserSyncRequest(
+            external_id=external_ids[role], email=emails_by_kind[email_kind], display_name=role
+        )
+
+    try:
+        (first_user, _), other_result, emails = await _race(
+            session_maker,
+            sync(*first[:2]),
+            sync(*other[:2]),
+            first_verified=first[2],
+            others_verified=other[2],
+        )
+    finally:
+        await _cleanup(session_maker, User.external_id.in_(external_ids.values()))
+
+    outcomes = {first_user.id: "first", holder.id: "holder"}
+    assert (
+        "conflict"
+        if isinstance(other_result, UserEmailConflictError)
+        else (outcomes.get(other_result[0].id, "new"), other_result[1])
+    ) == other_becomes
+    assert {role: emails.get(external_ids[role]) for role in external_ids} == {
+        role: emails_by_kind.get(final.get(role)) for role in external_ids
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("twins", [2, 3], ids=["two-verified-twins", "three-verified-twins"])
+async def test_verified_burst_against_an_unverified_first_sign_in_reclaims_once(
+    session_maker, twins
+):
+    run = uuid4()
+    email = f"burst-{run}@example.com"
+    unverified = UserSyncRequest(external_id=f"u-{run}", email=email, display_name="U")
+    verified = UserSyncRequest(external_id=f"v-{run}", email=email, display_name="V")
+    try:
+        (squatter, _), *results, emails = await _race(
+            session_maker, unverified, *[verified] * twins, first_verified=False
+        )
+    finally:
+        await _cleanup(
+            session_maker, User.external_id.in_([unverified.external_id, verified.external_id])
+        )
+
+    assert sorted(is_new for _, is_new in results) == [False] * (twins - 1) + [True]
+    assert len({user.id for user, _ in results}) == 1
+    assert {
+        external_id: emails.get(external_id)
+        for external_id in (unverified.external_id, verified.external_id)
+    } == {
+        unverified.external_id: f"{squatter.id}@detached.invalid",
+        verified.external_id: email,
+    }
 
 
 @pytest.mark.asyncio
@@ -146,7 +269,7 @@ async def test_concurrent_first_sync_refuses_adoption_when_not_allowed(session_m
     first = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Owner")
     second = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Attacker")
     try:
-        _, conflict, _ = await _race(session_maker, first, second, second_verified=False)
+        _, conflict, _ = await _race(session_maker, first, second, others_verified=False)
 
         async with session_maker() as check:
             users = (await check.scalars(select(User).where(User.email == email))).all()
