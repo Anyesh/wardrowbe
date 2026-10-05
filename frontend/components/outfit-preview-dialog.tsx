@@ -36,7 +36,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
   const items = outfit.items;
   const rotateImage = useRotateImage();
   const { data: family } = useFamily();
-  const currentMember = useCurrentFamilyMember(family);
+  const { member: currentMember } = useCurrentFamilyMember(family);
   const isInFamily = !!family && !!currentMember;
   const canRate = isInFamily && !isOwner;
   const myRating = outfit.family_ratings?.find((r) => r.user_id === currentMember?.id);

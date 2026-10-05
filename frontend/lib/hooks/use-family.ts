@@ -28,9 +28,13 @@ export function useFamily() {
 
 // Matched by user id because a member's email can change under them, for example when a
 // verified sign-in reclaims it and parks this account on a placeholder address.
-export function useCurrentFamilyMember(family: Family | undefined): FamilyMember | undefined {
-  const { data: profile } = useUserProfile();
-  return family?.members.find((m) => m.id === profile?.id);
+export function useCurrentFamilyMember(family: Family | undefined): {
+  member: FamilyMember | undefined;
+  isPending: boolean;
+  isError: boolean;
+} {
+  const { data: profile, isPending, isError } = useUserProfile();
+  return { member: family?.members.find((m) => m.id === profile?.id), isPending, isError };
 }
 
 export function useCreateFamily() {

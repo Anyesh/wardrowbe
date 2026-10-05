@@ -275,9 +275,19 @@ function NoFamilyState() {
 
 function FeedContent() {
   const t = useTranslations('family');
+  const te = useTranslations('errors');
   const { data: family, isLoading: familyLoading } = useFamily();
-  const currentMember = useCurrentFamilyMember(family);
-  const otherMembers = family?.members.filter((m) => m.id !== currentMember?.id) ?? [];
+  const {
+    member: currentMember,
+    isPending: memberPending,
+    isError: memberError,
+  } = useCurrentFamilyMember(family);
+  // Until the current member is known, filtering on it would list the user among the others
+  // and auto-select their own feed.
+  const otherMembers =
+    memberPending || memberError
+      ? []
+      : (family?.members.filter((m) => m.id !== currentMember?.id) ?? []);
 
   const [selectedMember, setSelectedMember] = useState<string | undefined>(undefined);
   const [previewOutfit, setPreviewOutfit] = useState<Outfit | null>(null);
@@ -288,7 +298,7 @@ function FeedContent() {
 
   const selectedMemberInfo = otherMembers.find((m) => m.id === activeMemberId);
 
-  if (familyLoading) {
+  if (familyLoading || memberPending) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -298,6 +308,10 @@ function FeedContent() {
 
   if (!family) {
     return <NoFamilyState />;
+  }
+
+  if (memberError) {
+    return <div className="text-center py-8 text-red-500">{te('pageLoad.title')}</div>;
   }
 
   if (otherMembers.length === 0) {

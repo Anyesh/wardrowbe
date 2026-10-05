@@ -199,8 +199,13 @@ function NoFamilyView() {
 function FamilyView() {
   const t = useTranslations('family');
   const tc = useTranslations('common');
+  const te = useTranslations('errors');
   const { data: family, isLoading } = useFamily();
-  const currentMember = useCurrentFamilyMember(family);
+  const {
+    member: currentMember,
+    isPending: memberPending,
+    isError: memberError,
+  } = useCurrentFamilyMember(family);
   const [copied, setCopied] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
@@ -215,7 +220,7 @@ function FamilyView() {
   const removeMember = useRemoveMember();
   const updateFamily = useUpdateFamily();
 
-  if (isLoading) {
+  if (isLoading || memberPending) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -225,6 +230,11 @@ function FamilyView() {
 
   if (!family) {
     return <NoFamilyView />;
+  }
+
+  // Without the profile the admin controls cannot be decided, so say so instead of hiding them.
+  if (memberError) {
+    return <div className="text-center py-8 text-red-500">{te('pageLoad.title')}</div>;
   }
 
   const isAdmin = currentMember?.role === 'admin';
