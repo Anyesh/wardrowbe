@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Writes lib/generated/*.ts from the JSON files in backend/app/data, which are the only places
 // garment vocabulary (types, roles, materials, formality, occasions, colours and colour aliases),
-// locale codes, the rating scale and temperature threshold bounds are edited by hand. Run with --check to fail when any committed output is stale. It reads ../backend, which
+// locale codes, the rating, temperature threshold, repeat-avoidance and style score scales, and the
+// preference defaults are edited by hand. Run with --check to fail when any committed output is stale. It reads ../backend, which
 // is outside the frontend Docker build context, so it must never run from build or prebuild.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -60,6 +61,7 @@ function renderScales({
   rating,
   temperature_thresholds_celsius: thresholds,
   avoid_repeat_days: avoidRepeat,
+  style_score: styleScore,
 }) {
   const bound = ({ min, max, default: fallback }) =>
     `{ min: ${min}, max: ${max}, default: ${fallback} }`;
@@ -73,13 +75,21 @@ function renderScales({
     '} as const;',
     '',
     `export const AVOID_REPEAT_DAYS = ${bound(avoidRepeat)} as const;`,
+    `export const STYLE_SCORE = ${bound(styleScore)} as const;`,
   ];
+}
+
+function renderPreferenceDefaults(defaults) {
+  const literal = (value) => (typeof value === 'string' ? quote(value) : String(value));
+  const entries = Object.entries(defaults).map(([name, value]) => `  ${key(name)}: ${literal(value)},`);
+  return ['export const PREFERENCE_DEFAULTS = {', ...entries, '} as const;'];
 }
 
 const TARGETS = [
   { source: 'garment_vocabulary.json', output: 'garment-vocabulary.ts', render: renderVocabulary },
   { source: 'locales.json', output: 'locales.ts', render: renderLocales },
   { source: 'scales.json', output: 'scales.ts', render: renderScales },
+  { source: 'preference_defaults.json', output: 'preference-defaults.ts', render: renderPreferenceDefaults },
 ];
 
 const check = process.argv.includes('--check');

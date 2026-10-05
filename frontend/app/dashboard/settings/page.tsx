@@ -29,7 +29,9 @@ import {
 import { Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
 import { useClothingColors, useOccasions } from '@/lib/hooks/use-translated-constants';
 import { toF, toCelsius } from '@/lib/temperature';
-import { AVOID_REPEAT_DAYS, TEMPERATURE_THRESHOLDS_CELSIUS } from '@/lib/generated/scales';
+import { PREFERENCE_DEFAULTS } from '@/lib/generated/preference-defaults';
+import { AVOID_REPEAT_DAYS, STYLE_SCORE, TEMPERATURE_THRESHOLDS_CELSIUS } from '@/lib/generated/scales';
+import { DEFAULT_STYLE_PROFILE } from '@/lib/preferences';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
@@ -155,8 +157,8 @@ function StyleSlider({
       <Slider
         value={[value]}
         onValueChange={(vals) => onChange(vals[0])}
-        min={0}
-        max={100}
+        min={STYLE_SCORE.min}
+        max={STYLE_SCORE.max}
         step={10}
       />
     </div>
@@ -498,13 +500,7 @@ export default function SettingsPage() {
     setFormData((prev) => ({
       ...prev,
       style_profile: {
-        ...(prev.style_profile || {
-          casual: 50,
-          formal: 50,
-          sporty: 50,
-          minimalist: 50,
-          bold: 50,
-        }),
+        ...(prev.style_profile || DEFAULT_STYLE_PROFILE),
         [key]: value,
       },
     }));
@@ -799,27 +795,27 @@ export default function SettingsPage() {
           <CardContent className="space-y-6">
             <StyleSlider
               label={tConst('styles.casual')}
-              value={formData.style_profile?.casual ?? 50}
+              value={formData.style_profile?.casual ?? DEFAULT_STYLE_PROFILE.casual}
               onChange={(v) => updateStyleProfile('casual', v)}
             />
             <StyleSlider
               label={tConst('styles.formal')}
-              value={formData.style_profile?.formal ?? 50}
+              value={formData.style_profile?.formal ?? DEFAULT_STYLE_PROFILE.formal}
               onChange={(v) => updateStyleProfile('formal', v)}
             />
             <StyleSlider
               label={tConst('styles.sporty')}
-              value={formData.style_profile?.sporty ?? 50}
+              value={formData.style_profile?.sporty ?? DEFAULT_STYLE_PROFILE.sporty}
               onChange={(v) => updateStyleProfile('sporty', v)}
             />
             <StyleSlider
               label={tConst('styles.minimalist')}
-              value={formData.style_profile?.minimalist ?? 50}
+              value={formData.style_profile?.minimalist ?? DEFAULT_STYLE_PROFILE.minimalist}
               onChange={(v) => updateStyleProfile('minimalist', v)}
             />
             <StyleSlider
               label={tConst('styles.bold')}
-              value={formData.style_profile?.bold ?? 50}
+              value={formData.style_profile?.bold ?? DEFAULT_STYLE_PROFILE.bold}
               onChange={(v) => updateStyleProfile('bold', v)}
             />
           </CardContent>
@@ -838,7 +834,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>{t('temperature.unit')}</Label>
                 <Select
-                  value={formData.temperature_unit || 'celsius'}
+                  value={formData.temperature_unit || PREFERENCE_DEFAULTS.temperature_unit}
                   onValueChange={(v) =>
                     updateField('temperature_unit', v as 'celsius' | 'fahrenheit')
                   }
@@ -855,7 +851,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>{t('temperature.sensitivity')}</Label>
                 <Select
-                  value={formData.temperature_sensitivity || 'normal'}
+                  value={formData.temperature_sensitivity || PREFERENCE_DEFAULTS.temperature_sensitivity}
                   onValueChange={(v) =>
                     updateField('temperature_sensitivity', v as 'low' | 'normal' | 'high')
                   }
@@ -875,7 +871,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>{t('temperature.layering')}</Label>
                 <Select
-                  value={formData.layering_preference || 'moderate'}
+                  value={formData.layering_preference || PREFERENCE_DEFAULTS.layering_preference}
                   onValueChange={(v) =>
                     updateField('layering_preference', v as 'minimal' | 'moderate' | 'heavy')
                   }
@@ -893,7 +889,7 @@ export default function SettingsPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {(() => {
-                const unit = formData.temperature_unit || 'celsius';
+                const unit = formData.temperature_unit || PREFERENCE_DEFAULTS.temperature_unit;
                 const isFahrenheit = unit === 'fahrenheit';
                 const { cold, hot } = TEMPERATURE_THRESHOLDS_CELSIUS;
                 const coldC = formData.cold_threshold ?? cold.default;
@@ -947,7 +943,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>{t('recommendations.defaultOccasion')}</Label>
                 <Select
-                  value={formData.default_occasion || 'casual'}
+                  value={formData.default_occasion || PREFERENCE_DEFAULTS.default_occasion}
                   onValueChange={(v) => updateField('default_occasion', v)}
                 >
                   <SelectTrigger>
@@ -965,7 +961,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>{t('recommendations.varietyLevel')}</Label>
                 <Select
-                  value={formData.variety_level || 'moderate'}
+                  value={formData.variety_level || PREFERENCE_DEFAULTS.variety_level}
                   onValueChange={(v) =>
                     updateField('variety_level', v as 'low' | 'moderate' | 'high')
                   }
@@ -995,7 +991,11 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>{t('recommendations.preferUnderused')}</Label>
                 <Select
-                  value={formData.prefer_underused_items ? 'yes' : 'no'}
+                  value={
+                    (formData.prefer_underused_items ?? PREFERENCE_DEFAULTS.prefer_underused_items)
+                      ? 'yes'
+                      : 'no'
+                  }
                   onValueChange={(v) => updateField('prefer_underused_items', v === 'yes')}
                 >
                   <SelectTrigger>

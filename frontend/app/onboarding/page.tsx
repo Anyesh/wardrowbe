@@ -30,7 +30,9 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { useCreateFamily, useJoinFamily } from '@/lib/hooks/use-family';
+import { STYLE_SCORE } from '@/lib/generated/scales';
 import { useUpdatePreferences } from '@/lib/hooks/use-preferences';
+import { DEFAULT_STYLE_PROFILE } from '@/lib/preferences';
 import { useCreateItem } from '@/lib/hooks/use-items';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { api } from '@/lib/api';
@@ -425,13 +427,7 @@ function LocationStep({
 function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
   const [favoriteColors, setFavoriteColors] = useState<string[]>([]);
   const [avoidColors, setAvoidColors] = useState<string[]>([]);
-  const [styleProfile, setStyleProfile] = useState<StyleProfile>({
-    casual: 50,
-    formal: 50,
-    sporty: 50,
-    minimalist: 50,
-    bold: 50,
-  });
+  const [styleProfile, setStyleProfile] = useState<StyleProfile>(DEFAULT_STYLE_PROFILE);
   const [saving, setSaving] = useState(false);
   const updatePreferences = useUpdatePreferences();
   const t = useTranslations('onboarding');
@@ -582,8 +578,8 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
                 onValueChange={(vals) =>
                   setStyleProfile((prev) => ({ ...prev, [key]: vals[0] }))
                 }
-                min={0}
-                max={100}
+                min={STYLE_SCORE.min}
+                max={STYLE_SCORE.max}
                 step={10}
               />
             </div>

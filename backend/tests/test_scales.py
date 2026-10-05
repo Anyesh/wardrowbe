@@ -8,7 +8,14 @@ from app.api.outfits import FamilyRatingRequest, FeedbackRequest
 from app.schemas.preference import PreferenceBase, PreferenceUpdate, StyleProfile
 from app.utils.garment_vocabulary import OCCASIONS
 from app.utils.locale import DEFAULT_LOCALE, SUPPORTED_LOCALES
-from app.utils.preference_defaults import DEFAULT_OCCASION
+from app.utils.preference_defaults import (
+    DEFAULT_LAYERING_PREFERENCE,
+    DEFAULT_OCCASION,
+    DEFAULT_PREFER_UNDERUSED_ITEMS,
+    DEFAULT_TEMPERATURE_SENSITIVITY,
+    DEFAULT_TEMPERATURE_UNIT,
+    DEFAULT_VARIETY_LEVEL,
+)
 from app.utils.scales import (
     AVOID_REPEAT_DAYS_MAX,
     AVOID_REPEAT_DAYS_MIN,
@@ -79,6 +86,25 @@ def test_style_profile_defaults_and_bounds_come_from_the_style_scale():
         StyleProfile(casual=STYLE_SCORE_MIN - 1)
     with pytest.raises(ValidationError):
         StyleProfile(casual=STYLE_SCORE_MAX + 1)
+
+
+def test_preference_defaults_come_from_the_shared_file():
+    data = json.loads((DATA_DIR / "preference_defaults.json").read_text())
+
+    assert {
+        "default_occasion": DEFAULT_OCCASION,
+        "temperature_unit": DEFAULT_TEMPERATURE_UNIT,
+        "temperature_sensitivity": DEFAULT_TEMPERATURE_SENSITIVITY,
+        "layering_preference": DEFAULT_LAYERING_PREFERENCE,
+        "variety_level": DEFAULT_VARIETY_LEVEL,
+        "prefer_underused_items": DEFAULT_PREFER_UNDERUSED_ITEMS,
+    } == data
+
+
+def test_preference_defaults_pass_the_schema():
+    data = json.loads((DATA_DIR / "preference_defaults.json").read_text())
+
+    assert PreferenceBase(**data).model_dump(include=set(data)) == data
 
 
 def test_default_occasion_is_a_known_occasion():
