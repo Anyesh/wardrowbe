@@ -77,26 +77,34 @@ class UserService:
         That takeover requires both the caller's email and the existing account's email
         to be verified; otherwise UserEmailConflictError is raised.
         """
-        # First, check by external_id (primary lookup for OIDC)
         user = await self.get_by_external_id(sync_data.external_id)
+        if user is not None:
+            return await self._sign_in_existing(user, sync_data, email_verified), False
+        try:
+            return await self._sign_in_first_time(sync_data, email_verified)
+        except IntegrityError:
+            # Two first sign-ins for one identity or email race: the other request committed its
+            # row after our lookups, so a second pass sees it and continues against it.
+            user = await self.get_by_external_id(sync_data.external_id)
+            if user is not None:
+                return await self._sign_in_existing(user, sync_data, email_verified), False
+            return await self._sign_in_first_time(sync_data, email_verified)
 
-        if user is None:
-            adopted = await self._adopt_by_email(sync_data, email_verified)
-            if adopted is not None:
-                return adopted, False
-            try:
-                return await self._insert_synced_user(sync_data, email_verified), True
-            except IntegrityError:
-                # Two first sign-ins for one identity race: the other request committed the
-                # row after our lookups, so it now exists and this sync continues against it.
-                user = await self.get_by_external_id(sync_data.external_id)
-                if user is None:
-                    adopted = await self._adopt_by_email(sync_data, email_verified)
-                    if adopted is None:
-                        raise
-                    return adopted, False
+    async def _sign_in_first_time(
+        self, sync_data: UserSyncRequest, email_verified: bool
+    ) -> tuple[User, bool]:
+        holder = await self.get_by_email(sync_data.email)
+        if holder is None:
+            return await self._insert_synced_user(sync_data, email_verified), True
+        if holder.external_id == sync_data.external_id:
+            # The caller's own row, committed by a concurrent first sign-in between the
+            # external_id lookup and this one: not an adoption.
+            return await self._sign_in_existing(holder, sync_data, email_verified), False
+        return await self._adopt(holder, sync_data, email_verified), False
 
-        # Update existing user - but check email conflict first
+    async def _sign_in_existing(
+        self, user: User, sync_data: UserSyncRequest, email_verified: bool
+    ) -> User:
         email_taken = (
             f"Cannot update email to {sync_data.email}: already in use by another account."
         )
@@ -116,17 +124,12 @@ class UserService:
                 user.avatar_url = sync_data.avatar_url
             user.last_login_at = datetime.now(UTC)
         await self.db.refresh(user)
-        return user, False
+        return user
 
-    async def _adopt_by_email(
-        self, sync_data: UserSyncRequest, email_verified: bool
-    ) -> User | None:
+    async def _adopt(self, holder: User, sync_data: UserSyncRequest, email_verified: bool) -> User:
         # Migrate an existing user to the new external_id (auth provider change):
         # email is the stable identifier, external_id can change
-        existing_by_email = await self.get_by_email(sync_data.email)
-        if existing_by_email is None:
-            return None
-        if not (email_verified and existing_by_email.email_verified):
+        if not (email_verified and holder.email_verified):
             raise UserEmailConflictError(
                 "Email already associated with another account. "
                 "Verified email required for migration."
@@ -134,14 +137,14 @@ class UserService:
         async with self._conflict_savepoint(
             "Email already associated with another account that is signing in concurrently."
         ):
-            existing_by_email.external_id = sync_data.external_id
-            existing_by_email.email_verified = True
-            existing_by_email.display_name = sync_data.display_name
+            holder.external_id = sync_data.external_id
+            holder.email_verified = True
+            holder.display_name = sync_data.display_name
             if sync_data.avatar_url:
-                existing_by_email.avatar_url = sync_data.avatar_url
-            existing_by_email.last_login_at = datetime.now(UTC)
-        await self.db.refresh(existing_by_email)
-        return existing_by_email
+                holder.avatar_url = sync_data.avatar_url
+            holder.last_login_at = datetime.now(UTC)
+        await self.db.refresh(holder)
+        return holder
 
     @asynccontextmanager
     async def _conflict_savepoint(self, message: str) -> AsyncIterator[None]:

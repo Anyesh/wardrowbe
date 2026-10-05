@@ -29,19 +29,38 @@ async def _race(
     *,
     first_verified: bool = True,
     second_verified: bool = True,
+    commit_first_before: str | None = None,
 ):
+    # By default the first sync commits once the second is blocked on its uncommitted rows;
+    # commit_first_before instead names a UserService method that the second sync pauses at
+    # until the first has committed, to land the commit between two of its lookups.
     async with session_maker() as session_a, session_maker() as session_b:
         pid_a = await session_a.scalar(text("SELECT pg_backend_pid()"))
         pid_b = await session_b.scalar(text("SELECT pg_backend_pid()"))
         first_result = await UserService(session_a).sync_from_oidc(
             first, email_verified=first_verified
         )
+        service_b = UserService(session_b)
+        reached, committed = asyncio.Event(), asyncio.Event()
+        if commit_first_before is not None:
+            original = getattr(service_b, commit_first_before)
+
+            async def paused(*args, **kwargs):
+                reached.set()
+                await committed.wait()
+                return await original(*args, **kwargs)
+
+            setattr(service_b, commit_first_before, paused)
         task_b = asyncio.create_task(
-            UserService(session_b).sync_from_oidc(second, email_verified=second_verified)
+            service_b.sync_from_oidc(second, email_verified=second_verified)
         )
         try:
-            await _wait_until_blocked_by(session_maker, pid_b, pid_a)
+            if commit_first_before is None:
+                await _wait_until_blocked_by(session_maker, pid_b, pid_a)
+            else:
+                await asyncio.wait_for(reached.wait(), timeout=5)
             await session_a.commit()
+            committed.set()
             try:
                 second_result = await task_b
             except UserEmailConflictError as e:
@@ -61,13 +80,29 @@ async def _cleanup(session_maker, *conditions):
 
 
 @pytest.mark.asyncio
-async def test_concurrent_first_sync_for_same_identity_creates_one_user(session_maker):
+@pytest.mark.parametrize(
+    ("verified", "commit_first_before"),
+    [
+        pytest.param(True, None, id="commit-while-second-inserts"),
+        pytest.param(False, "get_by_email", id="unverified-commit-between-lookups"),
+    ],
+)
+async def test_concurrent_first_sync_for_same_identity_creates_one_user(
+    session_maker, verified, commit_first_before
+):
     external_id = f"race-{uuid4()}"
     sync = UserSyncRequest(
         external_id=external_id, email=f"{external_id}@example.com", display_name="Race"
     )
     try:
-        (user_a, new_a), (user_b, new_b), _ = await _race(session_maker, sync, sync)
+        (user_a, new_a), (user_b, new_b), _ = await _race(
+            session_maker,
+            sync,
+            sync,
+            first_verified=verified,
+            second_verified=verified,
+            commit_first_before=commit_first_before,
+        )
 
         async with session_maker() as check:
             rows = await check.scalar(
