@@ -480,7 +480,9 @@ services:
 Traefik applies the middlewares in the listed order, and an empty `customrequestheaders` value removes that header.
 
 > [!WARNING]
-> If this database ever ran in development mode, anyone could have signed in under any email address they typed. On first forward-auth sign-in, a proxy user whose `Remote-Email` matches an existing account takes that account over (the same rule as OIDC sign-in). Check the existing users' emails before turning forward-auth on.
+> The first time a `Remote-User` signs in, a `Remote-Email` that matches an existing account takes that account over. OIDC sign-in does this only when the provider marks the email as verified, but the proxy sends no such flag, so Wardrowbe trusts every `Remote-Email`. The proxy's identity provider must therefore pass only emails it has verified. TinyAuth with a generic OAuth provider that lets people set an unverified email, or with an empty OAuth whitelist so that anyone can sign up there, lets someone claim an address they do not own and take over the matching Wardrowbe account. This matters most when OIDC is configured alongside forward-auth, because the OIDC users' accounts are what such an email would adopt.
+>
+> If this database ever ran in development mode, anyone could also have signed in under any email address they typed. Check the existing users' emails before turning forward-auth on.
 
 The mobile app cannot sign in through a forward-auth proxy, so it needs OIDC. Both can be configured at once: set `OIDC_ISSUER_URL` and `OIDC_CLIENT_ID` alongside `FORWARD_AUTH_SECRET`, and browsers use the proxy while the app uses OIDC. The app has to reach Wardrowbe through a hostname or path that skips the forward-auth check, since it cannot complete the proxy's login page.
 
