@@ -5,7 +5,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.preference import UserPreference
-from app.schemas.preference import PreferenceUpdate
+from app.schemas.preference import PreferenceUpdate, StyleProfile
+from app.utils.preference_defaults import (
+    DEFAULT_LAYERING_PREFERENCE,
+    DEFAULT_OCCASION,
+    DEFAULT_PREFER_UNDERUSED_ITEMS,
+    DEFAULT_TEMPERATURE_SENSITIVITY,
+    DEFAULT_TEMPERATURE_UNIT,
+    DEFAULT_VARIETY_LEVEL,
+)
 from app.utils.scales import (
     DEFAULT_AVOID_REPEAT_DAYS,
     DEFAULT_COLD_THRESHOLD,
@@ -33,21 +41,16 @@ class PreferenceService:
             user_id=user_id,
             color_favorites=[],
             color_avoid=[],
-            style_profile={
-                "casual": 50,
-                "formal": 50,
-                "sporty": 50,
-                "minimalist": 50,
-                "bold": 50,
-            },
-            default_occasion="casual",
-            temperature_sensitivity="normal",
+            style_profile=StyleProfile().model_dump(),
+            default_occasion=DEFAULT_OCCASION,
+            temperature_unit=DEFAULT_TEMPERATURE_UNIT,
+            temperature_sensitivity=DEFAULT_TEMPERATURE_SENSITIVITY,
             cold_threshold=DEFAULT_COLD_THRESHOLD,
             hot_threshold=DEFAULT_HOT_THRESHOLD,
-            layering_preference="moderate",
+            layering_preference=DEFAULT_LAYERING_PREFERENCE,
             avoid_repeat_days=DEFAULT_AVOID_REPEAT_DAYS,
-            prefer_underused_items=True,
-            variety_level="moderate",
+            prefer_underused_items=DEFAULT_PREFER_UNDERUSED_ITEMS,
+            variety_level=DEFAULT_VARIETY_LEVEL,
             excluded_item_ids=[],
             excluded_combinations=[],
         )

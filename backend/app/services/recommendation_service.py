@@ -32,6 +32,10 @@ from app.services.weather_service import (
     WeatherServiceError,
 )
 from app.utils.clothing import canonical_item_order, deduplicate_by_body_slot
+from app.utils.preference_defaults import (
+    DEFAULT_LAYERING_PREFERENCE,
+    DEFAULT_TEMPERATURE_SENSITIVITY,
+)
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_now, get_user_today
 
@@ -377,11 +381,14 @@ class RecommendationService:
                     lines.append(f"- Less preferred styles: {', '.join(weak)}")
             if preferences.variety_level:
                 lines.append(f"- Variety preference: {preferences.variety_level}")
-            if preferences.layering_preference and preferences.layering_preference != "moderate":
+            if (
+                preferences.layering_preference
+                and preferences.layering_preference != DEFAULT_LAYERING_PREFERENCE
+            ):
                 lines.append(f"- Layering preference: {preferences.layering_preference}")
             if (
                 preferences.temperature_sensitivity
-                and preferences.temperature_sensitivity != "normal"
+                and preferences.temperature_sensitivity != DEFAULT_TEMPERATURE_SENSITIVITY
             ):
                 lines.append(
                     f"- Temperature sensitivity: {preferences.temperature_sensitivity} "

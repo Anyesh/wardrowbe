@@ -8,6 +8,7 @@ from app.models.preference import UserPreference
 from app.services.weather_service import WeatherData
 from app.utils.clothing import ITEM_ROLE
 from app.utils.garment_vocabulary import FORMALITY, OCCASION_FORMALITY
+from app.utils.preference_defaults import DEFAULT_PREFER_UNDERUSED_ITEMS
 from app.utils.scales import (
     DEFAULT_AVOID_REPEAT_DAYS,
     DEFAULT_COLD_THRESHOLD,
@@ -407,7 +408,9 @@ def score_items(
         elif preferences.variety_level == "low":
             avoid_days = max(1, int(avoid_days * 0.5))
 
-    use_underused = preferences.prefer_underused_items if preferences else True
+    use_underused = (
+        preferences.prefer_underused_items if preferences else DEFAULT_PREFER_UNDERUSED_ITEMS
+    )
     median_wear = median([i.wear_count or 0 for i in items]) if use_underused and items else 0
 
     scored = []

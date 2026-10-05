@@ -5,8 +5,10 @@ import pytest
 from pydantic import ValidationError
 
 from app.api.outfits import FamilyRatingRequest, FeedbackRequest
-from app.schemas.preference import PreferenceBase, PreferenceUpdate
+from app.schemas.preference import PreferenceBase, PreferenceUpdate, StyleProfile
+from app.utils.garment_vocabulary import OCCASIONS
 from app.utils.locale import DEFAULT_LOCALE, SUPPORTED_LOCALES
+from app.utils.preference_defaults import DEFAULT_OCCASION
 from app.utils.scales import (
     AVOID_REPEAT_DAYS_MAX,
     AVOID_REPEAT_DAYS_MIN,
@@ -15,10 +17,13 @@ from app.utils.scales import (
     DEFAULT_AVOID_REPEAT_DAYS,
     DEFAULT_COLD_THRESHOLD,
     DEFAULT_HOT_THRESHOLD,
+    DEFAULT_STYLE_SCORE,
     HOT_THRESHOLD_MAX,
     HOT_THRESHOLD_MIN,
     RATING_MAX,
     RATING_MIN,
+    STYLE_SCORE_MAX,
+    STYLE_SCORE_MIN,
     rating_to_signed,
     rating_to_unit,
 )
@@ -57,6 +62,27 @@ def test_scales_come_from_the_shared_file():
         avoid["max"],
         avoid["default"],
     )
+
+    style = data["style_score"]
+    assert (STYLE_SCORE_MIN, STYLE_SCORE_MAX, DEFAULT_STYLE_SCORE) == (
+        style["min"],
+        style["max"],
+        style["default"],
+    )
+
+
+def test_style_profile_defaults_and_bounds_come_from_the_style_scale():
+    profile = StyleProfile()
+    assert set(profile.model_dump().values()) == {DEFAULT_STYLE_SCORE}
+    assert StyleProfile(casual=STYLE_SCORE_MIN, bold=STYLE_SCORE_MAX)
+    with pytest.raises(ValidationError):
+        StyleProfile(casual=STYLE_SCORE_MIN - 1)
+    with pytest.raises(ValidationError):
+        StyleProfile(casual=STYLE_SCORE_MAX + 1)
+
+
+def test_default_occasion_is_a_known_occasion():
+    assert DEFAULT_OCCASION in OCCASIONS
 
 
 @pytest.mark.parametrize("schema", [PreferenceBase, PreferenceUpdate])
