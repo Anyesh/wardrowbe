@@ -1160,7 +1160,8 @@ class TestRetryCooldownClaims:
         )
 
         assert job_id is None
-        assert retry_after is not None and retry_after > 0
+        assert retry_after is not None
+        assert retry_after > 0
 
         db_session.expire_all()
         result = await db_session.execute(select(ClothingItem).where(ClothingItem.id == item_id))
