@@ -10,10 +10,17 @@ import pytest_asyncio
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import Settings
+from app.models.item import ClothingItem
 from app.models.notification import NotificationSettings
 from app.models.schedule import Schedule
 from app.models.user import User
-from app.workers.notifications import check_scheduled_notifications, process_scheduled_notification
+from app.services.notification_providers import EmailProvider
+from app.workers.notifications import (
+    _check_wash_reminders_inner,
+    check_scheduled_notifications,
+    process_scheduled_notification,
+)
 from app.workers.worker import WorkerSettings
 
 
@@ -353,6 +360,54 @@ class TestProcessScheduledNotification:
                 patch("app.workers.notifications.WeatherService"),
             ):
                 await process_scheduled_notification(ctx, str(schedule.id))
+
+
+class TestWashReminderLinks:
+    @pytest.mark.asyncio
+    async def test_trailing_slash_app_url_gives_single_slash_link(
+        self, db_session: AsyncSession, schedule_user: User, monkeypatch
+    ):
+        db_session.add(
+            NotificationSettings(
+                user_id=schedule_user.id,
+                channel="email",
+                enabled=True,
+                config={"address": schedule_user.email},
+            )
+        )
+        db_session.add(
+            ClothingItem(
+                user_id=schedule_user.id,
+                image_path="items/shirt.jpg",
+                type="shirt",
+                name="Blue Shirt",
+                needs_wash=True,
+            )
+        )
+        await db_session.commit()
+
+        settings = Settings(
+            _env_file=None,
+            app_url="https://x.com/",
+            smtp_host="smtp.example.com",
+            smtp_user="mailer",
+        )
+        monkeypatch.setattr("app.workers.notifications.get_settings", lambda: settings)
+        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+        send = AsyncMock(return_value={"success": True})
+
+        with (
+            patch("app.workers.notifications.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch.object(EmailProvider, "send", send),
+        ):
+            await _check_wash_reminders_inner({})
+
+        messages = [c.args[0] for c in send.call_args_list if c.args[0].to == schedule_user.email]
+        assert len(messages) == 1
+        html = messages[0].html_body
+        assert 'href="https://x.com/dashboard/wardrobe"' in html
+        assert "x.com//" not in html
 
 
 # ── Worker registry ──

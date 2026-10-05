@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     debug: bool = False
     secret_key: str = Field(default=DEFAULT_SECRET_KEY)
     studio_disabled: bool = False
+    app_url: str = Field(default="http://localhost:3000")
+
+    @field_validator("app_url")
+    @classmethod
+    def strip_app_url_trailing_slash(cls, v: str) -> str:
+        return v.rstrip("/")
 
     # CORS
     cors_origins: list[str] = Field(default=["http://localhost:3000", "http://localhost:8081"])
@@ -102,6 +108,9 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str | None = None
     smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_from_name: str = "Wardrowbe"
+    smtp_from_email: str | None = None
     # Storage
     storage_path: str = Field(default="/data/wardrobe")
     max_upload_size_mb: int = Field(default=10)
@@ -195,6 +204,9 @@ class Settings(BaseSettings):
         if self.debug:
             return "dev"
         return "unknown"
+
+    def app_link(self, path: str = "") -> str:
+        return f"{self.app_url}/{path.lstrip('/')}"
 
     def get_geocoding_user_agent(self) -> str:
         return self.geocoding_user_agent or "Wardrowbe/1.0"

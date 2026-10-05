@@ -1,9 +1,9 @@
 import logging
-import os
 from dataclasses import dataclass, field
 
 import httpx
 
+from app.config import get_settings
 from app.schemas.notification import EmailConfig, ExpoPushConfig, MattermostConfig, NtfyConfig
 
 logger = logging.getLogger(__name__)
@@ -170,14 +170,15 @@ class EmailMessage:
 
 class EmailProvider:
     def __init__(self, config: EmailConfig):
+        settings = get_settings()
         self.to_address = config.address
-        self.smtp_host = os.getenv("SMTP_HOST")
-        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        self.smtp_user = os.getenv("SMTP_USER")
-        self.smtp_password = os.getenv("SMTP_PASSWORD")
-        self.smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
-        self.from_name = os.getenv("SMTP_FROM_NAME", "Wardrowbe")
-        self.from_email = os.getenv("SMTP_FROM_EMAIL", self.smtp_user)
+        self.smtp_host = settings.smtp_host
+        self.smtp_port = settings.smtp_port
+        self.smtp_user = settings.smtp_user
+        self.smtp_password = settings.smtp_password
+        self.smtp_use_tls = settings.smtp_use_tls
+        self.from_name = settings.smtp_from_name
+        self.from_email = settings.smtp_from_email or self.smtp_user
 
     def is_configured(self) -> bool:
         return bool(self.smtp_host and self.smtp_user)
@@ -319,8 +320,8 @@ def build_notification_email(
     body: str,
     cta_text: str,
     cta_url: str,
-    app_url: str,
 ) -> EmailMessage:
+    home_url = get_settings().app_link()
     html_body = f"""\
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
     <h2 style="color: #111827;">{heading}</h2>
@@ -332,7 +333,7 @@ def build_notification_email(
         </a>
     </div>
     <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
-    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{app_url}" style="color: #9CA3AF;">Wardrowbe</a></p>
+    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{home_url}" style="color: #9CA3AF;">Wardrowbe</a></p>
 </div>"""
     return EmailMessage(to=to, subject=subject, html_body=html_body, text_body=body)
 
@@ -342,9 +343,10 @@ def build_family_invite_email(
     family_name: str,
     inviter_name: str,
     invite_token: str,
-    app_url: str,
 ) -> EmailMessage:
-    invite_url = f"{app_url}/invite?token={invite_token}"
+    settings = get_settings()
+    home_url = settings.app_link()
+    invite_url = settings.app_link(f"/invite?token={invite_token}")
     subject = f"{inviter_name} invited you to join {family_name} on Wardrowbe"
     body_text = (
         f'{inviter_name} invited you to join the family "{family_name}" on Wardrowbe. '
@@ -367,6 +369,6 @@ def build_family_invite_email(
         If you don&rsquo;t have a Wardrowbe account yet, you&rsquo;ll be asked to create one first.
     </p>
     <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
-    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{app_url}" style="color: #9CA3AF;">Wardrowbe</a></p>
+    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{home_url}" style="color: #9CA3AF;">Wardrowbe</a></p>
 </div>"""
     return EmailMessage(to=to, subject=subject, html_body=html_body, text_body=body_text)

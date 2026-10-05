@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import Annotated
 from uuid import UUID
 
@@ -324,7 +323,6 @@ async def invite_member(
     invite = await family_service.create_invite(family, current_user, invite_data)
     await db.commit()
 
-    app_url = os.getenv("APP_URL", "http://localhost:3000")
     provider = EmailProvider(EmailConfig(address=invite.email))
     if provider.is_configured():
         email = build_family_invite_email(
@@ -332,7 +330,6 @@ async def invite_member(
             family_name=family.name,
             inviter_name=current_user.display_name,
             invite_token=invite.token,
-            app_url=app_url,
         )
         result = await provider.send(email)
         if not result.get("success"):

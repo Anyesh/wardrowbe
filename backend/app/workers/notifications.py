@@ -1,11 +1,11 @@
 import logging
-import os
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, select
 from sqlalchemy.orm import selectinload
 
+from app.config import get_settings
 from app.models.item import ClothingItem
 from app.models.learning import UserLearningProfile
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
@@ -55,8 +55,7 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
 
     db = get_db_session(ctx)
     try:
-        app_url = os.getenv("APP_URL", "http://localhost:3000")
-        dispatcher = NotificationDispatcher(db, app_url)
+        dispatcher = NotificationDispatcher(db)
 
         results = await dispatcher.send_outfit_notification(user_id=user_id, outfit_id=outfit_id)
 
@@ -100,8 +99,7 @@ async def retry_failed_notifications(ctx: dict):
             return {"retried": 0}
 
         retried = 0
-        app_url = os.getenv("APP_URL", "http://localhost:3000")
-        dispatcher = NotificationDispatcher(db, app_url)
+        dispatcher = NotificationDispatcher(db)
 
         for notification in notifications:
             # Non-blocking lock: skip if another worker already retrying this one
@@ -219,8 +217,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             scheduled_date=target_date,
         )
 
-        app_url = os.getenv("APP_URL", "http://localhost:3000")
-        dispatcher = NotificationDispatcher(db, app_url)
+        dispatcher = NotificationDispatcher(db)
         await dispatcher.send_outfit_notification(
             user_id=str(user.id),
             outfit_id=str(outfit.id),
@@ -375,7 +372,7 @@ async def _check_wash_reminders_inner(ctx: dict):
                 user_items[uid] = []
             user_items[uid].append(item)
 
-        app_url = os.getenv("APP_URL", "http://localhost:3000")
+        wardrobe_url = get_settings().app_link("/dashboard/wardrobe")
         notified = 0
 
         for user_id, items in user_items.items():
@@ -427,7 +424,7 @@ async def _check_wash_reminders_inner(ctx: dict):
                                 NtfyNotification(
                                     title=title,
                                     message=body,
-                                    click=f"{app_url}/dashboard/wardrobe",
+                                    click=wardrobe_url,
                                     tags=["shirt", "droplet"],
                                 )
                             )
@@ -442,8 +439,7 @@ async def _check_wash_reminders_inner(ctx: dict):
                                     heading=title,
                                     body=body,
                                     cta_text="View Wardrobe",
-                                    cta_url=f"{app_url}/dashboard/wardrobe",
-                                    app_url=app_url,
+                                    cta_url=wardrobe_url,
                                 )
                             )
                             sent = send_result.get("success", False)

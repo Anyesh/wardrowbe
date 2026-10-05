@@ -9,6 +9,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import get_settings
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
 from app.models.outfit import Outfit, OutfitItem
 from app.models.schedule import Schedule
@@ -245,9 +246,9 @@ class NotificationService:
 
 
 class NotificationDispatcher:
-    def __init__(self, db: AsyncSession, app_url: str):
+    def __init__(self, db: AsyncSession):
         self.db = db
-        self.app_url = app_url.rstrip("/")
+        self.settings = get_settings()
 
     async def send_outfit_notification(
         self, user_id: UUID, outfit_id: UUID, for_tomorrow: bool = False
@@ -502,7 +503,7 @@ class NotificationDispatcher:
             message=message,
             tags=[tag],
             priority=3,
-            click=f"{self.app_url}/dashboard/history",
+            click=self.settings.app_link("/dashboard/history"),
         )
 
     def _build_mattermost_message(
@@ -552,6 +553,8 @@ class NotificationDispatcher:
     def _build_email_message(
         self, outfit: Outfit, user: User, to: str, for_tomorrow: bool = False
     ) -> EmailMessage:
+        history_url = self.settings.app_link("/dashboard/history")
+        settings_url = self.settings.app_link("/dashboard/notifications")
         weather_html = ""
         if outfit.weather_data:
             weather = outfit.weather_data
@@ -627,7 +630,7 @@ class NotificationDispatcher:
             {styling_tip_html}
 
             <div style="text-align: center; margin: 30px 0;">
-                <a href="{self.app_url}/dashboard/history"
+                <a href="{history_url}"
                    style="background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; margin: 5px;">
                     View Outfit
                 </a>
@@ -636,7 +639,7 @@ class NotificationDispatcher:
             <div style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 40px;">
                 <p>Sent by Wardrowbe</p>
                 <p>
-                    <a href="{self.app_url}/dashboard/notifications" style="color: #6B7280;">
+                    <a href="{settings_url}" style="color: #6B7280;">
                         Manage notification settings
                     </a>
                 </p>
@@ -664,7 +667,7 @@ class NotificationDispatcher:
             text_parts.append(f"Tip: {outfit.style_notes}")
 
         text_parts.append("")
-        text_parts.append(f"View outfit: {self.app_url}/dashboard/history")
+        text_parts.append(f"View outfit: {history_url}")
 
         text_body = "\n".join(text_parts)
 

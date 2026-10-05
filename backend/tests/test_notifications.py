@@ -1,10 +1,16 @@
 from datetime import time
+from types import SimpleNamespace
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import Settings
 from app.models.notification import NotificationSettings
 from app.models.schedule import Schedule
+from app.schemas.notification import EmailConfig
+from app.services.notification_providers import EmailProvider
+from app.services.notification_service import NotificationDispatcher
 
 
 class TestNotificationSettings:
@@ -229,3 +235,87 @@ class TestNotificationDefaults:
         # Should have server and has_token fields
         assert "server" in data
         assert "has_token" in data
+
+
+class TestAppLinks:
+    def test_default_app_url_is_local_frontend(self, monkeypatch):
+        monkeypatch.delenv("APP_URL", raising=False)
+        assert Settings(_env_file=None).app_url == "http://localhost:3000"
+
+    def test_trailing_slash_is_stripped_from_env(self, monkeypatch):
+        monkeypatch.setenv("APP_URL", "https://x.com/")
+        settings = Settings(_env_file=None)
+        assert settings.app_url == "https://x.com"
+        assert settings.app_link("/dashboard/wardrobe") == "https://x.com/dashboard/wardrobe"
+
+
+class TestEmailProviderSettings:
+    def test_reads_smtp_config_from_settings(self, monkeypatch):
+        settings = Settings(
+            _env_file=None,
+            smtp_host="smtp.example.com",
+            smtp_port=2525,
+            smtp_user="mailer",
+            smtp_password="secret",
+            smtp_use_tls=False,
+            smtp_from_name="Closet",
+            smtp_from_email="closet@example.com",
+        )
+        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+
+        provider = EmailProvider(EmailConfig(address="to@example.com"))
+
+        assert provider.is_configured()
+        assert provider.smtp_host == "smtp.example.com"
+        assert provider.smtp_port == 2525
+        assert provider.smtp_user == "mailer"
+        assert provider.smtp_password == "secret"
+        assert provider.smtp_use_tls is False
+        assert provider.from_name == "Closet"
+        assert provider.from_email == "closet@example.com"
+
+    def test_from_email_falls_back_to_smtp_user(self, monkeypatch):
+        settings = Settings(_env_file=None, smtp_host="smtp.example.com", smtp_user="mailer")
+        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+
+        provider = EmailProvider(EmailConfig(address="to@example.com"))
+
+        assert provider.smtp_use_tls is True
+        assert provider.from_name == "Wardrowbe"
+        assert provider.from_email == "mailer"
+
+    def test_unconfigured_without_smtp_host(self, monkeypatch):
+        settings = Settings(_env_file=None)
+        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+
+        assert not EmailProvider(EmailConfig(address="to@example.com")).is_configured()
+
+
+class TestOutfitNotificationLinks:
+    @pytest.fixture
+    def outfit(self):
+        return SimpleNamespace(
+            weather_data=None,
+            occasion="casual",
+            reasoning=None,
+            ai_raw_response=None,
+            style_notes=None,
+        )
+
+    def test_trailing_slash_app_url_gives_single_slash_links(
+        self, monkeypatch, db_session: AsyncSession, test_user, outfit
+    ):
+        monkeypatch.setattr(
+            "app.services.notification_service.get_settings",
+            lambda: Settings(_env_file=None, app_url="https://x.com/"),
+        )
+        dispatcher = NotificationDispatcher(db_session)
+
+        ntfy = dispatcher._build_ntfy_notification(outfit, test_user)
+        email = dispatcher._build_email_message(outfit, test_user, to="to@example.com")
+
+        assert ntfy.click == "https://x.com/dashboard/history"
+        assert 'href="https://x.com/dashboard/history"' in email.html_body
+        assert 'href="https://x.com/dashboard/notifications"' in email.html_body
+        assert "https://x.com/dashboard/history" in email.text_body
+        assert "x.com//" not in email.html_body + email.text_body
