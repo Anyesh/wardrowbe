@@ -22,6 +22,7 @@ from app.workers.notifications import (
     _check_wash_reminders_inner,
     check_scheduled_notifications,
     process_scheduled_notification,
+    wash_reminder_body,
 )
 from app.workers.worker import WorkerSettings
 
@@ -489,6 +490,27 @@ class TestWashReminderLinks:
         assert "x.com//" not in html
 
 
+class TestWashReminderBody:
+    def _items(self, count: int) -> list[ClothingItem]:
+        return [ClothingItem(type="shirt", name=f"Shirt {n}") for n in range(1, count + 1)]
+
+    def test_one_item_uses_the_singular(self):
+        assert wash_reminder_body(self._items(1)) == "1 item needs washing: Shirt 1"
+
+    def test_several_items_use_the_plural(self):
+        assert wash_reminder_body(self._items(3)) == (
+            "3 items need washing: Shirt 1, Shirt 2, Shirt 3"
+        )
+
+    def test_more_than_five_items_summarises_the_rest(self):
+        assert wash_reminder_body(self._items(7)) == (
+            "7 items need washing: Shirt 1, Shirt 2, Shirt 3, Shirt 4, Shirt 5 and 2 more"
+        )
+
+    def test_unnamed_item_falls_back_to_its_type(self):
+        assert wash_reminder_body([ClothingItem(type="jeans")]) == "1 item needs washing: jeans"
+
+
 def _http_response(url: str, status_code: int = 200) -> httpx.Response:
     request = httpx.Request("POST", url)
     if status_code != 200:
@@ -571,7 +593,7 @@ class TestWashReminderChannels:
         [attachment] = payload["attachments"]
         assert attachment["title"] == "Laundry Reminder"
         assert attachment["title_link"].endswith("/dashboard/wardrobe")
-        assert "Black Jeans" in attachment["text"]
+        assert "1 item needs washing: Black Jeans" in attachment["text"]
         [reminder] = await self._reminders(db_session, dirty_user)
         assert reminder.channel == "mattermost"
         assert reminder.status == NotificationStatus.sent

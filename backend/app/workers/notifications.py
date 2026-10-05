@@ -326,6 +326,16 @@ async def check_wash_reminders(ctx: dict):
         return {"notified": 0, "skipped": "lock_held"}
 
 
+def wash_reminder_body(items: list[ClothingItem]) -> str:
+    count = len(items)
+    summary = ", ".join(i.name or i.type for i in items[:5])
+    if count > 5:
+        summary += f" and {count - 5} more"
+    if count == 1:
+        return f"1 item needs washing: {summary}"
+    return f"{count} items need washing: {summary}"
+
+
 async def _check_wash_reminders_inner(ctx: dict):
     db = get_db_session(ctx)
     try:
@@ -369,14 +379,8 @@ async def _check_wash_reminders_inner(ctx: dict):
                 if existing.scalars().first():
                     continue
 
-                item_names = [i.name or i.type for i in items[:5]]
-                count = len(items)
-                summary = ", ".join(item_names)
-                if count > 5:
-                    summary += f" and {count - 5} more"
-
                 title = "Laundry Reminder"
-                body = f"{count} item{'s' if count != 1 else ''} need washing: {summary}"
+                body = wash_reminder_body(items)
 
                 results = await dispatcher.deliver(
                     user_id,
@@ -401,7 +405,7 @@ async def _check_wash_reminders_inner(ctx: dict):
                         status=NotificationStatus.sent if sent else NotificationStatus.failed,
                         payload={
                             "type": "wash_reminder",
-                            "item_count": count,
+                            "item_count": len(items),
                             "title": title,
                             "body": body,
                         },
