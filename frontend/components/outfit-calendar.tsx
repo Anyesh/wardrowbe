@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatDateKey } from '@/lib/utils';
 import { useUserToday } from '@/lib/hooks/use-user';
 import {
   startOfMonth,
@@ -98,7 +98,7 @@ export function OutfitCalendar({
       {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-1">
         {calendarDays.map((day) => {
-          const dateKey = format(day, 'yyyy-MM-dd');
+          const dateKey = formatDateKey(day);
           const indicators = outfitsByDate.get(dateKey);
           const hasScheduled = indicators?.scheduled;
           const hasOnDemand = indicators?.onDemand;
