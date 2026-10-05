@@ -4,5 +4,6 @@
     "cold": { "min": -20, "max": 30, "default": 10 },
     "hot": { "min": 10, "max": 45, "default": 25 }
   },
-  "avoid_repeat_days": { "min": 0, "max": 30, "default": 7 }
+  "avoid_repeat_days": { "min": 0, "max": 30, "default": 7 },
+  "style_score": { "min": 0, "max": 100, "default": 50 }
 }

@@ -4,6 +4,7 @@ from pydantic import AfterValidator, BaseModel, Field, field_validator
 
 from app.schemas.color import ColorList
 from app.utils.garment_vocabulary import OCCASIONS
+from app.utils.preference_defaults import DEFAULT_OCCASION
 
 MAX_AUTHORING_TEXT_LENGTH = 2000
 VALID_OCCASIONS = frozenset(OCCASIONS)
@@ -19,8 +20,6 @@ def _normalize_occasion(value: str) -> str:
 
 
 Occasion = Annotated[str, Field(max_length=50), AfterValidator(_normalize_occasion)]
-
-DEFAULT_OCCASION = "casual"
 
 
 # Default occasions saved before they were validated can hold any string, and reading them back
