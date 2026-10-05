@@ -18,7 +18,8 @@ import { cn, formatRelativeDate } from '@/lib/utils';
 import type { Outfit } from '@/lib/hooks/use-outfits';
 import { useUserToday } from '@/lib/hooks/use-user';
 import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
-import { useLocale, useTranslations } from 'next-intl';
+import { useLocale, useTranslations, type createTranslator } from 'next-intl';
+import type outfitsMessages from '@/messages/en/outfits.json';
 
 interface OutfitCardProps {
   outfit: Outfit;
@@ -28,7 +29,13 @@ interface OutfitCardProps {
   onSelect?: (id: string, checked: boolean) => void;
 }
 
-function getSourceBadge(outfit: Outfit, t: any): {
+// Typed against the en catalog because the app does not register its messages with next-intl,
+// so useTranslations alone accepts any string and a mistyped key would only show at render.
+export type OutfitCardTranslator = ReturnType<
+  typeof createTranslator<{ outfits: typeof outfitsMessages }, 'outfits.cards'>
+>;
+
+function getSourceBadge(outfit: Outfit, t: OutfitCardTranslator): {
   label: string;
   icon: React.ReactNode;
   className: string;
@@ -79,7 +86,7 @@ function getSourceBadge(outfit: Outfit, t: any): {
   };
 }
 
-function getCardTitle(outfit: Outfit, t: any, occasionLabel: (value: string) => string): string {
+function getCardTitle(outfit: Outfit, t: OutfitCardTranslator, occasionLabel: (value: string) => string): string {
   if (outfit.name) return outfit.name;
   if (outfit.reasoning) return outfit.reasoning;
   if (outfit.highlights && outfit.highlights.length > 0) {
@@ -87,7 +94,7 @@ function getCardTitle(outfit: Outfit, t: any, occasionLabel: (value: string) => 
   }
   return t('outfitFallback', { occasion: occasionLabel(outfit.occasion) });
 }
-function getMetaLabel(outfit: Outfit, t: any, locale: string, today: string): string {
+function getMetaLabel(outfit: Outfit, t: OutfitCardTranslator, locale: string, today: string): string {
   if (!outfit.scheduled_for) return t('lookbookTemplate');
   try {
     return formatRelativeDate(outfit.scheduled_for, locale, today);
@@ -97,7 +104,7 @@ function getMetaLabel(outfit: Outfit, t: any, locale: string, today: string): st
 }
 
 export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: OutfitCardProps) {
-  const t = useTranslations('outfits.cards');
+  const t: OutfitCardTranslator = useTranslations('outfits.cards');
   const locale = useLocale();
   const getUserToday = useUserToday();
   const occasionLabel = useOccasionLabel();
