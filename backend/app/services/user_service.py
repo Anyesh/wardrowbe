@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -71,49 +72,67 @@ class UserService:
         user = await self.get_by_external_id(sync_data.external_id)
 
         if user is None:
-            # Check if email already exists - this could be a migration case
-            existing_by_email = await self.get_by_email(sync_data.email)
-            if existing_by_email is not None:
-                # Migrate existing user to new external_id (auth provider change)
-                # Email is the stable identifier, external_id can change
-                existing_by_email.external_id = sync_data.external_id
-                existing_by_email.display_name = sync_data.display_name
-                if sync_data.avatar_url:
-                    existing_by_email.avatar_url = sync_data.avatar_url
-                existing_by_email.last_login_at = datetime.now(UTC)
-                await self.db.flush()
-                await self.db.refresh(existing_by_email)
-                return existing_by_email, False
+            adopted = await self._adopt_by_email(sync_data)
+            if adopted is not None:
+                return adopted, False
+            try:
+                return await self._insert_synced_user(sync_data), True
+            except IntegrityError:
+                # Two first sign-ins for one identity race: the other request committed the
+                # row after our lookups, so it now exists and this sync continues against it.
+                user = await self.get_by_external_id(sync_data.external_id)
+                if user is None:
+                    adopted = await self._adopt_by_email(sync_data)
+                    if adopted is None:
+                        raise
+                    return adopted, False
 
-            # Create new user
-            user = User(
-                external_id=sync_data.external_id,
-                email=sync_data.email,
-                display_name=sync_data.display_name,
-                avatar_url=sync_data.avatar_url,
-                last_login_at=datetime.now(UTC),
-            )
+        # Update existing user - but check email conflict first
+        if user.email != sync_data.email:
+            existing_by_email = await self.get_by_email(sync_data.email)
+            if existing_by_email is not None and existing_by_email.id != user.id:
+                raise UserEmailConflictError(
+                    f"Cannot update email to {sync_data.email}: already in use by another account."
+                )
+
+        user.email = sync_data.email
+        user.display_name = sync_data.display_name
+        if sync_data.avatar_url:
+            user.avatar_url = sync_data.avatar_url
+        user.last_login_at = datetime.now(UTC)
+        await self.db.flush()
+        await self.db.refresh(user)
+        return user, False
+
+    async def _adopt_by_email(self, sync_data: UserSyncRequest) -> User | None:
+        # Migrate an existing user to the new external_id (auth provider change):
+        # email is the stable identifier, external_id can change
+        existing_by_email = await self.get_by_email(sync_data.email)
+        if existing_by_email is None:
+            return None
+        existing_by_email.external_id = sync_data.external_id
+        existing_by_email.display_name = sync_data.display_name
+        if sync_data.avatar_url:
+            existing_by_email.avatar_url = sync_data.avatar_url
+        existing_by_email.last_login_at = datetime.now(UTC)
+        await self.db.flush()
+        await self.db.refresh(existing_by_email)
+        return existing_by_email
+
+    async def _insert_synced_user(self, sync_data: UserSyncRequest) -> User:
+        user = User(
+            external_id=sync_data.external_id,
+            email=sync_data.email,
+            display_name=sync_data.display_name,
+            avatar_url=sync_data.avatar_url,
+            last_login_at=datetime.now(UTC),
+        )
+        # A savepoint so that a unique violation leaves the request's transaction usable.
+        async with self.db.begin_nested():
             self.db.add(user)
             await self.db.flush()
-            await self.db.refresh(user)
-            return user, True
-        else:
-            # Update existing user - but check email conflict first
-            if user.email != sync_data.email:
-                existing_by_email = await self.get_by_email(sync_data.email)
-                if existing_by_email is not None and existing_by_email.id != user.id:
-                    raise UserEmailConflictError(
-                        f"Cannot update email to {sync_data.email}: already in use by another account."
-                    )
-
-            user.email = sync_data.email
-            user.display_name = sync_data.display_name
-            if sync_data.avatar_url:
-                user.avatar_url = sync_data.avatar_url
-            user.last_login_at = datetime.now(UTC)
-            await self.db.flush()
-            await self.db.refresh(user)
-            return user, False
+        await self.db.refresh(user)
+        return user
 
     async def update_last_login(self, user: User) -> None:
         user.last_login_at = datetime.now(UTC)

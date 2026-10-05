@@ -1,0 +1,90 @@
+import asyncio
+from uuid import uuid4
+
+import pytest
+from sqlalchemy import delete, func, or_, select, text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from app.models import User
+from app.schemas.user import UserSyncRequest
+from app.services.user_service import UserService
+
+
+@pytest.fixture
+def session_maker(async_engine):
+    return async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def _wait_for_blocked_insert(session_maker):
+    for _ in range(100):
+        async with session_maker() as probe:
+            waiting = await probe.scalar(
+                text(
+                    "SELECT count(*) FROM pg_stat_activity "
+                    "WHERE wait_event_type = 'Lock' AND datname = current_database()"
+                )
+            )
+        if waiting:
+            return
+        await asyncio.sleep(0.05)
+    raise AssertionError("second sync never blocked on the first sync's uncommitted insert")
+
+
+async def _race_two_first_syncs(session_maker, first: UserSyncRequest, second: UserSyncRequest):
+    async with session_maker() as session_a, session_maker() as session_b:
+        user_a, new_a = await UserService(session_a).sync_from_oidc(first)
+        task_b = asyncio.create_task(UserService(session_b).sync_from_oidc(second))
+        try:
+            await _wait_for_blocked_insert(session_maker)
+            await session_a.commit()
+            user_b, new_b = await task_b
+        finally:
+            task_b.cancel()
+        await session_b.commit()
+    return (user_a, new_a), (user_b, new_b)
+
+
+async def _cleanup(session_maker, *conditions):
+    async with session_maker() as cleanup:
+        await cleanup.execute(delete(User).where(or_(*conditions)))
+        await cleanup.commit()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_first_sync_for_same_identity_creates_one_user(session_maker):
+    external_id = f"race-{uuid4()}"
+    sync = UserSyncRequest(
+        external_id=external_id, email=f"{external_id}@example.com", display_name="Race"
+    )
+    try:
+        (user_a, new_a), (user_b, new_b) = await _race_two_first_syncs(session_maker, sync, sync)
+
+        async with session_maker() as check:
+            rows = await check.scalar(
+                select(func.count()).select_from(User).where(User.external_id == external_id)
+            )
+    finally:
+        await _cleanup(session_maker, User.external_id == external_id)
+
+    assert new_a is True
+    assert new_b is False
+    assert user_b.id == user_a.id
+    assert rows == 1
+
+
+@pytest.mark.asyncio
+async def test_concurrent_first_sync_with_same_email_adopts_the_committed_user(session_maker):
+    email = f"race-{uuid4()}@example.com"
+    first = UserSyncRequest(external_id=f"dev-{uuid4()}", email=email, display_name="First")
+    second = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Second")
+    try:
+        (user_a, _), (user_b, new_b) = await _race_two_first_syncs(session_maker, first, second)
+
+        async with session_maker() as check:
+            users = (await check.scalars(select(User).where(User.email == email))).all()
+    finally:
+        await _cleanup(session_maker, User.email == email)
+
+    assert new_b is False
+    assert user_b.id == user_a.id
+    assert [(u.id, u.external_id) for u in users] == [(user_a.id, second.external_id)]
