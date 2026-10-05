@@ -46,10 +46,10 @@ from app.schemas.item import (
     TaggingProgressResponse,
     WashHistoryResponse,
 )
-from app.services.image_service import ImageService
+from app.services.image_service import ImageService, get_full_path
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
-from app.utils.signed_urls import sign_image_url
+from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
 from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
 from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
@@ -262,7 +262,7 @@ async def create_item(
         try:
             redis = await create_pool(get_redis_settings())
             try:
-                full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
+                full_image_path = get_full_path(image_paths["image_path"])
                 job = await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
@@ -431,7 +431,7 @@ async def bulk_create_items(
                     # `processing` whenever the AI is fast enough to win the race.
                     await db.commit()
                     try:
-                        full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
+                        full_image_path = get_full_path(image_paths["image_path"])
                         job = await redis.enqueue_job(
                             "tag_item_image",
                             str(item.id),
@@ -688,7 +688,7 @@ async def bulk_analyze_items(
     try:
         for item, job_id in to_enqueue:
             try:
-                full_image_path = f"{settings.storage_path}/{item.image_path}"
+                full_image_path = get_full_path(item.image_path)
                 job = await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
@@ -1098,7 +1098,7 @@ async def _items_being_analyzed(
             item_id=row.id,
             name=row.name,
             type=row.type,
-            image_url=sign_image_url(row.thumbnail_path or row.image_path),
+            image_url=sign_optional(row.thumbnail_path, fallback=row.image_path),
             started_at=row.ai_started_at,
         )
         for row in result
@@ -1438,9 +1438,7 @@ async def get_item_history(
                         "id": str(oi.item.id),
                         "type": oi.item.type,
                         "name": oi.item.name,
-                        "thumbnail_url": sign_image_url(oi.item.thumbnail_path)
-                        if oi.item.thumbnail_path
-                        else None,
+                        "thumbnail_url": sign_optional(oi.item.thumbnail_path),
                     }
                     for oi in sorted(h.outfit.items, key=lambda x: x.position)
                 ],
@@ -1578,7 +1576,7 @@ async def trigger_ai_analysis(
         try:
             redis = await create_pool(get_redis_settings())
             try:
-                full_image_path = f"{settings.storage_path}/{image_path}"
+                full_image_path = get_full_path(image_path)
                 enqueued = await redis.enqueue_job(
                     "tag_item_image",
                     str(item_id),
@@ -1609,7 +1607,7 @@ async def trigger_ai_analysis(
 
         redis = await create_pool(get_redis_settings())
         try:
-            full_image_path = f"{settings.storage_path}/{item.image_path}"
+            full_image_path = get_full_path(item.image_path)
             job = await redis.enqueue_job(
                 "tag_item_image",
                 str(item.id),

@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from app.database import DbSession
 from app.models import User
 from app.services.family_service import FamilyService
-from app.services.image_service import ImageService
+from app.services.image_service import IMAGE_MIME_TYPES, ImageService
 from app.utils.auth import get_current_user_optional
 from app.utils.signed_urls import verify_signature
 
@@ -79,13 +79,7 @@ async def get_image(
         )
 
     ext = filename.rsplit(".", 1)[-1].lower()
-    content_types = {
-        "jpg": "image/jpeg",
-        "jpeg": "image/jpeg",
-        "png": "image/png",
-        "webp": "image/webp",
-    }
-    content_type = content_types.get(ext, "image/jpeg")
+    content_type = IMAGE_MIME_TYPES.get(f".{ext}", "image/jpeg")
 
     return FileResponse(
         path=str(image_path),
