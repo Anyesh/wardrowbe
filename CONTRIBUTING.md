@@ -104,11 +104,11 @@ npm run lint
 
 ### Dockerfile checks
 
-CI runs Hadolint 2.14.0 against all three Dockerfiles. To run the same check locally,
-install [Hadolint](https://github.com/hadolint/hadolint) and run from the repository root:
+CI runs Hadolint through its pinned pre-commit container hook. Run the same check
+locally with Docker and pre-commit from the repository root:
 
 ```bash
-hadolint backend/Dockerfile frontend/Dockerfile frontend/Dockerfile.dev
+pre-commit run hadolint-docker --all-files
 ```
 
 The shared `.hadolint.yaml` reports informational suggestions and fails on warnings or

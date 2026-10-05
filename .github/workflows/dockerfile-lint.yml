@@ -20,6 +20,5 @@ jobs:
 
       - name: Lint all Dockerfiles
         run: |
-          docker run --rm --mount "type=bind,src=$PWD,dst=/repo,readonly" -w /repo \
-            ghcr.io/hadolint/hadolint@sha256:27086352fd5e1907ea2b934eb1023f217c5ae087992eb59fde121dce9c9ff21e \
-            backend/Dockerfile frontend/Dockerfile frontend/Dockerfile.dev
+          python -m pip install 'pre-commit>=4,<5'
+          pre-commit run hadolint-docker --all-files

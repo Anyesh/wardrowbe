@@ -47,3 +47,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+
+  # Pre-commit tool revisions, including Hadolint
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
