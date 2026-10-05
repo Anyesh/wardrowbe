@@ -27,6 +27,11 @@ describe('queryKeys equal the literal keys they replaced', () => {
     ['wearHistory', queryKeys.wearHistory('i1', 20), ['wear-history', 'i1', 20]],
     ['outfits.all', queryKeys.outfits.all, ['outfits']],
     ['outfits.list', queryKeys.outfits.list(outfitFilters, 1, 20), ['outfits', outfitFilters, 1, 20]],
+    [
+      'outfits.infinite',
+      queryKeys.outfits.infinite(outfitFilters, 20),
+      ['outfits', 'infinite', outfitFilters, 20],
+    ],
     ['outfit', queryKeys.outfit('o1'), ['outfit', 'o1']],
     ['outfit (undefined id)', queryKeys.outfit(undefined), ['outfit', undefined]],
     ['calendarOutfits.all', queryKeys.calendarOutfits.all, ['calendarOutfits']],

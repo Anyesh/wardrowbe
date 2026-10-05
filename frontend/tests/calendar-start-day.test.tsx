@@ -22,6 +22,12 @@ vi.mock('@/lib/hooks/use-outfits', () => {
   return {
     useCalendarOutfits: vi.fn(() => empty),
     useOutfits: () => empty,
+    useInfiniteOutfits: () => ({
+      data: { pages: [empty.data], pageParams: [1] },
+      isLoading: false,
+      isError: false,
+      hasNextPage: false,
+    }),
     useBulkDeleteOutfits: () => ({ mutateAsync: vi.fn(), isPending: false }),
   }
 })

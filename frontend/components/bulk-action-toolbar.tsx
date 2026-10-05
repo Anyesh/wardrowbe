@@ -39,7 +39,10 @@ interface BulkActionToolbarProps {
   isRotating?: boolean;
   isRemovingBackground?: boolean;
   variant?: BulkDeleteVariant;
-  // Pagination props
+  pagination?: BulkToolbarPagination;
+}
+
+export interface BulkToolbarPagination {
   page: number;
   pageSize: number;
   onPageChange: (page: number) => void;
@@ -61,9 +64,7 @@ export function BulkActionToolbar({
   isRotating = false,
   isRemovingBackground = false,
   variant = 'items',
-  page,
-  pageSize,
-  onPageChange,
+  pagination,
 }: BulkActionToolbarProps) {
   const t = useTranslations('common');
   const tWardrobe = useTranslations('wardrobe');
@@ -87,9 +88,7 @@ export function BulkActionToolbar({
   const canSelectAllMatching =
     selection.mode === 'some' && selection.selectedIds.size === pageItems && pageItems > 0 && pageItems < totalItems;
 
-  // Pagination
-  const totalPages = Math.ceil(totalItems / pageSize);
-  const showPagination = totalPages > 1;
+  const totalPages = pagination ? Math.ceil(totalItems / pagination.pageSize) : 0;
 
   return (
     <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 sm:gap-3 bg-background border rounded-lg shadow-lg px-2 sm:px-4 py-2 sm:py-3 max-w-[calc(100vw-1rem)]">
@@ -277,7 +276,7 @@ export function BulkActionToolbar({
       )}
 
       {/* Pagination */}
-      {showPagination && (
+      {pagination && totalPages > 1 && (
         <>
           <div className="h-4 w-px bg-border shrink-0" />
           <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
@@ -285,8 +284,8 @@ export function BulkActionToolbar({
               variant="ghost"
               size="icon"
               className="h-8 w-8 hidden sm:flex"
-              disabled={page === 1}
-              onClick={() => onPageChange(1)}
+              disabled={pagination.page === 1}
+              onClick={() => pagination.onPageChange(1)}
               aria-label={t('firstPage')}
             >
               <ChevronsLeft className="h-4 w-4" />
@@ -295,21 +294,21 @@ export function BulkActionToolbar({
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              disabled={page === 1}
-              onClick={() => onPageChange(page - 1)}
+              disabled={pagination.page === 1}
+              onClick={() => pagination.onPageChange(pagination.page - 1)}
               aria-label={t('previousPage')}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="px-1 sm:px-2 text-sm text-muted-foreground whitespace-nowrap">
-              {page}/{totalPages}
+              {pagination.page}/{totalPages}
             </span>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
+              disabled={pagination.page >= totalPages}
+              onClick={() => pagination.onPageChange(pagination.page + 1)}
               aria-label={t('nextPage')}
             >
               <ChevronRight className="h-4 w-4" />
@@ -318,8 +317,8 @@ export function BulkActionToolbar({
               variant="ghost"
               size="icon"
               className="h-8 w-8 hidden sm:flex"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(totalPages)}
+              disabled={pagination.page >= totalPages}
+              onClick={() => pagination.onPageChange(totalPages)}
               aria-label={t('lastPage')}
             >
               <ChevronsRight className="h-4 w-4" />

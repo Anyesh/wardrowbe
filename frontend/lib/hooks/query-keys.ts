@@ -2,7 +2,8 @@ import type { ItemFilter } from '@/lib/types';
 import type { OutfitFilters } from '@/lib/hooks/use-outfits';
 
 // Invariant: the optimistic updaters call setQueriesData on queryKeys.items.all and
-// queryKeys.outfits.all and assume every cache entry under those prefixes is a list response,
+// queryKeys.outfits.all and assume every cache entry under those prefixes is a list response
+// (for outfits, either one page or the infinite list's pages),
 // so a single-item or single-outfit key must never be nested under ['items'] or ['outfits'].
 const ITEMS = ['items'] as const;
 const OUTFITS = ['outfits'] as const;
@@ -39,6 +40,8 @@ export const queryKeys = {
     all: OUTFITS,
     list: (filters: OutfitFilters, page: number, pageSize: number) =>
       [...OUTFITS, filters, page, pageSize] as const,
+    infinite: (filters: OutfitFilters, pageSize: number) =>
+      [...OUTFITS, 'infinite', filters, pageSize] as const,
   },
   outfit: (outfitId: string | undefined) => ['outfit', outfitId] as const,
   calendarOutfits: {
