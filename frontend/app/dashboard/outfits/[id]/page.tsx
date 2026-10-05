@@ -27,6 +27,7 @@ import { CloneToLookbookDialog } from '@/components/shared/clone-to-lookbook-dia
 import { useDeleteOutfit, useOutfit, useOutfits } from '@/lib/hooks/use-outfits';
 import { useWearToday } from '@/lib/hooks/use-studio';
 import { useUserToday } from '@/lib/hooks/use-user';
+import { useOutfitTitle } from '@/lib/hooks/use-outfit-title';
 import { useOccasionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { getErrorMessage } from '@/lib/api';
 import { formatDate, formatRelativeDate } from '@/lib/utils';
@@ -36,6 +37,7 @@ export default function OutfitDetailPage() {
   const t = useTranslations('outfits');
   const tc = useTranslations('common');
   const occasionLabel = useOccasionLabel();
+  const getTitle = useOutfitTitle();
   const locale = useLocale();
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -88,13 +90,7 @@ export default function OutfitDetailPage() {
     }
   };
 
-  const title =
-    outfit.name ||
-    (outfit.replaces_outfit_id
-      ? t('cards.woreInsteadFallback', { occasion: occasionLabel(outfit.occasion) })
-      : null) ||
-    outfit.reasoning ||
-    t('cards.outfitFallback', { occasion: occasionLabel(outfit.occasion) });
+  const title = getTitle(outfit);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
