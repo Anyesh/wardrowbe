@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { OCCASION_VALUES } from '@/lib/generated/garment-vocabulary';
-import { CLOTHING_COLORS, CLOTHING_SUBTYPES, CLOTHING_TYPES } from '@/lib/types';
+import { CLOTHING_COLORS, CLOTHING_SUBTYPES, CLOTHING_TYPES, OUTFIT_STATUSES } from '@/lib/types';
 import { SUPPORTED_LOCALES } from '@/lib/i18n/locales';
 
 // scripts/i18n-keys.mjs resolves t('literal') call sites, but several components build the key at
@@ -37,7 +37,6 @@ const en = loadLocale('en');
 
 // Mirrors of module-private lists. Importing them would pull whole page components into jsdom, so
 // they are duplicated here; if one of these lists changes at its source, this test must change too.
-const OUTFIT_STATUSES = ['pending', 'sent', 'viewed', 'accepted', 'rejected', 'expired'] as const;
 const NOTIFICATION_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 const CALENDAR_WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 const WARDROBE_SORTS = [

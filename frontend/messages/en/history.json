@@ -40,6 +40,7 @@
     "pending": "Pending",
     "rejected": "Rejected",
     "sent": "Sent",
+    "skipped": "Skipped",
     "viewed": "Viewed"
   },
   "subtitle": "View your past outfit recommendations",

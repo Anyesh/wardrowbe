@@ -13,10 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCalendarOutfits, type Outfit, type OutfitFilters } from '@/lib/hooks/use-outfits';
+import {
+  useCalendarOutfits,
+  type Outfit,
+  type OutfitFilters,
+  type OutfitStatus,
+} from '@/lib/hooks/use-outfits';
 import { useOccasions } from '@/lib/hooks/use-translated-constants';
 import { OutfitCalendar } from '@/components/outfit-calendar';
 import { OutfitHistoryCard } from '@/components/outfit-history-card';
+import { OutfitStatusFilter } from '@/components/outfit-status';
 import { FeedbackDialog } from '@/components/feedback-dialog';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import { format, isSameDay, parseISO } from 'date-fns';
@@ -124,11 +130,8 @@ export default function HistoryPage() {
     }));
   };
 
-  const handleStatusChange = (value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      status: value === 'all' ? undefined : value,
-    }));
+  const handleStatusChange = (status: OutfitStatus | undefined) => {
+    setFilters((prev) => ({ ...prev, status }));
   };
 
   if (isError) {
@@ -166,18 +169,7 @@ export default function HistoryPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder={t('filters.allStatus')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('filters.allStatus')}</SelectItem>
-            <SelectItem value="accepted">{t('status.accepted')}</SelectItem>
-            <SelectItem value="rejected">{t('status.rejected')}</SelectItem>
-            <SelectItem value="pending">{t('status.pending')}</SelectItem>
-            <SelectItem value="viewed">{t('status.viewed')}</SelectItem>
-          </SelectContent>
-        </Select>
+        <OutfitStatusFilter value={filters.status} onChange={handleStatusChange} />
       </div>
 
       {/* Main content - two column layout */}

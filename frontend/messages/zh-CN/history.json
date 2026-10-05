@@ -40,6 +40,7 @@
     "pending": "待处理",
     "rejected": "已拒绝",
     "sent": "已发送",
+    "skipped": "已跳过",
     "viewed": "已查看"
   },
   "subtitle": "查看过去的穿搭推荐",

@@ -40,6 +40,7 @@
     "pending": "대기 중",
     "rejected": "거절됨",
     "sent": "전송됨",
+    "skipped": "건너뜀",
     "viewed": "확인됨"
   },
   "subtitle": "지난 코디 추천을 확인해 보세요",

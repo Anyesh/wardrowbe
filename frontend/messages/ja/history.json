@@ -40,6 +40,7 @@
     "pending": "保留中",
     "rejected": "却下済み",
     "sent": "送信済み",
+    "skipped": "スキップ済み",
     "viewed": "閲覧済み"
   },
   "subtitle": "過去のコーデ提案を見る",

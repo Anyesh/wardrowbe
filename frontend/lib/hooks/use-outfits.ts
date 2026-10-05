@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, setAccessToken } from '@/lib/api';
-import type { FamilyRating, Outfit } from '@/lib/types';
+import type { FamilyRating, Outfit, OutfitStatus } from '@/lib/types';
 
 export type {
   FeedbackSummary,
@@ -30,7 +30,7 @@ export interface OutfitListResponse {
 }
 
 export interface OutfitFilters {
-  status?: string;
+  status?: OutfitStatus;
   occasion?: string;
   date_from?: string;
   date_to?: string;
