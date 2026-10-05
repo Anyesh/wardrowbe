@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, getAccessToken, setAccessToken, ApiError, NetworkError } from '@/lib/api';
+import { api, getAccessToken, ApiError, NetworkError } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
 import { chunkArray } from '@/lib/utils';
 import { enqueueFiles } from '@/lib/upload-queue';
@@ -12,14 +13,6 @@ import { startDrain } from '@/lib/upload-manager';
 // Must not exceed the backend's MAX_BULK_UPLOAD_COUNT setting, or every chunk
 // larger than the server's limit fails with a 400.
 const BULK_UPLOAD_CHUNK_SIZE = 20;
-
-// Helper to set token if available (for NextAuth mode)
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
 
 // Outfit and calendar payloads embed each item's primary image, so they go
 // stale whenever that image changes, not only the item caches.
@@ -145,9 +138,7 @@ export function useUpdateItem() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Item> }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<Item>(`/items/${id}`, data);
     },
     onMutate: async ({ id, data }) => {
@@ -206,9 +197,7 @@ export function useRemoveBackground() {
 
   return useMutation({
     mutationFn: async ({ id, bg_color }: { id: string; bg_color?: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/remove-background`, { bg_color: bg_color ?? '#FFFFFF' });
     },
     onSuccess: (_, variables) => {
@@ -223,9 +212,7 @@ export function useRestoreOriginal() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/restore-original`);
     },
     onSuccess: (_, id) => {
@@ -275,9 +262,7 @@ export function useDeleteItem() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/items/${id}`);
     },
     onMutate: async (deletedId) => {
@@ -321,9 +306,7 @@ export function useArchiveItem() {
 
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/archive`, { reason });
     },
     onSuccess: () => {
@@ -346,9 +329,7 @@ export function useLogWear() {
       worn_at?: string;
       occasion?: string;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/wear`, { worn_at, occasion });
     },
     onSuccess: (_, variables) => {
@@ -374,9 +355,7 @@ export function useLogWash() {
       method?: string;
       notes?: string;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/wash`, { washed_at, method, notes });
     },
     onSuccess: (_, variables) => {
@@ -488,9 +467,7 @@ export function useDeleteItemImage() {
 
   return useMutation({
     mutationFn: async ({ itemId, imageId }: { itemId: string; imageId: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/items/${itemId}/images/${imageId}`);
     },
     onSuccess: (_, variables) => {
@@ -506,9 +483,7 @@ export function useSetPrimaryImage() {
 
   return useMutation({
     mutationFn: async ({ itemId, imageId }: { itemId: string; imageId: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${itemId}/images/${imageId}/set-primary`);
     },
     onSuccess: (_, variables) => {
@@ -529,9 +504,7 @@ export function useRotateImage() {
       id: string;
       direction: 'cw' | 'ccw';
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/rotate?direction=${direction}`);
     },
     onSuccess: (_, variables) => {
@@ -568,9 +541,7 @@ export function useReanalyzeItem() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<{ job_id?: string; status: string; retry_after_seconds?: number }>(
         `/items/${id}/analyze`
       );
@@ -587,9 +558,7 @@ export function useCancelAnalysis() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/cancel-analysis`);
     },
     onSuccess: () => {
@@ -735,9 +704,7 @@ export function useBulkDeleteItems() {
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return drainBulkAction<BulkDeleteResponse>('/items/bulk/delete', params, [
         'deleted',
         'failed',
@@ -807,9 +774,7 @@ export function useBulkReanalyzeItems() {
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       const result = await drainBulkAction<BulkAnalyzeResponse>('/items/bulk/analyze', params, [
         'queued',
         'failed',
@@ -884,9 +849,7 @@ export function useBulkCancelAnalysis() {
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return drainBulkAction<BulkCancelAnalysisResponse>(
         '/items/bulk/cancel-analysis',
         params,
@@ -912,9 +875,7 @@ export function useBulkRotateItems() {
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams & { direction: 'cw' | 'ccw' }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return drainBulkAction<BulkRotateResponse>('/items/bulk/rotate', params, [
         'queued',
         'failed',
@@ -974,9 +935,7 @@ export function useBulkRemoveBackgroundItems() {
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams & { bg_color?: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return drainBulkAction<BulkRemoveBackgroundResponse>(
         '/items/bulk/remove-background',
         params,

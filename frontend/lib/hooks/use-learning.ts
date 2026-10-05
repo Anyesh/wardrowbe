@@ -1,14 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
-
-// Helper to set token if available (for NextAuth mode)
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 
 // Types for learning API responses
 export interface LearnedColorScore {
@@ -124,9 +117,7 @@ export function useRecomputeLearning() {
 
   return useMutation({
     mutationFn: async () => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<LearningProfile>('/learning/recompute');
     },
     onSuccess: () => {
@@ -145,9 +136,7 @@ export function useGenerateInsights() {
 
   return useMutation({
     mutationFn: async () => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<StyleInsight[]>('/learning/generate-insights');
     },
     onSuccess: () => {
@@ -165,9 +154,7 @@ export function useAcknowledgeInsight() {
 
   return useMutation({
     mutationFn: async (insightId: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<{ acknowledged: boolean }>(`/learning/insights/${insightId}/acknowledge`);
     },
     onSuccess: () => {

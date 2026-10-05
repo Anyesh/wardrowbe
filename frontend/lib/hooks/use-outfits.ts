@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import type { FamilyRating, Outfit, OutfitStatus } from '@/lib/types';
 
 export type {
@@ -12,14 +13,6 @@ export type {
   WeatherData,
   WoreInsteadItem,
 } from '@/lib/types';
-
-// Helper to set token if available (for NextAuth mode)
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
 
 export interface OutfitListResponse {
   outfits: Outfit[];
@@ -193,9 +186,7 @@ export function useBulkDeleteOutfits() {
 
   return useMutation({
     mutationFn: async (params: BulkOutfitOperationParams) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<BulkDeleteOutfitsResponse>('/outfits/bulk/delete', params);
     },
     onMutate: async (params) => {

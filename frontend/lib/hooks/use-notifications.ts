@@ -2,14 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
-
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 
 export type NotificationChannel = 'ntfy' | 'mattermost' | 'email' | 'expo_push';
 
@@ -76,9 +70,7 @@ export function useCreateNotificationSetting() {
       priority: number;
       config: Record<string, string>;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<NotificationSettings>('/notifications/settings', data);
     },
     onSuccess: () => {
@@ -99,9 +91,7 @@ export function useUpdateNotificationSetting() {
       id: string;
       data: Partial<{ enabled: boolean; priority: number; config: Record<string, string> }>;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<NotificationSettings>(`/notifications/settings/${id}`, data);
     },
     onSuccess: () => {
@@ -116,9 +106,7 @@ export function useDeleteNotificationSetting() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/notifications/settings/${id}`);
     },
     onSuccess: () => {
@@ -132,9 +120,7 @@ export function useTestNotificationSetting() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<{ success: boolean; message: string }>(
         `/notifications/settings/${id}/test`
       );
@@ -165,9 +151,7 @@ export function useCreateSchedule() {
       enabled: boolean;
       notify_day_before?: boolean;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Schedule>('/notifications/schedules', data);
     },
     onSuccess: () => {
@@ -188,9 +172,7 @@ export function useUpdateSchedule() {
       id: string;
       data: Partial<{ notification_time: string; occasion: string; enabled: boolean; notify_day_before: boolean }>;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<Schedule>(`/notifications/schedules/${id}`, data);
     },
     onSuccess: () => {
@@ -205,9 +187,7 @@ export function useDeleteSchedule() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/notifications/schedules/${id}`);
     },
     onSuccess: () => {
