@@ -1,5 +1,6 @@
 import html as html_mod
 from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
@@ -376,6 +377,52 @@ class TestProviderMigrationRequiresVerifiedEmail:
         assert "access_token" not in response.json()
         await db_session.refresh(test_user)
         assert test_user.external_id == original_external_id
+
+    @pytest.mark.asyncio
+    async def test_account_created_with_unverified_email_is_not_adopted(self, client, db_session):
+        email = f"victim-{uuid4()}@example.com"
+        claims_by_token = {
+            "squatter-token": {"sub": "squatter-sub", "email": email, "email_verified": False},
+            "owner-token": {"sub": "owner-sub", "email": email, "email_verified": True},
+        }
+
+        async def validate(token, *_args):
+            return claims_by_token[token]
+
+        with (
+            patch("app.api.auth._is_dev_mode", return_value=False),
+            patch("app.api.auth._oidc_configured", return_value=True),
+            patch("app.api.auth.validate_oidc_id_token", side_effect=validate),
+            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
+            patch("app.api.auth.settings") as mock_settings,
+        ):
+            mock_settings.oidc_issuer_url = "https://auth.example.com"
+            mock_settings.oidc_client_id = "test-client"
+            mock_settings.oidc_mobile_client_id = None
+            mock_settings.secret_key = "test-secret"
+
+            squatter = await client.post(
+                "/api/v1/auth/sync",
+                json={
+                    "external_id": "squatter-sub",
+                    "display_name": "Squatter",
+                    "id_token": "squatter-token",
+                },
+            )
+            owner = await client.post(
+                "/api/v1/auth/sync",
+                json={
+                    "external_id": "owner-sub",
+                    "display_name": "Owner",
+                    "id_token": "owner-token",
+                },
+            )
+
+        assert squatter.status_code == 200
+        assert owner.status_code == 409
+        assert "access_token" not in owner.json()
+        user = await UserService(db_session).get_by_email(email)
+        assert user.external_id == "squatter-sub"
 
     @pytest.mark.asyncio
     async def test_verified_allows_migration(self, client, db_session, test_user):

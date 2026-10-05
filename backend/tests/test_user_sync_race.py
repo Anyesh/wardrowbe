@@ -33,16 +33,14 @@ async def _race_two_first_syncs(
     first: UserSyncRequest,
     second: UserSyncRequest,
     *,
-    second_may_adopt: bool = True,
+    second_verified: bool = True,
 ):
     async with session_maker() as session_a, session_maker() as session_b:
         pid_a = await session_a.scalar(text("SELECT pg_backend_pid()"))
         pid_b = await session_b.scalar(text("SELECT pg_backend_pid()"))
-        user_a, new_a = await UserService(session_a).sync_from_oidc(
-            first, allow_email_adoption=True
-        )
+        user_a, new_a = await UserService(session_a).sync_from_oidc(first, email_verified=True)
         task_b = asyncio.create_task(
-            UserService(session_b).sync_from_oidc(second, allow_email_adoption=second_may_adopt)
+            UserService(session_b).sync_from_oidc(second, email_verified=second_verified)
         )
         try:
             await _wait_until_blocked_by(session_maker, pid_b, pid_a)
@@ -107,7 +105,7 @@ async def test_concurrent_first_sync_refuses_adoption_when_not_allowed(session_m
     second = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Attacker")
     try:
         with pytest.raises(UserEmailConflictError):
-            await _race_two_first_syncs(session_maker, first, second, second_may_adopt=False)
+            await _race_two_first_syncs(session_maker, first, second, second_verified=False)
 
         async with session_maker() as check:
             users = (await check.scalars(select(User).where(User.email == email))).all()
@@ -125,7 +123,7 @@ async def test_sync_refuses_adoption_by_email_when_not_allowed(db_session, test_
     )
 
     with pytest.raises(UserEmailConflictError):
-        await UserService(db_session).sync_from_oidc(sync, allow_email_adoption=False)
+        await UserService(db_session).sync_from_oidc(sync, email_verified=False)
 
     await db_session.refresh(test_user)
     assert test_user.external_id == original_external_id
@@ -136,8 +134,94 @@ async def test_sync_refuses_adoption_by_email_when_not_allowed(db_session, test_
 async def test_sync_adopts_by_email_when_allowed(db_session, test_user):
     sync = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=test_user.email, display_name="New")
 
-    user, is_new = await UserService(db_session).sync_from_oidc(sync, allow_email_adoption=True)
+    user, is_new = await UserService(db_session).sync_from_oidc(sync, email_verified=True)
 
     assert is_new is False
     assert user.id == test_user.id
     assert user.external_id == sync.external_id
+
+
+@pytest.mark.asyncio
+async def test_unverified_sign_up_is_never_adopted(db_session):
+    email = f"victim-{uuid4()}@example.com"
+    squatter = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Squatter")
+    owner = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=email, display_name="Owner")
+    service = UserService(db_session)
+
+    squatted, is_new = await service.sync_from_oidc(squatter, email_verified=False)
+    assert is_new is True
+    assert squatted.email_verified is False
+
+    with pytest.raises(UserEmailConflictError):
+        await service.sync_from_oidc(owner, email_verified=True)
+
+    await db_session.refresh(squatted)
+    assert (squatted.external_id, squatted.display_name) == (squatter.external_id, "Squatter")
+
+
+@pytest.mark.asyncio
+async def test_unverified_email_change_is_never_adopted(db_session, test_user):
+    victim_email = f"victim-{uuid4()}@example.com"
+    change = UserSyncRequest(
+        external_id=test_user.external_id, email=victim_email, display_name="Squatter"
+    )
+    owner = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=victim_email, display_name="Owner")
+    service = UserService(db_session)
+
+    changed, _ = await service.sync_from_oidc(change, email_verified=False)
+    assert changed.email == victim_email
+    assert changed.email_verified is False
+
+    with pytest.raises(UserEmailConflictError):
+        await service.sync_from_oidc(owner, email_verified=True)
+
+    await db_session.refresh(test_user)
+    assert test_user.external_id == change.external_id
+
+
+@pytest.mark.asyncio
+async def test_verified_email_change_stays_adoptable(db_session, test_user):
+    new_email = f"moved-{uuid4()}@example.com"
+    change = UserSyncRequest(external_id=test_user.external_id, email=new_email, display_name="Me")
+    migrate = UserSyncRequest(external_id=f"oidc-{uuid4()}", email=new_email, display_name="Me")
+    service = UserService(db_session)
+
+    changed, _ = await service.sync_from_oidc(change, email_verified=True)
+    assert changed.email_verified is True
+
+    adopted, is_new = await service.sync_from_oidc(migrate, email_verified=True)
+    assert is_new is False
+    assert adopted.id == test_user.id
+    assert adopted.external_id == migrate.external_id
+    assert adopted.email_verified is True
+
+
+@pytest.mark.asyncio
+async def test_verified_sign_in_marks_unchanged_email_verified(db_session):
+    external_id = f"oidc-{uuid4()}"
+    sync = UserSyncRequest(
+        external_id=external_id, email=f"{external_id}@example.com", display_name="Me"
+    )
+    service = UserService(db_session)
+
+    user, _ = await service.sync_from_oidc(sync, email_verified=False)
+    assert user.email_verified is False
+
+    user, _ = await service.sync_from_oidc(sync, email_verified=True)
+    assert user.email_verified is True
+
+    user, _ = await service.sync_from_oidc(sync, email_verified=False)
+    assert user.email_verified is True
+
+
+@pytest.mark.asyncio
+async def test_user_inserted_without_verification_defaults_to_unverified(db_session):
+    unique_id = uuid4()
+    user = User(
+        external_id=f"raw-{unique_id}", email=f"raw-{unique_id}@example.com", display_name="Raw"
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
+
+    assert user.email_verified is False

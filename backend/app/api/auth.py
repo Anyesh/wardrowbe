@@ -98,7 +98,7 @@ async def sync_user(
 ) -> UserSyncResponse:
     await rate_limit_by_ip(request, "auth_sync", 10, 60)
     if _is_dev_mode():
-        allow_email_adoption = True
+        email_verified = True
         if not sync_data.email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -154,7 +154,7 @@ async def sync_user(
             )
 
         sync_data = sync_data.model_copy(update={"email": effective_email})
-        allow_email_adoption = (
+        email_verified = (
             bool(claims_email)
             and claims_email == effective_email
             and oidc_claims.get("email_verified") is True
@@ -168,9 +168,7 @@ async def sync_user(
     user_service = UserService(db)
 
     try:
-        user, is_new = await user_service.sync_from_oidc(
-            sync_data, allow_email_adoption=allow_email_adoption
-        )
+        user, is_new = await user_service.sync_from_oidc(sync_data, email_verified=email_verified)
     except UserEmailConflictError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

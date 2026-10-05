@@ -124,6 +124,7 @@ async def test_user(db_session: AsyncSession) -> User:
         timezone="UTC",
         is_active=True,
         onboarding_completed=False,
+        email_verified=True,
     )
     db_session.add(user)
     await db_session.commit()

@@ -59,34 +59,37 @@ class UserService:
         return user
 
     async def sync_from_oidc(
-        self, sync_data: UserSyncRequest, *, allow_email_adoption: bool
+        self, sync_data: UserSyncRequest, *, email_verified: bool
     ) -> tuple[User, bool]:
         """
         Sync user from OIDC provider.
         Creates user if not exists, updates if exists.
         Returns (user, is_new_user).
 
+        email_verified states whether the caller's identity source vouched for sync_data.email,
+        and is recorded on the user whenever its email is set.
+
         Migration behavior: If external_id doesn't match but email does,
         we update the external_id. This allows seamless migration between
         auth providers (e.g., TinyAuth forward-auth to direct Pocket ID OIDC).
-        That takeover is only allowed when the caller has proven it owns the email
-        (allow_email_adoption); otherwise UserEmailConflictError is raised.
+        That takeover requires both the caller's email and the existing account's email
+        to be verified; otherwise UserEmailConflictError is raised.
         """
         # First, check by external_id (primary lookup for OIDC)
         user = await self.get_by_external_id(sync_data.external_id)
 
         if user is None:
-            adopted = await self._adopt_by_email(sync_data, allow_email_adoption)
+            adopted = await self._adopt_by_email(sync_data, email_verified)
             if adopted is not None:
                 return adopted, False
             try:
-                return await self._insert_synced_user(sync_data), True
+                return await self._insert_synced_user(sync_data, email_verified), True
             except IntegrityError:
                 # Two first sign-ins for one identity race: the other request committed the
                 # row after our lookups, so it now exists and this sync continues against it.
                 user = await self.get_by_external_id(sync_data.external_id)
                 if user is None:
-                    adopted = await self._adopt_by_email(sync_data, allow_email_adoption)
+                    adopted = await self._adopt_by_email(sync_data, email_verified)
                     if adopted is None:
                         raise
                     return adopted, False
@@ -98,8 +101,11 @@ class UserService:
                 raise UserEmailConflictError(
                     f"Cannot update email to {sync_data.email}: already in use by another account."
                 )
+            user.email = sync_data.email
+            user.email_verified = email_verified
+        elif email_verified:
+            user.email_verified = True
 
-        user.email = sync_data.email
         user.display_name = sync_data.display_name
         if sync_data.avatar_url:
             user.avatar_url = sync_data.avatar_url
@@ -109,14 +115,14 @@ class UserService:
         return user, False
 
     async def _adopt_by_email(
-        self, sync_data: UserSyncRequest, allow_email_adoption: bool
+        self, sync_data: UserSyncRequest, email_verified: bool
     ) -> User | None:
         # Migrate an existing user to the new external_id (auth provider change):
         # email is the stable identifier, external_id can change
         existing_by_email = await self.get_by_email(sync_data.email)
         if existing_by_email is None:
             return None
-        if not allow_email_adoption:
+        if not (email_verified and existing_by_email.email_verified):
             raise UserEmailConflictError(
                 "Email already associated with another account. "
                 "Verified email required for migration."
@@ -130,10 +136,11 @@ class UserService:
         await self.db.refresh(existing_by_email)
         return existing_by_email
 
-    async def _insert_synced_user(self, sync_data: UserSyncRequest) -> User:
+    async def _insert_synced_user(self, sync_data: UserSyncRequest, email_verified: bool) -> User:
         user = User(
             external_id=sync_data.external_id,
             email=sync_data.email,
+            email_verified=email_verified,
             display_name=sync_data.display_name,
             avatar_url=sync_data.avatar_url,
             last_login_at=datetime.now(UTC),
