@@ -49,10 +49,6 @@ class ClothingTags(BaseModel):
     formality: str | None = None
     season: list[str] = []
     fit: str | None = None
-    occasion: list[str] = []
-    brand: str | None = None
-    condition: str | None = None
-    features: list[str] = []
     confidence: float = 0.0
     logprobs_confidence: float | None = None
     description: str | None = None
