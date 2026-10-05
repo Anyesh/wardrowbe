@@ -1,0 +1,8 @@
+# These jobs need a write token to update PR metadata from fork contributions.
+# They use only the trusted workflow definition and GitHub API; neither checks
+# out PR code nor interpolates PR text into executable scripts.
+rules:
+  dangerous-triggers:
+    ignore:
+      - auto-assign.yml:3
+      - welcome.yml:3
