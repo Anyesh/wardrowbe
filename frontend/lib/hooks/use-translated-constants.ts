@@ -106,3 +106,22 @@ export function useWeatherConditionLabel() {
     [label]
   );
 }
+
+export interface OccasionOption {
+  value: string;
+  label: string;
+}
+
+// Pickers offer the featured occasions, but a stored value (a free-text default occasion, or an
+// outfit created with another occasion) must stay visible and selectable instead of rendering as
+// nothing selected, so each non-featured kept value is appended once.
+export function useOccasionOptions(keep: readonly (string | null | undefined)[]): OccasionOption[] {
+  const featured = useOccasions();
+  const occasionLabel = useOccasionLabel();
+  const options: OccasionOption[] = [...featured];
+  for (const value of keep) {
+    if (!value || options.some((o) => o.value === value)) continue;
+    options.push({ value, label: occasionLabel(value) });
+  }
+  return options;
+}

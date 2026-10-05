@@ -27,7 +27,7 @@ import {
   resolveNetworkLocation,
 } from '@/lib/location';
 import { Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
-import { useClothingColors, useOccasions } from '@/lib/hooks/use-translated-constants';
+import { useClothingColors, useOccasionOptions } from '@/lib/hooks/use-translated-constants';
 import { toF, toCelsius } from '@/lib/temperature';
 import { PREFERENCE_DEFAULTS } from '@/lib/generated/preference-defaults';
 import { AVOID_REPEAT_DAYS, STYLE_SCORE, TEMPERATURE_THRESHOLDS_CELSIUS } from '@/lib/generated/scales';
@@ -169,7 +169,6 @@ export default function SettingsPage() {
   const t = useTranslations('settings');
   const tc = useTranslations('common');
   const tConst = useTranslations('constants');
-  const occasions = useOccasions();
   const { data: session } = useSession();
   const { data: preferences, isLoading } = usePreferences();
   const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
@@ -179,6 +178,7 @@ export default function SettingsPage() {
   const updateUserProfile = useUpdateUserProfile({ toastsOwnErrors: true });
 
   const [formData, setFormData] = useState<Partial<Preferences>>({});
+  const occasions = useOccasionOptions([formData.default_occasion, preferences?.default_occasion]);
   const [hasChanges, setHasChanges] = useState(false);
   const [endpointTests, setEndpointTests] = useState<Record<number, EndpointTestResult>>({});
 
