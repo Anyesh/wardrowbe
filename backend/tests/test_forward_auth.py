@@ -5,10 +5,10 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import _is_dev_mode
+from app.api.auth import _is_dev_mode, create_access_token
 from app.config import Settings, get_settings
-from app.models import User
-from app.services.user_service import UserService
+from app.models import User, UserIdentity
+from app.services.user_service import FORWARD_AUTH, UserService
 from app.utils.auth import decode_token
 from tests.identity_helpers import identities_of, identity_ids_of, user_of_subject
 
@@ -54,6 +54,17 @@ async def _token_user(db: AsyncSession, token: str, provider: str, subject: str)
     assert user is not None
     assert payload.iid == str((await identity_ids_of(db, user.id))[(provider, subject)])
     return user
+
+
+async def _proxy_user_bearer(db: AsyncSession, subject: str) -> dict:
+    # No external_id, as sign-in leaves it NULL, so the switch check cannot lean on it.
+    user = User(email=f"{uuid4()}@example.com", display_name="Voilà")
+    db.add(user)
+    await db.flush()
+    identity = UserIdentity(user_id=user.id, provider=FORWARD_AUTH, subject=subject)
+    db.add(identity)
+    await db.commit()
+    return {"Authorization": f"Bearer {create_access_token(user.id, identity.id)}"}
 
 
 class TestForwardAuthSync:
@@ -605,19 +616,108 @@ class TestForwardAuthConfigAndStatus:
 
 class TestRequestsAfterSignIn:
     @pytest.mark.asyncio
-    async def test_bearer_user_wins_over_remote_user_headers(
+    async def test_every_session_of_the_account_holding_the_remote_user_is_accepted(
         self, client: AsyncClient, test_user: User, auth_headers: dict
     ):
-        with patch("app.api.auth.settings", _forward_auth_only()):
-            other = await client.post(SYNC_URL, headers=_proxy_headers(user="tinyauth-other"))
-            assert other.status_code == 200
+        with (
+            patch("app.api.auth.settings", _forward_auth_only()),
+            patch("app.utils.auth.settings", _forward_auth_only()),
+        ):
+            proxy = await client.post(
+                SYNC_URL, headers=_proxy_headers(user="tinyauth-bob", email=test_user.email)
+            )
+            proxy_bearer = {"Authorization": f"Bearer {proxy.json()['access_token']}"}
+            responses = [
+                await client.get(
+                    "/api/v1/users/me", headers={**_proxy_headers(user="tinyauth-bob"), **bearer}
+                )
+                for bearer in (proxy_bearer, auth_headers)
+            ]
+
+        assert [response.status_code for response in responses] == [200, 200]
+        assert {response.json()["email"] for response in responses} == {test_user.email}
+
+    @pytest.mark.asyncio
+    async def test_bearer_matching_non_ascii_remote_user_is_accepted(
+        self, client: AsyncClient, db_session: AsyncSession
+    ):
+        subject = f"{uuid4()}voilà"
+        bearer = await _proxy_user_bearer(db_session, subject)
+
+        with patch("app.utils.auth.settings", _forward_auth_only()):
+            response = await client.get(
+                "/api/v1/users/me",
+                headers={**_proxy_headers(user=subject.encode()), **bearer},
+            )
+
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "remote_user",
+        ["tinyauth-other", "legacy-subject"],
+        ids=["other-user", "same-subject-of-another-provider"],
+    )
+    async def test_bearer_for_a_remote_user_the_account_does_not_hold_returns_401(
+        self, client: AsyncClient, test_user: User, auth_headers: dict, remote_user: str
+    ):
+        if remote_user == "legacy-subject":
+            remote_user = test_user.external_id
+        with patch("app.utils.auth.settings", _forward_auth_only()):
+            response = await client.get(
+                "/api/v1/users/me",
+                headers={**_proxy_headers(user=remote_user), **auth_headers},
+            )
+
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_bearer_for_a_remote_user_differing_in_a_trailing_byte_returns_401(
+        self, client: AsyncClient, db_session: AsyncSession
+    ):
+        subject = f"{uuid4()}voilà"
+        bearer = await _proxy_user_bearer(db_session, subject)
+
+        with patch("app.utils.auth.settings", _forward_auth_only()):
+            response = await client.get(
+                "/api/v1/users/me",
+                headers={**_proxy_headers(user=subject.replace("à", "Ã").encode()), **bearer},
+            )
+
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "headers",
+        [
+            {"Remote-User": "tinyauth-other"},
+            {"Remote-User": "tinyauth-other", "X-Forward-Auth-Secret": "w" * 32},
+            {"Remote-User": "tinyauth-other", "X-Forward-Auth-Secret": ""},
+            {"X-Forward-Auth-Secret": PROXY_SECRET},
+            {"Remote-User": "", "X-Forward-Auth-Secret": PROXY_SECRET},
+        ],
+        ids=["no-secret", "wrong-secret", "empty-secret", "no-remote-user", "empty-remote-user"],
+    )
+    async def test_untrusted_or_absent_remote_user_is_ignored(
+        self, client: AsyncClient, test_user: User, auth_headers: dict, headers: dict
+    ):
+        with patch("app.utils.auth.settings", _forward_auth_only()):
+            response = await client.get("/api/v1/users/me", headers={**headers, **auth_headers})
+
+        assert response.status_code == 200
+        assert response.json()["email"] == test_user.email
+
+    @pytest.mark.asyncio
+    async def test_remote_user_is_ignored_when_forward_auth_is_not_configured(
+        self, client: AsyncClient, test_user: User, auth_headers: dict
+    ):
+        with patch("app.utils.auth.settings", _settings(forward_auth_secret=None)):
             response = await client.get(
                 "/api/v1/users/me",
                 headers={**_proxy_headers(user="tinyauth-other"), **auth_headers},
             )
 
         assert response.status_code == 200
-        assert response.json()["email"] == test_user.email
 
     @pytest.mark.asyncio
     async def test_proxy_headers_alone_do_not_authenticate(self, client: AsyncClient):

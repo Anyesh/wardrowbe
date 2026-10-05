@@ -17,6 +17,7 @@ from app.schemas.user import UserSyncRequest
 # Reserved by RFC 2606, so a detached address can never be delivered to or claimed by a sign-in.
 DETACHED_EMAIL_DOMAIN = "detached.invalid"
 EMAIL_IN_USE = "Email already in use by another account."
+FORWARD_AUTH = "forward_auth"
 LEGACY = "legacy"
 # Any oidc or dev subject equal to a user's external_id signed into that user before identities
 # existed, so these providers claim a matching legacy identity without granting anything new.
@@ -90,6 +91,9 @@ class UserService:
 
     async def get_by_email(self, email: str) -> User | None:
         return await self._fetch_current(select(User).where(User.email == email))
+
+    async def holds_identity(self, user_id: UUID, provider: str, subject: str) -> bool:
+        return await self._identity_id(user_id, provider, subject) is not None
 
     async def _fetch_current(self, query: Select) -> User | None:
         # populate_existing because a sync attempt that lost a race leaves the row's earlier

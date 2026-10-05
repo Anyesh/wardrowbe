@@ -1,4 +1,8 @@
+import hmac
+
 from starlette.datastructures import Headers
+
+FORWARD_AUTH_SECRET_HEADER = "X-Forward-Auth-Secret"
 
 # Only HTTP's own optional whitespace is trimmed, and only after decoding, because str.strip()
 # also removes \x85 and \xa0, which are the final bytes of UTF-8 characters such as Å and à.
@@ -14,3 +18,9 @@ def proxy_header(headers: Headers, name: str) -> str:
     except UnicodeError:
         decoded = value
     return decoded.strip(PROXY_HEADER_WHITESPACE)
+
+
+def forward_auth_secret_matches(presented: str | None, expected: str | None) -> bool:
+    if not presented or not expected:
+        return False
+    return hmac.compare_digest(presented.encode(), expected.encode())
