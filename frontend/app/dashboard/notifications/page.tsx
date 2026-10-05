@@ -61,6 +61,7 @@ import { useUserProfile } from '@/lib/hooks/use-user';
 import { isDeliverableEmail } from '@/lib/utils';
 import { useOccasionLabel, useOccasions } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
+import { API_BASE_PATH } from '@/lib/api';
 
 const DAY_KEYS = [
   { value: 0, key: 'monday' as const },
@@ -100,7 +101,7 @@ function AddChannelDialog({
   // Fetch ntfy defaults when dialog opens
   useEffect(() => {
     if (open && !ntfyDefaults) {
-      fetch('/api/v1/notifications/defaults/ntfy')
+      fetch(`${API_BASE_PATH}/notifications/defaults/ntfy`)
         .then((res) => res.json())
         .then((data) => {
           setNtfyDefaults(data);

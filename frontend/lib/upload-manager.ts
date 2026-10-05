@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { getAccessToken } from '@/lib/api';
+import { API_BASE_PATH, getAccessToken } from '@/lib/api';
 import {
   getPendingUploads,
   markUploading,
@@ -152,7 +152,7 @@ async function uploadChunk(chunk: QueuedUpload[]): Promise<BulkUploadResponse> {
   chunk.forEach((record) => formData.append('upload_keys', record.id));
 
   const token = getAccessToken();
-  const response = await fetch('/api/v1/items/bulk', {
+  const response = await fetch(`${API_BASE_PATH}/items/bulk`, {
     method: 'POST',
     body: formData,
     credentials: 'include',
