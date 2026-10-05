@@ -1,12 +1,18 @@
 import re
 from datetime import datetime
-from typing import Literal
+from enum import StrEnum
 from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
 
-# Channel-specific configurations
+class NotificationChannel(StrEnum):
+    ntfy = "ntfy"
+    mattermost = "mattermost"
+    email = "email"
+    expo_push = "expo_push"
+
+
 class NtfyConfig(BaseModel):
     server: str = "https://ntfy.sh"
     topic: str
@@ -69,7 +75,7 @@ class ExpoPushConfig(BaseModel):
 
 # Notification settings schemas
 class NotificationSettingsBase(BaseModel):
-    channel: Literal["ntfy", "mattermost", "email", "expo_push"]
+    channel: NotificationChannel
     enabled: bool = True
     priority: int = 1
     config: dict

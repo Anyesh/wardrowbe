@@ -12,20 +12,19 @@ from app.database import DbSession
 from app.models.notification import Notification, NotificationSettings
 from app.models.user import User
 from app.schemas.notification import (
-    EmailConfig,
     ExpoPushConfig,
-    MattermostConfig,
     MessageResponse,
+    NotificationChannel,
     NotificationResponse,
     NotificationSettingsCreate,
     NotificationSettingsResponse,
     NotificationSettingsUpdate,
-    NtfyConfig,
     ScheduleCreate,
     ScheduleResponse,
     ScheduleUpdate,
     TestNotificationResponse,
 )
+from app.services.notification_providers import parse_channel_config
 from app.services.notification_service import NotificationService
 from app.utils.auth import get_current_user
 
@@ -70,18 +69,8 @@ async def create_notification_setting(
     current_user: Annotated[User, Depends(get_current_user)],
     db: DbSession,
 ):
-    # Validate channel-specific config
     try:
-        if data.channel == "ntfy":
-            NtfyConfig(**data.config)
-        elif data.channel == "mattermost":
-            MattermostConfig(**data.config)
-        elif data.channel == "email":
-            EmailConfig(**data.config)
-        elif data.channel == "expo_push":
-            from app.schemas.notification import ExpoPushConfig
-
-            ExpoPushConfig(**data.config)
+        parse_channel_config(data.channel, data.config)
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e.errors()[0]["msg"])) from None
 
@@ -128,16 +117,8 @@ async def update_notification_setting(
         if not existing:
             raise HTTPException(status_code=404, detail="Setting not found")
 
-        # Validate channel-specific config
         try:
-            if existing.channel == "ntfy":
-                NtfyConfig(**data.config)
-            elif existing.channel == "mattermost":
-                MattermostConfig(**data.config)
-            elif existing.channel == "email":
-                EmailConfig(**data.config)
-            elif existing.channel == "expo_push":
-                ExpoPushConfig(**data.config)
+            parse_channel_config(existing.channel, data.config)
         except ValidationError as e:
             raise HTTPException(status_code=400, detail=str(e.errors()[0]["msg"])) from None
 
@@ -204,7 +185,7 @@ async def register_push_token(
         select(NotificationSettings).where(
             and_(
                 NotificationSettings.user_id == current_user.id,
-                NotificationSettings.channel == "expo_push",
+                NotificationSettings.channel == NotificationChannel.expo_push,
             )
         )
     )
@@ -216,7 +197,7 @@ async def register_push_token(
     else:
         setting = NotificationSettings(
             user_id=current_user.id,
-            channel="expo_push",
+            channel=NotificationChannel.expo_push,
             enabled=True,
             priority=0,  # Highest priority - push notifications preferred
             config={"push_token": data.push_token},

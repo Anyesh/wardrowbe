@@ -12,18 +12,10 @@ from app.models.notification import Notification, NotificationSettings, Notifica
 from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
 from app.models.user import User
-from app.schemas.notification import EmailConfig, ExpoPushConfig, NtfyConfig
 from app.services.ai_service import AIDisabledError
 from app.services.learning_service import LearningService
-from app.services.notification_providers import (
-    EmailProvider,
-    ExpoPushMessage,
-    ExpoPushProvider,
-    NtfyNotification,
-    NtfyProvider,
-    build_notification_email,
-)
-from app.services.notification_service import DeliveryStatus, NotificationDispatcher
+from app.services.notification_providers import NotificationMessage
+from app.services.notification_service import NotificationDispatcher
 from app.services.recommendation_service import RecommendationService
 from app.services.weather_service import WeatherService
 from app.utils.redis_lock import distributed_lock
@@ -68,7 +60,7 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
                 f"error={result.error}"
             )
 
-        return {"success": any(r.status == DeliveryStatus.SENT for r in results)}
+        return {"success": any(r.status == NotificationStatus.sent for r in results)}
 
     except Exception:
         logger.exception(f"Failed to send notification for outfit {outfit_id}")
@@ -117,7 +109,7 @@ async def retry_failed_notifications(ctx: dict):
 
                     result = await dispatcher.retry_notification(notification)
 
-                    if result.status == DeliveryStatus.SENT:
+                    if result.status == NotificationStatus.sent:
                         notification.status = NotificationStatus.sent
                         notification.sent_at = datetime.now(UTC)
                         retried += 1
@@ -373,24 +365,11 @@ async def _check_wash_reminders_inner(ctx: dict):
             user_items[uid].append(item)
 
         wardrobe_url = get_settings().app_link("/dashboard/wardrobe")
+        dispatcher = NotificationDispatcher(db)
         notified = 0
 
         for user_id, items in user_items.items():
             try:
-                # Check if user has notification channels
-                channels_result = await db.execute(
-                    select(NotificationSettings).where(
-                        and_(
-                            NotificationSettings.user_id == user_id,
-                            NotificationSettings.enabled == True,  # noqa: E712
-                        )
-                    )
-                )
-                channels = list(channels_result.scalars().all())
-                if not channels:
-                    continue
-
-                # Check deduplication: don't send more than once per day
                 one_day_ago = datetime.now(UTC) - timedelta(days=1)
                 existing = await db.execute(
                     select(Notification).where(
@@ -413,75 +392,43 @@ async def _check_wash_reminders_inner(ctx: dict):
                 title = "Laundry Reminder"
                 body = f"{count} item{'s' if count != 1 else ''} need washing: {summary}"
 
-                # Send via first enabled channel
-                sent = False
-                sent_channel = "unknown"
-                for channel in channels:
-                    try:
-                        if channel.channel == "ntfy":
-                            provider = NtfyProvider(NtfyConfig(**channel.config))
-                            send_result = await provider.send(
-                                NtfyNotification(
-                                    title=title,
-                                    message=body,
-                                    click=wardrobe_url,
-                                    tags=["shirt", "droplet"],
-                                )
-                            )
-                            sent = send_result.get("success", False)
-                            sent_channel = "ntfy"
-                        elif channel.channel == "email":
-                            email_provider = EmailProvider(EmailConfig(**channel.config))
-                            send_result = await email_provider.send(
-                                build_notification_email(
-                                    to=email_provider.to_address,
-                                    subject=title,
-                                    heading=title,
-                                    body=body,
-                                    cta_text="View Wardrobe",
-                                    cta_url=wardrobe_url,
-                                )
-                            )
-                            sent = send_result.get("success", False)
-                            sent_channel = "email"
-                        elif channel.channel == "expo_push":
-                            provider = ExpoPushProvider(ExpoPushConfig(**channel.config))
-                            send_result = await provider.send(
-                                ExpoPushMessage(
-                                    title=title,
-                                    body=body,
-                                    data={"screen": "wardrobe"},
-                                )
-                            )
-                            sent = send_result.get("success", False)
-                            sent_channel = "expo_push"
-
-                        if sent:
-                            break
-                    except Exception as e:
-                        logger.warning(f"Failed to send wash reminder via {channel.channel}: {e}")
-
-                # Create notification record
-                notification = Notification(
-                    user_id=user_id,
-                    channel=sent_channel,
-                    status=NotificationStatus.sent if sent else NotificationStatus.failed,
-                    payload={
-                        "type": "wash_reminder",
-                        "item_count": count,
-                        "title": title,
-                        "body": body,
-                    },
-                    sent_at=datetime.now(UTC) if sent else None,
-                    error_message=None if sent else "All channels failed",
+                results = await dispatcher.deliver(
+                    user_id,
+                    NotificationMessage(
+                        title=title,
+                        body=body,
+                        url=wardrobe_url,
+                        url_label="View Wardrobe",
+                        tags=["shirt", "droplet"],
+                        data={"screen": "wardrobe"},
+                    ),
                 )
-                db.add(notification)
+                if not results:
+                    continue
+
+                last = results[-1]
+                sent = last.status == NotificationStatus.sent
+                db.add(
+                    Notification(
+                        user_id=user_id,
+                        channel=last.channel if sent else results[0].channel,
+                        status=NotificationStatus.sent if sent else NotificationStatus.failed,
+                        payload={
+                            "type": "wash_reminder",
+                            "item_count": count,
+                            "title": title,
+                            "body": body,
+                        },
+                        sent_at=datetime.now(UTC) if sent else None,
+                        error_message=None if sent else last.error,
+                    )
+                )
                 await db.commit()
                 if sent:
                     notified += 1
 
-            except Exception as e:
-                logger.warning(f"Failed to send wash reminder for user {user_id}: {e}")
+            except Exception:
+                logger.exception(f"Failed to send wash reminder for user {user_id}")
                 continue
 
         logger.info(f"Sent wash reminders to {notified} users")

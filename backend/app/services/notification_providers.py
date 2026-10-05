@@ -1,15 +1,46 @@
+import base64
+import html
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import Protocol
 
+import aiosmtplib
 import httpx
+from pydantic import BaseModel
 
 from app.config import get_settings
-from app.schemas.notification import EmailConfig, ExpoPushConfig, MattermostConfig, NtfyConfig
+from app.models.notification import NotificationSettings, NotificationStatus
+from app.schemas.notification import (
+    EmailConfig,
+    ExpoPushConfig,
+    MattermostConfig,
+    NotificationChannel,
+    NtfyConfig,
+)
 
 logger = logging.getLogger(__name__)
 
 
-# ntfy Provider
+@dataclass
+class NotificationMessage:
+    title: str
+    body: str
+    url: str | None = None
+    url_label: str = "Open Wardrowbe"
+    tags: list[str] = field(default_factory=list)
+    data: dict = field(default_factory=dict)
+
+
+def _header_value(value: str) -> str:
+    # httpx encodes header values as ASCII, so ntfy's documented RFC 2047 form carries the rest.
+    if value.isascii():
+        return value
+    return f"=?UTF-8?B?{base64.b64encode(value.encode()).decode()}?="
+
+
 @dataclass
 class NtfyNotification:
     topic: str
@@ -30,7 +61,7 @@ class NtfyProvider:
 
     async def send(self, notification: NtfyNotification) -> dict:
         headers = {
-            "Title": notification.title,
+            "Title": _header_value(notification.title),
             "Priority": str(notification.priority),
         }
 
@@ -70,6 +101,17 @@ class NtfyProvider:
             logger.exception("ntfy send failed")
             return {"success": False, "error": str(e)}
 
+    async def deliver(self, message: NotificationMessage) -> dict:
+        return await self.send(
+            NtfyNotification(
+                topic=self.topic,
+                title=message.title,
+                message=message.body,
+                tags=message.tags,
+                click=message.url,
+            )
+        )
+
     async def test_connection(self) -> tuple[bool, str]:
         try:
             result = await self.send(
@@ -93,6 +135,7 @@ class NtfyProvider:
 class MattermostAttachment:
     title: str
     text: str = ""
+    title_link: str | None = None
     color: str = "#3B82F6"
     fields: list[dict] = field(default_factory=list)
     thumb_url: str | None = None
@@ -123,6 +166,7 @@ class MattermostProvider:
             payload["attachments"] = [
                 {
                     "title": a.title,
+                    "title_link": a.title_link,
                     "text": a.text,
                     "color": a.color,
                     "fields": a.fields,
@@ -146,6 +190,20 @@ class MattermostProvider:
         except Exception as e:
             logger.exception("Mattermost send failed")
             return {"success": False, "error": str(e)}
+
+    async def deliver(self, message: NotificationMessage) -> dict:
+        return await self.send(
+            MattermostMessage(
+                text=f"**{message.title}**",
+                attachments=[
+                    MattermostAttachment(
+                        title=message.url_label if message.url else "",
+                        title_link=message.url,
+                        text=message.body,
+                    )
+                ],
+            )
+        )
 
     async def test_connection(self) -> tuple[bool, str]:
         try:
@@ -188,11 +246,6 @@ class EmailProvider:
             return {"success": False, "error": "SMTP not configured"}
 
         try:
-            from email.mime.multipart import MIMEMultipart
-            from email.mime.text import MIMEText
-
-            import aiosmtplib
-
             msg = MIMEMultipart("alternative")
             msg["Subject"] = message.subject
             msg["From"] = f"{self.from_name} <{self.from_email}>"
@@ -212,11 +265,12 @@ class EmailProvider:
                 start_tls=self.smtp_use_tls,
             )
             return {"success": True}
-        except ImportError:
-            return {"success": False, "error": "aiosmtplib not installed"}
         except Exception as e:
             logger.exception("Email send failed")
             return {"success": False, "error": str(e)}
+
+    async def deliver(self, message: NotificationMessage) -> dict:
+        return await self.send(build_notification_email(self.to_address, message))
 
     async def test_connection(self) -> tuple[bool, str]:
         if not self.is_configured():
@@ -297,6 +351,16 @@ class ExpoPushProvider:
             logger.exception("Expo push send failed")
             return {"success": False, "error": str(e)}
 
+    async def deliver(self, message: NotificationMessage) -> dict:
+        return await self.send(
+            ExpoPushMessage(
+                to=self.push_token,
+                title=message.title,
+                body=message.body,
+                data=message.data or None,
+            )
+        )
+
     async def test_connection(self) -> tuple[bool, str]:
         try:
             result = await self.send(
@@ -313,29 +377,102 @@ class ExpoPushProvider:
             return False, str(e)
 
 
-def build_notification_email(
-    to: str,
-    subject: str,
-    heading: str,
-    body: str,
-    cta_text: str,
-    cta_url: str,
-) -> EmailMessage:
-    home_url = get_settings().app_link()
+class NotificationProvider(Protocol):
+    async def deliver(self, message: NotificationMessage) -> dict: ...
+
+    async def test_connection(self) -> tuple[bool, str]: ...
+
+
+@dataclass(frozen=True)
+class ChannelSpec:
+    config: type[BaseModel]
+    provider: Callable[..., NotificationProvider]
+
+
+CHANNELS: dict[NotificationChannel, ChannelSpec] = {
+    NotificationChannel.ntfy: ChannelSpec(NtfyConfig, NtfyProvider),
+    NotificationChannel.mattermost: ChannelSpec(MattermostConfig, MattermostProvider),
+    NotificationChannel.email: ChannelSpec(EmailConfig, EmailProvider),
+    NotificationChannel.expo_push: ChannelSpec(ExpoPushConfig, ExpoPushProvider),
+}
+
+
+def _channel_spec(channel: str) -> ChannelSpec:
+    spec = CHANNELS.get(channel)
+    if spec is None:
+        raise ValueError(f"Unknown channel: {channel}")
+    return spec
+
+
+def parse_channel_config(channel: str, config: dict) -> BaseModel:
+    return _channel_spec(channel).config(**config)
+
+
+def build_provider(channel: str, config: dict) -> NotificationProvider:
+    spec = _channel_spec(channel)
+    return spec.provider(spec.config(**config))
+
+
+@dataclass
+class NotificationResult:
+    channel: str
+    status: NotificationStatus
+    error: str | None = None
+    response: dict | None = None
+
+
+async def send_via_channel(
+    setting: NotificationSettings, message: NotificationMessage
+) -> NotificationResult:
+    try:
+        result = await build_provider(setting.channel, setting.config).deliver(message)
+    except Exception as e:
+        logger.exception("Failed to send via %s", setting.channel)
+        return NotificationResult(
+            channel=setting.channel, status=NotificationStatus.failed, error=str(e)
+        )
+
+    if result.get("success"):
+        return NotificationResult(
+            channel=setting.channel, status=NotificationStatus.sent, response=result
+        )
+    return NotificationResult(
+        channel=setting.channel, status=NotificationStatus.failed, error=result.get("error")
+    )
+
+
+def _html_lines(text: str) -> str:
+    return "<br>".join(html.escape(line) for line in text.split("\n"))
+
+
+def build_notification_email(to: str, message: NotificationMessage) -> EmailMessage:
+    settings = get_settings()
+    home_url = settings.app_link()
+    settings_url = settings.app_link("/dashboard/notifications")
+    paragraphs = "".join(
+        f'<p style="color: #374151; line-height: 1.6;">{_html_lines(paragraph)}</p>'
+        for paragraph in message.body.split("\n\n")
+    )
+    cta_html = ""
+    text_body = message.body
+    if message.url:
+        cta_html = f"""
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{html.escape(message.url)}"
+           style="background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">
+            {html.escape(message.url_label)}
+        </a>
+    </div>"""
+        text_body = f"{message.body}\n\n{message.url_label}: {message.url}"
     html_body = f"""\
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <h2 style="color: #111827;">{heading}</h2>
-    <p style="color: #374151; line-height: 1.6;">{body}</p>
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="{cta_url}"
-           style="background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">
-            {cta_text}
-        </a>
-    </div>
+    <h2 style="color: #111827;">{html.escape(message.title)}</h2>
+    {paragraphs}{cta_html}
     <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
-    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{home_url}" style="color: #9CA3AF;">Wardrowbe</a></p>
+    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{home_url}" style="color: #9CA3AF;">Wardrowbe</a>
+        &middot; <a href="{settings_url}" style="color: #9CA3AF;">Manage notification settings</a></p>
 </div>"""
-    return EmailMessage(to=to, subject=subject, html_body=html_body, text_body=body)
+    return EmailMessage(to=to, subject=message.title, html_body=html_body, text_body=text_body)
 
 
 def build_family_invite_email(

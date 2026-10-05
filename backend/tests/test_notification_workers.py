@@ -5,17 +5,18 @@ from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
 from app.models.item import ClothingItem
-from app.models.notification import NotificationSettings
+from app.models.notification import Notification, NotificationSettings, NotificationStatus
 from app.models.schedule import Schedule
 from app.models.user import User
-from app.services.notification_providers import EmailProvider
+from app.services.notification_providers import EXPO_PUSH_URL, EmailProvider
 from app.workers.notifications import (
     _check_wash_reminders_inner,
     check_scheduled_notifications,
@@ -408,6 +409,204 @@ class TestWashReminderLinks:
         html = messages[0].html_body
         assert 'href="https://x.com/dashboard/wardrobe"' in html
         assert "x.com//" not in html
+
+
+def _http_response(url: str, status_code: int = 200) -> httpx.Response:
+    request = httpx.Request("POST", url)
+    if status_code != 200:
+        return httpx.Response(status_code, text="boom", request=request)
+    if url == EXPO_PUSH_URL:
+        return httpx.Response(200, json={"data": {"status": "ok", "id": "t1"}}, request=request)
+    return httpx.Response(200, json={"id": "m1"}, request=request)
+
+
+def _fake_post(failing_urls: frozenset[str] = frozenset()) -> AsyncMock:
+    async def post(url, **kwargs):
+        return _http_response(url, 500 if url in failing_urls else 200)
+
+    return AsyncMock(side_effect=post)
+
+
+def _posts_to(post: AsyncMock, urls: set[str]) -> list:
+    return [c for c in post.call_args_list if c.args[0] in urls]
+
+
+class TestWashReminderChannels:
+    @pytest_asyncio.fixture
+    async def dirty_user(self, db_session: AsyncSession, schedule_user: User) -> User:
+        db_session.add(
+            ClothingItem(
+                user_id=schedule_user.id,
+                image_path="items/jeans.jpg",
+                type="jeans",
+                name="Black Jeans",
+                needs_wash=True,
+            )
+        )
+        await db_session.commit()
+        return schedule_user
+
+    async def _add_channel(
+        self, db_session: AsyncSession, user: User, channel: str, config: dict, priority: int
+    ) -> None:
+        db_session.add(
+            NotificationSettings(
+                user_id=user.id,
+                channel=channel,
+                enabled=True,
+                priority=priority,
+                config=config,
+            )
+        )
+        await db_session.commit()
+
+    async def _run(self, db_session: AsyncSession, post: AsyncMock) -> None:
+        with (
+            patch("app.workers.notifications.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch.object(httpx.AsyncClient, "post", post),
+        ):
+            await _check_wash_reminders_inner({})
+
+    async def _reminders(self, db_session: AsyncSession, user: User) -> list[Notification]:
+        result = await db_session.execute(
+            select(Notification).where(
+                Notification.user_id == user.id,
+                Notification.payload["type"].astext == "wash_reminder",
+            )
+        )
+        return list(result.scalars().all())
+
+    @pytest.mark.asyncio
+    async def test_mattermost_only_user_gets_reminder(
+        self, db_session: AsyncSession, dirty_user: User
+    ):
+        webhook = f"https://chat.example.com/hooks/{uuid.uuid4().hex}"
+        await self._add_channel(db_session, dirty_user, "mattermost", {"webhook_url": webhook}, 1)
+        post = _fake_post()
+
+        await self._run(db_session, post)
+
+        calls = _posts_to(post, {webhook})
+        assert len(calls) == 1
+        payload = calls[0].kwargs["json"]
+        assert "Laundry Reminder" in payload["text"]
+        assert "Black Jeans" in payload["attachments"][0]["text"]
+        [reminder] = await self._reminders(db_session, dirty_user)
+        assert reminder.channel == "mattermost"
+        assert reminder.status == NotificationStatus.sent
+
+    @pytest.mark.asyncio
+    async def test_ntfy_only_user_gets_reminder_on_stored_topic(
+        self, db_session: AsyncSession, dirty_user: User
+    ):
+        topic = f"laundry-{uuid.uuid4().hex[:12]}"
+        await self._add_channel(
+            db_session,
+            dirty_user,
+            "ntfy",
+            {"server": "https://ntfy.example.com", "topic": topic},
+            1,
+        )
+        post = _fake_post()
+
+        await self._run(db_session, post)
+
+        url = f"https://ntfy.example.com/{topic}"
+        calls = _posts_to(post, {url})
+        assert len(calls) == 1
+        assert calls[0].kwargs["headers"]["Title"] == "Laundry Reminder"
+        assert "Black Jeans" in calls[0].kwargs["content"]
+        [reminder] = await self._reminders(db_session, dirty_user)
+        assert reminder.channel == "ntfy"
+        assert reminder.status == NotificationStatus.sent
+
+    @pytest.mark.asyncio
+    async def test_expo_only_user_gets_reminder_on_stored_token(
+        self, db_session: AsyncSession, dirty_user: User
+    ):
+        token = f"ExponentPushToken[{uuid.uuid4().hex}]"
+        await self._add_channel(db_session, dirty_user, "expo_push", {"push_token": token}, 1)
+        post = _fake_post()
+
+        await self._run(db_session, post)
+
+        calls = [c for c in _posts_to(post, {EXPO_PUSH_URL}) if c.kwargs["json"]["to"] == token]
+        assert len(calls) == 1
+        assert calls[0].kwargs["json"]["data"] == {"screen": "wardrobe"}
+        [reminder] = await self._reminders(db_session, dirty_user)
+        assert reminder.channel == "expo_push"
+        assert reminder.status == NotificationStatus.sent
+
+    @pytest.mark.asyncio
+    async def test_tries_channels_in_priority_order_until_one_succeeds(
+        self, db_session: AsyncSession, dirty_user: User
+    ):
+        topic = f"laundry-{uuid.uuid4().hex[:12]}"
+        ntfy_url = f"https://ntfy.example.com/{topic}"
+        webhook = f"https://chat.example.com/hooks/{uuid.uuid4().hex}"
+        token = f"ExponentPushToken[{uuid.uuid4().hex}]"
+        await self._add_channel(db_session, dirty_user, "expo_push", {"push_token": token}, 3)
+        await self._add_channel(
+            db_session,
+            dirty_user,
+            "ntfy",
+            {"server": "https://ntfy.example.com", "topic": topic},
+            2,
+        )
+        await self._add_channel(db_session, dirty_user, "mattermost", {"webhook_url": webhook}, 1)
+        post = _fake_post(failing_urls=frozenset({webhook}))
+
+        await self._run(db_session, post)
+
+        calls = _posts_to(post, {webhook, ntfy_url})
+        assert [c.args[0] for c in calls] == [webhook, ntfy_url]
+        assert not [c for c in _posts_to(post, {EXPO_PUSH_URL}) if c.kwargs["json"]["to"] == token]
+        [reminder] = await self._reminders(db_session, dirty_user)
+        assert reminder.channel == "ntfy"
+        assert reminder.status == NotificationStatus.sent
+
+    @pytest.mark.asyncio
+    async def test_broken_channel_is_logged_and_next_channel_still_tried(
+        self, db_session: AsyncSession, dirty_user: User, caplog
+    ):
+        webhook = f"https://chat.example.com/hooks/{uuid.uuid4().hex}"
+        await self._add_channel(db_session, dirty_user, "ntfy", {"server": "https://x.com"}, 1)
+        await self._add_channel(db_session, dirty_user, "mattermost", {"webhook_url": webhook}, 2)
+        post = _fake_post()
+
+        await self._run(db_session, post)
+
+        assert len(_posts_to(post, {webhook})) == 1
+        broken = [r for r in caplog.records if "ntfy" in r.getMessage() and r.exc_info]
+        assert broken
+        [reminder] = await self._reminders(db_session, dirty_user)
+        assert reminder.channel == "mattermost"
+
+    @pytest.mark.asyncio
+    async def test_all_channels_failing_records_first_channel_and_last_error(
+        self, db_session: AsyncSession, dirty_user: User
+    ):
+        topic = f"laundry-{uuid.uuid4().hex[:12]}"
+        ntfy_url = f"https://ntfy.example.com/{topic}"
+        webhook = f"https://chat.example.com/hooks/{uuid.uuid4().hex}"
+        await self._add_channel(db_session, dirty_user, "mattermost", {"webhook_url": webhook}, 1)
+        await self._add_channel(
+            db_session,
+            dirty_user,
+            "ntfy",
+            {"server": "https://ntfy.example.com", "topic": topic},
+            2,
+        )
+        post = _fake_post(failing_urls=frozenset({webhook, ntfy_url}))
+
+        await self._run(db_session, post)
+
+        [reminder] = await self._reminders(db_session, dirty_user)
+        assert reminder.status == NotificationStatus.failed
+        assert reminder.channel == "mattermost"
+        assert reminder.error_message == "HTTP 500: boom"
+        assert reminder.sent_at is None
 
 
 # ── Worker registry ──

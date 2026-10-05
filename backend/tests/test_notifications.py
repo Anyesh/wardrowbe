@@ -1,15 +1,28 @@
-from datetime import time
+import base64
+from datetime import date, time
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
+import httpx
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
-from app.models.notification import NotificationSettings
+from app.models.notification import Notification, NotificationSettings, NotificationStatus
+from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
-from app.schemas.notification import EmailConfig
-from app.services.notification_providers import EmailProvider
+from app.schemas.notification import EmailConfig, NotificationChannel, NtfyConfig
+from app.services.notification_providers import (
+    CHANNELS,
+    EmailProvider,
+    NotificationMessage,
+    NtfyNotification,
+    NtfyProvider,
+    build_notification_email,
+)
 from app.services.notification_service import NotificationDispatcher
 
 
@@ -295,6 +308,7 @@ class TestOutfitNotificationLinks:
     @pytest.fixture
     def outfit(self):
         return SimpleNamespace(
+            id=uuid4(),
             weather_data=None,
             occasion="casual",
             reasoning=None,
@@ -305,17 +319,207 @@ class TestOutfitNotificationLinks:
     def test_trailing_slash_app_url_gives_single_slash_links(
         self, monkeypatch, db_session: AsyncSession, test_user, outfit
     ):
-        monkeypatch.setattr(
-            "app.services.notification_service.get_settings",
-            lambda: Settings(_env_file=None, app_url="https://x.com/"),
-        )
+        settings = Settings(_env_file=None, app_url="https://x.com/")
+        monkeypatch.setattr("app.services.notification_service.get_settings", lambda: settings)
+        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
         dispatcher = NotificationDispatcher(db_session)
 
-        ntfy = dispatcher._build_ntfy_notification(outfit, test_user)
-        email = dispatcher._build_email_message(outfit, test_user, to="to@example.com")
+        message = dispatcher._build_outfit_message(outfit)
+        email = build_notification_email("to@example.com", message)
 
-        assert ntfy.click == "https://x.com/dashboard/history"
+        assert message.url == "https://x.com/dashboard/history"
         assert 'href="https://x.com/dashboard/history"' in email.html_body
         assert 'href="https://x.com/dashboard/notifications"' in email.html_body
         assert "https://x.com/dashboard/history" in email.text_body
         assert "x.com//" not in email.html_body + email.text_body
+
+
+class TestChannelRegistry:
+    def test_every_channel_has_a_config_and_provider(self):
+        assert set(CHANNELS) == set(NotificationChannel)
+
+    @pytest.mark.asyncio
+    async def test_create_rejects_config_that_does_not_match_channel(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/notifications/settings",
+            json={"channel": "expo_push", "config": {"push_token": "nope"}},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
+
+class TestNotificationEmail:
+    def test_user_text_is_escaped(self):
+        email = build_notification_email(
+            "to@example.com",
+            NotificationMessage(title="Laundry <b>", body="1 item: <script>x</script>"),
+        )
+        assert "<script>" not in email.html_body
+        assert "&lt;script&gt;" in email.html_body
+        assert "<b>" not in email.html_body
+
+
+class TestNtfyHeaders:
+    @pytest.mark.asyncio
+    async def test_non_ascii_title_is_rfc2047_encoded(self):
+        post = AsyncMock(
+            return_value=httpx.Response(
+                200, json={"id": "m"}, request=httpx.Request("POST", "https://ntfy.sh/t")
+            )
+        )
+        provider = NtfyProvider(NtfyConfig(topic="topic-1"))
+
+        with patch.object(httpx.AsyncClient, "post", post):
+            result = await provider.send(
+                NtfyNotification(topic="topic-1", title="Today's Casual - 20\u00b0C", message="m")
+            )
+
+        assert result["success"] is True
+        title = post.call_args.kwargs["headers"]["Title"]
+        encoded = base64.b64encode("Today's Casual - 20\u00b0C".encode()).decode()
+        assert title == f"=?UTF-8?B?{encoded}?="
+
+
+class TestNotificationHistory:
+    @pytest.mark.asyncio
+    async def test_returns_rows_with_unknown_channel(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        db_session.add(
+            Notification(
+                user_id=test_user.id,
+                channel="unknown",
+                status=NotificationStatus.failed,
+                payload={"type": "wash_reminder"},
+                error_message="All channels failed",
+            )
+        )
+        await db_session.commit()
+
+        response = await client.get("/api/v1/notifications/history", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert [row["channel"] for row in response.json()] == ["unknown"]
+
+
+class TestDispatcherDelivery:
+    @pytest.fixture
+    async def outfit(self, db_session: AsyncSession, test_user) -> Outfit:
+        outfit = Outfit(
+            user_id=test_user.id,
+            occasion="casual",
+            scheduled_for=date.today(),
+            status=OutfitStatus.pending,
+            source=OutfitSource.scheduled,
+            weather_data={"temperature": 20, "condition": "Sunny"},
+            reasoning="Light layers",
+            style_notes="Roll the sleeves",
+        )
+        db_session.add(outfit)
+        await db_session.commit()
+        await db_session.refresh(outfit)
+        return outfit
+
+    def _post(self, failing: set[str]) -> AsyncMock:
+        async def post(url, **kwargs):
+            request = httpx.Request("POST", url)
+            if url in failing:
+                return httpx.Response(500, text="down", request=request)
+            return httpx.Response(200, json={"id": "m"}, request=request)
+
+        return AsyncMock(side_effect=post)
+
+    @pytest.mark.asyncio
+    async def test_uses_priority_order_and_stops_at_first_success(
+        self, db_session: AsyncSession, test_user, outfit
+    ):
+        webhook = "https://chat.example.com/hooks/abc"
+        db_session.add_all(
+            [
+                NotificationSettings(
+                    user_id=test_user.id,
+                    channel="email",
+                    priority=3,
+                    config={"address": "a@example.com"},
+                ),
+                NotificationSettings(
+                    user_id=test_user.id,
+                    channel="ntfy",
+                    priority=2,
+                    config={"server": "https://ntfy.example.com", "topic": "outfits"},
+                ),
+                NotificationSettings(
+                    user_id=test_user.id,
+                    channel="mattermost",
+                    priority=1,
+                    config={"webhook_url": webhook},
+                ),
+            ]
+        )
+        await db_session.commit()
+        post = self._post(failing={webhook})
+        email_send = AsyncMock(return_value={"success": True})
+
+        with (
+            patch.object(httpx.AsyncClient, "post", post),
+            patch.object(EmailProvider, "send", email_send),
+        ):
+            results = await NotificationDispatcher(db_session).send_outfit_notification(
+                test_user.id, outfit.id
+            )
+
+        assert [r.channel for r in results] == ["mattermost", "ntfy"]
+        assert [r.status for r in results] == [NotificationStatus.failed, NotificationStatus.sent]
+        assert [c.args[0] for c in post.call_args_list] == [
+            webhook,
+            "https://ntfy.example.com/outfits",
+        ]
+        ntfy_call = post.call_args_list[1]
+        assert ntfy_call.kwargs["headers"]["Click"].endswith("/dashboard/history")
+        assert "Light layers" in ntfy_call.kwargs["content"]
+        email_send.assert_not_called()
+        rows = (
+            (
+                await db_session.execute(
+                    select(Notification).where(Notification.outfit_id == outfit.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert [(r.channel, r.status) for r in rows] == [("ntfy", NotificationStatus.sent)]
+
+    @pytest.mark.asyncio
+    async def test_all_failing_records_retry_on_first_channel(
+        self, db_session: AsyncSession, test_user, outfit
+    ):
+        webhook = "https://chat.example.com/hooks/abc"
+        db_session.add(
+            NotificationSettings(
+                user_id=test_user.id,
+                channel="mattermost",
+                priority=1,
+                config={"webhook_url": webhook},
+            )
+        )
+        await db_session.commit()
+
+        with patch.object(httpx.AsyncClient, "post", self._post(failing={webhook})):
+            await NotificationDispatcher(db_session).send_outfit_notification(
+                test_user.id, outfit.id
+            )
+
+        [row] = (
+            (
+                await db_session.execute(
+                    select(Notification).where(Notification.outfit_id == outfit.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert row.channel == "mattermost"
+        assert row.status == NotificationStatus.retrying
+        assert row.error_message == "HTTP 500: down"
