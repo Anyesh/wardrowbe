@@ -6,6 +6,11 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.database import DbSession
+from app.models.preference import (
+    DEFAULT_AVOID_REPEAT_DAYS,
+    DEFAULT_COLD_THRESHOLD,
+    DEFAULT_HOT_THRESHOLD,
+)
 from app.models.user import User
 from app.schemas.outfit import stored_occasion_or_default
 from app.schemas.preference import PreferenceResponse, PreferenceUpdate
@@ -38,14 +43,18 @@ def _build_preference_response(preferences) -> PreferenceResponse:
         temperature_sensitivity=preferences.temperature_sensitivity
         if preferences.temperature_sensitivity is not None
         else "normal",
-        cold_threshold=preferences.cold_threshold if preferences.cold_threshold is not None else 10,
-        hot_threshold=preferences.hot_threshold if preferences.hot_threshold is not None else 25,
+        cold_threshold=preferences.cold_threshold
+        if preferences.cold_threshold is not None
+        else DEFAULT_COLD_THRESHOLD,
+        hot_threshold=preferences.hot_threshold
+        if preferences.hot_threshold is not None
+        else DEFAULT_HOT_THRESHOLD,
         layering_preference=preferences.layering_preference
         if preferences.layering_preference is not None
         else "moderate",
         avoid_repeat_days=preferences.avoid_repeat_days
         if preferences.avoid_repeat_days is not None
-        else 7,
+        else DEFAULT_AVOID_REPEAT_DAYS,
         prefer_underused_items=preferences.prefer_underused_items
         if preferences.prefer_underused_items is not None
         else True,

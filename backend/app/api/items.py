@@ -11,6 +11,7 @@ from sqlalchemy import case, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.pagination import PaginationParams
 from app.config import get_settings
 from app.database import DbSession
 from app.models.item import ClothingItem, ItemStatus, ProcessingKind, TaggedBy, TaggingStatus
@@ -128,8 +129,7 @@ async def _read_image_or_413(image: UploadFile) -> bytes:
 async def list_items(
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pagination: Annotated[PaginationParams, Depends()],
     type: str | None = None,
     subtype: str | None = None,
     colors: str | None = None,
@@ -162,16 +162,16 @@ async def list_items(
     items, total = await item_service.get_list(
         user_id=current_user.id,
         filters=filters,
-        page=page,
-        page_size=page_size,
+        page=pagination.page,
+        page_size=pagination.page_size,
     )
 
     return ItemListResponse(
         items=[ItemResponse.model_validate(item) for item in items],
         total=total,
-        page=page,
-        page_size=page_size,
-        has_more=(page * page_size) < total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        has_more=pagination.has_more(total),
     )
 
 

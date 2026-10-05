@@ -1,5 +1,10 @@
 from pydantic import BaseModel, Field
 
+from app.models.preference import (
+    DEFAULT_AVOID_REPEAT_DAYS,
+    DEFAULT_COLD_THRESHOLD,
+    DEFAULT_HOT_THRESHOLD,
+)
 from app.schemas.color import ColorList
 from app.schemas.outfit import Occasion
 
@@ -47,10 +52,10 @@ class PreferenceBase(BaseModel):
         description="Temperature sensitivity level",
     )
     cold_threshold: int = Field(
-        default=10, ge=-20, le=30, description="Temperature (C) considered cold"
+        default=DEFAULT_COLD_THRESHOLD, ge=-20, le=30, description="Temperature (C) considered cold"
     )
     hot_threshold: int = Field(
-        default=25, ge=10, le=45, description="Temperature (C) considered hot"
+        default=DEFAULT_HOT_THRESHOLD, ge=10, le=45, description="Temperature (C) considered hot"
     )
     layering_preference: str = Field(
         default="moderate",
@@ -60,7 +65,7 @@ class PreferenceBase(BaseModel):
 
     # Recommendation settings
     avoid_repeat_days: int = Field(
-        default=7, ge=0, le=30, description="Days before repeating items"
+        default=DEFAULT_AVOID_REPEAT_DAYS, ge=0, le=30, description="Days before repeating items"
     )
     prefer_underused_items: bool = Field(default=True, description="Prioritize less worn items")
     variety_level: str = Field(

@@ -11,6 +11,10 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.user import User
 
+DEFAULT_COLD_THRESHOLD = 10
+DEFAULT_HOT_THRESHOLD = 25
+DEFAULT_AVOID_REPEAT_DAYS = 7
+
 
 class UserPreference(Base):
     __tablename__ = "user_preferences"
@@ -35,12 +39,12 @@ class UserPreference(Base):
     # Temperature/comfort
     temperature_unit: Mapped[str] = mapped_column(String(20), default="celsius")
     temperature_sensitivity: Mapped[str] = mapped_column(String(20), default="normal")
-    cold_threshold: Mapped[int] = mapped_column(Integer, default=10)
-    hot_threshold: Mapped[int] = mapped_column(Integer, default=25)
+    cold_threshold: Mapped[int] = mapped_column(Integer, default=DEFAULT_COLD_THRESHOLD)
+    hot_threshold: Mapped[int] = mapped_column(Integer, default=DEFAULT_HOT_THRESHOLD)
     layering_preference: Mapped[str] = mapped_column(String(20), default="moderate")
 
     # Recommendation settings
-    avoid_repeat_days: Mapped[int] = mapped_column(Integer, default=7)
+    avoid_repeat_days: Mapped[int] = mapped_column(Integer, default=DEFAULT_AVOID_REPEAT_DAYS)
     prefer_underused_items: Mapped[bool] = mapped_column(Boolean, default=True)
     variety_level: Mapped[str] = mapped_column(String(20), default="moderate")
 

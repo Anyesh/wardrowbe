@@ -4,7 +4,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.models.preference import UserPreference
+from app.models.preference import (
+    DEFAULT_AVOID_REPEAT_DAYS,
+    DEFAULT_COLD_THRESHOLD,
+    DEFAULT_HOT_THRESHOLD,
+    UserPreference,
+)
 from app.schemas.preference import PreferenceUpdate
 
 
@@ -37,10 +42,10 @@ class PreferenceService:
             },
             default_occasion="casual",
             temperature_sensitivity="normal",
-            cold_threshold=10,
-            hot_threshold=25,
+            cold_threshold=DEFAULT_COLD_THRESHOLD,
+            hot_threshold=DEFAULT_HOT_THRESHOLD,
             layering_preference="moderate",
-            avoid_repeat_days=7,
+            avoid_repeat_days=DEFAULT_AVOID_REPEAT_DAYS,
             prefer_underused_items=True,
             variety_level="moderate",
             excluded_item_ids=[],
