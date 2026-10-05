@@ -78,6 +78,18 @@ class PairSignalType(enum.Enum):
     rating = "rating"
 
 
+def score_interpretation(score: float) -> str:
+    if score >= 0.5:
+        return "stronglyLiked"
+    if score >= 0.2:
+        return "liked"
+    if score >= -0.2:
+        return "neutral"
+    if score >= -0.5:
+        return "disliked"
+    return "stronglyDisliked"
+
+
 def insight_message(insight: StyleInsight) -> tuple[str | None, dict]:
     """The learning.json key and params that render a stored insight in any language.
 

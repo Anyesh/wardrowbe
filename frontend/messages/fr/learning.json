@@ -25,6 +25,11 @@
   "insightHelpUsLearnTitle": "Aidez-nous à cerner votre style",
   "insightStyleLeaningDescription": "D'après vos retours, vous vous orientez vers les styles {styles}.",
   "insightStyleLeaningTitle": "Votre style : {style}",
+  "interpretationDisliked": "pas aimé",
+  "interpretationLiked": "aimé",
+  "interpretationNeutral": "neutre",
+  "interpretationStronglyDisliked": "pas du tout aimé",
+  "interpretationStronglyLiked": "beaucoup aimé",
   "lastUpdated": "Profil d'apprentissage mis à jour le : {date}",
   "loadError": "Échec du chargement des données d'apprentissage. Veuillez réessayer.",
   "noData": {
@@ -81,5 +86,9 @@
     "description": "Comment vous vous habillez selon les conditions",
     "layers": "~{count} couches",
     "title": "Préférences météo"
-  }
+  },
+  "weatherTypeCold": "Froid",
+  "weatherTypeCool": "Frais",
+  "weatherTypeHot": "Chaud",
+  "weatherTypeMild": "Doux"
 }

@@ -29,7 +29,7 @@ import {
   type StyleInsight,
   type LearnedColorScore,
 } from '@/lib/hooks/use-learning';
-import { useColorLabel, useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { useColorLabel, useOccasionLabel, useStyleLabel } from '@/lib/hooks/use-translated-constants';
 import { useInsightCategoryLabel, useLearningInsightText } from '@/lib/hooks/use-insight-text';
 import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
@@ -124,8 +124,27 @@ const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
   second: 'numeric',
 };
 
+const INTERPRETATION_KEYS: Record<string, string> = {
+  stronglyLiked: 'interpretationStronglyLiked',
+  liked: 'interpretationLiked',
+  neutral: 'interpretationNeutral',
+  disliked: 'interpretationDisliked',
+  stronglyDisliked: 'interpretationStronglyDisliked',
+};
+
+const WEATHER_TYPE_KEYS: Record<string, string> = {
+  cold: 'weatherTypeCold',
+  cool: 'weatherTypeCool',
+  mild: 'weatherTypeMild',
+  hot: 'weatherTypeHot',
+};
+
 function ColorPreferenceBar({ colorScore }: { colorScore: LearnedColorScore }) {
+  const t = useTranslations('learning');
   const colorLabel = useColorLabel();
+  const interpretationKey = colorScore.interpretation_key
+    ? INTERPRETATION_KEYS[colorScore.interpretation_key]
+    : undefined;
   const score = colorScore.score;
   const percentage = Math.abs(score) * 100;
   const isPositive = score >= 0;
@@ -142,7 +161,7 @@ function ColorPreferenceBar({ colorScore }: { colorScore: LearnedColorScore }) {
             ) : (
               <ThumbsDown className="h-3 w-3 text-red-500" />
             )}
-            {colorScore.interpretation}
+            {interpretationKey ? t(interpretationKey) : colorScore.interpretation}
           </span>
         </div>
         <div className="h-2 bg-muted rounded overflow-hidden">
@@ -321,6 +340,7 @@ export default function LearningPage() {
   const t = useTranslations('learning');
   const colorLabel = useColorLabel();
   const occasionLabel = useOccasionLabel();
+  const styleLabel = useStyleLabel();
   const locale = useLocale();
   const { data, isLoading, isError } = useLearning();
   const recompute = useRecomputeLearning();
@@ -505,7 +525,7 @@ export default function LearningPage() {
                       const percentage = Math.abs(styleScore.score) * 100;
                       return (
                         <div key={styleScore.style} className="flex items-center justify-between">
-                          <span className="capitalize">{styleScore.style}</span>
+                          <span>{styleLabel(styleScore.style)}</span>
                           <div className="flex items-center gap-2">
                             <Progress
                               value={percentage}
@@ -608,7 +628,11 @@ export default function LearningPage() {
                         {pref.weather_type === 'mild' && '🌤️'}
                         {pref.weather_type === 'hot' && '☀️'}
                       </div>
-                      <h4 className="font-medium capitalize">{pref.weather_type}</h4>
+                      <h4 className="font-medium capitalize">
+                        {WEATHER_TYPE_KEYS[pref.weather_type]
+                          ? t(WEATHER_TYPE_KEYS[pref.weather_type])
+                          : pref.weather_type}
+                      </h4>
                       <p className="text-sm text-muted-foreground mt-1">
                         {t('weatherPreferences.layers', { count: pref.preferred_layers.toFixed(1) })}
                       </p>
