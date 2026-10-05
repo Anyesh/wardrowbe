@@ -225,3 +225,81 @@ async def test_user_inserted_without_verification_defaults_to_unverified(db_sess
     await db_session.refresh(user)
 
     assert user.email_verified is False
+
+
+async def _commit_users(session_maker, *users: User):
+    async with session_maker() as setup:
+        setup.add_all(users)
+        await setup.commit()
+
+
+async def _race_conflicting_syncs(session_maker, first: UserSyncRequest, second: UserSyncRequest):
+    async with session_maker() as session_a, session_maker() as session_b:
+        pid_a = await session_a.scalar(text("SELECT pg_backend_pid()"))
+        pid_b = await session_b.scalar(text("SELECT pg_backend_pid()"))
+        await UserService(session_a).sync_from_oidc(first, email_verified=True)
+        task_b = asyncio.create_task(
+            UserService(session_b).sync_from_oidc(second, email_verified=True)
+        )
+        try:
+            await _wait_until_blocked_by(session_maker, pid_b, pid_a)
+            await session_a.commit()
+            with pytest.raises(UserEmailConflictError):
+                await task_b
+        finally:
+            task_b.cancel()
+        emails = (await session_b.execute(select(User.external_id, User.email))).all()
+        await session_b.commit()
+    return dict(emails)
+
+
+@pytest.mark.asyncio
+async def test_concurrent_email_changes_to_same_address_conflict_cleanly(session_maker):
+    run = uuid4()
+    target = f"target-{run}@example.com"
+    first = User(external_id=f"a-{run}", email=f"a-{run}@example.com", display_name="A")
+    second = User(external_id=f"b-{run}", email=f"b-{run}@example.com", display_name="B")
+    await _commit_users(session_maker, first, second)
+    try:
+        emails = await _race_conflicting_syncs(
+            session_maker,
+            UserSyncRequest(external_id=first.external_id, email=target, display_name="A"),
+            UserSyncRequest(external_id=second.external_id, email=target, display_name="B"),
+        )
+    finally:
+        await _cleanup(session_maker, User.external_id.in_([first.external_id, second.external_id]))
+
+    assert emails[first.external_id] == target
+    assert emails[second.external_id] == f"b-{run}@example.com"
+
+
+@pytest.mark.asyncio
+async def test_adoption_racing_a_first_sign_in_of_the_same_identity_conflicts_cleanly(
+    session_maker,
+):
+    run = uuid4()
+    external_id = f"oidc-{run}"
+    existing = User(
+        external_id=f"old-{run}",
+        email=f"existing-{run}@example.com",
+        display_name="Existing",
+        email_verified=True,
+    )
+    await _commit_users(session_maker, existing)
+    try:
+        emails = await _race_conflicting_syncs(
+            session_maker,
+            UserSyncRequest(
+                external_id=external_id, email=f"fresh-{run}@example.com", display_name="Fresh"
+            ),
+            UserSyncRequest(external_id=external_id, email=existing.email, display_name="Adopt"),
+        )
+    finally:
+        await _cleanup(
+            session_maker,
+            User.external_id.in_([external_id, existing.external_id]),
+            User.email == existing.email,
+        )
+
+    assert emails[existing.external_id] == existing.email
+    assert emails[external_id] == f"fresh-{run}@example.com"
