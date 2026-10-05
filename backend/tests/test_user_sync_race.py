@@ -474,3 +474,40 @@ async def test_adoption_racing_a_first_sign_in_of_the_same_identity_conflicts_cl
     assert isinstance(conflict, UserEmailConflictError)
     assert emails[existing.external_id] == existing.email
     assert emails[external_id] == f"fresh-{run}@example.com"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_email_swap_between_two_accounts_completes(session_maker):
+    run = uuid4()
+    users = {
+        role: User(
+            external_id=f"{role}-{run}", email=f"{role}-{run}@example.com", display_name=role
+        )
+        for role in ("a", "b")
+    }
+    await _commit_users(session_maker, *users.values())
+    # The bystander's commit only releases both swaps at once, so that each detaches the other's
+    # row before either updates its own.
+    bystander = UserSyncRequest(
+        external_id=f"bystander-{run}", email=f"bystander-{run}@example.com", display_name="C"
+    )
+    try:
+        _, a_result, b_result, emails = await _race(
+            session_maker,
+            bystander,
+            UserSyncRequest(external_id=f"a-{run}", email=f"b-{run}@example.com", display_name="a"),
+            UserSyncRequest(external_id=f"b-{run}", email=f"a-{run}@example.com", display_name="b"),
+            commit_first_before="get_by_email",
+        )
+    finally:
+        await _cleanup(
+            session_maker,
+            User.external_id.in_([f"{role}-{run}" for role in ("a", "b", "bystander")]),
+        )
+
+    assert _outcome(a_result, {users["a"].id: "a"}) == ("a", False)
+    assert _outcome(b_result, {users["b"].id: "b"}) == ("b", False)
+    assert (emails[f"a-{run}"], emails[f"b-{run}"]) == (
+        f"b-{run}@example.com",
+        f"a-{run}@example.com",
+    )

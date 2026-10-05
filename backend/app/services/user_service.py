@@ -128,6 +128,7 @@ class UserService:
             values["email_verified"] = True
         async with self._attempt_savepoint():
             if holder is not None:
+                await self._lock_in_id_order(holder, user)
                 await self._detach_email(holder)
             await self._update_unchanged(user, **values)
         await self.db.refresh(user)
@@ -151,6 +152,17 @@ class UserService:
     async def _detach_email(self, holder: User) -> None:
         await self._update_unchanged(
             holder, email=f"{holder.id}@{DETACHED_EMAIL_DOMAIN}", email_verified=False
+        )
+
+    async def _lock_in_id_order(self, *users: User) -> None:
+        # The holder's row must be detached before the caller's row takes its email, so two
+        # accounts swapping emails would each lock the other's row first and deadlock. Taking
+        # both locks in id order up front makes one wait for the other, whose CAS then fails.
+        await self.db.execute(
+            select(User.id)
+            .where(User.id.in_([user.id for user in users]))
+            .order_by(User.id)
+            .with_for_update()
         )
 
     async def _update_unchanged(self, read: User, **values: object) -> None:
