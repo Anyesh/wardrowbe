@@ -164,9 +164,47 @@ class TestBulkUploadLimit:
         assert big["filename"] == "big.jpg"
         assert big["success"] is False
         assert "1 MB" in big["error"]
+        assert big["error_code"] == "too_large"
         assert ok["filename"] == "ok.jpg"
         assert ok["success"] is True
+        assert ok["error_code"] is None
         assert await _item_count(db_session, test_user.id) == 1
+
+    @pytest.mark.asyncio
+    async def test_unsupported_file_carries_a_format_error_code(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        with patch("app.api.items.create_pool", new_callable=AsyncMock):
+            response = await client.post(
+                "/api/v1/items/bulk",
+                files=[("images", ("notes.txt", b"not an image", "text/plain"))],
+                data={"skip_ai": "true"},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 201
+        [result] = response.json()["results"]
+        assert result["success"] is False
+        assert result["error"].startswith("Invalid image format")
+        assert result["error_code"] == "unsupported_format"
+
+    @pytest.mark.asyncio
+    async def test_duplicate_image_carries_a_duplicate_error_code(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        image = ("images", ("ok.jpg", _valid_jpeg(), "image/jpeg"))
+        with patch("app.api.items.create_pool", new_callable=AsyncMock):
+            first = await client.post(
+                "/api/v1/items/bulk", files=[image], data={"skip_ai": "true"}, headers=auth_headers
+            )
+            second = await client.post(
+                "/api/v1/items/bulk", files=[image], data={"skip_ai": "true"}, headers=auth_headers
+            )
+
+        assert first.json()["results"][0]["success"] is True
+        [result] = second.json()["results"]
+        assert result["success"] is False
+        assert result["error_code"] == "duplicate"
 
 
 class TestFeaturesUploadLimit:

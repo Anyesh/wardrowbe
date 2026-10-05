@@ -598,11 +598,19 @@ export function useCancelAnalysis() {
   });
 }
 
+export type BulkUploadErrorCode =
+  | 'too_large'
+  | 'unsupported_format'
+  | 'duplicate'
+  | 'invalid_image'
+  | 'processing_failed';
+
 export interface BulkUploadResult {
   filename: string;
   success: boolean;
   item?: Item;
   error?: string;
+  error_code?: BulkUploadErrorCode | null;
   duplicate?: boolean;
   existing_item_id?: string;
 }

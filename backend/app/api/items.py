@@ -366,7 +366,11 @@ async def bulk_create_items(
                         upload_file, settings.max_upload_size_mb
                     )
                 except UploadTooLargeError as e:
-                    results.append(BulkUploadResult(filename=filename, success=False, error=str(e)))
+                    results.append(
+                        BulkUploadResult(
+                            filename=filename, success=False, error=str(e), error_code="too_large"
+                        )
+                    )
                     failed += 1
                     continue
                 content_type = upload_file.content_type or "application/octet-stream"
@@ -377,6 +381,7 @@ async def bulk_create_items(
                             filename=filename,
                             success=False,
                             error="Invalid image format. Supported: JPEG, PNG, WebP, HEIC",
+                            error_code="unsupported_format",
                         )
                     )
                     failed += 1
@@ -392,6 +397,7 @@ async def bulk_create_items(
                                 filename=filename,
                                 success=False,
                                 error="Duplicate image - already exists in wardrobe",
+                                error_code="duplicate",
                             )
                         )
                         failed += 1
@@ -454,6 +460,7 @@ async def bulk_create_items(
                         filename=filename,
                         success=False,
                         error=str(e),
+                        error_code="invalid_image",
                     )
                 )
                 failed += 1
@@ -491,6 +498,7 @@ async def bulk_create_items(
                         filename=filename,
                         success=False,
                         error="Failed to process image",
+                        error_code="processing_failed",
                     )
                 )
                 failed += 1

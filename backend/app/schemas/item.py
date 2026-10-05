@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
@@ -225,11 +225,17 @@ class ArchiveRequest(BaseModel):
     reason: str | None = Field(None, max_length=50)
 
 
+BulkUploadErrorCode = Literal[
+    "too_large", "unsupported_format", "duplicate", "invalid_image", "processing_failed"
+]
+
+
 class BulkUploadResult(BaseModel):
     filename: str
     success: bool
     item: ItemResponse | None = None
     error: str | None = None
+    error_code: BulkUploadErrorCode | None = None
     duplicate: bool = False
     existing_item_id: UUID | None = None
 

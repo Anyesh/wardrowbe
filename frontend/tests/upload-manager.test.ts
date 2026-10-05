@@ -273,6 +273,111 @@ describe('startDrain', () => {
   })
 })
 
+describe('failure classification', () => {
+  function failedResponse(filename: string, error: string, error_code?: string) {
+    return jsonResponse({
+      total: 1,
+      successful: 0,
+      failed: 1,
+      results: [{ filename, success: false, error, error_code }],
+    })
+  }
+
+  it.each(['too_large', 'unsupported_format', 'duplicate', 'invalid_image'])(
+    'keeps the %s code and marks the record as not retryable',
+    async (code) => {
+      await enqueueFiles([makeFile('bad.jpg')], false)
+      vi.mocked(fetch).mockResolvedValueOnce(failedResponse('bad.jpg', 'server text', code))
+
+      await manager.startDrain()
+
+      const [record] = (await manager.getState()).terminalRecords
+      expect(record).toEqual(
+        expect.objectContaining({
+          filename: 'bad.jpg',
+          lastError: 'server text',
+          errorCode: code,
+          retryable: false,
+        })
+      )
+    }
+  )
+
+  it('keeps a server processing failure retryable', async () => {
+    await enqueueFiles([makeFile('a.jpg')], false)
+    vi.mocked(fetch).mockResolvedValueOnce(
+      failedResponse('a.jpg', 'Failed to process image', 'processing_failed')
+    )
+
+    await manager.startDrain()
+
+    const [record] = (await manager.getState()).terminalRecords
+    expect(record.errorCode).toBe('processing_failed')
+    expect(record.retryable).toBe(true)
+  })
+
+  it('keeps a result without an error code retryable', async () => {
+    await enqueueFiles([makeFile('a.jpg')], false)
+    vi.mocked(fetch).mockResolvedValueOnce(failedResponse('a.jpg', 'something'))
+
+    await manager.startDrain()
+
+    const [record] = (await manager.getState()).terminalRecords
+    expect(record.errorCode).toBeNull()
+    expect(record.retryable).toBe(true)
+  })
+
+  it('fails a lone file rejected with 413 as too large without retrying it', async () => {
+    await enqueueFiles([makeFile('huge.jpg')], false)
+    vi.mocked(fetch).mockReset()
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({}, false, 413))
+
+    await manager.startDrain()
+
+    const state = await manager.getState()
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(state.remaining).toBe(0)
+    expect(state.terminalRecords).toEqual([
+      expect.objectContaining({ filename: 'huge.jpg', errorCode: 'too_large', retryable: false }),
+    ])
+  })
+
+  it('retryAll resends only the retryable failures', async () => {
+    await enqueueFiles([makeFile('big.jpg'), makeFile('flaky.jpg')], false)
+    vi.mocked(fetch).mockReset()
+    vi.mocked(fetch).mockImplementationOnce(async (_url, init) => {
+      const names = (init?.body as FormData).getAll('images').map((f) => (f as File).name)
+      const results = names.map((filename) =>
+        filename === 'big.jpg'
+          ? { filename, success: false, error: 'too big', error_code: 'too_large' }
+          : { filename, success: false, error: 'Failed', error_code: 'processing_failed' }
+      )
+      return jsonResponse({ total: 2, successful: 0, failed: 2, results })
+    })
+    await manager.startDrain()
+
+    const sent: string[] = []
+    vi.mocked(fetch).mockImplementation(async (_url, init) => {
+      const names = (init?.body as FormData).getAll('images').map((f) => (f as File).name)
+      sent.push(...names)
+      return jsonResponse({
+        total: names.length,
+        successful: names.length,
+        failed: 0,
+        results: names.map((filename) => ({ filename, success: true })),
+      })
+    })
+    await manager.retryAll()
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r) => setTimeout(r, 0))
+    }
+
+    expect(sent).toEqual(['flaky.jpg'])
+    const remaining = (await manager.getState()).terminalRecords
+    expect(remaining.map((r) => r.filename)).toEqual(['big.jpg'])
+  })
+})
+
 describe('backoff reschedule', () => {
   it('resumes on its own once the backoff window elapses, instead of wedging until an external trigger', async () => {
     // vi.useFakeTimers() would also stall fake-indexeddb's internal
