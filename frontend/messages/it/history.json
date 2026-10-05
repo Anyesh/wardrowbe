@@ -35,7 +35,7 @@
     "scheduled": "Programmato"
   },
   "status": {
-    "accepted": "accettati",
+    "accepted": "Accettati",
     "expired": "Scaduti",
     "pending": "In attesa",
     "rejected": "Rifiutati",
