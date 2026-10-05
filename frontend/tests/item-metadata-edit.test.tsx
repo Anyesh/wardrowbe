@@ -118,4 +118,28 @@ describe('garment metadata editor', () => {
       }),
     }))
   })
+
+  it('omits untouched metadata after the item refreshes during editing', async () => {
+    const original = item({ size: 'M', purchase_store: 'Example Store', care_instructions: 'Wash cold' })
+    const onOpenChange = vi.fn()
+    const { rerender } = render(<ItemDetailDialog item={original} open onOpenChange={onOpenChange} />)
+    fireEvent.click(screen.getByTitle('actions.editItem'))
+
+    rerender(<ItemDetailDialog
+      item={{ ...original, size: 'L', purchase_store: 'Another Store', care_instructions: 'Dry clean' }}
+      open
+      onOpenChange={onOpenChange}
+    />)
+    fireEvent.change(screen.getByPlaceholderText('placeholders.additionalNotes'), {
+      target: { value: 'Altered note' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'save' }))
+
+    await waitFor(() => expect(saveItem).toHaveBeenCalledOnce())
+    const payload = saveItem.mock.calls[0][0].data
+    expect(payload.notes).toBe('Altered note')
+    expect(payload).not.toHaveProperty('size')
+    expect(payload).not.toHaveProperty('purchase_store')
+    expect(payload).not.toHaveProperty('care_instructions')
+  })
 })

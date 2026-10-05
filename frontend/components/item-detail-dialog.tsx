@@ -153,6 +153,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const restoreOriginal = useRestoreOriginal();
   const replaceImage = useReplaceItemImage();
   const replaceImageInputRef = useRef<HTMLInputElement>(null);
+  const editBaselineRef = useRef<EditForm | null>(null);
   const { data: features } = useFeatures();
   const logWash = useLogWash();
   const { data: washHistory } = useWashHistory(item?.id || '');
@@ -173,6 +174,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   if (!item) return null;
 
   const handleSave = async () => {
+    // The item can refresh while this editor is open. Compare with the form as it
+    // was when editing began, so untouched metadata never overwrites a newer value.
+    const baseline = editBaselineRef.current ?? editFormFromItem(item);
     try {
       await updateItem.mutateAsync({
         id: item.id,
@@ -182,9 +186,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           // null (not undefined) so clearing the field actually clears it server-side.
           subtype: editForm.subtype.trim() || null,
           brand: editForm.brand || undefined,
-          size: editForm.size.trim() || null,
-          purchase_store: editForm.purchase_store.trim() || null,
-          care_instructions: editForm.care_instructions.trim() || null,
+          ...(editForm.size !== baseline.size && { size: editForm.size.trim() || null }),
+          ...(editForm.purchase_store !== baseline.purchase_store && {
+            purchase_store: editForm.purchase_store.trim() || null,
+          }),
+          ...(editForm.care_instructions !== baseline.care_instructions && {
+            care_instructions: editForm.care_instructions.trim() || null,
+          }),
           primary_color: editForm.primary_color || undefined,
           notes: editForm.notes || undefined,
           favorite: editForm.favorite,
@@ -462,7 +470,11 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   onClick={() => {
                     // Re-read the item on entering edit mode: tagging can finish while the
                     // dialog is open (same id, so the effect above doesn't re-run).
-                    if (!isEditing) setEditForm(editFormFromItem(item));
+                    if (!isEditing) {
+                      const initial = editFormFromItem(item);
+                      editBaselineRef.current = initial;
+                      setEditForm(initial);
+                    }
                     setIsEditing(!isEditing);
                   }}
                   title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}

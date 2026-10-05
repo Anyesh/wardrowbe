@@ -244,6 +244,25 @@ class TestItemCRUD:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("field", "length"),
+        [("size", 51), ("purchase_store", 101)],
+    )
+    async def test_upload_rejects_oversized_metadata_before_storage(
+        self, client: AsyncClient, auth_headers, field: str, length: int
+    ):
+        store = AsyncMock()
+        with patch("app.api.items.ImageService.process_and_store", new=store):
+            response = await client.post(
+                "/api/v1/items",
+                data={field: "x" * length},
+                files={"image": ("upload.jpg", _make_test_image_bytes(), "image/jpeg")},
+                headers=auth_headers,
+            )
+        assert response.status_code == 422, response.text
+        store.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_update_item_not_found(self, client: AsyncClient, test_user, auth_headers):
         """Test updating a non-existent item."""
         response = await client.patch(
