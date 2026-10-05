@@ -9,22 +9,7 @@ import { useDeletePairing } from '@/lib/hooks/use-pairings';
 import { Pairing } from '@/lib/types';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { RATING_STARS } from '@/lib/rating';
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex gap-0.5">
-      {RATING_STARS.map((star) => (
-        <Star
-          key={star}
-          className={`h-3.5 w-3.5 ${
-            star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'
-          }`}
-        />
-      ))}
-    </div>
-  );
-}
+import { StarRatingDisplay } from '@/components/shared/star-rating';
 
 interface PairingCardProps {
   pairing: Pairing;
@@ -148,7 +133,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
           <div className="mt-2 pt-2 border-t">
             <div className="flex items-center gap-2">
               {pairing.feedback.rating && (
-                <StarRating rating={pairing.feedback.rating} />
+                <StarRatingDisplay value={pairing.feedback.rating} />
               )}
               {pairing.feedback.comment && (
                 <p className="text-xs text-muted-foreground truncate flex-1">

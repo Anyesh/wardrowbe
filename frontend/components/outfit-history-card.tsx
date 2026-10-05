@@ -19,22 +19,7 @@ import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import { SourceBadge } from '@/components/shared/source-badge';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { RATING_STARS } from '@/lib/rating';
-
-function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg' }) {
-  const sizeClass = size === 'lg' ? 'h-5 w-5' : 'h-3.5 w-3.5';
-
-  return (
-    <div className="flex gap-0.5">
-      {RATING_STARS.map((star) => (
-        <Star
-          key={star}
-          className={`${sizeClass} ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
-        />
-      ))}
-    </div>
-  );
-}
+import { StarRatingDisplay } from '@/components/shared/star-rating';
 
 interface OutfitHistoryCardProps {
   outfit: Outfit;
@@ -116,7 +101,7 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
           <div className="mt-2 pt-2 border-t">
             <div className="flex items-center gap-2">
               {outfit.feedback.rating && (
-                <StarRating rating={outfit.feedback.rating} />
+                <StarRatingDisplay value={outfit.feedback.rating} />
               )}
               {outfit.feedback.comment && (
                 <p className="text-xs text-muted-foreground truncate flex-1">
@@ -175,7 +160,7 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
             <div className="flex items-center gap-2 text-xs">
               <Users className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-muted-foreground">{t('familyLabel')}</span>
-              <StarRating rating={Math.round(outfit.family_rating_average ?? 0)} />
+              <StarRatingDisplay value={Math.round(outfit.family_rating_average ?? 0)} />
               <span className="text-muted-foreground">
                 ({outfit.family_rating_count})
               </span>
