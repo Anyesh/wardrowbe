@@ -19,6 +19,7 @@ from app.models.user import User
 from app.schemas.item import DEFAULT_WASH_INTERVALS
 from app.services.learning_service import LearningService
 from app.utils.clothing import canonical_item_order
+from app.utils.timezone import get_user_today
 
 
 class ItemOwnershipError(Exception):
@@ -335,7 +336,7 @@ class StudioService:
         if template.scheduled_for is not None:
             raise OutfitNotTemplateError("wear_today requires a lookbook template")
 
-        target_date = scheduled_for or date.today()
+        target_date = scheduled_for if scheduled_for is not None else get_user_today(user)
 
         wear = Outfit(
             user_id=user.id,

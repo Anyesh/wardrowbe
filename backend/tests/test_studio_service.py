@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import UTC, date, datetime
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -282,6 +283,36 @@ async def test_wear_today(db_session, studio_user, wardrobe_items):
 
     await db_session.refresh(shirt)
     assert shirt.wear_count == 1
+
+
+@pytest.mark.asyncio
+async def test_wear_today_defaults_to_the_users_local_day(db_session, studio_user, wardrobe_items):
+    studio_user.timezone = "America/Los_Angeles"
+    await db_session.commit()
+    service = StudioService(db_session)
+    shirt = wardrobe_items[0]
+
+    template = await service.create_from_scratch(
+        user=studio_user,
+        item_ids=[shirt.id],
+        occasion="casual",
+        name="Evening look",
+        scheduled_for=None,
+        mark_worn=False,
+        source_item_id=None,
+    )
+    await db_session.commit()
+
+    with patch("app.utils.timezone.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 1, 1, 3, 0, tzinfo=UTC)
+        wear = await service.wear_today(
+            user=studio_user, template_id=template.id, scheduled_for=None
+        )
+    await db_session.commit()
+
+    assert wear.scheduled_for == date(2019, 12, 31)
+    await db_session.refresh(shirt)
+    assert shirt.last_worn_at == date(2019, 12, 31)
 
 
 @pytest.mark.asyncio
