@@ -4,6 +4,7 @@ export const CLOTHING_TYPE_VALUES = ['shirt', 't-shirt', 'top', 'pants', 'jeans'
 export const MATERIAL_VALUES = ['cotton', 'denim', 'leather', 'wool', 'polyester', 'silk', 'linen', 'knit', 'fleece', 'suede', 'velvet', 'nylon', 'canvas', 'down', 'shearling'] as const;
 export const FORMALITY_VALUES = ['very-casual', 'casual', 'smart-casual', 'business-casual', 'formal', 'very-formal'] as const;
 export const OCCASION_VALUES = ['casual', 'office', 'work', 'formal', 'smart-casual', 'business-casual', 'date', 'party', 'sporty', 'sport', 'outdoor', 'travel', 'lounge', 'beach', 'interview', 'wedding', 'dinner', 'brunch', 'gym', 'running', 'hiking', 'weekend'] as const;
+export const ROLE_VALUES = ['full_body', 'base_top', 'mid_layer', 'suit', 'outer_layer', 'bottom', 'footwear', 'socks', 'neckwear', 'accessory'] as const;
 
 export const ITEM_ROLE: Record<string, string> = {
   shirt: 'base_top',

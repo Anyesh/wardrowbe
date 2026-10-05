@@ -21,13 +21,14 @@ from app.services.item_scorer import (
     WARM_LAYER_TYPES,
 )
 from app.services.pairing_service import PAIRING_OCCASION
-from app.utils.clothing import _CANONICAL_ROLE_ORDER, ITEM_ROLE
 from app.utils.garment_vocabulary import (
     COLOR_ALIASES,
     COLORS,
     FORMALITY,
+    ITEM_ROLE,
     MATERIALS,
     OCCASIONS,
+    ROLES,
     TYPES,
     canonical_color,
     canonical_colors,
@@ -51,10 +52,11 @@ def test_vocabulary_entries_are_unique():
     assert len(set(FORMALITY)) == len(FORMALITY)
     assert len(set(OCCASIONS)) == len(OCCASIONS)
     assert len(set(COLORS)) == len(COLORS)
+    assert len(set(ROLES)) == len(ROLES)
 
 
 def test_every_type_has_a_known_role_and_a_positive_wash_interval():
-    assert set(ITEM_ROLE.values()) <= set(_CANONICAL_ROLE_ORDER)
+    assert set(ITEM_ROLE.values()) <= set(ROLES)
     assert all(interval > 0 for interval in DEFAULT_WASH_INTERVALS.values())
 
 

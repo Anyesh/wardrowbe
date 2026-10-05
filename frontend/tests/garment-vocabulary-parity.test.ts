@@ -9,12 +9,14 @@ import {
   ITEM_ROLE,
   MATERIAL_VALUES,
   OCCASION_VALUES,
+  ROLE_VALUES,
 } from '@/lib/generated/garment-vocabulary';
 import { SUPPORTED_LOCALES } from '@/lib/i18n/locales';
 import { FEATURED_OCCASIONS, CLOTHING_TYPES } from '@/lib/types';
 
 const VOCABULARY_PATH = resolve(__dirname, '..', '..', 'backend', 'app', 'data', 'garment_vocabulary.json');
 const vocabulary = JSON.parse(readFileSync(VOCABULARY_PATH, 'utf8')) as {
+  roles: string[];
   types: Array<{ value: string; role: string }>;
   materials: string[];
   formality: string[];
@@ -38,6 +40,7 @@ describe('garment vocabulary', () => {
     expect([...OCCASION_VALUES]).toEqual(vocabulary.occasions.map((o) => o.value));
     expect(CLOTHING_COLORS).toEqual(vocabulary.colors);
     expect(COLOR_ALIASES).toEqual(vocabulary.color_aliases);
+    expect([...ROLE_VALUES]).toEqual(vocabulary.roles);
   });
 
   it('gives every stored colour a six-digit hex swatch', () => {
@@ -61,6 +64,6 @@ describe('garment vocabulary', () => {
     expect(sorted(Object.keys(constants.types))).toEqual(sorted(vocabulary.types.map((t) => t.value)));
     expect(sorted(Object.keys(constants.materials))).toEqual(sorted(vocabulary.materials));
     expect(sorted(Object.keys(constants.formalities))).toEqual(sorted(vocabulary.formality));
-    expect(sorted(Object.keys(constants.roles))).toEqual(sorted(new Set(vocabulary.types.map((t) => t.role))));
+    expect(sorted(Object.keys(constants.roles))).toEqual(sorted(vocabulary.roles));
   });
 });
