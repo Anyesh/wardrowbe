@@ -154,7 +154,11 @@ async def sync_user(
             )
 
         sync_data = sync_data.model_copy(update={"email": effective_email})
-        allow_email_adoption = oidc_claims.get("email_verified") is True
+        allow_email_adoption = (
+            bool(claims_email)
+            and claims_email == effective_email
+            and oidc_claims.get("email_verified") is True
+        )
     else:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -345,6 +345,39 @@ class TestProviderMigrationRequiresVerifiedEmail:
         assert test_user.external_id == original_external_id
 
     @pytest.mark.asyncio
+    async def test_verified_flag_without_email_claim_blocks_migration(
+        self, client, db_session, test_user
+    ):
+        original_external_id = test_user.external_id
+        mock_claims = {"sub": "claimless-provider-id", "email_verified": True}
+        with (
+            patch("app.api.auth._is_dev_mode", return_value=False),
+            patch("app.api.auth._oidc_configured", return_value=True),
+            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
+            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
+            patch("app.api.auth.settings") as mock_settings,
+        ):
+            mock_settings.oidc_issuer_url = "https://auth.example.com"
+            mock_settings.oidc_client_id = "test-client"
+            mock_settings.oidc_mobile_client_id = None
+            mock_settings.secret_key = "test-secret"
+
+            response = await client.post(
+                "/api/v1/auth/sync",
+                json={
+                    "external_id": "claimless-provider-id",
+                    "email": test_user.email,
+                    "display_name": "Attacker",
+                    "id_token": "fake-token",
+                },
+            )
+
+        assert response.status_code == 409
+        assert "access_token" not in response.json()
+        await db_session.refresh(test_user)
+        assert test_user.external_id == original_external_id
+
+    @pytest.mark.asyncio
     async def test_verified_allows_migration(self, client, db_session, test_user):
         mock_claims = {
             "sub": "new-provider-id-2",
