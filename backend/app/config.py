@@ -119,8 +119,6 @@ class Settings(BaseSettings):
     ntfy_server: str | None = None
     ntfy_topic: str | None = None
     ntfy_token: str | None = None
-    # Legacy/other providers
-    mattermost_webhook_url: str | None = None
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_user: str | None = None

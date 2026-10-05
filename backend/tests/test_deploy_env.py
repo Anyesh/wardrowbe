@@ -54,7 +54,7 @@ def test_every_backend_service_merges_the_shared_env(compose):
 def test_notification_settings_reach_the_worker(compose):
     worker_env = compose["services"]["worker"]["environment"]
 
-    for key in ("APP_URL", "NTFY_SERVER", "NTFY_TOPIC", "MATTERMOST_WEBHOOK_URL", "SMTP_HOST"):
+    for key in ("APP_URL", "NTFY_SERVER", "NTFY_TOPIC", "SMTP_HOST"):
         assert key in worker_env
 
 
