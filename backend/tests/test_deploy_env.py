@@ -19,7 +19,15 @@ K8S_NON_BACKEND_KEYS = {
     "NEXTAUTH_URL",
     "FORWARD_AUTH_LOGOUT_URL",
     "TINYAUTH_URL",
+    "NODE_EXTRA_CA_CERTS",
 }
+
+DEPLOY_FILES = (
+    "docker-compose.yml",
+    "docker-compose.prod.yml",
+    "docker-compose.dev.yml",
+    *(f"k8s/{path.name}" for path in sorted((REPO_ROOT / "k8s").glob("*.yaml"))),
+)
 
 
 def _load_repo_yaml(relative_path):
@@ -94,3 +102,28 @@ def test_every_k8s_configmap_key_is_read():
 
     unknown = set(configmap["data"]) - SETTINGS_KEYS - ENTRYPOINT_KEYS - K8S_NON_BACKEND_KEYS
     assert not unknown, f"wardrobe-config holds keys nothing reads: {sorted(unknown)}"
+
+
+@pytest.mark.parametrize("relative_path", DEPLOY_FILES)
+def test_no_deploy_file_turns_off_node_tls_verification(relative_path):
+    path = REPO_ROOT / relative_path
+    if not path.exists():
+        pytest.skip(f"{relative_path} is not available in this environment")
+    assert "NODE_TLS_REJECT_UNAUTHORIZED" not in path.read_text()
+
+
+def test_compose_frontend_takes_extra_ca_certs_empty_by_default(compose):
+    frontend_env = compose["services"]["frontend"]["environment"]
+    assert frontend_env["NODE_EXTRA_CA_CERTS"] == "${NODE_EXTRA_CA_CERTS:-}"
+
+
+def test_k8s_frontend_takes_extra_ca_certs_from_the_configmap():
+    (configmap,) = _load_repo_yaml("k8s/configmap.yaml")
+    env = {entry["name"]: entry for entry in _k8s_container("frontend.yaml")["env"]}
+
+    assert configmap["data"]["NODE_EXTRA_CA_CERTS"] == ""
+    assert env["NODE_EXTRA_CA_CERTS"]["valueFrom"]["configMapKeyRef"] == {
+        "name": "wardrobe-config",
+        "key": "NODE_EXTRA_CA_CERTS",
+        "optional": True,
+    }

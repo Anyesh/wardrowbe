@@ -115,6 +115,7 @@ services:
       DEV_MODE: ${DEBUG:-false}
       FORWARD_AUTH_LOGOUT_URL: ${FORWARD_AUTH_LOGOUT_URL:-}
       TINYAUTH_URL: ${TINYAUTH_URL:-}
+      NODE_EXTRA_CA_CERTS: ${NODE_EXTRA_CA_CERTS:-}
       PUID: ${PUID:-1001}
       PGID: ${PGID:-1001}
     ports:

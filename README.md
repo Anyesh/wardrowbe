@@ -342,6 +342,7 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 | `OIDC_CLIENT_ID` | OIDC client ID | If OIDC |
 | `OIDC_CLIENT_SECRET` | OIDC client secret | If OIDC |
 | `OIDC_CA_BUNDLE` | Path inside the backend container to a PEM CA certificate the backend trusts for the OIDC provider (private CA or self-signed certs) | No |
+| `NODE_EXTRA_CA_CERTS` | Path inside the frontend container to a PEM CA certificate Node trusts on top of the system store, for the OIDC provider and an `https` `BACKEND_URL` | No |
 | `FORWARD_AUTH_SECRET` | Shared secret the forward-auth proxy sends as `X-Forward-Auth-Secret` (at least 32 characters; enables forward-auth) | No |
 | `TINYAUTH_URL` | TinyAuth base URL, where logout sends the browser in forward-auth mode | No |
 | `FORWARD_AUTH_LOGOUT_URL` | Proxy logout URL for Authelia and others in forward-auth mode | No |
@@ -393,7 +394,7 @@ If neither is configured, the remove-background button returns a 501 with setup 
 - **OIDC Mode**: Any OIDC provider (PocketID, Authentik, Keycloak, Auth0, etc.)
 - **Forward-auth Mode**: An authenticating reverse proxy such as TinyAuth or Authelia signs people in (see [Forward-auth](#forward-auth-tinyauth-authelia))
 
-To enable OIDC, set `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET` in your `.env`. If your OIDC provider uses a self-signed certificate or a private CA, mount that CA certificate (PEM) into the backend container and set `OIDC_CA_BUNDLE` to its path inside the container, e.g. `/certs/internal-ca.pem`. The backend then verifies the provider's discovery and JWKS requests against that CA; TLS verification itself is never turned off. If your OIDC provider runs on a hostname that Docker containers can't resolve (e.g. a local DNS name), set `LOCAL_DNS` to your DNS server IP, or set `OIDC_HOST` and `OIDC_HOST_IP` to inject the hostname directly into the container's `/etc/hosts`.
+To enable OIDC, set `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET` in your `.env`. If your OIDC provider uses a self-signed certificate or a private CA, mount that CA certificate (PEM) into the backend container and set `OIDC_CA_BUNDLE` to its path inside the container, e.g. `/certs/internal-ca.pem`. The backend then verifies the provider's discovery and JWKS requests against that CA; TLS verification itself is never turned off. The frontend talks to the provider too (NextAuth fetches the discovery document and JWKS, exchanges the code at the token endpoint and reads the userinfo endpoint), so mount the same PEM into the frontend container and set `NODE_EXTRA_CA_CERTS` to its path there; it also covers a `BACKEND_URL` served over `https` by the same CA. If your OIDC provider runs on a hostname that Docker containers can't resolve (e.g. a local DNS name), set `LOCAL_DNS` to your DNS server IP, or set `OIDC_HOST` and `OIDC_HOST_IP` to inject the hostname directly into the container's `/etc/hosts`.
 
 When registering the app in your OIDC provider, use this as the callback/redirect URI:
 
