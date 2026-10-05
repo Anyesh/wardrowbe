@@ -296,7 +296,7 @@ AI_TEXT_MODEL=llama3.2-vision:11b  # Same model for both tasks
 | Database | PostgreSQL 15 |
 | Cache/Queue | Redis 7 |
 | Background Jobs | arq |
-| Authentication | NextAuth.js (supports OIDC, dev credentials) |
+| Authentication | NextAuth.js (supports OIDC, forward-auth, dev credentials) |
 | AI | Any OpenAI-compatible API |
 
 ## Deployment
@@ -342,6 +342,9 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 | `OIDC_CLIENT_ID` | OIDC client ID | If OIDC |
 | `OIDC_CLIENT_SECRET` | OIDC client secret | If OIDC |
 | `OIDC_CA_BUNDLE` | Path inside the backend container to a PEM CA certificate the backend trusts for the OIDC provider (private CA or self-signed certs) | No |
+| `FORWARD_AUTH_SECRET` | Shared secret the forward-auth proxy sends as `X-Forward-Auth-Secret` (at least 32 characters; enables forward-auth) | No |
+| `TINYAUTH_URL` | TinyAuth base URL, where logout sends the browser in forward-auth mode | No |
+| `FORWARD_AUTH_LOGOUT_URL` | Proxy logout URL for Authelia and others in forward-auth mode | No |
 | `LOCAL_DNS` | Custom DNS server for container name resolution (e.g. local OIDC host) | No |
 | `SMTP_HOST` | SMTP server for email notifications | No |
 | `SMTP_PORT` | SMTP port (default: 587) | No |
@@ -388,6 +391,7 @@ If neither is configured, the remove-background button returns a 501 with setup 
 
 - **Development Mode** (default): Simple email/name login, no setup required
 - **OIDC Mode**: Any OIDC provider (PocketID, Authentik, Keycloak, Auth0, etc.)
+- **Forward-auth Mode**: An authenticating reverse proxy such as TinyAuth or Authelia signs people in (see [Forward-auth](#forward-auth-tinyauth-authelia))
 
 To enable OIDC, set `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET` in your `.env`. If your OIDC provider uses a self-signed certificate or a private CA, mount that CA certificate (PEM) into the backend container and set `OIDC_CA_BUNDLE` to its path inside the container, e.g. `/certs/internal-ca.pem`. The backend then verifies the provider's discovery and JWKS requests against that CA; TLS verification itself is never turned off. If your OIDC provider runs on a hostname that Docker containers can't resolve (e.g. a local DNS name), set `LOCAL_DNS` to your DNS server IP, or set `OIDC_HOST` and `OIDC_HOST_IP` to inject the hostname directly into the container's `/etc/hosts`.
 
@@ -402,6 +406,83 @@ For example, if `NEXTAUTH_URL=http://localhost:8080`, the callback URL is:
 ```
 http://localhost:8080/api/auth/callback/oidc
 ```
+
+### Forward-auth (TinyAuth, Authelia)
+
+Forward-auth lets an authenticating reverse proxy sign people in to Wardrowbe. It works like this:
+
+1. The proxy (TinyAuth or Authelia behind Caddy, Traefik or nginx) authenticates the browser and adds `Remote-User`, `Remote-Email`, optionally `Remote-Name`, and a static `X-Forward-Auth-Secret` header to every request it forwards.
+2. On `/login` the app signs in by itself: the backend checks the secret, then creates or finds the user keyed by `Remote-User`. A wrong or missing secret gets a 401, so headers sent without it are ignored.
+3. After sign-in, requests use Wardrowbe's own session token and the headers are not trusted per request. If the proxy starts reporting a different `Remote-User`, the old session is signed out.
+4. Logging out ends the Wardrowbe session, then sends the browser to the proxy's logout page so the proxy session ends too (TinyAuth's page asks for one more click).
+
+Set these in `.env`:
+
+```env
+# At least 32 characters, e.g. the output of: openssl rand -hex 32
+FORWARD_AUTH_SECRET=
+# The public URL the proxy serves
+NEXTAUTH_URL=https://wardrobe.example.com
+# Where logout sends the browser. TinyAuth: set its base URL.
+TINYAUTH_URL=https://tinyauth.example.com
+# Authelia and other proxies: set the full logout URL instead. It is used as is,
+# so include the return address (Authelia's parameter is rd).
+# FORWARD_AUTH_LOGOUT_URL=https://auth.example.com/logout?rd=https%3A%2F%2Fwardrobe.example.com%2Flogin%3FloggedOut%3D1
+```
+
+Authelia only follows `rd` to an HTTPS address inside one of its session cookie domains; otherwise it stays on its own portal after logging out.
+
+Put the proxy in front of the frontend on `:3000` with the default `docker-compose.yml`, or in front of nginx on `:8080` with `docker-compose.prod.yml`. Only the proxy should be able to reach those ports. The prod compose already binds nginx to `127.0.0.1` and publishes nothing else; with the default compose, set `FRONTEND_PORT=127.0.0.1:3000` and `BACKEND_PORT=127.0.0.1:8000` in `.env` (or remove the `ports:` entries if the proxy shares the stack's Docker network), so nobody on your LAN can skip the proxy or watch the secret go past in plain HTTP.
+
+Every snippet below strips any `Remote-*` and `X-Forward-Auth-Secret` headers the client sent before the auth server's headers are set, and adds the secret on the way to Wardrowbe. Keep both steps if you adapt them to another proxy.
+
+**Caddy + TinyAuth** (with the default compose; use `localhost:8080` for prod):
+
+```caddyfile
+wardrobe.example.com {
+	route {
+		request_header -Remote-*
+		request_header -X-Forward-Auth-Secret
+		forward_auth tinyauth:3000 {
+			uri /api/auth/caddy
+			copy_headers Remote-User Remote-Email Remote-Name
+		}
+		reverse_proxy localhost:3000 {
+			header_up X-Forward-Auth-Secret {$FORWARD_AUTH_SECRET}
+		}
+	}
+}
+```
+
+`route` keeps the directives in the order written. Without it, Caddy runs `request_header` after `forward_auth` and would delete the headers TinyAuth just set.
+
+**Traefik + Authelia**, as labels in a `docker-compose.override.yml` (put them on `nginx` with port `80` instead when using the prod compose, and attach Traefik to the stack's network):
+
+```yaml
+services:
+  frontend:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.wardrobe.rule: Host(`wardrobe.example.com`)
+      traefik.http.routers.wardrobe.entrypoints: websecure
+      traefik.http.routers.wardrobe.middlewares: wardrobe-strip,authelia,wardrobe-secret
+      traefik.http.services.wardrobe.loadbalancer.server.port: "3000"
+      traefik.http.middlewares.wardrobe-strip.headers.customrequestheaders.Remote-User: ""
+      traefik.http.middlewares.wardrobe-strip.headers.customrequestheaders.Remote-Email: ""
+      traefik.http.middlewares.wardrobe-strip.headers.customrequestheaders.Remote-Name: ""
+      traefik.http.middlewares.wardrobe-strip.headers.customrequestheaders.Remote-Groups: ""
+      traefik.http.middlewares.wardrobe-strip.headers.customrequestheaders.X-Forward-Auth-Secret: ""
+      traefik.http.middlewares.authelia.forwardauth.address: http://authelia:9091/api/authz/forward-auth
+      traefik.http.middlewares.authelia.forwardauth.authResponseHeaders: Remote-User,Remote-Groups,Remote-Email,Remote-Name
+      traefik.http.middlewares.wardrobe-secret.headers.customrequestheaders.X-Forward-Auth-Secret: ${FORWARD_AUTH_SECRET}
+```
+
+Traefik applies the middlewares in the listed order, and an empty `customrequestheaders` value removes that header.
+
+> [!WARNING]
+> If this database ever ran in development mode, anyone could have signed in under any email address they typed. On first forward-auth sign-in, a proxy user whose `Remote-Email` matches an existing account takes that account over (the same rule as OIDC sign-in). Check the existing users' emails before turning forward-auth on.
+
+The mobile app cannot sign in through a forward-auth proxy, so it needs OIDC. Both can be configured at once: set `OIDC_ISSUER_URL` and `OIDC_CLIENT_ID` alongside `FORWARD_AUTH_SECRET`, and browsers use the proxy while the app uses OIDC. The app has to reach Wardrowbe through a hostname or path that skips the forward-auth check and does not add `X-Forward-Auth-Secret`, because the backend treats any sign-in request carrying that header as a forward-auth sign-in and rejects it without the `Remote-*` headers.
 
 ### Notifications
 
