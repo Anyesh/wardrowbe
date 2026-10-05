@@ -45,7 +45,9 @@ class WearStats(BaseModel):
 
 
 class AcceptanceRateTrend(BaseModel):
+    # English "%b %d" label, kept for clients that predate period_start.
     period: str
+    period_start: date
     total: int
     accepted: int
     rejected: int
@@ -374,6 +376,7 @@ async def get_analytics(
         acceptance_trend.append(
             AcceptanceRateTrend(
                 period=week_start.strftime("%b %d"),
+                period_start=week_start.date(),
                 total=week_total,
                 accepted=week_accepted,
                 rejected=week_rejected,
