@@ -371,14 +371,30 @@ class TestProviderMigrationRequiresVerifiedEmail:
             assert test_user.external_id == "new-provider-id"
 
 
+DIFFERENT_EMAIL = "This invite was sent to a different email address"
+UNVERIFIED_DETAIL = {
+    "message": "Your sign-in provider has not verified this email address",
+    "error_code": "EMAIL_NOT_VERIFIED",
+}
+
+
 class TestInviteRequiresVerifiedEmail:
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("invited_email", "email_verified", "expected_status", "expected_error"),
+        ("invited_email", "email_verified", "expected_status", "expected_detail"),
         [
             pytest.param(None, True, 200, None, id="verified"),
-            pytest.param(None, False, 403, "EMAIL_NOT_VERIFIED", id="unverified"),
-            pytest.param("someone-else@example.com", True, 403, None, id="different-email"),
+            pytest.param(None, False, 403, UNVERIFIED_DETAIL, id="unverified"),
+            pytest.param(
+                "someone-else@example.com", True, 403, DIFFERENT_EMAIL, id="different-email"
+            ),
+            pytest.param(
+                "someone-else@example.com",
+                False,
+                403,
+                DIFFERENT_EMAIL,
+                id="different-email-checked-before-verification",
+            ),
         ],
     )
     async def test_join_by_token(
@@ -390,7 +406,7 @@ class TestInviteRequiresVerifiedEmail:
         invited_email,
         email_verified,
         expected_status,
-        expected_error,
+        expected_detail,
     ):
         run = uuid4()
         inviter = User(
@@ -417,9 +433,10 @@ class TestInviteRequiresVerifiedEmail:
             "/api/v1/families/join-by-token", json={"token": f"token-{run}"}, headers=auth_headers
         )
 
-        assert response.status_code == expected_status
-        if expected_error is not None:
-            assert response.json()["detail"]["error_code"] == expected_error
+        assert (response.status_code, response.json().get("detail")) == (
+            expected_status,
+            expected_detail,
+        )
         await db_session.refresh(test_user)
         assert (test_user.family_id == family.id) is (expected_status == 200)
 
