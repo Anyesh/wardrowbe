@@ -1,6 +1,6 @@
 import logging
 from datetime import date, datetime
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -17,6 +17,7 @@ from app.models.outfit import (
     Outfit,
     OutfitItem,
     OutfitStatus,
+    TimeOfDay,
     UserFeedback,
 )
 from app.models.user import User
@@ -72,7 +73,7 @@ def _default_occasion(user: User) -> str:
 
 class SuggestRequest(BaseModel):
     occasion: Occasion | None = None
-    time_of_day: Literal["morning", "afternoon", "evening", "night", "full day"] | None = None
+    time_of_day: TimeOfDay | None = None
     weather_override: WeatherOverrideRequest | None = None
     exclude_items: list[UUID] = Field(default_factory=list, description="Items to exclude")
     include_items: list[UUID] = Field(default_factory=list, description="Items to include")

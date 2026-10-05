@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
+from app.models.item import ProcessingKind, TaggingStatus
 from app.schemas.color import ColorList, ColorName
 from app.schemas.outfit import Occasion
 from app.utils.garment_vocabulary import DEFAULT_WASH_INTERVALS
@@ -102,8 +103,8 @@ class ItemResponse(ItemBase):
     ai_error: str | None = None
     ai_unrecognized_type: str | None = None
     ai_started_at: datetime | None = None
-    processing_kind: str | None = None
-    tagging_status: str = "pending"
+    processing_kind: ProcessingKind | None = None
+    tagging_status: TaggingStatus = TaggingStatus.pending
     tagged_by: str | None = None
     tagged_at: datetime | None = None
     wear_count: int = 0
