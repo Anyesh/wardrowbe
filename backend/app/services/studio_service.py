@@ -191,7 +191,6 @@ class StudioService:
 
         effective_date = scheduled_for or original.scheduled_for
 
-        occasion_label = (original.occasion or "Outfit").title()
         replacement = Outfit(
             user_id=user.id,
             occasion=original.occasion,
@@ -199,7 +198,6 @@ class StudioService:
             source=OutfitSource.manual,
             status=OutfitStatus.pending,
             replaces_outfit_id=original.id,
-            name=f"{occasion_label} (wore instead)",
         )
         self.db.add(replacement)
         await self.db.flush()
