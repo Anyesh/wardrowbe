@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.models.item import ClothingItem, ItemStatus
 from app.models.learning import ItemPairScore, UserLearningProfile
@@ -492,3 +493,57 @@ class TestJunkLearnedProfileIsIgnored:
         )
         assert "black" in seen
         assert junk_key not in seen
+
+
+class TestIncrementalOccasionColours:
+    @pytest.mark.asyncio
+    async def test_incremental_updates_agree_with_full_recompute(
+        self, db_session, test_user_for_learning
+    ):
+        user_id = test_user_for_learning.id
+        await _seed_outfit(db_session, user_id, ["navy", "red"], day=1)
+        await _seed_outfit(db_session, user_id, ["gray", "navy"], day=2)
+        outfits = (
+            await db_session.scalars(
+                select(Outfit)
+                .where(Outfit.user_id == user_id)
+                .order_by(Outfit.scheduled_for)
+                .options(selectinload(Outfit.items).selectinload(OutfitItem.item))
+                .options(selectinload(Outfit.feedback))
+            )
+        ).all()
+        service = LearningService(db_session)
+
+        for outfit in outfits:
+            await service._update_profile_incremental(
+                user_id, outfit, service._get_outfit_signal(outfit)
+            )
+        profile = await db_session.get(UserLearningProfile, user_id)
+        incremental = profile.learned_occasion_patterns["work"]["preferred_colors"]
+
+        recomputed = await service.recompute_learning_profile(user_id)
+
+        assert incremental == ["navy", "gray", "red"]
+        assert recomputed.learned_occasion_patterns["work"]["preferred_colors"] == incremental
+
+    @pytest.mark.asyncio
+    async def test_incremental_update_continues_from_recomputed_counts(
+        self, db_session, test_user_for_learning
+    ):
+        user_id = test_user_for_learning.id
+        await _seed_outfit(db_session, user_id, ["navy", "red"], day=1)
+        service = LearningService(db_session)
+        await service.recompute_learning_profile(user_id)
+
+        outfit = _make_outfit_with_feedback(user_id, [{"primary_color": "gray"}], occasion="work")
+        await service._update_profile_incremental(
+            user_id, outfit, service._get_outfit_signal(outfit)
+        )
+
+        profile = await db_session.get(UserLearningProfile, user_id)
+        await db_session.refresh(profile)
+        assert profile.learned_occasion_patterns["work"]["preferred_colors"] == [
+            "gray",
+            "navy",
+            "red",
+        ]
