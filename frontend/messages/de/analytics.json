@@ -1,4 +1,14 @@
 {
+  "insightColorHeavy": "Dein Kleiderschrank enthält viel {color} ({percent}). Wie wäre es mit mehr Abwechslung?",
+  "insightGreatTaste": "Guter Geschmack! Du nimmst {percent} der Vorschläge an.",
+  "insightLimitedColors": "Dein Kleiderschrank hat wenig Farbvielfalt. Probier neue Farben aus!",
+  "insightManyRejections": "Du lehnst viele Vorschläge ab. Aktualisiere am besten deine Stilvorlieben.",
+  "insightMoreBottomsThanTops": "Du hast mehr Unterteile als Oberteile. Wie wäre es mit ein paar Hemden?",
+  "insightMoreTopsThanBottoms": "Du hast deutlich mehr Oberteile als Unterteile. Wie wäre es mit Hosen oder Röcken?",
+  "insightMostlyLayers": "Die meisten deiner Oberteile sind Layer wie Cardigans und Westen. Ergänze ein paar Basics zum Drunterziehen!",
+  "insightNeverWorn": "{count, plural, one {Du hast # Stück, das du nie getragen hast. Kombiniere es doch mal!} other {Du hast # Stücke, die du nie getragen hast. Kombiniere sie doch mal!}}",
+  "insightNoOutfitsThisWeek": "Du hast diese Woche noch keine Outfits erstellt. Hol dir einen Vorschlag!",
+  "insightStartAdding": "Beginne damit, ein paar Stücke zu deinem Kleiderschrank hinzuzufügen!",
   "insights": {
     "acceptanceTrend": {
       "description": "Wie du im Laufe der Zeit auf Vorschläge reagiert hast",

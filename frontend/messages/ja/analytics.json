@@ -1,4 +1,14 @@
 {
+  "insightColorHeavy": "ワードローブは{color}に偏っています（{percent}）。ほかの色も取り入れてみませんか？",
+  "insightGreatTaste": "センス抜群です！提案の{percent}を採用しています。",
+  "insightLimitedColors": "ワードローブの色のバリエーションが少なめです。新しい色に挑戦してみましょう！",
+  "insightManyRejections": "却下している提案が多めです。スタイル設定を見直してみましょう。",
+  "insightMoreBottomsThanTops": "トップスよりボトムスが多いようです。シャツを買い足してみませんか？",
+  "insightMoreTopsThanBottoms": "ボトムスよりトップスがかなり多いようです。パンツやスカートを追加してみませんか？",
+  "insightMostlyLayers": "トップスの多くがカーディガンやベストなどの重ね着用です。中に着るベーシックなアイテムも足しましょう！",
+  "insightNeverWorn": "{count, plural, one {一度も着ていないアイテムが#点あります。コーデに取り入れてみませんか？} other {一度も着ていないアイテムが#点あります。コーデに取り入れてみませんか？}}",
+  "insightNoOutfitsThisWeek": "今週はまだコーデを作成していません。提案を受けてみましょう！",
+  "insightStartAdding": "まずはワードローブにアイテムを追加しましょう！",
   "insights": {
     "acceptanceTrend": {
       "description": "提案への反応の推移",

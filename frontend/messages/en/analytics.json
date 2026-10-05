@@ -1,4 +1,14 @@
 {
+  "insightColorHeavy": "Your wardrobe is heavy on {color} ({percent}). Consider adding variety!",
+  "insightGreatTaste": "Great taste! You accept {percent} of suggestions.",
+  "insightLimitedColors": "Your wardrobe has limited color variety. Explore new colors!",
+  "insightManyRejections": "You reject many suggestions. Consider updating your style preferences.",
+  "insightMoreBottomsThanTops": "You have more bottoms than tops. Consider adding some shirts!",
+  "insightMoreTopsThanBottoms": "You have many more tops than bottoms. Consider adding pants or skirts!",
+  "insightMostlyLayers": "Most of your tops are layers like cardigans and vests. Add a few basics to wear under them!",
+  "insightNeverWorn": "{count, plural, one {You have # item you've never worn. Consider styling it!} other {You have # items you've never worn. Consider styling them!}}",
+  "insightNoOutfitsThisWeek": "You haven't generated any outfits this week. Try getting a suggestion!",
+  "insightStartAdding": "Start by adding some items to your wardrobe!",
   "insights": {
     "acceptanceTrend": {
       "description": "How you've responded to suggestions over time",

@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
 import { useColorLabel } from '@/lib/hooks/use-translated-constants';
+import { useAnalyticsInsightLines } from '@/lib/hooks/use-insight-text';
 import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -178,6 +179,7 @@ function AcceptanceTrendChart({ data }: { data: { period: string; rate: number; 
 export default function AnalyticsPage() {
   const t = useTranslations('analytics');
   const { data, isLoading, isError } = useAnalytics(60);
+  const insights = useAnalyticsInsightLines(data);
 
   if (isLoading) {
     return (
@@ -199,7 +201,7 @@ export default function AnalyticsPage() {
     );
   }
 
-  const { wardrobe, color_distribution, type_distribution, most_worn, least_worn, never_worn, acceptance_trend, insights } = data;
+  const { wardrobe, color_distribution, type_distribution, most_worn, least_worn, never_worn, acceptance_trend } = data;
 
   return (
     <div className="space-y-6">

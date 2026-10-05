@@ -1,4 +1,14 @@
 {
+  "insightColorHeavy": "Il tuo guardaroba abbonda di {color} ({percent}). Prova ad aggiungere varietà!",
+  "insightGreatTaste": "Ottimo gusto! Accetti il {percent} dei suggerimenti.",
+  "insightLimitedColors": "Il tuo guardaroba ha pochi colori. Esplora nuove tonalità!",
+  "insightManyRejections": "Rifiuti molti suggerimenti. Valuta di aggiornare le tue preferenze di stile.",
+  "insightMoreBottomsThanTops": "Hai più capi sotto che top. Valuta di aggiungere qualche camicia!",
+  "insightMoreTopsThanBottoms": "Hai molti più top che capi sotto. Valuta di aggiungere pantaloni o gonne!",
+  "insightMostlyLayers": "La maggior parte dei tuoi top sono capi da sovrapporre, come cardigan e gilet. Aggiungi qualche capo base da indossare sotto!",
+  "insightNeverWorn": "{count, plural, one {Hai # capo che non hai mai indossato. Prova ad abbinarlo!} other {Hai # capi che non hai mai indossato. Prova ad abbinarli!}}",
+  "insightNoOutfitsThisWeek": "Questa settimana non hai generato outfit. Prova a chiedere un suggerimento!",
+  "insightStartAdding": "Inizia aggiungendo qualche capo al tuo guardaroba!",
   "insights": {
     "acceptanceTrend": {
       "description": "Come hai risposto ai suggerimenti nel tempo",

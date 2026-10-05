@@ -9,10 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.models.item import ClothingItem, ItemStatus
-from app.models.learning import ItemPairScore, UserLearningProfile
+from app.models.learning import ItemPairScore, StyleInsight, UserLearningProfile
 from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus, UserFeedback
 from app.models.user import User
-from app.services.learning_service import LearningService
+from app.services.learning_service import LearningService, insight_message
 
 
 def _make_outfit_with_feedback(user_id, items_data, accepted=True, rating=4, occasion="casual"):
@@ -547,3 +547,81 @@ class TestIncrementalOccasionColours:
             "navy",
             "red",
         ]
+
+
+class TestInsightMessage:
+    @pytest.mark.parametrize(
+        ("category", "insight_type", "supporting_data", "expected"),
+        [
+            (
+                "color",
+                "positive",
+                {"color": "navy", "score": 0.6},
+                ("insightColorLoved", {"color": "navy"}),
+            ),
+            (
+                "color",
+                "negative",
+                {"colors": ["orange", "pink"]},
+                ("insightColorAvoided", {"color": "orange"}),
+            ),
+            (
+                "overall",
+                "positive",
+                {"acceptance_rate": 0.856},
+                ("insightGreatMatch", {"percent": 86}),
+            ),
+            ("overall", "suggestion", {"acceptance_rate": 0.2}, ("insightHelpUsLearn", {})),
+            (
+                "style",
+                "pattern",
+                # JSONB returns keys shortest first, so the order read back is not by score.
+                {"styles": {"casual": 0.3, "minimalist": 0.5}},
+                (
+                    "insightStyleLeaning",
+                    {"style": "minimalist", "styles": ["minimalist", "casual"]},
+                ),
+            ),
+        ],
+    )
+    def test_maps_stored_insights_to_translatable_messages(
+        self, category, insight_type, supporting_data, expected
+    ):
+        insight = StyleInsight(
+            category=category, insight_type=insight_type, supporting_data=supporting_data
+        )
+        assert insight_message(insight) == expected
+
+    def test_unknown_or_incomplete_insights_have_no_message(self):
+        assert insight_message(StyleInsight(category="weather", insight_type="pattern")) == (
+            None,
+            {},
+        )
+        assert insight_message(
+            StyleInsight(category="color", insight_type="negative", supporting_data={})
+        ) == (None, {})
+
+
+@pytest.mark.asyncio
+async def test_learning_api_sends_insight_keys_alongside_the_english_text(
+    client, db_session, test_user, auth_headers
+):
+    db_session.add(
+        StyleInsight(
+            user_id=test_user.id,
+            category="color",
+            insight_type="positive",
+            title="You love navy!",
+            description="Your feedback shows a strong preference for navy items.",
+            supporting_data={"color": "navy", "score": 0.6},
+        )
+    )
+    await db_session.commit()
+
+    response = await client.get("/api/v1/learning", headers=auth_headers)
+
+    assert response.status_code == 200
+    [insight] = response.json()["insights"]
+    assert insight["message_key"] == "insightColorLoved"
+    assert insight["message_params"] == {"color": "navy"}
+    assert insight["title"] == "You love navy!"

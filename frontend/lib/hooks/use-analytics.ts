@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import { useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
 import { queryKeys } from '@/lib/hooks/query-keys';
 import { SLOW_STALE_TIME } from '@/lib/hooks/query-timing';
+import type { KeyedInsight } from '@/lib/insights';
 
 export interface ColorDistribution {
   color: string;
@@ -55,7 +56,9 @@ export interface AnalyticsData {
   least_worn: WearStats[];
   never_worn: WearStats[];
   acceptance_trend: AcceptanceRateTrend[];
+  // English sentences from older API versions; insight_items is what the UI renders.
   insights: string[];
+  insight_items?: KeyedInsight[];
 }
 
 export function useAnalytics(days = 30) {

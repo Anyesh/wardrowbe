@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { queryKeys } from '@/lib/hooks/query-keys';
 import { SLOW_STALE_TIME } from '@/lib/hooks/query-timing';
+import type { InsightParams } from '@/lib/insights';
 
 // Types for learning API responses
 export interface LearnedColorScore {
@@ -69,6 +70,9 @@ export interface StyleInsight {
   description: string;
   confidence: number;
   created_at: string;
+  // title and description are English; message_key renders them in the user's language.
+  message_key?: string | null;
+  message_params?: InsightParams;
 }
 
 export interface PreferenceSuggestions {

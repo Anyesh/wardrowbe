@@ -78,6 +78,29 @@ class PairSignalType(enum.Enum):
     rating = "rating"
 
 
+def insight_message(insight: StyleInsight) -> tuple[str | None, dict]:
+    """The learning.json key and params that render a stored insight in any language.
+
+    Derived from supporting_data rather than stored, so insights written before clients could
+    translate them render too. generate_insights must keep writing the fields read here.
+    """
+    data = insight.supporting_data or {}
+    kind = (insight.category, insight.insight_type)
+    if kind == ("color", "positive") and data.get("color"):
+        return "insightColorLoved", {"color": data["color"]}
+    if kind == ("color", "negative") and data.get("colors"):
+        return "insightColorAvoided", {"color": data["colors"][0]}
+    if kind == ("overall", "positive") and data.get("acceptance_rate") is not None:
+        return "insightGreatMatch", {"percent": round(float(data["acceptance_rate"]) * 100)}
+    if kind == ("overall", "suggestion"):
+        return "insightHelpUsLearn", {}
+    if kind == ("style", "pattern") and data.get("styles"):
+        # JSONB does not keep insertion order, so rank by score again.
+        styles = sorted(data["styles"], key=lambda style: data["styles"][style], reverse=True)
+        return "insightStyleLeaning", {"style": styles[0], "styles": styles}
+    return None, {}
+
+
 class LearningService:
     ACCEPTANCE_WEIGHT = 0.4
     RATING_WEIGHT = 0.4

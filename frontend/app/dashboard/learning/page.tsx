@@ -30,6 +30,7 @@ import {
   type LearnedColorScore,
 } from '@/lib/hooks/use-learning';
 import { useColorLabel, useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { useInsightCategoryLabel, useLearningInsightText } from '@/lib/hooks/use-insight-text';
 import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -229,6 +230,12 @@ function InsightCard({
   onAcknowledge: (id: string) => void;
 }) {
   const t = useTranslations('learning');
+  const insightText = useLearningInsightText();
+  const categoryLabel = useInsightCategoryLabel();
+  // Insights stored before message keys existed have none; their English text shows.
+  const message = insight.message_key
+    ? insightText({ key: insight.message_key, params: insight.message_params ?? {} })
+    : null;
   const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
     color: Sparkles,
     style: Heart,
@@ -259,11 +266,11 @@ function InsightCard({
       <div className="flex items-start gap-3 pr-6">
         <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
         <div>
-          <h4 className="font-medium">{insight.title}</h4>
-          <p className="text-sm text-muted-foreground mt-1">{insight.description}</p>
+          <h4 className="font-medium">{message?.title ?? insight.title}</h4>
+          <p className="text-sm text-muted-foreground mt-1">{message?.description ?? insight.description}</p>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="outline" className="text-xs">
-              {insight.category}
+              {categoryLabel(insight.category)}
             </Badge>
             <span className="text-xs text-muted-foreground">
               {t('confidence', { percent: Math.round(insight.confidence * 100) })}
