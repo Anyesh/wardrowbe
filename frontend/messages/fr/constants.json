@@ -21,6 +21,14 @@
     "white": "Blanc",
     "yellow": "Jaune"
   },
+  "fits": {
+    "cropped": "Court",
+    "oversized": "Oversize",
+    "regular": "Droit",
+    "relaxed": "Ample",
+    "slim": "Ajusté",
+    "tailored": "Coupe sur mesure"
+  },
   "formalities": {
     "business-casual": "Business casual",
     "casual": "Décontracté",
@@ -70,6 +78,18 @@
     "weekend": "Week-end",
     "work": "Travail"
   },
+  "patterns": {
+    "animal-print": "Imprimé animal",
+    "camouflage": "Camouflage",
+    "checkered": "À carreaux",
+    "floral": "Fleuri",
+    "geometric": "Géométrique",
+    "graphic": "Graphique",
+    "plaid": "Écossais",
+    "polka-dot": "À pois",
+    "solid": "Uni",
+    "striped": "Rayé"
+  },
   "roles": {
     "accessory": "Accessoire",
     "base_top": "Haut de base",
@@ -82,12 +102,28 @@
     "socks": "Chaussettes",
     "suit": "Costume"
   },
+  "seasons": {
+    "all-season": "Toutes saisons",
+    "fall": "Automne",
+    "spring": "Printemps",
+    "summer": "Été",
+    "winter": "Hiver"
+  },
   "styles": {
+    "athletic": "Athlétique",
+    "bohemian": "Bohème",
     "bold": "Audacieux",
     "casual": "Décontracté",
+    "classic": "Classique",
+    "elegant": "Élégant",
     "formal": "Habillé",
     "minimalist": "Minimaliste",
-    "sporty": "Sportif"
+    "modern": "Moderne",
+    "preppy": "Preppy",
+    "rugged": "Robuste",
+    "sporty": "Sportif",
+    "streetwear": "Streetwear",
+    "vintage": "Vintage"
   },
   "subtypes": {
     "a-line": "Trapèze",

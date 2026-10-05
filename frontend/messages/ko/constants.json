@@ -21,6 +21,14 @@
     "white": "화이트",
     "yellow": "옐로"
   },
+  "fits": {
+    "cropped": "크롭",
+    "oversized": "오버사이즈",
+    "regular": "레귤러",
+    "relaxed": "릴랙스드",
+    "slim": "슬림",
+    "tailored": "테일러드"
+  },
   "formalities": {
     "business-casual": "비즈니스 캐주얼",
     "casual": "캐주얼",
@@ -70,6 +78,18 @@
     "weekend": "주말",
     "work": "업무"
   },
+  "patterns": {
+    "animal-print": "애니멀 프린트",
+    "camouflage": "카모플라주",
+    "checkered": "체크",
+    "floral": "플로럴",
+    "geometric": "기하학 무늬",
+    "graphic": "그래픽",
+    "plaid": "플레이드",
+    "polka-dot": "도트",
+    "solid": "무지",
+    "striped": "스트라이프"
+  },
   "roles": {
     "accessory": "액세서리",
     "base_top": "기본 상의",
@@ -82,12 +102,28 @@
     "socks": "양말",
     "suit": "정장"
   },
+  "seasons": {
+    "all-season": "사계절",
+    "fall": "가을",
+    "spring": "봄",
+    "summer": "여름",
+    "winter": "겨울"
+  },
   "styles": {
+    "athletic": "애슬레틱",
+    "bohemian": "보헤미안",
     "bold": "볼드",
     "casual": "캐주얼",
+    "classic": "클래식",
+    "elegant": "엘레강스",
     "formal": "포멀",
     "minimalist": "미니멀",
-    "sporty": "스포티"
+    "modern": "모던",
+    "preppy": "프레피",
+    "rugged": "러기드",
+    "sporty": "스포티",
+    "streetwear": "스트리트웨어",
+    "vintage": "빈티지"
   },
   "subtypes": {
     "a-line": "A라인",
