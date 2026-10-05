@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from sqlalchemy import and_, select, update
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -22,7 +22,6 @@ from app.models.outfit import (
     UserFeedback,
 )
 from app.models.user import User
-from app.schemas.item import DEFAULT_WASH_INTERVALS
 from app.schemas.outfit import (
     MAX_AUTHORING_TEXT_LENGTH,
     Occasion,
@@ -920,23 +919,13 @@ async def submit_feedback(
     if request.worn and not feedback.worn_at:
         user_today = get_user_today(current_user)
         feedback.worn_at = user_today
-        for outfit_item in outfit.items:
-            item = outfit_item.item
-            effective_interval = (
-                item.wash_interval
-                if item.wash_interval is not None
-                else DEFAULT_WASH_INTERVALS.get(item.type, 3)
-            )
-            await db.execute(
-                update(ClothingItem)
-                .where(ClothingItem.id == item.id)
-                .values(
-                    wear_count=ClothingItem.wear_count + 1,
-                    last_worn_at=user_today,
-                    wears_since_wash=ClothingItem.wears_since_wash + 1,
-                    needs_wash=ClothingItem.wears_since_wash + 1 >= effective_interval,
-                )
-            )
+        await ItemService(db).record_wears(
+            current_user.id,
+            [outfit_item.item_id for outfit_item in outfit.items],
+            user_today,
+            occasion=outfit.occasion,
+            outfit_id=outfit.id,
+        )
     if request.worn_with_modifications is not None:
         feedback.worn_with_modifications = request.worn_with_modifications
     if request.modification_notes is not None:
