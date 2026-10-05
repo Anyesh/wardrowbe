@@ -26,6 +26,7 @@ import { LineageCard } from '@/components/shared/lineage-card';
 import { CloneToLookbookDialog } from '@/components/shared/clone-to-lookbook-dialog';
 import { useDeleteOutfit, useOutfit, useOutfits } from '@/lib/hooks/use-outfits';
 import { useWearToday } from '@/lib/hooks/use-studio';
+import { useUserToday } from '@/lib/hooks/use-user';
 import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import { getErrorMessage } from '@/lib/api';
 
@@ -40,6 +41,7 @@ export default function OutfitDetailPage() {
   const { data: outfit, isLoading } = useOutfit(outfitId);
   const deleteMutation = useDeleteOutfit();
   const wearTodayMutation = useWearToday(outfitId ?? '');
+  const getUserToday = useUserToday();
 
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
 
@@ -64,7 +66,7 @@ export default function OutfitDetailPage() {
 
   const handleWearToday = async () => {
     try {
-      const result = await wearTodayMutation.mutateAsync({});
+      const result = await wearTodayMutation.mutateAsync({ scheduled_for: getUserToday() });
       toast.success(t('detail.addedToToday'));
       router.push(`/dashboard/outfits/${result.id}`);
     } catch (error) {

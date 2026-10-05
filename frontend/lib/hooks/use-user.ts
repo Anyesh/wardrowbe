@@ -1,8 +1,10 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, setAccessToken } from '@/lib/api';
+import { getTodayDateStringInTimezone } from '@/lib/utils';
 
 export interface UserProfile {
   id: string;
@@ -46,6 +48,14 @@ export function useUserProfile() {
     queryFn: () => api.get<UserProfile>('/users/me'),
     enabled: status !== 'loading',
   });
+}
+
+// Returns a getter rather than a value so that a page left open past midnight dates the
+// action by when it happens, not when the page rendered.
+export function useUserToday(): () => string {
+  const { data: profile } = useUserProfile();
+  const timezone = profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return useCallback(() => getTodayDateStringInTimezone(timezone), [timezone]);
 }
 
 export function useUpdateUserProfile() {

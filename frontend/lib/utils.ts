@@ -46,6 +46,13 @@ export function getTodayInTimezone(timezone: string = 'UTC'): Date {
   }
 }
 
+export function getTodayDateStringInTimezone(timezone: string = 'UTC'): string {
+  const today = getTodayInTimezone(timezone);
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${today.getFullYear()}-${month}-${day}`;
+}
+
 /**
  * Parse a date string (YYYY-MM-DD) to a Date object.
  * Note: The date is parsed as local date, not UTC.
