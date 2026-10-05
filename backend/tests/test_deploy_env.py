@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pytest
@@ -133,3 +134,37 @@ def test_k8s_frontend_takes_extra_ca_certs_from_the_configmap():
 def test_k8s_capability_switches_inherit_the_master_switch(key):
     (configmap,) = _load_repo_yaml("k8s/configmap.yaml")
     assert configmap["data"].get(key, "") == "", f"{key} must stay unset so it inherits"
+
+
+def _frontend_oidc_keys_read_by_source():
+    source_dirs = [REPO_ROOT / "frontend" / name for name in ("app", "lib")]
+    if not all(path.is_dir() for path in source_dirs):
+        pytest.skip("frontend sources are not available in this environment")
+    return {
+        key
+        for directory in source_dirs
+        for path in directory.rglob("*.ts*")
+        for key in re.findall(r"process\.env\.(OIDC_[A-Z_]+)", path.read_text())
+    }
+
+
+def test_frontend_gets_every_oidc_key_it_reads_in_compose_and_k8s():
+    expected = _frontend_oidc_keys_read_by_source()
+    assert expected, "the frontend should read at least OIDC_ISSUER_URL"
+
+    passed = {
+        path: {
+            key
+            for key in _load_repo_yaml(path)[0]["services"]["frontend"]["environment"]
+            if key.startswith("OIDC_")
+        }
+        for path in ("docker-compose.yml", "docker-compose.prod.yml")
+    }
+    passed["k8s/frontend.yaml"] = {
+        entry["name"]
+        for entry in _k8s_container("frontend.yaml")["env"]
+        if entry["name"].startswith("OIDC_")
+    }
+
+    for path, keys in passed.items():
+        assert keys == expected, f"{path} frontend OIDC env differs from what the frontend reads"
