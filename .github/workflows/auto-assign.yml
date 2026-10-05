@@ -1,6 +1,7 @@
 name: Auto-assign PR to maintainer
 
-on:
+# This job only edits PR metadata through the API; it never checks out or runs PR code.
+on: # zizmor: ignore[dangerous-triggers]
   pull_request_target:
     types: [opened]
 

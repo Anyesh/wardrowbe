@@ -1,6 +1,7 @@
 name: Welcome first-time contributors
 
-on:
+# This job only posts a fixed message through the API; it never checks out or runs PR code.
+on: # zizmor: ignore[dangerous-triggers]
   issues:
     types: [opened]
   pull_request_target:
