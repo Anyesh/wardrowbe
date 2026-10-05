@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SourceBadge } from '@/components/shared/source-badge';
 import { LineageCard } from '@/components/shared/lineage-card';
 import { CloneToLookbookDialog } from '@/components/shared/clone-to-lookbook-dialog';
 import { useDeleteOutfit, useOutfit, useOutfits } from '@/lib/hooks/use-outfits';
@@ -108,9 +109,7 @@ export default function OutfitDetailPage() {
           <Badge variant="outline" className="capitalize">
             {occasionLabel(outfit.occasion)}
           </Badge>
-          <Badge variant="outline" className="capitalize">
-            {outfit.source.replace('_', ' ')}
-          </Badge>
+          <SourceBadge source={outfit.source} />
           <span className="text-sm text-muted-foreground">
             {outfit.scheduled_for
               ? formatRelativeDate(outfit.scheduled_for, locale, getUserToday())
