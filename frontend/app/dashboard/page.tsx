@@ -310,14 +310,14 @@ function NextScheduledCard() {
     );
   }
 
-  const { schedule, daysUntil } = nextSchedule;
+  const { schedule, notifyDay, daysUntil } = nextSchedule;
   const timeStr = schedule.notification_time.slice(0, 5);
   const dayNames = [
-    tDays('days.sunday'), tDays('days.monday'), tDays('days.tuesday'),
-    tDays('days.wednesday'), tDays('days.thursday'), tDays('days.friday'),
-    tDays('days.saturday'),
+    tDays('days.monday'), tDays('days.tuesday'), tDays('days.wednesday'),
+    tDays('days.thursday'), tDays('days.friday'), tDays('days.saturday'),
+    tDays('days.sunday'),
   ];
-  const dayStr = daysUntil === 0 ? t('nextScheduled.today') : daysUntil === 1 ? t('nextScheduled.tomorrow') : dayNames[schedule.day_of_week];
+  const dayStr = daysUntil === 0 ? t('nextScheduled.today') : daysUntil === 1 ? t('nextScheduled.tomorrow') : dayNames[notifyDay];
 
   return (
     <Card>
