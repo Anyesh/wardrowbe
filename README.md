@@ -409,6 +409,10 @@ Uses [Open-Meteo](https://open-meteo.com/) - free, no API key needed.
 
 ## Development
 
+For local Git checks, install [prek](https://prek.j178.dev/installation/) and run
+`prek install` from the repository root. See [CONTRIBUTING.md](CONTRIBUTING.md#git-hooks)
+for the hook workflow.
+
 ### Backend
 
 ```bash
