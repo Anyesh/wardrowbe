@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentFamilyMember, useFamily } from '@/lib/hooks/use-family';
 import { useFamilyOutfits, type Outfit } from '@/lib/hooks/use-outfits';
-import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { SourceBadge } from '@/components/shared/source-badge';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
@@ -46,6 +46,7 @@ function FeedOutfitCard({
   memberName: string;
   onPreview: () => void;
 }) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('family');
   const tc = useTranslations('common');
   const occasionLabel = useOccasionLabel();
@@ -89,14 +90,14 @@ function FeedOutfitCard({
               {item.thumbnail_url ? (
                 <Image
                   src={item.thumbnail_url}
-                  alt={item.name || item.type}
+                  alt={item.name || typeLabel(item.type)}
                   fill
                   className="object-cover"
                   sizes="80px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                  {item.type}
+                  {typeLabel(item.type)}
                 </div>
               )}
             </div>

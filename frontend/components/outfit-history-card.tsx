@@ -15,7 +15,7 @@ import {
 import { toast } from 'sonner';
 import { OutfitStatusIcon } from '@/components/outfit-status';
 import { useAcceptOutfit, useRejectOutfit, type Outfit, type WoreInsteadItem } from '@/lib/hooks/use-outfits';
-import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { SourceBadge } from '@/components/shared/source-badge';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -28,6 +28,7 @@ interface OutfitHistoryCardProps {
 }
 
 export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHistoryCardProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('history.card');
   const occasionLabel = useOccasionLabel();
   const acceptOutfit = useAcceptOutfit();
@@ -82,14 +83,14 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
               {item.thumbnail_url ? (
                 <Image
                   src={item.thumbnail_url}
-                  alt={item.name || item.type}
+                  alt={item.name || typeLabel(item.type)}
                   fill
                   className="object-cover"
                   sizes="64px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                  {item.type}
+                  {typeLabel(item.type)}
                 </div>
               )}
             </div>
@@ -132,12 +133,12 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
                     type="button"
                     onClick={() => setPreviewItem(item)}
                     className="w-14 h-14 rounded-lg bg-muted overflow-hidden relative border hover:ring-2 ring-primary transition-all"
-                    title={item.name || item.type}
+                    title={item.name || typeLabel(item.type)}
                   >
                     {item.thumbnail_url ? (
                       <Image
                         src={item.thumbnail_url}
-                        alt={item.name || item.type}
+                        alt={item.name || typeLabel(item.type)}
                         fill
                         className="object-cover"
                         sizes="56px"
@@ -246,7 +247,7 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
                 {previewItem?.thumbnail_url ? (
                   <Image
                     src={previewItem.thumbnail_url}
-                    alt={previewItem.name || previewItem.type}
+                    alt={previewItem.name || typeLabel(previewItem.type)}
                     fill
                     className="object-contain"
                     sizes="(max-width: 448px) 100vw, 448px"

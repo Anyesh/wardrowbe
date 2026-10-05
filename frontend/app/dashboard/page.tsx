@@ -33,7 +33,7 @@ import { useAnalytics } from '@/lib/hooks/use-analytics';
 import { useAnalyticsInsightLines } from '@/lib/hooks/use-insight-text';
 import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
-import { useOccasionLabel, useWeatherConditionLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useWeatherConditionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { displayValue, tempSymbol, TempUnit } from '@/lib/temperature';
 import { usePendingOutfits, useAcceptOutfit, useRejectOutfit } from '@/lib/hooks/use-outfits';
 import { useSchedules, useNotificationSettings } from '@/lib/hooks/use-notifications';
@@ -124,6 +124,7 @@ function WeatherCard() {
 }
 
 function PendingOutfitsCard() {
+  const typeLabel = useTypeLabel();
   const { data, isLoading } = usePendingOutfits(2);
   const acceptOutfit = useAcceptOutfit();
   const rejectOutfit = useRejectOutfit();
@@ -215,7 +216,7 @@ function PendingOutfitsCard() {
                   {item.thumbnail_url ? (
                     <Image
                       src={item.thumbnail_url}
-                      alt={item.name || item.type}
+                      alt={item.name || typeLabel(item.type)}
                       fill
                       className="object-cover"
                       sizes="40px"

@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatShortDate } from '@/lib/utils';
-import { useOccasionLabel, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useSubtypeLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
 export type OutfitPreview = Pick<
   Outfit,
@@ -41,6 +41,7 @@ interface OutfitPreviewDialogProps {
 }
 
 export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: OutfitPreviewDialogProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('suggest.outfitPreview');
   const ts = useTranslations('suggest');
   const tc = useTranslations('common');
@@ -115,7 +116,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                   <Image
                     key={`${currentItem.id}-${imageKey}`}
                     src={currentItem.image_url}
-                    alt={currentItem.name || currentItem.type}
+                    alt={currentItem.name || typeLabel(currentItem.type)}
                     fill
                     className="object-contain"
                     sizes="(max-width: 512px) 100vw, 512px"
@@ -157,7 +158,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary" className="capitalize">
-                  {currentItem.type}
+                  {typeLabel(currentItem.type)}
                 </Badge>
                 {currentItem.subtype && (
                   <Badge variant="outline" className="capitalize">
@@ -238,7 +239,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                     {item.thumbnail_url ? (
                       <Image
                         src={item.thumbnail_url}
-                        alt={item.name || item.type}
+                        alt={item.name || typeLabel(item.type)}
                         fill
                         className="object-cover"
                         sizes="56px"

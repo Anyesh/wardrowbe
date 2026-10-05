@@ -13,6 +13,7 @@ vi.mock('@/lib/hooks/use-translated-constants', () => ({
   useOccasionLabel: () => (o: string) => o,
   useWeatherConditionLabel: () => (c: string) => c,
   useStyleLabel: () => (s: string) => s,
+  useTypeLabel: () => (t: string) => t,
 }))
 vi.mock('@/lib/hooks/use-analytics', () => ({ useAnalytics: vi.fn() }))
 vi.mock('@/lib/hooks/use-learning', () => ({

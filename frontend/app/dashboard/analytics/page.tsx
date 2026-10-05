@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
 import { AcceptanceTrendChart } from '@/components/acceptance-trend-chart';
-import { useColorLabel } from '@/lib/hooks/use-translated-constants';
+import { useColorLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { useAnalyticsInsightLines } from '@/lib/hooks/use-insight-text';
 import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
@@ -118,6 +118,7 @@ function ColorBar({ color, percentage }: { color: string; percentage: number }) 
 }
 
 function ItemCard({ item }: { item: { id: string; name: string | null; type: string; thumbnail_url: string | null; wear_count: number } }) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('analytics');
   return (
     <Link
@@ -128,7 +129,7 @@ function ItemCard({ item }: { item: { id: string; name: string | null; type: str
         {item.thumbnail_url ? (
           <Image
             src={item.thumbnail_url}
-            alt={item.name || item.type}
+            alt={item.name || typeLabel(item.type)}
             fill
             className="object-cover"
             sizes="48px"
@@ -140,8 +141,8 @@ function ItemCard({ item }: { item: { id: string; name: string | null; type: str
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{item.name || item.type}</p>
-        <p className="text-sm text-muted-foreground capitalize">{item.type}</p>
+        <p className="font-medium truncate">{item.name || typeLabel(item.type)}</p>
+        <p className="text-sm text-muted-foreground capitalize">{typeLabel(item.type)}</p>
       </div>
       <Badge variant="secondary">{t('wearCount', { count: item.wear_count })}</Badge>
     </Link>
@@ -149,6 +150,7 @@ function ItemCard({ item }: { item: { id: string; name: string | null; type: str
 }
 
 export default function AnalyticsPage() {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('analytics');
   const { data, isLoading, isError } = useAnalytics(60);
   const insights = useAnalyticsInsightLines(data);
@@ -272,7 +274,7 @@ export default function AnalyticsPage() {
               <div className="space-y-3">
                 {type_distribution.map((type) => (
                   <div key={type.type} className="flex items-center justify-between">
-                    <span className="capitalize">{type.type}</span>
+                    <span className="capitalize">{typeLabel(type.type)}</span>
                     <div className="flex items-center gap-2">
                       <Progress value={type.percentage} className="w-24 h-2" />
                       <span className="text-sm text-muted-foreground w-12 text-right">

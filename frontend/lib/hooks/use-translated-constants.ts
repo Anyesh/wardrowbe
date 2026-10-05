@@ -71,6 +71,10 @@ function useCatalogLabel(t: CatalogTranslator) {
   }, [t]);
 }
 
+export function useTypeLabel() {
+  return useCatalogLabel(useTranslations('constants.types'));
+}
+
 export function useSubtypeLabel() {
   return useCatalogLabel(useTranslations('constants.subtypes'));
 }

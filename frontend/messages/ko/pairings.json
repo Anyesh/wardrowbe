@@ -16,6 +16,7 @@
     "title": "아직 페어링이 없어요"
   },
   "generate": {
+    "colorAndType": "{color} {type}",
     "description": "AI가 이 아이템을 포함한 완성된 코디를 만들어요",
     "failed": "페어링 생성 실패",
     "generate": "코디 생성",

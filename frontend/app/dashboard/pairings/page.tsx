@@ -20,6 +20,7 @@ import { FeedbackDialog } from '@/components/feedback-dialog';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import { Pairing } from '@/lib/types';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
+import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
 function EmptyPairings({ t }: { t: (key: string) => string }) {
   return (
@@ -70,6 +71,7 @@ function LoadingSkeleton() {
 export default function PairingsPage() {
   const t = useTranslations('pairings');
   const tc = useTranslations('common');
+  const typeLabel = useTypeLabel();
   const [sourceType, setSourceType] = useState<string | undefined>(undefined);
   const [feedbackOutfit, setFeedbackOutfit] = useState<Pairing | null>(null);
   const [previewOutfit, setPreviewOutfit] = useState<Pairing | null>(null);
@@ -117,7 +119,7 @@ export default function PairingsPage() {
             <SelectItem value="all">{t('allItemTypes')}</SelectItem>
             {itemTypes?.map((type) => (
               <SelectItem key={type.type} value={type.type}>
-                {t('itemTypeOption', { type: type.type, count: type.count })}
+                {t('itemTypeOption', { type: typeLabel(type.type), count: type.count })}
               </SelectItem>
             ))}
           </SelectContent>
