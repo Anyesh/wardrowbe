@@ -63,8 +63,10 @@ import { toast } from 'sonner';
 import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
 import {
+  findClothingColor,
   useClothingTypes,
   useClothingColors,
+  useColorLabel,
   useFormalityLabel,
   useMaterialLabel,
   useSubtypeLabel,
@@ -115,6 +117,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const router = useRouter();
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
+  const colorLabel = useColorLabel();
   const subtypeLabel = useSubtypeLabel();
   const materialLabel = useMaterialLabel();
   const formalityLabel = useFormalityLabel();
@@ -283,7 +286,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
   // Use signed URL from backend for better quality in detail view
   const imageUrl = item.image_url || item.image_path;
-  const colorInfo = clothingColors.find((c) => c.value === item.primary_color);
+  const colorInfo = findClothingColor(clothingColors, item.primary_color);
+  const displayColor = item.primary_color ? colorInfo?.name ?? colorLabel(item.primary_color) : null;
+  const isCustomEditColor = editForm.primary_color &&
+    !clothingColors.some((c) => c.value === editForm.primary_color);
   const typeInfo = clothingTypes.find((type) => type.value === item.type);
   const unrecognizedType = item.type === 'unknown' ? item.ai_unrecognized_type : null;
   const subtypeSuggestions = CLOTHING_SUBTYPES[editForm.type] ?? [];
@@ -672,6 +678,11 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                           <SelectValue placeholder={t('placeholders.selectColor')} />
                         </SelectTrigger>
                         <SelectContent>
+                          {isCustomEditColor && (
+                            <SelectItem value={editForm.primary_color}>
+                              {colorLabel(editForm.primary_color)}
+                            </SelectItem>
+                          )}
                           {clothingColors.map((c) => (
                             <SelectItem key={c.value} value={c.value}>
                               <div className="flex items-center gap-2">
@@ -757,14 +768,16 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         <span>{item.brand}</span>
                       </div>
                     )}
-                    {colorInfo && (
+                    {displayColor && (
                       <div className="flex items-center gap-2 text-sm">
                         <Palette className="h-4 w-4 text-muted-foreground" />
-                        <div
-                          className="w-4 h-4 rounded-full border"
-                          style={{ backgroundColor: colorInfo.hex }}
-                        />
-                        <span>{colorInfo.name}</span>
+                        {colorInfo && (
+                          <div
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: colorInfo.hex }}
+                          />
+                        )}
+                        <span>{displayColor}</span>
                       </div>
                     )}
                     {item.wear_count > 0 && (
