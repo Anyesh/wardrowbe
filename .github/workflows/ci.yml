@@ -16,6 +16,34 @@ jobs:
       - name: Run actionlint
         run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
 
+  shell-lint:
+    name: Shell Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ShellCheck 0.11.0
+        run: |
+          curl -fL --retry 3 -o "$RUNNER_TEMP/shellcheck.tar.xz" \
+            https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  $RUNNER_TEMP/shellcheck.tar.xz" | sha256sum --check
+          tar -xJf "$RUNNER_TEMP/shellcheck.tar.xz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/shellcheck-v0.11.0" >> "$GITHUB_PATH"
+
+      - name: Install shfmt 3.14.1
+        run: |
+          curl -fL --retry 3 -o "$RUNNER_TEMP/shfmt" \
+            https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_linux_amd64
+          echo "76e77641faa025814b77f153b29796b8e6fa2fca03e0c76a691608b86c7ea7bf  $RUNNER_TEMP/shfmt" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/shfmt"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Check entrypoint scripts
+        run: |
+          sh -n backend/docker-entrypoint.sh frontend/docker-entrypoint.sh
+          shellcheck --shell=sh --severity=style backend/docker-entrypoint.sh frontend/docker-entrypoint.sh
+          shfmt -ln posix -i 4 -ci -sr -d backend/docker-entrypoint.sh frontend/docker-entrypoint.sh
+
   backend-lint:
     name: Backend Lint
     runs-on: ubuntu-latest

@@ -102,6 +102,21 @@ npm run typecheck
 npm run lint
 ```
 
+### Shell entrypoints
+
+The backend and frontend Docker entrypoints use POSIX `sh` and four-space indentation. CI checks
+them with ShellCheck 0.11.0 and shfmt 3.14.1. Run the same checks locally after installing those
+versions:
+
+```bash
+sh -n backend/docker-entrypoint.sh frontend/docker-entrypoint.sh
+shellcheck --shell=sh --severity=style backend/docker-entrypoint.sh frontend/docker-entrypoint.sh
+shfmt -ln posix -i 4 -ci -sr -d backend/docker-entrypoint.sh frontend/docker-entrypoint.sh
+```
+
+To apply the shell formatter, replace `-d` with `-w`. This check covers the two entrypoint files;
+GitHub Actions `run` blocks are checked separately by actionlint.
+
 ## Code Style
 
 ### Python (Backend)
