@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import Settings
 from app.models.item import ClothingItem
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
+from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.services.notification_providers import EXPO_PUSH_URL, EmailProvider
@@ -220,19 +221,20 @@ class TestProcessScheduledNotification:
         self, db_session: AsyncSession, schedule_user: User, ntfy_channel
     ):
         schedule = _make_due_schedule(schedule_user)
-        db_session.add(schedule)
+        outfit = Outfit(
+            user_id=schedule_user.id,
+            occasion="casual",
+            scheduled_for=datetime.now(UTC).date(),
+            status=OutfitStatus.pending,
+            source=OutfitSource.scheduled,
+            reasoning="Light layers",
+        )
+        db_session.add_all([schedule, outfit])
         await db_session.commit()
 
-        mock_outfit = MagicMock()
-        mock_outfit.id = uuid.uuid4()
-
         mock_rec_service = MagicMock()
-        mock_rec_service.generate_recommendation = AsyncMock(return_value=mock_outfit)
-
-        mock_dispatcher = MagicMock()
-        mock_dispatcher.send_outfit_notification = AsyncMock(return_value=[])
-
-        ctx = {"job_try": 1}
+        mock_rec_service.generate_recommendation = AsyncMock(return_value=outfit)
+        post = _fake_post()
 
         with (
             patch("app.workers.notifications.get_db_session", return_value=db_session),
@@ -241,18 +243,40 @@ class TestProcessScheduledNotification:
                 "app.workers.notifications.RecommendationService",
                 return_value=mock_rec_service,
             ),
-            patch(
-                "app.workers.notifications.NotificationDispatcher",
-                return_value=mock_dispatcher,
-            ),
             patch("app.workers.notifications.WeatherService"),
+            patch.object(httpx.AsyncClient, "post", post),
         ):
-            result = await process_scheduled_notification(ctx, str(schedule.id))
+            result = await process_scheduled_notification({"job_try": 1}, str(schedule.id))
 
-        assert result["status"] == "sent"
-        assert result["outfit_id"] == str(mock_outfit.id)
-        mock_rec_service.generate_recommendation.assert_called_once()
-        mock_dispatcher.send_outfit_notification.assert_called_once()
+        assert result == {"status": "sent", "outfit_id": str(outfit.id)}
+        assert [c.args[0] for c in post.call_args_list] == ["https://ntfy.sh/test-topic"]
+        [row] = (
+            (
+                await db_session.execute(
+                    select(Notification).where(Notification.outfit_id == outfit.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert (row.channel, row.status) == ("ntfy", NotificationStatus.sent)
+
+    @pytest.mark.asyncio
+    async def test_only_disabled_channels_returns_skipped(
+        self, db_session: AsyncSession, schedule_user: User, ntfy_channel
+    ):
+        ntfy_channel.enabled = False
+        schedule = _make_due_schedule(schedule_user)
+        db_session.add(schedule)
+        await db_session.commit()
+
+        with (
+            patch("app.workers.notifications.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+        ):
+            result = await process_scheduled_notification({"job_try": 1}, str(schedule.id))
+
+        assert result == {"status": "skipped", "reason": "no_channels"}
 
     @pytest.mark.asyncio
     async def test_missing_schedule_returns_skipped(self, db_session: AsyncSession):

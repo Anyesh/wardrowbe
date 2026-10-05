@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.config import get_settings
 from app.models.item import ClothingItem
 from app.models.learning import UserLearningProfile
-from app.models.notification import Notification, NotificationSettings, NotificationStatus
+from app.models.notification import Notification, NotificationStatus
 from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
 from app.models.user import User
@@ -166,15 +166,8 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             logger.warning(f"User {schedule.user_id} not found or deleted, skipping")
             return {"status": "skipped", "reason": "user_not_found"}
 
-        channels_result = await db.execute(
-            select(NotificationSettings).where(
-                and_(
-                    NotificationSettings.user_id == schedule.user_id,
-                    NotificationSettings.enabled == True,  # noqa: E712
-                )
-            )
-        )
-        if not channels_result.scalars().first():
+        dispatcher = NotificationDispatcher(db)
+        if not await dispatcher.enabled_channels(schedule.user_id):
             logger.warning(f"No enabled channels for user {schedule.user_id}, skipping")
             return {"status": "skipped", "reason": "no_channels"}
 
@@ -209,7 +202,6 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             scheduled_date=target_date,
         )
 
-        dispatcher = NotificationDispatcher(db)
         await dispatcher.send_outfit_notification(
             user_id=str(user.id),
             outfit_id=str(outfit.id),
