@@ -77,9 +77,10 @@ pip install pre-commit
 # Run tests
 pytest
 
-# Run linting from the repository root
-(cd .. && pre-commit run ruff-check --all-files)
-(cd .. && pre-commit run ruff-format --all-files)
+# Return to the repository root, then run the lint hooks
+cd ..
+pre-commit run ruff-check --all-files
+pre-commit run ruff-format --all-files
 ```
 
 ### Frontend Development
