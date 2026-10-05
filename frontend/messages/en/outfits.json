@@ -41,6 +41,7 @@
     "worn": "Worn"
   },
   "cloneToLookbook": {
+    "defaultName": "{occasion} · {date}",
     "description": "Give this look a name so you can find it later and wear it again.",
     "errorEmpty": "Please enter a name",
     "name": "Name",

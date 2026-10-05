@@ -41,6 +41,7 @@
     "worn": "着用済み"
   },
   "cloneToLookbook": {
+    "defaultName": "{occasion}・{date}",
     "description": "このコーデに名前を付けて、後から見つけてまた着られるようにしましょう。",
     "errorEmpty": "名前を入力してください",
     "name": "名前",

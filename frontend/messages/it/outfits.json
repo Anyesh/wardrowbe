@@ -41,6 +41,7 @@
     "worn": "Indossati"
   },
   "cloneToLookbook": {
+    "defaultName": "{occasion} · {date}",
     "description": "Dai un nome a questo look per poterlo ritrovare e indossare di nuovo.",
     "errorEmpty": "Inserisci un nome",
     "name": "Nome",

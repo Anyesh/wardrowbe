@@ -41,6 +41,7 @@
     "worn": "已穿過"
   },
   "cloneToLookbook": {
+    "defaultName": "{occasion} · {date}",
     "description": "為這套造型命名，方便日後尋找並再次穿著。",
     "errorEmpty": "請輸入名稱",
     "name": "名稱",
