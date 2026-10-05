@@ -19,6 +19,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.api.auth import create_access_token
@@ -29,7 +30,11 @@ from app.models import User, UserPreference
 
 # Test database URL from environment — set in docker-compose.dev.yml, never falls back to DATABASE_URL.
 TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
-_ADMIN_DSN = TEST_DATABASE_URL.replace("+asyncpg", "").rsplit("/", 1)[0] + "/postgres"
+_TEST_DB_URL = make_url(TEST_DATABASE_URL)
+_TEST_DB_NAME = _TEST_DB_URL.database
+_ADMIN_DSN = _TEST_DB_URL.set(drivername="postgresql", database="postgres").render_as_string(
+    hide_password=False
+)
 
 _test_db_ready = False
 
@@ -41,9 +46,10 @@ async def _ensure_test_db():
 
     conn = await asyncpg.connect(_ADMIN_DSN)
     try:
-        exists = await conn.fetchval("SELECT 1 FROM pg_database WHERE datname = 'wardrobe_test'")
+        exists = await conn.fetchval("SELECT 1 FROM pg_database WHERE datname = $1", _TEST_DB_NAME)
         if not exists:
-            await conn.execute("CREATE DATABASE wardrobe_test")
+            quoted = await conn.fetchval("SELECT quote_ident($1)", _TEST_DB_NAME)
+            await conn.execute(f"CREATE DATABASE {quoted}")
     finally:
         await conn.close()
 
