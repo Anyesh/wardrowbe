@@ -5,6 +5,7 @@ import { signIn, getProviders, useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
 import { useAuthConfig } from '@/lib/hooks/use-auth-config';
 
 function OIDCLoginButton({ callbackUrl }: { callbackUrl: string }) {
@@ -90,11 +91,17 @@ function DevLogin({ callbackUrl }: { callbackUrl: string }) {
 }
 
 type ForwardSignInState = 'idle' | 'signingIn' | 'failed';
+type ForwardFailure = 'headers' | 'server';
+
+function forwardFailureFor(errorCode: string | null | undefined): ForwardFailure {
+  return errorCode === FORWARD_AUTH_SERVER_ERROR ? 'server' : 'headers';
+}
 
 // Lives in LoginContent rather than ForwardLogin so that the one-shot guard survives the
 // skeleton swapping ForwardLogin out while the session reloads.
 function useForwardSignIn(auto: boolean) {
   const [state, setState] = useState<ForwardSignInState>('idle');
+  const [failure, setFailure] = useState<ForwardFailure | null>(null);
   const attempted = useRef(false);
 
   const signInThroughProxy = useCallback(async () => {
@@ -103,6 +110,7 @@ function useForwardSignIn(auto: boolean) {
     // pages.error ('/login?error=...') and lose the reason.
     const result = await signIn('forward-auth', { redirect: false });
     if (!result?.ok || result.error) {
+      setFailure(forwardFailureFor(result?.error));
       setState('failed');
     }
   }, []);
@@ -113,17 +121,17 @@ function useForwardSignIn(auto: boolean) {
     void signInThroughProxy();
   }, [auto, signInThroughProxy]);
 
-  return { state, signInThroughProxy };
+  return { state, failure, signInThroughProxy };
 }
 
 function ForwardLogin({
   state,
-  failed,
+  failure,
   loggedOut,
   onSignIn,
 }: {
   state: ForwardSignInState;
-  failed: boolean;
+  failure: ForwardFailure | null;
   loggedOut: boolean;
   onSignIn: () => void;
 }) {
@@ -131,12 +139,12 @@ function ForwardLogin({
 
   return (
     <div className="space-y-4">
-      {failed && state !== 'signingIn' && (
+      {failure && state !== 'signingIn' && (
         <div className="rounded-md bg-destructive/15 p-4 text-sm text-destructive">
-          {t('forwardAuth.headersMissing')}
+          {failure === 'server' ? t('forwardAuth.serverError') : t('forwardAuth.headersMissing')}
         </div>
       )}
-      {loggedOut && !failed && state === 'idle' && (
+      {loggedOut && !failure && state === 'idle' && (
         <p className="text-center text-sm text-muted-foreground">{t('forwardAuth.signedOut')}</p>
       )}
       <button
@@ -258,7 +266,9 @@ function LoginContent() {
         {authMode === 'forward' && (
           <ForwardLogin
             state={forward.state}
-            failed={forward.state === 'failed' || !!error}
+            failure={
+              forward.state === 'failed' ? forward.failure : error ? forwardFailureFor(error) : null
+            }
             loggedOut={loggedOut}
             onSignIn={forward.signInThroughProxy}
           />
