@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import type { FamilyRating, Outfit, OutfitStatus } from '@/lib/types';
 import { formatDateKey } from '@/lib/utils';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/pagination';
 import { queryKeys } from '@/lib/hooks/query-keys';
 import { invalidateOutfitCaches } from '@/lib/hooks/cache-invalidation';
 
@@ -67,7 +68,7 @@ export interface FeedbackResponse {
   created_at: string;
 }
 
-export function useOutfits(filters: OutfitFilters = {}, page = 1, pageSize = 20) {
+export function useOutfits(filters: OutfitFilters = {}, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
@@ -228,7 +229,7 @@ export function useCalendarOutfits(year: number, month: number, filters: OutfitF
 
   const params: Record<string, string> = {
     page: '1',
-    page_size: '100', // Get all outfits for the month
+    page_size: String(MAX_PAGE_SIZE),
     date_from,
     date_to,
   };
@@ -303,7 +304,11 @@ export function useDeleteFamilyRating() {
   });
 }
 
-export function useFamilyOutfits(memberId: string | undefined, page = 1, pageSize = 20) {
+export function useFamilyOutfits(
+  memberId: string | undefined,
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE
+) {
   const { status } = useSession();
   useSetTokenIfAvailable();
 

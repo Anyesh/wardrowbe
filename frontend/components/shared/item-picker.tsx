@@ -7,10 +7,10 @@ import { Check, Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useItems } from '@/lib/hooks/use-items';
 import { cn } from '@/lib/utils';
+import { GRID_PAGE_SIZE } from '@/lib/pagination';
 import type { Item } from '@/lib/types';
 import { useTranslations } from 'next-intl';
 
-const PAGE_SIZE = 24;
 
 interface ItemPickerProps {
   selectedIds: Set<string>;
@@ -55,7 +55,7 @@ export function ItemPicker({
       needs_wash: hideNeedsWash ? false : undefined,
     },
     page,
-    PAGE_SIZE
+    GRID_PAGE_SIZE
   );
 
   const hasMore = itemsData?.has_more ?? false;

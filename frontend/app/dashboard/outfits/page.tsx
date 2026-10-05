@@ -24,6 +24,7 @@ import {
   type OutfitFilters,
 } from '@/lib/hooks/use-outfits';
 import { cn, formatDateKey, formatShortDate, parseDateString } from '@/lib/utils';
+import { GRID_PAGE_SIZE } from '@/lib/pagination';
 
 interface MonthRef {
   year: number;
@@ -176,7 +177,7 @@ function OutfitsPageContent() {
     [chip, debouncedSearch],
   );
 
-  const listQuery = useOutfits(filters, page, 24);
+  const listQuery = useOutfits(filters, page, GRID_PAGE_SIZE);
   const bulkDeleteOutfits = useBulkDeleteOutfits();
 
   // Clear selection when filters change (but not page - allow cross-page selection)
@@ -623,7 +624,7 @@ function OutfitsPageContent() {
           isDeleting={bulkDeleteOutfits.isPending}
           variant="outfits"
           page={page}
-          pageSize={24}
+          pageSize={GRID_PAGE_SIZE}
           onPageChange={setPage}
         />
       )}

@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/select';
 import { useCreateItem, useBulkCreateItems, BulkUploadResponse } from '@/lib/hooks/use-items';
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
+import { ACCEPTED_IMAGE_TYPES } from '@/lib/image-types';
 import { useTranslations } from 'next-intl';
 
 interface AddItemDialogProps {
@@ -114,18 +115,14 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
   const { getRootProps: getSingleRootProps, getInputProps: getSingleInputProps, isDragActive: isSingleDragActive } = useDropzone({
     onDrop: onDropSingle,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic', '.heif'],
-    },
+    accept: ACCEPTED_IMAGE_TYPES,
     maxFiles: 1,
     multiple: false,
   });
 
   const { getRootProps: getBulkRootProps, getInputProps: getBulkInputProps, isDragActive: isBulkDragActive } = useDropzone({
     onDrop: onDropBulk,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic', '.heif'],
-    },
+    accept: ACCEPTED_IMAGE_TYPES,
     multiple: true,
   });
 
