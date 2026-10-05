@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import and_, select
 
+from app.api.pagination import PaginationParams
 from app.database import DbSession
 from app.models.outfit import Outfit
 from app.models.user import User
@@ -268,24 +269,23 @@ async def generate_pairings(
 async def list_pairings(
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pagination: Annotated[PaginationParams, Depends()],
     source_type: str | None = Query(None, description="Filter by source item type"),
 ) -> PairingListResponse:
     service = PairingService(db)
     pairings, total = await service.get_all_pairings(
         user_id=current_user.id,
-        page=page,
-        page_size=page_size,
+        page=pagination.page,
+        page_size=pagination.page_size,
         source_type=source_type,
     )
 
     return PairingListResponse(
         pairings=[pairing_to_response(p) for p in pairings],
         total=total,
-        page=page,
-        page_size=page_size,
-        has_more=(page * page_size) < total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        has_more=pagination.has_more(total),
     )
 
 
@@ -294,23 +294,22 @@ async def list_item_pairings(
     item_id: UUID,
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pagination: Annotated[PaginationParams, Depends()],
 ) -> PairingListResponse:
     service = PairingService(db)
     pairings, total = await service.get_pairings_for_item(
         user_id=current_user.id,
         source_item_id=item_id,
-        page=page,
-        page_size=page_size,
+        page=pagination.page,
+        page_size=pagination.page_size,
     )
 
     return PairingListResponse(
         pairings=[pairing_to_response(p) for p in pairings],
         total=total,
-        page=page,
-        page_size=page_size,
-        has_more=(page * page_size) < total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        has_more=pagination.has_more(total),
     )
 
 

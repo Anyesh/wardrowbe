@@ -11,6 +11,8 @@ from app.models.family import Family, FamilyInvite, FamilyRole
 from app.models.user import User
 from app.schemas.family import FamilyCreate, FamilyUpdate, InviteMemberRequest
 
+INVITE_TTL = timedelta(days=7)
+
 
 def generate_invite_code(length: int = 8) -> str:
     alphabet = string.ascii_uppercase + string.digits
@@ -164,7 +166,7 @@ class FamilyService:
         existing = result.scalar_one_or_none()
         if existing:
             # Update expiration
-            existing.expires_at = datetime.now(UTC) + timedelta(days=7)
+            existing.expires_at = datetime.now(UTC) + INVITE_TTL
             existing.token = generate_invite_token()
             await self.db.flush()
             await self.db.refresh(existing)
@@ -176,7 +178,7 @@ class FamilyService:
             token=generate_invite_token(),
             invited_by=inviter.id,
             role=invite_data.role,
-            expires_at=datetime.now(UTC) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + INVITE_TTL,
         )
         self.db.add(invite)
         await self.db.flush()

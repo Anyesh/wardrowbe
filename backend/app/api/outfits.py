@@ -9,6 +9,7 @@ from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.pagination import PaginationParams
 from app.config import get_settings
 from app.database import DbSession
 from app.models.item import ClothingItem
@@ -590,8 +591,7 @@ async def create_external_suggestion(
 async def list_outfits(
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pagination: Annotated[PaginationParams, Depends()],
     status_filter: str | None = Query(None, alias="status"),
     occasion: str | None = None,
     date_from: date | None = None,
@@ -632,7 +632,7 @@ async def list_outfits(
         cloned_from_outfit_id=cloned_from_outfit_id,
     )
 
-    outfits, total = await service.list_with_filters(filters, page, page_size)
+    outfits, total = await service.list_with_filters(filters, pagination.page, pagination.page_size)
 
     wore_instead_map = await fetch_wore_instead_items_map(db, outfits, user_id=current_user.id)
 
@@ -641,9 +641,9 @@ async def list_outfits(
     return OutfitListResponse(
         outfits=outfit_responses,
         total=total,
-        page=page,
-        page_size=page_size,
-        has_more=(page * page_size) < total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        has_more=pagination.has_more(total),
     )
 
 

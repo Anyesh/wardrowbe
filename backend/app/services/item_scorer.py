@@ -4,7 +4,12 @@ from statistics import median
 from uuid import UUID
 
 from app.models.item import ClothingItem
-from app.models.preference import UserPreference
+from app.models.preference import (
+    DEFAULT_AVOID_REPEAT_DAYS,
+    DEFAULT_COLD_THRESHOLD,
+    DEFAULT_HOT_THRESHOLD,
+    UserPreference,
+)
 from app.services.weather_service import WeatherData
 from app.utils.clothing import ITEM_ROLE
 from app.utils.garment_vocabulary import FORMALITY, OCCASION_FORMALITY
@@ -58,8 +63,6 @@ SEASON_ADJACENCY = {
 TOP_N = 70
 MIN_ITEMS_FOR_SCORING = 50
 
-DEFAULT_COLD_THRESHOLD = 10
-DEFAULT_HOT_THRESHOLD = 25
 SENSITIVITY_SHIFT = 5
 
 # An outfit is unwearable without these, so the prompt must keep candidates for them even
@@ -394,7 +397,7 @@ def score_items(
         scored = [ScoredItem(item=item) for item in items]
         return _sort_mandatory_first(scored, mandatory_item_ids)
 
-    avoid_days = 7
+    avoid_days = DEFAULT_AVOID_REPEAT_DAYS
     if preferences and preferences.avoid_repeat_days is not None:
         avoid_days = preferences.avoid_repeat_days
 
