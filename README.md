@@ -347,6 +347,11 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 | `SMTP_PORT` | SMTP port (default: 587) | No |
 | `SMTP_USER` | SMTP username | No |
 | `SMTP_PASSWORD` | SMTP password | No |
+| `SMTP_USE_TLS` | Use STARTTLS for SMTP (default: true) | No |
+| `SMTP_FROM_NAME` | Sender name on notification emails (default: Wardrowbe) | No |
+| `SMTP_FROM_EMAIL` | Sender address (default: `SMTP_USER`) | No |
+| `APP_URL` | Public app URL used in notification and invite links (default: `http://localhost:3000`) | No |
+| `LOG_LEVEL` | Log level for the API and workers (default: INFO) | No |
 | `BG_REMOVAL_PROVIDER` | Background removal backend: `rembg` or `http` (default: `rembg`) | No |
 | `BG_REMOVAL_MODEL` | rembg model name (default: `u2net`) | No |
 | `BG_REMOVAL_URL` | URL for HTTP bg removal provider | If http |

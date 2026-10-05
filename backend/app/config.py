@@ -1,5 +1,6 @@
 import logging
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, PostgresDsn, RedisDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,6 +25,13 @@ class Settings(BaseSettings):
     secret_key: str = Field(default=DEFAULT_SECRET_KEY)
     studio_disabled: bool = False
     app_url: str = Field(default="http://localhost:3000")
+
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def uppercase_log_level(cls, v: object) -> object:
+        return v.upper() if isinstance(v, str) else v
 
     @field_validator("app_url")
     @classmethod
