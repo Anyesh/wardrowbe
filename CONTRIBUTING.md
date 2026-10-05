@@ -104,11 +104,12 @@ npm run lint
 
 ### Dockerfile checks
 
-CI runs Hadolint through its pinned pre-commit container hook. Run the same check
-locally with Docker and pre-commit from the repository root:
+CI runs Hadolint from the pinned image in `.github/hadolint/Dockerfile`. Dependabot
+updates that image. Run the same check locally with Docker from the repository root:
 
 ```bash
-pre-commit run hadolint-docker --all-files
+docker build -t wardrowbe-hadolint -f .github/hadolint/Dockerfile .github/hadolint
+git ls-files -z -- 'Dockerfile*' '**/Dockerfile*' | xargs -0 docker run --rm --mount "type=bind,src=$PWD,dst=/repo,readonly" -w /repo wardrowbe-hadolint hadolint
 ```
 
 The shared `.hadolint.yaml` reports informational suggestions and fails on warnings or

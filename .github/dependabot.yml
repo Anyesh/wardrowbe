@@ -42,14 +42,13 @@ updates:
     schedule:
       interval: "weekly"
 
-  # GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: "docker"
+    directory: "/.github/hadolint"
     schedule:
       interval: "weekly"
 
-  # Pre-commit tool revisions, including Hadolint
-  - package-ecosystem: "pre-commit"
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"

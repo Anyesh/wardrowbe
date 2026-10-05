@@ -20,5 +20,7 @@ jobs:
 
       - name: Lint all Dockerfiles
         run: |
-          python -m pip install 'pre-commit>=4,<5'
-          pre-commit run hadolint-docker --all-files
+          docker build -t wardrowbe-hadolint -f .github/hadolint/Dockerfile .github/hadolint
+          git ls-files -z -- 'Dockerfile*' '**/Dockerfile*' |
+            xargs -0 docker run --rm --mount "type=bind,src=$PWD,dst=/repo,readonly" \
+              -w /repo wardrowbe-hadolint hadolint
