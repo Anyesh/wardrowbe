@@ -191,8 +191,8 @@ services:
       FORWARD_AUTH_LOGOUT_URL: ${FORWARD_AUTH_LOGOUT_URL:-}
       TINYAUTH_URL: ${TINYAUTH_URL:-}
       FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
-      # Trust self-signed certs for internal OIDC provider
-      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      # PEM path inside the container for a private CA (OIDC provider, https BACKEND_URL)
+      NODE_EXTRA_CA_CERTS: ${NODE_EXTRA_CA_CERTS:-}
     depends_on:
       - backend
     healthcheck:

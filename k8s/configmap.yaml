@@ -21,6 +21,12 @@ data:
   # If unset, the web OIDC_CLIENT_ID is used for both
   OIDC_MOBILE_CLIENT_ID: ""
 
+  # Private CA for the OIDC provider: mount the PEM into the pods (k8s/README.md "Private CA")
+  # and set its path. OIDC_CA_BUNDLE is read by the backend, NODE_EXTRA_CA_CERTS by
+  # the frontend. Empty means the system trust store only.
+  OIDC_CA_BUNDLE: ""
+  NODE_EXTRA_CA_CERTS: ""
+
   # AI Configuration
   # Use any OpenAI-compatible API (OpenAI, Ollama, LocalAI, etc.)
   AI_BASE_URL: "https://api.openai.com/v1"
