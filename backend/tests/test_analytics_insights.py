@@ -130,3 +130,32 @@ async def test_empty_wardrobe_gets_the_start_adding_key(
     body = response.json()
     assert body["insight_items"] == [{"key": "insightStartAdding", "params": {}}]
     assert body["insights"] == ["Start by adding some items to your wardrobe!"]
+
+
+@pytest.mark.asyncio
+async def test_never_worn_insight_counts_every_unworn_item_not_the_capped_list(
+    client: AsyncClient, db_session, test_user, auth_headers
+):
+    def add(count, *, wear_count=0, status=ItemStatus.ready):
+        for i in range(count):
+            db_session.add(
+                ClothingItem(
+                    user_id=test_user.id,
+                    type="shirt",
+                    status=status,
+                    image_path=f"test/{status.value}-{wear_count}-{i}.jpg",
+                    wear_count=wear_count,
+                )
+            )
+
+    add(7)
+    add(1, wear_count=2)
+    add(1, status=ItemStatus.processing)
+    await db_session.commit()
+
+    response = await client.get("/api/v1/analytics", headers=auth_headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["never_worn"]) == 5
+    assert {"key": "insightNeverWorn", "params": {"count": 7}} in body["insight_items"]

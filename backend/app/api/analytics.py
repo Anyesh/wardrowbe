@@ -333,6 +333,16 @@ async def get_analytics(
         for item in never_worn_result.scalars().all()
     ]
 
+    never_worn_total = (
+        await db.execute(
+            select(func.count(ClothingItem.id)).where(
+                ClothingItem.user_id == current_user.id,
+                ClothingItem.status == ItemStatus.ready,
+                ClothingItem.wear_count == 0,
+            )
+        )
+    ).scalar_one()
+
     # === Acceptance Rate Trend (weekly) ===
     acceptance_trend = []
     weeks = min(days // 7, 12)  # Max 12 weeks
@@ -379,8 +389,8 @@ async def get_analytics(
     if total_items == 0:
         insights.append(Insight(key="insightStartAdding"))
     else:
-        if len(never_worn) > 0:
-            insights.append(Insight(key="insightNeverWorn", params={"count": len(never_worn)}))
+        if never_worn_total:
+            insights.append(Insight(key="insightNeverWorn", params={"count": never_worn_total}))
 
         if color_distribution:
             top = color_distribution[0]
