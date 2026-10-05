@@ -33,17 +33,13 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
-          pip install ruff
+          pip install pre-commit==4.6.2
 
       - name: Run Ruff linter
-        run: |
-          cd backend
-          ruff check .
+        run: pre-commit run ruff-check --all-files
 
       - name: Run Ruff formatter check
-        run: |
-          cd backend
-          ruff format --check .
+        run: pre-commit run ruff-format --all-files
 
       - name: Check migration heads
         run: python backend/scripts/check_migration_heads.py
