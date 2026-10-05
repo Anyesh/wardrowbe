@@ -113,7 +113,7 @@ export default function OutfitDetailPage() {
           </Badge>
           <span className="text-sm text-muted-foreground">
             {outfit.scheduled_for
-              ? formatRelativeDate(outfit.scheduled_for, locale)
+              ? formatRelativeDate(outfit.scheduled_for, locale, getUserToday())
               : t('detail.lookbookTemplate')}
           </span>
         </div>
