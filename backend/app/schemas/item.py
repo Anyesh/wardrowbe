@@ -204,7 +204,7 @@ class ItemListResponse(BaseModel):
 class ItemFilter(BaseModel):
     type: str | None = None
     subtype: str | None = None
-    colors: list[str] | None = None
+    colors: ColorList | None = None
     status: str | None = None
     tagging_status: str | None = None
     favorite: bool | None = None

@@ -2,6 +2,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, Field, field_validator
 
+from app.schemas.color import ColorList
 from app.utils.garment_vocabulary import OCCASIONS
 
 MAX_AUTHORING_TEXT_LENGTH = 2000
@@ -29,7 +30,7 @@ class OutfitAttributeFields(BaseModel):
 
     season: Annotated[str | None, Field(max_length=20)] = None
     formality: Annotated[str | None, Field(max_length=50)] = None
-    palette: list[str] | None = Field(
+    palette: ColorList | None = Field(
         default=None,
         max_length=10,
         description="Dominant outfit colors, most prominent first",
@@ -43,13 +44,17 @@ class OutfitAttributeFields(BaseModel):
             return None
         return v.strip().lower() or None
 
+    @field_validator("palette", mode="before")
+    @classmethod
+    def validate_palette_lengths(cls, v: object) -> object:
+        if isinstance(v, list) and any(
+            isinstance(c, str) and not 1 <= len(c.strip()) <= 50 for c in v
+        ):
+            raise ValueError("Palette colors must be 1-50 characters")
+        return v
+
     @field_validator("palette")
     @classmethod
-    def validate_palette(cls, v: list[str] | None) -> list[str] | None:
-        if v is None:
-            return None
-        colors = [c.strip().lower() for c in v]
-        if any(not c or len(c) > 50 for c in colors):
-            raise ValueError("Palette colors must be 1-50 characters")
+    def collapse_empty_palette(cls, v: list[str] | None) -> list[str] | None:
         # [] collapses to None so "no palette" has a single representation
-        return colors or None
+        return v or None

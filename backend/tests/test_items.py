@@ -1773,3 +1773,25 @@ class TestItemColorNormalisation:
         assert data["colors"] == ["gray"]
         assert data["primary_color"] == "gray"
         assert data["tags"]["colors"] == ["gray"]
+
+    @pytest.mark.asyncio
+    async def test_filter_by_alias_matches_stored_canonical_colour(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path="test/gray.jpg",
+            colors=["gray"],
+            status=ItemStatus.ready,
+        )
+        db_session.add(item)
+        await db_session.commit()
+        await db_session.refresh(item)
+
+        response = await client.get(
+            "/api/v1/items", params={"colors": "Charcoal"}, headers=auth_headers
+        )
+
+        assert response.status_code == 200, response.text
+        assert [i["id"] for i in response.json()["items"]] == [str(item.id)]
