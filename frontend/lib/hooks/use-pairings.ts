@@ -11,8 +11,9 @@ import {
   GeneratePairingsResponse,
 } from '@/lib/types';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 
-export function usePairings(page = 1, pageSize = 20, sourceType?: string) {
+export function usePairings(page = 1, pageSize = DEFAULT_PAGE_SIZE, sourceType?: string) {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
@@ -32,7 +33,7 @@ export function usePairings(page = 1, pageSize = 20, sourceType?: string) {
   });
 }
 
-export function useItemPairings(itemId: string, page = 1, pageSize = 20) {
+export function useItemPairings(itemId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
   const { status } = useSession();
   useSetTokenIfAvailable();
 

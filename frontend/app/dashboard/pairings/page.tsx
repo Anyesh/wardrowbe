@@ -19,6 +19,7 @@ import { PairingCard } from '@/components/pairing-card';
 import { FeedbackDialog } from '@/components/feedback-dialog';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import { Pairing } from '@/lib/types';
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 
 function EmptyPairings({ t }: { t: (key: string) => string }) {
   return (
@@ -74,7 +75,7 @@ export default function PairingsPage() {
   const [feedbackOutfit, setFeedbackOutfit] = useState<Pairing | null>(null);
   const [previewOutfit, setPreviewOutfit] = useState<Pairing | null>(null);
 
-  const { data, isLoading, isError } = usePairings(page, 20, sourceType);
+  const { data, isLoading, isError } = usePairings(page, DEFAULT_PAGE_SIZE, sourceType);
   const { data: itemTypes } = useItemTypes();
 
   const handleSourceTypeChange = (value: string) => {

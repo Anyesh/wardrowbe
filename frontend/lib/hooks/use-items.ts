@@ -12,12 +12,13 @@ import { startDrain } from '@/lib/upload-manager';
 import { queryKeys } from '@/lib/hooks/query-keys';
 import { invalidateItemCaches, invalidatePrimaryImageQueries } from '@/lib/hooks/cache-invalidation';
 import { processingPollInterval } from '@/lib/hooks/query-timing';
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 
 // Must not exceed the backend's MAX_BULK_UPLOAD_COUNT setting, or every chunk
 // larger than the server's limit fails with a 400.
 const BULK_UPLOAD_CHUNK_SIZE = 20;
 
-export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
+export function useItems(filters: ItemFilter = {}, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
   const { data: session, status } = useSession();
   useSetTokenIfAvailable();
 
