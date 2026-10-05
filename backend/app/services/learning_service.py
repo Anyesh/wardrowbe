@@ -33,6 +33,7 @@ from app.models.learning import (
 from app.models.outfit import Outfit, OutfitItem, OutfitStatus, UserFeedback
 from app.models.preference import UserPreference
 from app.utils.clothing import ITEM_ROLE
+from app.utils.garment_vocabulary import canonical_color
 from app.utils.signed_urls import sign_image_url
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,15 @@ def slot_composition(item_types: Iterable[str | None]) -> dict[str, str]:
         if role and role != "accessory":
             composition[_COMPOSITION_KEYS.get(role, role)] = normalized
     return composition
+
+
+# Aliases of one colour merge to their mean because the profile keeps no per-colour sample
+# counts; migration 6c1e8f2a9d47 merges stored profiles the same way.
+def _canonical_color_scores(scores: dict[str, float]) -> dict[str, float]:
+    merged: dict[str, list[float]] = {}
+    for color, score in scores.items():
+        merged.setdefault(canonical_color(color), []).append(score)
+    return {color: round(sum(values) / len(values), 3) for color, values in merged.items()}
 
 
 class PairSignalType(enum.Enum):
@@ -579,9 +589,7 @@ class LearningService:
 
                 # Color signals
                 if item.primary_color:
-                    if item.primary_color not in color_scores:
-                        color_scores[item.primary_color] = []
-                    color_scores[item.primary_color].append(signal)
+                    color_scores.setdefault(canonical_color(item.primary_color), []).append(signal)
 
                 # Style signals
                 for style in item.style or []:
@@ -605,7 +613,7 @@ class LearningService:
             # Track colors per occasion
             for oi in outfit.items:
                 if oi.item.primary_color:
-                    color = oi.item.primary_color
+                    color = canonical_color(oi.item.primary_color)
                     if color not in occasion_patterns[occasion]["colors"]:
                         occasion_patterns[occasion]["colors"][color] = 0
                     if signal > 0:
@@ -746,10 +754,10 @@ class LearningService:
         profile = await self._get_or_create_profile(user_id)
         alpha = self.EMA_ALPHA
 
-        new_color_scores = dict(profile.learned_color_scores or {})
+        new_color_scores = _canonical_color_scores(profile.learned_color_scores or {})
         for oi in outfit.items:
-            color = oi.item.primary_color
-            if color:
+            if oi.item.primary_color:
+                color = canonical_color(oi.item.primary_color)
                 old = new_color_scores.get(color, 0.0)
                 new_color_scores[color] = round(old * (1 - alpha) + signal * alpha, 3)
         profile.learned_color_scores = new_color_scores
@@ -769,8 +777,8 @@ class LearningService:
 
         occ_colors = dict(occ_data.get("colors", occ_data.get("preferred_colors_scores", {})))
         for oi in outfit.items:
-            color = oi.item.primary_color
-            if color and signal > 0:
+            if oi.item.primary_color and signal > 0:
+                color = canonical_color(oi.item.primary_color)
                 occ_colors[color] = occ_colors.get(color, 0) + 1
 
         old_rate = occ_data.get("success_rate", 0.5)

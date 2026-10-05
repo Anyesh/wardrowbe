@@ -253,3 +253,66 @@ class TestItemPairScores:
         assert pair.times_accepted == 1
         assert "casual" in (pair.occasion_performance or {})
         assert pair.occasion_performance["casual"]["count"] == 1
+
+
+async def _seed_outfit(db_session, user_id, colors, *, occasion="work", day=1):
+    outfit = Outfit(
+        id=uuid4(),
+        user_id=user_id,
+        occasion=occasion,
+        scheduled_for=date(2026, 3, day),
+        status=OutfitStatus.accepted,
+        source=OutfitSource.on_demand,
+    )
+    db_session.add(outfit)
+    for position, color in enumerate(colors):
+        item = ClothingItem(
+            id=uuid4(), user_id=user_id, type="shirt", image_path="t.jpg", primary_color=color
+        )
+        db_session.add(item)
+        await db_session.flush()
+        db_session.add(OutfitItem(outfit_id=outfit.id, item_id=item.id, position=position))
+    db_session.add(UserFeedback(outfit_id=outfit.id, accepted=True, rating=5))
+    await db_session.commit()
+
+
+class TestLearnedColoursAreCanonical:
+    @pytest.mark.asyncio
+    async def test_recompute_stores_canonical_colours(self, db_session, test_user_for_learning):
+        user_id = test_user_for_learning.id
+        await _seed_outfit(db_session, user_id, ["charcoal", "Khaki"], day=1)
+        await _seed_outfit(db_session, user_id, ["gray"], day=2)
+
+        profile = await LearningService(db_session).recompute_learning_profile(user_id)
+
+        assert set(profile.learned_color_scores) == {"gray", "tan"}
+        assert profile.learned_occasion_patterns["work"]["preferred_colors"] == ["gray", "tan"]
+
+    @pytest.mark.asyncio
+    async def test_incremental_update_merges_aliased_colours(
+        self, db_session, test_user_for_learning
+    ):
+        user_id = test_user_for_learning.id
+        db_session.add(
+            UserLearningProfile(
+                user_id=user_id,
+                learned_color_scores={"charcoal": 0.6, "gray": 0.2, "teal": -0.4},
+                learned_style_scores={},
+                learned_occasion_patterns={"casual": {"preferred_colors": ["charcoal", "gray"]}},
+                feedback_count=3,
+            )
+        )
+        await db_session.flush()
+        outfit = _make_outfit_with_feedback(user_id, [{"primary_color": "Charcoal"}], rating=5)
+        service = LearningService(db_session)
+        signal = service._get_outfit_signal(outfit)
+
+        await service._update_profile_incremental(user_id, outfit, signal)
+
+        profile = await db_session.get(UserLearningProfile, user_id)
+        await db_session.refresh(profile)
+        assert set(profile.learned_color_scores) == {"gray", "blue"}
+        alpha = service.EMA_ALPHA
+        assert profile.learned_color_scores["gray"] == round(0.4 * (1 - alpha) + signal * alpha, 3)
+        assert profile.learned_color_scores["blue"] == -0.4
+        assert profile.learned_occasion_patterns["casual"]["preferred_colors"] == ["gray"]
