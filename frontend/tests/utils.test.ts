@@ -4,6 +4,7 @@ import {
   chunkArray,
   formatDate,
   formatDateKey,
+  formatRelativeDate,
   formatShortDate,
   formatWornAgo,
   isDeliverableEmail,
@@ -230,6 +231,37 @@ describe('date helpers', () => {
       expect(
         formatDate('2026-10-05', 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       ).toBe('Oct 5, 2026')
+    })
+  })
+
+  describe('formatRelativeDate', () => {
+    const now = new Date(2026, 9, 5, 12)
+
+    it.each([
+      ['en', ['in 3 days', '3 days ago', 'tomorrow', 'today']],
+      ['de', ['in 3 Tagen', 'vor 3 Tagen', 'morgen', 'heute']],
+      ['ja', ['3 日後', '3 日前', '明日', '今日']],
+    ])('words the distance in calendar days on the %s locale', (locale, expected) => {
+      expect(
+        ['2026-10-08', '2026-10-02', '2026-10-06', '2026-10-05'].map((key) =>
+          formatRelativeDate(key, locale as string, now)
+        )
+      ).toEqual(expected)
+    })
+
+    it('switches to weeks, months and years as the distance grows', () => {
+      expect(formatRelativeDate('2026-10-19', 'en', now)).toBe('in 2 weeks')
+      expect(formatRelativeDate('2026-08-05', 'en', now)).toBe('2 months ago')
+      expect(formatRelativeDate('2025-10-05', 'en', now)).toBe('last year')
+    })
+
+    it('counts a day across a daylight-saving change as one day', () => {
+      inTimezone('America/New_York')
+      expect(formatRelativeDate('2026-03-08', 'en', new Date(2026, 2, 9, 0, 30))).toBe('yesterday')
+    })
+
+    it('ignores the time of day of now', () => {
+      expect(formatRelativeDate('2026-10-06', 'en', new Date(2026, 9, 5, 23, 59))).toBe('tomorrow')
     })
   })
 })

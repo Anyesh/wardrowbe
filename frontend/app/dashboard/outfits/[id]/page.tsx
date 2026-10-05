@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { formatDistanceToNow, parseISO } from 'date-fns';
 import {
   BookmarkPlus,
   CalendarPlus,
@@ -29,7 +28,7 @@ import { useWearToday } from '@/lib/hooks/use-studio';
 import { useUserToday } from '@/lib/hooks/use-user';
 import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import { getErrorMessage } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatRelativeDate } from '@/lib/utils';
 
 export default function OutfitDetailPage() {
   const t = useTranslations('outfits');
@@ -114,9 +113,7 @@ export default function OutfitDetailPage() {
           </Badge>
           <span className="text-sm text-muted-foreground">
             {outfit.scheduled_for
-              ? formatDistanceToNow(parseISO(outfit.scheduled_for), {
-                  addSuffix: true,
-                })
+              ? formatRelativeDate(outfit.scheduled_for, locale)
               : t('detail.lookbookTemplate')}
           </span>
         </div>
