@@ -1,7 +1,9 @@
 """Outfit notifications must render as they did on main before the channel registry.
 
-`fixtures/outfit_notifications_main.json` is the output of main's per-channel builders
-(commit 7a8faac) for the fixture below. Each intended difference is applied explicitly.
+`fixtures/outfit_notifications_expected.json` started as the output of main's per-channel builders
+(commit 7a8faac) for the outfit below, with the email HTML whitespace collapsed. It differs from
+main only where the redesign meant to: the ntfy title carries the degree sign, the Mattermost
+title links to the history page, and the email text puts the occasion in the heading.
 """
 
 import json
@@ -20,11 +22,10 @@ from app.config import Settings
 from app.services.notification_providers import EXPO_PUSH_URL, EmailProvider, send_via_channel
 from app.services.notification_service import NotificationDispatcher
 
-MAIN = json.loads(
-    (Path(__file__).parent / "fixtures" / "outfit_notifications_main.json").read_text()
+EXPECTED = json.loads(
+    (Path(__file__).parent / "fixtures" / "outfit_notifications_expected.json").read_text()
 )
 APP_URL = "https://wardrobe.example.com"
-HISTORY_URL = f"{APP_URL}/dashboard/history"
 OUTFIT = SimpleNamespace(
     id=UUID("00000000-0000-0000-0000-0000000000aa"),
     occasion="casual",
@@ -79,14 +80,16 @@ async def _render(channel: str, day: str) -> dict:
         return {
             "to": email.to,
             "subject": email.subject,
-            "html_body": email.html_body,
+            "html_body": _collapse_whitespace(email.html_body),
             "text_body": email.text_body,
         }
     call = post_mock.call_args
     rendered = {"url": call.args[0]}
     rendered.update({k: v for k, v in call.kwargs.items() if k in ("json", "content")})
     if channel == "ntfy":
-        rendered["headers"] = call.kwargs["headers"]
+        headers = dict(call.kwargs["headers"])
+        headers["Title"] = str(make_header(decode_header(headers["Title"])))
+        rendered["headers"] = headers
     return rendered
 
 
@@ -94,54 +97,8 @@ def _collapse_whitespace(markup: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r">\s+<", "><", markup)).strip()
 
 
-DAYS = ["today", "tomorrow"]
-
-
-@pytest.mark.parametrize("day", DAYS)
+@pytest.mark.parametrize("day", ["today", "tomorrow"])
+@pytest.mark.parametrize("channel", ["ntfy", "mattermost", "email", "expo_push"])
 @pytest.mark.asyncio
-async def test_ntfy_matches_main_with_degree_sign_in_rfc2047_title(day):
-    main = MAIN[day]["ntfy"]
-    new = await _render("ntfy", day)
-
-    title = str(make_header(decode_header(new["headers"].pop("Title"))))
-    main_title = main["headers"].pop("Title")
-    assert title == main_title.replace("20C", "20°C")
-    assert new == main
-
-
-@pytest.mark.parametrize("day", DAYS)
-@pytest.mark.asyncio
-async def test_mattermost_matches_main_with_linked_title(day):
-    main = MAIN[day]["mattermost"]
-    new = await _render("mattermost", day)
-
-    [attachment] = new["json"]["attachments"]
-    assert attachment.pop("title_link") == HISTORY_URL
-    assert new == main
-
-
-@pytest.mark.parametrize("day", DAYS)
-@pytest.mark.asyncio
-async def test_expo_matches_main(day):
-    assert await _render("expo_push", day) == MAIN[day]["expo_push"]
-
-
-@pytest.mark.parametrize("day", DAYS)
-@pytest.mark.asyncio
-async def test_email_matches_main(day):
-    main = MAIN[day]["email"]
-    new = await _render("email", day)
-
-    assert new["to"] == main["to"]
-    assert new["subject"] == main["subject"]
-    assert _collapse_whitespace(new["html_body"]) == _collapse_whitespace(main["html_body"])
-    day_label = day.title()
-    expected_text = (
-        main["text_body"]
-        .replace(
-            f"Wardrowbe - {day_label}'s Outfit\n\nOccasion: Casual\n",
-            f"Wardrowbe - {day_label}'s Outfit: Casual\n",
-        )
-        .replace("View outfit:", "View Outfit:")
-    )
-    assert new["text_body"] == expected_text
+async def test_outfit_notification_renders_as_expected(channel, day):
+    assert await _render(channel, day) == EXPECTED[day][channel]
