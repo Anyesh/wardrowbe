@@ -25,3 +25,10 @@ def normalise_email(value: str) -> str:
 
 
 EmailAddress = Annotated[str, AfterValidator(normalise_email)]
+
+
+# Servers without SMTPUTF8 refuse any non-ASCII address, but an internationalised domain has an
+# ASCII (IDNA) spelling they accept, so only a non-ASCII local part keeps the address as written.
+def smtp_address(value: str) -> str:
+    result = validate_email(value, check_deliverability=False, globally_deliverable=False)
+    return result.ascii_email or value

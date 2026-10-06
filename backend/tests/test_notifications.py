@@ -1,3 +1,4 @@
+import asyncio
 import base64
 from datetime import UTC, date, datetime, time
 from types import SimpleNamespace
@@ -6,6 +7,7 @@ from uuid import uuid4
 
 import httpx
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -382,6 +384,90 @@ class TestEmailProviderSettings:
         monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
 
         assert not EmailProvider(EmailConfig(address="to@example.com")).is_configured()
+
+
+# An SMTP server that, like many self-hosted relays, does not advertise SMTPUTF8.
+@pytest_asyncio.fixture
+async def ascii_smtp_server(monkeypatch):
+    received: list[tuple[list[str], bytes]] = []
+
+    async def session(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        recipients: list[str] = []
+        writer.write(b"220 fake ESMTP\r\n")
+        while line := await reader.readline():
+            command = line.decode().strip()
+            verb = command.split(" ", 1)[0].upper()
+            reply = b"250 ok\r\n"
+            if verb == "EHLO":
+                reply = b"250-fake\r\n250 AUTH PLAIN\r\n"
+            elif verb == "AUTH":
+                reply = b"235 ok\r\n"
+            elif verb == "RCPT":
+                recipients.append(command.split(":", 1)[1].strip("<> "))
+            elif verb == "DATA":
+                writer.write(b"354 go\r\n")
+                received.append((recipients, await reader.readuntil(b"\r\n.\r\n")))
+            elif verb == "QUIT":
+                writer.write(b"221 bye\r\n")
+                break
+            writer.write(reply)
+            await writer.drain()
+        await writer.drain()
+        writer.close()
+
+    server = await asyncio.start_server(session, "127.0.0.1", 0)
+    settings = Settings(
+        _env_file=None,
+        smtp_host="127.0.0.1",
+        smtp_port=server.sockets[0].getsockname()[1],
+        smtp_user="mailer",
+        smtp_password="secret",
+        smtp_use_tls=False,
+        smtp_from_email="closet@example.com",
+    )
+    monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+    yield received
+    server.close()
+    await server.wait_closed()
+
+
+def _plain_email(to: str) -> EmailMessage:
+    return EmailMessage(to=to, subject="Hello", html_body="<p>Hello</p>", text_body="Hello")
+
+
+class TestEmailProviderAddresses:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("address", "envelope"),
+        [
+            ("guest@example.com", "guest@example.com"),
+            ("user@münchen.de", "user@xn--mnchen-3ya.de"),
+        ],
+    )
+    async def test_sends_an_ascii_local_part_without_smtputf8(
+        self, ascii_smtp_server, address, envelope
+    ):
+        provider = EmailProvider(EmailConfig(address=address))
+
+        result = await provider.send(_plain_email(address))
+
+        assert result == {"success": True}
+        ((recipients, data),) = ascii_smtp_server
+        assert recipients == [envelope]
+        assert f"To: {envelope}\r\n".encode() in data
+
+    @pytest.mark.asyncio
+    async def test_non_ascii_local_part_fails_clearly_without_smtputf8(self, ascii_smtp_server):
+        provider = EmailProvider(EmailConfig(address="jörg@example.com"))
+
+        result = await provider.send(_plain_email("jörg@example.com"))
+
+        assert result == {
+            "success": False,
+            "error": "The mail server does not support SMTPUTF8, which jörg@example.com needs "
+            "because its name before the @ is not ASCII",
+        }
+        assert ascii_smtp_server == []
 
 
 class TestFamilyInviteEmailBody:

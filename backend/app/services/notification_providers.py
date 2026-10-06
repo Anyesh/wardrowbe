@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from app.config import get_settings
 from app.models.notification import NotificationSettings, NotificationStatus
+from app.schemas.email import smtp_address
 from app.schemas.notification import (
     EmailConfig,
     ExpoPushConfig,
@@ -298,10 +299,11 @@ class EmailProvider:
             return {"success": False, "error": "SMTP not configured"}
 
         try:
+            recipient = smtp_address(message.to)
             msg = MIMEMultipart("alternative")
             msg["Subject"] = message.subject
             msg["From"] = f"{self.from_name} <{self.from_email}>"
-            msg["To"] = message.to
+            msg["To"] = recipient
 
             if message.text_body:
                 msg.attach(MIMEText(message.text_body, "plain"))
@@ -317,6 +319,16 @@ class EmailProvider:
                 start_tls=self.smtp_use_tls,
             )
             return {"success": True}
+        except aiosmtplib.SMTPNotSupported as e:
+            if recipient.isascii():
+                logger.exception("Email send failed")
+                return {"success": False, "error": str(e)}
+            error = (
+                f"The mail server does not support SMTPUTF8, which {recipient} needs "
+                "because its name before the @ is not ASCII"
+            )
+            logger.warning("Email send failed: %s", error)
+            return {"success": False, "error": error}
         except Exception as e:
             logger.exception("Email send failed")
             return {"success": False, "error": str(e)}
