@@ -703,13 +703,17 @@ class LearningService:
         profile.learned_occasion_patterns = learned_occasion_patterns
         profile.learned_weather_preferences = learned_weather_prefs
         profile.overall_acceptance_rate = (
-            Decimal(str(round(acceptance_rate, 4))) if acceptance_rate else None
+            Decimal(str(round(acceptance_rate, 4))) if acceptance_rate is not None else None
         )
-        profile.average_overall_rating = Decimal(str(round(avg_rating, 2))) if avg_rating else None
+        profile.average_overall_rating = (
+            Decimal(str(round(avg_rating, 2))) if avg_rating is not None else None
+        )
         profile.average_comfort_rating = (
-            Decimal(str(round(avg_comfort, 2))) if avg_comfort else None
+            Decimal(str(round(avg_comfort, 2))) if avg_comfort is not None else None
         )
-        profile.average_style_rating = Decimal(str(round(avg_style, 2))) if avg_style else None
+        profile.average_style_rating = (
+            Decimal(str(round(avg_style, 2))) if avg_style is not None else None
+        )
         profile.feedback_count = len(outfits)
         profile.outfits_rated = rating_count
         profile.last_computed_at = datetime.now(UTC)

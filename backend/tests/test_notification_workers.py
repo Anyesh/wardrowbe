@@ -237,10 +237,27 @@ class TestCheckScheduledNotifications:
 
 class TestProcessScheduledNotification:
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("notify_day_before", "lat", "lon"),
+        [
+            pytest.param(False, "40.71427800", "-74.00597200", id="today"),
+            pytest.param(True, "40.71427800", "-74.00597200", id="day-before"),
+            pytest.param(True, "0", "37.00000000", id="day-before-on-the-equator"),
+            pytest.param(True, "51.50000000", "0", id="day-before-on-greenwich"),
+        ],
+    )
     async def test_happy_path_generates_outfit_and_sends(
-        self, db_session: AsyncSession, schedule_user: User, ntfy_channel
+        self,
+        db_session: AsyncSession,
+        schedule_user: User,
+        ntfy_channel,
+        notify_day_before,
+        lat,
+        lon,
     ):
-        schedule = _make_due_schedule(schedule_user)
+        schedule_user.location_lat = Decimal(lat)
+        schedule_user.location_lon = Decimal(lon)
+        schedule = _make_due_schedule(schedule_user, notify_day_before=notify_day_before)
         outfit = Outfit(
             user_id=schedule_user.id,
             occasion="casual",
@@ -263,13 +280,19 @@ class TestProcessScheduledNotification:
                 "app.workers.notifications.RecommendationService",
                 return_value=mock_rec_service,
             ),
-            patch("app.workers.notifications.WeatherService"),
+            patch("app.workers.notifications.WeatherService") as weather_service,
             patch.object(httpx.AsyncClient, "post", post),
         ):
+            weather_service.return_value.get_tomorrow_weather = AsyncMock()
             result = await process_scheduled_notification({"job_try": 1}, str(schedule.id))
 
         assert result == {"status": "sent", "outfit_id": str(outfit.id)}
         assert [c.args[0] for c in post.call_args_list] == ["https://ntfy.sh/test-topic"]
+        forecast = weather_service.return_value.get_tomorrow_weather
+        if notify_day_before:
+            forecast.assert_awaited_once_with(Decimal(lat), Decimal(lon))
+        else:
+            forecast.assert_not_called()
         [row] = (
             (
                 await db_session.execute(

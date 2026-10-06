@@ -137,16 +137,16 @@ def _profile_response(profile: UserLearningProfile | None) -> LearningProfileRes
         feedback_count=profile.feedback_count,
         outfits_rated=profile.outfits_rated,
         overall_acceptance_rate=float(profile.overall_acceptance_rate)
-        if profile.overall_acceptance_rate
+        if profile.overall_acceptance_rate is not None
         else None,
         average_rating=float(profile.average_overall_rating)
-        if profile.average_overall_rating
+        if profile.average_overall_rating is not None
         else None,
         average_comfort_rating=float(profile.average_comfort_rating)
-        if profile.average_comfort_rating
+        if profile.average_comfort_rating is not None
         else None,
         average_style_rating=float(profile.average_style_rating)
-        if profile.average_style_rating
+        if profile.average_style_rating is not None
         else None,
         color_preferences=[
             LearnedColorScore(color=color, score=score, interpretation=_interpret_score(score))

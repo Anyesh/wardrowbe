@@ -174,7 +174,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
         is_for_tomorrow = schedule.notify_day_before
         weather_override = None
 
-        if is_for_tomorrow and user.location_lat and user.location_lon:
+        if is_for_tomorrow and user.location_lat is not None and user.location_lon is not None:
             try:
                 weather_service = WeatherService()
                 weather_override = await weather_service.get_tomorrow_weather(

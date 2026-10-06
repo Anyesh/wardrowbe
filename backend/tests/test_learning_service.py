@@ -256,13 +256,13 @@ class TestItemPairScores:
         assert pair.occasion_performance["casual"]["count"] == 1
 
 
-async def _seed_outfit(db_session, user_id, colors, *, occasion="work", day=1):
+async def _seed_outfit(db_session, user_id, colors, *, occasion="work", day=1, accepted=True):
     outfit = Outfit(
         id=uuid4(),
         user_id=user_id,
         occasion=occasion,
         scheduled_for=date(2026, 3, day),
-        status=OutfitStatus.accepted,
+        status=OutfitStatus.accepted if accepted else OutfitStatus.rejected,
         source=OutfitSource.on_demand,
     )
     db_session.add(outfit)
@@ -273,8 +273,30 @@ async def _seed_outfit(db_session, user_id, colors, *, occasion="work", day=1):
         db_session.add(item)
         await db_session.flush()
         db_session.add(OutfitItem(outfit_id=outfit.id, item_id=item.id, position=position))
-    db_session.add(UserFeedback(outfit_id=outfit.id, accepted=True, rating=5))
+    db_session.add(UserFeedback(outfit_id=outfit.id, accepted=accepted, rating=5))
     await db_session.commit()
+
+
+class TestAcceptanceRateOfZero:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("accepted", "learning_rate", "analytics_rate"),
+        [
+            pytest.param(True, 1.0, 100.0, id="all-accepted"),
+            pytest.param(False, 0.0, 0.0, id="all-rejected"),
+        ],
+    )
+    async def test_is_reported_as_zero_not_missing(
+        self, client, db_session, test_user, auth_headers, accepted, learning_rate, analytics_rate
+    ):
+        for day in (1, 2, 3):
+            await _seed_outfit(db_session, test_user.id, ["navy"], day=day, accepted=accepted)
+
+        learning = await client.post("/api/v1/learning/recompute", headers=auth_headers)
+        analytics = await client.get("/api/v1/analytics", headers=auth_headers)
+
+        assert learning.json()["overall_acceptance_rate"] == pytest.approx(learning_rate)
+        assert analytics.json()["wardrobe"]["acceptance_rate"] == pytest.approx(analytics_rate)
 
 
 class TestLearnedColoursAreCanonical:

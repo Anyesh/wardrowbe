@@ -46,23 +46,30 @@ class TestUserUpdate:
         assert data["timezone"] == "America/New_York"
 
     @pytest.mark.asyncio
-    async def test_update_user_location(self, client: AsyncClient, test_user, auth_headers):
-        """Test updating user location."""
+    @pytest.mark.parametrize(
+        ("lat", "lon"),
+        [
+            pytest.param(40.7128, -74.0060, id="new-york"),
+            pytest.param(0.0, 37.0, id="equator"),
+            pytest.param(51.5, 0.0, id="greenwich"),
+        ],
+    )
+    async def test_update_user_location(
+        self, client: AsyncClient, test_user, auth_headers, lat, lon
+    ):
         response = await client.patch(
             "/api/v1/users/me",
-            json={
-                "location_lat": 40.7128,
-                "location_lon": -74.0060,
-                "location_name": "New York City",
-            },
+            json={"location_lat": lat, "location_lon": lon, "location_name": "Somewhere"},
             headers=auth_headers,
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["location_name"] == "New York City"
-        # Check coordinates are stored (may be string or float depending on serialization)
-        assert float(data["location_lat"]) == pytest.approx(40.7128, rel=1e-4)
-        assert float(data["location_lon"]) == pytest.approx(-74.0060, rel=1e-4)
+        for data in (
+            response.json(),
+            (await client.get("/api/v1/users/me", headers=auth_headers)).json(),
+        ):
+            assert data["location_name"] == "Somewhere"
+            assert data["location_lat"] == pytest.approx(lat, rel=1e-4)
+            assert data["location_lon"] == pytest.approx(lon, rel=1e-4)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
