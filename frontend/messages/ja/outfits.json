@@ -38,6 +38,7 @@
     "pairing": "ペアリング",
     "replacement": "差し替え",
     "studio": "スタジオ",
+    "woreInsteadFallback": "{occasion}(代わりに着用)",
     "worn": "着用済み"
   },
   "cloneToLookbook": {
@@ -77,6 +78,7 @@
     "name": "名前",
     "namePlaceholder": "金曜のブランチ",
     "nameRequired": "（ルックブックには必須）",
+    "required": "必須",
     "occasion": "シーン",
     "pickOccasion": "保存する前にシーンを選んでください。",
     "skippedItem": "{name}をスキップ：{reason}",

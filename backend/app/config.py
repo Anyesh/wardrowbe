@@ -119,8 +119,6 @@ class Settings(BaseSettings):
     ntfy_server: str | None = None
     ntfy_topic: str | None = None
     ntfy_token: str | None = None
-    # Legacy/other providers
-    mattermost_webhook_url: str | None = None
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_user: str | None = None
@@ -186,19 +184,25 @@ class Settings(BaseSettings):
         return self.effective_ai_vision_enabled or self.effective_ai_text_enabled
 
     @property
+    def oidc_configured(self) -> bool:
+        return bool(self.oidc_issuer_url and self.oidc_client_id)
+
+    @property
     def forward_auth_configured(self) -> bool:
         return bool(self.forward_auth_secret)
 
+    @property
+    def dev_mode(self) -> bool:
+        return self.debug and not self.oidc_configured and not self.forward_auth_configured
+
     def validate_security(self) -> str | None:
-        if self.secret_key == DEFAULT_SECRET_KEY and not self.debug:
+        if self.secret_key == DEFAULT_SECRET_KEY and not self.dev_mode:
             raise RuntimeError(
-                "SECRET_KEY is still the default value. "
-                "Set a secure SECRET_KEY or enable DEBUG mode for development."
+                "SECRET_KEY is still the default value. Set a secure SECRET_KEY; the default "
+                "is accepted only in DEBUG mode with neither OIDC nor forward-auth configured."
             )
 
-        oidc_issuer = bool(self.oidc_issuer_url)
-        oidc_client = bool(self.oidc_client_id)
-        if oidc_issuer != oidc_client:
+        if bool(self.oidc_issuer_url) != bool(self.oidc_client_id):
             raise RuntimeError(
                 "OIDC is partially configured: both OIDC_ISSUER_URL and OIDC_CLIENT_ID must be set together."
             )
@@ -211,20 +215,17 @@ class Settings(BaseSettings):
                 f"FORWARD_AUTH_SECRET must be at least {FORWARD_AUTH_SECRET_MIN_LENGTH} characters."
             )
 
-        oidc_configured = oidc_issuer and oidc_client
-        is_dev = self.debug and not oidc_configured and not self.forward_auth_configured
-        if not oidc_configured and not self.forward_auth_configured and not is_dev:
+        if not (self.oidc_configured or self.forward_auth_configured or self.dev_mode):
             return NO_AUTH_CONFIGURED_MESSAGE
 
         return None
 
     def get_auth_mode(self) -> str:
-        oidc_configured = bool(self.oidc_issuer_url and self.oidc_client_id)
         if self.forward_auth_configured:
-            return "forward-auth+oidc" if oidc_configured else "forward-auth"
-        if oidc_configured:
+            return "forward-auth+oidc" if self.oidc_configured else "forward-auth"
+        if self.oidc_configured:
             return "oidc"
-        if self.debug:
+        if self.dev_mode:
             return "dev"
         return "unknown"
 

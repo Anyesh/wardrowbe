@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
 import type { Outfit } from '@/lib/hooks/use-outfits';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { invalidateEveryItemWearCache } from '@/lib/hooks/cache-invalidation';
 
 export interface StudioCreatePayload {
   items: string[];
@@ -21,10 +22,11 @@ export function useCreateStudioOutfit() {
   return useMutation({
     mutationFn: (payload: StudioCreatePayload) =>
       api.post<Outfit>('/outfits/studio', payload),
-    onSuccess: () => {
+    onSuccess: (_, payload) => {
       qc.invalidateQueries({ queryKey: queryKeys.outfits.all });
       qc.invalidateQueries({ queryKey: queryKeys.analytics.all });
       qc.invalidateQueries({ queryKey: queryKeys.learning.all });
+      if (payload.mark_worn) invalidateEveryItemWearCache(qc);
     },
   });
 }
@@ -49,6 +51,7 @@ export function useCreateWoreInstead(originalOutfitId: string) {
       qc.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
       qc.invalidateQueries({ queryKey: queryKeys.analytics.all });
       qc.invalidateQueries({ queryKey: queryKeys.learning.all });
+      invalidateEveryItemWearCache(qc);
     },
   });
 }
@@ -74,7 +77,7 @@ export function useWearToday(templateId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.outfits.all });
       qc.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
-      qc.invalidateQueries({ queryKey: queryKeys.items.all });
+      invalidateEveryItemWearCache(qc);
     },
   });
 }

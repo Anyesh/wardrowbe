@@ -1,0 +1,8 @@
+{
+  "default_occasion": "casual",
+  "temperature_unit": "celsius",
+  "temperature_sensitivity": "normal",
+  "layering_preference": "moderate",
+  "variety_level": "moderate",
+  "prefer_underused_items": true
+}

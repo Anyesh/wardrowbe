@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pytest
@@ -19,7 +20,15 @@ K8S_NON_BACKEND_KEYS = {
     "NEXTAUTH_URL",
     "FORWARD_AUTH_LOGOUT_URL",
     "TINYAUTH_URL",
+    "NODE_EXTRA_CA_CERTS",
 }
+
+DEPLOY_FILES = (
+    "docker-compose.yml",
+    "docker-compose.prod.yml",
+    "docker-compose.dev.yml",
+    *(f"k8s/{path.name}" for path in sorted((REPO_ROOT / "k8s").glob("*.yaml"))),
+)
 
 
 def _load_repo_yaml(relative_path):
@@ -46,7 +55,7 @@ def test_every_backend_service_merges_the_shared_env(compose):
 def test_notification_settings_reach_the_worker(compose):
     worker_env = compose["services"]["worker"]["environment"]
 
-    for key in ("APP_URL", "NTFY_SERVER", "NTFY_TOPIC", "MATTERMOST_WEBHOOK_URL", "SMTP_HOST"):
+    for key in ("APP_URL", "NTFY_SERVER", "NTFY_TOPIC", "SMTP_HOST"):
         assert key in worker_env
 
 
@@ -94,3 +103,68 @@ def test_every_k8s_configmap_key_is_read():
 
     unknown = set(configmap["data"]) - SETTINGS_KEYS - ENTRYPOINT_KEYS - K8S_NON_BACKEND_KEYS
     assert not unknown, f"wardrobe-config holds keys nothing reads: {sorted(unknown)}"
+
+
+@pytest.mark.parametrize("relative_path", DEPLOY_FILES)
+def test_no_deploy_file_turns_off_node_tls_verification(relative_path):
+    path = REPO_ROOT / relative_path
+    if not path.exists():
+        pytest.skip(f"{relative_path} is not available in this environment")
+    assert "NODE_TLS_REJECT_UNAUTHORIZED" not in path.read_text()
+
+
+def test_compose_frontend_takes_extra_ca_certs_empty_by_default(compose):
+    frontend_env = compose["services"]["frontend"]["environment"]
+    assert frontend_env["NODE_EXTRA_CA_CERTS"] == "${NODE_EXTRA_CA_CERTS:-}"
+
+
+def test_k8s_frontend_takes_extra_ca_certs_from_the_configmap():
+    (configmap,) = _load_repo_yaml("k8s/configmap.yaml")
+    env = {entry["name"]: entry for entry in _k8s_container("frontend.yaml")["env"]}
+
+    assert configmap["data"]["NODE_EXTRA_CA_CERTS"] == ""
+    assert env["NODE_EXTRA_CA_CERTS"]["valueFrom"]["configMapKeyRef"] == {
+        "name": "wardrobe-config",
+        "key": "NODE_EXTRA_CA_CERTS",
+        "optional": True,
+    }
+
+
+@pytest.mark.parametrize("key", ["AI_VISION_ENABLED", "AI_TEXT_ENABLED"])
+def test_k8s_capability_switches_inherit_the_master_switch(key):
+    (configmap,) = _load_repo_yaml("k8s/configmap.yaml")
+    assert configmap["data"].get(key, "") == "", f"{key} must stay unset so it inherits"
+
+
+def _frontend_oidc_keys_read_by_source():
+    source_dirs = [REPO_ROOT / "frontend" / name for name in ("app", "lib")]
+    if not all(path.is_dir() for path in source_dirs):
+        pytest.skip("frontend sources are not available in this environment")
+    return {
+        key
+        for directory in source_dirs
+        for path in directory.rglob("*.ts*")
+        for key in re.findall(r"process\.env\.(OIDC_[A-Z_]+)", path.read_text())
+    }
+
+
+def test_frontend_gets_every_oidc_key_it_reads_in_compose_and_k8s():
+    expected = _frontend_oidc_keys_read_by_source()
+    assert expected, "the frontend should read at least OIDC_ISSUER_URL"
+
+    passed = {
+        path: {
+            key
+            for key in _load_repo_yaml(path)[0]["services"]["frontend"]["environment"]
+            if key.startswith("OIDC_")
+        }
+        for path in ("docker-compose.yml", "docker-compose.prod.yml")
+    }
+    passed["k8s/frontend.yaml"] = {
+        entry["name"]
+        for entry in _k8s_container("frontend.yaml")["env"]
+        if entry["name"].startswith("OIDC_")
+    }
+
+    for path, keys in passed.items():
+        assert keys == expected, f"{path} frontend OIDC env differs from what the frontend reads"

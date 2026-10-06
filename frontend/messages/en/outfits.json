@@ -38,6 +38,7 @@
     "pairing": "Pairing",
     "replacement": "Replacement",
     "studio": "Studio",
+    "woreInsteadFallback": "{occasion} (wore instead)",
     "worn": "Worn"
   },
   "cloneToLookbook": {
@@ -77,6 +78,7 @@
     "name": "Name",
     "namePlaceholder": "Friday brunch",
     "nameRequired": "(required for lookbook)",
+    "required": "required",
     "occasion": "Occasion",
     "pickOccasion": "Pick an occasion before saving.",
     "skippedItem": "Skipped {name}: {reason}",

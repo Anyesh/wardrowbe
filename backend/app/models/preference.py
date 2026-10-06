@@ -7,6 +7,14 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.utils.preference_defaults import (
+    DEFAULT_LAYERING_PREFERENCE,
+    DEFAULT_OCCASION,
+    DEFAULT_PREFER_UNDERUSED_ITEMS,
+    DEFAULT_TEMPERATURE_SENSITIVITY,
+    DEFAULT_TEMPERATURE_UNIT,
+    DEFAULT_VARIETY_LEVEL,
+)
 from app.utils.scales import (
     DEFAULT_AVOID_REPEAT_DAYS,
     DEFAULT_COLD_THRESHOLD,
@@ -34,20 +42,26 @@ class UserPreference(Base):
     style_profile: Mapped[dict] = mapped_column(JSONB, default=dict)
 
     # Occasion settings
-    default_occasion: Mapped[str] = mapped_column(String(50), default="casual")
+    default_occasion: Mapped[str] = mapped_column(String(50), default=DEFAULT_OCCASION)
     occasion_preferences: Mapped[dict] = mapped_column(JSONB, default=dict)
 
     # Temperature/comfort
-    temperature_unit: Mapped[str] = mapped_column(String(20), default="celsius")
-    temperature_sensitivity: Mapped[str] = mapped_column(String(20), default="normal")
+    temperature_unit: Mapped[str] = mapped_column(String(20), default=DEFAULT_TEMPERATURE_UNIT)
+    temperature_sensitivity: Mapped[str] = mapped_column(
+        String(20), default=DEFAULT_TEMPERATURE_SENSITIVITY
+    )
     cold_threshold: Mapped[int] = mapped_column(Integer, default=DEFAULT_COLD_THRESHOLD)
     hot_threshold: Mapped[int] = mapped_column(Integer, default=DEFAULT_HOT_THRESHOLD)
-    layering_preference: Mapped[str] = mapped_column(String(20), default="moderate")
+    layering_preference: Mapped[str] = mapped_column(
+        String(20), default=DEFAULT_LAYERING_PREFERENCE
+    )
 
     # Recommendation settings
     avoid_repeat_days: Mapped[int] = mapped_column(Integer, default=DEFAULT_AVOID_REPEAT_DAYS)
-    prefer_underused_items: Mapped[bool] = mapped_column(Boolean, default=True)
-    variety_level: Mapped[str] = mapped_column(String(20), default="moderate")
+    prefer_underused_items: Mapped[bool] = mapped_column(
+        Boolean, default=DEFAULT_PREFER_UNDERUSED_ITEMS
+    )
+    variety_level: Mapped[str] = mapped_column(String(20), default=DEFAULT_VARIETY_LEVEL)
 
     # Restrictions
     excluded_item_ids: Mapped[list[uuid.UUID]] = mapped_column(

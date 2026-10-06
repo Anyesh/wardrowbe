@@ -54,6 +54,8 @@
   "previous": "Indietro",
   "previousPage": "Pagina precedente",
   "privacyMatters": "La tua privacy è importante",
+  "rateStars": "Valuta {count, plural, one {# stella} other {# stelle}}",
+  "ratedStars": "Valutato {rating, plural, one {# stella} other {# stelle}} su {max}",
   "remove": "Rimuovi",
   "retry": "Riprova",
   "save": "Salva",

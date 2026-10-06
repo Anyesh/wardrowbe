@@ -5,8 +5,17 @@ import pytest
 from pydantic import ValidationError
 
 from app.api.outfits import FamilyRatingRequest, FeedbackRequest
-from app.schemas.preference import PreferenceBase, PreferenceUpdate
+from app.schemas.preference import PreferenceBase, PreferenceUpdate, StyleProfile
+from app.utils.garment_vocabulary import OCCASIONS
 from app.utils.locale import DEFAULT_LOCALE, SUPPORTED_LOCALES
+from app.utils.preference_defaults import (
+    DEFAULT_LAYERING_PREFERENCE,
+    DEFAULT_OCCASION,
+    DEFAULT_PREFER_UNDERUSED_ITEMS,
+    DEFAULT_TEMPERATURE_SENSITIVITY,
+    DEFAULT_TEMPERATURE_UNIT,
+    DEFAULT_VARIETY_LEVEL,
+)
 from app.utils.scales import (
     AVOID_REPEAT_DAYS_MAX,
     AVOID_REPEAT_DAYS_MIN,
@@ -15,10 +24,13 @@ from app.utils.scales import (
     DEFAULT_AVOID_REPEAT_DAYS,
     DEFAULT_COLD_THRESHOLD,
     DEFAULT_HOT_THRESHOLD,
+    DEFAULT_STYLE_SCORE,
     HOT_THRESHOLD_MAX,
     HOT_THRESHOLD_MIN,
     RATING_MAX,
     RATING_MIN,
+    STYLE_SCORE_MAX,
+    STYLE_SCORE_MIN,
     rating_to_signed,
     rating_to_unit,
 )
@@ -57,6 +69,46 @@ def test_scales_come_from_the_shared_file():
         avoid["max"],
         avoid["default"],
     )
+
+    style = data["style_score"]
+    assert (STYLE_SCORE_MIN, STYLE_SCORE_MAX, DEFAULT_STYLE_SCORE) == (
+        style["min"],
+        style["max"],
+        style["default"],
+    )
+
+
+def test_style_profile_defaults_and_bounds_come_from_the_style_scale():
+    profile = StyleProfile()
+    assert set(profile.model_dump().values()) == {DEFAULT_STYLE_SCORE}
+    assert StyleProfile(casual=STYLE_SCORE_MIN, bold=STYLE_SCORE_MAX)
+    with pytest.raises(ValidationError):
+        StyleProfile(casual=STYLE_SCORE_MIN - 1)
+    with pytest.raises(ValidationError):
+        StyleProfile(casual=STYLE_SCORE_MAX + 1)
+
+
+def test_preference_defaults_come_from_the_shared_file():
+    data = json.loads((DATA_DIR / "preference_defaults.json").read_text())
+
+    assert {
+        "default_occasion": DEFAULT_OCCASION,
+        "temperature_unit": DEFAULT_TEMPERATURE_UNIT,
+        "temperature_sensitivity": DEFAULT_TEMPERATURE_SENSITIVITY,
+        "layering_preference": DEFAULT_LAYERING_PREFERENCE,
+        "variety_level": DEFAULT_VARIETY_LEVEL,
+        "prefer_underused_items": DEFAULT_PREFER_UNDERUSED_ITEMS,
+    } == data
+
+
+def test_preference_defaults_pass_the_schema():
+    data = json.loads((DATA_DIR / "preference_defaults.json").read_text())
+
+    assert PreferenceBase(**data).model_dump(include=set(data)) == data
+
+
+def test_default_occasion_is_a_known_occasion():
+    assert DEFAULT_OCCASION in OCCASIONS
 
 
 @pytest.mark.parametrize("schema", [PreferenceBase, PreferenceUpdate])

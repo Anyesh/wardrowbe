@@ -11,6 +11,9 @@ vi.mock('next/image', () => ({ default: () => null }))
 vi.mock('@/lib/hooks/use-translated-constants', () => ({
   useColorLabel: () => (c: string) => c,
   useOccasionLabel: () => (o: string) => o,
+  useWeatherConditionLabel: () => (c: string) => c,
+  useStyleLabel: () => (s: string) => s,
+  useTypeLabel: () => (t: string) => t,
 }))
 vi.mock('@/lib/hooks/use-analytics', () => ({ useAnalytics: vi.fn() }))
 vi.mock('@/lib/hooks/use-learning', () => ({
@@ -33,6 +36,7 @@ vi.mock('@/lib/hooks/use-notifications', () => ({
   useNotificationSettings: () => ({ data: undefined, isLoading: false }),
 }))
 vi.mock('@/lib/hooks/use-family', () => ({ useFamily: () => ({ data: null, isLoading: false }) }))
+vi.mock('@/lib/hooks/use-user', () => ({ useUserTimezone: () => 'UTC' }))
 
 const analytics = (acceptance: number | null, rating: number | null) => ({
   wardrobe: {
@@ -117,7 +121,7 @@ const rows: Row[] = [
     setup: setLearning,
     hasData: [
       'stats.suggestionsAccepted',
-      'stats.outOf5Stars',
+      'stats.outOfStars',
       'stats.styleSatisfaction',
     ],
     noData: ['stats.notEnoughData', 'stats.rateMoreOutfits', 'stats.rateOutfitStyles'],

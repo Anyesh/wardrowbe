@@ -21,6 +21,14 @@
     "white": "白",
     "yellow": "イエロー"
   },
+  "fits": {
+    "cropped": "クロップド",
+    "oversized": "オーバーサイズ",
+    "regular": "レギュラー",
+    "relaxed": "リラックス",
+    "slim": "スリム",
+    "tailored": "テーラード"
+  },
   "formalities": {
     "business-casual": "ビジネスカジュアル",
     "casual": "カジュアル",
@@ -70,6 +78,18 @@
     "weekend": "週末",
     "work": "仕事"
   },
+  "patterns": {
+    "animal-print": "アニマル柄",
+    "camouflage": "迷彩",
+    "checkered": "チェッカー",
+    "floral": "花柄",
+    "geometric": "幾何学柄",
+    "graphic": "グラフィック",
+    "plaid": "タータンチェック",
+    "polka-dot": "ドット",
+    "solid": "無地",
+    "striped": "ストライプ"
+  },
   "roles": {
     "accessory": "アクセサリー",
     "base_top": "ベーストップス",
@@ -82,12 +102,28 @@
     "socks": "ソックス",
     "suit": "スーツ"
   },
+  "seasons": {
+    "all-season": "オールシーズン",
+    "fall": "秋",
+    "spring": "春",
+    "summer": "夏",
+    "winter": "冬"
+  },
   "styles": {
+    "athletic": "アスレチック",
+    "bohemian": "ボヘミアン",
     "bold": "ボールド",
     "casual": "カジュアル",
+    "classic": "クラシック",
+    "elegant": "エレガント",
     "formal": "フォーマル",
     "minimalist": "ミニマリスト",
-    "sporty": "スポーティ"
+    "modern": "モダン",
+    "preppy": "プレッピー",
+    "rugged": "ラギッド",
+    "sporty": "スポーティ",
+    "streetwear": "ストリート",
+    "vintage": "ヴィンテージ"
   },
   "subtypes": {
     "a-line": "Aライン",
@@ -198,7 +234,29 @@
   "weatherConditions": {
     "clear": "晴れ",
     "cloudy": "曇り",
+    "drizzle": "霧雨",
+    "foggy": "霧",
+    "freezing-drizzle": "凍る霧雨",
+    "freezing-rain": "着氷性の雨",
+    "heavy-drizzle": "強い霧雨",
+    "heavy-rain": "大雨",
+    "heavy-showers": "強いにわか雨",
+    "heavy-snow": "大雪",
+    "light-drizzle": "弱い霧雨",
+    "light-rain": "小雨",
+    "light-showers": "弱いにわか雨",
+    "light-snow": "小雪",
+    "light-snow-showers": "弱いにわか雪",
+    "mostly-sunny": "おおむね晴れ",
+    "partly-cloudy": "晴れ時々曇り",
     "rain": "雨",
-    "snow": "雪"
+    "showers": "にわか雨",
+    "snow": "雪",
+    "snow-grains": "雪あられ",
+    "snow-showers": "にわか雪",
+    "sunny": "晴れ",
+    "thunderstorm": "雷雨",
+    "thunderstorm-with-hail": "雷雨とひょう",
+    "unknown": "不明"
   }
 }

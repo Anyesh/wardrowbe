@@ -7,6 +7,7 @@ from pathlib import Path
 
 import imagehash
 from PIL import Image, ImageOps
+from pillow_heif import register_heif_opener
 
 from app.config import get_settings
 from app.services import background_removal
@@ -44,10 +45,6 @@ IMAGE_MIME_TYPES = {
 }
 ALLOWED_EXTENSIONS = frozenset(IMAGE_MIME_TYPES)
 ALLOWED_MIME_TYPES = frozenset(IMAGE_MIME_TYPES.values())
-
-
-def get_full_path(relative_path: str) -> str:
-    return f"{settings.storage_path}/{relative_path}"
 
 
 def _flatten_to_rgb(image: Image.Image) -> Image.Image:
@@ -89,13 +86,7 @@ class ImageService:
 
     def _convert_heic(self, image_data: bytes) -> Image.Image:
         """Convert HEIC/HEIF to PIL Image."""
-        try:
-            from pillow_heif import register_heif_opener
-
-            register_heif_opener()
-        except ImportError:
-            pass
-
+        register_heif_opener()
         return Image.open(BytesIO(image_data))
 
     def _open_bounded(self, image_data: bytes, ext: str) -> Image.Image:

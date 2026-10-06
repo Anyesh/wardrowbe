@@ -45,7 +45,9 @@ class WearStats(BaseModel):
 
 
 class AcceptanceRateTrend(BaseModel):
+    # English "%b %d" label, kept for clients that predate period_start.
     period: str
+    period_start: date
     total: int
     accepted: int
     rejected: int
@@ -63,6 +65,45 @@ class WardrobeStats(BaseModel):
     total_wears: int
 
 
+class Insight(BaseModel):
+    key: str
+    params: dict[str, str | int | float] = {}
+
+
+# English text for the legacy `insights` strings that older clients show. The keys match
+# frontend/messages/en/analytics.json, where newer clients read them; "_one"/"_other" pick the
+# form by params["count"].
+_INSIGHT_TEXT_EN: dict[str, str] = {
+    "insightStartAdding": "Start by adding some items to your wardrobe!",
+    "insightNeverWorn_one": "You have 1 item you've never worn. Consider styling it!",
+    "insightNeverWorn_other": "You have {count} items you've never worn. Consider styling them!",
+    "insightColorHeavy": "Your wardrobe is heavy on {color} ({percent}%). Consider adding variety!",
+    "insightLimitedColors": "Your wardrobe has limited color variety. Explore new colors!",
+    "insightMostlyLayers": (
+        "Most of your tops are layers like cardigans and vests. "
+        "Add a few basics to wear under them!"
+    ),
+    "insightMoreTopsThanBottoms": (
+        "You have many more tops than bottoms. Consider adding pants or skirts!"
+    ),
+    "insightMoreBottomsThanTops": "You have more bottoms than tops. Consider adding some shirts!",
+    "insightGreatTaste": "Great taste! You accept {percent}% of suggestions.",
+    "insightManyRejections": (
+        "You reject many suggestions. Consider updating your style preferences."
+    ),
+    "insightNoOutfitsThisWeek": (
+        "You haven't generated any outfits this week. Try getting a suggestion!"
+    ),
+}
+
+
+def insight_text_en(insight: Insight) -> str:
+    key = insight.key
+    if f"{key}_one" in _INSIGHT_TEXT_EN:
+        key += "_one" if insight.params.get("count") == 1 else "_other"
+    return _INSIGHT_TEXT_EN[key].format(**insight.params)
+
+
 class AnalyticsResponse(BaseModel):
     wardrobe: WardrobeStats
     color_distribution: list[ColorDistribution]
@@ -71,17 +112,17 @@ class AnalyticsResponse(BaseModel):
     least_worn: list[WearStats]
     never_worn: list[WearStats]
     acceptance_trend: list[AcceptanceRateTrend]
+    # English sentences, kept for clients that predate insight_items.
     insights: list[str]
+    insight_items: list[Insight]
 
 
-def composition_insights(c: WardrobeComposition) -> list[str]:
+def composition_insights(c: WardrobeComposition) -> list[Insight]:
     # Layers (cardigans, vests) need something underneath, so they are judged against
     # base tops rather than counted as tops themselves. Dresses count as something to
     # layer over too, because cardigans and vests are worn over dresses as often as over shirts.
     if c.layers >= 3 and c.layers > 2 * (c.base_tops + c.full_body):
-        return [
-            "Most of your tops are layers like cardigans and vests. Add a few basics to wear under them!"
-        ]
+        return [Insight(key="insightMostlyLayers")]
 
     # A dress-first wardrobe doesn't need its few separates to balance.
     if c.full_body >= c.base_tops + c.bottoms:
@@ -90,9 +131,9 @@ def composition_insights(c: WardrobeComposition) -> list[str]:
     if c.base_tops > 0 and c.bottoms > 0:
         ratio = c.base_tops / c.bottoms
         if ratio > 3:
-            return ["You have many more tops than bottoms. Consider adding pants or skirts!"]
+            return [Insight(key="insightMoreTopsThanBottoms")]
         if ratio < 0.5:
-            return ["You have more bottoms than tops. Consider adding some shirts!"]
+            return [Insight(key="insightMoreBottomsThanTops")]
     return []
 
 
@@ -294,6 +335,16 @@ async def get_analytics(
         for item in never_worn_result.scalars().all()
     ]
 
+    never_worn_total = (
+        await db.execute(
+            select(func.count(ClothingItem.id)).where(
+                ClothingItem.user_id == current_user.id,
+                ClothingItem.status == ItemStatus.ready,
+                ClothingItem.wear_count == 0,
+            )
+        )
+    ).scalar_one()
+
     # === Acceptance Rate Trend (weekly) ===
     acceptance_trend = []
     weeks = min(days // 7, 12)  # Max 12 weeks
@@ -325,6 +376,7 @@ async def get_analytics(
         acceptance_trend.append(
             AcceptanceRateTrend(
                 period=week_start.strftime("%b %d"),
+                period_start=week_start.date(),
                 total=week_total,
                 accepted=week_accepted,
                 rejected=week_rejected,
@@ -335,26 +387,25 @@ async def get_analytics(
     acceptance_trend.reverse()  # Oldest first
 
     # === Generate Insights ===
-    insights = []
+    insights: list[Insight] = []
 
     if total_items == 0:
-        insights.append("Start by adding some items to your wardrobe!")
+        insights.append(Insight(key="insightStartAdding"))
     else:
-        # Wardrobe insights
-        if len(never_worn) > 0:
-            insights.append(
-                f"You have {len(never_worn)} items you've never worn. Consider styling them!"
-            )
+        if never_worn_total:
+            insights.append(Insight(key="insightNeverWorn", params={"count": never_worn_total}))
 
-        # Color insights
         if color_distribution:
-            top_color = color_distribution[0].color
-            if color_distribution[0].percentage > 40:
+            top = color_distribution[0]
+            if top.percentage > 40:
                 insights.append(
-                    f"Your wardrobe is heavy on {top_color} ({color_distribution[0].percentage}%). Consider adding variety!"
+                    Insight(
+                        key="insightColorHeavy",
+                        params={"color": top.color, "percent": top.percentage},
+                    )
                 )
             elif len(color_distribution) <= 3 and ready_items > 10:
-                insights.append("Your wardrobe has limited color variety. Explore new colors!")
+                insights.append(Insight(key="insightLimitedColors"))
 
         # Type insights
         if type_distribution:
@@ -367,16 +418,14 @@ async def get_analytics(
         # Outfit insights
         if acceptance_rate is not None:
             if acceptance_rate > 80:
-                insights.append(f"Great taste! You accept {acceptance_rate:.0f}% of suggestions.")
-            elif acceptance_rate < 50:
                 insights.append(
-                    "You reject many suggestions. Consider updating your style preferences."
+                    Insight(key="insightGreatTaste", params={"percent": round(acceptance_rate)})
                 )
+            elif acceptance_rate < 50:
+                insights.append(Insight(key="insightManyRejections"))
 
         if outfits_this_week == 0 and total_outfits > 0:
-            insights.append(
-                "You haven't generated any outfits this week. Try getting a suggestion!"
-            )
+            insights.append(Insight(key="insightNoOutfitsThisWeek"))
 
     return AnalyticsResponse(
         wardrobe=wardrobe_stats,
@@ -386,5 +435,6 @@ async def get_analytics(
         least_worn=least_worn,
         never_worn=never_worn,
         acceptance_trend=acceptance_trend,
-        insights=insights,
+        insights=[insight_text_en(insight) for insight in insights],
+        insight_items=insights,
     )

@@ -63,6 +63,9 @@ import { useOccasionLabel, useOccasions } from '@/lib/hooks/use-translated-const
 import { useTranslations } from 'next-intl';
 import { API_BASE_PATH } from '@/lib/api';
 
+// Kept out of the catalogs because an ntfy topic is part of a URL and reads the same in every locale.
+const EXAMPLE_NTFY_TOPIC = 'my-wardrobe-notifications';
+
 const DAY_KEYS = [
   { value: 0, key: 'monday' as const },
   { value: 1, key: 'tuesday' as const },
@@ -222,7 +225,7 @@ function AddChannelDialog({
                     id="topic"
                     value={config.topic || ''}
                     onChange={(e) => setConfig({ ...config, topic: e.target.value })}
-                    placeholder="my-wardrobe-notifications"
+                    placeholder={EXAMPLE_NTFY_TOPIC}
                     required
                   />
                   <p className="text-xs text-muted-foreground">

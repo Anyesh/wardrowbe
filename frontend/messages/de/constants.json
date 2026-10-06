@@ -21,6 +21,14 @@
     "white": "Weiß",
     "yellow": "Gelb"
   },
+  "fits": {
+    "cropped": "Cropped",
+    "oversized": "Oversized",
+    "regular": "Normal",
+    "relaxed": "Locker",
+    "slim": "Slim",
+    "tailored": "Tailliert"
+  },
   "formalities": {
     "business-casual": "Business Casual",
     "casual": "Leger",
@@ -70,6 +78,18 @@
     "weekend": "Wochenende",
     "work": "Arbeit"
   },
+  "patterns": {
+    "animal-print": "Animalprint",
+    "camouflage": "Camouflage",
+    "checkered": "Kariert",
+    "floral": "Geblümt",
+    "geometric": "Geometrisch",
+    "graphic": "Grafisch",
+    "plaid": "Schottenkaro",
+    "polka-dot": "Gepunktet",
+    "solid": "Einfarbig",
+    "striped": "Gestreift"
+  },
   "roles": {
     "accessory": "Accessoire",
     "base_top": "Basisoberteil",
@@ -82,12 +102,28 @@
     "socks": "Socken",
     "suit": "Anzug"
   },
+  "seasons": {
+    "all-season": "Ganzjährig",
+    "fall": "Herbst",
+    "spring": "Frühling",
+    "summer": "Sommer",
+    "winter": "Winter"
+  },
   "styles": {
+    "athletic": "Sportlich",
+    "bohemian": "Boho",
     "bold": "Auffällig",
     "casual": "Freizeit",
+    "classic": "Klassisch",
+    "elegant": "Elegant",
     "formal": "Formell",
     "minimalist": "Minimalistisch",
-    "sporty": "Sportlich"
+    "modern": "Modern",
+    "preppy": "Preppy",
+    "rugged": "Robust",
+    "sporty": "Sportlich",
+    "streetwear": "Streetwear",
+    "vintage": "Vintage"
   },
   "subtypes": {
     "a-line": "A-Linie",
@@ -198,7 +234,29 @@
   "weatherConditions": {
     "clear": "Klar",
     "cloudy": "Bewölkt",
+    "drizzle": "Nieselregen",
+    "foggy": "Neblig",
+    "freezing-drizzle": "Gefrierender Nieselregen",
+    "freezing-rain": "Gefrierender Regen",
+    "heavy-drizzle": "Starker Nieselregen",
+    "heavy-rain": "Starkregen",
+    "heavy-showers": "Heftige Schauer",
+    "heavy-snow": "Starker Schneefall",
+    "light-drizzle": "Leichter Nieselregen",
+    "light-rain": "Leichter Regen",
+    "light-showers": "Leichte Schauer",
+    "light-snow": "Leichter Schneefall",
+    "light-snow-showers": "Leichte Schneeschauer",
+    "mostly-sunny": "Überwiegend sonnig",
+    "partly-cloudy": "Teils bewölkt",
     "rain": "Regen",
-    "snow": "Schnee"
+    "showers": "Schauer",
+    "snow": "Schnee",
+    "snow-grains": "Schneegriesel",
+    "snow-showers": "Schneeschauer",
+    "sunny": "Sonnig",
+    "thunderstorm": "Gewitter",
+    "thunderstorm-with-hail": "Gewitter mit Hagel",
+    "unknown": "Unbekannt"
   }
 }

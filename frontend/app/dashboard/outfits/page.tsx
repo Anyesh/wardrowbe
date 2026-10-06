@@ -18,22 +18,19 @@ import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolb
 import {
   useBulkDeleteOutfits,
   useCalendarOutfits,
+  useInfiniteOutfits,
   useOutfits,
   type BulkOutfitOperationParams,
   type Outfit,
   type OutfitFilters,
 } from '@/lib/hooks/use-outfits';
 import { cn, formatDateKey, formatShortDate, parseDateString } from '@/lib/utils';
+import { useUserToday } from '@/lib/hooks/use-user';
 import { GRID_PAGE_SIZE } from '@/lib/pagination';
 
 interface MonthRef {
   year: number;
   month: number;
-}
-
-function currentMonthRef(): MonthRef {
-  const now = new Date();
-  return { year: now.getFullYear(), month: now.getMonth() + 1 };
 }
 
 function formatMonthParam(ref: MonthRef): string {
@@ -150,9 +147,16 @@ function OutfitsPageContent() {
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [page, setPage] = useState(1);
   const [defaultChecked, setDefaultChecked] = useState(false);
-  const [monthRef, setMonthRef] = useState<MonthRef>(urlMonth ?? currentMonthRef());
+  const todayKey = useUserToday()();
+  // Null until the user or URL picks a month, so that the calendar follows the profile timezone
+  // once it loads instead of freezing on the browser's month from the first render.
+  const [pickedMonth, setPickedMonth] = useState<MonthRef | null>(urlMonth);
+  const monthRef = useMemo<MonthRef>(() => {
+    if (pickedMonth) return pickedMonth;
+    const today = parseDateString(todayKey);
+    return { year: today.getFullYear(), month: today.getMonth() + 1 };
+  }, [pickedMonth, todayKey]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selection, setSelection] = useState<BulkSelection>({
@@ -163,7 +167,7 @@ function OutfitsPageContent() {
 
   useEffect(() => {
     if (urlMonth && (urlMonth.year !== monthRef.year || urlMonth.month !== monthRef.month)) {
-      setMonthRef(urlMonth);
+      setPickedMonth(urlMonth);
     }
   }, [urlMonth, monthRef.year, monthRef.month]);
 
@@ -177,10 +181,11 @@ function OutfitsPageContent() {
     [chip, debouncedSearch],
   );
 
-  const listQuery = useOutfits(filters, page, GRID_PAGE_SIZE);
+  const listQuery = useInfiniteOutfits(filters, GRID_PAGE_SIZE);
   const bulkDeleteOutfits = useBulkDeleteOutfits();
 
-  // Clear selection when filters change (but not page - allow cross-page selection)
+  // Clear selection when filters change, but not when another page loads, so that a selection
+  // can span loaded pages.
   useEffect(() => {
     setSelection({ mode: 'none', selectedIds: new Set(), excludedIds: new Set() });
   }, [chip, debouncedSearch]);
@@ -261,7 +266,6 @@ function OutfitsPageContent() {
     } else {
       params.set('filter', next);
     }
-    setPage(1);
     setSelectedDate(null);
     router.replace(
       `/dashboard/outfits${params.toString() ? `?${params}` : ''}`,
@@ -286,14 +290,14 @@ function OutfitsPageContent() {
 
   const handleMonthChange = (year: number, month: number) => {
     const nextRef = { year, month };
-    setMonthRef(nextRef);
+    setPickedMonth(nextRef);
     setSelectedDate(null);
     updateQuery({ month: nextRef });
   };
 
   const handleShiftMonth = (delta: number) => {
     const nextRef = shiftMonth(monthRef, delta);
-    setMonthRef(nextRef);
+    setPickedMonth(nextRef);
     setSelectedDate(null);
     updateQuery({ month: nextRef });
   };
@@ -305,9 +309,11 @@ function OutfitsPageContent() {
     ? dateMap.get(selectedDate) ?? []
     : [];
 
-  const outfits = listQuery.data?.outfits ?? [];
-  const total = listQuery.data?.total ?? 0;
-  const hasMore = listQuery.data?.has_more ?? false;
+  const outfits = useMemo(
+    () => listQuery.data?.pages.flatMap((page) => page.outfits) ?? [],
+    [listQuery.data],
+  );
+  const total = listQuery.data?.pages[0]?.total ?? 0;
   const listLoading = listQuery.isLoading;
   const listError = listQuery.isError;
   const calendarLoading = calendarQuery.isLoading;
@@ -482,7 +488,7 @@ function OutfitsPageContent() {
 
         {listQuery.data && (
           <Badge variant="outline" className="ml-auto">
-            {t('totalCount', { count: listQuery.data.total })}
+            {t('totalCount', { count: total })}
           </Badge>
         )}
       </div>
@@ -528,9 +534,13 @@ function OutfitsPageContent() {
                   );
                 })}
               </div>
-              {hasMore && (
+              {listQuery.hasNextPage && (
                 <div className="flex justify-center pt-4">
-                  <Button variant="outline" onClick={() => setPage((p) => p + 1)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => listQuery.fetchNextPage()}
+                    disabled={listQuery.isFetchingNextPage}
+                  >
                     {t('loadMore')}
                   </Button>
                 </div>
@@ -623,9 +633,6 @@ function OutfitsPageContent() {
           onDelete={handleBulkDelete}
           isDeleting={bulkDeleteOutfits.isPending}
           variant="outfits"
-          page={page}
-          pageSize={GRID_PAGE_SIZE}
-          onPageChange={setPage}
         />
       )}
     </div>

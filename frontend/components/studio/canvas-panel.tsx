@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { X } from 'lucide-react';
 
-import { useRoleLabel } from '@/lib/hooks/use-translated-constants';
+import { useRoleLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { ITEM_ROLE } from '@/lib/studio/canonical-order';
 import { cn } from '@/lib/utils';
 import type { StudioItem } from '@/lib/studio/editor-state';
@@ -15,6 +15,7 @@ interface CanvasPanelProps {
 }
 
 export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('outfits.canvas');
   const roleName = useRoleLabel();
   const roleLabel = (type: string) => {
@@ -43,7 +44,7 @@ export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
                 'absolute -top-2 -right-2 z-10 rounded-full bg-destructive text-destructive-foreground',
                 'p-1 shadow-md hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-destructive/50'
               )}
-              aria-label={t('removeItem', { name: item.name || item.type })}
+              aria-label={t('removeItem', { name: item.name || typeLabel(item.type) })}
             >
               <X className="h-3 w-3" />
             </button>
@@ -51,7 +52,7 @@ export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
               {item.thumbnail_url || item.image_url ? (
                 <Image
                   src={(item.thumbnail_url || item.image_url)!}
-                  alt={item.name || item.type}
+                  alt={item.name || typeLabel(item.type)}
                   width={96}
                   height={96}
                   className="object-cover w-full h-full"
@@ -59,7 +60,7 @@ export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <span className="text-xs text-muted-foreground">
-                    {item.type}
+                    {typeLabel(item.type)}
                   </span>
                 </div>
               )}

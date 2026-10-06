@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import ts from 'typescript';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -13,7 +13,10 @@ const SKIP_DIRS = new Set(['node_modules', '.next', 'components/ui']);
 // renders; the app replaces that page with its own /login.
 const SKIP_FILES = new Set(['app/layout.tsx', 'app/providers.tsx', 'lib/auth.ts']);
 
-const TEXT_ATTRS = new Set(['placeholder', 'title', 'aria-label', 'alt', 'label', 'aria-description']);
+// These attributes only ever reach the user as text or speech, so a lone lowercase word such as
+// aria-label="required" is copy even though it looks like an identifier.
+const DISPLAY_ATTRS = new Set(['placeholder', 'title', 'aria-label', 'alt', 'aria-description']);
+const TEXT_ATTRS = new Set([...DISPLAY_ATTRS, 'label']);
 // Option lists like [{ label: 'Shirt', value: 'shirt' }] reach the screen through a prop or
 // {opt.label}, where neither the JSX-text nor the attribute check can see the literal.
 const TEXT_PROPS = new Set(['label', 'title', 'placeholder', 'description']);
@@ -21,8 +24,8 @@ const TOAST_METHODS = new Set(['success', 'error', 'info', 'warning', 'message',
 
 // A literal is product copy if it reads like a sentence or label rather than an identifier,
 // css class, url, mime type, or format token.
+const IDENTIFIER = /^[a-z0-9]+([-_:/][a-z0-9]+)*$/;
 const NOT_COPY = [
-  /^[a-z0-9]+([-_:/][a-z0-9]+)*$/,
   /^https?:\/\//,
   /^[/#.]/,
   /^[A-Z0-9_]+$/,
@@ -35,13 +38,14 @@ const NOT_COPY = [
 // The product name is a proper noun and stays identical in every locale.
 const BRAND = new Set(['Wardrowbe', 'wardrowbe']);
 
-function isCopy(raw) {
+function isCopy(raw, { identifierIsCopy = false } = {}) {
   // &ldquo; &rarr; &#8212; are typographic punctuation, not translatable copy, but their
   // entity names are all letters, so they have to go before the letter test.
   const s = raw.replace(/&(?:[a-zA-Z]+|#\d+);/g, '').trim();
   if (s.length < 2) return false;
   if (!/\p{L}.*\p{L}/u.test(s)) return false;
   if (BRAND.has(s)) return false;
+  if (!identifierIsCopy && IDENTIFIER.test(s)) return false;
   return !NOT_COPY.some((re) => re.test(s));
 }
 
@@ -56,30 +60,35 @@ function walk(dir, acc = []) {
   return acc;
 }
 
-const findings = [];
+function literalText(node) {
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  if (ts.isTemplateExpression(node))
+    return node.head.text + node.templateSpans.map((span) => span.literal.text).join(' ');
+  return undefined;
+}
 
-for (const file of SCAN_DIRS.flatMap((d) => walk(join(ROOT, d)))) {
-  const rel = relative(ROOT, file);
-  if (SKIP_FILES.has(rel)) continue;
-  const text = readFileSync(file, 'utf8');
+export function scanSource(text, fileName) {
+  const findings = [];
   // Parsing a .ts file as TSX makes the parser read generics like `<T>(x: T)` as JSX elements,
   // so every type parameter turns into a bogus jsx-text finding.
-  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, kind);
+  const scriptKind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const sf = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true, scriptKind);
 
   const report = (node, kind, value) => {
     const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
-    findings.push({ file: rel, line: line + 1, kind, value: value.trim().replace(/\s+/g, ' ').slice(0, 80) });
+    findings.push({ file: fileName, line: line + 1, kind, value: value.trim().replace(/\s+/g, ' ').slice(0, 80) });
   };
 
   const visit = (node) => {
     if (ts.isJsxText(node) && isCopy(node.text)) report(node, 'jsx-text', node.text);
 
     if (ts.isJsxAttribute(node) && node.name && TEXT_ATTRS.has(node.name.getText(sf))) {
+      const name = node.name.getText(sf);
       const init = node.initializer;
-      if (init && ts.isStringLiteral(init) && isCopy(init.text)) report(node, `attr:${node.name.getText(sf)}`, init.text);
-      if (init && ts.isJsxExpression(init) && init.expression && ts.isStringLiteral(init.expression) && isCopy(init.expression.text))
-        report(node, `attr:${node.name.getText(sf)}`, init.expression.text);
+      const value =
+        init && ts.isJsxExpression(init) ? init.expression && literalText(init.expression) : init && literalText(init);
+      if (value !== undefined && isCopy(value, { identifierIsCopy: DISPLAY_ATTRS.has(name) }))
+        report(node, `attr:${name}`, value);
     }
 
     if (ts.isPropertyAssignment(node) && TEXT_PROPS.has(node.name.getText(sf).replace(/['"]/g, ''))) {
@@ -108,17 +117,33 @@ for (const file of SCAN_DIRS.flatMap((d) => walk(join(ROOT, d)))) {
   };
 
   visit(sf);
+  return findings;
 }
 
-if (!findings.length) {
-  console.log('i18n-scan: OK, no untranslated user-facing strings found');
-  process.exit(0);
+function scanTree() {
+  const findings = [];
+  for (const file of SCAN_DIRS.flatMap((d) => walk(join(ROOT, d)))) {
+    const rel = relative(ROOT, file);
+    if (SKIP_FILES.has(rel)) continue;
+    findings.push(...scanSource(readFileSync(file, 'utf8'), rel));
+  }
+  return findings;
 }
 
-const byFile = findings.reduce((m, f) => ((m[f.file] ??= []).push(f), m), {});
-for (const [file, items] of Object.entries(byFile).sort()) {
-  console.error(`\n${file}`);
-  for (const i of items) console.error(`  ${String(i.line).padStart(4)}  ${i.kind.padEnd(18)} ${JSON.stringify(i.value)}`);
+function main() {
+  const findings = scanTree();
+  if (!findings.length) {
+    console.log('i18n-scan: OK, no untranslated user-facing strings found');
+    process.exit(0);
+  }
+
+  const byFile = findings.reduce((m, f) => ((m[f.file] ??= []).push(f), m), {});
+  for (const [file, items] of Object.entries(byFile).sort()) {
+    console.error(`\n${file}`);
+    for (const i of items) console.error(`  ${String(i.line).padStart(4)}  ${i.kind.padEnd(18)} ${JSON.stringify(i.value)}`);
+  }
+  console.error(`\ni18n-scan: FAILED, ${findings.length} untranslated string(s) in ${Object.keys(byFile).length} file(s)`);
+  process.exit(1);
 }
-console.error(`\ni18n-scan: FAILED, ${findings.length} untranslated string(s) in ${Object.keys(byFile).length} file(s)`);
-process.exit(1);
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();

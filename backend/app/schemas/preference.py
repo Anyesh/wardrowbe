@@ -2,6 +2,14 @@ from pydantic import BaseModel, Field
 
 from app.schemas.color import ColorList
 from app.schemas.outfit import Occasion
+from app.utils.preference_defaults import (
+    DEFAULT_LAYERING_PREFERENCE,
+    DEFAULT_OCCASION,
+    DEFAULT_PREFER_UNDERUSED_ITEMS,
+    DEFAULT_TEMPERATURE_SENSITIVITY,
+    DEFAULT_TEMPERATURE_UNIT,
+    DEFAULT_VARIETY_LEVEL,
+)
 from app.utils.scales import (
     AVOID_REPEAT_DAYS_MAX,
     AVOID_REPEAT_DAYS_MIN,
@@ -10,8 +18,11 @@ from app.utils.scales import (
     DEFAULT_AVOID_REPEAT_DAYS,
     DEFAULT_COLD_THRESHOLD,
     DEFAULT_HOT_THRESHOLD,
+    DEFAULT_STYLE_SCORE,
     HOT_THRESHOLD_MAX,
     HOT_THRESHOLD_MIN,
+    STYLE_SCORE_MAX,
+    STYLE_SCORE_MIN,
 )
 
 
@@ -24,13 +35,36 @@ class AIEndpoint(BaseModel):
 
 
 class StyleProfile(BaseModel):
-    casual: int = Field(default=50, ge=0, le=100, description="Casual style preference 0-100")
-    formal: int = Field(default=50, ge=0, le=100, description="Formal style preference 0-100")
-    sporty: int = Field(default=50, ge=0, le=100, description="Sporty style preference 0-100")
-    minimalist: int = Field(
-        default=50, ge=0, le=100, description="Minimalist style preference 0-100"
+    casual: int = Field(
+        default=DEFAULT_STYLE_SCORE,
+        ge=STYLE_SCORE_MIN,
+        le=STYLE_SCORE_MAX,
+        description="Casual style preference 0-100",
     )
-    bold: int = Field(default=50, ge=0, le=100, description="Bold/statement style preference 0-100")
+    formal: int = Field(
+        default=DEFAULT_STYLE_SCORE,
+        ge=STYLE_SCORE_MIN,
+        le=STYLE_SCORE_MAX,
+        description="Formal style preference 0-100",
+    )
+    sporty: int = Field(
+        default=DEFAULT_STYLE_SCORE,
+        ge=STYLE_SCORE_MIN,
+        le=STYLE_SCORE_MAX,
+        description="Sporty style preference 0-100",
+    )
+    minimalist: int = Field(
+        default=DEFAULT_STYLE_SCORE,
+        ge=STYLE_SCORE_MIN,
+        le=STYLE_SCORE_MAX,
+        description="Minimalist style preference 0-100",
+    )
+    bold: int = Field(
+        default=DEFAULT_STYLE_SCORE,
+        ge=STYLE_SCORE_MIN,
+        le=STYLE_SCORE_MAX,
+        description="Bold/statement style preference 0-100",
+    )
 
 
 class PreferenceBase(BaseModel):
@@ -43,17 +77,17 @@ class PreferenceBase(BaseModel):
 
     # Occasion settings
     default_occasion: str = Field(
-        default="casual", description="Default occasion for recommendations"
+        default=DEFAULT_OCCASION, description="Default occasion for recommendations"
     )
 
     # Temperature/comfort
     temperature_unit: str = Field(
-        default="celsius",
+        default=DEFAULT_TEMPERATURE_UNIT,
         pattern="^(celsius|fahrenheit)$",
         description="Preferred temperature display unit",
     )
     temperature_sensitivity: str = Field(
-        default="normal",
+        default=DEFAULT_TEMPERATURE_SENSITIVITY,
         pattern="^(low|normal|high)$",
         description="Temperature sensitivity level",
     )
@@ -70,7 +104,7 @@ class PreferenceBase(BaseModel):
         description="Temperature (C) considered hot",
     )
     layering_preference: str = Field(
-        default="moderate",
+        default=DEFAULT_LAYERING_PREFERENCE,
         pattern="^(minimal|moderate|heavy)$",
         description="Layering preference",
     )
@@ -82,9 +116,11 @@ class PreferenceBase(BaseModel):
         le=AVOID_REPEAT_DAYS_MAX,
         description="Days before repeating items",
     )
-    prefer_underused_items: bool = Field(default=True, description="Prioritize less worn items")
+    prefer_underused_items: bool = Field(
+        default=DEFAULT_PREFER_UNDERUSED_ITEMS, description="Prioritize less worn items"
+    )
     variety_level: str = Field(
-        default="moderate",
+        default=DEFAULT_VARIETY_LEVEL,
         pattern="^(low|moderate|high)$",
         description="Outfit variety preference",
     )

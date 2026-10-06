@@ -21,6 +21,14 @@
     "white": "Bianco",
     "yellow": "Giallo"
   },
+  "fits": {
+    "cropped": "Corto",
+    "oversized": "Oversize",
+    "regular": "Regolare",
+    "relaxed": "Morbido",
+    "slim": "Slim",
+    "tailored": "Sartoriale"
+  },
   "formalities": {
     "business-casual": "Business casual",
     "casual": "Casual",
@@ -70,6 +78,18 @@
     "weekend": "Fine settimana",
     "work": "Lavoro"
   },
+  "patterns": {
+    "animal-print": "Animalier",
+    "camouflage": "Mimetico",
+    "checkered": "A quadretti",
+    "floral": "Floreale",
+    "geometric": "Geometrico",
+    "graphic": "Grafico",
+    "plaid": "Scozzese",
+    "polka-dot": "A pois",
+    "solid": "Tinta unita",
+    "striped": "A righe"
+  },
   "roles": {
     "accessory": "Accessorio",
     "base_top": "Capo base",
@@ -82,12 +102,28 @@
     "socks": "Calzini",
     "suit": "Completo"
   },
+  "seasons": {
+    "all-season": "Tutte le stagioni",
+    "fall": "Autunno",
+    "spring": "Primavera",
+    "summer": "Estate",
+    "winter": "Inverno"
+  },
   "styles": {
+    "athletic": "Atletico",
+    "bohemian": "Bohémien",
     "bold": "Audace",
     "casual": "Casual",
+    "classic": "Classico",
+    "elegant": "Elegante",
     "formal": "Formale",
     "minimalist": "Minimalista",
-    "sporty": "Sportivo"
+    "modern": "Moderno",
+    "preppy": "Preppy",
+    "rugged": "Robusto",
+    "sporty": "Sportivo",
+    "streetwear": "Streetwear",
+    "vintage": "Vintage"
   },
   "subtypes": {
     "a-line": "Svasato",
@@ -198,7 +234,29 @@
   "weatherConditions": {
     "clear": "Sereno",
     "cloudy": "Nuvoloso",
+    "drizzle": "Pioviggine",
+    "foggy": "Nebbia",
+    "freezing-drizzle": "Pioviggine gelata",
+    "freezing-rain": "Pioggia gelata",
+    "heavy-drizzle": "Pioviggine intensa",
+    "heavy-rain": "Pioggia forte",
+    "heavy-showers": "Rovesci forti",
+    "heavy-snow": "Neve forte",
+    "light-drizzle": "Pioviggine leggera",
+    "light-rain": "Pioggia leggera",
+    "light-showers": "Rovesci leggeri",
+    "light-snow": "Neve leggera",
+    "light-snow-showers": "Deboli rovesci di neve",
+    "mostly-sunny": "Prevalentemente soleggiato",
+    "partly-cloudy": "Parzialmente nuvoloso",
     "rain": "Pioggia",
-    "snow": "Neve"
+    "showers": "Rovesci",
+    "snow": "Neve",
+    "snow-grains": "Granelli di neve",
+    "snow-showers": "Rovesci di neve",
+    "sunny": "Soleggiato",
+    "thunderstorm": "Temporale",
+    "thunderstorm-with-hail": "Temporale con grandine",
+    "unknown": "Sconosciuto"
   }
 }

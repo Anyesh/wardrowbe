@@ -30,20 +30,24 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
+import { useAnalyticsInsightLines } from '@/lib/hooks/use-insight-text';
 import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
-import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useWeatherConditionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { displayValue, tempSymbol, TempUnit } from '@/lib/temperature';
 import { usePendingOutfits, useAcceptOutfit, useRejectOutfit } from '@/lib/hooks/use-outfits';
 import { useSchedules, useNotificationSettings } from '@/lib/hooks/use-notifications';
 import { useFamily } from '@/lib/hooks/use-family';
 import { toast } from 'sonner';
 import { formatShortDate } from '@/lib/utils';
+import { findNextSchedule } from '@/lib/schedules';
+import { useUserTimezone } from '@/lib/hooks/use-user';
 
 function WeatherCard() {
   const { data: weather, isLoading, isError } = useWeather();
   const { data: prefs } = usePreferences();
   const t = useTranslations('dashboard');
+  const conditionLabel = useWeatherConditionLabel();
   const unit: TempUnit = prefs?.temperature_unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
 
   if (isLoading) {
@@ -99,8 +103,8 @@ function WeatherCard() {
             {t('weather.feelsLike', { temp: `${displayValue(weather.feels_like, unit)}°` })}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground capitalize mb-1">
-          {weather.condition}
+        <p className="text-sm text-muted-foreground mb-1">
+          {conditionLabel(weather.condition)}
         </p>
         {weather.precipitation_chance > 0 && (
           <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -120,6 +124,7 @@ function WeatherCard() {
 }
 
 function PendingOutfitsCard() {
+  const typeLabel = useTypeLabel();
   const { data, isLoading } = usePendingOutfits(2);
   const acceptOutfit = useAcceptOutfit();
   const rejectOutfit = useRejectOutfit();
@@ -211,7 +216,7 @@ function PendingOutfitsCard() {
                   {item.thumbnail_url ? (
                     <Image
                       src={item.thumbnail_url}
-                      alt={item.name || item.type}
+                      alt={item.name || typeLabel(item.type)}
                       fill
                       className="object-cover"
                       sizes="40px"
@@ -262,41 +267,15 @@ function PendingOutfitsCard() {
 
 function NextScheduledCard() {
   const { data: schedules, isLoading } = useSchedules();
+  const timezone = useUserTimezone();
   const t = useTranslations('dashboard');
   const tDays = useTranslations('notifications');
   const occasionLabel = useOccasionLabel();
 
-  const nextSchedule = useMemo(() => {
-    if (!schedules || schedules.length === 0) return null;
-
-    const enabledSchedules = schedules.filter((s) => s.enabled);
-    if (enabledSchedules.length === 0) return null;
-
-    const now = new Date();
-    const currentDay = now.getDay();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-
-    // Find the next scheduled notification
-    let closest: { schedule: typeof enabledSchedules[0]; daysUntil: number; minutesUntil: number } | null = null;
-
-    for (const schedule of enabledSchedules) {
-      const [hours, minutes] = schedule.notification_time.split(':').map(Number);
-      const scheduleMinutes = hours * 60 + minutes;
-
-      let daysUntil = schedule.day_of_week - currentDay;
-      if (daysUntil < 0 || (daysUntil === 0 && scheduleMinutes <= currentTime)) {
-        daysUntil += 7;
-      }
-
-      const minutesUntil = daysUntil === 0 ? scheduleMinutes - currentTime : scheduleMinutes;
-
-      if (!closest || daysUntil < closest.daysUntil || (daysUntil === closest.daysUntil && minutesUntil < closest.minutesUntil)) {
-        closest = { schedule, daysUntil, minutesUntil };
-      }
-    }
-
-    return closest;
-  }, [schedules]);
+  const nextSchedule = useMemo(
+    () => (schedules ? findNextSchedule(schedules, timezone) : null),
+    [schedules, timezone]
+  );
 
   if (isLoading) {
     return (
@@ -334,14 +313,14 @@ function NextScheduledCard() {
     );
   }
 
-  const { schedule, daysUntil } = nextSchedule;
+  const { schedule, notifyDay, daysUntil } = nextSchedule;
   const timeStr = schedule.notification_time.slice(0, 5);
   const dayNames = [
-    tDays('days.sunday'), tDays('days.monday'), tDays('days.tuesday'),
-    tDays('days.wednesday'), tDays('days.thursday'), tDays('days.friday'),
-    tDays('days.saturday'),
+    tDays('days.monday'), tDays('days.tuesday'), tDays('days.wednesday'),
+    tDays('days.thursday'), tDays('days.friday'), tDays('days.saturday'),
+    tDays('days.sunday'),
   ];
-  const dayStr = daysUntil === 0 ? t('nextScheduled.today') : daysUntil === 1 ? t('nextScheduled.tomorrow') : dayNames[schedule.day_of_week];
+  const dayStr = daysUntil === 0 ? t('nextScheduled.today') : daysUntil === 1 ? t('nextScheduled.tomorrow') : dayNames[notifyDay];
 
   return (
     <Card>
@@ -509,6 +488,7 @@ function InsightsCard() {
   const { data: analytics, isLoading } = useAnalytics();
   const t = useTranslations('dashboard');
   const tc = useTranslations('common');
+  const insights = useAnalyticsInsightLines(analytics);
 
   if (isLoading) {
     return (
@@ -528,8 +508,6 @@ function InsightsCard() {
       </Card>
     );
   }
-
-  const insights = analytics?.insights || [];
 
   return (
     <Card>

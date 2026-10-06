@@ -187,6 +187,31 @@ oidc-client-id: "your-client-id"
 oidc-client-secret: "your-client-secret"
 ```
 
+#### Private CA
+
+If the OIDC provider's certificate comes from a private CA or is self-signed, both the backend (discovery and JWKS) and the frontend (NextAuth discovery, JWKS, token exchange and userinfo) have to trust it. TLS verification stays on; you add the CA as a trust anchor. Put the PEM in a ConfigMap, mount it into `backend.yaml` and `frontend.yaml`, and set both paths in `configmap.yaml`:
+
+```bash
+kubectl -n wardrobe create configmap wardrobe-ca --from-file=internal-ca.pem
+```
+
+```yaml
+# backend.yaml and frontend.yaml, in the container
+volumeMounts:
+  - name: wardrobe-ca
+    mountPath: /certs
+    readOnly: true
+# and in the pod spec
+volumes:
+  - name: wardrobe-ca
+    configMap:
+      name: wardrobe-ca
+
+# configmap.yaml
+OIDC_CA_BUNDLE: "/certs/internal-ca.pem"
+NODE_EXTRA_CA_CERTS: "/certs/internal-ca.pem"
+```
+
 ### Storage
 
 The uploads PVC defaults to 10Gi. Adjust in `backend.yaml`:

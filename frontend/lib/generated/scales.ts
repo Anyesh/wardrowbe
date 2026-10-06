@@ -9,3 +9,4 @@ export const TEMPERATURE_THRESHOLDS_CELSIUS = {
 } as const;
 
 export const AVOID_REPEAT_DAYS = { min: 0, max: 30, default: 7 } as const;
+export const STYLE_SCORE = { min: 0, max: 100, default: 50 } as const;

@@ -21,6 +21,14 @@
     "white": "Blanc",
     "yellow": "Jaune"
   },
+  "fits": {
+    "cropped": "Court",
+    "oversized": "Oversize",
+    "regular": "Droit",
+    "relaxed": "Ample",
+    "slim": "Ajusté",
+    "tailored": "Coupe sur mesure"
+  },
   "formalities": {
     "business-casual": "Business casual",
     "casual": "Décontracté",
@@ -70,6 +78,18 @@
     "weekend": "Week-end",
     "work": "Travail"
   },
+  "patterns": {
+    "animal-print": "Imprimé animal",
+    "camouflage": "Camouflage",
+    "checkered": "À carreaux",
+    "floral": "Fleuri",
+    "geometric": "Géométrique",
+    "graphic": "Graphique",
+    "plaid": "Écossais",
+    "polka-dot": "À pois",
+    "solid": "Uni",
+    "striped": "Rayé"
+  },
   "roles": {
     "accessory": "Accessoire",
     "base_top": "Haut de base",
@@ -82,12 +102,28 @@
     "socks": "Chaussettes",
     "suit": "Costume"
   },
+  "seasons": {
+    "all-season": "Toutes saisons",
+    "fall": "Automne",
+    "spring": "Printemps",
+    "summer": "Été",
+    "winter": "Hiver"
+  },
   "styles": {
+    "athletic": "Athlétique",
+    "bohemian": "Bohème",
     "bold": "Audacieux",
     "casual": "Décontracté",
+    "classic": "Classique",
+    "elegant": "Élégant",
     "formal": "Habillé",
     "minimalist": "Minimaliste",
-    "sporty": "Sportif"
+    "modern": "Moderne",
+    "preppy": "Preppy",
+    "rugged": "Robuste",
+    "sporty": "Sportif",
+    "streetwear": "Streetwear",
+    "vintage": "Vintage"
   },
   "subtypes": {
     "a-line": "Trapèze",
@@ -198,7 +234,29 @@
   "weatherConditions": {
     "clear": "Dégagé",
     "cloudy": "Nuageux",
+    "drizzle": "Bruine",
+    "foggy": "Brumeux",
+    "freezing-drizzle": "Bruine verglaçante",
+    "freezing-rain": "Pluie verglaçante",
+    "heavy-drizzle": "Bruine dense",
+    "heavy-rain": "Forte pluie",
+    "heavy-showers": "Fortes averses",
+    "heavy-snow": "Fortes chutes de neige",
+    "light-drizzle": "Bruine légère",
+    "light-rain": "Pluie légère",
+    "light-showers": "Averses légères",
+    "light-snow": "Neige légère",
+    "light-snow-showers": "Légères averses de neige",
+    "mostly-sunny": "Plutôt ensoleillé",
+    "partly-cloudy": "Partiellement nuageux",
     "rain": "Pluie",
-    "snow": "Neige"
+    "showers": "Averses",
+    "snow": "Neige",
+    "snow-grains": "Grains de neige",
+    "snow-showers": "Averses de neige",
+    "sunny": "Ensoleillé",
+    "thunderstorm": "Orage",
+    "thunderstorm-with-hail": "Orage avec grêle",
+    "unknown": "Inconnu"
   }
 }

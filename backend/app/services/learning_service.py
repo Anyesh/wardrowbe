@@ -65,10 +65,52 @@ def _canonical_color_scores(scores: dict[str, float]) -> dict[str, float]:
     return {color: round(sum(values) / len(values), 3) for color, values in merged.items()}
 
 
+# Ties break on the colour name so the incremental path, which reads its counts back from JSONB
+# (key order not preserved), picks the same colours as a full recompute.
+def _top_occasion_colors(counts: dict[str, int]) -> list[str]:
+    ranked = sorted(counts.items(), key=lambda entry: (-entry[1], entry[0]))
+    return [color for color, _ in ranked[:3]]
+
+
 class PairSignalType(enum.Enum):
     intent = "intent"
     wear = "wear"
     rating = "rating"
+
+
+def score_interpretation(score: float) -> str:
+    if score >= 0.5:
+        return "stronglyLiked"
+    if score >= 0.2:
+        return "liked"
+    if score >= -0.2:
+        return "neutral"
+    if score >= -0.5:
+        return "disliked"
+    return "stronglyDisliked"
+
+
+def insight_message(insight: StyleInsight) -> tuple[str | None, dict]:
+    """The learning.json key and params that render a stored insight in any language.
+
+    Derived from supporting_data rather than stored, so insights written before clients could
+    translate them render too. generate_insights must keep writing the fields read here.
+    """
+    data = insight.supporting_data or {}
+    kind = (insight.category, insight.insight_type)
+    if kind == ("color", "positive") and data.get("color"):
+        return "insightColorLoved", {"color": data["color"]}
+    if kind == ("color", "negative") and data.get("colors"):
+        return "insightColorAvoided", {"color": data["colors"][0]}
+    if kind == ("overall", "positive") and data.get("acceptance_rate") is not None:
+        return "insightGreatMatch", {"percent": round(float(data["acceptance_rate"]) * 100)}
+    if kind == ("overall", "suggestion"):
+        return "insightHelpUsLearn", {}
+    if kind == ("style", "pattern") and data.get("styles"):
+        # JSONB does not keep insertion order, so rank by score again.
+        styles = sorted(data["styles"], key=lambda style: data["styles"][style], reverse=True)
+        return "insightStyleLeaning", {"style": styles[0], "styles": styles}
+    return None, {}
 
 
 class LearningService:
@@ -666,14 +708,9 @@ class LearningService:
         learned_occasion_patterns = {}
         for occasion, data in occasion_patterns.items():
             if data["count"] >= 1:
-                # Find most successful colors for this occasion
-                top_colors = sorted(
-                    data["colors"].items(),
-                    key=lambda x: x[1],
-                    reverse=True,
-                )[:3]
                 learned_occasion_patterns[occasion] = {
-                    "preferred_colors": [c for c, _ in top_colors],
+                    "colors": data["colors"],
+                    "preferred_colors": _top_occasion_colors(data["colors"]),
                     "success_rate": round(data["positive"] / data["count"], 2),
                 }
 
@@ -782,16 +819,16 @@ class LearningService:
 
         occ_colors = dict(occ_data.get("colors", occ_data.get("preferred_colors_scores", {})))
         for oi in outfit.items:
-            if oi.item.primary_color and signal > 0:
+            if oi.item.primary_color:
                 color = canonical_color(oi.item.primary_color)
-                occ_colors[color] = occ_colors.get(color, 0) + 1
+                occ_colors[color] = occ_colors.get(color, 0) + (1 if signal > 0 else 0)
 
         old_rate = occ_data.get("success_rate", 0.5)
         positive_signal = 1.0 if signal > 0 else 0.0
         new_rate = round(old_rate * (1 - alpha) + positive_signal * alpha, 2)
 
-        top_colors = sorted(occ_colors.items(), key=lambda x: x[1], reverse=True)[:3]
-        occ_data["preferred_colors"] = [c for c, _ in top_colors]
+        occ_data["colors"] = occ_colors
+        occ_data["preferred_colors"] = _top_occasion_colors(occ_colors)
         occ_data["success_rate"] = new_rate
         new_occasion_patterns[occasion] = occ_data
         profile.learned_occasion_patterns = new_occasion_patterns

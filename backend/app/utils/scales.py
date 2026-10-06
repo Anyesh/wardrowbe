@@ -23,6 +23,11 @@ AVOID_REPEAT_DAYS_MIN: int = _AVOID_REPEAT["min"]
 AVOID_REPEAT_DAYS_MAX: int = _AVOID_REPEAT["max"]
 DEFAULT_AVOID_REPEAT_DAYS: int = _AVOID_REPEAT["default"]
 
+_STYLE_SCORE = _DATA["style_score"]
+STYLE_SCORE_MIN: int = _STYLE_SCORE["min"]
+STYLE_SCORE_MAX: int = _STYLE_SCORE["max"]
+DEFAULT_STYLE_SCORE: int = _STYLE_SCORE["default"]
+
 
 def rating_to_unit(rating: float) -> float:
     return (rating - RATING_MIN) / (RATING_MAX - RATING_MIN)

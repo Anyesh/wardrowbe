@@ -38,6 +38,7 @@
     "pairing": "페어링",
     "replacement": "대체",
     "studio": "스튜디오",
+    "woreInsteadFallback": "{occasion} (대신 착용)",
     "worn": "착용함"
   },
   "cloneToLookbook": {
@@ -77,6 +78,7 @@
     "name": "이름",
     "namePlaceholder": "금요일 브런치",
     "nameRequired": "(룩북에 필요해요)",
+    "required": "필수",
     "occasion": "상황",
     "pickOccasion": "저장하기 전에 상황을 선택하세요.",
     "skippedItem": "{name} 건너뜀: {reason}",

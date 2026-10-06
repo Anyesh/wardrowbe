@@ -2,12 +2,15 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_LOCALE, LOCALE_METADATA, SUPPORTED_LOCALES } from '@/lib/i18n/locales';
+import { PREFERENCE_DEFAULTS } from '@/lib/generated/preference-defaults';
 import {
   AVOID_REPEAT_DAYS,
   RATING_MAX,
   RATING_MIN,
+  STYLE_SCORE,
   TEMPERATURE_THRESHOLDS_CELSIUS,
 } from '@/lib/generated/scales';
+import { DEFAULT_STYLE_PROFILE } from '@/lib/preferences';
 import { RATING_STARS } from '@/lib/rating';
 
 const DATA_DIR = resolve(__dirname, '..', '..', 'backend', 'app', 'data');
@@ -37,11 +40,24 @@ describe('scales', () => {
     expect(RATING_MAX).toBe(scales.rating.max);
     expect(TEMPERATURE_THRESHOLDS_CELSIUS).toEqual(scales.temperature_thresholds_celsius);
     expect(AVOID_REPEAT_DAYS).toEqual(scales.avoid_repeat_days);
+    expect(STYLE_SCORE).toEqual(scales.style_score);
   });
 
   it('render one star per rating step', () => {
     expect(RATING_STARS[0]).toBe(RATING_MIN);
     expect(RATING_STARS[RATING_STARS.length - 1]).toBe(RATING_MAX);
     expect(RATING_STARS).toHaveLength(RATING_MAX - RATING_MIN + 1);
+  });
+});
+
+describe('preference defaults', () => {
+  it('come from the backend preference defaults file', () => {
+    expect(PREFERENCE_DEFAULTS).toEqual(readData('preference_defaults.json'));
+  });
+
+  it('start every style dimension at the style scale default', () => {
+    expect(Object.values(DEFAULT_STYLE_PROFILE)).toEqual(
+      Array(5).fill(readData('scales.json').style_score.default),
+    );
   });
 });

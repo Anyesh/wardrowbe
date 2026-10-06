@@ -16,6 +16,7 @@
     "title": "ペアリングはまだありません"
   },
   "generate": {
+    "colorAndType": "{color}の{type}",
     "description": "AIがこのアイテムを中心に完全なコーデを作成します",
     "failed": "ペアリングの生成に失敗しました",
     "generate": "コーデを生成",

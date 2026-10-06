@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { GRID_PAGE_SIZE } from '@/lib/pagination';
 import type { Item } from '@/lib/types';
 import { useTranslations } from 'next-intl';
+import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
 
 interface ItemPickerProps {
@@ -29,6 +30,7 @@ export function ItemPicker({
   emptyMessage,
   heightClass = 'h-[360px]',
 }: ItemPickerProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('outfits.itemPicker');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -131,7 +133,7 @@ export function ItemPicker({
                 {item.thumbnail_url || item.image_url ? (
                   <Image
                     src={(item.thumbnail_url || item.image_url)!}
-                    alt={item.name || item.type}
+                    alt={item.name || typeLabel(item.type)}
                     fill
                     className="object-cover"
                     sizes="(max-width: 640px) 33vw, 20vw"
@@ -140,7 +142,7 @@ export function ItemPicker({
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-muted">
                     <span className="text-xs text-muted-foreground">
-                      {item.type}
+                      {typeLabel(item.type)}
                     </span>
                   </div>
                 )}

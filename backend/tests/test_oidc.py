@@ -1,3 +1,4 @@
+import ssl
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -6,6 +7,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+from app.config import Settings
 from app.utils import oidc
 
 CANONICAL_ISSUER = "https://auth.example.com/application/o/wardrobe/"
@@ -160,3 +162,64 @@ class TestGetJwkClient:
             assert kwargs["headers"] == {
                 "User-Agent": "Mozilla/5.0 (compatible; WardrowbeBackend/1.0)"
             }
+
+
+class TestOidcTlsVerification:
+    @pytest.fixture(autouse=True)
+    def _empty_jwk_cache(self):
+        oidc._jwk_clients.clear()
+        oidc._jwks_cache_times.clear()
+        yield
+        oidc._jwk_clients.clear()
+        oidc._jwks_cache_times.clear()
+
+    async def _validate(self, rsa_key, settings):
+        token = _make_id_token(rsa_key, iss=CANONICAL_ISSUER)
+        http_client = MagicMock()
+        http_client.get = AsyncMock(return_value=_discovery_response(CANONICAL_ISSUER))
+        http_client_cls = MagicMock()
+        http_client_cls.return_value.__aenter__ = AsyncMock(return_value=http_client)
+        http_client_cls.return_value.__aexit__ = AsyncMock(return_value=None)
+        signing_key = MagicMock()
+        signing_key.key = rsa_key.public_key()
+        jwk_client_cls = MagicMock()
+        jwk_client_cls.return_value.get_signing_key_from_jwt.return_value = signing_key
+
+        with (
+            patch("app.utils.oidc.get_settings", return_value=settings),
+            patch("app.utils.oidc.httpx.AsyncClient", http_client_cls),
+            patch("app.utils.oidc.PyJWKClient", jwk_client_cls),
+        ):
+            await oidc.validate_oidc_id_token(token, CONFIGURED_ISSUER_NO_SLASH, CLIENT_ID)
+
+        return (
+            http_client_cls.call_args.kwargs["verify"],
+            jwk_client_cls.call_args.kwargs["ssl_context"],
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("debug", [True, False])
+    @pytest.mark.parametrize("ca_bundle", [None, "/certs/ca.pem"])
+    async def test_discovery_and_jwks_share_one_tls_setting(self, rsa_key, debug, ca_bundle):
+        settings = Settings(
+            debug=debug, secret_key="a-strong-custom-secret", oidc_ca_bundle=ca_bundle
+        )
+        context = MagicMock(spec=ssl.SSLContext)
+
+        with patch("app.utils.oidc._build_ssl_context", return_value=context) as build:
+            discovery_verify, jwks_context = await self._validate(rsa_key, settings)
+
+        assert discovery_verify is context
+        assert jwks_context is context
+        assert {call.args for call in build.call_args_list} == {(ca_bundle,)}
+
+    @pytest.mark.asyncio
+    async def test_debug_without_a_ca_bundle_still_verifies_certificates(self, rsa_key):
+        settings = Settings(debug=True, secret_key="a-strong-custom-secret")
+
+        discovery_verify, jwks_context = await self._validate(rsa_key, settings)
+
+        for context in (discovery_verify, jwks_context):
+            assert isinstance(context, ssl.SSLContext)
+            assert context.verify_mode == ssl.CERT_REQUIRED
+            assert context.check_hostname is True

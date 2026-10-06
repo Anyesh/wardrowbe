@@ -20,6 +20,7 @@ import { FeedbackDialog } from '@/components/feedback-dialog';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import { Pairing } from '@/lib/types';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
+import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
 function EmptyPairings({ t }: { t: (key: string) => string }) {
   return (
@@ -70,17 +71,19 @@ function LoadingSkeleton() {
 export default function PairingsPage() {
   const t = useTranslations('pairings');
   const tc = useTranslations('common');
-  const [page, setPage] = useState(1);
+  const typeLabel = useTypeLabel();
   const [sourceType, setSourceType] = useState<string | undefined>(undefined);
   const [feedbackOutfit, setFeedbackOutfit] = useState<Pairing | null>(null);
   const [previewOutfit, setPreviewOutfit] = useState<Pairing | null>(null);
 
-  const { data, isLoading, isError } = usePairings(page, DEFAULT_PAGE_SIZE, sourceType);
+  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    usePairings(DEFAULT_PAGE_SIZE, sourceType);
+  const pairings = data?.pages.flatMap((page) => page.pairings) ?? [];
+  const total = data?.pages[0]?.total;
   const { data: itemTypes } = useItemTypes();
 
   const handleSourceTypeChange = (value: string) => {
     setSourceType(value === 'all' ? undefined : value);
-    setPage(1);
   };
 
   if (isError) {
@@ -116,14 +119,14 @@ export default function PairingsPage() {
             <SelectItem value="all">{t('allItemTypes')}</SelectItem>
             {itemTypes?.map((type) => (
               <SelectItem key={type.type} value={type.type}>
-                {t('itemTypeOption', { type: type.type, count: type.count })}
+                {t('itemTypeOption', { type: typeLabel(type.type), count: type.count })}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        {data && (
+        {total !== undefined && (
           <p className="text-sm text-muted-foreground">
-            {t('pairingCount', { count: data.total })}
+            {t('pairingCount', { count: total })}
           </p>
         )}
       </div>
@@ -131,12 +134,12 @@ export default function PairingsPage() {
       {/* Pairings grid */}
       {isLoading ? (
         <LoadingSkeleton />
-      ) : !data || data.pairings.length === 0 ? (
+      ) : pairings.length === 0 ? (
         <EmptyPairings t={t} />
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {data.pairings.map((pairing) => (
+            {pairings.map((pairing) => (
               <PairingCard
                 key={pairing.id}
                 pairing={pairing}
@@ -147,11 +150,12 @@ export default function PairingsPage() {
           </div>
 
           {/* Pagination */}
-          {data.has_more && (
+          {hasNextPage && (
             <div className="flex justify-center pt-4">
               <Button
                 variant="outline"
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
               >
                 {tc('loadMore')}
               </Button>

@@ -16,9 +16,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn, formatRelativeDate } from '@/lib/utils';
 import type { Outfit } from '@/lib/hooks/use-outfits';
+import { useOutfitTitle } from '@/lib/hooks/use-outfit-title';
 import { useUserToday } from '@/lib/hooks/use-user';
-import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
-import { useLocale, useTranslations } from 'next-intl';
+import { useOccasionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useLocale, useTranslations, type createTranslator } from 'next-intl';
+import type outfitsMessages from '@/messages/en/outfits.json';
 
 interface OutfitCardProps {
   outfit: Outfit;
@@ -28,7 +30,13 @@ interface OutfitCardProps {
   onSelect?: (id: string, checked: boolean) => void;
 }
 
-function getSourceBadge(outfit: Outfit, t: any): {
+// Typed against the en catalog because the app does not register its messages with next-intl,
+// so useTranslations alone accepts any string and a mistyped key would only show at render.
+export type OutfitCardTranslator = ReturnType<
+  typeof createTranslator<{ outfits: typeof outfitsMessages }, 'outfits.cards'>
+>;
+
+function getSourceBadge(outfit: Outfit, t: OutfitCardTranslator): {
   label: string;
   icon: React.ReactNode;
   className: string;
@@ -79,15 +87,7 @@ function getSourceBadge(outfit: Outfit, t: any): {
   };
 }
 
-function getCardTitle(outfit: Outfit, t: any, occasionLabel: (value: string) => string): string {
-  if (outfit.name) return outfit.name;
-  if (outfit.reasoning) return outfit.reasoning;
-  if (outfit.highlights && outfit.highlights.length > 0) {
-    return outfit.highlights[0];
-  }
-  return t('outfitFallback', { occasion: occasionLabel(outfit.occasion) });
-}
-function getMetaLabel(outfit: Outfit, t: any, locale: string, today: string): string {
+function getMetaLabel(outfit: Outfit, t: OutfitCardTranslator, locale: string, today: string): string {
   if (!outfit.scheduled_for) return t('lookbookTemplate');
   try {
     return formatRelativeDate(outfit.scheduled_for, locale, today);
@@ -97,10 +97,12 @@ function getMetaLabel(outfit: Outfit, t: any, locale: string, today: string): st
 }
 
 export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: OutfitCardProps) {
-  const t = useTranslations('outfits.cards');
+  const typeLabel = useTypeLabel();
+  const t: OutfitCardTranslator = useTranslations('outfits.cards');
   const locale = useLocale();
   const getUserToday = useUserToday();
   const occasionLabel = useOccasionLabel();
+  const getTitle = useOutfitTitle();
   const badge = getSourceBadge(outfit, t);
   const visibleItems = outfit.items.slice(0, 4);
   const overflow = outfit.items.length - visibleItems.length;
@@ -145,7 +147,7 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
                 {item.thumbnail_url || item.image_url ? (
                   <Image
                     src={(item.thumbnail_url || item.image_url)!}
-                    alt={item.name || item.type}
+                    alt={item.name || typeLabel(item.type)}
                     fill
                     className="object-cover"
                     sizes="(max-width: 640px) 25vw, 15vw"
@@ -154,7 +156,7 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="text-[10px] text-muted-foreground">
-                      {item.type}
+                      {typeLabel(item.type)}
                     </span>
                   </div>
                 )}
@@ -182,7 +184,7 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
         </div>
         <div className="p-3 space-y-1">
           <h3 className="text-sm font-semibold leading-tight truncate">
-            {getCardTitle(outfit, t, occasionLabel)}
+            {getTitle(outfit)}
           </h3>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <Badge variant="outline" className="capitalize">

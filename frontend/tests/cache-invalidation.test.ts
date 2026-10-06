@@ -21,6 +21,7 @@ import {
   useRejectOutfit,
   useSubmitFeedback,
 } from '@/lib/hooks/use-outfits'
+import { useCreateStudioOutfit, useCreateWoreInstead, useWearToday } from '@/lib/hooks/use-studio'
 
 vi.mock('@/lib/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/api')>()),
@@ -49,6 +50,8 @@ async function invalidatedKeys<V>(
 const ITEM_ONLY = [['items'], ['item', 'i1']]
 const ITEM_AND_OUTFITS = [['items'], ['item', 'i1'], ['outfits'], ['calendarOutfits']]
 const OUTFIT_LISTS = [['outfits'], ['calendarOutfits'], ['pendingOutfits'], ['analytics']]
+const ITEM_WEAR = [['items'], ['item', 'i1'], ['wear-stats', 'i1'], ['wear-history', 'i1']]
+const EVERY_ITEM_WEAR = [['items'], ['item'], ['wear-stats'], ['wear-history']]
 const OUTFIT_AND_LISTS = [
   ['outfits'],
   ['outfit', 'o1'],
@@ -66,7 +69,7 @@ describe('mutation cache invalidation', () => {
 
   it.each([
     ['useUpdateItem', () => invalidatedKeys(useUpdateItem, { id: 'i1', data: {} }), ITEM_ONLY],
-    ['useLogWear', () => invalidatedKeys(useLogWear, { id: 'i1' }), ITEM_ONLY],
+    ['useLogWear', () => invalidatedKeys(useLogWear, { id: 'i1' }), ITEM_WEAR],
     ['useAddItemImage', () => invalidatedKeys(useAddItemImage, { itemId: 'i1', file }), ITEM_ONLY],
     [
       'useDeleteItemImage',
@@ -105,6 +108,44 @@ describe('mutation cache invalidation', () => {
       'useSubmitFeedback',
       () => invalidatedKeys(useSubmitFeedback, { outfitId: 'o1', feedback: {} }),
       OUTFIT_AND_LISTS,
+    ],
+    [
+      'useSubmitFeedback (worn)',
+      () => invalidatedKeys(useSubmitFeedback, { outfitId: 'o1', feedback: { worn: true } }),
+      [...OUTFIT_AND_LISTS, ...EVERY_ITEM_WEAR],
+    ],
+    [
+      'useCreateStudioOutfit',
+      () => invalidatedKeys(useCreateStudioOutfit, { items: ['i1'], occasion: 'casual' }),
+      [['outfits'], ['analytics'], ['learning']],
+    ],
+    [
+      'useCreateStudioOutfit (worn)',
+      () =>
+        invalidatedKeys(useCreateStudioOutfit, {
+          items: ['i1'],
+          occasion: 'casual',
+          mark_worn: true,
+        }),
+      [['outfits'], ['analytics'], ['learning'], ...EVERY_ITEM_WEAR],
+    ],
+    [
+      'useCreateWoreInstead',
+      () => invalidatedKeys(() => useCreateWoreInstead('o1'), { items: ['i1'] }),
+      [
+        ['outfits'],
+        ['outfit', 'o1'],
+        ['pendingOutfits'],
+        ['calendarOutfits'],
+        ['analytics'],
+        ['learning'],
+        ...EVERY_ITEM_WEAR,
+      ],
+    ],
+    [
+      'useWearToday',
+      () => invalidatedKeys(() => useWearToday('o1'), {}),
+      [['outfits'], ['calendarOutfits'], ...EVERY_ITEM_WEAR],
     ],
     ['useDeleteOutfit', () => invalidatedKeys(useDeleteOutfit, 'o1'), OUTFIT_LISTS],
     [

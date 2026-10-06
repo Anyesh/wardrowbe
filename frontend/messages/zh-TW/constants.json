@@ -21,6 +21,14 @@
     "white": "白色",
     "yellow": "黃色"
   },
+  "fits": {
+    "cropped": "短版",
+    "oversized": "寬鬆版型",
+    "regular": "標準版型",
+    "relaxed": "休閒寬版",
+    "slim": "修身",
+    "tailored": "合身剪裁"
+  },
   "formalities": {
     "business-casual": "商務休閒",
     "casual": "休閒",
@@ -70,6 +78,18 @@
     "weekend": "週末",
     "work": "工作"
   },
+  "patterns": {
+    "animal-print": "動物紋",
+    "camouflage": "迷彩",
+    "checkered": "格紋",
+    "floral": "花卉",
+    "geometric": "幾何",
+    "graphic": "圖案印花",
+    "plaid": "格子",
+    "polka-dot": "圓點",
+    "solid": "素色",
+    "striped": "條紋"
+  },
   "roles": {
     "accessory": "配件",
     "base_top": "基礎上衣",
@@ -82,12 +102,28 @@
     "socks": "襪子",
     "suit": "西裝"
   },
+  "seasons": {
+    "all-season": "四季",
+    "fall": "秋季",
+    "spring": "春季",
+    "summer": "夏季",
+    "winter": "冬季"
+  },
   "styles": {
+    "athletic": "運動",
+    "bohemian": "波希米亞",
     "bold": "大膽",
     "casual": "休閒",
+    "classic": "經典",
+    "elegant": "優雅",
     "formal": "正式",
     "minimalist": "極簡",
-    "sporty": "運動"
+    "modern": "現代",
+    "preppy": "學院風",
+    "rugged": "粗獷",
+    "sporty": "運動",
+    "streetwear": "街頭",
+    "vintage": "復古"
   },
   "subtypes": {
     "a-line": "A字",
@@ -198,7 +234,29 @@
   "weatherConditions": {
     "clear": "晴朗",
     "cloudy": "多雲",
+    "drizzle": "毛毛雨",
+    "foggy": "起霧",
+    "freezing-drizzle": "凍毛毛雨",
+    "freezing-rain": "凍雨",
+    "heavy-drizzle": "較強毛毛雨",
+    "heavy-rain": "大雨",
+    "heavy-showers": "強陣雨",
+    "heavy-snow": "大雪",
+    "light-drizzle": "輕微毛毛雨",
+    "light-rain": "小雨",
+    "light-showers": "短暫小雨",
+    "light-snow": "小雪",
+    "light-snow-showers": "短暫小雪",
+    "mostly-sunny": "大致晴朗",
+    "partly-cloudy": "晴時多雲",
     "rain": "下雨",
-    "snow": "下雪"
+    "showers": "陣雨",
+    "snow": "下雪",
+    "snow-grains": "米雪",
+    "snow-showers": "陣雪",
+    "sunny": "晴天",
+    "thunderstorm": "雷雨",
+    "thunderstorm-with-hail": "雷雨夾冰雹",
+    "unknown": "未知"
   }
 }

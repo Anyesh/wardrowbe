@@ -47,14 +47,6 @@ def create_access_token(external_id: str, expires_delta: timedelta | None = None
     return jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
 
 
-def _is_dev_mode() -> bool:
-    return settings.debug and not settings.forward_auth_configured and not _oidc_configured()
-
-
-def _oidc_configured() -> bool:
-    return bool(settings.oidc_issuer_url and settings.oidc_client_id)
-
-
 MOBILE_APP_SCHEME = "wardrowbe"
 FORWARD_AUTH_ONLY_MOBILE_NOTICE = (
     "Forward-auth signs in browsers only. The mobile app needs OIDC: "
@@ -74,7 +66,7 @@ async def mobile_oidc_callback(request: Request) -> RedirectResponse:
 
 @router.get("/config", response_model=AuthConfigResponse)
 async def get_auth_config() -> AuthConfigResponse:
-    oidc_enabled = _oidc_configured()
+    oidc_enabled = settings.oidc_configured
     forward_auth = settings.forward_auth_configured
     return AuthConfigResponse(
         oidc=AuthConfigOIDC(
@@ -84,7 +76,7 @@ async def get_auth_config() -> AuthConfigResponse:
             if oidc_enabled
             else None,
         ),
-        dev_mode=_is_dev_mode(),
+        dev_mode=settings.dev_mode,
         forward_auth=forward_auth,
         mobile_notice=FORWARD_AUTH_ONLY_MOBILE_NOTICE
         if forward_auth and not oidc_enabled
@@ -220,14 +212,14 @@ async def _body_identity(sync_data: UserSyncRequest | None) -> tuple[UserSyncReq
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Request body is required",
         )
-    if _is_dev_mode():
+    if settings.dev_mode:
         if not sync_data.email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="email is required",
             )
         return sync_data, True
-    if _oidc_configured():
+    if settings.oidc_configured:
         return await _oidc_identity(sync_data)
     if settings.forward_auth_configured:
         raise HTTPException(
@@ -252,7 +244,7 @@ async def sync_user(
     oidc_sync_through_proxy = (
         sync_data is not None
         and bool(sync_data.id_token)
-        and _oidc_configured()
+        and settings.oidc_configured
         and not request.headers.get("Remote-User")
     )
     if presented_secret is not None and not oidc_sync_through_proxy:

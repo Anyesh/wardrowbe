@@ -220,8 +220,10 @@ editing it, run `cd frontend && npm run vocab:gen`, add the labels under `consta
 `constants.colors` in every locale, and commit the generated file. Turning a stored colour into an
 alias also needs an Alembic data migration that remaps the rows already holding it.
 `npm run vocab:check` fails CI when the generated file is stale. The occasion pickers show only the short featured list in `frontend/lib/types.ts`.
-The rating scale and the temperature threshold bounds live in `backend/app/data/scales.json` and are
-generated the same way.
+The rating scale, the temperature threshold bounds, the repeat-avoidance range and the style score
+scale live in `backend/app/data/scales.json`, and the preference defaults (occasion, units,
+sensitivity, layering, variety) in `backend/app/data/preference_defaults.json`; both are generated
+the same way.
 
 ## Project Structure
 

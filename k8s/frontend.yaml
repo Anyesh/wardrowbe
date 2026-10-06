@@ -78,8 +78,12 @@ spec:
                   name: wardrobe-config
                   key: TINYAUTH_URL
                   optional: true
-            - name: NODE_TLS_REJECT_UNAUTHORIZED
-              value: "0"
+            - name: NODE_EXTRA_CA_CERTS
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: NODE_EXTRA_CA_CERTS
+                  optional: true
           resources:
             requests:
               memory: "128Mi"

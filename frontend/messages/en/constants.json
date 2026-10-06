@@ -21,6 +21,14 @@
     "white": "White",
     "yellow": "Yellow"
   },
+  "fits": {
+    "cropped": "Cropped",
+    "oversized": "Oversized",
+    "regular": "Regular",
+    "relaxed": "Relaxed",
+    "slim": "Slim",
+    "tailored": "Tailored"
+  },
   "formalities": {
     "business-casual": "Business casual",
     "casual": "Casual",
@@ -70,6 +78,18 @@
     "weekend": "Weekend",
     "work": "Work"
   },
+  "patterns": {
+    "animal-print": "Animal Print",
+    "camouflage": "Camouflage",
+    "checkered": "Checkered",
+    "floral": "Floral",
+    "geometric": "Geometric",
+    "graphic": "Graphic",
+    "plaid": "Plaid",
+    "polka-dot": "Polka Dot",
+    "solid": "Solid",
+    "striped": "Striped"
+  },
   "roles": {
     "accessory": "Accessory",
     "base_top": "Base top",
@@ -82,12 +102,28 @@
     "socks": "Socks",
     "suit": "Suit"
   },
+  "seasons": {
+    "all-season": "All Season",
+    "fall": "Fall",
+    "spring": "Spring",
+    "summer": "Summer",
+    "winter": "Winter"
+  },
   "styles": {
+    "athletic": "Athletic",
+    "bohemian": "Bohemian",
     "bold": "Bold",
     "casual": "Casual",
+    "classic": "Classic",
+    "elegant": "Elegant",
     "formal": "Formal",
     "minimalist": "Minimalist",
-    "sporty": "Sporty"
+    "modern": "Modern",
+    "preppy": "Preppy",
+    "rugged": "Rugged",
+    "sporty": "Sporty",
+    "streetwear": "Streetwear",
+    "vintage": "Vintage"
   },
   "subtypes": {
     "a-line": "A-line",
@@ -198,7 +234,29 @@
   "weatherConditions": {
     "clear": "Clear",
     "cloudy": "Cloudy",
+    "drizzle": "Drizzle",
+    "foggy": "Foggy",
+    "freezing-drizzle": "Freezing Drizzle",
+    "freezing-rain": "Freezing Rain",
+    "heavy-drizzle": "Heavy Drizzle",
+    "heavy-rain": "Heavy Rain",
+    "heavy-showers": "Heavy Showers",
+    "heavy-snow": "Heavy Snow",
+    "light-drizzle": "Light Drizzle",
+    "light-rain": "Light Rain",
+    "light-showers": "Light Showers",
+    "light-snow": "Light Snow",
+    "light-snow-showers": "Light Snow Showers",
+    "mostly-sunny": "Mostly Sunny",
+    "partly-cloudy": "Partly Cloudy",
     "rain": "Rain",
-    "snow": "Snow"
+    "showers": "Showers",
+    "snow": "Snow",
+    "snow-grains": "Snow Grains",
+    "snow-showers": "Snow Showers",
+    "sunny": "Sunny",
+    "thunderstorm": "Thunderstorm",
+    "thunderstorm-with-hail": "Thunderstorm with Hail",
+    "unknown": "Unknown"
   }
 }

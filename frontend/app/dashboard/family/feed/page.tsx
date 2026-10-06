@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentFamilyMember, useFamily } from '@/lib/hooks/use-family';
 import { useFamilyOutfits, type Outfit } from '@/lib/hooks/use-outfits';
-import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { useOccasionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { SourceBadge } from '@/components/shared/source-badge';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
@@ -24,7 +24,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/lib/utils';
-import { RATING_STARS } from '@/lib/rating';
+import { StarRatingDisplay } from '@/components/shared/star-rating';
 
 function getInitials(name: string) {
   return name
@@ -46,6 +46,7 @@ function FeedOutfitCard({
   memberName: string;
   onPreview: () => void;
 }) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('family');
   const tc = useTranslations('common');
   const occasionLabel = useOccasionLabel();
@@ -89,14 +90,14 @@ function FeedOutfitCard({
               {item.thumbnail_url ? (
                 <Image
                   src={item.thumbnail_url}
-                  alt={item.name || item.type}
+                  alt={item.name || typeLabel(item.type)}
                   fill
                   className="object-cover"
                   sizes="80px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                  {item.type}
+                  {typeLabel(item.type)}
                 </div>
               )}
             </div>
@@ -112,18 +113,10 @@ function FeedOutfitCard({
         {outfit.family_rating_count != null && outfit.family_rating_count > 0 && (
           <div className="flex items-center gap-2 text-sm">
             <Users className="h-4 w-4 text-muted-foreground" />
-            <div className="flex gap-0.5">
-              {RATING_STARS.map((star) => (
-                <Star
-                  key={star}
-                  className={`h-4 w-4 ${
-                    star <= Math.round(outfit.family_rating_average ?? 0)
-                      ? 'fill-yellow-400 text-yellow-400'
-                      : 'text-muted-foreground/30'
-                  }`}
-                />
-              ))}
-            </div>
+            <StarRatingDisplay
+              value={Math.round(outfit.family_rating_average ?? 0)}
+              starClassName="h-4 w-4"
+            />
             <span className="text-muted-foreground text-xs">
               {t('feed.ratingCount', { count: outfit.family_rating_count })}
             </span>
@@ -163,18 +156,7 @@ function FeedOutfitCard({
           <div className="flex items-center justify-between pt-2 border-t">
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">{t('ratings.yourRating')}</span>
-              <div className="flex gap-0.5">
-                {RATING_STARS.map((star) => (
-                  <Star
-                    key={star}
-                    className={`h-4 w-4 ${
-                      star <= myRating.rating
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-muted-foreground/30'
-                    }`}
-                  />
-                ))}
-              </div>
+              <StarRatingDisplay value={myRating.rating} starClassName="h-4 w-4" />
               {myRating.comment && (
                 <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                   &ldquo;{myRating.comment}&rdquo;

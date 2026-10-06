@@ -30,7 +30,9 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { useCreateFamily, useJoinFamily } from '@/lib/hooks/use-family';
+import { STYLE_SCORE } from '@/lib/generated/scales';
 import { useUpdatePreferences } from '@/lib/hooks/use-preferences';
+import { DEFAULT_STYLE_PROFILE } from '@/lib/preferences';
 import { useCreateItem } from '@/lib/hooks/use-items';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { api } from '@/lib/api';
@@ -40,6 +42,7 @@ import { StyleProfile } from '@/lib/types';
 import { useClothingColors, useClothingTypes } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
   const t = useTranslations('onboarding');
@@ -425,13 +428,7 @@ function LocationStep({
 function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
   const [favoriteColors, setFavoriteColors] = useState<string[]>([]);
   const [avoidColors, setAvoidColors] = useState<string[]>([]);
-  const [styleProfile, setStyleProfile] = useState<StyleProfile>({
-    casual: 50,
-    formal: 50,
-    sporty: 50,
-    minimalist: 50,
-    bold: 50,
-  });
+  const [styleProfile, setStyleProfile] = useState<StyleProfile>(DEFAULT_STYLE_PROFILE);
   const [saving, setSaving] = useState(false);
   const updatePreferences = useUpdatePreferences();
   const t = useTranslations('onboarding');
@@ -582,8 +579,8 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
                 onValueChange={(vals) =>
                   setStyleProfile((prev) => ({ ...prev, [key]: vals[0] }))
                 }
-                min={0}
-                max={100}
+                min={STYLE_SCORE.min}
+                max={STYLE_SCORE.max}
                 step={10}
               />
             </div>
@@ -696,7 +693,7 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
               <input
                 type="file"
                 className="hidden"
-                accept="image/*"
+                accept={ACCEPTED_IMAGE_INPUT}
                 capture="environment"
                 onChange={handleFileChange}
               />
@@ -805,6 +802,18 @@ export default function OnboardingPage() {
     completeOnboarding();
   };
 
+  const redirectTo = isLoading
+    ? null
+    : !isAuthenticated
+      ? '/login'
+      : user?.onboarding_completed
+        ? '/dashboard'
+        : null;
+
+  useEffect(() => {
+    if (redirectTo) router.push(redirectTo);
+  }, [redirectTo, router]);
+
   // Show loading state while checking authentication
   if (isLoading) {
     return (
@@ -814,17 +823,7 @@ export default function OnboardingPage() {
     );
   }
 
-  // Redirect to login if not authenticated (API call failed)
-  if (!isAuthenticated) {
-    router.push('/login');
-    return null;
-  }
-
-  // If user already completed onboarding, redirect to dashboard
-  if (user?.onboarding_completed) {
-    router.push('/dashboard');
-    return null;
-  }
+  if (redirectTo) return null;
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">

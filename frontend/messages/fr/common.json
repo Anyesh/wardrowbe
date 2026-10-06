@@ -54,6 +54,8 @@
   "previous": "Précédent",
   "previousPage": "Page précédente",
   "privacyMatters": "Votre vie privée compte",
+  "rateStars": "Noter {count, plural, one {# étoile} other {# étoiles}}",
+  "ratedStars": "Noté {rating, plural, one {# étoile} other {# étoiles}} sur {max}",
   "remove": "Retirer",
   "retry": "Réessayer",
   "save": "Enregistrer",

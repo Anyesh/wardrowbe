@@ -1,11 +1,13 @@
-from app.api.analytics import composition_insights
+import pytest
+from httpx import AsyncClient
+
+from app.api.analytics import Insight, composition_insights, insight_text_en
+from app.models.item import ClothingItem, ItemStatus
 from app.utils.clothing import count_composition
 
-LAYERS = (
-    "Most of your tops are layers like cardigans and vests. Add a few basics to wear under them!"
-)
-MORE_TOPS = "You have many more tops than bottoms. Consider adding pants or skirts!"
-MORE_BOTTOMS = "You have more bottoms than tops. Consider adding some shirts!"
+LAYERS = Insight(key="insightMostlyLayers")
+MORE_TOPS = Insight(key="insightMoreTopsThanBottoms")
+MORE_BOTTOMS = Insight(key="insightMoreBottomsThanTops")
 
 
 def _insights(counts):
@@ -57,3 +59,103 @@ def test_layers_without_dresses_or_basics_are_still_flagged():
 def test_dresses_and_base_tops_are_summed_for_the_layers_check():
     assert _insights([("cardigan", 8), ("shirt", 2), ("dress", 2), ("skirt", 2)]) == []
     assert _insights([("cardigan", 9), ("shirt", 2), ("dress", 2), ("skirt", 2)]) == [LAYERS]
+
+
+@pytest.mark.parametrize(
+    ("insight", "text"),
+    [
+        (Insight(key="insightStartAdding"), "Start by adding some items to your wardrobe!"),
+        (
+            Insight(key="insightNeverWorn", params={"count": 1}),
+            "You have 1 item you've never worn. Consider styling it!",
+        ),
+        (
+            Insight(key="insightNeverWorn", params={"count": 4}),
+            "You have 4 items you've never worn. Consider styling them!",
+        ),
+        (
+            Insight(key="insightColorHeavy", params={"color": "navy", "percent": 45.5}),
+            "Your wardrobe is heavy on navy (45.5%). Consider adding variety!",
+        ),
+        (
+            Insight(key="insightGreatTaste", params={"percent": 85}),
+            "Great taste! You accept 85% of suggestions.",
+        ),
+        (
+            LAYERS,
+            "Most of your tops are layers like cardigans and vests. "
+            "Add a few basics to wear under them!",
+        ),
+        (MORE_TOPS, "You have many more tops than bottoms. Consider adding pants or skirts!"),
+        (MORE_BOTTOMS, "You have more bottoms than tops. Consider adding some shirts!"),
+    ],
+)
+def test_legacy_english_strings_are_unchanged(insight, text):
+    assert insight_text_en(insight) == text
+
+
+@pytest.mark.asyncio
+async def test_api_sends_insight_keys_alongside_the_english_text(
+    client: AsyncClient, db_session, test_user, auth_headers
+):
+    for item_type, count in (("cardigan", 8), ("shirt", 1), ("skirt", 4)):
+        for i in range(count):
+            db_session.add(
+                ClothingItem(
+                    user_id=test_user.id,
+                    type=item_type,
+                    status=ItemStatus.ready,
+                    image_path=f"test/{item_type}-{i}.jpg",
+                    primary_color="black",
+                )
+            )
+    await db_session.commit()
+
+    response = await client.get("/api/v1/analytics", headers=auth_headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert {"key": "insightMostlyLayers", "params": {}} in body["insight_items"]
+    assert "insightNeverWorn" in [item["key"] for item in body["insight_items"]]
+    assert body["insights"] == [insight_text_en(Insight(**item)) for item in body["insight_items"]]
+
+
+@pytest.mark.asyncio
+async def test_empty_wardrobe_gets_the_start_adding_key(
+    client: AsyncClient, test_user, auth_headers
+):
+    response = await client.get("/api/v1/analytics", headers=auth_headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["insight_items"] == [{"key": "insightStartAdding", "params": {}}]
+    assert body["insights"] == ["Start by adding some items to your wardrobe!"]
+
+
+@pytest.mark.asyncio
+async def test_never_worn_insight_counts_every_unworn_item_not_the_capped_list(
+    client: AsyncClient, db_session, test_user, auth_headers
+):
+    def add(count, *, wear_count=0, status=ItemStatus.ready):
+        for i in range(count):
+            db_session.add(
+                ClothingItem(
+                    user_id=test_user.id,
+                    type="shirt",
+                    status=status,
+                    image_path=f"test/{status.value}-{wear_count}-{i}.jpg",
+                    wear_count=wear_count,
+                )
+            )
+
+    add(7)
+    add(1, wear_count=2)
+    add(1, status=ItemStatus.processing)
+    await db_session.commit()
+
+    response = await client.get("/api/v1/analytics", headers=auth_headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["never_worn"]) == 5
+    assert {"key": "insightNeverWorn", "params": {"count": 7}} in body["insight_items"]
