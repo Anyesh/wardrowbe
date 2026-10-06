@@ -322,14 +322,20 @@ async def check_wash_reminders(ctx: dict):
         return {"notified": 0, "skipped": "lock_held"}
 
 
-def wash_reminder_body(items: list[ClothingItem]) -> str:
+def wash_reminder_message(items: list[ClothingItem]) -> NotificationMessage:
     count = len(items)
     summary = ", ".join(i.name or i.type for i in items[:5])
     if count > 5:
         summary += f" and {count - 5} more"
-    if count == 1:
-        return f"1 item needs washing: {summary}"
-    return f"{count} items need washing: {summary}"
+    noun = "1 item needs" if count == 1 else f"{count} items need"
+    return NotificationMessage(
+        title="Laundry Reminder",
+        body=f"{noun} washing: {summary}",
+        url=get_settings().app_link("/dashboard/wardrobe"),
+        url_label="View Wardrobe",
+        tags=["shirt", "droplet"],
+        data={"screen": "wardrobe"},
+    )
 
 
 async def _check_wash_reminders_inner(ctx: dict):
@@ -356,7 +362,6 @@ async def _check_wash_reminders_inner(ctx: dict):
                 user_items[uid] = []
             user_items[uid].append(item)
 
-        wardrobe_url = get_settings().app_link("/dashboard/wardrobe")
         dispatcher = NotificationDispatcher(db)
         notified = 0
 
@@ -375,20 +380,8 @@ async def _check_wash_reminders_inner(ctx: dict):
                 if existing.scalars().first():
                     continue
 
-                title = "Laundry Reminder"
-                body = wash_reminder_body(items)
-
-                results = await dispatcher.deliver(
-                    user_id,
-                    NotificationMessage(
-                        title=title,
-                        body=body,
-                        url=wardrobe_url,
-                        url_label="View Wardrobe",
-                        tags=["shirt", "droplet"],
-                        data={"screen": "wardrobe"},
-                    ),
-                )
+                message = wash_reminder_message(items)
+                results = await dispatcher.deliver(user_id, message)
                 if not results:
                     continue
 
@@ -402,8 +395,8 @@ async def _check_wash_reminders_inner(ctx: dict):
                         payload={
                             "type": "wash_reminder",
                             "item_count": len(items),
-                            "title": title,
-                            "body": body,
+                            "title": message.title,
+                            "body": message.body,
                         },
                         sent_at=datetime.now(UTC) if sent else None,
                         error_message=None if sent else last.error,

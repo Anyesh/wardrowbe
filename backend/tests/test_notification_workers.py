@@ -22,7 +22,7 @@ from app.workers.notifications import (
     _check_wash_reminders_inner,
     check_scheduled_notifications,
     process_scheduled_notification,
-    wash_reminder_body,
+    wash_reminder_message,
 )
 from app.workers.worker import WorkerSettings
 
@@ -490,25 +490,37 @@ class TestWashReminderLinks:
         assert "x.com//" not in html
 
 
-class TestWashReminderBody:
-    def _items(self, count: int) -> list[ClothingItem]:
-        return [ClothingItem(type="shirt", name=f"Shirt {n}") for n in range(1, count + 1)]
+def _shirts(count: int) -> list[ClothingItem]:
+    return [ClothingItem(type="shirt", name=f"Shirt {n}") for n in range(1, count + 1)]
 
-    def test_one_item_uses_the_singular(self):
-        assert wash_reminder_body(self._items(1)) == "1 item needs washing: Shirt 1"
 
-    def test_several_items_use_the_plural(self):
-        assert wash_reminder_body(self._items(3)) == (
-            "3 items need washing: Shirt 1, Shirt 2, Shirt 3"
-        )
+class TestWashReminderMessage:
+    @pytest.mark.parametrize(
+        ("items", "body"),
+        [
+            (_shirts(1), "1 item needs washing: Shirt 1"),
+            (_shirts(3), "3 items need washing: Shirt 1, Shirt 2, Shirt 3"),
+            (
+                _shirts(7),
+                "7 items need washing: Shirt 1, Shirt 2, Shirt 3, Shirt 4, Shirt 5 and 2 more",
+            ),
+            ([ClothingItem(type="jeans")], "1 item needs washing: jeans"),
+        ],
+        ids=["singular", "plural", "summarised", "unnamed"],
+    )
+    def test_body_lists_the_items(self, items, body):
+        assert wash_reminder_message(items).body == body
 
-    def test_more_than_five_items_summarises_the_rest(self):
-        assert wash_reminder_body(self._items(7)) == (
-            "7 items need washing: Shirt 1, Shirt 2, Shirt 3, Shirt 4, Shirt 5 and 2 more"
-        )
+    def test_links_to_the_wardrobe(self, monkeypatch):
+        settings = Settings(_env_file=None, app_url="https://x.com")
+        monkeypatch.setattr("app.workers.notifications.get_settings", lambda: settings)
 
-    def test_unnamed_item_falls_back_to_its_type(self):
-        assert wash_reminder_body([ClothingItem(type="jeans")]) == "1 item needs washing: jeans"
+        message = wash_reminder_message(_shirts(1))
+
+        assert message.title == "Laundry Reminder"
+        assert message.url == "https://x.com/dashboard/wardrobe"
+        assert message.url_label == "View Wardrobe"
+        assert message.data == {"screen": "wardrobe"}
 
 
 def _http_response(url: str, status_code: int = 200) -> httpx.Response:
