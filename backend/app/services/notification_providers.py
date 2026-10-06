@@ -305,7 +305,8 @@ class InvalidSenderError(ValueError):
     pass
 
 
-_BARE_LOGIN = re.compile(r"[\w.+\-\\/=]+")
+# RFC 5322 atext (plus backslash for DOMAIN\user logins): what a relay can take as a local part.
+_BARE_LOGIN = re.compile(r"[\w!#$%&'*+/=?^`{|}~.\-\\]+")
 
 
 # SMTP_FROM_EMAIL falls back to SMTP_USER, which on many relays is a bare login such as "mailer"
