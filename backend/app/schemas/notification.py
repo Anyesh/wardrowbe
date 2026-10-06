@@ -93,6 +93,13 @@ class NotificationSettingsResponse(NotificationSettingsBase):
     updated_at: datetime
     config_error: str | None = None
 
+    # A stored config that is not an object is reported through config_error, and showing it as
+    # empty keeps the rest of the user's channels listable so the broken one can be deleted.
+    @field_validator("config", mode="before")
+    @classmethod
+    def config_as_object(cls, value: object) -> dict:
+        return value if isinstance(value, dict) else {}
+
     class Config:
         from_attributes = True
 

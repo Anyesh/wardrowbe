@@ -9,7 +9,7 @@ import httpx
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import JSON, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
@@ -659,20 +659,43 @@ class TestNtfyHeaders:
 
 class TestNotificationSettingsList:
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("config", "shown", "error"),
+        [
+            (
+                {"address": "a..b@example.com"},
+                {"address": "a..b@example.com"},
+                "Value error, An email address cannot have two periods in a row.",
+            ),
+            (JSON.NULL, {}, "Input should be a valid dictionary or instance of EmailConfig"),
+            (
+                ["a@example.com"],
+                {},
+                "Input should be a valid dictionary or instance of EmailConfig",
+            ),
+            ("a@example.com", {}, "Input should be a valid dictionary or instance of EmailConfig"),
+        ],
+        ids=["rejected-address", "null", "list", "scalar"],
+    )
     async def test_skips_unknown_channels_and_flags_configs_this_version_rejects(
-        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+        self,
+        client: AsyncClient,
+        test_user,
+        auth_headers,
+        db_session: AsyncSession,
+        config,
+        shown,
+        error,
     ):
+        broken = NotificationSettings(
+            user_id=test_user.id, channel="email", priority=2, config=config
+        )
         db_session.add_all(
             [
                 NotificationSettings(
                     user_id=test_user.id, channel="pushover", priority=1, config={"key": "k"}
                 ),
-                NotificationSettings(
-                    user_id=test_user.id,
-                    channel="email",
-                    priority=2,
-                    config={"address": "a..b@example.com"},
-                ),
+                broken,
                 NotificationSettings(
                     user_id=test_user.id,
                     channel="ntfy",
@@ -684,18 +707,23 @@ class TestNotificationSettingsList:
         await db_session.commit()
 
         response = await client.get("/api/v1/notifications/settings", headers=auth_headers)
+        single = await client.get(
+            f"/api/v1/notifications/settings/{broken.id}", headers=auth_headers
+        )
+        test_send = await client.post(
+            f"/api/v1/notifications/settings/{broken.id}/test", headers=auth_headers
+        )
 
         assert response.status_code == 200
         assert [
             (row["channel"], row["config"], row["config_error"]) for row in response.json()
         ] == [
-            (
-                "email",
-                {"address": "a..b@example.com"},
-                "Value error, An email address cannot have two periods in a row.",
-            ),
+            ("email", shown, error),
             ("ntfy", {"server": "https://ntfy.example.com", "topic": "outfits"}, None),
         ]
+        assert single.status_code == 200
+        assert (single.json()["config"], single.json()["config_error"]) == (shown, error)
+        assert (test_send.status_code, test_send.json()) == (400, {"detail": error})
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -921,10 +949,14 @@ class TestDispatcherDelivery:
                 test_user.id, outfit.id
             )
 
-        assert [(r.channel, r.status) for r in results] == [
-            ("email", NotificationStatus.failed),
-            ("mattermost", NotificationStatus.failed),
-            ("ntfy", NotificationStatus.sent),
+        assert [(r.channel, r.status, r.error) for r in results] == [
+            (
+                "email",
+                NotificationStatus.failed,
+                "Value error, An email address cannot have two periods in a row.",
+            ),
+            ("mattermost", NotificationStatus.failed, "HTTP 500: down"),
+            ("ntfy", NotificationStatus.sent, None),
         ]
         assert [c.args[0] for c in post.call_args_list] == [
             webhook,

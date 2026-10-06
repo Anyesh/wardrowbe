@@ -637,12 +637,17 @@ class TestWashReminderChannels:
         await self._run(db_session, post)
 
         assert len(_posts_to(post, {webhook})) == 1
-        broken = [r for r in caplog.records if "ntfy" in r.getMessage() and r.exc_info]
+        broken = [
+            r for r in caplog.records if "ntfy" in r.getMessage() and r.levelname == "WARNING"
+        ]
         assert broken
-        rows = {(r.channel, r.status) for r in await self._reminders(db_session, dirty_user)}
+        rows = {
+            (r.channel, r.status, r.error_message)
+            for r in await self._reminders(db_session, dirty_user)
+        }
         assert rows == {
-            ("ntfy", NotificationStatus.failed),
-            ("mattermost", NotificationStatus.sent),
+            ("ntfy", NotificationStatus.failed, "Field required"),
+            ("mattermost", NotificationStatus.sent, None),
         }
 
     @pytest.mark.asyncio

@@ -506,13 +506,15 @@ def _channel_spec(channel: str) -> ChannelSpec:
     return spec
 
 
-def parse_channel_config(channel: str, config: dict) -> BaseModel:
-    return _channel_spec(channel).config(**config)
+def parse_channel_config(channel: str, config: object) -> BaseModel:
+    return _channel_spec(channel).config.model_validate(config)
 
 
-# A row saved before validation tightened (a..b@x.com passed the old email regex) no longer parses,
-# so it is reported to the user rather than hidden, while the dispatcher falls through past it.
-def channel_config_error(channel: str, config: dict) -> str | None:
+# A row saved before validation tightened (a..b@x.com passed the old email regex), or one whose
+# config is not an object at all, no longer parses, so it is reported to the user rather than
+# hidden, while the dispatcher falls through past it. Only the message is returned because the
+# full error repeats the stored value, which can be a webhook secret.
+def channel_config_error(channel: str, config: object) -> str | None:
     try:
         parse_channel_config(channel, config)
     except ValidationError as e:
@@ -520,9 +522,8 @@ def channel_config_error(channel: str, config: dict) -> str | None:
     return None
 
 
-def build_provider(channel: str, config: dict) -> NotificationProvider:
-    spec = _channel_spec(channel)
-    return spec.provider(spec.config(**config))
+def build_provider(channel: str, config: object) -> NotificationProvider:
+    return _channel_spec(channel).provider(parse_channel_config(channel, config))
 
 
 @dataclass
@@ -536,6 +537,11 @@ class NotificationResult:
 async def send_via_channel(
     setting: NotificationSettings, message: NotificationMessage
 ) -> NotificationResult:
+    if error := channel_config_error(setting.channel, setting.config):
+        logger.warning("Skipping %s: its stored config is invalid: %s", setting.channel, error)
+        return NotificationResult(
+            channel=setting.channel, status=NotificationStatus.failed, error=error
+        )
     try:
         result = await build_provider(setting.channel, setting.config).deliver(message)
     except Exception as e:
