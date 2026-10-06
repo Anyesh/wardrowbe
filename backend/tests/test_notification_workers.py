@@ -1,7 +1,6 @@
 """Tests for notification worker concurrency fixes."""
 
 import uuid
-from contextlib import nullcontext
 from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -19,6 +18,7 @@ from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.services.notification_providers import EXPO_PUSH_URL
+from app.utils import redis_lock
 from app.workers.notifications import (
     _check_wash_reminders_inner,
     check_scheduled_notifications,
@@ -722,12 +722,30 @@ class TestRetryFailedNotifications:
         )
         await db_session.commit()
 
+    # The lock's Redis client is module-level and would stay bound to an earlier test's closed
+    # event loop, so each test gets its own client and the real lock runs.
+    @pytest_asyncio.fixture(autouse=True)
+    async def redis_on_this_loop(self, monkeypatch):
+        monkeypatch.setattr(redis_lock, "_redis_pool", None)
+        yield
+        if redis_lock._redis_pool is not None:
+            await redis_lock._redis_pool.aclose()
+
     @pytest.mark.parametrize(
-        ("config", "enabled", "with_outfit", "attempts", "http_status", "expected"),
+        ("config", "enabled", "user_active", "with_outfit", "attempts", "http_status", "expected"),
         [
-            ({"webhook_url": WEBHOOK}, True, True, 1, 200, (NotificationStatus.sent, 2, None)),
             (
                 {"webhook_url": WEBHOOK},
+                True,
+                True,
+                True,
+                1,
+                200,
+                (NotificationStatus.sent, 2, None),
+            ),
+            (
+                {"webhook_url": WEBHOOK},
+                True,
                 True,
                 True,
                 1,
@@ -738,14 +756,16 @@ class TestRetryFailedNotifications:
                 {"webhook_url": WEBHOOK},
                 True,
                 True,
+                True,
                 2,
                 500,
                 (NotificationStatus.failed, 3, "HTTP 500: boom"),
             ),
-            ({}, True, True, 1, 200, (NotificationStatus.failed, 2, "Field required")),
+            ({}, True, True, True, 1, 200, (NotificationStatus.failed, 2, "Field required")),
             (
                 {"webhook_url": WEBHOOK},
                 False,
+                True,
                 True,
                 1,
                 200,
@@ -754,10 +774,20 @@ class TestRetryFailedNotifications:
             (
                 {"webhook_url": WEBHOOK},
                 True,
+                True,
                 False,
                 1,
                 200,
                 (NotificationStatus.failed, 2, "Outfit not found"),
+            ),
+            (
+                {"webhook_url": WEBHOOK},
+                True,
+                False,
+                True,
+                1,
+                200,
+                (NotificationStatus.failed, 2, "User not found"),
             ),
         ],
     )
@@ -768,11 +798,13 @@ class TestRetryFailedNotifications:
         schedule_user: User,
         config,
         enabled,
+        user_active,
         with_outfit,
         attempts,
         http_status,
         expected,
     ):
+        schedule_user.is_active = user_active
         db_session.add(
             NotificationSettings(
                 user_id=schedule_user.id,
@@ -805,7 +837,6 @@ class TestRetryFailedNotifications:
         with (
             patch("app.workers.notifications.get_db_session", return_value=db_session),
             patch.object(db_session, "close", new_callable=AsyncMock),
-            patch("app.workers.notifications.distributed_lock", lambda *a, **k: nullcontext()),
             patch.object(httpx.AsyncClient, "post", _fake_post({self.WEBHOOK: http_status})),
         ):
             await retry_failed_notifications({})
