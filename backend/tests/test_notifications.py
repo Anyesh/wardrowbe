@@ -1,6 +1,8 @@
 import asyncio
 import base64
 from datetime import UTC, date, datetime, time
+from email import message_from_bytes
+from email import policy as email_policy
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -441,10 +443,8 @@ async def ascii_smtp_server(monkeypatch):
     await server.wait_closed()
 
 
-def _set_from_email(monkeypatch, from_email: str) -> None:
-    settings = notification_providers.get_settings().model_copy(
-        update={"smtp_from_email": from_email}
-    )
+def _update_smtp_settings(monkeypatch, **update) -> None:
+    settings = notification_providers.get_settings().model_copy(update=update)
     monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
 
 
@@ -475,7 +475,7 @@ class TestEmailProviderAddresses:
     async def test_sends_an_ascii_local_part_without_smtputf8(
         self, ascii_smtp_server, monkeypatch, from_email, address, sender, recipient
     ):
-        _set_from_email(monkeypatch, from_email)
+        _update_smtp_settings(monkeypatch, smtp_from_email=from_email)
         provider = EmailProvider(EmailConfig(address=address))
 
         result = await provider.send(_plain_email(address))
@@ -498,7 +498,7 @@ class TestEmailProviderAddresses:
     async def test_non_ascii_local_part_fails_clearly_without_smtputf8(
         self, ascii_smtp_server, monkeypatch, from_email, address, named
     ):
-        _set_from_email(monkeypatch, from_email)
+        _update_smtp_settings(monkeypatch, smtp_from_email=from_email)
         provider = EmailProvider(EmailConfig(address=address))
 
         result = await provider.send(_plain_email(address))
@@ -528,43 +528,60 @@ class TestChannelRegistry:
 
 
 class TestNotificationEmail:
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("build", "forbidden", "escaped", "plain"),
+        ("build", "forbidden", "escaped", "plain", "subject"),
         [
             (
                 lambda: build_notification_email(
                     "to@example.com",
-                    NotificationMessage(title="Laundry <b>", body="1 item: <script>x</script>"),
+                    NotificationMessage(
+                        title="Laundry <b>\r\n\u2028due", body="1 item: <script>x</script>"
+                    ),
                 ),
                 ["<script>", "<b>"],
                 ["Laundry &lt;b&gt;", "1 item: &lt;script&gt;x&lt;/script&gt;"],
                 "1 item: <script>x</script>",
+                "Laundry <b> due",
             ),
             (
                 lambda: build_family_invite_email(
                     to="guest@example.com",
-                    family_name="Smith & <Co>",
+                    family_name="Smith & <Co>\nFamily",
                     inviter_name='<img src=x onerror="alert(1)">',
                     invite_token="tok",
                 ),
                 ["<img"],
                 [
                     "<strong>&lt;img src=x onerror=&quot;alert(1)&quot;&gt;</strong>",
-                    "<strong>Smith &amp; &lt;Co&gt;</strong>",
+                    "<strong>Smith &amp; &lt;Co&gt;\nFamily</strong>",
                 ],
-                '<img src=x onerror="alert(1)"> invited you to join the family "Smith & <Co>"',
+                '<img src=x onerror="alert(1)"> invited you to join the family "Smith & <Co>',
+                '<img src=x onerror="alert(1)"> invited you to join Smith & <Co> Family on Wardrowbe',
             ),
         ],
         ids=["notification", "family-invite"],
     )
-    def test_user_text_is_escaped_in_html_and_plain_in_text(self, build, forbidden, escaped, plain):
+    async def test_user_text_is_escaped_in_html_plain_in_text_and_one_line_in_headers(
+        self, ascii_smtp_server, monkeypatch, build, forbidden, escaped, plain, subject
+    ):
+        _update_smtp_settings(monkeypatch, smtp_from_name="Ward\r\n\trobe")
         email = build()
+
+        result = await EmailProvider(EmailConfig(address=email.to)).send(email)
 
         for markup in forbidden:
             assert markup not in email.html_body
         for fragment in escaped:
             assert fragment in email.html_body
         assert plain in email.text_body
+        assert result == {"success": True}
+        ((_, _, data),) = ascii_smtp_server
+        headers = message_from_bytes(data, policy=email_policy.default)
+        assert (headers["Subject"], headers["From"]) == (
+            subject,
+            "Ward robe <closet@example.com>",
+        )
 
 
 HOSTILE_NAME = "@channel [win](https://evil.example) *now* <@here> ~town_square #1 \\"
