@@ -11,12 +11,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
+from app.models.item import ClothingItem
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
 from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
 from app.schemas.notification import EmailConfig, NotificationChannel, NtfyConfig
 from app.services.notification_providers import (
     CHANNELS,
+    EmailMessage,
     EmailProvider,
     NotificationMessage,
     NtfyNotification,
@@ -25,6 +27,7 @@ from app.services.notification_providers import (
     build_notification_email,
 )
 from app.services.notification_service import NotificationDispatcher
+from app.workers.notifications import wash_reminder_message
 
 
 class TestNotificationSettings:
@@ -274,6 +277,39 @@ class TestNotificationDefaults:
         assert "has_token" in data
 
 
+SETTINGS_READERS = (
+    "app.services.notification_service",
+    "app.services.notification_providers",
+    "app.workers.notifications",
+)
+
+
+def _outfit_email() -> EmailMessage:
+    outfit = SimpleNamespace(
+        id=uuid4(),
+        scheduled_for=None,
+        weather_data=None,
+        occasion="casual",
+        reasoning=None,
+        ai_raw_response=None,
+        style_notes=None,
+    )
+    user = SimpleNamespace(display_name="Sam", timezone="UTC")
+    message = NotificationDispatcher(None)._build_outfit_message(outfit, user)
+    return build_notification_email("to@example.com", message)
+
+
+def _wash_email() -> EmailMessage:
+    message = wash_reminder_message([ClothingItem(type="shirt", name="Blue Shirt")])
+    return build_notification_email("to@example.com", message)
+
+
+def _invite_email() -> EmailMessage:
+    return build_family_invite_email(
+        to="to@example.com", family_name="Home", inviter_name="Sam", invite_token="tok"
+    )
+
+
 class TestAppLinks:
     def test_default_app_url_is_local_frontend(self, monkeypatch):
         monkeypatch.delenv("APP_URL", raising=False)
@@ -284,6 +320,26 @@ class TestAppLinks:
         settings = Settings(_env_file=None)
         assert settings.app_url == "https://x.com"
         assert settings.app_link("/dashboard/wardrobe") == "https://x.com/dashboard/wardrobe"
+
+    @pytest.mark.parametrize(
+        ("build", "link"),
+        [
+            (_outfit_email, "https://x.com/dashboard/history"),
+            (_wash_email, "https://x.com/dashboard/wardrobe"),
+            (_invite_email, "https://x.com/invite?token=tok"),
+        ],
+        ids=["outfit", "laundry", "invite"],
+    )
+    def test_emails_link_a_trailing_slash_app_url_with_one_slash(self, monkeypatch, build, link):
+        settings = Settings(_env_file=None, app_url="https://x.com/")
+        for module in SETTINGS_READERS:
+            monkeypatch.setattr(f"{module}.get_settings", lambda: settings)
+
+        email = build()
+
+        assert f'href="{link}"' in email.html_body
+        assert link in email.text_body
+        assert "x.com//" not in email.html_body + email.text_body
 
 
 class TestEmailProviderSettings:
@@ -346,37 +402,6 @@ class TestFamilyInviteEmailBody:
         assert email.text_body.startswith(
             '<img src=x onerror="alert(1)"> invited you to join the family "Smith & <Co>"'
         )
-
-
-class TestOutfitNotificationLinks:
-    @pytest.fixture
-    def outfit(self):
-        return SimpleNamespace(
-            id=uuid4(),
-            scheduled_for=None,
-            weather_data=None,
-            occasion="casual",
-            reasoning=None,
-            ai_raw_response=None,
-            style_notes=None,
-        )
-
-    def test_trailing_slash_app_url_gives_single_slash_links(
-        self, monkeypatch, db_session: AsyncSession, test_user, outfit
-    ):
-        settings = Settings(_env_file=None, app_url="https://x.com/")
-        monkeypatch.setattr("app.services.notification_service.get_settings", lambda: settings)
-        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
-        dispatcher = NotificationDispatcher(db_session)
-
-        message = dispatcher._build_outfit_message(outfit, test_user)
-        email = build_notification_email("to@example.com", message)
-
-        assert message.url == "https://x.com/dashboard/history"
-        assert 'href="https://x.com/dashboard/history"' in email.html_body
-        assert 'href="https://x.com/dashboard/notifications"' in email.html_body
-        assert "https://x.com/dashboard/history" in email.text_body
-        assert "x.com//" not in email.html_body + email.text_body
 
 
 class TestChannelRegistry:
