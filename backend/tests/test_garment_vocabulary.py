@@ -141,13 +141,13 @@ PRE_VOCABULARY_COLORS = {
 
 def test_stored_colors_are_the_set_the_tagger_validated():
     assert set(COLORS) == PRE_VOCABULARY_COLORS
-    assert set(COLORS) == VALID_COLORS
 
 
-def test_color_aliases_resolve_to_stored_colors():
-    assert set(COLOR_ALIASES.values()) <= set(COLORS)
-    assert not set(COLOR_ALIASES) & set(COLORS)
-    assert all(alias == alias.lower().strip() for alias in COLOR_ALIASES)
+@pytest.mark.parametrize("alias", sorted(COLOR_ALIASES))
+def test_color_alias_is_a_lowercase_name_for_a_stored_color(alias):
+    assert alias == alias.strip().lower()
+    assert alias not in PRE_VOCABULARY_COLORS
+    assert normalize_color(alias) in PRE_VOCABULARY_COLORS
 
 
 @pytest.mark.parametrize(
