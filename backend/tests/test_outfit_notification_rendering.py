@@ -6,6 +6,7 @@
 
 import json
 import re
+from datetime import UTC, date, datetime
 from email.header import decode_header, make_header
 from pathlib import Path
 from types import SimpleNamespace
@@ -34,13 +35,21 @@ OUTFIT = SimpleNamespace(
     },
     style_notes="Roll the sleeves",
 )
-USER = SimpleNamespace(display_name="Sam")
+USER = SimpleNamespace(display_name="Sam", timezone="UTC")
+OUTFIT_DATES = {"today": date(2026, 10, 6), "tomorrow": date(2026, 10, 7)}
 CHANNELS = {
     "ntfy": {"server": "https://ntfy.example.com", "topic": "outfits"},
     "mattermost": {"webhook_url": "https://chat.example.com/hooks/abc"},
     "email": {"address": "sam@example.com"},
     "expo_push": {"push_token": "ExponentPushToken[abc]"},
 }
+
+
+@pytest.fixture(autouse=True)
+def frozen_clock():
+    with patch("app.utils.timezone.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2026, 10, 6, 8, 0, tzinfo=UTC)
+        yield
 
 
 @pytest.fixture(autouse=True)
@@ -57,9 +66,8 @@ async def _render(channel: str, day: str) -> dict:
 
     post_mock = AsyncMock(side_effect=post)
     send_mock = AsyncMock(return_value={"success": True})
-    message = NotificationDispatcher(None)._build_outfit_message(
-        OUTFIT, USER, for_tomorrow=day == "tomorrow"
-    )
+    outfit = SimpleNamespace(**vars(OUTFIT), scheduled_for=OUTFIT_DATES[day])
+    message = NotificationDispatcher(None)._build_outfit_message(outfit, USER)
     with (
         patch.object(httpx.AsyncClient, "post", post_mock),
         patch.object(EmailProvider, "send", send_mock),

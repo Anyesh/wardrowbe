@@ -1,5 +1,5 @@
 import base64
-from datetime import date, time, timedelta
+from datetime import UTC, date, datetime, time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -25,7 +25,6 @@ from app.services.notification_providers import (
     build_notification_email,
 )
 from app.services.notification_service import NotificationDispatcher
-from app.utils.timezone import get_user_today
 
 
 class TestNotificationSettings:
@@ -354,6 +353,7 @@ class TestOutfitNotificationLinks:
     def outfit(self):
         return SimpleNamespace(
             id=uuid4(),
+            scheduled_for=None,
             weather_data=None,
             occasion="casual",
             reasoning=None,
@@ -449,13 +449,22 @@ class TestNotificationHistory:
         assert [row["channel"] for row in response.json()] == ["unknown"]
 
 
+TODAY = date(2026, 10, 6)
+
+
 class TestDispatcherDelivery:
+    @pytest.fixture(autouse=True)
+    def frozen_clock(self):
+        with patch("app.utils.timezone.datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2026, 10, 6, 8, 0, tzinfo=UTC)
+            yield
+
     @pytest.fixture
     async def outfit(self, db_session: AsyncSession, test_user) -> Outfit:
         outfit = Outfit(
             user_id=test_user.id,
             occasion="casual",
-            scheduled_for=date.today(),
+            scheduled_for=TODAY,
             status=OutfitStatus.pending,
             source=OutfitSource.scheduled,
             weather_data={"temperature": 20, "condition": "Sunny"},
@@ -484,7 +493,6 @@ class TestDispatcherDelivery:
         outfit,
         channel: str,
         config: dict,
-        for_tomorrow: bool = False,
     ) -> tuple[AsyncMock, AsyncMock]:
         db_session.add(
             NotificationSettings(user_id=test_user.id, channel=channel, priority=1, config=config)
@@ -498,7 +506,7 @@ class TestDispatcherDelivery:
             patch.object(EmailProvider, "send", email_send),
         ):
             await NotificationDispatcher(db_session).send_outfit_notification(
-                test_user.id, outfit.id, for_tomorrow=for_tomorrow
+                test_user.id, outfit.id
             )
         return post, email_send
 
@@ -530,13 +538,9 @@ class TestDispatcherDelivery:
         settings = Settings(_env_file=None, smtp_host="smtp.example.com", smtp_user="mailer")
         monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
 
+        outfit.scheduled_for = date(2026, 10, 7)
         _, email_send = await self._send_only_via(
-            db_session,
-            test_user,
-            outfit,
-            "email",
-            {"address": "a@example.com"},
-            for_tomorrow=True,
+            db_session, test_user, outfit, "email", {"address": "a@example.com"}
         )
 
         email = email_send.call_args.args[0]
@@ -652,13 +656,16 @@ class TestDispatcherDelivery:
         assert row.status == NotificationStatus.retrying
         assert row.error_message == "HTTP 500: down"
 
-    @pytest.mark.parametrize(("days_ahead", "day_label"), [(1, "Tomorrow"), (0, "Today")])
+    @pytest.mark.parametrize(
+        ("scheduled_for", "day_label"),
+        [(date(2026, 10, 7), "Tomorrow"), (TODAY, "Today"), (date(2026, 10, 5), "Monday")],
+    )
     @pytest.mark.asyncio
     async def test_retry_labels_the_day_from_the_outfit_date(
-        self, db_session: AsyncSession, test_user, outfit, days_ahead, day_label
+        self, db_session: AsyncSession, test_user, outfit, scheduled_for, day_label
     ):
         webhook = "https://chat.example.com/hooks/abc"
-        outfit.scheduled_for = get_user_today(test_user) + timedelta(days=days_ahead)
+        outfit.scheduled_for = scheduled_for
         db_session.add(
             NotificationSettings(
                 user_id=test_user.id,

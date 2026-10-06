@@ -201,11 +201,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             scheduled_date=target_date,
         )
 
-        await dispatcher.send_outfit_notification(
-            user_id=str(user.id),
-            outfit_id=str(outfit.id),
-            for_tomorrow=is_for_tomorrow,
-        )
+        await dispatcher.send_outfit_notification(user_id=str(user.id), outfit_id=str(outfit.id))
 
         await db.commit()
 

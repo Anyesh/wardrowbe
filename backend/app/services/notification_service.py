@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
 from sqlalchemy import and_, select
@@ -29,6 +29,17 @@ WEATHER_TAGS = (
     (("snow", "sleet"), "snowflake"),
     (("wind",), "wind_face"),
 )
+
+
+# Returns the title word and the mid-sentence form, because a weekday stays capitalised
+# mid-sentence while today and tomorrow do not.
+def _outfit_day(scheduled_for: date | None, today: date) -> tuple[str, str]:
+    if scheduled_for is None or scheduled_for == today:
+        return "Today", "today"
+    if scheduled_for == today + timedelta(days=1):
+        return "Tomorrow", "tomorrow"
+    weekday = scheduled_for.strftime("%A")
+    return weekday, weekday
 
 
 class NotificationService:
@@ -241,7 +252,7 @@ class NotificationDispatcher:
         return results
 
     async def send_outfit_notification(
-        self, user_id: UUID, outfit_id: UUID, for_tomorrow: bool = False
+        self, user_id: UUID, outfit_id: UUID
     ) -> list[NotificationResult]:
         user_result = await self.db.execute(
             select(User).where(User.id == user_id, User.is_active.is_(True))
@@ -259,9 +270,7 @@ class NotificationDispatcher:
         if not outfit:
             raise ValueError("Outfit not found")
 
-        results = await self.deliver(
-            user_id, self._build_outfit_message(outfit, user, for_tomorrow)
-        )
+        results = await self.deliver(user_id, self._build_outfit_message(outfit, user))
         if not results:
             return [
                 NotificationResult(
@@ -345,20 +354,17 @@ class NotificationDispatcher:
                 error=f"Channel {notification.channel} not configured or disabled",
             )
 
-        # Derived at send time rather than stored, so a retry that lands after the user's
-        # midnight still names the outfit's day correctly.
-        for_tomorrow = outfit.scheduled_for == get_user_today(user) + timedelta(days=1)
-        return await send_via_channel(
-            channel_config, self._build_outfit_message(outfit, user, for_tomorrow)
-        )
+        return await send_via_channel(channel_config, self._build_outfit_message(outfit, user))
 
-    def _build_outfit_message(
-        self, outfit: Outfit, user: User, for_tomorrow: bool = False
-    ) -> NotificationMessage:
+    # The day is derived at send time from the outfit's date rather than stored, so a retry that
+    # lands after the user's midnight still names the outfit's day correctly.
+    def _build_outfit_message(self, outfit: Outfit, user: User) -> NotificationMessage:
+        today = get_user_today(user)
+        for_tomorrow = outfit.scheduled_for == today + timedelta(days=1)
+        day_label, day_phrase = _outfit_day(outfit.scheduled_for, today)
         weather = outfit.weather_data or {}
         temp = weather.get("temperature")
         condition = weather.get("condition")
-        day_label = "Tomorrow" if for_tomorrow else "Today"
         occasion = outfit.occasion.title()
 
         if temp is not None:
@@ -391,8 +397,7 @@ class NotificationDispatcher:
             short_body=" \u2022 ".join(short_parts) if short_parts else "Your outfit is ready!",
             heading=f"{day_label}'s Outfit: {occasion}",
             greeting=(
-                f"{greeting}, {user.display_name}! "
-                f"Here's your outfit suggestion for {day_label.lower()}:"
+                f"{greeting}, {user.display_name}! Here's your outfit suggestion for {day_phrase}:"
             ),
             weather=(
                 WeatherSummary(
