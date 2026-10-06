@@ -633,11 +633,11 @@ def build_family_invite_email(
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
     <h2 style="color: #111827;">You&rsquo;re invited!</h2>
     <p style="color: #374151; line-height: 1.6;">
-        <strong>{inviter_name}</strong> invited you to join the family
-        <strong>{family_name}</strong> on Wardrowbe.
+        <strong>{html.escape(inviter_name)}</strong> invited you to join the family
+        <strong>{html.escape(family_name)}</strong> on Wardrowbe.
     </p>
     <div style="text-align: center; margin: 30px 0;">
-        <a href="{invite_url}"
+        <a href="{html.escape(invite_url)}"
            style="background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">
             Accept Invitation
         </a>
@@ -646,6 +646,6 @@ def build_family_invite_email(
         If you don&rsquo;t have a Wardrowbe account yet, you&rsquo;ll be asked to create one first.
     </p>
     <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
-    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{home_url}" style="color: #9CA3AF;">Wardrowbe</a></p>
+    <p style="color: #9CA3AF; font-size: 12px;">Sent by <a href="{html.escape(home_url)}" style="color: #9CA3AF;">Wardrowbe</a></p>
 </div>"""
     return EmailMessage(to=to, subject=subject, html_body=html_body, text_body=body_text)

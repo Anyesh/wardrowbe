@@ -21,6 +21,7 @@ from app.services.notification_providers import (
     NotificationMessage,
     NtfyNotification,
     NtfyProvider,
+    build_family_invite_email,
     build_notification_email,
 )
 from app.services.notification_service import NotificationDispatcher
@@ -326,6 +327,26 @@ class TestEmailProviderSettings:
         monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
 
         assert not EmailProvider(EmailConfig(address="to@example.com")).is_configured()
+
+
+class TestFamilyInviteEmailBody:
+    def test_names_are_escaped_in_html_and_plain_in_text(self, monkeypatch):
+        settings = Settings(_env_file=None, app_url="https://x.com")
+        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+
+        email = build_family_invite_email(
+            to="guest@example.com",
+            family_name="Smith & <Co>",
+            inviter_name='<img src=x onerror="alert(1)">',
+            invite_token="tok",
+        )
+
+        assert "<img" not in email.html_body
+        assert "<strong>&lt;img src=x onerror=&quot;alert(1)&quot;&gt;</strong>" in email.html_body
+        assert "<strong>Smith &amp; &lt;Co&gt;</strong>" in email.html_body
+        assert email.text_body.startswith(
+            '<img src=x onerror="alert(1)"> invited you to join the family "Smith & <Co>"'
+        )
 
 
 class TestOutfitNotificationLinks:
