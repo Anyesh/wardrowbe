@@ -327,8 +327,10 @@ class TestLearnedColoursAreCanonical:
                     "tan": None,
                     "cream": True,
                     "\u00a0": 0.9,
+                    "navy": 10**400,
+                    "plum": -(10**400),
                 },
-                learned_style_scores={"boho": "high", "minimal": 0.3},
+                learned_style_scores={"boho": "high", "minimal": 0.3, "preppy": 10**399},
                 learned_occasion_patterns={
                     "casual": {"preferred_colors": ["charcoal", "gray"]},
                     "wedding": "often",
@@ -366,8 +368,12 @@ JUNK_ENTRIES = [
     pytest.param("learned_color_scores", "navy", {"score": 0.5}, id="colour-dict"),
     pytest.param("learned_color_scores", "navy", True, id="colour-bool"),
     pytest.param("learned_color_scores", "navy", None, id="colour-null"),
+    pytest.param("learned_color_scores", "navy", 10**400, id="colour-1e400-from-jsonb"),
+    pytest.param("learned_color_scores", "navy", 10**399, id="colour-400-digits"),
+    pytest.param("learned_color_scores", "navy", -(10**400), id="colour-minus-1e400"),
     pytest.param("learned_style_scores", "boho", "high", id="style-string"),
     pytest.param("learned_style_scores", "boho", True, id="style-bool"),
+    pytest.param("learned_style_scores", "boho", 10**400, id="style-1e400-from-jsonb"),
     pytest.param("learned_occasion_patterns", "wedding", "often", id="occasion-string"),
     pytest.param(
         "learned_occasion_patterns", "wedding", {"preferred_colors": "navy"}, id="occasion-colours"

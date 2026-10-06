@@ -20,14 +20,11 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.utils.numbers import is_finite_number
 
 if TYPE_CHECKING:
     from app.models.item import ClothingItem
     from app.models.user import User
-
-
-def _is_number(value: object) -> bool:
-    return isinstance(value, int | float) and not isinstance(value, bool)
 
 
 def _is_name_list(value: object) -> bool:
@@ -35,13 +32,13 @@ def _is_name_list(value: object) -> bool:
 
 
 def _is_count_map(value: object) -> bool:
-    return isinstance(value, dict) and all(_is_number(count) for count in value.values())
+    return isinstance(value, dict) and all(is_finite_number(count) for count in value.values())
 
 
 _PATTERN_FIELD_CHECKS: dict[str, Callable[[object], bool]] = {
     "preferred_colors": _is_name_list,
-    "success_rate": _is_number,
-    "preferred_layers": _is_number,
+    "success_rate": is_finite_number,
+    "preferred_layers": is_finite_number,
     "colors": _is_count_map,
     "preferred_colors_scores": _is_count_map,
 }
@@ -50,7 +47,7 @@ _PATTERN_FIELD_CHECKS: dict[str, Callable[[object], bool]] = {
 def _readable_scores(raw: object) -> dict[str, float]:
     if not isinstance(raw, dict):
         return {}
-    return {name: score for name, score in raw.items() if _is_number(score)}
+    return {name: score for name, score in raw.items() if is_finite_number(score)}
 
 
 def _readable_patterns(raw: object) -> dict[str, dict]:
