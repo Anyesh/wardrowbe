@@ -113,7 +113,7 @@ async def retry_failed_notifications(ctx: dict):
                         notification.status = NotificationStatus.sent
                         notification.sent_at = datetime.now(UTC)
                         retried += 1
-                    elif notification.attempts >= notification.max_attempts:
+                    elif not result.retryable or notification.attempts >= notification.max_attempts:
                         notification.status = NotificationStatus.failed
                         notification.error_message = result.error or "Max retries exceeded"
                     else:

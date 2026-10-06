@@ -345,6 +345,7 @@ class NotificationDispatcher:
                 channel=notification.channel,
                 status=NotificationStatus.failed,
                 error="User not found",
+                retryable=False,
             )
 
         outfit_result = await self.db.execute(
@@ -358,6 +359,7 @@ class NotificationDispatcher:
                 channel=notification.channel,
                 status=NotificationStatus.failed,
                 error="Outfit not found",
+                retryable=False,
             )
 
         channel_result = await self.db.execute(
@@ -375,6 +377,7 @@ class NotificationDispatcher:
                 channel=notification.channel,
                 status=NotificationStatus.failed,
                 error=f"Channel {notification.channel} not configured or disabled",
+                retryable=False,
             )
 
         result = await send_via_channel(channel_config, self._build_outfit_message(outfit, user))

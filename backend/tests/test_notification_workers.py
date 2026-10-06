@@ -1,6 +1,7 @@
 """Tests for notification worker concurrency fixes."""
 
 import uuid
+from contextlib import nullcontext
 from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -22,6 +23,7 @@ from app.workers.notifications import (
     _check_wash_reminders_inner,
     check_scheduled_notifications,
     process_scheduled_notification,
+    retry_failed_notifications,
     wash_reminder_message,
 )
 from app.workers.worker import WorkerSettings
@@ -708,6 +710,113 @@ class TestWashReminderChannels:
             ("ntfy", NotificationStatus.failed),
             ("mattermost", NotificationStatus.sent),
         }
+
+
+class TestRetryFailedNotifications:
+    WEBHOOK = "https://chat.example.com/hooks/retry"
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def only_this_tests_retries(self, db_session: AsyncSession):
+        await db_session.execute(
+            delete(Notification).where(Notification.status == NotificationStatus.retrying)
+        )
+        await db_session.commit()
+
+    @pytest.mark.parametrize(
+        ("config", "enabled", "with_outfit", "attempts", "http_status", "expected"),
+        [
+            ({"webhook_url": WEBHOOK}, True, True, 1, 200, (NotificationStatus.sent, 2, None)),
+            (
+                {"webhook_url": WEBHOOK},
+                True,
+                True,
+                1,
+                500,
+                (NotificationStatus.retrying, 2, "HTTP 500: boom"),
+            ),
+            (
+                {"webhook_url": WEBHOOK},
+                True,
+                True,
+                2,
+                500,
+                (NotificationStatus.failed, 3, "HTTP 500: boom"),
+            ),
+            ({}, True, True, 1, 200, (NotificationStatus.failed, 2, "Field required")),
+            (
+                {"webhook_url": WEBHOOK},
+                False,
+                True,
+                1,
+                200,
+                (NotificationStatus.failed, 2, "Channel mattermost not configured or disabled"),
+            ),
+            (
+                {"webhook_url": WEBHOOK},
+                True,
+                False,
+                1,
+                200,
+                (NotificationStatus.failed, 2, "Outfit not found"),
+            ),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_retry_outcome_sets_the_row_status(
+        self,
+        db_session: AsyncSession,
+        schedule_user: User,
+        config,
+        enabled,
+        with_outfit,
+        attempts,
+        http_status,
+        expected,
+    ):
+        db_session.add(
+            NotificationSettings(
+                user_id=schedule_user.id,
+                channel="mattermost",
+                enabled=enabled,
+                priority=1,
+                config=config,
+            )
+        )
+        outfit = Outfit(
+            user_id=schedule_user.id,
+            occasion="casual",
+            scheduled_for=datetime.now(UTC).date(),
+            status=OutfitStatus.pending,
+            source=OutfitSource.scheduled,
+        )
+        db_session.add(outfit)
+        await db_session.flush()
+        notification = Notification(
+            user_id=schedule_user.id,
+            outfit_id=outfit.id if with_outfit else None,
+            channel="mattermost",
+            status=NotificationStatus.retrying,
+            payload={"occasion": "casual"},
+            attempts=attempts,
+        )
+        db_session.add(notification)
+        await db_session.commit()
+
+        with (
+            patch("app.workers.notifications.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch("app.workers.notifications.distributed_lock", lambda *a, **k: nullcontext()),
+            patch.object(httpx.AsyncClient, "post", _fake_post({self.WEBHOOK: http_status})),
+        ):
+            await retry_failed_notifications({})
+
+        await db_session.refresh(notification)
+        status, attempts_after, error = expected
+        assert (notification.status, notification.attempts, notification.error_message) == (
+            status,
+            attempts_after,
+            error,
+        )
 
 
 # ── Worker registry ──

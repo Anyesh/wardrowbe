@@ -547,7 +547,8 @@ class NotificationResult:
     status: NotificationStatus
     error: str | None = None
     response: dict | None = None
-    # A stored config this version rejects fails the same way on every attempt.
+    # False when every later attempt would fail the same way: a stored config this version
+    # rejects, or a user, outfit or channel that no longer exists or is disabled.
     retryable: bool = True
 
 
