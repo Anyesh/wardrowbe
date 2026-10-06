@@ -58,3 +58,18 @@ repos:
         language: system
         files: ^(backend/app/data/garment_vocabulary\.json|frontend/(lib/generated/garment-vocabulary\.ts|scripts/gen-garment-vocabulary\.mjs))$
         pass_filenames: false
+
+  # The tool versions live here; Dependabot keeps these pre-commit hooks current.
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.11.0
+    hooks:
+      - id: shellcheck
+        args: [--shell=sh, --severity=style]
+        files: ^(backend|frontend)/docker-entrypoint\.sh$
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.14.1-1
+    hooks:
+      - id: shfmt-docker
+        args: [-d, -ln, posix, -i, "4", -ci, -sr]
+        files: ^(backend|frontend)/docker-entrypoint\.sh$

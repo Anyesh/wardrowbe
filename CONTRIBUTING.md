@@ -102,6 +102,23 @@ npm run typecheck
 npm run lint
 ```
 
+### Shell entrypoints
+
+The backend and frontend Docker entrypoints use POSIX `sh` and four-space indentation. Their
+ShellCheck and shfmt versions are pinned in `.pre-commit-config.yaml` and updated by Dependabot.
+Install pre-commit and Docker to run the same containerized hooks locally.
+Run the same checks locally from the repository root:
+
+```bash
+pre-commit run shellcheck --all-files
+pre-commit run shfmt-docker --all-files
+```
+
+shfmt parses both files as POSIX shell while checking their formatting. To apply formatting,
+run `shfmt -ln posix -i 4 -ci -sr -w backend/docker-entrypoint.sh frontend/docker-entrypoint.sh`.
+The hooks cover the two entrypoint files; GitHub Actions `run` blocks are checked separately by
+actionlint.
+
 ## Code Style
 
 ### Python (Backend)
