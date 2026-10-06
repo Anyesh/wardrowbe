@@ -851,9 +851,18 @@ class TestRetryFailedNotifications:
             error,
         )
 
+    # A database error is charged as an attempt; a lock error happens before anything is sent,
+    # so it is not.
     @pytest.mark.asyncio
-    async def test_a_database_error_on_one_retry_does_not_stall_the_batch(
-        self, db_session: AsyncSession, schedule_user: User
+    @pytest.mark.parametrize(
+        ("failing", "broken_after"),
+        [
+            pytest.param("database", (NotificationStatus.retrying, 2, "division by zero"), id="db"),
+            pytest.param("lock", (NotificationStatus.retrying, 1, None), id="lock"),
+        ],
+    )
+    async def test_one_failing_retry_does_not_stall_the_batch(
+        self, db_session: AsyncSession, schedule_user: User, failing, broken_after
     ):
         db_session.add(
             NotificationSettings(
@@ -888,12 +897,19 @@ class TestRetryFailedNotifications:
         db_session.add_all(notifications)
         await db_session.commit()
         broken, healthy = notifications
+        broken_id = broken.id
         retry = NotificationDispatcher.retry_notification
+        lock = redis_lock.distributed_lock
 
         async def retry_or_abort_the_transaction(self, notification):
-            if notification.id == broken.id:
+            if failing == "database" and notification.id == broken_id:
                 await self.db.execute(text("SELECT 1 / 0"))
             return await retry(self, notification)
+
+        def lock_or_lose_redis(name, **kwargs):
+            if failing == "lock" and name == f"notif-retry:{broken_id}":
+                raise ConnectionError("Redis went away")
+            return lock(name, **kwargs)
 
         with (
             patch("app.workers.notifications.get_db_session", return_value=db_session),
@@ -902,14 +918,16 @@ class TestRetryFailedNotifications:
             patch.object(
                 NotificationDispatcher, "retry_notification", retry_or_abort_the_transaction
             ),
+            patch("app.workers.notifications.distributed_lock", lock_or_lose_redis),
         ):
             await retry_failed_notifications({})
 
         for notification in notifications:
             await db_session.refresh(notification)
         assert (healthy.status, healthy.attempts) == (NotificationStatus.sent, 2)
-        assert (broken.status, broken.attempts) == (NotificationStatus.retrying, 2)
-        assert "division by zero" in broken.error_message
+        status, attempts, error = broken_after
+        assert (broken.status, broken.attempts) == (status, attempts)
+        assert (error in broken.error_message) if error else broken.error_message is None
 
 
 # ── Worker registry ──

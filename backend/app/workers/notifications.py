@@ -1,7 +1,9 @@
 import logging
 from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import get_settings
@@ -70,6 +72,51 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
         await db.close()
 
 
+async def _retry_notification(
+    db: AsyncSession, dispatcher: NotificationDispatcher, notification: Notification
+) -> bool:
+    await db.refresh(notification)
+    if notification.status != NotificationStatus.retrying:
+        return False
+
+    notification.attempts += 1
+    notification.last_attempt_at = datetime.now(UTC)
+
+    result = await dispatcher.retry_notification(notification)
+
+    sent = result.status == NotificationStatus.sent
+    if sent:
+        notification.status = NotificationStatus.sent
+        notification.sent_at = datetime.now(UTC)
+        notification.error_message = None
+    elif not result.retryable or notification.attempts >= notification.max_attempts:
+        notification.status = NotificationStatus.failed
+        notification.error_message = result.error or "Max retries exceeded"
+    else:
+        notification.error_message = result.error
+
+    await db.commit()
+    return sent
+
+
+# A database error aborts the transaction, so it is rolled back and the attempt recorded afresh;
+# otherwise every later notification in the batch would fail with it.
+async def _record_failed_retry(
+    db: AsyncSession, notification: Notification, notification_id: UUID, error: Exception
+) -> None:
+    await db.rollback()
+    try:
+        await db.refresh(notification)
+        notification.attempts += 1
+        notification.error_message = str(error)
+        if notification.attempts >= notification.max_attempts:
+            notification.status = NotificationStatus.failed
+        await db.commit()
+    except Exception:
+        logger.exception("Could not record the failed retry of notification %s", notification_id)
+        await db.rollback()
+
+
 async def retry_failed_notifications(ctx: dict):
     logger.info("Checking for notifications to retry...")
 
@@ -101,46 +148,20 @@ async def retry_failed_notifications(ctx: dict):
                 async with distributed_lock(
                     f"notif-retry:{notification_id}", timeout=30, blocking_timeout=0
                 ):
-                    # Re-read inside lock to check if status changed
-                    await db.refresh(notification)
-                    if notification.status != NotificationStatus.retrying:
-                        continue
-
-                    notification.attempts += 1
-                    notification.last_attempt_at = datetime.now(UTC)
-
-                    result = await dispatcher.retry_notification(notification)
-
-                    if result.status == NotificationStatus.sent:
-                        notification.status = NotificationStatus.sent
-                        notification.sent_at = datetime.now(UTC)
-                        notification.error_message = None
-                        retried += 1
-                    elif not result.retryable or notification.attempts >= notification.max_attempts:
-                        notification.status = NotificationStatus.failed
-                        notification.error_message = result.error or "Max retries exceeded"
-                    else:
-                        notification.error_message = result.error
-
-                    await db.commit()
-
+                    try:
+                        if await _retry_notification(db, dispatcher, notification):
+                            retried += 1
+                    except Exception as e:
+                        logger.exception(f"Failed to retry notification {notification_id}: {e}")
+                        await _record_failed_retry(db, notification, notification_id, e)
             except TimeoutError:
                 logger.debug(
                     "Skipping notification %s retry — another worker holds the lock",
                     notification_id,
                 )
-                continue
-            except Exception as e:
-                logger.exception(f"Failed to retry notification {notification_id}: {e}")
-                # A database error aborts the transaction, so it is rolled back and the attempt
-                # recorded afresh; otherwise every later notification in the batch fails with it.
-                await db.rollback()
-                await db.refresh(notification)
-                notification.attempts += 1
-                notification.error_message = str(e)
-                if notification.attempts >= notification.max_attempts:
-                    notification.status = NotificationStatus.failed
-                await db.commit()
+            except Exception:
+                # Nothing was sent when the lock itself fails, so no attempt is charged.
+                logger.exception("Could not lock notification %s for retry", notification_id)
 
         logger.info(f"Retried {retried} notifications")
         return {"retried": retried}
