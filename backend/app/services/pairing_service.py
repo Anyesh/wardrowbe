@@ -23,7 +23,7 @@ PAIRING_PROMPT_TEMPLATE = load_prompt("item_pairing")
 # server-set "pairing" occasion (external rows with any other occasion are suggestions).
 # Keyed on occasion rather than source_item_id because that column is ON DELETE SET NULL:
 # hard-deleting the source item must not silently reclassify the row as a suggestion.
-# "pairing" is absent from VALID_OCCASIONS, so an authoring client cannot forge it.
+# "pairing" is absent from the occasion vocabulary, so an authoring client cannot forge it.
 PAIRING_OCCASION = "pairing"
 
 PAIRING_SOURCE_CLAUSE = or_(

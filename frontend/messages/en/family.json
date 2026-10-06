@@ -95,6 +95,7 @@
     "createFailed": "Failed to create family. Please try again.",
     "created": "Family created!",
     "inviteFailed": "Failed to send invitation",
+    "inviteNotEmailed": "Invitation saved, but the email could not be sent. Share the invite code with them instead.",
     "inviteSent": "Invitation sent!",
     "joined": "Joined family!",
     "nameUpdateFailed": "Failed to update family name",

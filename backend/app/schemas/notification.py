@@ -1,12 +1,21 @@
 import re
 from datetime import datetime
-from typing import Literal
+from enum import StrEnum
 from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
+from app.schemas.email import EmailAddress
+from app.schemas.outfit import Occasion
 
-# Channel-specific configurations
+
+class NotificationChannel(StrEnum):
+    ntfy = "ntfy"
+    mattermost = "mattermost"
+    email = "email"
+    expo_push = "expo_push"
+
+
 class NtfyConfig(BaseModel):
     server: str = "https://ntfy.sh"
     topic: str
@@ -45,15 +54,7 @@ class MattermostConfig(BaseModel):
 
 
 class EmailConfig(BaseModel):
-    address: str
-
-    @field_validator("address")
-    @classmethod
-    def validate_email(cls, v: str) -> str:
-        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-        if not re.match(pattern, v):
-            raise ValueError("Invalid email address")
-        return v
+    address: EmailAddress
 
 
 class ExpoPushConfig(BaseModel):
@@ -69,7 +70,7 @@ class ExpoPushConfig(BaseModel):
 
 # Notification settings schemas
 class NotificationSettingsBase(BaseModel):
-    channel: Literal["ntfy", "mattermost", "email", "expo_push"]
+    channel: NotificationChannel
     enabled: bool = True
     priority: int = 1
     config: dict
@@ -90,31 +91,26 @@ class NotificationSettingsResponse(NotificationSettingsBase):
     user_id: UUID
     created_at: datetime
     updated_at: datetime
+    config_error: str | None = None
+
+    # A stored config that is not an object is reported through config_error, and showing it as
+    # empty keeps the rest of the user's channels listable so the broken one can be deleted.
+    @field_validator("config", mode="before")
+    @classmethod
+    def config_as_object(cls, value: object) -> dict:
+        return value if isinstance(value, dict) else {}
 
     class Config:
         from_attributes = True
-
-
-VALID_OCCASIONS = {"casual", "office", "formal", "date", "sporty", "outdoor", "work", "party"}
 
 
 # Schedule schemas
 class ScheduleBase(BaseModel):
     day_of_week: int  # 0=Monday, 6=Sunday (day to WEAR the outfit)
     notification_time: str  # HH:MM format
-    occasion: str = "casual"
+    occasion: Occasion = "casual"
     enabled: bool = True
     notify_day_before: bool = False  # If True, notification comes evening before
-
-    @field_validator("occasion")
-    @classmethod
-    def validate_occasion(cls, v: str) -> str:
-        v = v.strip().lower()
-        if v not in VALID_OCCASIONS:
-            raise ValueError(
-                f"Invalid occasion. Must be one of: {', '.join(sorted(VALID_OCCASIONS))}"
-            )
-        return v
 
     @field_validator("day_of_week")
     @classmethod
@@ -138,20 +134,9 @@ class ScheduleCreate(ScheduleBase):
 class ScheduleUpdate(BaseModel):
     day_of_week: int | None = None
     notification_time: str | None = None
-    occasion: str | None = None
+    occasion: Occasion | None = None
     enabled: bool | None = None
     notify_day_before: bool | None = None
-
-    @field_validator("occasion")
-    @classmethod
-    def validate_occasion(cls, v: str | None) -> str | None:
-        if v is not None:
-            v = v.strip().lower()
-            if v not in VALID_OCCASIONS:
-                raise ValueError(
-                    f"Invalid occasion. Must be one of: {', '.join(sorted(VALID_OCCASIONS))}"
-                )
-        return v
 
     @field_validator("notification_time")
     @classmethod

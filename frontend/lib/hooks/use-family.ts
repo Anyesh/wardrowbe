@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, setAccessToken } from '@/lib/api';
+import { useUserProfile } from '@/lib/hooks/use-user';
 import { Family, FamilyCreateResponse, JoinFamilyResponse, FamilyMember } from '@/lib/types';
 
 // Helper to set token if available (for NextAuth mode)
@@ -23,6 +24,17 @@ export function useFamily() {
     enabled: status !== 'loading',
     retry: false, // Don't retry on 404 (user not in family)
   });
+}
+
+// Matched by user id because a member's email can change under them, for example when a
+// verified sign-in reclaims it and parks this account on a placeholder address.
+export function useCurrentFamilyMember(family: Family | undefined): {
+  member: FamilyMember | undefined;
+  isPending: boolean;
+  isError: boolean;
+} {
+  const { data: profile, isPending, isError } = useUserProfile();
+  return { member: family?.members.find((m) => m.id === profile?.id), isPending, isError };
 }
 
 export function useCreateFamily() {
@@ -136,7 +148,7 @@ export function useInviteMember() {
       if (session?.accessToken) {
         setAccessToken(session.accessToken as string);
       }
-      return api.post<{ id: string; email: string; expires_at: string }>(
+      return api.post<{ id: string; email: string; expires_at: string; email_sent: boolean }>(
         '/families/me/invite',
         { email, role: role || 'member' }
       );

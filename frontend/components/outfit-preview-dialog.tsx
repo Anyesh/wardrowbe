@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { CalendarDays, ChevronLeft, ChevronRight, X, RotateCcw, RotateCw, Loader2, Users, Star, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { type Outfit } from '@/lib/hooks/use-outfits';
-import { useFamily } from '@/lib/hooks/use-family';
+import { useCurrentFamilyMember, useFamily } from '@/lib/hooks/use-family';
 import { useRotateImage } from '@/lib/hooks/use-items';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { toast } from 'sonner';
@@ -19,8 +18,22 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 
+export type OutfitPreview = Pick<
+  Outfit,
+  | 'id'
+  | 'items'
+  | 'occasion'
+  | 'scheduled_for'
+  | 'reasoning'
+  | 'highlights'
+  | 'style_notes'
+  | 'family_ratings'
+  | 'family_rating_average'
+  | 'family_rating_count'
+>;
+
 interface OutfitPreviewDialogProps {
-  outfit: Outfit;
+  outfit: OutfitPreview;
   open: boolean;
   onClose: () => void;
   isOwner?: boolean;
@@ -36,11 +49,8 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
   const [showRatingForm, setShowRatingForm] = useState(false);
   const items = outfit.items;
   const rotateImage = useRotateImage();
-  const { data: session } = useSession();
   const { data: family } = useFamily();
-
-  const currentEmail = session?.user?.email;
-  const currentMember = family?.members.find((m) => m.email === currentEmail);
+  const { member: currentMember } = useCurrentFamilyMember(family);
   const isInFamily = !!family && !!currentMember;
   const canRate = isInFamily && !isOwner;
   const myRating = outfit.family_ratings?.find((r) => r.user_id === currentMember?.id);

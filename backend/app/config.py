@@ -1,5 +1,6 @@
 import logging
 from functools import lru_cache
+from typing import Literal
 from urllib.parse import parse_qs, urlsplit
 
 from arq.connections import RedisSettings
@@ -25,6 +26,19 @@ class Settings(BaseSettings):
     debug: bool = False
     secret_key: str = Field(default=DEFAULT_SECRET_KEY)
     studio_disabled: bool = False
+    app_url: str = Field(default="http://localhost:3000")
+
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def uppercase_log_level(cls, v: object) -> object:
+        return v.upper() if isinstance(v, str) else v
+
+    @field_validator("app_url")
+    @classmethod
+    def strip_app_url_trailing_slash(cls, v: str) -> str:
+        return v.rstrip("/")
 
     # CORS
     cors_origins: list[str] = Field(default=["http://localhost:3000", "http://localhost:8081"])
@@ -130,9 +144,12 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str | None = None
     smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_from_name: str = "Wardrowbe"
+    smtp_from_email: str | None = None
     # Storage
     storage_path: str = Field(default="/data/wardrobe")
-    max_upload_size_mb: int = Field(default=10)
+    max_upload_size_mb: int = Field(default=50, ge=1)
     max_bulk_upload_count: int = Field(default=20)
     # Byte size is a poor proxy for decode cost: a 3.8MB JPEG can be 108MP,
     # which needs ~324MB per full-resolution RGB buffer and several exist at
@@ -223,6 +240,9 @@ class Settings(BaseSettings):
         if self.debug:
             return "dev"
         return "unknown"
+
+    def app_link(self, path: str = "") -> str:
+        return f"{self.app_url}/{path.lstrip('/')}"
 
     def get_geocoding_user_agent(self) -> str:
         return self.geocoding_user_agent or "Wardrowbe/1.0"

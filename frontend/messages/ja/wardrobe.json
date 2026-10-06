@@ -260,7 +260,14 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
+    "failure": {
+      "tooLarge": "{name} は {limit} MB を超えています",
+      "tooLargeForServer": "{name} はサーバーが受け付けるには大きすぎます",
+      "unsupportedFormat": "{name} はサポートされていない形式です（JPEG、PNG、WebP、HEIC に対応）",
+      "duplicate": "{name} はすでにワードローブにあります",
+      "generic": "{name} をアップロードできませんでした"
+    }
   },
   "wearCount": "{count, plural, one {# 回着用} other {# 回着用}}",
   "wornAgo": {
