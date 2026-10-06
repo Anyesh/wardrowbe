@@ -14,7 +14,6 @@ import {
   Trash2,
   Mail,
   Clock,
-  Shield,
   Star,
   Shirt,
 } from 'lucide-react';
@@ -75,7 +74,7 @@ function NoFamilyView() {
       toast.success(t('toasts.created'));
       setFamilyName('');
       setMode(null);
-    } catch (error) {
+    } catch {
       toast.error(t('toasts.createFailed'));
     }
   };
@@ -87,7 +86,7 @@ function NoFamilyView() {
       toast.success(t('toasts.joined'));
       setInviteCode('');
       setMode(null);
-    } catch (error) {
+    } catch {
       toast.error(t('invalidInviteCode'));
     }
   };
@@ -249,7 +248,7 @@ function FamilyView() {
     try {
       await regenerateCode.mutateAsync();
       toast.success(t('toasts.codeRegenerated'));
-    } catch (error) {
+    } catch {
       toast.error(t('toasts.codeRegenerateFailed'));
     }
   };
@@ -264,7 +263,7 @@ function FamilyView() {
         toast.warning(t('toasts.inviteNotEmailed'));
       }
       setInviteEmail('');
-    } catch (error) {
+    } catch {
       toast.error(t('toasts.inviteFailed'));
     }
   };
@@ -276,7 +275,7 @@ function FamilyView() {
       toast.success(t('toasts.nameUpdated'));
       setEditingName(false);
       setNewName('');
-    } catch (error) {
+    } catch {
       toast.error(t('toasts.nameUpdateFailed'));
     }
   };

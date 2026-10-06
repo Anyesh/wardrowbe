@@ -11,7 +11,6 @@ import {
   MapPin,
   Palette,
   Camera,
-  ChevronRight,
   ChevronLeft,
   Check,
   ArrowRight,
@@ -20,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -161,7 +159,7 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
       await createFamily.mutateAsync(familyName.trim());
       toast.success(t('family.success'));
       onNext();
-    } catch (error) {
+    } catch {
       toast.error(t('family.error'));
     }
   };
@@ -172,7 +170,7 @@ function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
       await joinFamily.mutateAsync(inviteCode.trim().toUpperCase());
       toast.success(t('family.joinSuccess'));
       onNext();
-    } catch (error) {
+    } catch {
       toast.error(t('family.error'));
     }
   };
@@ -321,7 +319,7 @@ function LocationStep({
 
         setDetecting(false);
       },
-      (error) => {
+      () => {
         setDetecting(false);
         toast.error(t('location.locationError'));
       }
@@ -350,7 +348,7 @@ function LocationStep({
       await api.patch('/users/me', updateData);
       toast.success(t('location.locationSuccess'));
       onNext();
-    } catch (error) {
+    } catch {
       toast.error(t('location.saveError'));
     } finally {
       setSaving(false);
@@ -469,7 +467,7 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
       });
       toast.success(t('style.saveSuccess'));
       onNext();
-    } catch (error) {
+    } catch {
       toast.error(t('style.saveError'));
     } finally {
       setSaving(false);
@@ -652,7 +650,7 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
       await createItem.mutateAsync(formData);
       toast.success(t('firstItem.uploadSuccess'));
       onNext();
-    } catch (error) {
+    } catch {
       toast.error(t('firstItem.uploadError'));
     }
   };
@@ -797,7 +795,7 @@ export default function OnboardingPage() {
       await queryClient.invalidateQueries({ queryKey: ['auth-user'] });
       // Redirect to dashboard
       router.push('/dashboard');
-    } catch (error) {
+    } catch {
       setCompleting(false);
       toast.error(t('complete.setupFailed'));
     }

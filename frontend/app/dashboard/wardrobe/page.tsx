@@ -424,7 +424,6 @@ export default function WardrobePage() {
   // Fetch items with automatic polling (faster when items are processing)
   const { data, isLoading, error } = useItems(filters, page, pageSize);
   const { data: taggingProgress } = useTaggingProgress();
-  const { data: itemTypes } = useItemTypes();
   const reanalyze = useReanalyzeItem();
   const cancelAnalysis = useCancelAnalysis();
   const bulkDelete = useBulkDeleteItems();

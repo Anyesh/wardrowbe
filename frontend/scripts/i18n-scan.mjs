@@ -51,7 +51,7 @@ function walk(dir, acc = []) {
     const rel = relative(ROOT, full);
     if (SKIP_DIRS.has(entry) || SKIP_DIRS.has(rel)) continue;
     if (statSync(full).isDirectory()) walk(full, acc);
-    else if (/\.tsx?$/.test(entry) && !/\.d\.ts$/.test(entry)) acc.push(full);
+    else if (/\.tsx?$/.test(entry) && !entry.endsWith('.d.ts')) acc.push(full);
   }
   return acc;
 }

@@ -31,7 +31,7 @@ function invalidatePrimaryImageQueries(queryClient: QueryClient, itemId: string)
 }
 
 export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({

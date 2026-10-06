@@ -1,20 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import React from 'react'
-
-// Create a wrapper with React Query provider
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  })
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children)
-}
 
 describe('API Hooks', () => {
   beforeEach(() => {

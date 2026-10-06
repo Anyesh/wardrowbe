@@ -4,9 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, setAccessToken } from '@/lib/api';
 import {
-  Pairing,
   PairingListResponse,
-  GeneratePairingsRequest,
   GeneratePairingsResponse,
 } from '@/lib/types';
 

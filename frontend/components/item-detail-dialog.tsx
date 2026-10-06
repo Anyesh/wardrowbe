@@ -27,7 +27,6 @@ import {
   ChevronRight,
   Plus,
   Star,
-  ImageIcon,
 } from 'lucide-react';
 import {
   Dialog,

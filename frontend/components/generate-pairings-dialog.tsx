@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Sparkles, Check, AlertCircle } from 'lucide-react';
+import { Loader2, Sparkles, Check } from 'lucide-react';
 import {
   Dialog,
   DialogContent,

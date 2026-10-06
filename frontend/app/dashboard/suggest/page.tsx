@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import {
@@ -271,7 +271,6 @@ function WeatherOverrideSection({
 function OutfitCard({
   outfit,
   baseItemId,
-  temperatureUnit,
   t,
   onAccept,
   onReject,

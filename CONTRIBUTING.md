@@ -39,7 +39,7 @@ look.
 ### Prerequisites
 
 - Docker and Docker Compose
-- Node.js 18+ (for frontend development)
+- Node.js 24 (matching the frontend Docker image and CI)
 - Python 3.11+ (for backend development)
 - An AI service (Ollama recommended for development)
 
@@ -100,6 +100,7 @@ npm run typecheck
 
 # Run linting
 npm run lint
+npm run lint:oxlint
 ```
 
 ## Code Style
@@ -137,6 +138,7 @@ async def get_item_by_id(
 - Prefer functional components with hooks
 - Use React Query for server state
 - Follow the existing component patterns
+- Run both ESLint and Oxlint: ESLint provides Next.js rules; Oxlint checks core JavaScript and TypeScript correctness, including unused code
 
 ```typescript
 interface ItemCardProps {

@@ -44,9 +44,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
     }
   };
 
-  // Find the source item in the items list
   const sourceItemId = pairing.source_item?.id;
-  const sourceItemInList = pairing.items.find((item) => item.id === sourceItemId);
   const otherItems = pairing.items.filter((item) => item.id !== sourceItemId);
 
   return (

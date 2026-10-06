@@ -58,7 +58,7 @@ async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promis
       headers,
       credentials: 'include',
     });
-  } catch (err) {
+  } catch {
     if (!navigator.onLine) {
       throw new NetworkError('You appear to be offline. Please check your connection.');
     }
