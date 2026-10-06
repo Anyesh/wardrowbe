@@ -4,8 +4,8 @@ import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from email.headerregistry import Address
+from email.message import EmailMessage as MimeMessage
 from typing import Protocol
 
 import aiosmtplib
@@ -308,6 +308,16 @@ def _smtp_sender(value: str) -> str:
         return value
 
 
+# Address(addr_spec=...) refuses a bare login and a non-ASCII local part, which SMTPUTF8 relays
+# accept, so the parts are passed separately. The display name is then encoded on its own and the
+# address stays plain, where a single "name <address>" string would be encoded as one word.
+def _header_address(address: str, display_name: str = "") -> Address:
+    username, at, domain = address.rpartition("@")
+    if not at:
+        username, domain = address, ""
+    return Address(display_name=display_name, username=username, domain=domain)
+
+
 # Email Provider
 @dataclass
 class EmailMessage:
@@ -339,17 +349,18 @@ class EmailProvider:
         try:
             sender = _smtp_sender(self.from_email)
             recipient = smtp_address(message.to)
-            msg = MIMEMultipart("alternative")
+            msg = MimeMessage()
             # A family or display name stored before line breaks were refused still reaches the
             # subject, and the email package refuses to serialise a header with a line break.
             msg["Subject"] = flatten_control_characters(message.subject)
-            msg["From"] = f"{flatten_control_characters(self.from_name)} <{sender}>"
-            msg["To"] = recipient
+            msg["From"] = _header_address(sender, flatten_control_characters(self.from_name))
+            msg["To"] = _header_address(recipient)
 
             if message.text_body:
-                msg.attach(MIMEText(message.text_body, "plain"))
-
-            msg.attach(MIMEText(message.html_body, "html"))
+                msg.set_content(message.text_body)
+                msg.add_alternative(message.html_body, subtype="html")
+            else:
+                msg.set_content(message.html_body, subtype="html")
 
             await aiosmtplib.send(
                 msg,

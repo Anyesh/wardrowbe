@@ -455,27 +455,55 @@ def _plain_email(to: str) -> EmailMessage:
 class TestEmailProviderAddresses:
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("from_email", "address", "sender", "recipient"),
+        ("from_name", "from_email", "address", "sender", "recipient", "from_header"),
         [
-            ("closet@example.com", "guest@example.com", "closet@example.com", "guest@example.com"),
             (
+                "Wardrowbe",
+                "closet@example.com",
+                "guest@example.com",
+                "closet@example.com",
+                "guest@example.com",
+                "Wardrowbe <closet@example.com>",
+            ),
+            (
+                "Wardrowbe",
                 "closet@example.com",
                 "user@münchen.de",
                 "closet@example.com",
                 "user@xn--mnchen-3ya.de",
+                "Wardrowbe <closet@example.com>",
             ),
             (
+                "Garderobe Zoë",
                 "closet@münchen.de",
                 "guest@example.com",
                 "closet@xn--mnchen-3ya.de",
                 "guest@example.com",
+                "Garderobe =?utf-8?q?Zo=C3=AB?= <closet@xn--mnchen-3ya.de>",
+            ),
+            (
+                'Smith, "Co" <x>',
+                "mailer",
+                "guest@example.com",
+                "mailer",
+                "guest@example.com",
+                '"Smith, \\"Co\\" <x>" <mailer>',
             ),
         ],
+        ids=["ascii", "idna-recipient", "non-ascii-name", "quoted-name-bare-login"],
     )
     async def test_sends_an_ascii_local_part_without_smtputf8(
-        self, ascii_smtp_server, monkeypatch, from_email, address, sender, recipient
+        self,
+        ascii_smtp_server,
+        monkeypatch,
+        from_name,
+        from_email,
+        address,
+        sender,
+        recipient,
+        from_header,
     ):
-        _update_smtp_settings(monkeypatch, smtp_from_email=from_email)
+        _update_smtp_settings(monkeypatch, smtp_from_name=from_name, smtp_from_email=from_email)
         provider = EmailProvider(EmailConfig(address=address))
 
         result = await provider.send(_plain_email(address))
@@ -483,7 +511,7 @@ class TestEmailProviderAddresses:
         assert result == {"success": True}
         ((envelope_from, recipients, data),) = ascii_smtp_server
         assert (envelope_from, recipients) == (sender, [recipient])
-        assert f"From: Wardrowbe <{sender}>\r\n".encode() in data
+        assert f"From: {from_header}\r\n".encode() in data
         assert f"To: {recipient}\r\n".encode() in data
 
     @pytest.mark.asyncio
