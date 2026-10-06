@@ -532,9 +532,9 @@ def _http_response(url: str, status_code: int = 200) -> httpx.Response:
     return httpx.Response(200, json={"id": "m1"}, request=request)
 
 
-def _fake_post(failing_urls: frozenset[str] = frozenset()) -> AsyncMock:
+def _fake_post(failures: dict[str, int] | None = None) -> AsyncMock:
     async def post(url, **kwargs):
-        return _http_response(url, 500 if url in failing_urls else 200)
+        return _http_response(url, (failures or {}).get(url, 200))
 
     return AsyncMock(side_effect=post)
 
@@ -657,7 +657,7 @@ class TestWashReminderChannels:
             2,
         )
         await self._add_channel(db_session, dirty_user, "mattermost", {"webhook_url": webhook}, 1)
-        post = _fake_post(failing_urls=frozenset({webhook}))
+        post = _fake_post({webhook: 500})
 
         await self._run(db_session, post)
 
@@ -686,7 +686,7 @@ class TestWashReminderChannels:
         assert reminder.channel == "mattermost"
 
     @pytest.mark.asyncio
-    async def test_all_channels_failing_records_first_channel_and_last_error(
+    async def test_all_channels_failing_records_each_error_and_retries_next_run(
         self, db_session: AsyncSession, dirty_user: User
     ):
         topic = f"laundry-{uuid.uuid4().hex[:12]}"
@@ -700,15 +700,26 @@ class TestWashReminderChannels:
             {"server": "https://ntfy.example.com", "topic": topic},
             2,
         )
-        post = _fake_post(failing_urls=frozenset({webhook, ntfy_url}))
 
-        await self._run(db_session, post)
+        await self._run(db_session, _fake_post({webhook: 500, ntfy_url: 503}))
 
-        [reminder] = await self._reminders(db_session, dirty_user)
-        assert reminder.status == NotificationStatus.failed
-        assert reminder.channel == "mattermost"
-        assert reminder.error_message == "HTTP 500: boom"
-        assert reminder.sent_at is None
+        failed = {
+            (r.channel, r.status, r.error_message, r.sent_at)
+            for r in await self._reminders(db_session, dirty_user)
+        }
+        assert failed == {
+            ("mattermost", NotificationStatus.failed, "HTTP 500: boom", None),
+            ("ntfy", NotificationStatus.failed, "HTTP 503: boom", None),
+        }
+
+        await self._run(db_session, _fake_post())
+
+        rows = {(r.channel, r.status) for r in await self._reminders(db_session, dirty_user)}
+        assert rows == {
+            ("mattermost", NotificationStatus.failed),
+            ("ntfy", NotificationStatus.failed),
+            ("mattermost", NotificationStatus.sent),
+        }
 
 
 # ── Worker registry ──

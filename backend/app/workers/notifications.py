@@ -373,6 +373,7 @@ async def _check_wash_reminders_inner(ctx: dict):
                         and_(
                             Notification.user_id == user_id,
                             Notification.payload["type"].astext == "wash_reminder",
+                            Notification.status == NotificationStatus.sent,
                             Notification.created_at >= one_day_ago,
                         )
                     )
@@ -387,21 +388,25 @@ async def _check_wash_reminders_inner(ctx: dict):
 
                 last = results[-1]
                 sent = last.status == NotificationStatus.sent
-                db.add(
-                    Notification(
-                        user_id=user_id,
-                        channel=last.channel if sent else results[0].channel,
-                        status=NotificationStatus.sent if sent else NotificationStatus.failed,
-                        payload={
-                            "type": "wash_reminder",
-                            "item_count": len(items),
-                            "title": message.title,
-                            "body": message.body,
-                        },
-                        sent_at=datetime.now(UTC) if sent else None,
-                        error_message=None if sent else last.error,
+                payload = {
+                    "type": "wash_reminder",
+                    "item_count": len(items),
+                    "title": message.title,
+                    "body": message.body,
+                }
+                # Only a sent reminder holds off the next one for a day, so that a failed one is
+                # tried again on the next run; each failure keeps its own channel's error.
+                for attempt in [last] if sent else results:
+                    db.add(
+                        Notification(
+                            user_id=user_id,
+                            channel=attempt.channel,
+                            status=attempt.status,
+                            payload=payload,
+                            sent_at=datetime.now(UTC) if sent else None,
+                            error_message=attempt.error,
+                        )
                     )
-                )
                 await db.commit()
                 if sent:
                     notified += 1
