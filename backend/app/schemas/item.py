@@ -27,6 +27,9 @@ class ItemBase(BaseModel):
     subtype: str | None = Field(None, max_length=50)
     name: str | None = Field(None, max_length=100)
     brand: str | None = Field(None, max_length=100)
+    size: str | None = Field(None, max_length=50)
+    purchase_store: str | None = Field(None, max_length=100)
+    care_instructions: str | None = None
     notes: str | None = None
     purchase_date: date | None = None
     purchase_price: Decimal | None = Field(None, ge=0)
@@ -44,6 +47,9 @@ class ItemUpdate(BaseModel):
     subtype: str | None = Field(None, max_length=50)
     name: str | None = Field(None, max_length=100)
     brand: str | None = Field(None, max_length=100)
+    size: str | None = Field(None, max_length=50)
+    purchase_store: str | None = Field(None, max_length=100)
+    care_instructions: str | None = None
     notes: str | None = None
     purchase_date: date | None = None
     purchase_price: Decimal | None = Field(None, ge=0)

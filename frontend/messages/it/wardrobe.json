@@ -29,6 +29,7 @@
       "uploadingCount": "{count, plural, one {Caricamento di # capo...} other {Caricamento di # capi...}}"
     },
     "bulkUpload": "Caricamento multiplo",
+    "careInstructions": "Istruzioni per la cura",
     "dropzone": "Trascina e rilascia un'immagine, o tocca per selezionare",
     "dropzoneActive": "Rilascia l'immagine qui",
     "formatHint": "PNG, JPG o HEIC",
@@ -39,8 +40,10 @@
     "notesPlaceholder": "Note",
     "previewAlt": "Anteprima",
     "primaryColor": "Colore principale",
+    "purchaseStore": "Negozio di acquisto",
     "selectPlaceholder": "Seleziona...",
     "singleItem": "Capo singolo",
+    "size": "Taglia",
     "submit": "Aggiungi capo",
     "subtitle": "Carica foto dei tuoi capi di abbigliamento",
     "title": "Aggiungi capi",
@@ -173,6 +176,7 @@
       "washed": "Capo segnato come lavato"
     },
     "brand": "Marca",
+    "careInstructions": "Istruzioni per la cura",
     "name": "Nome",
     "notes": "Note",
     "placeholders": {
@@ -184,6 +188,8 @@
       "washIntervalDefault": "Predefinito: {count}"
     },
     "primaryColor": "Colore principale",
+    "purchaseStore": "Negozio di acquisto",
+    "size": "Taglia",
     "subtype": "Sottotipo",
     "titles": {
       "analysisInProgress": "Analisi in corso...",

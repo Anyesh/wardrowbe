@@ -29,6 +29,7 @@
       "uploadingCount": "{count, plural, one {正在上传 # 件单品...} other {正在上传 # 件单品...}}"
     },
     "bulkUpload": "批量上传",
+    "careInstructions": "护理说明",
     "dropzone": "拖放图片，或点击选择",
     "dropzoneActive": "将图片拖放到这里",
     "formatHint": "PNG、JPG 或 HEIC",
@@ -39,8 +40,10 @@
     "notesPlaceholder": "备注",
     "previewAlt": "预览",
     "primaryColor": "主要颜色",
+    "purchaseStore": "购买店铺",
     "selectPlaceholder": "选择...",
     "singleItem": "单件",
+    "size": "尺码",
     "submit": "添加单品",
     "subtitle": "上传你的衣物照片",
     "title": "添加单品",
@@ -173,6 +176,7 @@
       "washed": "单品已标记为已清洗"
     },
     "brand": "品牌",
+    "careInstructions": "护理说明",
     "name": "名称",
     "notes": "备注",
     "placeholders": {
@@ -184,6 +188,8 @@
       "washIntervalDefault": "默认：{count}"
     },
     "primaryColor": "主要颜色",
+    "purchaseStore": "购买店铺",
+    "size": "尺码",
     "subtype": "子类型",
     "titles": {
       "analysisInProgress": "分析进行中...",

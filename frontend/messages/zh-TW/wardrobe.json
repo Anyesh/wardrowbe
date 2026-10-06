@@ -29,6 +29,7 @@
       "uploadingCount": "{count, plural, one {正在上傳 # 件單品...} other {正在上傳 # 件單品...}}"
     },
     "bulkUpload": "批次上傳",
+    "careInstructions": "洗護說明",
     "dropzone": "拖放圖片，或點擊選擇",
     "dropzoneActive": "將圖片拖放到這裡",
     "formatHint": "PNG、JPG 或 HEIC",
@@ -39,8 +40,10 @@
     "notesPlaceholder": "備註",
     "previewAlt": "預覽",
     "primaryColor": "主色",
+    "purchaseStore": "購買店鋪",
     "selectPlaceholder": "選擇...",
     "singleItem": "單件",
+    "size": "尺寸",
     "submit": "新增單品",
     "subtitle": "上傳你的衣物照片",
     "title": "新增單品",
@@ -173,6 +176,7 @@
       "washed": "單品已標記為已洗"
     },
     "brand": "品牌",
+    "careInstructions": "洗護說明",
     "name": "名稱",
     "notes": "備註",
     "placeholders": {
@@ -184,6 +188,8 @@
       "washIntervalDefault": "預設：{count}"
     },
     "primaryColor": "主色",
+    "purchaseStore": "購買店鋪",
+    "size": "尺寸",
     "subtype": "子類型",
     "titles": {
       "analysisInProgress": "分析進行中...",

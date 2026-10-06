@@ -29,6 +29,7 @@
       "uploadingCount": "{count, plural, other {아이템 #개 업로드 중...}}"
     },
     "bulkUpload": "일괄 업로드",
+    "careInstructions": "관리 방법",
     "dropzone": "이미지를 끌어다 놓거나 탭하여 선택하세요",
     "dropzoneActive": "여기에 이미지를 놓으세요",
     "formatHint": "PNG, JPG 또는 HEIC",
@@ -39,8 +40,10 @@
     "notesPlaceholder": "메모",
     "previewAlt": "미리보기",
     "primaryColor": "메인 색상",
+    "purchaseStore": "구매 매장",
     "selectPlaceholder": "선택...",
     "singleItem": "단일 아이템",
+    "size": "사이즈",
     "submit": "아이템 추가",
     "subtitle": "옷 사진을 업로드하세요",
     "title": "아이템 추가",
@@ -173,6 +176,7 @@
       "washed": "세탁 완료로 표시되었어요"
     },
     "brand": "브랜드",
+    "careInstructions": "관리 방법",
     "name": "이름",
     "notes": "메모",
     "placeholders": {
@@ -184,6 +188,8 @@
       "washIntervalDefault": "기본값: {count}"
     },
     "primaryColor": "메인 색상",
+    "purchaseStore": "구매 매장",
+    "size": "사이즈",
     "subtype": "세부 유형",
     "titles": {
       "analysisInProgress": "분석 진행 중...",

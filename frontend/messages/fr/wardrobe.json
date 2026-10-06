@@ -29,6 +29,7 @@
       "uploadingCount": "{count, plural, one {Import de # article...} other {Import de # articles...}}"
     },
     "bulkUpload": "Téléchargement groupé",
+    "careInstructions": "Instructions d’entretien",
     "dropzone": "Glissez-déposez une image, ou appuyez pour sélectionner",
     "dropzoneActive": "Déposez l'image ici",
     "formatHint": "PNG, JPG ou HEIC",
@@ -39,8 +40,10 @@
     "notesPlaceholder": "Notes",
     "previewAlt": "Aperçu",
     "primaryColor": "Couleur principale",
+    "purchaseStore": "Magasin d’achat",
     "selectPlaceholder": "Sélectionner...",
     "singleItem": "Article unique",
+    "size": "Taille",
     "submit": "Ajouter un article",
     "subtitle": "Importez des photos de vos vêtements",
     "title": "Ajouter des articles",
@@ -173,6 +176,7 @@
       "washed": "Article marqué comme lavé"
     },
     "brand": "Marque",
+    "careInstructions": "Instructions d’entretien",
     "name": "Nom",
     "notes": "Notes",
     "placeholders": {
@@ -184,6 +188,8 @@
       "washIntervalDefault": "Par défaut : {count}"
     },
     "primaryColor": "Couleur principale",
+    "purchaseStore": "Magasin d’achat",
+    "size": "Taille",
     "subtype": "Sous-type",
     "titles": {
       "analysisInProgress": "Analyse en cours...",

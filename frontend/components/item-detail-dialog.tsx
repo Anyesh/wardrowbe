@@ -87,6 +87,9 @@ interface EditForm {
   type: string;
   subtype: string;
   brand: string;
+  size: string;
+  purchase_store: string;
+  care_instructions: string;
   primary_color: string;
   notes: string;
   favorite: boolean;
@@ -101,6 +104,9 @@ function editFormFromItem(item: Item): EditForm {
     // supported type doesn't lose what the model actually saw.
     subtype: item.subtype || (item.type === 'unknown' && item.ai_unrecognized_type) || '',
     brand: item.brand || '',
+    size: item.size || '',
+    purchase_store: item.purchase_store || '',
+    care_instructions: item.care_instructions || '',
     primary_color: item.primary_color || '',
     notes: item.notes || '',
     favorite: item.favorite,
@@ -127,6 +133,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     type: '',
     subtype: '',
     brand: '',
+    size: '',
+    purchase_store: '',
+    care_instructions: '',
     primary_color: '',
     notes: '',
     favorite: false,
@@ -144,6 +153,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const restoreOriginal = useRestoreOriginal();
   const replaceImage = useReplaceItemImage();
   const replaceImageInputRef = useRef<HTMLInputElement>(null);
+  const editBaselineRef = useRef<EditForm | null>(null);
   const { data: features } = useFeatures();
   const logWash = useLogWash();
   const { data: washHistory } = useWashHistory(item?.id || '');
@@ -164,6 +174,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   if (!item) return null;
 
   const handleSave = async () => {
+    // The item can refresh while this editor is open. Compare with the form as it
+    // was when editing began, so untouched metadata never overwrites a newer value.
+    const baseline = editBaselineRef.current ?? editFormFromItem(item);
     try {
       await updateItem.mutateAsync({
         id: item.id,
@@ -173,6 +186,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           // null (not undefined) so clearing the field actually clears it server-side.
           subtype: editForm.subtype.trim() || null,
           brand: editForm.brand || undefined,
+          ...(editForm.size !== baseline.size && { size: editForm.size.trim() || null }),
+          ...(editForm.purchase_store !== baseline.purchase_store && {
+            purchase_store: editForm.purchase_store.trim() || null,
+          }),
+          ...(editForm.care_instructions !== baseline.care_instructions && {
+            care_instructions: editForm.care_instructions.trim() || null,
+          }),
           primary_color: editForm.primary_color || undefined,
           notes: editForm.notes || undefined,
           favorite: editForm.favorite,
@@ -450,7 +470,11 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   onClick={() => {
                     // Re-read the item on entering edit mode: tagging can finish while the
                     // dialog is open (same id, so the effect above doesn't re-run).
-                    if (!isEditing) setEditForm(editFormFromItem(item));
+                    if (!isEditing) {
+                      const initial = editFormFromItem(item);
+                      editBaselineRef.current = initial;
+                      setEditForm(initial);
+                    }
                     setIsEditing(!isEditing);
                   }}
                   title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
@@ -661,6 +685,35 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       placeholder={t('placeholders.brandName')}
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-item-size">{t('size')}</Label>
+                      <Input
+                        id="edit-item-size"
+                        maxLength={50}
+                        value={editForm.size}
+                        onChange={(e) => setEditForm({ ...editForm, size: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-item-purchase-store">{t('purchaseStore')}</Label>
+                      <Input
+                        id="edit-item-purchase-store"
+                        maxLength={100}
+                        value={editForm.purchase_store}
+                        onChange={(e) => setEditForm({ ...editForm, purchase_store: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-item-care-instructions">{t('careInstructions')}</Label>
+                    <Textarea
+                      id="edit-item-care-instructions"
+                      value={editForm.care_instructions}
+                      onChange={(e) => setEditForm({ ...editForm, care_instructions: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label>{t('primaryColor')}</Label>
                     <div className="flex gap-2">
@@ -755,6 +808,18 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       <div className="flex items-center gap-2 text-sm">
                         <Tag className="h-4 w-4 text-muted-foreground" />
                         <span>{item.brand}</span>
+                      </div>
+                    )}
+                    {item.size && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted-foreground">{t('size')}:</span>
+                        <span>{item.size}</span>
+                      </div>
+                    )}
+                    {item.purchase_store && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted-foreground">{t('purchaseStore')}:</span>
+                        <span>{item.purchase_store}</span>
                       </div>
                     )}
                     {colorInfo && (
@@ -1021,6 +1086,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   )}
 
                   {/* Notes */}
+                  {item.care_instructions && (
+                    <div className="space-y-1 pt-2 border-t">
+                      <p className="text-sm font-medium">{t('careInstructions')}</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.care_instructions}</p>
+                    </div>
+                  )}
                   {item.notes && (
                     <div className="space-y-1 pt-2 border-t">
                       <p className="text-sm font-medium">{t('notes')}</p>

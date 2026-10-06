@@ -172,6 +172,97 @@ class TestItemCRUD:
         assert data["brand"] == "Test Brand"
 
     @pytest.mark.asyncio
+    async def test_optional_metadata_round_trip_and_clear(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path="test/item.jpg",
+            status=ItemStatus.ready,
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        values = {
+            "size": "M",
+            "purchase_store": "Example Store",
+            "care_instructions": "Wash cold\nLay flat to dry",
+        }
+        response = await client.patch(f"/api/v1/items/{item.id}", json=values, headers=auth_headers)
+        assert response.status_code == 200, response.text
+        assert all(response.json()[key] == value for key, value in values.items())
+
+        response = await client.get(f"/api/v1/items/{item.id}", headers=auth_headers)
+        assert response.status_code == 200
+        assert all(response.json()[key] == value for key, value in values.items())
+
+        response = await client.patch(
+            f"/api/v1/items/{item.id}",
+            json={"size": None, "purchase_store": None, "care_instructions": None},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        assert all(response.json()[key] is None for key in values)
+
+    @pytest.mark.asyncio
+    async def test_optional_metadata_create(self, db_session: AsyncSession, test_user):
+        values = {
+            "size": "32 in",
+            "purchase_store": "Example Store",
+            "care_instructions": "Gentle cycle",
+        }
+        item = await ItemService(db_session).create(
+            user_id=test_user.id,
+            item_data=ItemCreate(type="pants", **values),
+            image_paths={"image_path": "test/item.jpg"},
+        )
+        assert all(getattr(item, key) == value for key, value in values.items())
+
+    @pytest.mark.asyncio
+    async def test_upload_optional_metadata(self, client: AsyncClient, auth_headers):
+        values = {
+            "size": "L",
+            "purchase_store": "Example Store",
+            "care_instructions": "Hand wash only",
+            "skip_ai": "true",
+        }
+        with patch(
+            "app.api.items.ImageService.process_and_store",
+            new_callable=AsyncMock,
+            return_value={"image_path": "test/upload.jpg"},
+        ):
+            response = await client.post(
+                "/api/v1/items",
+                data=values,
+                files={"image": ("upload.jpg", _make_test_image_bytes(), "image/jpeg")},
+                headers=auth_headers,
+            )
+        assert response.status_code == 201, response.text
+        assert all(
+            response.json()[key] == value for key, value in values.items() if key != "skip_ai"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("field", "length"),
+        [("size", 51), ("purchase_store", 101)],
+    )
+    async def test_upload_rejects_oversized_metadata_before_storage(
+        self, client: AsyncClient, auth_headers, field: str, length: int
+    ):
+        store = AsyncMock()
+        with patch("app.api.items.ImageService.process_and_store", new=store):
+            response = await client.post(
+                "/api/v1/items",
+                data={field: "x" * length},
+                files={"image": ("upload.jpg", _make_test_image_bytes(), "image/jpeg")},
+                headers=auth_headers,
+            )
+        assert response.status_code == 422, response.text
+        store.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_update_item_not_found(self, client: AsyncClient, test_user, auth_headers):
         """Test updating a non-existent item."""
         response = await client.patch(

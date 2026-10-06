@@ -29,6 +29,7 @@
       "uploadingCount": "{count, plural, one {# Stück wird hochgeladen...} other {# Stücke werden hochgeladen...}}"
     },
     "bulkUpload": "Mehrere Stücke",
+    "careInstructions": "Pflegehinweise",
     "dropzone": "Bild hierher ziehen oder tippen zum Auswählen",
     "dropzoneActive": "Bild hier ablegen",
     "formatHint": "PNG, JPG oder HEIC",
@@ -39,8 +40,10 @@
     "notesPlaceholder": "Notizen",
     "previewAlt": "Vorschau",
     "primaryColor": "Hauptfarbe",
+    "purchaseStore": "Gekauft bei",
     "selectPlaceholder": "Auswählen...",
     "singleItem": "Einzelnes Stück",
+    "size": "Größe",
     "submit": "Stück hinzufügen",
     "subtitle": "Lade Fotos deiner Kleidungsstücke hoch",
     "title": "Stücke hinzufügen",
@@ -173,6 +176,7 @@
       "washed": "Stück als gewaschen markiert"
     },
     "brand": "Marke",
+    "careInstructions": "Pflegehinweise",
     "name": "Name",
     "notes": "Notizen",
     "placeholders": {
@@ -184,6 +188,8 @@
       "washIntervalDefault": "Standard: {count}"
     },
     "primaryColor": "Hauptfarbe",
+    "purchaseStore": "Gekauft bei",
+    "size": "Größe",
     "subtype": "Untertyp",
     "titles": {
       "analysisInProgress": "Analyse läuft...",
