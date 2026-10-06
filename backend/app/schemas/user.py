@@ -2,10 +2,10 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.email import EmailAddress
-from app.schemas.text import SingleLineText
+from app.schemas.text import FlattenedLineText
 from app.utils.locale import DEFAULT_LOCALE
 
 
@@ -40,12 +40,20 @@ class UserSyncRequest(BaseModel):
     email: EmailAddress | None = Field(
         None, description="Email address; derived from ID token when omitted"
     )
-    display_name: SingleLineText = Field(..., min_length=1, max_length=100)
+    display_name: FlattenedLineText = Field(..., max_length=100)
     avatar_url: str | None = None
     id_token: str | None = Field(
         None, description="OIDC ID token for verification (required when OIDC is configured)"
     )
     provider: str | None = Field(None, description="Auth provider (e.g. 'oidc'), omit for default")
+
+    # Mirrors the web client's fallback (frontend/lib/auth.ts) so that the stored name does not
+    # depend on which client signed in.
+    @model_validator(mode="after")
+    def _name_or_email_local_part(self) -> "UserSyncRequest":
+        if not self.display_name:
+            self.display_name = self.email.split("@")[0] if self.email else "User"
+        return self
 
 
 class UserSyncResponse(BaseModel):

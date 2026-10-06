@@ -41,25 +41,41 @@ NAME_REQUESTS = {
     "family-create": lambda name: FamilyCreate(name=name).name,
     "family-update": lambda name: FamilyUpdate(name=name).name,
     "profile-update": lambda name: UserProfileUpdate(display_name=name).display_name,
-    "sign-in-sync": lambda name: UserSyncRequest(external_id="sub", display_name=name).display_name,
+    "sign-in-sync": lambda name, email="jane@example.com": (
+        UserSyncRequest(external_id="sub", email=email, display_name=name).display_name
+    ),
 }
 
 
 class TestNamesAreSingleLine:
-    @pytest.mark.parametrize("build", NAME_REQUESTS.values(), ids=NAME_REQUESTS.keys())
+    # Sign-in flattens instead of refusing because the IdP owns that name and a refusal would lock
+    # the user out on every login.
+    @pytest.mark.parametrize("request_id", NAME_REQUESTS.keys())
     @pytest.mark.parametrize(
-        "name",
+        ("name", "email", "synced"),
         [
-            "Smith\r\nBcc: victim@example.com",
-            "Smith\nFamily",
-            "Tab\tName",
-            "Nul\x00",
-            "Line\u2028Sep",
+            (
+                "Smith\r\nBcc: victim@example.com",
+                "jane@example.com",
+                "Smith Bcc: victim@example.com",
+            ),
+            ("Smith\nFamily", "jane@example.com", "Smith Family"),
+            ("Tab\tName", "jane@example.com", "Tab Name"),
+            ("Nul\x00", "jane@example.com", "Nul"),
+            ("Line\u2028Sep", "jane@example.com", "Line Sep"),
+            ("Jane Doe\r\n", "jane@example.com", "Jane Doe"),
+            ("\r\n\t\u2029", "jane.doe@example.com", "jane.doe"),
+            ("\r\n", None, "User"),
         ],
     )
-    def test_every_request_rejects_line_breaks_and_control_characters(self, build, name):
-        with pytest.raises(ValidationError):
-            build(name)
+    def test_every_request_refuses_line_breaks_and_control_characters_but_sign_in_flattens_them(
+        self, request_id, name, email, synced
+    ):
+        if request_id == "sign-in-sync":
+            assert NAME_REQUESTS[request_id](name, email) == synced
+        else:
+            with pytest.raises(ValidationError):
+                NAME_REQUESTS[request_id](name)
 
     @pytest.mark.parametrize("build", NAME_REQUESTS.values(), ids=NAME_REQUESTS.keys())
     def test_every_request_accepts_a_plain_name(self, build):
