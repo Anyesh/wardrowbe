@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, setAccessToken } from '@/lib/api';
-import { getTodayDateStringInTimezone } from '@/lib/utils';
+import { getTodayDateStringInTimezone, resolveTimezone } from '@/lib/utils';
 
 export interface UserProfile {
   id: string;
@@ -54,7 +54,7 @@ export function useUserProfile() {
 // action by when it happens, not when the page rendered.
 export function useUserTimezone(): string {
   const { data: profile } = useUserProfile();
-  return profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return resolveTimezone(profile?.timezone);
 }
 
 export function useUserToday(): () => string {

@@ -53,6 +53,18 @@ export function getTodayDateStringInTimezone(timezone: string = 'UTC'): string {
   return `${today.getFullYear()}-${month}-${day}`;
 }
 
+// Mirrors resolve_timezone in backend/app/utils/timezone.py: a missing or unknown zone is UTC, so the
+// browser and the server agree on which day "today" is.
+export function resolveTimezone(name: string | null | undefined): string {
+  if (!name) return 'UTC';
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: name });
+    return name;
+  } catch {
+    return 'UTC';
+  }
+}
+
 /**
  * Parse a date string (YYYY-MM-DD) to a Date object.
  * Note: The date is parsed as local date, not UTC.
