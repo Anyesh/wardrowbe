@@ -395,20 +395,8 @@ async def _check_wash_reminders_inner(ctx: dict):
                     "body": message.body,
                 }
                 # Only a sent reminder holds off the next one for a day, so that a failed one is
-                # tried again on the next run; every attempt, including the failures a fallback
-                # channel then covered, keeps its own channel's error.
-                for attempt in results:
-                    delivered = attempt.status == NotificationStatus.sent
-                    db.add(
-                        Notification(
-                            user_id=user_id,
-                            channel=attempt.channel,
-                            status=attempt.status,
-                            payload=payload,
-                            sent_at=datetime.now(UTC) if delivered else None,
-                            error_message=attempt.error,
-                        )
-                    )
+                # tried again on the next run.
+                dispatcher.record_attempts(user_id, results, payload)
                 await db.commit()
                 if sent:
                     notified += 1

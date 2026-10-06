@@ -255,6 +255,31 @@ class NotificationDispatcher:
                 break
         return results
 
+    # Every attempt is kept with its own channel's error, including the failures a fallback
+    # channel then covered, so the history shows why a higher-priority channel was skipped.
+    def record_attempts(
+        self,
+        user_id: UUID | str,
+        results: list[NotificationResult],
+        payload: dict,
+        outfit_id: UUID | None = None,
+    ) -> list[Notification]:
+        now = datetime.now(UTC)
+        rows = [
+            Notification(
+                user_id=user_id,
+                outfit_id=outfit_id,
+                channel=result.channel,
+                status=result.status,
+                payload=payload,
+                sent_at=now if result.status == NotificationStatus.sent else None,
+                error_message=result.error,
+            )
+            for result in results
+        ]
+        self.db.add_all(rows)
+        return rows
+
     async def send_outfit_notification(
         self, user_id: UUID, outfit_id: UUID
     ) -> list[NotificationResult]:
@@ -284,34 +309,18 @@ class NotificationDispatcher:
                 )
             ]
 
-        now = datetime.now(UTC)
-        last = results[-1]
-        if last.status == NotificationStatus.sent:
-            self.db.add(
-                Notification(
-                    user_id=user_id,
-                    outfit_id=outfit_id,
-                    channel=last.channel,
-                    status=NotificationStatus.sent,
-                    payload={"occasion": outfit.occasion},
-                    sent_at=now,
-                )
-            )
-            outfit.sent_at = now
+        rows = self.record_attempts(
+            user_id, results, {"occasion": outfit.occasion}, outfit_id=outfit_id
+        )
+        if results[-1].status == NotificationStatus.sent:
+            outfit.sent_at = rows[-1].sent_at
             outfit.status = "sent"
         else:
-            self.db.add(
-                Notification(
-                    user_id=user_id,
-                    outfit_id=outfit_id,
-                    channel=results[0].channel,
-                    status=NotificationStatus.retrying,
-                    payload={"occasion": outfit.occasion},
-                    attempts=1,
-                    last_attempt_at=now,
-                    error_message=last.error,
-                )
-            )
+            # Only the first channel's row is retried, so that the retry job sends the outfit at
+            # most once rather than once per failed channel.
+            rows[0].status = NotificationStatus.retrying
+            rows[0].attempts = 1
+            rows[0].last_attempt_at = datetime.now(UTC)
         await self.db.flush()
 
         return results

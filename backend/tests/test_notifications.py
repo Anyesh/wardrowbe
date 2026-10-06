@@ -975,29 +975,47 @@ class TestDispatcherDelivery:
             .scalars()
             .all()
         )
-        assert [(r.channel, r.status) for r in rows] == [("ntfy", NotificationStatus.sent)]
+        assert {(r.channel, r.status, r.error_message, r.sent_at is not None) for r in rows} == {
+            (
+                "email",
+                NotificationStatus.failed,
+                "Value error, An email address cannot have two periods in a row.",
+                False,
+            ),
+            ("mattermost", NotificationStatus.failed, "HTTP 500: down", False),
+            ("ntfy", NotificationStatus.sent, None, True),
+        }
 
     @pytest.mark.asyncio
     async def test_all_failing_records_retry_on_first_channel(
         self, db_session: AsyncSession, test_user, outfit
     ):
         webhook = "https://chat.example.com/hooks/abc"
-        db_session.add(
-            NotificationSettings(
-                user_id=test_user.id,
-                channel="mattermost",
-                priority=1,
-                config={"webhook_url": webhook},
-            )
+        ntfy_url = "https://ntfy.example.com/outfits"
+        db_session.add_all(
+            [
+                NotificationSettings(
+                    user_id=test_user.id,
+                    channel="mattermost",
+                    priority=1,
+                    config={"webhook_url": webhook},
+                ),
+                NotificationSettings(
+                    user_id=test_user.id,
+                    channel="ntfy",
+                    priority=2,
+                    config={"server": "https://ntfy.example.com", "topic": "outfits"},
+                ),
+            ]
         )
         await db_session.commit()
 
-        with patch.object(httpx.AsyncClient, "post", self._post(failing={webhook})):
+        with patch.object(httpx.AsyncClient, "post", self._post(failing={webhook, ntfy_url})):
             await NotificationDispatcher(db_session).send_outfit_notification(
                 test_user.id, outfit.id
             )
 
-        [row] = (
+        rows = (
             (
                 await db_session.execute(
                     select(Notification).where(Notification.outfit_id == outfit.id)
@@ -1006,9 +1024,11 @@ class TestDispatcherDelivery:
             .scalars()
             .all()
         )
-        assert row.channel == "mattermost"
-        assert row.status == NotificationStatus.retrying
-        assert row.error_message == "HTTP 500: down"
+        assert {(r.channel, r.status, r.error_message, r.attempts) for r in rows} == {
+            ("mattermost", NotificationStatus.retrying, "HTTP 500: down", 1),
+            ("ntfy", NotificationStatus.failed, "HTTP 500: down", 0),
+        }
+        assert outfit.sent_at is None
 
     @pytest.mark.parametrize(
         ("occasion", "weather", "title"),
