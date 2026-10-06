@@ -616,9 +616,14 @@ class TestWashReminderChannels:
         calls = _posts_to(post, {webhook, ntfy_url})
         assert [c.args[0] for c in calls] == [webhook, ntfy_url]
         assert not [c for c in _posts_to(post, {EXPO_PUSH_URL}) if c.kwargs["json"]["to"] == token]
-        [reminder] = await self._reminders(db_session, dirty_user)
-        assert reminder.channel == "ntfy"
-        assert reminder.status == NotificationStatus.sent
+        rows = {
+            (r.channel, r.status, r.error_message, r.sent_at is not None)
+            for r in await self._reminders(db_session, dirty_user)
+        }
+        assert rows == {
+            ("mattermost", NotificationStatus.failed, "HTTP 500: boom", False),
+            ("ntfy", NotificationStatus.sent, None, True),
+        }
 
     @pytest.mark.asyncio
     async def test_broken_channel_is_logged_and_next_channel_still_tried(
@@ -634,8 +639,11 @@ class TestWashReminderChannels:
         assert len(_posts_to(post, {webhook})) == 1
         broken = [r for r in caplog.records if "ntfy" in r.getMessage() and r.exc_info]
         assert broken
-        [reminder] = await self._reminders(db_session, dirty_user)
-        assert reminder.channel == "mattermost"
+        rows = {(r.channel, r.status) for r in await self._reminders(db_session, dirty_user)}
+        assert rows == {
+            ("ntfy", NotificationStatus.failed),
+            ("mattermost", NotificationStatus.sent),
+        }
 
     @pytest.mark.asyncio
     async def test_all_channels_failing_records_each_error_and_retries_next_run(
