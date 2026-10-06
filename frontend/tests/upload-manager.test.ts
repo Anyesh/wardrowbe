@@ -283,9 +283,16 @@ describe('failure classification', () => {
     })
   }
 
-  it.each(['too_large', 'unsupported_format', 'duplicate', 'invalid_image'])(
-    'keeps the %s code and marks the record as not retryable',
-    async (code) => {
+  it.each([
+    ['too_large', 'too_large', false],
+    ['unsupported_format', 'unsupported_format', false],
+    ['duplicate', 'duplicate', false],
+    ['invalid_image', 'invalid_image', false],
+    ['processing_failed', 'processing_failed', true],
+    [undefined, null, true],
+  ])(
+    'records the %s code as %s with retryable %s',
+    async (code, errorCode, retryable) => {
       await enqueueFiles([makeFile('bad.jpg')], false)
       vi.mocked(fetch).mockResolvedValueOnce(failedResponse('bad.jpg', 'server text', code))
 
@@ -296,36 +303,12 @@ describe('failure classification', () => {
         expect.objectContaining({
           filename: 'bad.jpg',
           lastError: 'server text',
-          errorCode: code,
-          retryable: false,
+          errorCode,
+          retryable,
         })
       )
     }
   )
-
-  it('keeps a server processing failure retryable', async () => {
-    await enqueueFiles([makeFile('a.jpg')], false)
-    vi.mocked(fetch).mockResolvedValueOnce(
-      failedResponse('a.jpg', 'Failed to process image', 'processing_failed')
-    )
-
-    await manager.startDrain()
-
-    const [record] = (await manager.getState()).terminalRecords
-    expect(record.errorCode).toBe('processing_failed')
-    expect(record.retryable).toBe(true)
-  })
-
-  it('keeps a result without an error code retryable', async () => {
-    await enqueueFiles([makeFile('a.jpg')], false)
-    vi.mocked(fetch).mockResolvedValueOnce(failedResponse('a.jpg', 'something'))
-
-    await manager.startDrain()
-
-    const [record] = (await manager.getState()).terminalRecords
-    expect(record.errorCode).toBeNull()
-    expect(record.retryable).toBe(true)
-  })
 
   it('fails a lone file rejected with 413 as too large without retrying it', async () => {
     await enqueueFiles([makeFile('huge.jpg')], false)
