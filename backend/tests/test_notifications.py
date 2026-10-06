@@ -40,6 +40,8 @@ from app.services.notification_providers import (
 from app.services.notification_service import NotificationDispatcher
 from app.workers.notifications import wash_reminder_message
 
+BAD_EMAIL_ERROR = "Value error, An email address cannot have two periods in a row."
+
 
 class TestNotificationSettings:
     """Tests for notification settings management."""
@@ -718,7 +720,7 @@ class TestNotificationSettingsList:
             (
                 {"address": "a..b@example.com"},
                 {"address": "a..b@example.com"},
-                "Value error, An email address cannot have two periods in a row.",
+                BAD_EMAIL_ERROR,
             ),
             (JSON.NULL, {}, "Input should be a valid dictionary or instance of EmailConfig"),
             (
@@ -1006,7 +1008,7 @@ class TestDispatcherDelivery:
             (
                 "email",
                 NotificationStatus.failed,
-                "Value error, An email address cannot have two periods in a row.",
+                BAD_EMAIL_ERROR,
             ),
             ("mattermost", NotificationStatus.failed, "HTTP 500: down"),
             ("ntfy", NotificationStatus.sent, None),
@@ -1032,7 +1034,7 @@ class TestDispatcherDelivery:
             (
                 "email",
                 NotificationStatus.failed,
-                "Value error, An email address cannot have two periods in a row.",
+                BAD_EMAIL_ERROR,
                 False,
             ),
             ("mattermost", NotificationStatus.failed, "HTTP 500: down", False),
@@ -1040,25 +1042,44 @@ class TestDispatcherDelivery:
         }
 
     @pytest.mark.asyncio
-    async def test_all_failing_records_retry_on_first_channel(
-        self, db_session: AsyncSession, test_user, outfit
+    @pytest.mark.parametrize(
+        ("channels", "expected"),
+        [
+            (
+                ["mattermost", "ntfy"],
+                {
+                    ("mattermost", NotificationStatus.retrying, "HTTP 500: down", 1),
+                    ("ntfy", NotificationStatus.failed, "HTTP 500: down", 0),
+                },
+            ),
+            (
+                ["email", "mattermost", "ntfy"],
+                {
+                    ("email", NotificationStatus.failed, BAD_EMAIL_ERROR, 0),
+                    ("mattermost", NotificationStatus.retrying, "HTTP 500: down", 1),
+                    ("ntfy", NotificationStatus.failed, "HTTP 500: down", 0),
+                },
+            ),
+            (["email"], {("email", NotificationStatus.failed, BAD_EMAIL_ERROR, 0)}),
+        ],
+        ids=["first-channel", "skips-config-error", "only-config-error"],
+    )
+    async def test_all_failing_retries_the_first_channel_that_can_succeed_later(
+        self, db_session: AsyncSession, test_user, outfit, channels, expected
     ):
         webhook = "https://chat.example.com/hooks/abc"
         ntfy_url = "https://ntfy.example.com/outfits"
+        configs = {
+            "email": {"address": "a..b@example.com"},
+            "mattermost": {"webhook_url": webhook},
+            "ntfy": {"server": "https://ntfy.example.com", "topic": "outfits"},
+        }
         db_session.add_all(
             [
                 NotificationSettings(
-                    user_id=test_user.id,
-                    channel="mattermost",
-                    priority=1,
-                    config={"webhook_url": webhook},
-                ),
-                NotificationSettings(
-                    user_id=test_user.id,
-                    channel="ntfy",
-                    priority=2,
-                    config={"server": "https://ntfy.example.com", "topic": "outfits"},
-                ),
+                    user_id=test_user.id, channel=channel, priority=i, config=configs[channel]
+                )
+                for i, channel in enumerate(channels)
             ]
         )
         await db_session.commit()
@@ -1077,10 +1098,7 @@ class TestDispatcherDelivery:
             .scalars()
             .all()
         )
-        assert {(r.channel, r.status, r.error_message, r.attempts) for r in rows} == {
-            ("mattermost", NotificationStatus.retrying, "HTTP 500: down", 1),
-            ("ntfy", NotificationStatus.failed, "HTTP 500: down", 0),
-        }
+        assert {(r.channel, r.status, r.error_message, r.attempts) for r in rows} == expected
         assert outfit.sent_at is None
 
     @pytest.mark.parametrize(

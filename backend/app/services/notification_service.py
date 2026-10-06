@@ -316,11 +316,13 @@ class NotificationDispatcher:
             outfit.sent_at = rows[-1].sent_at
             outfit.status = "sent"
         else:
-            # Only the first channel's row is retried, so that the retry job sends the outfit at
-            # most once rather than once per failed channel.
-            rows[0].status = NotificationStatus.retrying
-            rows[0].attempts = 1
-            rows[0].last_attempt_at = datetime.now(UTC)
+            # Only one row is retried, so that the retry job sends the outfit at most once rather
+            # than once per failed channel.
+            retry = next((r for r, res in zip(rows, results, strict=True) if res.retryable), None)
+            if retry is not None:
+                retry.status = NotificationStatus.retrying
+                retry.attempts = 1
+                retry.last_attempt_at = datetime.now(UTC)
         await self.db.flush()
 
         return results

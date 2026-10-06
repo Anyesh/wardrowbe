@@ -547,6 +547,8 @@ class NotificationResult:
     status: NotificationStatus
     error: str | None = None
     response: dict | None = None
+    # A stored config this version rejects fails the same way on every attempt.
+    retryable: bool = True
 
 
 async def send_via_channel(
@@ -555,7 +557,10 @@ async def send_via_channel(
     if error := channel_config_error(setting.channel, setting.config):
         logger.warning("Skipping %s: its stored config is invalid: %s", setting.channel, error)
         return NotificationResult(
-            channel=setting.channel, status=NotificationStatus.failed, error=error
+            channel=setting.channel,
+            status=NotificationStatus.failed,
+            error=error,
+            retryable=False,
         )
     try:
         result = await build_provider(setting.channel, setting.config).deliver(message)
