@@ -69,6 +69,7 @@ class NotificationService:
                 and_(
                     NotificationSettings.id == setting_id,
                     NotificationSettings.user_id == user_id,
+                    KNOWN_CHANNEL,
                 )
             )
         )
@@ -133,11 +134,7 @@ class NotificationService:
         await self.db.flush()
         return True
 
-    async def test_setting(self, setting_id: UUID, user_id: UUID) -> tuple[bool, str]:
-        setting = await self.get_setting_by_id(setting_id, user_id)
-        if not setting:
-            return False, "Setting not found"
-
+    async def test_setting(self, setting: NotificationSettings) -> tuple[bool, str]:
         try:
             return await build_provider(setting.channel, setting.config).test_connection()
         except Exception as e:

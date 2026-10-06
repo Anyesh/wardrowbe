@@ -624,6 +624,51 @@ class TestNotificationSettingsList:
         assert response.status_code == 200
         assert [row["channel"] for row in response.json()] == ["email"]
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("method", "suffix", "body"),
+        [
+            ("GET", "", None),
+            ("PATCH", "", {"enabled": False}),
+            ("PATCH", "", {"config": {"key": "k2"}}),
+            ("POST", "/test", None),
+            ("DELETE", "", None),
+        ],
+    )
+    async def test_a_stored_channel_this_version_cannot_send_to_is_not_found(
+        self,
+        client: AsyncClient,
+        test_user,
+        auth_headers,
+        db_session: AsyncSession,
+        method,
+        suffix,
+        body,
+    ):
+        setting_id = uuid4()
+        db_session.add(
+            NotificationSettings(
+                id=setting_id,
+                user_id=test_user.id,
+                channel="pushover",
+                priority=1,
+                config={"key": "k"},
+            )
+        )
+        await db_session.commit()
+
+        response = await client.request(
+            method,
+            f"/api/v1/notifications/settings/{setting_id}{suffix}",
+            json=body,
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 404
+        db_session.expire_all()
+        stored = await db_session.get(NotificationSettings, setting_id)
+        assert (stored.enabled, stored.config) == (True, {"key": "k"})
+
 
 class TestNotificationHistory:
     @pytest.mark.asyncio
@@ -768,6 +813,9 @@ class TestDispatcherDelivery:
         webhook = "https://chat.example.com/hooks/abc"
         db_session.add_all(
             [
+                NotificationSettings(
+                    user_id=test_user.id, channel="pushover", priority=0, config={"key": "k"}
+                ),
                 NotificationSettings(
                     user_id=test_user.id,
                     channel="email",
