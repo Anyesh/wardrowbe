@@ -464,15 +464,19 @@ class TestEmailProviderAddresses:
             pytest.param("Wardrowbe <closet@example.com>", False, id="whole-header"),
             pytest.param("a@x.com <b@y.com>", True, id="two-addresses"),
             pytest.param("user@", True, id="no-domain"),
+            pytest.param("noreply@localhost", False, id="lan-domain"),
         ],
     )
-    def test_a_sender_meant_as_an_address_that_is_not_one_is_logged(
+    def test_a_sender_meant_as_an_address_that_is_not_one_is_logged_once(
         self, caplog, from_email, warned
     ):
+        notification_providers._warn_unvalidated_sender.cache_clear()
+
         with caplog.at_level("WARNING", logger="app.services.notification_providers"):
             notification_providers._smtp_sender(from_email)
+            notification_providers._smtp_sender(from_email)
 
-        assert ("SMTP_FROM_EMAIL" in caplog.text) is warned
+        assert caplog.text.count("SMTP_FROM_EMAIL") == (1 if warned else 0)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

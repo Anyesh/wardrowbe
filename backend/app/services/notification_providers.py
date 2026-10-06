@@ -8,6 +8,7 @@ from email.errors import HeaderDefect, HeaderParseError
 from email.headerregistry import Address
 from email.message import EmailMessage as MimeMessage
 from email.utils import parseaddr
+from functools import lru_cache
 from typing import Protocol
 
 import aiosmtplib
@@ -306,16 +307,23 @@ class MattermostProvider:
 # SMTP_FROM_EMAIL written as a whole From header, "Wardrowbe <noreply@example.com>", is cut to its
 # address because the name comes from SMTP_FROM_NAME.
 def _smtp_sender(value: str) -> str:
+    reason = ""
     for candidate in (value, parseaddr(value)[1]):
         try:
             return smtp_address(candidate)
-        except EmailNotValidError:
-            continue
+        except EmailNotValidError as e:
+            reason = reason or str(e)
     if "@" in value:
-        logger.warning(
-            "SMTP_FROM_EMAIL %r is not one email address; the mail server may refuse it", value
-        )
+        _warn_unvalidated_sender(value, reason)
     return value
+
+
+# Logged once per value because the sender is resolved on every send.
+@lru_cache(maxsize=16)
+def _warn_unvalidated_sender(value: str, reason: str) -> None:
+    logger.warning(
+        "SMTP_FROM_EMAIL %r is not a valid email address (%s); sending it as written", value, reason
+    )
 
 
 # Address(addr_spec=...) unquotes a quoted local part, which Address(username=...) would quote a
