@@ -424,8 +424,9 @@ docker compose exec backend python -m pytest tests/ -v --tb=short
 docker compose exec backend python -m pytest tests/test_notification_workers.py -v
 
 # Lint
-pip install ruff
-ruff check --fix backend/app/ && ruff format backend/app/
+pip install pre-commit
+pre-commit run ruff-check --all-files
+pre-commit run ruff-format --all-files
 ```
 
 ### Frontend

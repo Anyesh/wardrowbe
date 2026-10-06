@@ -77,9 +77,29 @@ pip install -r requirements.txt
 pytest
 
 # Run linting
-ruff check .
-ruff format .
+pip install pre-commit
+pre-commit run ruff-check --all-files
+pre-commit run ruff-format --all-files
 ```
+
+CI and local hooks use the Ruff version pinned in `.pre-commit-config.yaml`.
+
+### Local hooks
+
+The checked-in `.pre-commit-config.yaml` runs Ruff, frontend checks, and
+repository-wide whitespace, merge-conflict, and YAML/TOML/JSON checks. Install
+either compatible runner, then run the hooks across tracked files:
+
+```bash
+pre-commit run --all-files
+# or, with prek installed:
+prek run --all-files
+```
+
+Both runners use the same configuration. The frontend hooks require frontend
+dependencies installed with `npm ci`.
+CI uses the hooks' `manual` stage for repository hygiene and runs the Ruff hooks
+in the backend lint job; local commits run both via the default `pre-commit` stage.
 
 ### Frontend Development
 

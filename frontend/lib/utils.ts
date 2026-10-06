@@ -85,6 +85,7 @@ export function parseDateString(dateStr: string): Date {
 export function getDaysSinceDateInTimezone(dateStr: string, timezone: string = 'UTC'): number {
   const today = getTodayInTimezone(timezone);
   const targetDate = parseDateString(dateStr);
+
   // Both dates are local midnights, so a daylight-saving change between them makes the gap
   // 23 or 25 hours; rounding to avoid counting that as a partial day.
   const diffTime = today.getTime() - targetDate.getTime();
