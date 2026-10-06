@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from app.schemas.color import ColorList, ColorName
+from app.schemas.outfit import Occasion
 from app.utils.garment_vocabulary import DEFAULT_WASH_INTERVALS
 from app.utils.signed_urls import sign_image_url
 
@@ -217,7 +218,7 @@ class ItemFilter(BaseModel):
 
 class LogWearRequest(BaseModel):
     worn_at: date | None = None  # If None, use user's timezone to determine today
-    occasion: str | None = None
+    occasion: Occasion | None = None
     notes: str | None = None
 
 

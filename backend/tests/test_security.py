@@ -1,5 +1,6 @@
 import html as html_mod
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -10,7 +11,9 @@ from app.api.auth import _is_dev_mode
 from app.api.outfits import StudioCreateRequest, SuggestionCreateRequest, SuggestRequest
 from app.config import Settings
 from app.models import Family, FamilyInvite, User
+from app.schemas.item import LogWearRequest
 from app.schemas.notification import NtfyConfig, ScheduleBase, ScheduleUpdate
+from app.schemas.preference import PreferenceUpdate
 from app.services.user_service import UserService
 from app.utils.garment_vocabulary import OCCASIONS
 
@@ -23,6 +26,10 @@ OCCASION_REQUESTS = {
         day_of_week=0, notification_time="08:00", occasion=occasion
     ),
     "schedule-update": lambda occasion: ScheduleUpdate(occasion=occasion),
+    "wear-log": lambda occasion: LogWearRequest(occasion=occasion),
+    "default-occasion": lambda occasion: SimpleNamespace(
+        occasion=PreferenceUpdate(default_occasion=occasion).default_occasion
+    ),
 }
 
 

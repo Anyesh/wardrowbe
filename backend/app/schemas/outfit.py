@@ -20,6 +20,17 @@ def _normalize_occasion(value: str) -> str:
 
 Occasion = Annotated[str, Field(max_length=50), AfterValidator(_normalize_occasion)]
 
+DEFAULT_OCCASION = "casual"
+
+
+# Default occasions saved before they were validated can hold any string, and reading them back
+# must not fail, so an unlisted one reads as the default.
+def stored_occasion_or_default(value: str | None) -> str:
+    try:
+        return _normalize_occasion(value) if value else DEFAULT_OCCASION
+    except ValueError:
+        return DEFAULT_OCCASION
+
 
 class OutfitAttributeFields(BaseModel):
     """Optional descriptive outfit attributes shared by the authoring and studio

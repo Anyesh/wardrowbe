@@ -21,7 +21,12 @@ from app.models.outfit import (
 )
 from app.models.user import User
 from app.schemas.item import DEFAULT_WASH_INTERVALS
-from app.schemas.outfit import MAX_AUTHORING_TEXT_LENGTH, Occasion, OutfitAttributeFields
+from app.schemas.outfit import (
+    MAX_AUTHORING_TEXT_LENGTH,
+    Occasion,
+    OutfitAttributeFields,
+    stored_occasion_or_default,
+)
 from app.services.ai_service import AIDisabledError
 from app.services.external_outfit_service import ExternalOutfitService
 from app.services.item_service import ItemService
@@ -57,6 +62,12 @@ class WeatherOverrideRequest(BaseModel):
     condition: str = Field(default="unknown", description="Weather condition")
     precipitation_chance: int = Field(default=0, ge=0, le=100)
     humidity: int = Field(default=50, ge=0, le=100)
+
+
+def _default_occasion(user: User) -> str:
+    return stored_occasion_or_default(
+        user.preferences.default_occasion if user.preferences else None
+    )
 
 
 class SuggestRequest(BaseModel):
@@ -410,12 +421,7 @@ async def suggest_outfit(
 
     service = RecommendationService(db)
 
-    occasion = request.occasion
-    if occasion is None:
-        if current_user.preferences and current_user.preferences.default_occasion:
-            occasion = current_user.preferences.default_occasion
-        else:
-            occasion = "casual"
+    occasion = request.occasion or _default_occasion(current_user)
 
     try:
         outfit = await service.generate_recommendation(
@@ -482,12 +488,7 @@ async def suggest_outfit_options(
 
     service = RecommendationService(db)
 
-    occasion = request.occasion
-    if occasion is None:
-        if current_user.preferences and current_user.preferences.default_occasion:
-            occasion = current_user.preferences.default_occasion
-        else:
-            occasion = "casual"
+    occasion = request.occasion or _default_occasion(current_user)
 
     try:
         outfits = await service.generate_recommendations(

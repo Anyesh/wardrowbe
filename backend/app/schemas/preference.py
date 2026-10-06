@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 
 from app.schemas.color import ColorList
+from app.schemas.outfit import Occasion
 
 
 class AIEndpoint(BaseModel):
@@ -83,7 +84,7 @@ class PreferenceUpdate(BaseModel):
     color_favorites: ColorList | None = None
     color_avoid: ColorList | None = None
     style_profile: StyleProfile | None = None
-    default_occasion: str | None = None
+    default_occasion: Occasion | None = None
     temperature_unit: str | None = Field(default=None, pattern="^(celsius|fahrenheit)$")
     temperature_sensitivity: str | None = Field(default=None, pattern="^(low|normal|high)$")
     cold_threshold: int | None = Field(default=None, ge=-20, le=30)

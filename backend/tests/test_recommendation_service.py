@@ -6,6 +6,7 @@ import pytest
 
 from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus
+from app.models.preference import UserPreference
 from app.models.user import User
 from app.services.item_scorer import ScoredItem
 from app.services.recommendation_service import (
@@ -349,6 +350,34 @@ class TestSuggestEndpointRuntime:
         assert response.status_code == 200
         data = response.json()
         assert data["is_starter_suggestion"] is True
+
+    @pytest.mark.asyncio
+    async def test_suggest_without_occasion_falls_back_from_an_unlisted_default(
+        self, client, test_user, auth_headers, db_session
+    ):
+        db_session.add(UserPreference(user_id=test_user.id, default_occasion="banana"))
+        outfit = Outfit(
+            user_id=test_user.id,
+            occasion="casual",
+            status=OutfitStatus.pending,
+            source=OutfitSource.on_demand,
+        )
+        outfit.feedback = None
+        outfit.family_ratings = []
+        outfit.items = []
+        db_session.add(outfit)
+        await db_session.commit()
+        generate = AsyncMock(return_value=outfit)
+
+        with patch("app.api.outfits.RecommendationService.generate_recommendation", generate):
+            response = await client.post(
+                "/api/v1/outfits/suggest",
+                json={"weather_override": {"temperature": 20, "condition": "clear"}},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        assert generate.await_args.kwargs["occasion"] == "casual"
 
 
 def _make_item(**kwargs) -> ClothingItem:

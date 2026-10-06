@@ -1,5 +1,8 @@
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models import User, UserPreference
 
 
 class TestPreferencesEndpoints:
@@ -57,6 +60,39 @@ class TestPreferencesEndpoints:
         data = response.json()
         assert data["color_favorites"] == ["tan", "navy"]
         assert data["color_avoid"] == ["gray"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("stored", "read"), [("banana", "casual"), (" Wedding ", "wedding"), ("", "casual")]
+    )
+    async def test_stored_default_occasion_reads_as_a_listed_occasion(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        test_user: User,
+        auth_headers,
+        stored,
+        read,
+    ):
+        db_session.add(UserPreference(user_id=test_user.id, default_occasion=stored))
+        await db_session.commit()
+
+        response = await client.get("/api/v1/users/me/preferences", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json()["default_occasion"] == read
+
+    @pytest.mark.asyncio
+    async def test_unlisted_default_occasion_is_rejected(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/users/me/preferences",
+            json={"default_occasion": "banana"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
 
 
 class TestAIEndpointPreferences:
