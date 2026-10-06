@@ -39,7 +39,7 @@ look.
 ### Prerequisites
 
 - Docker and Docker Compose
-- Node.js 18+ (for frontend development)
+- Node.js 20.9+ (for frontend development; CI and Docker use Node.js 24)
 - Python 3.11+ (for backend development)
 - An AI service (Ollama recommended for development)
 
