@@ -9,24 +9,34 @@ from pydantic import AfterValidator
 # or flattened to spaces in text an outside system owns.
 _FORBIDDEN_CATEGORIES = {"Cc", "Zl", "Zp"}
 
-# A name made only of these renders blank, and str.strip keeps them. Format characters (Cf) are
-# matched by category; these are the Default_Ignorable_Code_Points outside Cf, which Python has
-# no property for, plus the Braille blank, which renders as an empty cell.
+# A name made only of these renders blank, and str.strip keeps them. Python has no property for
+# Default_Ignorable_Code_Point, so these are its ranges from DerivedCoreProperties.txt (Unicode
+# 18.0), plus the Braille blank, which is not ignorable but renders as an empty cell. Matching the
+# Cf category instead would refuse visible format characters such as U+06DD END OF AYAH.
 _INVISIBLE_RANGES = (
+    (0x00AD, 0x00AD),
     (0x034F, 0x034F),
+    (0x061C, 0x061C),
     (0x115F, 0x1160),
     (0x17B4, 0x17B5),
     (0x180B, 0x180F),
+    (0x200B, 0x200F),
+    (0x202A, 0x202E),
+    (0x2060, 0x206F),
     (0x2800, 0x2800),
     (0x3164, 0x3164),
     (0xFE00, 0xFE0F),
+    (0xFEFF, 0xFEFF),
     (0xFFA0, 0xFFA0),
-    (0xE0100, 0xE01EF),
+    (0xFFF0, 0xFFF8),
+    (0x1BCA0, 0x1BCA3),
+    (0x1D173, 0x1D17A),
+    (0xE0000, 0xE0FFF),
 )
 
 
 def _is_invisible(char: str) -> bool:
-    if char.isspace() or unicodedata.category(char) == "Cf":
+    if char.isspace():
         return True
     code = ord(char)
     return any(low <= code <= high for low, high in _INVISIBLE_RANGES)
