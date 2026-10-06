@@ -79,6 +79,8 @@ class InviteResponse(BaseModel):
     id: UUID
     email: str
     expires_at: datetime
+    # False when SMTP is unconfigured or the send failed, so the inviter knows to share the code.
+    email_sent: bool
 
 
 class InviteCodeResponse(BaseModel):

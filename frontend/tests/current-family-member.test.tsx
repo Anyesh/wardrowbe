@@ -1,10 +1,11 @@
 import type { ComponentType } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, renderHook, screen } from '@testing-library/react'
+import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import FamilyPage from '@/app/dashboard/family/page'
 import FamilyFeedPage from '@/app/dashboard/family/feed/page'
-import { useCurrentFamilyMember, useFamily } from '@/lib/hooks/use-family'
+import { toast } from 'sonner'
+import { useCurrentFamilyMember, useFamily, useInviteMember } from '@/lib/hooks/use-family'
 import { useFamilyOutfits } from '@/lib/hooks/use-outfits'
 import { useUserProfile } from '@/lib/hooks/use-user'
 import type { Family } from '@/lib/types'
@@ -13,7 +14,9 @@ vi.mock('@/lib/hooks/use-user', () => ({ useUserProfile: vi.fn() }))
 vi.mock('@/lib/hooks/use-family', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/hooks/use-family')>()),
   useFamily: vi.fn(),
+  useInviteMember: vi.fn(),
 }))
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }))
 vi.mock('@/lib/hooks/use-outfits', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/hooks/use-outfits')>()),
   useFamilyOutfits: vi.fn(),
@@ -72,6 +75,10 @@ beforeEach(() => {
     data: undefined,
     isLoading: false,
   } as unknown as ReturnType<typeof useFamilyOutfits>)
+  vi.mocked(useInviteMember).mockReturnValue({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  } as unknown as ReturnType<typeof useInviteMember>)
 })
 
 describe('useCurrentFamilyMember', () => {
@@ -143,5 +150,30 @@ describe('pages that depend on the current member', () => {
 
     for (const text of shown) expect(screen.getByText(text)).toBeInTheDocument()
     for (const text of hidden) expect(screen.queryByText(text)).not.toBeInTheDocument()
+  })
+})
+
+describe('inviting a member', () => {
+  it.each([
+    ['confirms an emailed invite', true, 'success', 'toasts.inviteSent'],
+    ['warns when the email did not go out', false, 'warning', 'toasts.inviteNotEmailed'],
+  ] as const)('%s', async (_case, emailSent, level, message) => {
+    mockProfile(profileOfAdmin)
+    const mutateAsync = vi.mocked(useInviteMember().mutateAsync)
+    mutateAsync.mockResolvedValue({
+      id: 'invite',
+      email: 'guest@example.com',
+      expires_at: '2026-01-08T00:00:00Z',
+      email_sent: emailSent,
+    })
+    renderPage(FamilyPage)
+
+    fireEvent.change(screen.getByPlaceholderText('inviteEmailPlaceholder'), {
+      target: { value: 'guest@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'sendInvite' }))
+
+    await waitFor(() => expect(toast[level]).toHaveBeenCalledWith(message))
+    expect(mutateAsync).toHaveBeenCalledWith({ email: 'guest@example.com', role: 'member' })
   })
 })

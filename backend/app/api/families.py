@@ -324,6 +324,7 @@ async def invite_member(
     invite = await family_service.create_invite(family, current_user, invite_data)
     await db.commit()
 
+    email_sent = False
     if provider.is_configured():
         email = build_family_invite_email(
             to=invite.email,
@@ -332,13 +333,15 @@ async def invite_member(
             invite_token=invite.token,
         )
         result = await provider.send(email)
-        if not result.get("success"):
+        email_sent = bool(result.get("success"))
+        if not email_sent:
             logger.warning("Failed to send family invite email: %s", result.get("error"))
 
     return InviteResponse(
         id=invite.id,
         email=invite.email,
         expires_at=invite.expires_at,
+        email_sent=email_sent,
     )
 
 

@@ -9,12 +9,23 @@ from app.services.notification_providers import EmailProvider
 
 class TestFamilyInviteEmail:
     @pytest.mark.asyncio
-    async def test_invite_skips_email_when_smtp_unconfigured(
-        self, client: AsyncClient, test_user, auth_headers, monkeypatch
+    @pytest.mark.parametrize(
+        ("smtp", "send_result"),
+        [
+            ({}, None),
+            (
+                {"smtp_host": "smtp.example.com", "smtp_user": "mailer"},
+                {"success": False, "error": "SMTPUTF8 is not supported by this server"},
+            ),
+        ],
+        ids=["smtp-unconfigured", "send-failed"],
+    )
+    async def test_invite_reports_an_email_that_did_not_go_out(
+        self, client: AsyncClient, test_user, auth_headers, monkeypatch, smtp, send_result
     ):
-        settings = Settings(_env_file=None)
+        settings = Settings(_env_file=None, **smtp)
         monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
-        send = AsyncMock(return_value={"success": True})
+        send = AsyncMock(return_value=send_result)
 
         await client.post("/api/v1/families", json={"name": "Household"}, headers=auth_headers)
         with patch.object(EmailProvider, "send", send):
@@ -25,7 +36,8 @@ class TestFamilyInviteEmail:
             )
 
         assert response.status_code == 201
-        send.assert_not_awaited()
+        assert response.json()["email_sent"] is False
+        assert send.await_count == (1 if smtp else 0)
 
 
 class TestFamilyInviteEmailValidation:
@@ -55,6 +67,7 @@ class TestFamilyInviteEmailValidation:
 
         assert response.status_code == 201
         assert response.json()["email"] == stored
+        assert response.json()["email_sent"] is True
         send.assert_awaited_once()
         assert send.call_args.args[0].to == stored
 
