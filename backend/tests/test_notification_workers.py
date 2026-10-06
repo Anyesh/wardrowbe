@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
@@ -18,6 +18,7 @@ from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.services.notification_providers import EXPO_PUSH_URL
+from app.services.notification_service import NotificationDispatcher
 from app.utils import redis_lock
 from app.workers.notifications import (
     _check_wash_reminders_inner,
@@ -849,6 +850,66 @@ class TestRetryFailedNotifications:
             attempts_after,
             error,
         )
+
+    @pytest.mark.asyncio
+    async def test_a_database_error_on_one_retry_does_not_stall_the_batch(
+        self, db_session: AsyncSession, schedule_user: User
+    ):
+        db_session.add(
+            NotificationSettings(
+                user_id=schedule_user.id,
+                channel="mattermost",
+                enabled=True,
+                priority=1,
+                config={"webhook_url": self.WEBHOOK},
+            )
+        )
+        notifications = []
+        for _ in range(2):
+            outfit = Outfit(
+                user_id=schedule_user.id,
+                occasion="casual",
+                scheduled_for=datetime.now(UTC).date(),
+                status=OutfitStatus.pending,
+                source=OutfitSource.scheduled,
+            )
+            db_session.add(outfit)
+            await db_session.flush()
+            notifications.append(
+                Notification(
+                    user_id=schedule_user.id,
+                    outfit_id=outfit.id,
+                    channel="mattermost",
+                    status=NotificationStatus.retrying,
+                    payload={"occasion": "casual"},
+                    attempts=1,
+                )
+            )
+        db_session.add_all(notifications)
+        await db_session.commit()
+        broken, healthy = notifications
+        retry = NotificationDispatcher.retry_notification
+
+        async def retry_or_abort_the_transaction(self, notification):
+            if notification.id == broken.id:
+                await self.db.execute(text("SELECT 1 / 0"))
+            return await retry(self, notification)
+
+        with (
+            patch("app.workers.notifications.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+            patch.object(httpx.AsyncClient, "post", _fake_post({self.WEBHOOK: 200})),
+            patch.object(
+                NotificationDispatcher, "retry_notification", retry_or_abort_the_transaction
+            ),
+        ):
+            await retry_failed_notifications({})
+
+        for notification in notifications:
+            await db_session.refresh(notification)
+        assert (healthy.status, healthy.attempts) == (NotificationStatus.sent, 2)
+        assert (broken.status, broken.attempts) == (NotificationStatus.retrying, 2)
+        assert "division by zero" in broken.error_message
 
 
 # ── Worker registry ──

@@ -93,11 +93,13 @@ async def retry_failed_notifications(ctx: dict):
         retried = 0
         dispatcher = NotificationDispatcher(db)
 
-        for notification in notifications:
+        # Ids are read up front because a rolled-back retry expires every loaded notification,
+        # and reading an expired attribute outside an awaited refresh raises MissingGreenlet.
+        for notification_id, notification in [(n.id, n) for n in notifications]:
             # Non-blocking lock: skip if another worker already retrying this one
             try:
                 async with distributed_lock(
-                    f"notif-retry:{notification.id}", timeout=30, blocking_timeout=0
+                    f"notif-retry:{notification_id}", timeout=30, blocking_timeout=0
                 ):
                     # Re-read inside lock to check if status changed
                     await db.refresh(notification)
@@ -125,15 +127,20 @@ async def retry_failed_notifications(ctx: dict):
             except TimeoutError:
                 logger.debug(
                     "Skipping notification %s retry — another worker holds the lock",
-                    notification.id,
+                    notification_id,
                 )
                 continue
             except Exception as e:
-                logger.exception(f"Failed to retry notification {notification.id}: {e}")
+                logger.exception(f"Failed to retry notification {notification_id}: {e}")
+                # A database error aborts the transaction, so it is rolled back and the attempt
+                # recorded afresh; otherwise every later notification in the batch fails with it.
+                await db.rollback()
+                await db.refresh(notification)
+                notification.attempts += 1
+                notification.error_message = str(e)
                 if notification.attempts >= notification.max_attempts:
                     notification.status = NotificationStatus.failed
-                    notification.error_message = str(e)
-                    await db.commit()
+                await db.commit()
 
         logger.info(f"Retried {retried} notifications")
         return {"retried": retried}
