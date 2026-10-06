@@ -65,7 +65,8 @@ class TestNamesAreSingleLine:
             ("Line\u2028Sep", "jane@example.com", "Line Sep"),
             ("Jane Doe\r\n", "jane@example.com", "Jane Doe"),
             ("\r\n\t\u2029", "jane.doe@example.com", "jane.doe"),
-            ("\r\n", None, "User"),
+            ("x" * 150, "jane@example.com", "x" * 100),
+            ("A" * 99 + "\tB", "jane@example.com", "A" * 99),
         ],
     )
     def test_every_request_refuses_line_breaks_and_control_characters_but_sign_in_flattens_them(
@@ -305,17 +306,47 @@ def oidc_claims():
 class TestAuthEmailValidation:
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("claim_email", "request_email", "stored"),
+        ("claim_email", "request_email", "display_name", "stored", "stored_name"),
         [
-            pytest.param("User@Example.com", "user@example.com", "user@example.com", id="case"),
             pytest.param(
-                "user@xn--mnchen-3ya.de", "user@münchen.de", "user@münchen.de", id="punycode-claim"
+                "User@Example.com",
+                "user@example.com",
+                "Claim",
+                "user@example.com",
+                "Claim",
+                id="case",
             ),
-            pytest.param("user@xn--mnchen-3ya.de", None, "user@münchen.de", id="claim-only"),
+            pytest.param(
+                "user@xn--mnchen-3ya.de",
+                "user@münchen.de",
+                "Claim",
+                "user@münchen.de",
+                "Claim",
+                id="punycode-claim",
+            ),
+            pytest.param(
+                "user@xn--mnchen-3ya.de", None, "Claim", "user@münchen.de", "Claim", id="claim-only"
+            ),
+            pytest.param(
+                "jane.doe@example.com",
+                None,
+                "\r\n",
+                "jane.doe@example.com",
+                "jane.doe",
+                id="claim-only-blank-name",
+            ),
         ],
     )
     async def test_oidc_claim_matching_the_request_is_stored_normalised(
-        self, client, db_session, oidc_claims, claim_email, request_email, stored
+        self,
+        client,
+        db_session,
+        oidc_claims,
+        claim_email,
+        request_email,
+        display_name,
+        stored,
+        stored_name,
     ):
         external_id = f"claim-{uuid4()}"
         oidc_claims.return_value = {
@@ -323,7 +354,7 @@ class TestAuthEmailValidation:
             "email": claim_email,
             "email_verified": True,
         }
-        body = {"external_id": external_id, "display_name": "Claim", "id_token": "t"}
+        body = {"external_id": external_id, "display_name": display_name, "id_token": "t"}
         if request_email is not None:
             body["email"] = request_email
 
@@ -332,7 +363,7 @@ class TestAuthEmailValidation:
         assert response.status_code == 200
         assert response.json()["email"] == stored
         user = await UserService(db_session).get_by_external_id(external_id)
-        assert (user.email, user.email_verified) == (stored, True)
+        assert (user.email, user.email_verified, user.display_name) == (stored, True, stored_name)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

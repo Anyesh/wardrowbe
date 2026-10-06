@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.api.auth import create_access_token
+from app.services.user_service import UserService
 from app.utils.auth import decode_token
 
 
@@ -58,14 +59,23 @@ class TestAuthSync:
     """Tests for auth sync endpoint."""
 
     @pytest.mark.asyncio
-    async def test_sync_new_user(self, client: AsyncClient):
-        """Test syncing a new user creates the user."""
+    @pytest.mark.parametrize(
+        ("avatar_url", "stored_avatar"),
+        [
+            pytest.param(
+                "https://idp.example.com/a.png", "https://idp.example.com/a.png", id="kept"
+            ),
+            pytest.param("https://idp.example.com/" + "a" * 600, None, id="over-column-dropped"),
+        ],
+    )
+    async def test_sync_new_user(self, client: AsyncClient, db_session, avatar_url, stored_avatar):
         response = await client.post(
             "/api/v1/auth/sync",
             json={
                 "external_id": "new-user-123",
                 "email": "newuser@example.com",
                 "display_name": "New User",
+                "avatar_url": avatar_url,
             },
         )
         assert response.status_code == 200
@@ -74,6 +84,8 @@ class TestAuthSync:
         assert data["display_name"] == "New User"
         assert "access_token" in data
         assert data["is_new_user"] is True
+        user = await UserService(db_session).get_by_external_id("new-user-123")
+        assert user.avatar_url == stored_avatar
 
     @pytest.mark.asyncio
     async def test_sync_existing_user(self, client: AsyncClient, test_user):
@@ -92,14 +104,18 @@ class TestAuthSync:
         assert data["is_new_user"] is False
 
     @pytest.mark.asyncio
-    async def test_sync_missing_required_fields(self, client: AsyncClient):
-        response = await client.post(
-            "/api/v1/auth/sync",
-            json={
-                "external_id": "test-123",
-                # display_name still required; email is now optional
-            },
-        )
+    @pytest.mark.parametrize(
+        "body",
+        [
+            pytest.param({"external_id": "test-123"}, id="no-display-name"),
+            pytest.param(
+                {"external_id": "s" * 256, "email": "a@example.com", "display_name": "A"},
+                id="subject-over-column",
+            ),
+        ],
+    )
+    async def test_sync_refuses_a_malformed_body(self, client: AsyncClient, body):
+        response = await client.post("/api/v1/auth/sync", json=body)
         assert response.status_code == 422
 
     @pytest.mark.asyncio

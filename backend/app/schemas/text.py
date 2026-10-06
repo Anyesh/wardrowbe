@@ -2,7 +2,7 @@ import unicodedata
 from itertools import groupby
 from typing import Annotated
 
-from pydantic import AfterValidator, BeforeValidator
+from pydantic import AfterValidator
 
 # Names are interpolated into email Subject headers and chat messages, where a line break could
 # inject a header or forge a message line, so control characters and line separators are refused,
@@ -28,4 +28,3 @@ def flatten_control_characters(value: object) -> object:
 
 
 SingleLineText = Annotated[str, AfterValidator(reject_control_characters)]
-FlattenedLineText = Annotated[str, BeforeValidator(flatten_control_characters)]

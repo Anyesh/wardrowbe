@@ -173,7 +173,10 @@ async def sync_user(
                 detail="No email provided by OIDC provider. Configure your provider to include the email claim.",
             )
 
-        sync_data = sync_data.model_copy(update={"email": effective_email})
+        # Validated again rather than copied so the blank-name fallback sees the token's email.
+        sync_data = UserSyncRequest.model_validate(
+            {**sync_data.model_dump(), "email": effective_email}
+        )
         verified_claim = oidc_claims.get("email_verified")
         email_verified = (
             bool(claims_email)
