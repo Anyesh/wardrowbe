@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.config import get_settings
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
-from app.models.outfit import Outfit, OutfitItem
+from app.models.outfit import Outfit, OutfitItem, OutfitStatus
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.schemas.notification import NotificationChannel
@@ -46,6 +46,11 @@ def _outfit_day(scheduled_for: date | None, today: date) -> tuple[str, str]:
         return "Tomorrow", "tomorrow"
     weekday = scheduled_for.strftime("%A")
     return weekday, weekday
+
+
+def _mark_outfit_sent(outfit: Outfit, sent_at: datetime) -> None:
+    outfit.sent_at = sent_at
+    outfit.status = OutfitStatus.sent
 
 
 class NotificationService:
@@ -313,8 +318,7 @@ class NotificationDispatcher:
             user_id, results, {"occasion": outfit.occasion}, outfit_id=outfit_id
         )
         if results[-1].status == NotificationStatus.sent:
-            outfit.sent_at = rows[-1].sent_at
-            outfit.status = "sent"
+            _mark_outfit_sent(outfit, rows[-1].sent_at)
         else:
             # Only one row is retried, so that the retry job sends the outfit at most once rather
             # than once per failed channel.
@@ -369,7 +373,10 @@ class NotificationDispatcher:
                 error=f"Channel {notification.channel} not configured or disabled",
             )
 
-        return await send_via_channel(channel_config, self._build_outfit_message(outfit, user))
+        result = await send_via_channel(channel_config, self._build_outfit_message(outfit, user))
+        if result.status == NotificationStatus.sent:
+            _mark_outfit_sent(outfit, datetime.now(UTC))
+        return result
 
     # The day is derived at send time from the outfit's date rather than stored, so a retry that
     # lands after the user's midnight still names the outfit's day correctly.

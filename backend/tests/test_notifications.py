@@ -1127,12 +1127,23 @@ class TestDispatcherDelivery:
         assert message.title == title
 
     @pytest.mark.parametrize(
-        ("scheduled_for", "day_label"),
-        [(date(2026, 10, 7), "Tomorrow"), (TODAY, "Today"), (date(2026, 10, 5), "Monday")],
+        ("scheduled_for", "day_label", "greeting", "day_phrase"),
+        [
+            (date(2026, 10, 7), "Tomorrow", "Good evening", "tomorrow"),
+            (TODAY, "Today", "Good morning", "today"),
+            (date(2026, 10, 5), "Monday", "Good morning", "Monday"),
+        ],
     )
     @pytest.mark.asyncio
-    async def test_retry_labels_the_day_from_the_outfit_date(
-        self, db_session: AsyncSession, test_user, outfit, scheduled_for, day_label
+    async def test_retry_labels_the_day_from_the_outfit_date_and_marks_it_sent(
+        self,
+        db_session: AsyncSession,
+        test_user,
+        outfit,
+        scheduled_for,
+        day_label,
+        greeting,
+        day_phrase,
     ):
         webhook = "https://chat.example.com/hooks/abc"
         outfit.scheduled_for = scheduled_for
@@ -1160,5 +1171,9 @@ class TestDispatcherDelivery:
             result = await NotificationDispatcher(db_session).retry_notification(notification)
 
         assert result.status == NotificationStatus.sent
-        [attachment] = post.call_args.kwargs["json"]["attachments"]
+        payload = post.call_args.kwargs["json"]
+        assert payload["text"].startswith(greeting)
+        assert payload["text"].endswith(f"suggestion for {day_phrase}:")
+        [attachment] = payload["attachments"]
         assert attachment["title"].startswith(f"{day_label}'s Outfit: Casual")
+        assert (outfit.status, outfit.sent_at is not None) == ("sent", True)
