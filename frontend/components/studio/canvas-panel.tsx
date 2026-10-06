@@ -41,7 +41,7 @@ export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
               onClick={() => onRemove(item.id)}
               className={cn(
                 'absolute -top-2 -right-2 z-10 rounded-full bg-destructive text-destructive-foreground',
-                'p-1 shadow-md hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-destructive/50'
+                'p-1 shadow-md hover:bg-destructive/90 focus:outline-hidden focus:ring-2 focus:ring-destructive/50'
               )}
               aria-label={t('removeItem', { name: item.name || item.type })}
             >

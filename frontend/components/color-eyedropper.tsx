@@ -309,7 +309,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
               {/* Hover preview */}
               {!isLoading && !error && cursorPos && hoverColor && (
                 <div
-                  className="absolute pointer-events-none z-10 flex items-center gap-2 bg-background/90 backdrop-blur-sm rounded-lg px-2 py-1 shadow-lg border"
+                  className="absolute pointer-events-none z-10 flex items-center gap-2 bg-background/90 backdrop-blur-xs rounded-lg px-2 py-1 shadow-lg border"
                   style={{
                     left: Math.min(cursorPos.x + 20, 400),
                     top: Math.max(cursorPos.y - 30, 10),

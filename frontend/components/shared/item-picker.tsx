@@ -151,7 +151,7 @@ export function ItemPicker({
                     </div>
                   </div>
                 )}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
+                <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-1.5">
                   <span className="text-[10px] sm:text-xs text-white font-medium truncate block">
                     {item.name ?? item.type}
                   </span>

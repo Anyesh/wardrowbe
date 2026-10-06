@@ -28,6 +28,11 @@ describe('cn utility', () => {
     expect(result).toBe('p-8')
   })
 
+  it('should merge Tailwind 4 shadow and gradient utilities', () => {
+    expect(cn('shadow-xs', 'shadow-md')).toBe('shadow-md')
+    expect(cn('bg-linear-to-r', 'bg-linear-to-l')).toBe('bg-linear-to-l')
+  })
+
   it('should handle arrays of classes', () => {
     const result = cn(['class-1', 'class-2'], 'class-3')
     expect(result).toBe('class-1 class-2 class-3')

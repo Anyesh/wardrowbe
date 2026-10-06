@@ -21,7 +21,7 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
           type="button"
           onMouseEnter={() => setHovered(star)}
           onClick={() => onChange(star)}
-          className="focus:outline-none"
+          className="focus:outline-hidden"
         >
           <Star
             className={`h-6 w-6 transition-colors ${

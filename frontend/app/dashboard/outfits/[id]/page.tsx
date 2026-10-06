@@ -124,7 +124,7 @@ export default function OutfitDetailPage() {
           (outfit.highlights && outfit.highlights.length > 0)) && (
           <div className="mt-2 space-y-1.5 text-xs flex-1">
             {outfit.name && outfit.reasoning && (
-              <p className="font-medium text-foreground break-words">{outfit.reasoning}</p>
+              <p className="font-medium text-foreground wrap-break-word">{outfit.reasoning}</p>
             )}
             {outfit.highlights && outfit.highlights.length > 0 && (
               <ul className="space-y-0.5">

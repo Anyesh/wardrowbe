@@ -81,7 +81,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-lg p-0 overflow-hidden max-h-[90vh] flex flex-col [&>button]:hidden">
         {/* Header - sticky */}
-        <div className="flex items-center justify-between p-4 pb-2 border-b flex-shrink-0">
+        <div className="flex items-center justify-between p-4 pb-2 border-b shrink-0">
           <div>
             <h2 className="text-lg font-semibold capitalize">{t('title', { occasion: outfit.occasion })}</h2>
             <div className="flex items-center gap-2 mt-0.5">
@@ -207,7 +207,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
               </div>
             </div>
             {currentItem.name && (
-              <p className="font-medium break-words">{currentItem.name}</p>
+              <p className="font-medium wrap-break-word">{currentItem.name}</p>
             )}
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5 mt-1" asChild>
               <Link href={`/dashboard/wardrobe?item=${currentItem.id}`}>
@@ -226,7 +226,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                     key={item.id}
                     type="button"
                     onClick={() => setCurrentIndex(index)}
-                    className={`relative w-14 h-14 rounded overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                    className={`relative w-14 h-14 rounded overflow-hidden shrink-0 border-2 transition-colors ${
                       index === currentIndex
                         ? 'border-primary'
                         : 'border-transparent hover:border-muted-foreground/50'
@@ -255,7 +255,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
           {(outfit.reasoning || outfit.highlights || outfit.style_notes) && (
             <div className="border-t p-4 space-y-3">
               {outfit.reasoning && (
-                <p className="font-medium text-foreground break-words">{outfit.reasoning}</p>
+                <p className="font-medium text-foreground wrap-break-word">{outfit.reasoning}</p>
               )}
               {outfit.highlights && outfit.highlights.length > 0 && (
                 <ul className="space-y-1.5">
@@ -269,7 +269,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
               )}
               {outfit.style_notes && (
                 <div className="p-3 bg-muted rounded-lg border">
-                  <p className="text-sm text-muted-foreground break-words">
+                  <p className="text-sm text-muted-foreground wrap-break-word">
                     <span className="font-medium text-foreground">{ts('tip')}</span> {outfit.style_notes}
                   </p>
                 </div>
@@ -339,7 +339,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
         </div>
 
         {/* Close button at bottom - always visible */}
-        <div className="border-t p-3 flex-shrink-0">
+        <div className="border-t p-3 shrink-0">
           <Button variant="outline" className="w-full" onClick={onClose}>
             {tc('close')}
           </Button>

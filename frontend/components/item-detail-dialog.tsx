@@ -299,7 +299,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden [&>button]:hidden">
           {/* Header - sticky */}
-          <DialogHeader className="flex flex-row items-center gap-2 space-y-0 p-4 border-b flex-shrink-0">
+          <DialogHeader className="flex flex-row items-center gap-2 space-y-0 p-4 border-b shrink-0">
             {/* Below sm the title keeps its 45% cap and the actions stay in a
                 scrollable row, so the close control is always reachable on a
                 phone. From sm up the title becomes the flexible item and the
@@ -315,7 +315,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 the dialog clips its own overflow: without this the buttons
                 push the close control past the right edge on a phone and it
                 cannot be reached at all. */}
-            <div className="flex-1 min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none">
+            <div className="flex-1 min-w-0 overflow-x-auto overscroll-x-contain scrollbar-none [&::-webkit-scrollbar]:hidden sm:flex-none">
               <div className="flex w-max ml-auto items-center gap-1">
                 <Button
                   variant="ghost"
@@ -467,7 +467,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="rounded-full flex-shrink-0"
+              className="rounded-full shrink-0"
               title={tc('close')}
             >
               <X className="h-5 w-5" />
@@ -476,7 +476,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto overscroll-contain p-6 pt-4">
-            <div className="grid gap-6 sm:grid-cols-2 [&>*]:min-w-0">
+            <div className="grid gap-6 sm:grid-cols-2 *:min-w-0">
             {/* Image Gallery */}
             <div className="space-y-2">
               <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
@@ -535,13 +535,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
               {(item.additional_images?.length > 0 || isEditing) && (
                 <div className="flex gap-1.5 overflow-x-auto">
                   <button
-                    className={`relative w-12 h-12 rounded border-2 overflow-hidden flex-shrink-0 ${activeImageIndex === 0 ? 'border-primary' : 'border-transparent'}`}
+                    className={`relative w-12 h-12 rounded border-2 overflow-hidden shrink-0 ${activeImageIndex === 0 ? 'border-primary' : 'border-transparent'}`}
                     onClick={() => setActiveImageIndex(0)}
                   >
                     <Image src={imageUrl} alt={t('view.primaryImage')} fill className="object-cover" sizes="48px" />
                   </button>
                   {(item.additional_images || []).map((img, idx) => (
-                    <div key={img.id} className="relative flex-shrink-0">
+                    <div key={img.id} className="relative shrink-0">
                       <button
                         className={`relative w-12 h-12 rounded border-2 overflow-hidden ${activeImageIndex === idx + 1 ? 'border-primary' : 'border-transparent'}`}
                         onClick={() => setActiveImageIndex(idx + 1)}
@@ -576,7 +576,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   ))}
                   {isEditing && (item.additional_images?.length || 0) < 4 && (
                     <label
-                      className="w-12 h-12 rounded border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 flex-shrink-0"
+                      className="w-12 h-12 rounded border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 shrink-0"
                     >
                       {addImage.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

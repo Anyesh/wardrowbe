@@ -122,7 +122,7 @@ function ItemCard({ item }: { item: { id: string; name: string | null; type: str
       href={`/dashboard/wardrobe?item=${item.id}`}
       className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
     >
-      <div className="w-12 h-12 rounded bg-muted overflow-hidden relative flex-shrink-0">
+      <div className="w-12 h-12 rounded bg-muted overflow-hidden relative shrink-0">
         {item.thumbnail_url ? (
           <Image
             src={item.thumbnail_url}
@@ -154,7 +154,7 @@ function AcceptanceTrendChart({ data }: { data: { period: string; rate: number; 
     <div className="space-y-2">
       {data.map((week, i) => (
         <div key={i} className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground w-16 flex-shrink-0">{week.period}</span>
+          <span className="text-xs text-muted-foreground w-16 shrink-0">{week.period}</span>
           <div className="flex-1 flex items-center gap-2">
             <div
               className="h-4 bg-primary/20 rounded relative overflow-hidden"
@@ -250,7 +250,7 @@ export default function AnalyticsPage() {
             <ul className="space-y-2">
               {insights.map((insight, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 shrink-0" />
                   <span>{insight}</span>
                 </li>
               ))}

@@ -122,7 +122,7 @@ function FeedOutfitCard({
           {outfit.items.map((item) => (
             <div
               key={item.id}
-              className="w-20 h-20 rounded-lg bg-muted overflow-hidden relative border shadow-sm group-hover:shadow-md transition-shadow"
+              className="w-20 h-20 rounded-lg bg-muted overflow-hidden relative border shadow-xs group-hover:shadow-md transition-shadow"
             >
               {item.thumbnail_url ? (
                 <Image
@@ -377,9 +377,9 @@ function FeedContent() {
             key={member.id}
             type="button"
             onClick={() => setSelectedMember(member.id)}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all flex-shrink-0 min-w-[80px] ${
+            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all shrink-0 min-w-[80px] ${
               activeMemberId === member.id
-                ? 'border-primary bg-primary/5 shadow-sm'
+                ? 'border-primary bg-primary/5 shadow-xs'
                 : 'border-transparent hover:border-muted-foreground/20 hover:bg-muted/50'
             }`}
           >

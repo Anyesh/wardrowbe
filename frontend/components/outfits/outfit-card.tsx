@@ -123,7 +123,7 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
       onClick={handleCardClick}
     >
       <CardContent className="p-0">
-        <div className="relative aspect-[5/4] bg-muted">
+        <div className="relative aspect-5/4 bg-muted">
           {selectMode && (
             <div
               className="absolute top-2 left-2 z-10"
@@ -132,7 +132,7 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
               <Checkbox
                 checked={!!selected}
                 onCheckedChange={(checked) => onSelect?.(outfit.id, checked === true)}
-                className="bg-background/80 backdrop-blur-sm"
+                className="bg-background/80 backdrop-blur-xs"
               />
             </div>
           )}

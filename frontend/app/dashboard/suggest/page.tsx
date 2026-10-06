@@ -289,16 +289,16 @@ function OutfitCard({
 }) {
   return (
     <Card className="overflow-hidden flex flex-col h-full">
-      <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 border-b">
+      <div className="bg-linear-to-r from-primary/10 to-primary/5 p-4 border-b">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+            <Sparkles className="h-5 w-5 text-primary shrink-0" />
             <h3 className="font-semibold text-base truncate">
               {outfit.reasoning || (badgeLabel ?? t('yourOutfit'))}
             </h3>
           </div>
           {badgeLabel && (
-            <Badge variant="secondary" className="text-xs px-2 py-0.5 flex-shrink-0">
+            <Badge variant="secondary" className="text-xs px-2 py-0.5 shrink-0">
               {badgeLabel}
             </Badge>
           )}
@@ -330,7 +330,7 @@ function OutfitCard({
               >
                 <div className="aspect-square relative">
                   {isBase && (
-                    <Badge className="absolute top-2 left-2 z-10 bg-primary/95 text-primary-foreground text-[10px] px-2 py-0.5 shadow-sm">
+                    <Badge className="absolute top-2 left-2 z-10 bg-primary/95 text-primary-foreground text-[10px] px-2 py-0.5 shadow-xs">
                       {t('baseItem.basePiece')}
                     </Badge>
                   )}
@@ -474,9 +474,9 @@ function OutfitResultsView({
                 type="button"
                 onClick={() => onSelectOption(idx)}
                 className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 flex-shrink-0',
+                  'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 shrink-0',
                   !isCompareAll && activeOptionIndex === idx
-                    ? 'bg-background text-foreground shadow-sm'
+                    ? 'bg-background text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                 )}
               >
@@ -781,9 +781,9 @@ function SuggestContent() {
                     </div>
                   </Button>
                 ) : (
-                  <div className="flex items-center justify-between p-3 rounded-xl border bg-card/80 shadow-sm gap-3">
+                  <div className="flex items-center justify-between p-3 rounded-xl border bg-card/80 shadow-xs gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="relative w-14 h-14 rounded-lg overflow-hidden border bg-muted flex-shrink-0">
+                      <div className="relative w-14 h-14 rounded-lg overflow-hidden border bg-muted shrink-0">
                         {selectedItem.thumbnail_url || selectedItem.image_url ? (
                           <Image
                             src={(selectedItem.thumbnail_url || selectedItem.image_url)!}
@@ -817,7 +817,7 @@ function SuggestContent() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button
                         type="button"
                         variant="ghost"
@@ -916,7 +916,7 @@ function SuggestContent() {
                 type="button"
                 variant={filterType === cat.value ? 'default' : 'outline'}
                 size="sm"
-                className="text-xs h-7 px-2.5 rounded-full flex-shrink-0"
+                className="text-xs h-7 px-2.5 rounded-full shrink-0"
                 onClick={() => setFilterType(cat.value)}
               >
                 {cat.label}

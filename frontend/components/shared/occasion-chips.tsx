@@ -71,7 +71,7 @@ export function OccasionChips({ selected, onSelect }: OccasionChipsProps) {
               'inline-flex items-center gap-2 px-4 py-2.5 rounded-full border-2 transition-all',
               'border-muted bg-background',
               config.color,
-              'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50'
+              'focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary/50'
             )}
           >
             {config.icon}
