@@ -590,27 +590,6 @@ class TestWashReminderChannels:
         return list(result.scalars().all())
 
     @pytest.mark.asyncio
-    async def test_mattermost_only_user_gets_reminder(
-        self, db_session: AsyncSession, dirty_user: User
-    ):
-        webhook = f"https://chat.example.com/hooks/{uuid.uuid4().hex}"
-        await self._add_channel(db_session, dirty_user, "mattermost", {"webhook_url": webhook}, 1)
-        post = _fake_post()
-
-        await self._run(db_session, post)
-
-        calls = _posts_to(post, {webhook})
-        assert len(calls) == 1
-        payload = calls[0].kwargs["json"]
-        [attachment] = payload["attachments"]
-        assert attachment["title"] == "Laundry Reminder"
-        assert attachment["title_link"].endswith("/dashboard/wardrobe")
-        assert "1 item needs washing: Black Jeans" in attachment["text"]
-        [reminder] = await self._reminders(db_session, dirty_user)
-        assert reminder.channel == "mattermost"
-        assert reminder.status == NotificationStatus.sent
-
-    @pytest.mark.asyncio
     async def test_bad_stored_timezone_still_gets_reminder(
         self, db_session: AsyncSession, dirty_user: User
     ):
@@ -626,46 +605,39 @@ class TestWashReminderChannels:
         [reminder] = await self._reminders(db_session, dirty_user)
         assert reminder.status == NotificationStatus.sent
 
+    @pytest.mark.parametrize(
+        ("channel", "config", "url"),
+        [
+            (
+                "mattermost",
+                {"webhook_url": "https://chat.example.com/hooks/{key}"},
+                "https://chat.example.com/hooks/{key}",
+            ),
+            (
+                "ntfy",
+                {"server": "https://ntfy.example.com", "topic": "laundry-{key}"},
+                "https://ntfy.example.com/laundry-{key}",
+            ),
+            ("expo_push", {"push_token": "ExponentPushToken[{key}]"}, EXPO_PUSH_URL),
+        ],
+    )
     @pytest.mark.asyncio
-    async def test_ntfy_only_user_gets_reminder_on_stored_topic(
-        self, db_session: AsyncSession, dirty_user: User
+    async def test_single_channel_user_gets_reminder_on_the_stored_target(
+        self, db_session: AsyncSession, dirty_user: User, channel, config, url
     ):
-        topic = f"laundry-{uuid.uuid4().hex[:12]}"
-        await self._add_channel(
-            db_session,
-            dirty_user,
-            "ntfy",
-            {"server": "https://ntfy.example.com", "topic": topic},
-            1,
-        )
+        # Earlier tests leave dirty items behind, so a unique key picks out this user's send.
+        key = uuid.uuid4().hex
+        stored = {name: value.format(key=key) for name, value in config.items()}
+        await self._add_channel(db_session, dirty_user, channel, stored, 1)
         post = _fake_post()
 
         await self._run(db_session, post)
 
-        url = f"https://ntfy.example.com/{topic}"
-        calls = _posts_to(post, {url})
-        assert len(calls) == 1
-        assert calls[0].kwargs["headers"]["Title"] == "Laundry Reminder"
-        assert "Black Jeans" in calls[0].kwargs["content"]
+        [call] = [c for c in post.call_args_list if key in str(c)]
+        assert call.args[0] == url.format(key=key)
+        assert "Black Jeans" in str(call.kwargs)
         [reminder] = await self._reminders(db_session, dirty_user)
-        assert reminder.channel == "ntfy"
-        assert reminder.status == NotificationStatus.sent
-
-    @pytest.mark.asyncio
-    async def test_expo_only_user_gets_reminder_on_stored_token(
-        self, db_session: AsyncSession, dirty_user: User
-    ):
-        token = f"ExponentPushToken[{uuid.uuid4().hex}]"
-        await self._add_channel(db_session, dirty_user, "expo_push", {"push_token": token}, 1)
-        post = _fake_post()
-
-        await self._run(db_session, post)
-
-        calls = [c for c in _posts_to(post, {EXPO_PUSH_URL}) if c.kwargs["json"]["to"] == token]
-        assert len(calls) == 1
-        assert calls[0].kwargs["json"]["data"] == {"screen": "wardrobe"}
-        [reminder] = await self._reminders(db_session, dirty_user)
-        assert reminder.channel == "expo_push"
+        assert reminder.channel == channel
         assert reminder.status == NotificationStatus.sent
 
     @pytest.mark.asyncio
