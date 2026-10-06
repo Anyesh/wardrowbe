@@ -3,6 +3,44 @@ name = "wardrobe-ai-backend"
 version = "1.2.0"
 description = "Wardrobe AI - Backend API"
 requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.121.1",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.6",
+    "sqlalchemy[asyncio]>=2.0.25",
+    "asyncpg>=0.29.0",
+    "alembic>=1.13.1",
+    "pydantic>=2.5.3",
+    "pydantic-settings>=2.1.0",
+    "email-validator>=2.1.0",
+    "PyJWT[crypto]>=2.8.0",
+    "httpx>=0.26.0",
+    "pillow>=10.2.0",
+    "pillow-heif>=0.14.0",
+    "redis>=5.0.1",
+    "arq>=0.25.0",
+    "watchfiles>=0.21.0",
+    "apscheduler>=3.10.4,<4",
+    "aiosmtplib>=3.0.1",
+    "tenacity>=8.2.3",
+    "python-dateutil>=2.8.2",
+    "imagehash>=4.3.1",
+]
+
+[project.optional-dependencies]
+# The deployed image includes local background removal; API-only installs can omit it.
+background-removal = ["rembg[cpu]==2.0.81"]
+
+[dependency-groups]
+dev = [
+    {include-group = "lint"},
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "pyyaml>=6.0",
+    "aiosqlite>=0.19.0",
+]
+lint = ["ruff>=0.4.4"]
 
 [tool.ruff]
 target-version = "py311"
@@ -36,8 +74,13 @@ known-first-party = ["app"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+python_classes = ["Test*"]
+addopts = "-v --tb=short"
 filterwarnings = [
     "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
 ]
 
 [tool.coverage.run]

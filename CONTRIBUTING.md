@@ -41,6 +41,7 @@ look.
 - Docker and Docker Compose
 - Node.js 18+ (for frontend development)
 - Python 3.11+ (for backend development)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (for backend dependency management)
 - An AI service (Ollama recommended for development)
 
 ### Local Development
@@ -66,19 +67,19 @@ docker compose exec backend alembic upgrade head
 ```bash
 cd backend
 
-# Create virtual environment (optional, for IDE support)
-python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-
-# Install dependencies
-pip install -r requirements.txt
+# Install the locked runtime and development dependencies into .venv
+uv sync --locked
 
 # Run tests
-pytest
+uv run --locked pytest
 
 # Run linting
-ruff check .
-ruff format .
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+
+# Add or update dependencies and commit pyproject.toml together with uv.lock
+uv add package-name
+uv lock
 ```
 
 ### Frontend Development
@@ -259,16 +260,16 @@ frontend/
 cd backend
 
 # Run all tests
-pytest
+uv run --locked pytest
 
 # Run with coverage
-pytest --cov=app
+uv run --locked pytest --cov=app
 
 # Run specific test file
-pytest tests/test_items.py
+uv run --locked pytest tests/test_items.py
 
 # Run specific test
-pytest tests/test_items.py::TestItemList::test_list_items_empty
+uv run --locked pytest tests/test_items.py::TestItemList::test_list_items_empty
 ```
 
 ### Frontend Tests

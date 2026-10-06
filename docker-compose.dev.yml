@@ -33,6 +33,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: development
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
@@ -60,6 +61,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: development
     command: watchfiles --filter python "arq app.workers.worker.WorkerSettings" /app
     volumes:
       - ./backend:/app
@@ -72,6 +74,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: development
     command: watchfiles --filter python "arq app.workers.image_worker.ImageWorkerSettings" /app
     volumes:
       - ./backend:/app

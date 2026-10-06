@@ -12,7 +12,7 @@ if [ "$(id -u)" = "0" ]; then
         usermod -o -u "$PUID" appuser
     fi
 
-    for dir in /data/wardrobe /data/uploads; do
+    for dir in /data/wardrobe /data/uploads /opt/rembg; do
         # chown only on ownership mismatch so large wardrobes don't pay a
         # recursive chown on every container start
         if [ -d "$dir" ] && [ "$(stat -c %u "$dir")" != "$PUID" ]; then

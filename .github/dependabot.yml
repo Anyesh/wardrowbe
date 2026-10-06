@@ -1,7 +1,7 @@
 version: 2
 updates:
-  # Python dependencies
-  - package-ecosystem: "pip"
+  # Backend dependencies and uv.lock
+  - package-ecosystem: "uv"
     directory: "/backend"
     schedule:
       interval: "weekly"

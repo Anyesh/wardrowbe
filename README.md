@@ -371,9 +371,14 @@ Remove image backgrounds from wardrobe items. Two backends supported:
 
 **rembg (local, default):**
 ```bash
-pip install rembg[cpu]  # add to your image, or install manually
+cd backend
+uv sync --locked --extra background-removal  # local Python development
 ```
-No config needed — works out of the box. Change model with `BG_REMOVAL_MODEL` (default: `u2net`, options: `isnet-general-use`, `silueta`, `u2netp`).
+When running the backend locally, keep `--extra background-removal` on `uv run`
+commands too. `uv run` syncs the environment and can remove extras omitted from the
+command, for example: `uv run --locked --extra background-removal uvicorn app.main:app --reload`.
+
+The Docker image already includes this extra. No config is needed. Change model with `BG_REMOVAL_MODEL` (default: `u2net`, options: `isnet-general-use`, `silueta`, `u2netp`).
 
 **HTTP provider (e.g. [withoutbg](https://github.com/nicholasgasior/withoutbg)):**
 ```env
@@ -417,15 +422,16 @@ Uses [Open-Meteo](https://open-meteo.com/) - free, no API key needed.
 ### Backend
 
 ```bash
-# Run tests (requires running containers)
-docker compose exec backend python -m pytest tests/ -v --tb=short
+# Run tests in the development Compose stack (includes test dependencies)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec backend python -m pytest tests/ -v --tb=short
 
 # Run a specific test file
-docker compose exec backend python -m pytest tests/test_notification_workers.py -v
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec backend python -m pytest tests/test_notification_workers.py -v
 
-# Lint
-pip install ruff
-ruff check --fix backend/app/ && ruff format backend/app/
+# Lint locally with the locked backend toolchain
+cd backend
+uv run --locked ruff check app/
+uv run --locked ruff format --check app/
 ```
 
 ### Frontend
