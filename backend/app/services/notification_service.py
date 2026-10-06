@@ -2,7 +2,7 @@ import logging
 from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
-from sqlalchemy import and_, case, func, select, update
+from sqlalchemy import and_, case, func, literal, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import set_committed_value
@@ -337,7 +337,10 @@ class NotificationDispatcher:
             .where(Outfit.id == outfit.id)
             .values(
                 status=case(
-                    (Outfit.status == OutfitStatus.pending, OutfitStatus.sent),
+                    (
+                        Outfit.status == OutfitStatus.pending,
+                        literal(OutfitStatus.sent, Outfit.status.type),
+                    ),
                     else_=Outfit.status,
                 ),
                 sent_at=func.coalesce(Outfit.sent_at, sent_at),
