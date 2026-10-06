@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 _VOCABULARY_PATH = Path(__file__).parent.parent / "data" / "garment_vocabulary.json"
@@ -20,11 +21,16 @@ COLORS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["colors"])
 COLOR_ALIASES: dict[str, str] = dict(_DATA["color_aliases"])
 
 
+# "Light Blue" from a free-text client or an old row means the stored "light-blue", so a name is
+# also tried with its inner whitespace collapsed to one hyphen.
 def normalize_color(name: str) -> str | None:
     key = name.strip().lower()
-    if key in COLORS:
-        return key
-    return COLOR_ALIASES.get(key)
+    for candidate in (key, re.sub(r"\s+", "-", key)):
+        if candidate in COLORS:
+            return candidate
+        if candidate in COLOR_ALIASES:
+            return COLOR_ALIASES[candidate]
+    return None
 
 
 # Unlike normalize_color, unknown names pass through (lowercased) so that API
