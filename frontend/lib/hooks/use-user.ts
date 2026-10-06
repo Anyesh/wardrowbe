@@ -62,11 +62,12 @@ export function useUserToday(): () => string {
   return useCallback(() => getTodayDateStringInTimezone(timezone), [timezone]);
 }
 
-export function useUpdateUserProfile() {
+export function useUpdateUserProfile({ toastsOwnErrors = false } = {}) {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
 
   return useMutation({
+    meta: { toastsOwnErrors },
     mutationFn: async (data: UserProfileUpdate) => {
       if (session?.accessToken) {
         setAccessToken(session.accessToken as string);

@@ -32,6 +32,9 @@ export interface ReverseGeocodeResponse {
   display_name?: string;
 }
 
+// Matches the users.location_name column width.
+export const LOCATION_NAME_MAX_LENGTH = 100;
+
 export const DEFAULT_NETWORK_LOCATION_URL = 'https://ipapi.co/json/';
 
 export function getNetworkLocationUrl(): string {
