@@ -23,6 +23,7 @@ from app.schemas.notification import (
     NotificationChannel,
     NtfyConfig,
 )
+from app.schemas.text import flatten_control_characters
 
 logger = logging.getLogger(__name__)
 
@@ -298,15 +299,6 @@ class MattermostProvider:
             return False, str(e)
 
 
-_HEADER_BREAKS = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]+")
-
-
-# A family or display name stored before line breaks were refused still reaches the subject, and
-# the email package refuses to serialise a header with a bare line break in it.
-def _one_line(value: str) -> str:
-    return _HEADER_BREAKS.sub(" ", value)
-
-
 # SMTP_FROM_EMAIL falls back to SMTP_USER, which on many relays is a bare login such as "mailer"
 # that the relay rewrites itself, so a sender that is not an address is sent as written.
 def _smtp_sender(value: str) -> str:
@@ -348,8 +340,10 @@ class EmailProvider:
             sender = _smtp_sender(self.from_email)
             recipient = smtp_address(message.to)
             msg = MIMEMultipart("alternative")
-            msg["Subject"] = _one_line(message.subject)
-            msg["From"] = f"{_one_line(self.from_name)} <{sender}>"
+            # A family or display name stored before line breaks were refused still reaches the
+            # subject, and the email package refuses to serialise a header with a line break.
+            msg["Subject"] = flatten_control_characters(message.subject)
+            msg["From"] = f"{flatten_control_characters(self.from_name)} <{sender}>"
             msg["To"] = recipient
 
             if message.text_body:
