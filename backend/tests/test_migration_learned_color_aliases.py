@@ -67,6 +67,7 @@ async def test_remaps_learned_profile_colours_idempotently(
                             "teal",
                             "Light Blue",
                             "\u00a0",
+                            "\ufeff",
                             "\tdark  blue",
                         ],
                         "success_rate": 0.75,

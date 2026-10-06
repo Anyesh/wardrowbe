@@ -97,6 +97,7 @@ async def test_remaps_and_deduplicates_colours_idempotently(
                         None,
                         "light-blue",
                         "\u00a0\t",
+                        "\u2060",
                         "Salmon",
                         "dark\u00a0 blue",
                         "\tLight  Grey\n",
@@ -107,7 +108,10 @@ async def test_remaps_and_deduplicates_colours_idempotently(
                     user_id=user_id, type="hat", image_path="z.jpg", primary_color=None, colors=[]
                 ),
                 ClothingItem(
-                    user_id=user_id, type="scarf", image_path="v.jpg", primary_color="\u00a0\t "
+                    user_id=user_id,
+                    type="scarf",
+                    image_path="v.jpg",
+                    primary_color="\u00a0\u200b\t ",
                 ),
                 UserPreference(
                     user_id=user_id,

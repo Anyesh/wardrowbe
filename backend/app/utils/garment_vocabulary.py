@@ -21,6 +21,10 @@ COLORS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["colors"])
 COLOR_ALIASES: dict[str, str] = dict(_DATA["color_aliases"])
 
 
+# Zero-width space, word joiner and BOM are dropped so that a name made only of them reads as blank
+# rather than as an invisible colour; ZWJ and ZWNJ stay because they shape scripts and emoji.
+_ZERO_WIDTH = re.compile("[\u200b\u2060\ufeff]")
+
 # Unicode White_Space spelled out rather than \s, because migrations 952169051179 and 6c1e8f2a9d47
 # and frontend/lib/colors.ts use this same class and must agree on tabs, NBSP and ideographic spaces.
 _WHITESPACE_RUN = re.compile(
@@ -29,7 +33,7 @@ _WHITESPACE_RUN = re.compile(
 
 
 def _color_key(name: str) -> str:
-    return _WHITESPACE_RUN.sub(" ", name).strip(" ").lower()
+    return _WHITESPACE_RUN.sub(" ", _ZERO_WIDTH.sub("", name)).strip(" ").lower()
 
 
 # "Light Blue" from a free-text client or an old row means the stored "light-blue", so a name is

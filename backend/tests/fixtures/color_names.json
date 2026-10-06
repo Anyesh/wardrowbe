@@ -123,5 +123,35 @@
     "name": "\u00a0\t ",
     "normalized": null,
     "canonical": ""
+  },
+  {
+    "name": "\u200b",
+    "normalized": null,
+    "canonical": ""
+  },
+  {
+    "name": "\ufeff\u2060",
+    "normalized": null,
+    "canonical": ""
+  },
+  {
+    "name": " \u200b ",
+    "normalized": null,
+    "canonical": ""
+  },
+  {
+    "name": "Navy\u200b",
+    "normalized": "navy",
+    "canonical": "navy"
+  },
+  {
+    "name": "\ufeffGrey",
+    "normalized": "gray",
+    "canonical": "gray"
+  },
+  {
+    "name": "light\u2060 blue",
+    "normalized": "light-blue",
+    "canonical": "light-blue"
   }
 ]

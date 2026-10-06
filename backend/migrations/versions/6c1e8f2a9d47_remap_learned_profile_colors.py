@@ -78,6 +78,10 @@ CANONICAL = {**{color: color for color in COLORS}, **COLOR_ALIASES}
 
 BATCH_SIZE = 1000
 
+# Zero-width space, word joiner and BOM are dropped so that a name made only of them reads as blank
+# rather than as an invisible colour; ZWJ and ZWNJ stay because they shape scripts and emoji.
+ZERO_WIDTH = re.compile("[\u200b\u2060\ufeff]")
+
 WHITESPACE_RUN = re.compile(
     r"[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+"
 )
@@ -86,7 +90,7 @@ WHITESPACE_RUN = re.compile(
 # Applied in Python rather than SQL for the reason 952169051179 gives: Postgres lower() and
 # str.lower() disagree on characters such as İ and Ⓐ.
 def canonical_color(name: str) -> str:
-    key = WHITESPACE_RUN.sub(" ", name).strip(" ").lower()
+    key = WHITESPACE_RUN.sub(" ", ZERO_WIDTH.sub("", name)).strip(" ").lower()
     for candidate in (key, key.replace(" ", "-")):
         if candidate in CANONICAL:
             return CANONICAL[candidate]
