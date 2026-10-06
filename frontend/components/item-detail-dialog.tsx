@@ -63,8 +63,10 @@ import { toast } from 'sonner';
 import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
 import {
+  findClothingColor,
   useClothingTypes,
   useClothingColors,
+  useColorLabel,
   useFormalityLabel,
   useMaterialLabel,
   useSubtypeLabel,
@@ -115,6 +117,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const router = useRouter();
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
+  const colorLabel = useColorLabel();
   const subtypeLabel = useSubtypeLabel();
   const materialLabel = useMaterialLabel();
   const formalityLabel = useFormalityLabel();
@@ -283,7 +286,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
   // Use signed URL from backend for better quality in detail view
   const imageUrl = item.image_url || item.image_path;
-  const colorInfo = clothingColors.find((c) => c.value === item.primary_color);
+  const colorInfo = findClothingColor(clothingColors, item.primary_color);
+  const displayColor = item.primary_color ? colorInfo?.name ?? colorLabel(item.primary_color) : null;
+  const editColorInfo = findClothingColor(clothingColors, editForm.primary_color);
+  // Select needs an option with the exact stored value to preserve it when another field changes.
+  const hasStoredColorOption = !!editForm.primary_color &&
+    editColorInfo?.value !== editForm.primary_color;
   const typeInfo = clothingTypes.find((type) => type.value === item.type);
   const unrecognizedType = item.type === 'unknown' ? item.ai_unrecognized_type : null;
   const subtypeSuggestions = CLOTHING_SUBTYPES[editForm.type] ?? [];
@@ -662,17 +670,30 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>{t('primaryColor')}</Label>
+                    <Label htmlFor="item-primary-color">{t('primaryColor')}</Label>
                     <div className="flex gap-2">
                       <Select
                         value={editForm.primary_color}
                         onValueChange={(v) => setEditForm({ ...editForm, primary_color: v })}
                       >
-                        <SelectTrigger className="flex-1">
+                        <SelectTrigger id="item-primary-color" className="flex-1">
                           <SelectValue placeholder={t('placeholders.selectColor')} />
                         </SelectTrigger>
                         <SelectContent>
-                          {clothingColors.map((c) => (
+                          {hasStoredColorOption && (
+                            <SelectItem value={editForm.primary_color}>
+                              <div className="flex items-center gap-2">
+                                {editColorInfo && (
+                                  <div
+                                    className="w-3 h-3 rounded-full border"
+                                    style={{ backgroundColor: editColorInfo.hex }}
+                                  />
+                                )}
+                                {editColorInfo?.name ?? colorLabel(editForm.primary_color)}
+                              </div>
+                            </SelectItem>
+                          )}
+                          {clothingColors.filter((c) => !hasStoredColorOption || c.value !== editColorInfo?.value).map((c) => (
                             <SelectItem key={c.value} value={c.value}>
                               <div className="flex items-center gap-2">
                                 <div
@@ -757,14 +778,16 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         <span>{item.brand}</span>
                       </div>
                     )}
-                    {colorInfo && (
+                    {displayColor && (
                       <div className="flex items-center gap-2 text-sm">
                         <Palette className="h-4 w-4 text-muted-foreground" />
-                        <div
-                          className="w-4 h-4 rounded-full border"
-                          style={{ backgroundColor: colorInfo.hex }}
-                        />
-                        <span>{colorInfo.name}</span>
+                        {colorInfo && (
+                          <div
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: colorInfo.hex }}
+                          />
+                        )}
+                        <span>{displayColor}</span>
                       </div>
                     )}
                     {item.wear_count > 0 && (

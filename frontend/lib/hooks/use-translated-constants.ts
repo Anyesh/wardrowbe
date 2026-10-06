@@ -29,6 +29,13 @@ export function useClothingColors() {
   })), [t]);
 }
 
+export function findClothingColor<T extends { value: string }>(
+  colors: readonly T[],
+  value: string | null | undefined,
+): T | undefined {
+  return colors.find((color) => color.value === value?.trim().toLowerCase());
+}
+
 export function useOccasions() {
   const t = useTranslations('constants.occasions');
 
@@ -72,6 +79,10 @@ function useCatalogLabel(t: CatalogTranslator) {
 
 export function useSubtypeLabel() {
   return useCatalogLabel(useTranslations('constants.subtypes'));
+}
+
+export function useColorLabel() {
+  return useCatalogLabel(useTranslations('constants.colors'));
 }
 
 export function useMaterialLabel() {

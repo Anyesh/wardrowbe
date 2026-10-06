@@ -29,9 +29,9 @@ import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
 import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
 import { useUserTimezone } from '@/lib/hooks/use-user';
-import { colorSwatch, normalizeColor } from '@/lib/colors';
+import { colorSwatch } from '@/lib/colors';
 import { Item } from '@/lib/types';
-import { useClothingTypes, useClothingColors, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
+import { findClothingColor, useClothingTypes, useClothingColors, useColorLabel, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 import { toast } from 'sonner';
 import { formatWornAgo, getWornAgoColorClass } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -80,9 +80,10 @@ function ItemCard({
   const t = useTranslations('wardrobe');
   const tc = useTranslations('common');
   const clothingColors = useClothingColors();
+  const colorLabel = useColorLabel();
   const subtypeLabel = useSubtypeLabel();
-  const primaryColor = item.primary_color ? normalizeColor(item.primary_color) : null;
-  const colorName = clothingColors.find((c) => c.value === primaryColor)?.name ?? item.primary_color;
+  const colorInfo = findClothingColor(clothingColors, item.primary_color);
+  const displayColor = item.primary_color ? colorInfo?.name ?? colorLabel(item.primary_color) : null;
   const isProcessing = item.status === 'processing';
   const isError = item.status === 'error' && !errorDismissed;
   const isBackgroundRemovalKind = item.processing_kind === 'background_removal';
@@ -253,7 +254,7 @@ function ItemCard({
               {item.tags?.logprobs_confidence != null && ` · ${t('ai.confident', { percent: Math.round(item.tags.logprobs_confidence * 100) })}`}
             </p>
           </div>
-          {item.primary_color && (
+          {colorInfo ? (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -263,11 +264,15 @@ function ItemCard({
                   />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{colorName}</p>
+                  <p>{displayColor}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          )}
+          ) : displayColor ? (
+            <span className="text-xs text-muted-foreground text-right break-words max-w-24" title={displayColor}>
+              {displayColor}
+            </span>
+          ) : null}
         </div>
         {item.last_worn_at ? (
           <p className={`text-xs mt-1 ${getWornAgoColorClass(item.last_worn_at, userTimezone)}`}>
