@@ -34,6 +34,14 @@ class OutfitStatus(enum.StrEnum):
     expired = "expired"
 
 
+class TimeOfDay(enum.StrEnum):
+    morning = "morning"
+    afternoon = "afternoon"
+    evening = "evening"
+    night = "night"
+    full_day = "full day"
+
+
 class OutfitSource(enum.StrEnum):
     scheduled = "scheduled"
     on_demand = "on_demand"

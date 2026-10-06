@@ -10,6 +10,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.family import FamilyRole
 from app.utils.locale import DEFAULT_LOCALE
 
 if TYPE_CHECKING:
@@ -38,7 +39,7 @@ class User(Base):
     email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
-    role: Mapped[str] = mapped_column(String(20), default="member")
+    role: Mapped[str] = mapped_column(String(20), default=FamilyRole.member)
     timezone: Mapped[str] = mapped_column(String(50), default="UTC")
     locale: Mapped[str] = mapped_column(
         String(10), default=DEFAULT_LOCALE, server_default=DEFAULT_LOCALE, nullable=False

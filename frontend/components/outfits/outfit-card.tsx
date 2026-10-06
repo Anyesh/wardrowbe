@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { formatDistanceToNow, parseISO } from 'date-fns';
 import {
   BookmarkCheck,
   Bot,
@@ -15,10 +14,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeDate } from '@/lib/utils';
 import type { Outfit } from '@/lib/hooks/use-outfits';
+import { useUserToday } from '@/lib/hooks/use-user';
 import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface OutfitCardProps {
   outfit: Outfit;
@@ -87,12 +87,10 @@ function getCardTitle(outfit: Outfit, t: any, occasionLabel: (value: string) => 
   }
   return t('outfitFallback', { occasion: occasionLabel(outfit.occasion) });
 }
-function getMetaLabel(outfit: Outfit, t: any): string {
+function getMetaLabel(outfit: Outfit, t: any, locale: string, today: string): string {
   if (!outfit.scheduled_for) return t('lookbookTemplate');
   try {
-    return formatDistanceToNow(parseISO(outfit.scheduled_for), {
-      addSuffix: true,
-    });
+    return formatRelativeDate(outfit.scheduled_for, locale, today);
   } catch {
     return outfit.scheduled_for;
   }
@@ -100,6 +98,8 @@ function getMetaLabel(outfit: Outfit, t: any): string {
 
 export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: OutfitCardProps) {
   const t = useTranslations('outfits.cards');
+  const locale = useLocale();
+  const getUserToday = useUserToday();
   const occasionLabel = useOccasionLabel();
   const badge = getSourceBadge(outfit, t);
   const visibleItems = outfit.items.slice(0, 4);
@@ -188,7 +188,7 @@ export function OutfitCard({ outfit, onClick, selectMode, selected, onSelect }: 
             <Badge variant="outline" className="capitalize">
               {occasionLabel(outfit.occasion)}
             </Badge>
-            <span>{getMetaLabel(outfit, t)}</span>
+            <span>{getMetaLabel(outfit, t, locale, getUserToday())}</span>
           </div>
         </div>
       </CardContent>

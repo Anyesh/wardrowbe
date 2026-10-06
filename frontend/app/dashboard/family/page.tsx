@@ -56,7 +56,8 @@ import {
   useUpdateFamily,
 } from '@/lib/hooks/use-family';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDate } from '@/lib/utils';
 
 function NoFamilyView() {
   const t = useTranslations('family');
@@ -200,6 +201,7 @@ function FamilyView() {
   const t = useTranslations('family');
   const tc = useTranslations('common');
   const te = useTranslations('errors');
+  const locale = useLocale();
   const { data: family, isLoading } = useFamily();
   const {
     member: currentMember,
@@ -541,7 +543,7 @@ function FamilyView() {
                       <span className="font-medium">{invite.email}</span>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {t('pendingInvites.expires', { date: new Date(invite.expires_at).toLocaleDateString() })}
+                        {t('pendingInvites.expires', { date: formatDate(invite.expires_at, locale) })}
                       </div>
                     </div>
                   </div>

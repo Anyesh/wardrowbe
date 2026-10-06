@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { ArrowRight, BookmarkCheck } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { useOutfit } from '@/lib/hooks/use-outfits';
+import { formatDate } from '@/lib/utils';
 import type { Outfit } from '@/lib/hooks/use-outfits';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface LineageCardProps {
   outfit: Outfit;
@@ -15,6 +15,7 @@ interface LineageCardProps {
 
 export function LineageCard({ outfit }: LineageCardProps) {
   const t = useTranslations('outfits.lineage');
+  const locale = useLocale();
   const replacesId = outfit.replaces_outfit_id;
   const clonedFromId = outfit.cloned_from_outfit_id;
 
@@ -28,7 +29,10 @@ export function LineageCard({ outfit }: LineageCardProps) {
 
   const label = isReplacement
     ? referenced.scheduled_for
-      ? t('replacesWithDate', { occasion: referenced.occasion, date: format(parseISO(referenced.scheduled_for), 'MMM d') })
+      ? t('replacesWithDate', {
+          occasion: referenced.occasion,
+          date: formatDate(referenced.scheduled_for, locale, { month: 'short', day: 'numeric' }),
+        })
       : t('replaces', { occasion: referenced.occasion })
     : t('fromLookbook', { name: referenced.name || referenced.occasion });
 

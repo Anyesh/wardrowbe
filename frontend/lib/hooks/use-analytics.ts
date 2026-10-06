@@ -1,14 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
-
-// Helper to set token if available (for NextAuth mode)
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
+import { queryKeys } from '@/lib/hooks/query-keys';
+import { SLOW_STALE_TIME } from '@/lib/hooks/query-timing';
 
 export interface ColorDistribution {
   color: string;
@@ -68,11 +63,11 @@ export function useAnalytics(days = 30) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['analytics', days],
+    queryKey: queryKeys.analytics.summary(days),
     queryFn: () => api.get<AnalyticsData>('/analytics', {
       params: { days: String(days) },
     }),
     enabled: status !== 'loading',
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: SLOW_STALE_TIME,
   });
 }

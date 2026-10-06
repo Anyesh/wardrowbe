@@ -72,7 +72,8 @@ import {
 import { ColorEyedropper } from '@/components/color-eyedropper';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
 import { useFeatures } from '@/lib/hooks/use-features';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDate } from '@/lib/utils';
 
 interface ItemDetailDialogProps {
   item: Item | null;
@@ -112,6 +113,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const t = useTranslations('wardrobe.itemDetail');
   const tc = useTranslations('common');
   const tw = useTranslations('wardrobe');
+  const locale = useLocale();
   const router = useRouter();
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
@@ -774,7 +776,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                           {t('view.wornCount', { count: item.wear_count })}
                           {item.last_worn_at && (
                             <span className="text-muted-foreground">
-                              {' '}{t('view.lastWornDate', { date: new Date(item.last_worn_at).toLocaleDateString() })}
+                              {' '}{t('view.lastWornDate', { date: formatDate(item.last_worn_at, locale) })}
                             </span>
                           )}
                         </span>
@@ -817,7 +819,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       />
                       {item.last_washed_at && (
                         <p className="text-xs text-muted-foreground">
-                          {t('view.lastWashed', { date: new Date(item.last_washed_at).toLocaleDateString() })}
+                          {t('view.lastWashed', { date: formatDate(item.last_washed_at, locale) })}
                         </p>
                       )}
                     </div>
@@ -832,7 +834,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         <CollapsibleContent className="mt-1.5 space-y-1">
                           {washHistory.map((wash) => (
                             <div key={wash.id} className="text-xs text-muted-foreground flex items-center gap-2">
-                              <span>{new Date(wash.washed_at).toLocaleDateString()}</span>
+                              <span>{formatDate(wash.washed_at, locale)}</span>
                               {wash.method && <Badge variant="outline" className="text-[10px] h-4">{wash.method}</Badge>}
                               {wash.notes && <span className="truncate">{wash.notes}</span>}
                             </div>
@@ -909,7 +911,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                             {wearHistory.map((entry) => (
                               <div key={entry.id} className="text-xs flex items-start gap-2">
                                 <span className="text-muted-foreground whitespace-nowrap">
-                                  {new Date(entry.worn_at).toLocaleDateString()}
+                                  {formatDate(entry.worn_at, locale)}
                                 </span>
                                 {entry.occasion && (
                                   <Badge variant="outline" className="text-[10px] h-4">{entry.occasion}</Badge>
@@ -1030,7 +1032,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
                   {/* Metadata */}
                   <div className="text-xs text-muted-foreground pt-2 border-t">
-                    {t('view.addedDate', { date: new Date(item.created_at).toLocaleDateString() })}
+                    {t('view.addedDate', { date: formatDate(item.created_at, locale) })}
                   </div>
                 </div>
               )}

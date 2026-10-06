@@ -15,7 +15,8 @@ import { useRotateImage } from '@/lib/hooks/use-items';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatShortDate } from '@/lib/utils';
 import { useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 
 export type OutfitPreview = Pick<
@@ -43,6 +44,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
   const t = useTranslations('suggest.outfitPreview');
   const ts = useTranslations('suggest');
   const tc = useTranslations('common');
+  const locale = useLocale();
   const subtypeLabel = useSubtypeLabel();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageKey, setImageKey] = useState(0); // Force image reload after rotation
@@ -88,7 +90,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
               {outfit.scheduled_for && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                   <CalendarDays className="h-3 w-3" />
-                  {new Date(outfit.scheduled_for + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                  {formatShortDate(outfit.scheduled_for, locale)}
                 </span>
               )}
               <span className="text-xs text-muted-foreground">

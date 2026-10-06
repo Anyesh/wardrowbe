@@ -8,10 +8,6 @@ import {
   Shirt,
   ChevronRight,
   Settings,
-  Calendar,
-  Zap,
-  Edit3,
-  Bot,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,13 +15,16 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentFamilyMember, useFamily } from '@/lib/hooks/use-family';
-import { useFamilyOutfits, type Outfit, type OutfitSource } from '@/lib/hooks/use-outfits';
+import { useFamilyOutfits, type Outfit } from '@/lib/hooks/use-outfits';
 import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { SourceBadge } from '@/components/shared/source-badge';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDate } from '@/lib/utils';
+import { RATING_STARS } from '@/lib/rating';
 
 function getInitials(name: string) {
   return name
@@ -34,46 +33,6 @@ function getInitials(name: string) {
     .join('')
     .toUpperCase()
     .slice(0, 2);
-}
-
-function SourceBadge({ source }: { source: OutfitSource }) {
-  const t = useTranslations('family');
-  const config: Record<OutfitSource, { icon: typeof Calendar; label: string; className: string }> = {
-    scheduled: {
-      icon: Calendar,
-      label: t('feed.sourceBadges.scheduled'),
-      className: 'bg-primary/10 text-primary border-primary/20',
-    },
-    on_demand: {
-      icon: Zap,
-      label: t('feed.sourceBadges.onDemand'),
-      className: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-    },
-    manual: {
-      icon: Edit3,
-      label: t('feed.sourceBadges.manual'),
-      className: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-    },
-    pairing: {
-      icon: Zap,
-      label: t('feed.sourceBadges.pairing'),
-      className: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
-    },
-    external: {
-      icon: Bot,
-      label: t('feed.sourceBadges.external'),
-      className: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
-    },
-  };
-
-  const { icon: Icon, label, className } = config[source];
-
-  return (
-    <Badge variant="outline" className={className}>
-      <Icon className="h-3 w-3 mr-1" />
-      {label}
-    </Badge>
-  );
 }
 
 function FeedOutfitCard({
@@ -90,6 +49,7 @@ function FeedOutfitCard({
   const t = useTranslations('family');
   const tc = useTranslations('common');
   const occasionLabel = useOccasionLabel();
+  const locale = useLocale();
   const [showRatingForm, setShowRatingForm] = useState(false);
   const myRating = outfit.family_ratings?.find((r) => r.user_id === currentMemberId);
 
@@ -105,11 +65,13 @@ function FeedOutfitCard({
             </Badge>
           </div>
           <span className="text-xs text-muted-foreground">
-            {outfit.scheduled_for ? new Date(outfit.scheduled_for).toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            }) : t('feed.lookbook')}
+            {outfit.scheduled_for
+              ? formatDate(outfit.scheduled_for, locale, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
+              : t('feed.lookbook')}
           </span>
         </div>
 
@@ -151,7 +113,7 @@ function FeedOutfitCard({
           <div className="flex items-center gap-2 text-sm">
             <Users className="h-4 w-4 text-muted-foreground" />
             <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map((star) => (
+              {RATING_STARS.map((star) => (
                 <Star
                   key={star}
                   className={`h-4 w-4 ${
@@ -202,7 +164,7 @@ function FeedOutfitCard({
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">{t('ratings.yourRating')}</span>
               <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map((star) => (
+                {RATING_STARS.map((star) => (
                   <Star
                     key={star}
                     className={`h-4 w-4 ${

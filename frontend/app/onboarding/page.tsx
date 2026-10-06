@@ -33,11 +33,13 @@ import { useCreateFamily, useJoinFamily } from '@/lib/hooks/use-family';
 import { useUpdatePreferences } from '@/lib/hooks/use-preferences';
 import { useCreateItem } from '@/lib/hooks/use-items';
 import { useAuth } from '@/lib/hooks/use-auth';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
 import { LOCATION_NAME_MAX_LENGTH } from '@/lib/location';
+import { applySessionToken } from '@/lib/hooks/use-session-token';
 import { StyleProfile } from '@/lib/types';
 import { useClothingColors, useClothingTypes } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
   const t = useTranslations('onboarding');
@@ -333,9 +335,7 @@ function LocationStep({
 
     setSaving(true);
     try {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
 
       // Save location to user profile
       const updateData: Record<string, unknown> = {
@@ -789,12 +789,10 @@ export default function OnboardingPage() {
   const completeOnboarding = async () => {
     setCompleting(true);
     try {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       await api.post('/users/me/onboarding/complete');
       // Invalidate cached user data so dashboard sees onboarding_completed: true
-      await queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.authUser });
       // Redirect to dashboard
       router.push('/dashboard');
     } catch (error) {

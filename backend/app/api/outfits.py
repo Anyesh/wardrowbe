@@ -1,6 +1,6 @@
 import logging
 from datetime import date, datetime
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -9,6 +9,7 @@ from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.pagination import PaginationParams
 from app.config import get_settings
 from app.database import DbSession
 from app.models.item import ClothingItem
@@ -17,6 +18,7 @@ from app.models.outfit import (
     Outfit,
     OutfitItem,
     OutfitStatus,
+    TimeOfDay,
     UserFeedback,
 )
 from app.models.user import User
@@ -47,10 +49,13 @@ from app.services.suggestion_cache import clear_suggestions
 from app.services.weather_service import WeatherData
 from app.utils.auth import get_current_user
 from app.utils.rate_limit import rate_limit_by_user
-from app.utils.signed_urls import sign_image_url
+from app.utils.scales import RATING_MAX, RATING_MIN
+from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
+
+_RATING_RANGE = f"{RATING_MIN}-{RATING_MAX}"
 
 
 router = APIRouter(prefix="/outfits", tags=["Outfits"])
@@ -72,7 +77,7 @@ def _default_occasion(user: User) -> str:
 
 class SuggestRequest(BaseModel):
     occasion: Occasion | None = None
-    time_of_day: Literal["morning", "afternoon", "evening", "night", "full day"] | None = None
+    time_of_day: TimeOfDay | None = None
     weather_override: WeatherOverrideRequest | None = None
     exclude_items: list[UUID] = Field(default_factory=list, description="Items to exclude")
     include_items: list[UUID] = Field(default_factory=list, description="Items to include")
@@ -93,16 +98,12 @@ class OutfitItemResponse(BaseModel):
     @computed_field
     @property
     def image_url(self) -> str | None:
-        if self.image_path:
-            return sign_image_url(self.image_path)
-        return None
+        return sign_optional(self.image_path)
 
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
-        if self.thumbnail_path:
-            return sign_image_url(self.thumbnail_path)
-        return None
+        return sign_optional(self.thumbnail_path)
 
 
 class WoreInsteadItem(BaseModel):
@@ -114,9 +115,7 @@ class WoreInsteadItem(BaseModel):
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
-        if self.thumbnail_path:
-            return sign_image_url(self.thumbnail_path)
-        return None
+        return sign_optional(self.thumbnail_path)
 
 
 class FeedbackSummary(BaseModel):
@@ -128,7 +127,7 @@ class FeedbackSummary(BaseModel):
 
 
 class FamilyRatingRequest(BaseModel):
-    rating: int = Field(ge=1, le=5, description="Rating 1-5")
+    rating: int = Field(ge=RATING_MIN, le=RATING_MAX, description=f"Rating {_RATING_RANGE}")
     comment: str | None = Field(None, max_length=500)
 
 
@@ -220,9 +219,15 @@ class BulkDeleteOutfitsResponse(BaseModel):
 
 class FeedbackRequest(BaseModel):
     accepted: bool | None = Field(None, description="Whether outfit was accepted")
-    rating: int | None = Field(None, ge=1, le=5, description="Overall rating 1-5")
-    comfort_rating: int | None = Field(None, ge=1, le=5, description="Comfort rating 1-5")
-    style_rating: int | None = Field(None, ge=1, le=5, description="Style rating 1-5")
+    rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Overall rating {_RATING_RANGE}"
+    )
+    comfort_rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Comfort rating {_RATING_RANGE}"
+    )
+    style_rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Style rating {_RATING_RANGE}"
+    )
     comment: str | None = Field(None, max_length=1000, description="Optional comment")
     worn: bool | None = Field(None, description="Whether the outfit was worn")
     worn_with_modifications: bool | None = Field(
@@ -595,8 +600,7 @@ async def create_external_suggestion(
 async def list_outfits(
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pagination: Annotated[PaginationParams, Depends()],
     status_filter: str | None = Query(None, alias="status"),
     occasion: str | None = None,
     date_from: date | None = None,
@@ -637,7 +641,7 @@ async def list_outfits(
         cloned_from_outfit_id=cloned_from_outfit_id,
     )
 
-    outfits, total = await service.list_with_filters(filters, page, page_size)
+    outfits, total = await service.list_with_filters(filters, pagination.page, pagination.page_size)
 
     wore_instead_map = await fetch_wore_instead_items_map(db, outfits, user_id=current_user.id)
 
@@ -646,9 +650,9 @@ async def list_outfits(
     return OutfitListResponse(
         outfits=outfit_responses,
         total=total,
-        page=page,
-        page_size=page_size,
-        has_more=(page * page_size) < total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        has_more=pagination.has_more(total),
     )
 
 
@@ -1189,7 +1193,7 @@ class WoreInsteadRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[UUID] = Field(min_length=1, max_length=20)
-    rating: Annotated[int | None, Field(ge=1, le=5)] = None
+    rating: Annotated[int | None, Field(ge=RATING_MIN, le=RATING_MAX)] = None
     comment: Annotated[str | None, Field(max_length=1000)] = None
     scheduled_for: date | None = None
 

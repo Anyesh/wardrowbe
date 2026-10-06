@@ -25,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version-file: backend/.python-version
           cache: "pip"
           cache-dependency-path: backend/requirements.txt
 
@@ -82,7 +82,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version-file: backend/.python-version
           cache: "pip"
           cache-dependency-path: backend/requirements.txt
 
@@ -117,7 +117,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version-file: frontend/.nvmrc
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
@@ -144,8 +144,8 @@ jobs:
           cd frontend
           npm run i18n:check
 
-      # The frontend garment lists are generated from backend/app/data/garment_vocabulary.json.
-      - name: Garment vocabulary check
+      # frontend/lib/generated is generated from the JSON files in backend/app/data.
+      - name: Generated shared data check
         run: |
           cd frontend
           npm run vocab:check
@@ -159,7 +159,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version-file: frontend/.nvmrc
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
@@ -182,7 +182,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version-file: frontend/.nvmrc
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 

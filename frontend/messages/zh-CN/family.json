@@ -29,13 +29,6 @@
     },
     "rateOutfit": "为 {member} 的穿搭评分",
     "ratingCount": "（{count, plural, one {{count} 条评分} other {{count} 条评分}}）",
-    "sourceBadges": {
-      "external": "外部",
-      "manual": "手动",
-      "onDemand": "即时获取",
-      "pairing": "搭配",
-      "scheduled": "定时推送"
-    },
     "subtitle": "浏览和评价家人的穿搭",
     "title": "家庭动态",
     "unknownMember": "这位成员",

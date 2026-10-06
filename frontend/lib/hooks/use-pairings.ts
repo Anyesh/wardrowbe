@@ -2,27 +2,23 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import {
   Pairing,
   PairingListResponse,
   GeneratePairingsRequest,
   GeneratePairingsResponse,
 } from '@/lib/types';
+import { queryKeys } from '@/lib/hooks/query-keys';
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
-
-export function usePairings(page = 1, pageSize = 20, sourceType?: string) {
+export function usePairings(page = 1, pageSize = DEFAULT_PAGE_SIZE, sourceType?: string) {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['pairings', page, pageSize, sourceType],
+    queryKey: queryKeys.pairings.list(page, pageSize, sourceType),
     queryFn: async () => {
       const params: Record<string, string> = {
         page: String(page),
@@ -37,12 +33,12 @@ export function usePairings(page = 1, pageSize = 20, sourceType?: string) {
   });
 }
 
-export function useItemPairings(itemId: string, page = 1, pageSize = 20) {
+export function useItemPairings(itemId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['pairings', 'item', itemId, page, pageSize],
+    queryKey: queryKeys.pairings.forItemPage(itemId, page, pageSize),
     queryFn: async () => {
       const params: Record<string, string> = {
         page: String(page),
@@ -66,16 +62,14 @@ export function useGeneratePairings() {
       itemId: string;
       numPairings?: number;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<GeneratePairingsResponse>(`/pairings/generate/${itemId}`, {
         num_pairings: numPairings,
       });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['pairings'] });
-      queryClient.invalidateQueries({ queryKey: ['pairings', 'item', variables.itemId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pairings.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pairings.forItem(variables.itemId) });
     },
   });
 }
@@ -86,13 +80,11 @@ export function useDeletePairing() {
 
   return useMutation({
     mutationFn: async (pairingId: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/pairings/${pairingId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pairings'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pairings.all });
     },
   });
 }

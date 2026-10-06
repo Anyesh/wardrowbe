@@ -1,14 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
-
-// Helper to set token if available (for NextAuth mode)
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
+import { queryKeys } from '@/lib/hooks/query-keys';
+import { SLOW_STALE_TIME } from '@/lib/hooks/query-timing';
 
 // Types for learning API responses
 export interface LearnedColorScore {
@@ -107,10 +102,10 @@ export function useLearning() {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['learning'],
+    queryKey: queryKeys.learning.all,
     queryFn: () => api.get<LearningInsightsData>('/learning'),
     enabled: status !== 'loading',
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: SLOW_STALE_TIME,
   });
 }
 
@@ -124,13 +119,11 @@ export function useRecomputeLearning() {
 
   return useMutation({
     mutationFn: async () => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<LearningProfile>('/learning/recompute');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['learning'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.learning.all });
     },
   });
 }
@@ -145,13 +138,11 @@ export function useGenerateInsights() {
 
   return useMutation({
     mutationFn: async () => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<StyleInsight[]>('/learning/generate-insights');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['learning'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.learning.all });
     },
   });
 }
@@ -165,13 +156,11 @@ export function useAcknowledgeInsight() {
 
   return useMutation({
     mutationFn: async (insightId: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<{ acknowledged: boolean }>(`/learning/insights/${insightId}/acknowledge`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['learning'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.learning.all });
     },
   });
 }
@@ -184,11 +173,11 @@ export function useItemPairSuggestions(itemId: string, limit = 5) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['learning', 'item-pairs', itemId, limit],
+    queryKey: queryKeys.learning.itemPairs(itemId, limit),
     queryFn: () => api.get<ItemPairSuggestion[]>(`/learning/item-pairs/${itemId}`, {
       params: { limit: String(limit) },
     }),
     enabled: status !== 'loading' && !!itemId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: SLOW_STALE_TIME,
   });
 }

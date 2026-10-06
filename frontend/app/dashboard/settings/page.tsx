@@ -29,6 +29,7 @@ import {
 import { Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
 import { useClothingColors, useOccasions } from '@/lib/hooks/use-translated-constants';
 import { toF, toCelsius } from '@/lib/temperature';
+import { AVOID_REPEAT_DAYS, TEMPERATURE_THRESHOLDS_CELSIUS } from '@/lib/generated/scales';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
@@ -894,34 +895,36 @@ export default function SettingsPage() {
               {(() => {
                 const unit = formData.temperature_unit || 'celsius';
                 const isFahrenheit = unit === 'fahrenheit';
-                const coldC = formData.cold_threshold ?? 10;
-                const hotC = formData.hot_threshold ?? 25;
+                const { cold, hot } = TEMPERATURE_THRESHOLDS_CELSIUS;
+                const coldC = formData.cold_threshold ?? cold.default;
+                const hotC = formData.hot_threshold ?? hot.default;
+                const display = (celsius: number) => (isFahrenheit ? Math.round(toF(celsius)) : celsius);
                 return (
                   <>
                     <div className="space-y-2">
                       <Label>{t('temperature.coldThreshold', { unit: isFahrenheit ? '\u00b0F' : '\u00b0C' })}</Label>
                       <Input
                         type="number"
-                        value={isFahrenheit ? Math.round(toF(coldC)) : coldC}
+                        value={display(coldC)}
                         onChange={(e) => {
-                          const raw = e.target.value === '' ? (isFahrenheit ? 50 : 10) : parseInt(e.target.value);
+                          const raw = e.target.value === '' ? display(cold.default) : parseInt(e.target.value);
                           updateField('cold_threshold', isFahrenheit ? Math.round(toCelsius(raw)) : raw);
                         }}
-                        min={isFahrenheit ? -4 : -20}
-                        max={isFahrenheit ? 86 : 30}
+                        min={display(cold.min)}
+                        max={display(cold.max)}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>{t('temperature.hotThreshold', { unit: isFahrenheit ? '\u00b0F' : '\u00b0C' })}</Label>
                       <Input
                         type="number"
-                        value={isFahrenheit ? Math.round(toF(hotC)) : hotC}
+                        value={display(hotC)}
                         onChange={(e) => {
-                          const raw = e.target.value === '' ? (isFahrenheit ? 77 : 25) : parseInt(e.target.value);
+                          const raw = e.target.value === '' ? display(hot.default) : parseInt(e.target.value);
                           updateField('hot_threshold', isFahrenheit ? Math.round(toCelsius(raw)) : raw);
                         }}
-                        min={isFahrenheit ? 50 : 10}
-                        max={isFahrenheit ? 113 : 45}
+                        min={display(hot.min)}
+                        max={display(hot.max)}
                       />
                     </div>
                   </>
@@ -983,10 +986,10 @@ export default function SettingsPage() {
                 <Label>{t('recommendations.avoidRepeatDays')}</Label>
                 <Input
                   type="number"
-                  value={formData.avoid_repeat_days ?? 7}
-                  onChange={(e) => updateField('avoid_repeat_days', e.target.value === '' ? 7 : parseInt(e.target.value))}
-                  min={0}
-                  max={30}
+                  value={formData.avoid_repeat_days ?? AVOID_REPEAT_DAYS.default}
+                  onChange={(e) => updateField('avoid_repeat_days', e.target.value === '' ? AVOID_REPEAT_DAYS.default : parseInt(e.target.value))}
+                  min={AVOID_REPEAT_DAYS.min}
+                  max={AVOID_REPEAT_DAYS.max}
                 />
               </div>
               <div className="space-y-2">

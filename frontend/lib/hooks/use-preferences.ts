@@ -2,22 +2,17 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { Preferences } from '@/lib/types';
-
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export function usePreferences() {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['preferences'],
+    queryKey: queryKeys.preferences,
     queryFn: () => api.get<Preferences>('/users/me/preferences'),
     enabled: status !== 'loading',
   });
@@ -29,13 +24,11 @@ export function useUpdatePreferences() {
 
   return useMutation({
     mutationFn: (data: Partial<Preferences>) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<Preferences>('/users/me/preferences', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['preferences'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences });
     },
   });
 }
@@ -46,13 +39,11 @@ export function useResetPreferences() {
 
   return useMutation({
     mutationFn: () => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Preferences>('/users/me/preferences/reset');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['preferences'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences });
     },
   });
 }
@@ -70,9 +61,7 @@ export function useTestAIEndpoint() {
 
   return useMutation({
     mutationFn: (url: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<AITestResult>('/users/me/preferences/test-ai-endpoint', { url });
     },
   });

@@ -5,10 +5,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
+from app.models.item import ProcessingKind, TaggingStatus
 from app.schemas.color import ColorList, ColorName
 from app.schemas.outfit import Occasion
 from app.utils.garment_vocabulary import DEFAULT_WASH_INTERVALS
-from app.utils.signed_urls import sign_image_url
+from app.utils.signed_urls import sign_image_url, sign_optional
 
 
 class ItemTags(BaseModel):
@@ -102,8 +103,8 @@ class ItemResponse(ItemBase):
     ai_error: str | None = None
     ai_unrecognized_type: str | None = None
     ai_started_at: datetime | None = None
-    processing_kind: str | None = None
-    tagging_status: str = "pending"
+    processing_kind: ProcessingKind | None = None
+    tagging_status: TaggingStatus = TaggingStatus.pending
     tagged_by: str | None = None
     tagged_at: datetime | None = None
     wear_count: int = 0
@@ -130,16 +131,12 @@ class ItemResponse(ItemBase):
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
-        if self.thumbnail_path:
-            return sign_image_url(self.thumbnail_path)
-        return None
+        return sign_optional(self.thumbnail_path)
 
     @computed_field
     @property
     def medium_url(self) -> str | None:
-        if self.medium_path:
-            return sign_image_url(self.medium_path)
-        return None
+        return sign_optional(self.medium_path)
 
     @computed_field
     @property
@@ -366,16 +363,12 @@ class ItemImageResponse(BaseModel):
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
-        if self.thumbnail_path:
-            return sign_image_url(self.thumbnail_path)
-        return None
+        return sign_optional(self.thumbnail_path)
 
     @computed_field
     @property
     def medium_url(self) -> str | None:
-        if self.medium_path:
-            return sign_image_url(self.medium_path)
-        return None
+        return sign_optional(self.medium_path)
 
 
 class ReorderImagesRequest(BaseModel):

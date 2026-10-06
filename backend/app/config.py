@@ -158,12 +158,6 @@ class Settings(BaseSettings):
     bg_removal_url: str | None = Field(default=None)  # URL for http provider (e.g. withoutbg)
     bg_removal_api_key: str | None = Field(default=None)  # API key for http provider
 
-    # Image processing
-    thumbnail_size: int = 400
-    medium_size: int = 800
-    original_max_size: int = 2400
-    image_quality: int = 90
-
     @property
     def effective_ai_vision_enabled(self) -> bool:
         """Whether internal vision (auto-tagging) is active.

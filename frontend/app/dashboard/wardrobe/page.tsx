@@ -34,6 +34,7 @@ import { Item } from '@/lib/types';
 import { useClothingTypes, useClothingColors, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 import { toast } from 'sonner';
 import { formatWornAgo, getWornAgoColorClass } from '@/lib/utils';
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 import { useTranslations } from 'next-intl';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
@@ -354,7 +355,7 @@ export default function WardrobePage() {
   });
   const [pageSize, setPageSize] = useState(() => {
     const raw = Number(searchParams.get('pageSize'));
-    return PAGE_SIZE_OPTIONS.includes(raw) ? raw : 20;
+    return PAGE_SIZE_OPTIONS.includes(raw) ? raw : DEFAULT_PAGE_SIZE;
   });
   const [dismissedErrors, setDismissedErrors] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set();
@@ -395,7 +396,7 @@ export default function WardrobePage() {
     if (needsWash) params.set('needsWash', 'true'); else params.delete('needsWash');
     if (favoriteFilter) params.set('favorite', 'true'); else params.delete('favorite');
     if (page !== 1) params.set('page', String(page)); else params.delete('page');
-    if (pageSize !== 20) params.set('pageSize', String(pageSize)); else params.delete('pageSize');
+    if (pageSize !== DEFAULT_PAGE_SIZE) params.set('pageSize', String(pageSize)); else params.delete('pageSize');
 
     const next = params.toString();
     if (next !== searchParams.toString()) {

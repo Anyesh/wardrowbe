@@ -17,6 +17,7 @@ from app.models.outfit import (
     OutfitItem,
     OutfitSource,
     OutfitStatus,
+    TimeOfDay,
     UserFeedback,
 )
 from app.models.preference import UserPreference
@@ -46,16 +47,16 @@ SINGLE_OUTFIT_FORMAT = (
 )
 
 
-def get_time_of_day(user: User) -> str:
+def get_time_of_day(user: User) -> TimeOfDay:
     hour = get_user_now(user).hour
     if 6 <= hour < 12:
-        return "morning"
+        return TimeOfDay.morning
     elif 12 <= hour < 17:
-        return "afternoon"
+        return TimeOfDay.afternoon
     elif 17 <= hour < 21:
-        return "evening"
+        return TimeOfDay.evening
     else:
-        return "night"
+        return TimeOfDay.night
 
 
 def format_temp_range_text(weather: WeatherData) -> str:
@@ -695,7 +696,7 @@ class RecommendationService:
         exclude_items: list[UUID] | None = None,
         include_items: list[UUID] | None = None,
         source: OutfitSource = OutfitSource.on_demand,
-        time_of_day: str | None = None,
+        time_of_day: TimeOfDay | None = None,
         count: int = 1,
         single_outfit: bool = False,
         scheduled_date: date | None = None,
@@ -981,7 +982,7 @@ class RecommendationService:
         exclude_items: list[UUID] | None = None,
         include_items: list[UUID] | None = None,
         source: OutfitSource = OutfitSource.on_demand,
-        time_of_day: str | None = None,
+        time_of_day: TimeOfDay | None = None,
         single_outfit: bool = False,
         scheduled_date: date | None = None,
     ) -> Outfit:

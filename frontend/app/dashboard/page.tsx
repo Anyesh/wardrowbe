@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useSession } from 'next-auth/react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,7 @@ import { usePendingOutfits, useAcceptOutfit, useRejectOutfit } from '@/lib/hooks
 import { useSchedules, useNotificationSettings } from '@/lib/hooks/use-notifications';
 import { useFamily } from '@/lib/hooks/use-family';
 import { toast } from 'sonner';
+import { formatShortDate } from '@/lib/utils';
 
 function WeatherCard() {
   const { data: weather, isLoading, isError } = useWeather();
@@ -125,6 +126,7 @@ function PendingOutfitsCard() {
   const t = useTranslations('dashboard');
   const tc = useTranslations('common');
   const occasionLabel = useOccasionLabel();
+  const locale = useLocale();
 
   const handleAccept = async (id: string) => {
     try {
@@ -225,11 +227,9 @@ function PendingOutfitsCard() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium capitalize truncate">{occasionLabel(outfit.occasion)}</p>
               <p className="text-xs text-muted-foreground">
-                {outfit.scheduled_for ? new Date(outfit.scheduled_for).toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                }) : t('pendingOutfits.lookbook')}
+                {outfit.scheduled_for
+                  ? formatShortDate(outfit.scheduled_for, locale)
+                  : t('pendingOutfits.lookbook')}
               </p>
             </div>
             <div className="flex gap-1">

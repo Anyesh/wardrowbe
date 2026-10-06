@@ -1,5 +1,6 @@
 import shutil
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -12,24 +13,53 @@ from app.services import background_removal
 
 settings = get_settings()
 
-# Image size configurations
-# Thumbnail: Used in cards/grids. 400px supports ~200px display on retina
-# Medium: Used in detail views and outfit displays
-# Original: Full resolution for zoom/download
-SIZES = {
-    "thumbnail": (400, 400),
-    "medium": (800, 800),
-    "original": (2400, 2400),
-}
 
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
-ALLOWED_MIME_TYPES = {
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/heic",
-    "image/heif",
+@dataclass(frozen=True)
+class ImageVariant:
+    path_field: str
+    suffix: str
+    max_px: int
+    quality: int
+
+    @property
+    def box(self) -> tuple[int, int]:
+        return (self.max_px, self.max_px)
+
+
+# Thumbnails are 400px so that ~200px cards stay sharp on retina screens.
+VARIANTS = (
+    ImageVariant("image_path", "", 2400, 95),
+    ImageVariant("medium_path", "_medium", 800, 90),
+    ImageVariant("thumbnail_path", "_thumb", 400, 88),
+)
+ORIGINAL = VARIANTS[0]
+
+IMAGE_MIME_TYPES = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".heic": "image/heic",
+    ".heif": "image/heif",
 }
+ALLOWED_EXTENSIONS = frozenset(IMAGE_MIME_TYPES)
+ALLOWED_MIME_TYPES = frozenset(IMAGE_MIME_TYPES.values())
+
+
+def get_full_path(relative_path: str) -> str:
+    return f"{settings.storage_path}/{relative_path}"
+
+
+def _flatten_to_rgb(image: Image.Image) -> Image.Image:
+    if image.mode in ("RGBA", "P", "LA"):
+        background = Image.new("RGB", image.size, (255, 255, 255))
+        if image.mode == "P":
+            image = image.convert("RGBA")
+        background.paste(image, mask=image.split()[-1] if image.mode == "RGBA" else None)
+        return background
+    if image.mode != "RGB":
+        return image.convert("RGB")
+    return image
 
 
 class ImageTooLargeError(ValueError):
@@ -82,7 +112,7 @@ class ImageService:
         else:
             image = Image.open(BytesIO(image_data))
 
-        image.draft("RGB", SIZES["original"])
+        image.draft("RGB", ORIGINAL.box)
 
         pixels = image.size[0] * image.size[1]
         limit_pixels = int(settings.max_image_megapixels * 1_000_000)
@@ -91,29 +121,11 @@ class ImageService:
 
         return image
 
-    def _resize_image(
-        self,
-        image: Image.Image,
-        max_size: tuple[int, int],
-        quality: int = 92,
-    ) -> bytes:
-        """Resize image maintaining aspect ratio."""
-        # Convert to RGB if necessary (handles RGBA, P mode, etc.)
-        if image.mode in ("RGBA", "P", "LA"):
-            background = Image.new("RGB", image.size, (255, 255, 255))
-            if image.mode == "P":
-                image = image.convert("RGBA")
-            background.paste(image, mask=image.split()[-1] if image.mode == "RGBA" else None)
-            image = background
-        elif image.mode != "RGB":
-            image = image.convert("RGB")
-
-        # Resize maintaining aspect ratio
-        image.thumbnail(max_size, Image.Resampling.LANCZOS)
-
-        # Save to bytes
+    def _encode_variant(self, image: Image.Image, variant: ImageVariant) -> bytes:
+        image = _flatten_to_rgb(image.copy())
+        image.thumbnail(variant.box, Image.Resampling.LANCZOS)
         output = BytesIO()
-        image.save(output, format="JPEG", quality=quality, optimize=True)
+        image.save(output, format="JPEG", quality=variant.quality, optimize=True)
         return output.getvalue()
 
     async def process_and_store(
@@ -125,11 +137,12 @@ class ImageService:
         """
         Process an uploaded image and store all sizes.
 
-        Returns dict with paths for each size:
+        Returns the relative path of each variant plus the pHash:
         {
-            "original": "user_id/20240116_123456_abc123.jpg",
-            "medium": "user_id/20240116_123456_abc123_medium.jpg",
-            "thumbnail": "user_id/20240116_123456_abc123_thumb.jpg",
+            "image_path": "user_id/20240116_123456_abc123.jpg",
+            "medium_path": "user_id/20240116_123456_abc123_medium.jpg",
+            "thumbnail_path": "user_id/20240116_123456_abc123_thumb.jpg",
+            "image_hash": "c3d4...",
         }
         """
         # Validate file extension
@@ -144,43 +157,17 @@ class ImageService:
         # transposed here or they end up sideways in storage and in AI tagging.
         image = ImageOps.exif_transpose(image)
 
-        base_filename = self._generate_filename(".jpg")
-        base_name = base_filename.rsplit(".", 1)[0]
-
+        base_name = self._generate_filename(".jpg").rsplit(".", 1)[0]
         user_path = self._get_user_path(user_id)
         paths = {}
 
-        # Process and save each size
-        for size_name, max_size in SIZES.items():
-            if size_name == "original":
-                suffix = ""
-                quality = 95  # Highest quality for original
-            elif size_name == "medium":
-                suffix = "_medium"
-                quality = 90
-            else:
-                suffix = "_thumb"
-                quality = 88  # Good quality for thumbnails
+        for variant in VARIANTS:
+            filename = f"{base_name}{variant.suffix}.jpg"
+            (user_path / filename).write_bytes(self._encode_variant(image, variant))
+            paths[variant.path_field] = f"{user_id}/{filename}"
 
-            filename = f"{base_name}{suffix}.jpg"
-            file_path = user_path / filename
-
-            # For original, preserve as much quality as possible
-            # For others, resize with appropriate quality
-            resized_data = self._resize_image(image.copy(), max_size, quality=quality)
-            file_path.write_bytes(resized_data)
-
-            # Store relative path
-            paths[size_name] = f"{user_id}/{filename}"
-
-        image_hash = self._phash_of(image)
-
-        return {
-            "image_path": paths["original"],
-            "medium_path": paths["medium"],
-            "thumbnail_path": paths["thumbnail"],
-            "image_hash": image_hash,
-        }
+        paths["image_hash"] = self._phash_of(image)
+        return paths
 
     def get_image_path(self, relative_path: str) -> Path:
         """Get full path for an image."""
@@ -261,32 +248,13 @@ class ImageService:
 
     def _save_all_sizes(self, image: Image.Image, image_path: str) -> dict[str, str]:
         base_path = image_path.rsplit(".", 1)[0]
-        medium_path = f"{base_path}_medium.jpg"
-        thumb_path = f"{base_path}_thumb.jpg"
-
-        for size_name, max_size in SIZES.items():
-            if size_name == "original":
-                file_path = self.storage_path / image_path
-                quality = 95
-            elif size_name == "medium":
-                file_path = self.storage_path / medium_path
-                quality = 90
-            else:
-                file_path = self.storage_path / thumb_path
-                quality = 88
-
-            img_copy = image.copy()
-            img_copy.thumbnail(max_size, Image.Resampling.LANCZOS)
-
-            output = BytesIO()
-            img_copy.save(output, format="JPEG", quality=quality, optimize=True)
-            file_path.write_bytes(output.getvalue())
-
-        return {
-            "image_path": image_path,
-            "medium_path": medium_path,
-            "thumbnail_path": thumb_path,
-        }
+        paths = {}
+        for variant in VARIANTS:
+            # The original is written back to image_path itself so that the stored path stays valid.
+            path = image_path if variant is ORIGINAL else f"{base_path}{variant.suffix}.jpg"
+            (self.storage_path / path).write_bytes(self._encode_variant(image, variant))
+            paths[variant.path_field] = path
+        return paths
 
     def remove_background(
         self,
@@ -347,16 +315,7 @@ class ImageService:
 
         angle = -90 if direction == "cw" else 90  # PIL rotates counter-clockwise by default
 
-        image = Image.open(original_full)
-
-        if image.mode in ("RGBA", "P", "LA"):
-            background = Image.new("RGB", image.size, (255, 255, 255))
-            if image.mode == "P":
-                image = image.convert("RGBA")
-            background.paste(image, mask=image.split()[-1] if image.mode == "RGBA" else None)
-            image = background
-        elif image.mode != "RGB":
-            image = image.convert("RGB")
+        image = _flatten_to_rgb(Image.open(original_full))
 
         rotated = image.rotate(angle, expand=True)
 

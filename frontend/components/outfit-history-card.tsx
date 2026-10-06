@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Zap, Edit3, ThumbsUp, ThumbsDown, Star, ArrowRight, Shirt, Users, ExternalLink, Bot } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Star, ArrowRight, Shirt, Users, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,57 +14,19 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { OutfitStatusIcon } from '@/components/outfit-status';
-import { useAcceptOutfit, useRejectOutfit, type Outfit, type OutfitSource, type WoreInsteadItem } from '@/lib/hooks/use-outfits';
+import { useAcceptOutfit, useRejectOutfit, type Outfit, type WoreInsteadItem } from '@/lib/hooks/use-outfits';
 import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
+import { SourceBadge } from '@/components/shared/source-badge';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-
-function SourceBadge({ source }: { source: OutfitSource }) {
-  const t = useTranslations('history');
-  const config: Record<OutfitSource, { icon: typeof Calendar; label: string; className: string }> = {
-    scheduled: {
-      icon: Calendar,
-      label: t('sourceBadges.scheduled'),
-      className: 'bg-primary/10 text-primary border-primary/20',
-    },
-    on_demand: {
-      icon: Zap,
-      label: t('sourceBadges.onDemand'),
-      className: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-    },
-    manual: {
-      icon: Edit3,
-      label: t('sourceBadges.manual'),
-      className: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-    },
-    pairing: {
-      icon: Zap,
-      label: t('sourceBadges.pairing'),
-      className: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
-    },
-    external: {
-      icon: Bot,
-      label: t('sourceBadges.external'),
-      className: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
-    },
-  };
-
-  const { icon: Icon, label, className } = config[source];
-
-  return (
-    <Badge variant="outline" className={className}>
-      <Icon className="h-3 w-3 mr-1" />
-      {label}
-    </Badge>
-  );
-}
+import { RATING_STARS } from '@/lib/rating';
 
 function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg' }) {
   const sizeClass = size === 'lg' ? 'h-5 w-5' : 'h-3.5 w-3.5';
 
   return (
     <div className="flex gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
+      {RATING_STARS.map((star) => (
         <Star
           key={star}
           className={`${sizeClass} ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}

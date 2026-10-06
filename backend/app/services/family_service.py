@@ -7,9 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.family import Family, FamilyInvite
+from app.models.family import Family, FamilyInvite, FamilyRole
 from app.models.user import User
 from app.schemas.family import FamilyCreate, FamilyUpdate, InviteMemberRequest
+
+INVITE_TTL = timedelta(days=7)
 
 
 def generate_invite_code(length: int = 8) -> str:
@@ -62,7 +64,7 @@ class FamilyService:
 
         # Update user to be admin of this family
         user.family_id = family.id
-        user.role = "admin"
+        user.role = FamilyRole.admin
         await self.db.flush()
         await self.db.refresh(family)
 
@@ -91,7 +93,7 @@ class FamilyService:
             return None
 
         user.family_id = family.id
-        user.role = "member"
+        user.role = FamilyRole.member
         await self.db.flush()
 
         return family
@@ -101,11 +103,11 @@ class FamilyService:
             return True
 
         # Check if user is the only admin
-        if user.role == "admin":
+        if user.role == FamilyRole.admin:
             family = await self.get_by_id(user.family_id)
             if family:
                 active_members = [m for m in family.members if m.is_active]
-                admin_count = sum(1 for m in active_members if m.role == "admin")
+                admin_count = sum(1 for m in active_members if m.role == FamilyRole.admin)
                 if admin_count <= 1 and len(active_members) > 1:
                     # Cannot leave if only admin with other members
                     return False
@@ -116,7 +118,7 @@ class FamilyService:
                     await self.db.delete(family)
 
         user.family_id = None
-        user.role = "member"
+        user.role = FamilyRole.member
         await self.db.flush()
         return True
 
@@ -130,7 +132,7 @@ class FamilyService:
             return False
 
         member.family_id = None
-        member.role = "member"
+        member.role = FamilyRole.member
         await self.db.flush()
         return True
 
@@ -164,7 +166,7 @@ class FamilyService:
         existing = result.scalar_one_or_none()
         if existing:
             # Update expiration
-            existing.expires_at = datetime.now(UTC) + timedelta(days=7)
+            existing.expires_at = datetime.now(UTC) + INVITE_TTL
             existing.token = generate_invite_token()
             await self.db.flush()
             await self.db.refresh(existing)
@@ -176,7 +178,7 @@ class FamilyService:
             token=generate_invite_token(),
             invited_by=inviter.id,
             role=invite_data.role,
-            expires_at=datetime.now(UTC) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + INVITE_TTL,
         )
         self.db.add(invite)
         await self.db.flush()

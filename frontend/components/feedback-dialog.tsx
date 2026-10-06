@@ -16,8 +16,10 @@ import { toast } from 'sonner';
 import { useSubmitFeedback, type FeedbackSummary, type Outfit } from '@/lib/hooks/use-outfits';
 import { useItems } from '@/lib/hooks/use-items';
 import { cn } from '@/lib/utils';
+import { GRID_PAGE_SIZE } from '@/lib/pagination';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { RATING_STARS } from '@/lib/rating';
 
 function StarRating({
   rating,
@@ -32,7 +34,7 @@ function StarRating({
 
   return (
     <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map((star) => (
+      {RATING_STARS.map((star) => (
         <button
           key={star}
           type="button"
@@ -61,7 +63,6 @@ interface FeedbackDialogProps {
 
 type FeedbackStep = 'wear-question' | 'rating' | 'wore-instead';
 
-const PAGE_SIZE = 24;
 
 interface AccumulatedItem {
   id: string;
@@ -103,7 +104,7 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
   const { data: itemsData, isLoading, isFetching } = useItems(
     { search: debouncedSearch || undefined, is_archived: false },
     page,
-    PAGE_SIZE
+    GRID_PAGE_SIZE
   );
   const hasMore = itemsData?.has_more ?? false;
   const totalItems = itemsData?.total ?? 0;

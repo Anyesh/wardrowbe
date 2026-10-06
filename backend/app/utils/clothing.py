@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.utils.garment_vocabulary import ITEM_ROLE
+from app.utils.garment_vocabulary import ITEM_ROLE, ROLES
 
 logger = logging.getLogger(__name__)
 
@@ -79,20 +79,7 @@ def deduplicate_by_body_slot(
     return [iid for iid in item_ids if iid in kept]
 
 
-_CANONICAL_ROLE_ORDER = [
-    "full_body",
-    "base_top",
-    "mid_layer",
-    "suit",
-    "outer_layer",
-    "bottom",
-    "footwear",
-    "socks",
-    "neckwear",
-    "accessory",
-]
-
-_ROLE_SORT_INDEX: dict[str, int] = {role: idx for idx, role in enumerate(_CANONICAL_ROLE_ORDER)}
+_ROLE_SORT_INDEX: dict[str, int] = {role: idx for idx, role in enumerate(ROLES)}
 
 
 def canonical_item_order(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> list[UUID]:
@@ -101,11 +88,7 @@ def canonical_item_order(item_ids: list[UUID], item_type_map: dict[UUID, str]) -
     def sort_key(item_id: UUID) -> tuple[int, int]:
         item_type = item_type_map.get(item_id, "")
         role = ITEM_ROLE.get(item_type)
-        role_idx = (
-            _ROLE_SORT_INDEX.get(role, len(_CANONICAL_ROLE_ORDER))
-            if role
-            else len(_CANONICAL_ROLE_ORDER)
-        )
+        role_idx = _ROLE_SORT_INDEX.get(role, len(ROLES)) if role else len(ROLES)
         return (role_idx, original_positions[item_id])
 
     return sorted(item_ids, key=sort_key)

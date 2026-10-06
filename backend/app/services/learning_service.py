@@ -34,7 +34,8 @@ from app.models.outfit import Outfit, OutfitItem, OutfitStatus, UserFeedback
 from app.models.preference import UserPreference
 from app.utils.clothing import ITEM_ROLE
 from app.utils.garment_vocabulary import canonical_color
-from app.utils.signed_urls import sign_image_url
+from app.utils.scales import rating_to_signed, rating_to_unit
+from app.utils.signed_urls import sign_optional
 
 logger = logging.getLogger(__name__)
 
@@ -165,8 +166,7 @@ class LearningService:
 
         rating_score = None
         if feedback.rating is not None:
-            # Normalize 1-5 rating to 0-1
-            rating_score = Decimal(str((feedback.rating - 1) / 4))
+            rating_score = Decimal(str(rating_to_unit(feedback.rating)))
 
         wear_score = None
         if feedback.worn_at is not None:
@@ -272,8 +272,7 @@ class LearningService:
                 signal_strength = -0.3
 
         if feedback.rating is not None:
-            rating_signal = (feedback.rating - 3) / 2  # -1 to 1
-            signal_strength += rating_signal * 0.3
+            signal_strength += rating_to_signed(feedback.rating) * 0.3
             is_positive = signal_strength > 0
 
         if feedback.worn_at is not None:
@@ -518,7 +517,7 @@ class LearningService:
         # Rating component
         if pair.rating_count > 0:
             avg_rating = pair.total_rating_sum / pair.rating_count
-            rating_score = (avg_rating - 1) / 4  # Normalize to 0-1
+            rating_score = rating_to_unit(avg_rating)
         else:
             rating_score = 0.5
 
@@ -736,8 +735,7 @@ class LearningService:
 
         if outfit.feedback:
             if outfit.feedback.rating is not None:
-                # Map 1-5 to -1 to 1
-                signal += (outfit.feedback.rating - 3) / 2 * 0.4
+                signal += rating_to_signed(outfit.feedback.rating) * 0.4
 
             if outfit.feedback.worn_at is not None:
                 signal += 0.3
@@ -1054,9 +1052,7 @@ class LearningService:
                     "name": p.item1.name,
                     "primary_color": p.item1.primary_color,
                     "thumbnail_path": p.item1.thumbnail_path,
-                    "thumbnail_url": sign_image_url(p.item1.thumbnail_path)
-                    if p.item1.thumbnail_path
-                    else None,
+                    "thumbnail_url": sign_optional(p.item1.thumbnail_path),
                 },
                 "item2": {
                     "id": str(p.item2.id),
@@ -1064,9 +1060,7 @@ class LearningService:
                     "name": p.item2.name,
                     "primary_color": p.item2.primary_color,
                     "thumbnail_path": p.item2.thumbnail_path,
-                    "thumbnail_url": sign_image_url(p.item2.thumbnail_path)
-                    if p.item2.thumbnail_path
-                    else None,
+                    "thumbnail_url": sign_optional(p.item2.thumbnail_path),
                 },
                 "compatibility_score": float(p.compatibility_score),
                 "times_paired": p.times_paired,

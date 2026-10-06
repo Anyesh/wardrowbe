@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.database import DbSession
+from app.models.family import FamilyRole
 from app.models.user import User
 from app.schemas.family import (
     FamilyCreate,
@@ -33,7 +34,7 @@ router = APIRouter(prefix="/families", tags=["Families"])
 
 
 def require_admin(user: User) -> None:
-    if user.role != "admin":
+    if user.role != FamilyRole.admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
@@ -120,7 +121,7 @@ async def create_family(
         id=family.id,
         name=family.name,
         invite_code=family.invite_code,
-        role="admin",
+        role=FamilyRole.admin,
     )
 
 
@@ -223,7 +224,7 @@ async def join_family(
     return JoinFamilyResponse(
         family_id=family.id,
         family_name=family.name,
-        role="member",
+        role=FamilyRole.member,
     )
 
 

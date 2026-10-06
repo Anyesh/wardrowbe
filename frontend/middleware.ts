@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { API_BASE_PATH } from '@/lib/api';
 import { decodeProxyHeader } from '@/lib/proxy-headers';
 import { clearSessionCookies, sessionCookie } from '@/lib/session-cookies';
 
@@ -16,7 +17,7 @@ export async function middleware(request: NextRequest) {
 
   const { pathname, search } = request.nextUrl;
   let response: NextResponse;
-  if (pathname.startsWith('/api/v1/')) {
+  if (pathname.startsWith(`${API_BASE_PATH}/`)) {
     response = NextResponse.json(
       { detail: 'The signed-in user changed at the proxy. Sign in again.' },
       { status: 401 }

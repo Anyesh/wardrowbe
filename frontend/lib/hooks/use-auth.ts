@@ -3,28 +3,28 @@
 import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSession, signOut } from 'next-auth/react';
-import { api, setAccessToken, ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
+import { applySessionToken } from '@/lib/hooks/use-session-token';
 import type { UserProfile } from './use-user';
+import { queryKeys } from '@/lib/hooks/query-keys';
+import { SLOW_STALE_TIME } from '@/lib/hooks/query-timing';
 
 export function useAuth() {
   const { data: session, status } = useSession();
   const signingOut = useRef(false);
 
-  // Set access token if available from NextAuth
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
+  applySessionToken(session);
 
   const hasToken = !!session?.accessToken;
   const syncError = session?.syncError;
 
   const userQuery = useQuery({
-    queryKey: ['auth-user'],
+    queryKey: queryKeys.authUser,
     queryFn: () => api.get<UserProfile>('/users/me'),
     // Only fetch when session is loaded AND we have an access token
     enabled: status === 'authenticated' && hasToken,
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: SLOW_STALE_TIME,
     refetchOnWindowFocus: false,
   });
 

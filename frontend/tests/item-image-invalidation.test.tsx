@@ -11,12 +11,10 @@ import {
   useSetPrimaryImage,
 } from '@/lib/hooks/use-items'
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/api')>()),
   api: { post: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue(undefined) },
   getAccessToken: vi.fn(() => null),
-  setAccessToken: vi.fn(),
-  ApiError: class extends Error {},
-  NetworkError: class extends Error {},
 }))
 
 const PRIMARY_IMAGE_KEYS = [['items'], ['item', 'item-1'], ['outfits'], ['calendarOutfits']]

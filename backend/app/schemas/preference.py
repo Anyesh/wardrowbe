@@ -2,6 +2,17 @@ from pydantic import BaseModel, Field
 
 from app.schemas.color import ColorList
 from app.schemas.outfit import Occasion
+from app.utils.scales import (
+    AVOID_REPEAT_DAYS_MAX,
+    AVOID_REPEAT_DAYS_MIN,
+    COLD_THRESHOLD_MAX,
+    COLD_THRESHOLD_MIN,
+    DEFAULT_AVOID_REPEAT_DAYS,
+    DEFAULT_COLD_THRESHOLD,
+    DEFAULT_HOT_THRESHOLD,
+    HOT_THRESHOLD_MAX,
+    HOT_THRESHOLD_MIN,
+)
 
 
 class AIEndpoint(BaseModel):
@@ -47,10 +58,16 @@ class PreferenceBase(BaseModel):
         description="Temperature sensitivity level",
     )
     cold_threshold: int = Field(
-        default=10, ge=-20, le=30, description="Temperature (C) considered cold"
+        default=DEFAULT_COLD_THRESHOLD,
+        ge=COLD_THRESHOLD_MIN,
+        le=COLD_THRESHOLD_MAX,
+        description="Temperature (C) considered cold",
     )
     hot_threshold: int = Field(
-        default=25, ge=10, le=45, description="Temperature (C) considered hot"
+        default=DEFAULT_HOT_THRESHOLD,
+        ge=HOT_THRESHOLD_MIN,
+        le=HOT_THRESHOLD_MAX,
+        description="Temperature (C) considered hot",
     )
     layering_preference: str = Field(
         default="moderate",
@@ -60,7 +77,10 @@ class PreferenceBase(BaseModel):
 
     # Recommendation settings
     avoid_repeat_days: int = Field(
-        default=7, ge=0, le=30, description="Days before repeating items"
+        default=DEFAULT_AVOID_REPEAT_DAYS,
+        ge=AVOID_REPEAT_DAYS_MIN,
+        le=AVOID_REPEAT_DAYS_MAX,
+        description="Days before repeating items",
     )
     prefer_underused_items: bool = Field(default=True, description="Prioritize less worn items")
     variety_level: str = Field(
@@ -87,10 +107,12 @@ class PreferenceUpdate(BaseModel):
     default_occasion: Occasion | None = None
     temperature_unit: str | None = Field(default=None, pattern="^(celsius|fahrenheit)$")
     temperature_sensitivity: str | None = Field(default=None, pattern="^(low|normal|high)$")
-    cold_threshold: int | None = Field(default=None, ge=-20, le=30)
-    hot_threshold: int | None = Field(default=None, ge=10, le=45)
+    cold_threshold: int | None = Field(default=None, ge=COLD_THRESHOLD_MIN, le=COLD_THRESHOLD_MAX)
+    hot_threshold: int | None = Field(default=None, ge=HOT_THRESHOLD_MIN, le=HOT_THRESHOLD_MAX)
     layering_preference: str | None = Field(default=None, pattern="^(minimal|moderate|heavy)$")
-    avoid_repeat_days: int | None = Field(default=None, ge=0, le=30)
+    avoid_repeat_days: int | None = Field(
+        default=None, ge=AVOID_REPEAT_DAYS_MIN, le=AVOID_REPEAT_DAYS_MAX
+    )
     prefer_underused_items: bool | None = None
     variety_level: str | None = Field(default=None, pattern="^(low|moderate|high)$")
     ai_endpoints: list[AIEndpoint] | None = None

@@ -41,6 +41,7 @@
     "worn": "Portées"
   },
   "cloneToLookbook": {
+    "defaultName": "{occasion} · {date}",
     "description": "Donnez un nom à ce look pour le retrouver et le porter à nouveau.",
     "errorEmpty": "Veuillez entrer un nom",
     "name": "Nom",

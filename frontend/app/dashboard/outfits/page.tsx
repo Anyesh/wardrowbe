@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { List as ListIcon, CalendarDays, Plus, Search, CheckSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -23,7 +23,8 @@ import {
   type Outfit,
   type OutfitFilters,
 } from '@/lib/hooks/use-outfits';
-import { cn } from '@/lib/utils';
+import { cn, formatDateKey, formatShortDate, parseDateString } from '@/lib/utils';
+import { GRID_PAGE_SIZE } from '@/lib/pagination';
 
 interface MonthRef {
   year: number;
@@ -33,10 +34,6 @@ interface MonthRef {
 function currentMonthRef(): MonthRef {
   const now = new Date();
   return { year: now.getFullYear(), month: now.getMonth() + 1 };
-}
-
-function formatDateKey(y: number, m: number, d: number): string {
-  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
 function formatMonthParam(ref: MonthRef): string {
@@ -140,6 +137,7 @@ function chipToFilters(chip: FilterChip, search: string): OutfitFilters {
 function OutfitsPageContent() {
   const t = useTranslations('outfits');
   const tc = useTranslations('common');
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawFilter = (searchParams.get('filter') as FilterChip) || 'all';
@@ -179,7 +177,7 @@ function OutfitsPageContent() {
     [chip, debouncedSearch],
   );
 
-  const listQuery = useOutfits(filters, page, 24);
+  const listQuery = useOutfits(filters, page, GRID_PAGE_SIZE);
   const bulkDeleteOutfits = useBulkDeleteOutfits();
 
   // Clear selection when filters change (but not page - allow cross-page selection)
@@ -562,10 +560,8 @@ function OutfitsPageContent() {
                   year={monthRef.year}
                   month={monthRef.month}
                   outfits={calendarOutfits}
-                  selectedDate={selectedDate ? parseYmd(selectedDate) : null}
-                  onSelectDate={(d: Date) =>
-                    setSelectedDate(formatDateKey(d.getFullYear(), d.getMonth() + 1, d.getDate()))
-                  }
+                  selectedDate={selectedDate ? parseDateString(selectedDate) : null}
+                  onSelectDate={(d: Date) => setSelectedDate(formatDateKey(d))}
                   onMonthChange={handleMonthChange}
                 />
               )}
@@ -593,7 +589,7 @@ function OutfitsPageContent() {
                 {selectedDate && (
                   <div className="border-b pb-3">
                     <h2 className="text-lg font-semibold">
-                      {formatReadableDate(selectedDate)}
+                      {formatShortDate(selectedDate, locale)}
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       {t('calendar.outfitCount', { count: selectedDayOutfits.length })}
@@ -628,25 +624,12 @@ function OutfitsPageContent() {
           isDeleting={bulkDeleteOutfits.isPending}
           variant="outfits"
           page={page}
-          pageSize={24}
+          pageSize={GRID_PAGE_SIZE}
           onPageChange={setPage}
         />
       )}
     </div>
   );
-}
-
-function parseYmd(dateKey: string): Date {
-  const [y, m, d] = dateKey.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function formatReadableDate(dateKey: string): string {
-  return parseYmd(dateKey).toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
 }
 
 export default function OutfitsPage() {

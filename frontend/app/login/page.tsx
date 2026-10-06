@@ -5,6 +5,7 @@ import { signIn, getProviders, useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { API_BASE_PATH } from '@/lib/api';
 import { FORWARD_AUTH_ACCOUNT_CONFLICT, FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
 import { useAuthConfig } from '@/lib/hooks/use-auth-config';
 
@@ -204,7 +205,7 @@ function LoginContent() {
 
   // Check backend auth configuration on mount
   useEffect(() => {
-    fetch('/api/v1/auth/status')
+    fetch(`${API_BASE_PATH}/auth/status`)
       .then((res) => res.json())
       .then((data) => {
         if (!data.configured && data.error) {

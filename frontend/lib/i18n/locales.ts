@@ -1,13 +1,16 @@
-export const SUPPORTED_LOCALES = ['en', 'zh-CN', 'zh-TW', 'ko', 'ja', 'fr', 'de', 'it'] as const;
+import { DEFAULT_LOCALE as GENERATED_DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/lib/generated/locales';
+
+export { SUPPORTED_LOCALES };
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
-export const DEFAULT_LOCALE: SupportedLocale = 'en';
+export const DEFAULT_LOCALE: SupportedLocale = GENERATED_DEFAULT_LOCALE;
 
 export const LOCALE_COOKIE = 'NEXT_LOCALE';
 
 export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
+// Keyed by SupportedLocale so tsc fails when a code in backend/app/data/locales.json has no entry.
 export const LOCALE_METADATA: Record<SupportedLocale, { name: string; nativeName: string; dir: 'ltr' | 'rtl' }> = {
   en: { name: 'English', nativeName: 'English', dir: 'ltr' },
   'zh-CN': { name: 'Chinese (Simplified)', nativeName: '中文简体', dir: 'ltr' },
