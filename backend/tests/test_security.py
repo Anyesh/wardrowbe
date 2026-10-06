@@ -154,24 +154,6 @@ class TestNtfyServerValidation:
         assert config.server == "http://ntfy.local:8080"
 
 
-class TestScheduleOccasionValidation:
-    def test_rejects_invalid(self):
-        with pytest.raises(ValidationError):
-            ScheduleBase(day_of_week=0, notification_time="08:00", occasion="invalid-occasion")
-
-    def test_accepts_valid(self):
-        schedule = ScheduleBase(day_of_week=0, notification_time="08:00", occasion="casual")
-        assert schedule.occasion == "casual"
-
-    def test_update_rejects_invalid(self):
-        with pytest.raises(ValidationError):
-            ScheduleUpdate(occasion="invalid-occasion")
-
-    def test_update_accepts_valid(self):
-        update = ScheduleUpdate(occasion="formal")
-        assert update.occasion == "formal"
-
-
 class TestSharedOccasionVocabulary:
     @pytest.mark.parametrize("build", OCCASION_REQUESTS.values(), ids=OCCASION_REQUESTS.keys())
     @pytest.mark.parametrize("occasion", OCCASIONS)
