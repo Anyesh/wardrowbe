@@ -16,8 +16,26 @@ def _alembic(*args: str) -> None:
     subprocess.run(["python", "-m", "alembic", *args], env=env, check=True, capture_output=True)
 
 
+REMAPPED = (
+    {"gray": 0.4, "tan": -0.5, "navy": 0.35, "salmon": 0.1, "light-blue": 0.3},
+    {
+        "work": {"preferred_colors": ["gray", "navy", "blue", "light-blue"], "success_rate": 0.75},
+        "casual": {"preferred_colors": [], "success_rate": 0.5},
+        "date": {"success_rate": 1.0},
+    },
+)
+
+
+async def _stored_profile(db_session: AsyncSession, user_id) -> tuple[dict, dict]:
+    db_session.expire_all()
+    stored = await db_session.get(UserLearningProfile, user_id)
+    return stored.learned_color_scores, stored.learned_occasion_patterns
+
+
 @pytest.mark.asyncio
-async def test_remaps_learned_profile_colours(db_session: AsyncSession, test_user: User):
+async def test_remaps_learned_profile_colours_idempotently(
+    db_session: AsyncSession, test_user: User
+):
     user_id = test_user.id
     await db_session.commit()
     _alembic("downgrade", PREVIOUS)
@@ -30,11 +48,14 @@ async def test_remaps_learned_profile_colours(db_session: AsyncSession, test_use
                     "gray": 0.2,
                     "Khaki": -0.5,
                     "navy": 0.35,
-                    "salmon": 0.1,
+                    "Salmon": 0.1,
+                    "Light Blue": 0.2,
+                    "light-blue": 0.4,
+                    " ": 0.9,
                 },
                 learned_occasion_patterns={
                     "work": {
-                        "preferred_colors": ["charcoal", "navy", "gray", "teal"],
+                        "preferred_colors": ["charcoal", "NAVY", "gray", "teal", "Light Blue", ""],
                         "success_rate": 0.75,
                     },
                     "casual": {"preferred_colors": [], "success_rate": 0.5},
@@ -46,14 +67,11 @@ async def test_remaps_learned_profile_colours(db_session: AsyncSession, test_use
     finally:
         _alembic("upgrade", "head")
 
-    db_session.expire_all()
-    stored = await db_session.get(UserLearningProfile, user_id)
-    assert stored.learned_color_scores == {"gray": 0.4, "tan": -0.5, "navy": 0.35, "salmon": 0.1}
-    assert stored.learned_occasion_patterns == {
-        "work": {"preferred_colors": ["gray", "navy", "blue"], "success_rate": 0.75},
-        "casual": {"preferred_colors": [], "success_rate": 0.5},
-        "date": {"success_rate": 1.0},
-    }
+    assert await _stored_profile(db_session, user_id) == REMAPPED
+    await db_session.commit()
+    _alembic("downgrade", PREVIOUS)
+    _alembic("upgrade", "head")
+    assert await _stored_profile(db_session, user_id) == REMAPPED
 
 
 @pytest.mark.asyncio
