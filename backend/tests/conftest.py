@@ -86,6 +86,13 @@ async def db_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+@pytest.fixture
+def session_maker(async_engine):
+    return async_sessionmaker(
+        async_engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
+    )
+
+
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db():
@@ -124,6 +131,7 @@ async def test_user(db_session: AsyncSession) -> User:
         timezone="UTC",
         is_active=True,
         onboarding_completed=False,
+        email_verified=True,
     )
     db_session.add(user)
     await db_session.commit()

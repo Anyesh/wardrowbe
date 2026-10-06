@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -43,6 +42,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  useCurrentFamilyMember,
   useFamily,
   useCreateFamily,
   useJoinFamily,
@@ -198,8 +198,13 @@ function NoFamilyView() {
 function FamilyView() {
   const t = useTranslations('family');
   const tc = useTranslations('common');
-  const { data: session } = useSession();
+  const te = useTranslations('errors');
   const { data: family, isLoading } = useFamily();
+  const {
+    member: currentMember,
+    isPending: memberPending,
+    isError: memberError,
+  } = useCurrentFamilyMember(family);
   const [copied, setCopied] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
@@ -214,7 +219,7 @@ function FamilyView() {
   const removeMember = useRemoveMember();
   const updateFamily = useUpdateFamily();
 
-  if (isLoading) {
+  if (isLoading || memberPending) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -226,9 +231,11 @@ function FamilyView() {
     return <NoFamilyView />;
   }
 
-  // Match by email since session user id (external_id) differs from member id (UUID)
-  const currentEmail = session?.user?.email;
-  const currentMember = family.members.find((m) => m.email === currentEmail);
+  // Without the profile the admin controls cannot be decided, so say so instead of hiding them.
+  if (memberError) {
+    return <div className="text-center py-8 text-red-500">{te('pageLoad.title')}</div>;
+  }
+
   const isAdmin = currentMember?.role === 'admin';
 
   const copyInviteCode = () => {
@@ -249,8 +256,12 @@ function FamilyView() {
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
     try {
-      await inviteMember.mutateAsync({ email: inviteEmail.trim(), role: inviteRole });
-      toast.success(t('toasts.inviteSent'));
+      const invite = await inviteMember.mutateAsync({ email: inviteEmail.trim(), role: inviteRole });
+      if (invite.email_sent) {
+        toast.success(t('toasts.inviteSent'));
+      } else {
+        toast.warning(t('toasts.inviteNotEmailed'));
+      }
       setInviteEmail('');
     } catch {
       toast.error(t('toasts.inviteFailed'));
@@ -444,7 +455,7 @@ function FamilyView() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{member.display_name}</span>
-                      {member.email === currentEmail && (
+                      {member.id === currentMember?.id && (
                         <Badge variant="secondary" className="text-xs">
                           {tc('you')}
                         </Badge>
@@ -459,7 +470,7 @@ function FamilyView() {
                     <p className="text-sm text-muted-foreground">{member.email}</p>
                   </div>
                 </div>
-                {isAdmin && member.email !== currentEmail && (
+                {isAdmin && member.id !== currentMember?.id && (
                   <div className="flex items-center gap-2">
                     <Select
                       value={member.role}

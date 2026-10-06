@@ -12,9 +12,10 @@ import {
 
 import { cn } from '@/lib/utils';
 import { useOccasions } from '@/lib/hooks/use-translated-constants';
+import type { FeaturedOccasion } from '@/lib/types';
 
 export const OCCASION_CONFIG: Record<
-  string,
+  FeaturedOccasion,
   { icon: React.ReactNode; color: string }
 > = {
   casual: {
@@ -69,11 +70,11 @@ export function OccasionChips({ selected, onSelect }: OccasionChipsProps) {
             className={cn(
               'inline-flex items-center gap-2 px-4 py-2.5 rounded-full border-2 transition-all',
               'border-muted bg-background',
-              config?.color || 'hover:border-primary hover:bg-primary/5',
+              config.color,
               'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50'
             )}
           >
-            {config?.icon}
+            {config.icon}
             <span className="text-sm font-medium">{occasion.label}</span>
           </button>
         );

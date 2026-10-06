@@ -210,12 +210,16 @@ list to `backend/app/utils/locale.py`, and create `frontend/messages/<locale>/`.
 
 ### Garment vocabulary
 
-Clothing types, their outfit role and default wash interval, the tagging materials and the
-formality scale live in one file, `backend/app/data/garment_vocabulary.json`. The tagging prompt,
-the backend lists and `frontend/lib/generated/garment-vocabulary.ts` are all derived from it. After
+Clothing types, their outfit role and default wash interval, the tagging materials, the
+formality scale, the occasions (with the formality band the scorer expects for each) and the stored
+colours (with their swatch hex, plus the aliases the tagger folds onto them) live in one file,
+`backend/app/data/garment_vocabulary.json`. The tagging prompt, the backend lists and
+validators, and `frontend/lib/generated/garment-vocabulary.ts` are all derived from it. After
 editing it, run `cd frontend && npm run vocab:gen`, add the labels under `constants.types`,
-`constants.materials`, `constants.formalities` and `constants.roles` in every locale, and commit the
-generated file. `npm run vocab:check` fails CI when the generated file is stale.
+`constants.materials`, `constants.formalities`, `constants.roles`, `constants.occasions` and
+`constants.colors` in every locale, and commit the generated file. Turning a stored colour into an
+alias also needs an Alembic data migration that remaps the rows already holding it.
+`npm run vocab:check` fails CI when the generated file is stale. The occasion pickers show only the short featured list in `frontend/lib/types.ts`.
 
 ## Project Structure
 
@@ -225,7 +229,7 @@ generated file. `npm run vocab:check` fails CI when the generated file is stale.
 backend/
 ├── app/
 │   ├── api/           # API route handlers
-│   ├── data/          # garment_vocabulary.json, the source of every type/material/formality list
+│   ├── data/          # garment_vocabulary.json, the source of every type/material/formality/occasion/colour list
 │   ├── models/        # SQLAlchemy models
 │   ├── prompts/       # AI prompt templates (<<TOKENS>> are filled from the vocabulary)
 │   ├── schemas/       # Pydantic schemas

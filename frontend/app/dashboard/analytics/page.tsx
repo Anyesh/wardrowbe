@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
+import { useColorLabel } from '@/lib/hooks/use-translated-constants';
+import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -97,39 +99,14 @@ function LoadingSkeleton() {
 
 function ColorBar({ color, percentage }: { color: string; percentage: number }) {
   const t = useTranslations('analytics');
-  const colorMap: Record<string, string> = {
-    black: 'bg-gray-900',
-    white: 'bg-gray-100 border',
-    gray: 'bg-gray-500',
-    grey: 'bg-gray-500',
-    navy: 'bg-blue-900',
-    blue: 'bg-blue-500',
-    red: 'bg-red-500',
-    green: 'bg-green-500',
-    yellow: 'bg-yellow-400',
-    orange: 'bg-orange-500',
-    purple: 'bg-purple-500',
-    pink: 'bg-pink-500',
-    brown: 'bg-amber-700',
-    beige: 'bg-amber-200',
-    cream: 'bg-amber-100',
-    khaki: 'bg-yellow-700',
-    olive: 'bg-lime-700',
-    teal: 'bg-teal-500',
-    burgundy: 'bg-red-900',
-    maroon: 'bg-red-800',
-    coral: 'bg-orange-400',
-    salmon: 'bg-red-300',
-  };
-
-  const bgColor = colorMap[color.toLowerCase()] || 'bg-muted';
+  const colorLabel = useColorLabel();
 
   return (
     <div className="flex items-center gap-3">
-      <div className={`w-4 h-4 rounded ${bgColor}`} />
+      <div className="w-4 h-4 rounded border" style={{ backgroundColor: colorSwatch(color) }} />
       <div className="flex-1">
         <div className="flex justify-between text-sm mb-1">
-          <span className="capitalize">{color}</span>
+          <span>{colorLabel(color)}</span>
           <span className="text-muted-foreground">{t('percent', { value: percentage.toFixed(1) })}</span>
         </div>
         <Progress value={percentage} className="h-2" />
@@ -247,15 +224,15 @@ export default function AnalyticsPage() {
         />
         <StatCard
           title={t('stats.acceptanceRate.title')}
-          value={wardrobe.acceptance_rate ? t('percent', { value: wardrobe.acceptance_rate }) : '-'}
-          description={wardrobe.acceptance_rate ? t('stats.acceptanceRate.description') : t('stats.totalWears.noData')}
+          value={wardrobe.acceptance_rate != null ? t('percent', { value: wardrobe.acceptance_rate }) : '-'}
+          description={wardrobe.acceptance_rate != null ? t('stats.acceptanceRate.description') : t('stats.totalWears.noData')}
           icon={TrendingUp}
-          trend={wardrobe.acceptance_rate && wardrobe.acceptance_rate > 50 ? 'up' : undefined}
+          trend={wardrobe.acceptance_rate != null && wardrobe.acceptance_rate > 50 ? 'up' : undefined}
         />
         <StatCard
           title={t('stats.totalWears.title')}
           value={wardrobe.total_wears}
-          description={wardrobe.average_rating ? t('stats.avgRating', { rating: wardrobe.average_rating }) : t('stats.totalWears.description')}
+          description={wardrobe.average_rating != null ? t('stats.avgRating', { rating: wardrobe.average_rating }) : t('stats.totalWears.description')}
           icon={Activity}
         />
       </div>
