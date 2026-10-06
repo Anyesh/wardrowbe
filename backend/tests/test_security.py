@@ -70,6 +70,29 @@ class TestNamesAreSingleLine:
             ("   ", "jane.doe@example.com", "jane.doe"),
             ("\u200b", "jane.doe@example.com", "jane.doe"),
             (" \u2060\ufeff\u3000\u200b ", "jane.doe@example.com", "jane.doe"),
+            ("\u200c", "jane.doe@example.com", "jane.doe"),
+            ("\u200d", "jane.doe@example.com", "jane.doe"),
+            ("\u200e", "jane.doe@example.com", "jane.doe"),
+            ("\u00ad", "jane.doe@example.com", "jane.doe"),
+            ("\u180e", "jane.doe@example.com", "jane.doe"),
+            ("\u2061", "jane.doe@example.com", "jane.doe"),
+            ("\u202e", "jane.doe@example.com", "jane.doe"),
+            ("\u3164", "jane.doe@example.com", "jane.doe"),
+            ("\u115f", "jane.doe@example.com", "jane.doe"),
+            ("\u1160", "jane.doe@example.com", "jane.doe"),
+            ("\uffa0", "jane.doe@example.com", "jane.doe"),
+            ("\u2800", "jane.doe@example.com", "jane.doe"),
+            ("\u034f", "jane.doe@example.com", "jane.doe"),
+            ("\ufe0f", "jane.doe@example.com", "jane.doe"),
+            ("\U000e0100", "jane.doe@example.com", "jane.doe"),
+            ("\u17b4", "jane.doe@example.com", "jane.doe"),
+            ("\u200c\u200d\u00ad\u3164", "jane.doe@example.com", "jane.doe"),
+            pytest.param(
+                "\u200b" * 100 + "Bob",
+                "jane.doe@example.com",
+                "jane.doe",
+                id="cut-leaves-only-zero-width",
+            ),
         ],
     )
     def test_every_request_refuses_a_broken_or_blank_name_but_sign_in_repairs_it(
@@ -82,8 +105,18 @@ class TestNamesAreSingleLine:
                 NAME_REQUESTS[request_id](name)
 
     @pytest.mark.parametrize("build", NAME_REQUESTS.values(), ids=NAME_REQUESTS.keys())
-    def test_every_request_accepts_a_plain_name(self, build):
-        assert build("Smith & Co ☃ Müller") == "Smith & Co ☃ Müller"
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "Smith & Co ☃ Müller",
+            "\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645",
+            "\U0001f468\u200d\U0001f469\u200d\U0001f467",
+            "\U0001f98a",
+            "\u2603\ufe0f",
+        ],
+    )
+    def test_every_request_accepts_a_plain_name(self, build, name):
+        assert build(name) == name
 
     @pytest.mark.asyncio
     async def test_family_with_a_header_breaking_name_is_never_created(self, client, auth_headers):

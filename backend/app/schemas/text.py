@@ -9,8 +9,27 @@ from pydantic import AfterValidator
 # or flattened to spaces in text an outside system owns.
 _FORBIDDEN_CATEGORIES = {"Cc", "Zl", "Zp"}
 
-# str.strip keeps these zero-width characters, so a name made only of them renders blank.
-_INVISIBLE_CHARACTERS = {"\u200b", "\u2060", "\ufeff"}
+# A name made only of these renders blank, and str.strip keeps them. Format characters (Cf) are
+# matched by category; these are the Default_Ignorable_Code_Points outside Cf, which Python has
+# no property for, plus the Braille blank, which renders as an empty cell.
+_INVISIBLE_RANGES = (
+    (0x034F, 0x034F),
+    (0x115F, 0x1160),
+    (0x17B4, 0x17B5),
+    (0x180B, 0x180F),
+    (0x2800, 0x2800),
+    (0x3164, 0x3164),
+    (0xFE00, 0xFE0F),
+    (0xFFA0, 0xFFA0),
+    (0xE0100, 0xE01EF),
+)
+
+
+def _is_invisible(char: str) -> bool:
+    if char.isspace() or unicodedata.category(char) == "Cf":
+        return True
+    code = ord(char)
+    return any(low <= code <= high for low, high in _INVISIBLE_RANGES)
 
 
 def _is_forbidden(char: str) -> bool:
@@ -31,7 +50,7 @@ def flatten_control_characters(value: object) -> object:
 
 
 def is_blank(value: str) -> bool:
-    return all(char.isspace() or char in _INVISIBLE_CHARACTERS for char in value)
+    return all(_is_invisible(char) for char in value)
 
 
 def reject_blank(value: str) -> str:

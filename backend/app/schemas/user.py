@@ -24,9 +24,8 @@ def _fit_idp_display_name(value: object) -> object:
     flattened = flatten_control_characters(value)
     if not isinstance(flattened, str):
         return flattened
-    if is_blank(flattened):
-        return ""
-    return flattened[:DISPLAY_NAME_MAX_LENGTH].rstrip()
+    fitted = flattened[:DISPLAY_NAME_MAX_LENGTH].rstrip()
+    return "" if is_blank(fitted) else fitted
 
 
 # A cut URL would point nowhere, and refusing would lock the user out, so an avatar URL wider
