@@ -437,14 +437,14 @@ class RecommendationService:
 
         preferences = {}
 
-        if profile.learned_color_scores:
+        if profile.color_scores:
             liked_colors = sorted(
-                [(c, s) for c, s in profile.learned_color_scores.items() if s > 0.2],
+                [(c, s) for c, s in profile.color_scores.items() if s > 0.2],
                 key=lambda x: x[1],
                 reverse=True,
             )[:5]
             disliked_colors = sorted(
-                [(c, s) for c, s in profile.learned_color_scores.items() if s < -0.2],
+                [(c, s) for c, s in profile.color_scores.items() if s < -0.2],
                 key=lambda x: x[1],
             )[:3]
 
@@ -453,17 +453,17 @@ class RecommendationService:
             if disliked_colors:
                 preferences["learned_avoid_colors"] = [c for c, _ in disliked_colors]
 
-        if profile.learned_style_scores:
+        if profile.style_scores:
             liked_styles = sorted(
-                [(s, score) for s, score in profile.learned_style_scores.items() if score > 0.2],
+                [(s, score) for s, score in profile.style_scores.items() if score > 0.2],
                 key=lambda x: x[1],
                 reverse=True,
             )[:3]
             if liked_styles:
                 preferences["learned_preferred_styles"] = [s for s, _ in liked_styles]
 
-        if occasion and profile.learned_occasion_patterns:
-            occ_data = profile.learned_occasion_patterns.get(occasion)
+        if occasion:
+            occ_data = profile.occasion_patterns.get(occasion)
             if occ_data:
                 preferences["occasion_insights"] = {occasion: occ_data}
 

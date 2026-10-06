@@ -1,6 +1,7 @@
 """Learning system models for continuous AI improvement."""
 
 import uuid
+from collections.abc import Callable
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -23,6 +24,44 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.item import ClothingItem
     from app.models.user import User
+
+
+def _is_number(value: object) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def _is_name_list(value: object) -> bool:
+    return isinstance(value, list) and all(isinstance(name, str) for name in value)
+
+
+def _is_count_map(value: object) -> bool:
+    return isinstance(value, dict) and all(_is_number(count) for count in value.values())
+
+
+_PATTERN_FIELD_CHECKS: dict[str, Callable[[object], bool]] = {
+    "preferred_colors": _is_name_list,
+    "success_rate": _is_number,
+    "preferred_layers": _is_number,
+    "colors": _is_count_map,
+    "preferred_colors_scores": _is_count_map,
+}
+
+
+def _readable_scores(raw: object) -> dict[str, float]:
+    if not isinstance(raw, dict):
+        return {}
+    return {name: score for name, score in raw.items() if _is_number(score)}
+
+
+def _readable_patterns(raw: object) -> dict[str, dict]:
+    if not isinstance(raw, dict):
+        return {}
+    return {
+        key: dict(entry)
+        for key, entry in raw.items()
+        if isinstance(entry, dict)
+        and all(check(entry[f]) for f, check in _PATTERN_FIELD_CHECKS.items() if f in entry)
+    }
 
 
 class UserLearningProfile(Base):
@@ -85,6 +124,25 @@ class UserLearningProfile(Base):
 
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="learning_profile")
+
+    # Every reader goes through these rather than the raw columns, because a row written by an
+    # older version or edited by hand can hold non-numeric scores or malformed patterns, and a
+    # single bad entry must not fail the whole request.
+    @property
+    def color_scores(self) -> dict[str, float]:
+        return _readable_scores(self.learned_color_scores)
+
+    @property
+    def style_scores(self) -> dict[str, float]:
+        return _readable_scores(self.learned_style_scores)
+
+    @property
+    def occasion_patterns(self) -> dict[str, dict]:
+        return _readable_patterns(self.learned_occasion_patterns)
+
+    @property
+    def weather_preferences(self) -> dict[str, dict]:
+        return _readable_patterns(self.learned_weather_preferences)
 
 
 class ItemPairScore(Base):

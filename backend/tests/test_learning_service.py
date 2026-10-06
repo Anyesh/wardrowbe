@@ -1,12 +1,13 @@
-from datetime import date
-from unittest.mock import patch
+from datetime import UTC, date, datetime
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
 
-from app.models.item import ClothingItem
+from app.models.item import ClothingItem, ItemStatus
 from app.models.learning import ItemPairScore, UserLearningProfile
 from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus, UserFeedback
 from app.models.user import User
@@ -305,8 +306,11 @@ class TestLearnedColoursAreCanonical:
                     "cream": True,
                     "\u00a0": 0.9,
                 },
-                learned_style_scores={},
-                learned_occasion_patterns={"casual": {"preferred_colors": ["charcoal", "gray"]}},
+                learned_style_scores={"boho": "high", "minimal": 0.3},
+                learned_occasion_patterns={
+                    "casual": {"preferred_colors": ["charcoal", "gray"]},
+                    "wedding": "often",
+                },
                 feedback_count=3,
             )
         )
@@ -324,3 +328,107 @@ class TestLearnedColoursAreCanonical:
         assert profile.learned_color_scores["gray"] == round(0.4 * (1 - alpha) + signal * alpha, 3)
         assert profile.learned_color_scores["blue"] == -0.4
         assert profile.learned_occasion_patterns["casual"]["preferred_colors"] == ["gray"]
+        assert profile.learned_style_scores == {"minimal": 0.3}
+        assert "wedding" not in profile.learned_occasion_patterns
+
+
+READABLE_PROFILE = {
+    "learned_color_scores": {"black": 0.9},
+    "learned_style_scores": {"minimal": 0.8},
+    "learned_occasion_patterns": {"formal": {"preferred_colors": ["black"], "success_rate": 0.8}},
+    "learned_weather_preferences": {"mild": {"preferred_layers": 2.0, "success_rate": 0.5}},
+}
+JUNK_ENTRIES = [
+    pytest.param("learned_color_scores", "navy", "high", id="colour-string"),
+    pytest.param("learned_color_scores", "navy", [0.5], id="colour-list"),
+    pytest.param("learned_color_scores", "navy", {"score": 0.5}, id="colour-dict"),
+    pytest.param("learned_color_scores", "navy", True, id="colour-bool"),
+    pytest.param("learned_color_scores", "navy", None, id="colour-null"),
+    pytest.param("learned_style_scores", "boho", "high", id="style-string"),
+    pytest.param("learned_style_scores", "boho", True, id="style-bool"),
+    pytest.param("learned_occasion_patterns", "wedding", "often", id="occasion-string"),
+    pytest.param(
+        "learned_occasion_patterns", "wedding", {"preferred_colors": "navy"}, id="occasion-colours"
+    ),
+    pytest.param(
+        "learned_occasion_patterns", "wedding", {"preferred_colors": [1]}, id="occasion-colour-int"
+    ),
+    pytest.param(
+        "learned_occasion_patterns", "wedding", {"success_rate": "high"}, id="occasion-rate"
+    ),
+    pytest.param("learned_weather_preferences", "freezing", [], id="weather-list"),
+    pytest.param(
+        "learned_weather_preferences", "freezing", {"preferred_layers": "many"}, id="weather-layers"
+    ),
+]
+
+
+def _learned_prompt_lines(prompt: str) -> str:
+    return "\n".join(
+        line for line in prompt.splitlines() if line.startswith(("- Learned", "- For ", "- Low"))
+    )
+
+
+class TestJunkLearnedProfileIsIgnored:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("method", "path"),
+        [
+            ("get", "/api/v1/learning"),
+            ("post", "/api/v1/learning/recompute"),
+            ("post", "/api/v1/learning/generate-insights"),
+            ("post", "/api/v1/outfits/suggest"),
+        ],
+    )
+    @pytest.mark.parametrize(("field", "junk_key", "junk_value"), JUNK_ENTRIES)
+    async def test_readers_skip_junk_entries(
+        self, client, db_session, test_user, auth_headers, method, path, field, junk_key, junk_value
+    ):
+        profile = {name: dict(entries) for name, entries in READABLE_PROFILE.items()}
+        profile[field][junk_key] = junk_value
+        db_session.add(
+            UserLearningProfile(
+                user_id=test_user.id,
+                **profile,
+                feedback_count=3,
+                last_computed_at=datetime.now(UTC),
+            )
+        )
+        for item_type in ("shirt", "pants"):
+            db_session.add(
+                ClothingItem(
+                    user_id=test_user.id,
+                    type=item_type,
+                    image_path=f"test/{uuid4()}.jpg",
+                    status=ItemStatus.ready,
+                    primary_color="black",
+                )
+            )
+        await db_session.commit()
+        ai_reply = SimpleNamespace(
+            content='{"items": [1, 2], "headline": "x"}', model="m", endpoint="e"
+        )
+
+        with patch(
+            "app.services.recommendation_service.AIService.generate_text",
+            new_callable=AsyncMock,
+            return_value=ai_reply,
+        ) as generate_text:
+            response = await client.request(
+                method,
+                path,
+                json={
+                    "occasion": "wedding",
+                    "weather_override": {"temperature": 20, "condition": "clear"},
+                },
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200, response.text
+        seen = (
+            _learned_prompt_lines(generate_text.call_args.args[0])
+            if generate_text.called
+            else response.text
+        )
+        assert "black" in seen
+        assert junk_key not in seen
