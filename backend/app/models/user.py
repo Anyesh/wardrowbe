@@ -31,7 +31,8 @@ class User(Base):
     family_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("families.id", ondelete="SET NULL")
     )
-    external_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    # Superseded by user_identities, which migration 921b8d3bc2b8 backfilled from it as legacy rows.
+    external_id: Mapped[str | None] = mapped_column(String(255), unique=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     # Whether the identity source vouched for the current email; only such rows may be adopted
     # by another external_id, so that a squatted, unverified email cannot be taken over.

@@ -53,7 +53,7 @@ class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    external_id: str
+    external_id: str | None
     family_id: UUID | None = None
     role: str
     is_active: bool
