@@ -830,6 +830,7 @@ class TestRetryFailedNotifications:
             status=NotificationStatus.retrying,
             payload={"occasion": "casual"},
             attempts=attempts,
+            error_message="HTTP 500: first attempt",
         )
         db_session.add(notification)
         await db_session.commit()
