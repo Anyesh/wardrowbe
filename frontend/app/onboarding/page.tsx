@@ -34,6 +34,7 @@ import { useUpdatePreferences } from '@/lib/hooks/use-preferences';
 import { useCreateItem } from '@/lib/hooks/use-items';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { api, setAccessToken } from '@/lib/api';
+import { LOCATION_NAME_MAX_LENGTH } from '@/lib/location';
 import { StyleProfile } from '@/lib/types';
 import { useClothingColors, useClothingTypes } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
@@ -396,6 +397,7 @@ function LocationStep({
               id="location"
               placeholder={t('location.cityPlaceholder')}
               value={locationName}
+              maxLength={LOCATION_NAME_MAX_LENGTH}
               onChange={(e) => setLocationName(e.target.value)}
             />
           </div>

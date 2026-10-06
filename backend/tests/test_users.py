@@ -1,5 +1,9 @@
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
 
 
 class TestUserMe:
@@ -42,40 +46,121 @@ class TestUserUpdate:
         assert data["timezone"] == "America/New_York"
 
     @pytest.mark.asyncio
-    async def test_update_user_location(self, client: AsyncClient, test_user, auth_headers):
-        """Test updating user location."""
+    @pytest.mark.parametrize(
+        ("lat", "lon"),
+        [
+            pytest.param(40.7128, -74.0060, id="new-york"),
+            pytest.param(0.0, 37.0, id="equator"),
+            pytest.param(51.5, 0.0, id="greenwich"),
+        ],
+    )
+    async def test_update_user_location(
+        self, client: AsyncClient, test_user, auth_headers, lat, lon
+    ):
         response = await client.patch(
             "/api/v1/users/me",
-            json={
-                "location_lat": 40.7128,
-                "location_lon": -74.0060,
-                "location_name": "New York City",
-            },
+            json={"location_lat": lat, "location_lon": lon, "location_name": "Somewhere"},
             headers=auth_headers,
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["location_name"] == "New York City"
-        # Check coordinates are stored (may be string or float depending on serialization)
-        assert float(data["location_lat"]) == pytest.approx(40.7128, rel=1e-4)
-        assert float(data["location_lon"]) == pytest.approx(-74.0060, rel=1e-4)
+        for data in (
+            response.json(),
+            (await client.get("/api/v1/users/me", headers=auth_headers)).json(),
+        ):
+            assert data["location_name"] == "Somewhere"
+            assert data["location_lat"] == pytest.approx(lat, rel=1e-4)
+            assert data["location_lon"] == pytest.approx(lon, rel=1e-4)
 
     @pytest.mark.asyncio
-    async def test_update_user_rejects_unknown_field(
-        self, client: AsyncClient, test_user, auth_headers
+    @pytest.mark.parametrize(
+        "body",
+        [
+            pytest.param({"timeZone": "Europe/Amsterdam"}, id="unknown-field"),
+            pytest.param({"display_name": ""}, id="blank-name"),
+            pytest.param({"display_name": None}, id="null-name"),
+            pytest.param({"display_name": "x" * 101}, id="name-over-column"),
+            pytest.param({"location_name": "x" * 101}, id="place-over-column"),
+            pytest.param({"location_name": "Paris\r\nBcc: x@example.com"}, id="place-crlf"),
+            pytest.param({"location_name": "Paris\u2028Lyon"}, id="place-line-separator"),
+            pytest.param({"location_lat": 91}, id="lat-out-of-range"),
+            pytest.param({"location_lon": -181}, id="lon-out-of-range"),
+            pytest.param({"location_lat": 1e10}, id="lat-over-column"),
+            pytest.param({"body_measurements": {"chest": 10**400}}, id="measurement-over-float"),
+        ],
+    )
+    async def test_update_user_rejects_a_bad_body_and_changes_nothing(
+        self, client: AsyncClient, test_user, auth_headers, body
     ):
-        """An unrecognized key (e.g. a client-side naming mismatch like
-        timeZone instead of timezone) must 422, not silently no-op with a
-        200 that leaves the field unchanged."""
+        before = (await client.get("/api/v1/users/me", headers=auth_headers)).json()
+
+        response = await client.patch("/api/v1/users/me", json=body, headers=auth_headers)
+
+        assert response.status_code == 422
+        after = await client.get("/api/v1/users/me", headers=auth_headers)
+        assert after.json() == before
+
+
+class TestUserTimezone:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "timezone", ["Mars/Olympus_Mons", "", "utc", "America", "../etc/passwd", None]
+    )
+    async def test_unknown_timezone_rejected(
+        self, client: AsyncClient, test_user, auth_headers, timezone
+    ):
         response = await client.patch(
             "/api/v1/users/me",
-            json={"timeZone": "Europe/Amsterdam"},
+            json={"timezone": timezone},
             headers=auth_headers,
         )
         assert response.status_code == 422
 
-        unchanged = await client.get("/api/v1/users/me", headers=auth_headers)
-        assert unchanged.json()["timezone"] != "Europe/Amsterdam"
+        response = await client.get("/api/v1/users/me", headers=auth_headers)
+        assert response.json()["timezone"] == "UTC"
+
+
+class TestBadStoredTimezone:
+    @pytest_asyncio.fixture
+    async def bad_tz_user(self, db_session: AsyncSession, test_user: User) -> User:
+        test_user.timezone = "Mars/Olympus_Mons"
+        await db_session.commit()
+        return test_user
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("url", ["/api/v1/users/me", "/api/v1/auth/session"])
+    async def test_stored_zone_still_reads(
+        self, client: AsyncClient, bad_tz_user, auth_headers, url
+    ):
+        response = await client.get(url, headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json()["timezone"] == "Mars/Olympus_Mons"
+
+    # Resending the stored zone must work so that a location save does not fail on a zone the
+    # user never chose, while switching to a different unknown zone is still refused.
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("timezone", "status_code", "saved"),
+        [
+            ("Mars/Olympus_Mons", 200, "Mars/Olympus_Mons"),
+            ("Mars/Valles_Marineris", 422, None),
+            ("Asia/Kathmandu", 200, "Asia/Kathmandu"),
+        ],
+    )
+    async def test_location_save_with_timezone(
+        self, client: AsyncClient, bad_tz_user, auth_headers, timezone, status_code, saved
+    ):
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={
+                "location_lat": 27.7172,
+                "location_lon": 85.324,
+                "location_name": "Kathmandu",
+                "timezone": timezone,
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == status_code
+        assert response.json().get("timezone") == saved
 
 
 class TestUserLocale:

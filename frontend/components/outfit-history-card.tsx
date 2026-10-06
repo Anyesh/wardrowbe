@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Zap, Edit3, ThumbsUp, ThumbsDown, Clock, Eye, Star, ArrowRight, Shirt, Users, ExternalLink, Bot } from 'lucide-react';
+import { Calendar, Zap, Edit3, ThumbsUp, ThumbsDown, Star, ArrowRight, Shirt, Users, ExternalLink, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,45 +13,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { OutfitStatusIcon } from '@/components/outfit-status';
 import { useAcceptOutfit, useRejectOutfit, type Outfit, type OutfitSource, type WoreInsteadItem } from '@/lib/hooks/use-outfits';
+import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-
-function StatusIcon({ status }: { status: Outfit['status'] }) {
-  switch (status) {
-    case 'accepted':
-      return <ThumbsUp className="h-4 w-4 text-green-500" />;
-    case 'rejected':
-      return <ThumbsDown className="h-4 w-4 text-red-500" />;
-    case 'viewed':
-      return <Eye className="h-4 w-4 text-blue-500" />;
-    case 'sent':
-    case 'pending':
-      return <Clock className="h-4 w-4 text-muted-foreground" />;
-    case 'expired':
-      return <Clock className="h-4 w-4 text-orange-500" />;
-    default:
-      return <Clock className="h-4 w-4 text-muted-foreground" />;
-  }
-}
-
-function StatusBadge({ status }: { status: Outfit['status'] }) {
-  const t = useTranslations('history');
-  const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    accepted: 'default',
-    rejected: 'destructive',
-    viewed: 'secondary',
-    sent: 'outline',
-    pending: 'outline',
-    expired: 'secondary',
-  };
-
-  return (
-    <Badge variant={variants[status] || 'outline'} className="capitalize">
-      {t(`status.${status}`)}
-    </Badge>
-  );
-}
 
 function SourceBadge({ source }: { source: OutfitSource }) {
   const t = useTranslations('history');
@@ -116,6 +82,7 @@ interface OutfitHistoryCardProps {
 
 export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHistoryCardProps) {
   const t = useTranslations('history.card');
+  const occasionLabel = useOccasionLabel();
   const acceptOutfit = useAcceptOutfit();
   const rejectOutfit = useRejectOutfit();
   const [previewItem, setPreviewItem] = useState<WoreInsteadItem | null>(null);
@@ -148,9 +115,9 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
           <SourceBadge source={outfit.source} />
           <div className="flex items-center gap-1.5">
             <Badge variant="secondary" className="capitalize text-xs">
-              {outfit.occasion}
+              {occasionLabel(outfit.occasion)}
             </Badge>
-            <StatusIcon status={outfit.status} />
+            <OutfitStatusIcon status={outfit.status} />
           </div>
         </div>
 

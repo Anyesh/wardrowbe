@@ -23,6 +23,7 @@ import {
   getNetworkLocationUrl,
   formatReverseGeocodedLocation,
   isNetworkLocationFallbackEnabled,
+  LOCATION_NAME_MAX_LENGTH,
   resolveNetworkLocation,
 } from '@/lib/location';
 import { Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
@@ -55,11 +56,6 @@ const BODY_MEASUREMENT_FIELDS = [
 ] as const;
 
 const NUMERIC_MEASUREMENT_KEYS: readonly string[] = BODY_MEASUREMENT_FIELDS.map((f) => f.key);
-
-function getErrorMessage(e: unknown, fallback: string): string {
-  if (e instanceof Error) return e.message;
-  return fallback;
-}
 
 interface EndpointTestResult {
   status: 'connected' | 'error' | 'testing' | null;
@@ -177,7 +173,7 @@ export default function SettingsPage() {
   const updatePreferences = useUpdatePreferences();
   const resetPreferences = useResetPreferences();
   const testEndpoint = useTestAIEndpoint();
-  const updateUserProfile = useUpdateUserProfile();
+  const updateUserProfile = useUpdateUserProfile({ toastsOwnErrors: true });
 
   const [formData, setFormData] = useState<Partial<Preferences>>({});
   const [hasChanges, setHasChanges] = useState(false);
@@ -446,8 +442,8 @@ export default function SettingsPage() {
       });
       setMeasurementsDirty(false);
       toast.success(t('body.saved'));
-    } catch (e) {
-      toast.error(getErrorMessage(e, t('body.saveError')));
+    } catch {
+      toast.error(t('body.saveError'));
     }
   };
 
@@ -603,6 +599,7 @@ export default function SettingsPage() {
               <Label>{t('location.cityLabel')}</Label>
               <Input
                 value={locationName}
+                maxLength={LOCATION_NAME_MAX_LENGTH}
                 onChange={(e) => setLocationName(e.target.value)}
                 placeholder={t('location.cityPlaceholder')}
               />

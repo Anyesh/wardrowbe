@@ -174,6 +174,23 @@ class TestTagParsing:
         tags = service._parse_tags_from_response(response)
         assert tags.primary_color == "gray"
 
+    def test_frontend_only_names_normalise_to_stored_colors(self):
+        service = AIService()
+        tags = service._parse_tags_from_response(
+            '{"type": "pants", "primary_color": "Charcoal", '
+            '"colors": ["charcoal", "gray", "khaki", "teal", "army green", "light-blue"]}'
+        )
+        assert tags.primary_color == "gray"
+        assert tags.colors == ["gray", "tan", "blue", "olive", "light-blue"]
+
+    def test_gold_and_silver_are_stored_not_aliased(self):
+        service = AIService()
+        tags = service._parse_tags_from_response(
+            '{"type": "belt", "primary_color": "gold", "colors": ["gold", "silver"]}'
+        )
+        assert tags.primary_color == "gold"
+        assert tags.colors == ["gold", "silver"]
+
     def test_parse_invalid_json(self):
         """Test parsing completely invalid response."""
         service = AIService()

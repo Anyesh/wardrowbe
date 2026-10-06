@@ -13,7 +13,14 @@ from PIL import Image, ImageOps
 from pydantic import BaseModel
 
 from app.config import get_settings
-from app.utils.garment_vocabulary import FORMALITY, MATERIALS, TYPES, render_tagging_prompt
+from app.utils.garment_vocabulary import (
+    COLORS,
+    FORMALITY,
+    MATERIALS,
+    TYPES,
+    normalize_color,
+    render_tagging_prompt,
+)
 from app.utils.locale import DEFAULT_LOCALE
 from app.utils.prompts import load_prompt
 
@@ -72,28 +79,7 @@ DESCRIPTION_LANGUAGES = {
 
 # Valid values for validation
 VALID_TYPES = set(TYPES)
-VALID_COLORS = {
-    "black",
-    "white",
-    "gray",
-    "navy",
-    "blue",
-    "light-blue",
-    "red",
-    "burgundy",
-    "pink",
-    "green",
-    "olive",
-    "yellow",
-    "orange",
-    "purple",
-    "brown",
-    "tan",
-    "beige",
-    "cream",
-    "gold",
-    "silver",
-}
+VALID_COLORS = set(COLORS)
 VALID_PATTERNS = {
     "solid",
     "striped",
@@ -386,44 +372,19 @@ class AIService:
                                 break
             return None
 
-        COLOR_ALIASES: dict[str, str] = {
-            "grey": "gray",
-            "light grey": "gray",
-            "light gray": "gray",
-            "dark grey": "gray",
-            "dark gray": "gray",
-            "off-white": "cream",
-            "ivory": "cream",
-            "wine": "burgundy",
-            "maroon": "burgundy",
-            "forest green": "green",
-            "dark blue": "navy",
-            "royal blue": "blue",
-            "sky blue": "light-blue",
-            "baby blue": "light-blue",
-            "camel": "tan",
-            "khaki": "tan",
-            "rust": "orange",
-            "coral": "pink",
-            "rose": "pink",
-            "mauve": "purple",
-            "lavender": "purple",
-            "mustard": "yellow",
-            "gold": "yellow",
-            "silver": "gray",
-            "charcoal": "gray",
-        }
-
         def validate_value(value: str | None, valid_set: set) -> str | None:
             if value is None:
                 return None
             value_lower = value.lower().strip()
             if value_lower in valid_set:
                 return value_lower
-            alias = COLOR_ALIASES.get(value_lower)
-            if alias and alias in valid_set:
-                return alias
             return None
+
+        def validate_colors(values: object) -> list[str]:
+            if not isinstance(values, list):
+                return []
+            normalized = (normalize_color(v) for v in values if isinstance(v, str))
+            return list(dict.fromkeys(c for c in normalized if c))
 
         def validate_list(values: list, valid_set: set) -> list:
             if not values:
@@ -452,8 +413,10 @@ class AIService:
                 logger.warning(f"AI returned unsupported item type: {tags.unrecognized_type!r}")
 
         tags.subtype = data.get("subtype") if data.get("subtype") else None
-        tags.primary_color = validate_value(data.get("primary_color"), VALID_COLORS)
-        tags.colors = validate_list(data.get("colors", []), VALID_COLORS)
+        raw_primary_color = data.get("primary_color")
+        if isinstance(raw_primary_color, str):
+            tags.primary_color = normalize_color(raw_primary_color)
+        tags.colors = validate_colors(data.get("colors"))
         tags.pattern = validate_value(data.get("pattern"), VALID_PATTERNS)
         tags.material = validate_value(data.get("material"), VALID_MATERIALS)
         tags.formality = validate_value(data.get("formality"), VALID_FORMALITY)

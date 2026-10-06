@@ -3,10 +3,9 @@ from typing import Annotated
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.database import get_db
+from app.database import DbSession
 from app.models.user import User
 from app.schemas.auth import AuthSession, TokenPayload
 from app.services.user_service import UserService
@@ -41,7 +40,7 @@ def decode_token(token: str) -> TokenPayload:
 
 async def get_current_user_optional(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
 ) -> User | None:
     if not credentials:
         return None
@@ -56,7 +55,7 @@ async def get_current_user_optional(
 
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
 ) -> User:
     user_service = UserService(db)
     user = None

@@ -1,6 +1,7 @@
 """Learning system models for continuous AI improvement."""
 
 import uuid
+from collections.abc import Callable
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -19,10 +20,61 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.utils.numbers import is_finite_number
 
 if TYPE_CHECKING:
     from app.models.item import ClothingItem
     from app.models.user import User
+
+
+def _readable_scores(raw: object) -> dict[str, float]:
+    if not isinstance(raw, dict):
+        return {}
+    return {name: score for name, score in raw.items() if is_finite_number(score)}
+
+
+def _readable_number(value: object) -> object | None:
+    return value if is_finite_number(value) else None
+
+
+def _readable_names(value: object) -> list[str] | None:
+    if not isinstance(value, list):
+        return None
+    return [name for name in value if isinstance(name, str)] or None
+
+
+def _readable_counts(value: object) -> dict[str, float] | None:
+    return _readable_scores(value) or None
+
+
+_PATTERN_FIELD_READERS: dict[str, Callable[[object], object | None]] = {
+    "preferred_colors": _readable_names,
+    "success_rate": _readable_number,
+    "preferred_layers": _readable_number,
+    "colors": _readable_counts,
+    "preferred_colors_scores": _readable_counts,
+}
+
+
+# The feedback writer saves these patterns back, so a bad field must cost only that field and
+# not the valid ones beside it.
+def _readable_pattern(entry: dict) -> dict:
+    readable = {}
+    for field, value in entry.items():
+        reader = _PATTERN_FIELD_READERS.get(field)
+        kept = reader(value) if reader else value
+        if kept is not None:
+            readable[field] = kept
+    return readable
+
+
+def _readable_patterns(raw: object) -> dict[str, dict]:
+    if not isinstance(raw, dict):
+        return {}
+    patterns = {
+        key: _readable_pattern(entry) for key, entry in raw.items() if isinstance(entry, dict)
+    }
+    return {key: entry for key, entry in patterns.items() if entry}
 
 
 class UserLearningProfile(Base):
@@ -85,6 +137,25 @@ class UserLearningProfile(Base):
 
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="learning_profile")
+
+    # Every reader goes through these rather than the raw columns, because a row written by an
+    # older version or edited by hand can hold non-numeric scores or malformed patterns, and a
+    # single bad entry must not fail the whole request.
+    @property
+    def color_scores(self) -> dict[str, float]:
+        return _readable_scores(self.learned_color_scores)
+
+    @property
+    def style_scores(self) -> dict[str, float]:
+        return _readable_scores(self.learned_style_scores)
+
+    @property
+    def occasion_patterns(self) -> dict[str, dict]:
+        return _readable_patterns(self.learned_occasion_patterns)
+
+    @property
+    def weather_preferences(self) -> dict[str, dict]:
+        return _readable_patterns(self.learned_weather_preferences)
 
 
 class ItemPairScore(Base):

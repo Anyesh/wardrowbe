@@ -1,32 +1,26 @@
 import logging
-import os
 from datetime import UTC, datetime, timedelta
-from zoneinfo import ZoneInfo
+from uuid import UUID
 
 from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import get_settings
 from app.models.item import ClothingItem
 from app.models.learning import UserLearningProfile
-from app.models.notification import Notification, NotificationSettings, NotificationStatus
+from app.models.notification import Notification, NotificationStatus
 from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
 from app.models.user import User
-from app.schemas.notification import EmailConfig, ExpoPushConfig, NtfyConfig
 from app.services.ai_service import AIDisabledError
 from app.services.learning_service import LearningService
-from app.services.notification_providers import (
-    EmailProvider,
-    ExpoPushMessage,
-    ExpoPushProvider,
-    NtfyNotification,
-    NtfyProvider,
-    build_notification_email,
-)
-from app.services.notification_service import DeliveryStatus, NotificationDispatcher
+from app.services.notification_providers import NotificationMessage
+from app.services.notification_service import NotificationDispatcher
 from app.services.recommendation_service import RecommendationService
 from app.services.weather_service import WeatherService
 from app.utils.redis_lock import distributed_lock
+from app.utils.timezone import get_user_timezone, get_user_today
 from app.workers.db import get_db_session
 
 logger = logging.getLogger(__name__)
@@ -55,8 +49,7 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
 
     db = get_db_session(ctx)
     try:
-        app_url = os.getenv("APP_URL", "http://localhost:3000")
-        dispatcher = NotificationDispatcher(db, app_url)
+        dispatcher = NotificationDispatcher(db)
 
         results = await dispatcher.send_outfit_notification(user_id=user_id, outfit_id=outfit_id)
 
@@ -69,7 +62,7 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
                 f"error={result.error}"
             )
 
-        return {"success": any(r.status == DeliveryStatus.SENT for r in results)}
+        return {"success": any(r.status == NotificationStatus.sent for r in results)}
 
     except Exception:
         logger.exception(f"Failed to send notification for outfit {outfit_id}")
@@ -77,6 +70,51 @@ async def send_notification(ctx: dict, user_id: str, outfit_id: str):
         raise
     finally:
         await db.close()
+
+
+async def _retry_notification(
+    db: AsyncSession, dispatcher: NotificationDispatcher, notification: Notification
+) -> bool:
+    await db.refresh(notification)
+    if notification.status != NotificationStatus.retrying:
+        return False
+
+    notification.attempts += 1
+    notification.last_attempt_at = datetime.now(UTC)
+
+    result = await dispatcher.retry_notification(notification)
+
+    sent = result.status == NotificationStatus.sent
+    if sent:
+        notification.status = NotificationStatus.sent
+        notification.sent_at = datetime.now(UTC)
+        notification.error_message = None
+    elif not result.retryable or notification.attempts >= notification.max_attempts:
+        notification.status = NotificationStatus.failed
+        notification.error_message = result.error or "Max retries exceeded"
+    else:
+        notification.error_message = result.error
+
+    await db.commit()
+    return sent
+
+
+# A database error aborts the transaction, so it is rolled back and the attempt recorded afresh;
+# otherwise every later notification in the batch would fail with it.
+async def _record_failed_retry(
+    db: AsyncSession, notification: Notification, notification_id: UUID, error: Exception
+) -> None:
+    try:
+        await db.rollback()
+        await db.refresh(notification)
+        notification.attempts += 1
+        notification.error_message = str(error)
+        if notification.attempts >= notification.max_attempts:
+            notification.status = NotificationStatus.failed
+        await db.commit()
+    except Exception:
+        logger.exception("Could not record the failed retry of notification %s", notification_id)
+        await db.rollback()
 
 
 async def retry_failed_notifications(ctx: dict):
@@ -100,49 +138,31 @@ async def retry_failed_notifications(ctx: dict):
             return {"retried": 0}
 
         retried = 0
-        app_url = os.getenv("APP_URL", "http://localhost:3000")
-        dispatcher = NotificationDispatcher(db, app_url)
+        dispatcher = NotificationDispatcher(db)
 
-        for notification in notifications:
+        # Ids are read up front because a rolled-back retry expires every loaded notification,
+        # and reading an expired attribute outside an awaited refresh raises MissingGreenlet.
+        for notification_id, notification in [(n.id, n) for n in notifications]:
             # Non-blocking lock: skip if another worker already retrying this one
             try:
                 async with distributed_lock(
-                    f"notif-retry:{notification.id}", timeout=30, blocking_timeout=0
+                    f"notif-retry:{notification_id}", timeout=30, blocking_timeout=0
                 ):
-                    # Re-read inside lock to check if status changed
-                    await db.refresh(notification)
-                    if notification.status != NotificationStatus.retrying:
-                        continue
-
-                    notification.attempts += 1
-                    notification.last_attempt_at = datetime.now(UTC)
-
-                    result = await dispatcher.retry_notification(notification)
-
-                    if result.status == DeliveryStatus.SENT:
-                        notification.status = NotificationStatus.sent
-                        notification.sent_at = datetime.now(UTC)
-                        retried += 1
-                    elif notification.attempts >= notification.max_attempts:
-                        notification.status = NotificationStatus.failed
-                        notification.error_message = result.error or "Max retries exceeded"
-                    else:
-                        notification.error_message = result.error
-
-                    await db.commit()
-
+                    try:
+                        if await _retry_notification(db, dispatcher, notification):
+                            retried += 1
+                    except Exception as e:
+                        logger.exception(f"Failed to retry notification {notification_id}: {e}")
+                        await _record_failed_retry(db, notification, notification_id, e)
             except TimeoutError:
                 logger.debug(
                     "Skipping notification %s retry — another worker holds the lock",
-                    notification.id,
+                    notification_id,
                 )
-                continue
-            except Exception as e:
-                logger.exception(f"Failed to retry notification {notification.id}: {e}")
-                if notification.attempts >= notification.max_attempts:
-                    notification.status = NotificationStatus.failed
-                    notification.error_message = str(e)
-                    await db.commit()
+            except Exception:
+                # A lock error is either before the send, so nothing was sent, or on release after
+                # the attempt was already committed, so no attempt is charged here.
+                logger.exception("Retry lock for notification %s failed", notification_id)
 
         logger.info(f"Retried {retried} notifications")
         return {"retried": retried}
@@ -176,22 +196,15 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             logger.warning(f"User {schedule.user_id} not found or deleted, skipping")
             return {"status": "skipped", "reason": "user_not_found"}
 
-        channels_result = await db.execute(
-            select(NotificationSettings).where(
-                and_(
-                    NotificationSettings.user_id == schedule.user_id,
-                    NotificationSettings.enabled == True,  # noqa: E712
-                )
-            )
-        )
-        if not channels_result.scalars().first():
+        dispatcher = NotificationDispatcher(db)
+        if not await dispatcher.enabled_channels(schedule.user_id):
             logger.warning(f"No enabled channels for user {schedule.user_id}, skipping")
             return {"status": "skipped", "reason": "no_channels"}
 
         is_for_tomorrow = schedule.notify_day_before
         weather_override = None
 
-        if is_for_tomorrow and user.location_lat and user.location_lon:
+        if is_for_tomorrow and user.location_lat is not None and user.location_lon is not None:
             try:
                 weather_service = WeatherService()
                 weather_override = await weather_service.get_tomorrow_weather(
@@ -204,8 +217,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             except Exception as e:
                 logger.warning(f"Failed to fetch tomorrow's weather: {e}")
 
-        user_tz = ZoneInfo(user.timezone or "UTC")
-        user_today = datetime.now(UTC).astimezone(user_tz).date()
+        user_today = get_user_today(user)
         target_date = user_today + timedelta(days=1) if is_for_tomorrow else user_today
 
         recommendation_service = RecommendationService(db)
@@ -219,13 +231,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             scheduled_date=target_date,
         )
 
-        app_url = os.getenv("APP_URL", "http://localhost:3000")
-        dispatcher = NotificationDispatcher(db, app_url)
-        await dispatcher.send_outfit_notification(
-            user_id=str(user.id),
-            outfit_id=str(outfit.id),
-            for_tomorrow=is_for_tomorrow,
-        )
+        await dispatcher.send_outfit_notification(user_id=str(user.id), outfit_id=str(outfit.id))
 
         await db.commit()
 
@@ -271,12 +277,7 @@ async def check_scheduled_notifications(ctx: dict):
 
         to_enqueue: list[Schedule] = []
         for schedule in schedules:
-            try:
-                user_tz = ZoneInfo(schedule.user.timezone or "UTC")
-            except (KeyError, ValueError):
-                user_tz = ZoneInfo("UTC")
-
-            now_local = now_utc.astimezone(user_tz)
+            now_local = now_utc.astimezone(get_user_timezone(schedule.user))
             local_day = now_local.weekday()
             local_minutes = now_local.hour * 60 + now_local.minute
             tomorrow_local_day = (local_day + 1) % 7
@@ -351,6 +352,22 @@ async def check_wash_reminders(ctx: dict):
         return {"notified": 0, "skipped": "lock_held"}
 
 
+def wash_reminder_message(items: list[ClothingItem]) -> NotificationMessage:
+    count = len(items)
+    summary = ", ".join(i.name or i.type for i in items[:5])
+    if count > 5:
+        summary += f" and {count - 5} more"
+    noun = "1 item needs" if count == 1 else f"{count} items need"
+    return NotificationMessage(
+        title="Laundry Reminder",
+        body=f"{noun} washing: {summary}",
+        url=get_settings().app_link("/dashboard/wardrobe"),
+        url_label="View Wardrobe",
+        tags=["shirt", "droplet"],
+        data={"screen": "wardrobe"},
+    )
+
+
 async def _check_wash_reminders_inner(ctx: dict):
     db = get_db_session(ctx)
     try:
@@ -375,31 +392,18 @@ async def _check_wash_reminders_inner(ctx: dict):
                 user_items[uid] = []
             user_items[uid].append(item)
 
-        app_url = os.getenv("APP_URL", "http://localhost:3000")
+        dispatcher = NotificationDispatcher(db)
         notified = 0
 
         for user_id, items in user_items.items():
             try:
-                # Check if user has notification channels
-                channels_result = await db.execute(
-                    select(NotificationSettings).where(
-                        and_(
-                            NotificationSettings.user_id == user_id,
-                            NotificationSettings.enabled == True,  # noqa: E712
-                        )
-                    )
-                )
-                channels = list(channels_result.scalars().all())
-                if not channels:
-                    continue
-
-                # Check deduplication: don't send more than once per day
                 one_day_ago = datetime.now(UTC) - timedelta(days=1)
                 existing = await db.execute(
                     select(Notification).where(
                         and_(
                             Notification.user_id == user_id,
                             Notification.payload["type"].astext == "wash_reminder",
+                            Notification.status == NotificationStatus.sent,
                             Notification.created_at >= one_day_ago,
                         )
                     )
@@ -407,85 +411,28 @@ async def _check_wash_reminders_inner(ctx: dict):
                 if existing.scalars().first():
                     continue
 
-                item_names = [i.name or i.type for i in items[:5]]
-                count = len(items)
-                summary = ", ".join(item_names)
-                if count > 5:
-                    summary += f" and {count - 5} more"
+                message = wash_reminder_message(items)
+                results = await dispatcher.deliver(user_id, message)
+                if not results:
+                    continue
 
-                title = "Laundry Reminder"
-                body = f"{count} item{'s' if count != 1 else ''} need washing: {summary}"
-
-                # Send via first enabled channel
-                sent = False
-                sent_channel = "unknown"
-                for channel in channels:
-                    try:
-                        if channel.channel == "ntfy":
-                            provider = NtfyProvider(NtfyConfig(**channel.config))
-                            send_result = await provider.send(
-                                NtfyNotification(
-                                    title=title,
-                                    message=body,
-                                    click=f"{app_url}/dashboard/wardrobe",
-                                    tags=["shirt", "droplet"],
-                                )
-                            )
-                            sent = send_result.get("success", False)
-                            sent_channel = "ntfy"
-                        elif channel.channel == "email":
-                            email_provider = EmailProvider(EmailConfig(**channel.config))
-                            send_result = await email_provider.send(
-                                build_notification_email(
-                                    to=email_provider.to_address,
-                                    subject=title,
-                                    heading=title,
-                                    body=body,
-                                    cta_text="View Wardrobe",
-                                    cta_url=f"{app_url}/dashboard/wardrobe",
-                                    app_url=app_url,
-                                )
-                            )
-                            sent = send_result.get("success", False)
-                            sent_channel = "email"
-                        elif channel.channel == "expo_push":
-                            provider = ExpoPushProvider(ExpoPushConfig(**channel.config))
-                            send_result = await provider.send(
-                                ExpoPushMessage(
-                                    title=title,
-                                    body=body,
-                                    data={"screen": "wardrobe"},
-                                )
-                            )
-                            sent = send_result.get("success", False)
-                            sent_channel = "expo_push"
-
-                        if sent:
-                            break
-                    except Exception as e:
-                        logger.warning(f"Failed to send wash reminder via {channel.channel}: {e}")
-
-                # Create notification record
-                notification = Notification(
-                    user_id=user_id,
-                    channel=sent_channel,
-                    status=NotificationStatus.sent if sent else NotificationStatus.failed,
-                    payload={
-                        "type": "wash_reminder",
-                        "item_count": count,
-                        "title": title,
-                        "body": body,
-                    },
-                    sent_at=datetime.now(UTC) if sent else None,
-                    error_message=None if sent else "All channels failed",
-                )
-                db.add(notification)
+                last = results[-1]
+                sent = last.status == NotificationStatus.sent
+                payload = {
+                    "type": "wash_reminder",
+                    "item_count": len(items),
+                    "title": message.title,
+                    "body": message.body,
+                }
+                # Only a sent reminder holds off the next one for a day, so that a failed one is
+                # tried again on the next run.
+                dispatcher.record_attempts(user_id, results, payload)
                 await db.commit()
                 if sent:
                     notified += 1
 
-            except Exception as e:
-                logger.warning(f"Failed to send wash reminder for user {user_id}: {e}")
+            except Exception:
+                logger.exception(f"Failed to send wash reminder for user {user_id}")
                 continue
 
         logger.info(f"Sent wash reminders to {notified} users")

@@ -12,7 +12,11 @@ import {
   dismiss as dismissRecord,
   type QueuedUpload,
 } from '@/lib/upload-queue';
-import { mergeBulkUploadResponses, type BulkUploadResponse } from '@/lib/hooks/use-items';
+import {
+  mergeBulkUploadResponses,
+  type BulkUploadErrorCode,
+  type BulkUploadResponse,
+} from '@/lib/hooks/use-items';
 
 // A flat file-count chunk (previously 20) doesn't account for file size: 20
 // modern phone photos routinely exceed nginx's default 50MB
@@ -33,6 +37,25 @@ class BulkLimitExceededError extends Error {
   }
 }
 
+class PayloadTooLargeError extends Error {
+  constructor() {
+    super('Bulk upload request failed with status 413');
+  }
+}
+
+// Codes for files the server will reject again however often they are resent,
+// so offering a retry for them would only repeat the failure.
+const PERMANENT_ERROR_CODES: ReadonlySet<BulkUploadErrorCode> = new Set<BulkUploadErrorCode>([
+  'too_large',
+  'unsupported_format',
+  'duplicate',
+  'invalid_image',
+]);
+
+function isRetryable(errorCode: BulkUploadErrorCode | null): boolean {
+  return errorCode === null || !PERMANENT_ERROR_CODES.has(errorCode);
+}
+
 // The server's configured max_bulk_upload_count (admin-tunable, self-hosted)
 // isn't exposed to the client, so a chunk sized for the default of 20 gets
 // the WHOLE request rejected - not just the excess files - on an instance
@@ -46,6 +69,8 @@ export interface TerminalRecord {
   filename: string;
   size: number;
   lastError: string | null;
+  errorCode: BulkUploadErrorCode | null;
+  retryable: boolean;
 }
 
 export interface DrainState {
@@ -74,7 +99,17 @@ async function computeState(): Promise<DrainState> {
   const remaining = records.filter((r) => r.status !== 'failed').length;
   const terminalRecords: TerminalRecord[] = records
     .filter((r) => r.terminal)
-    .map((r) => ({ id: r.id, filename: r.filename, size: r.size, lastError: r.lastError }));
+    .map((r) => {
+      const errorCode = r.errorCode ?? null;
+      return {
+        id: r.id,
+        filename: r.filename,
+        size: r.size,
+        lastError: r.lastError,
+        errorCode,
+        retryable: isRetryable(errorCode),
+      };
+    });
   const storagePersisted = await getStoragePersisted();
 
   if (typeof window !== 'undefined') {
@@ -124,6 +159,9 @@ async function uploadChunk(chunk: QueuedUpload[]): Promise<BulkUploadResponse> {
   });
 
   if (!response.ok) {
+    if (response.status === 413) {
+      throw new PayloadTooLargeError();
+    }
     if (response.status === 400) {
       const body = await response.json().catch(() => null);
       const match =
@@ -206,19 +244,25 @@ async function drainOnce(): Promise<boolean> {
         if (result.success || result.duplicate) {
           await markDone(record.id);
         } else {
-          await markTerminal(record.id, result.error ?? 'Upload failed');
+          await markTerminal(record.id, result.error ?? 'Upload failed', result.error_code ?? null);
         }
       })
     );
   } catch (error) {
     const message = errorMessage(error);
-    await Promise.all(
-      chunk.map((record) =>
-        record.attempts + 1 >= MAX_ATTEMPTS
-          ? markTerminal(record.id, message)
-          : markRetryable(record.id, message)
-      )
-    );
+    // A 413 for a chunk of one file means that file alone is over the proxy's
+    // body limit, so resending it can never succeed.
+    if (error instanceof PayloadTooLargeError && chunk.length === 1) {
+      await markTerminal(chunk[0].id, message, 'too_large');
+    } else {
+      await Promise.all(
+        chunk.map((record) =>
+          record.attempts + 1 >= MAX_ATTEMPTS
+            ? markTerminal(record.id, message)
+            : markRetryable(record.id, message)
+        )
+      );
+    }
   }
 
   queryClient?.invalidateQueries({ queryKey: ['items'] });
@@ -291,7 +335,9 @@ export async function retry(id: string): Promise<void> {
 
 export async function retryAll(): Promise<void> {
   const { terminalRecords } = await computeState();
-  await Promise.all(terminalRecords.map((r) => markPendingForRetry(r.id)));
+  await Promise.all(
+    terminalRecords.filter((r) => r.retryable).map((r) => markPendingForRetry(r.id))
+  );
   void startDrain();
 }
 
