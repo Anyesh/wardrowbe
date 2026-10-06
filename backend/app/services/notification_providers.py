@@ -386,7 +386,7 @@ class EmailProvider:
                 "because its name before the @ is not ASCII"
             )
             logger.warning("Email send failed: %s", error)
-            return {"success": False, "error": error}
+            return {"success": False, "error": error, "retryable": False}
         except Exception as e:
             logger.exception("Email send failed")
             return {"success": False, "error": str(e)}
@@ -553,7 +553,8 @@ class NotificationResult:
     error: str | None = None
     response: dict | None = None
     # False when every later attempt would fail the same way: a stored config this version
-    # rejects, or a user, outfit or channel that no longer exists or is disabled.
+    # rejects, a user, outfit or channel that no longer exists or is disabled, or an address
+    # the mail server cannot accept without SMTPUTF8.
     retryable: bool = True
 
 
@@ -581,7 +582,10 @@ async def send_via_channel(
             channel=setting.channel, status=NotificationStatus.sent, response=result
         )
     return NotificationResult(
-        channel=setting.channel, status=NotificationStatus.failed, error=result.get("error")
+        channel=setting.channel,
+        status=NotificationStatus.failed,
+        error=result.get("error"),
+        retryable=result.get("retryable", True),
     )
 
 

@@ -36,6 +36,7 @@ from app.services.notification_providers import (
     NtfyProvider,
     build_family_invite_email,
     build_notification_email,
+    send_via_channel,
 )
 from app.services.notification_service import NotificationDispatcher
 from app.workers.notifications import wash_reminder_message
@@ -543,15 +544,17 @@ class TestEmailProviderAddresses:
         self, ascii_smtp_server, monkeypatch, from_email, address, named
     ):
         _update_smtp_settings(monkeypatch, smtp_from_email=from_email)
-        provider = EmailProvider(EmailConfig(address=address))
+        setting = SimpleNamespace(channel="email", config={"address": address})
 
-        result = await provider.send(_plain_email(address))
+        result = await send_via_channel(setting, NotificationMessage(title="Hi", body="Hi"))
 
-        assert result == {
-            "success": False,
-            "error": f"The mail server does not support SMTPUTF8, which {named} needs "
+        # Retrying cannot help: the same server will refuse the same address every time.
+        assert (result.status, result.error, result.retryable) == (
+            NotificationStatus.failed,
+            f"The mail server does not support SMTPUTF8, which {named} needs "
             "because its name before the @ is not ASCII",
-        }
+            False,
+        )
         assert ascii_smtp_server == []
 
 
