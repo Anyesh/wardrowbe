@@ -67,9 +67,12 @@ class TestNamesAreSingleLine:
             ("\r\n\t\u2029", "jane.doe@example.com", "jane.doe"),
             ("x" * 150, "jane@example.com", "x" * 100),
             ("A" * 99 + "\tB", "jane@example.com", "A" * 99),
+            ("   ", "jane.doe@example.com", "jane.doe"),
+            ("\u200b", "jane.doe@example.com", "jane.doe"),
+            (" \u2060\ufeff\u3000\u200b ", "jane.doe@example.com", "jane.doe"),
         ],
     )
-    def test_every_request_refuses_line_breaks_and_control_characters_but_sign_in_flattens_them(
+    def test_every_request_refuses_a_broken_or_blank_name_but_sign_in_repairs_it(
         self, request_id, name, email, synced
     ):
         if request_id == "sign-in-sync":

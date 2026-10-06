@@ -6,13 +6,13 @@ from uuid import UUID
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
 from app.schemas.email import EmailAddress
-from app.schemas.text import SingleLineText, flatten_control_characters
+from app.schemas.text import SingleLineName, flatten_control_characters, is_blank
 from app.utils.locale import DEFAULT_LOCALE
 
 DISPLAY_NAME_MAX_LENGTH = 100
 AVATAR_URL_MAX_LENGTH = 500
 
-DisplayName = Annotated[SingleLineText, Field(min_length=1, max_length=DISPLAY_NAME_MAX_LENGTH)]
+DisplayName = Annotated[SingleLineName, Field(min_length=1, max_length=DISPLAY_NAME_MAX_LENGTH)]
 Latitude = Annotated[Decimal, Field(ge=-90, le=90)]
 Longitude = Annotated[Decimal, Field(ge=-180, le=180)]
 PlaceName = Annotated[str, Field(max_length=100)]
@@ -24,6 +24,8 @@ def _fit_idp_display_name(value: object) -> object:
     flattened = flatten_control_characters(value)
     if not isinstance(flattened, str):
         return flattened
+    if is_blank(flattened):
+        return ""
     return flattened[:DISPLAY_NAME_MAX_LENGTH].rstrip()
 
 

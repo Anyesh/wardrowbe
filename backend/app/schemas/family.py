@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.email import EmailAddress
-from app.schemas.text import SingleLineText
+from app.schemas.text import SingleLineName
 
 
 class FamilyMember(BaseModel):
@@ -39,11 +39,11 @@ class FamilyResponse(BaseModel):
 
 
 class FamilyCreate(BaseModel):
-    name: SingleLineText = Field(..., min_length=1, max_length=100)
+    name: SingleLineName = Field(..., min_length=1, max_length=100)
 
 
 class FamilyUpdate(BaseModel):
-    name: SingleLineText | None = Field(None, min_length=1, max_length=100)
+    name: SingleLineName | None = Field(None, min_length=1, max_length=100)
 
 
 class FamilyCreateResponse(BaseModel):
