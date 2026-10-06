@@ -74,6 +74,8 @@ COLOR_ALIASES = {
 
 CANONICAL = {**{color: color for color in COLORS}, **COLOR_ALIASES}
 
+WHITESPACE_RUN = r"[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+"
+
 CANONICAL_CTE = (
     "canonical(name, target) AS "
     "(SELECT * FROM unnest(CAST(:names AS text[]), CAST(:targets AS text[])))"
@@ -81,11 +83,10 @@ CANONICAL_CTE = (
 
 
 def canonical_color_sql(value: str) -> str:
-    key = f"lower(btrim({value}))"
+    key = f"btrim(regexp_replace(lower({value}), '{WHITESPACE_RUN}', ' ', 'g'), ' ')"
     return f"""COALESCE(
         (SELECT canon.target FROM canonical canon WHERE canon.name = {key}),
-        (SELECT canon.target FROM canonical canon
-            WHERE canon.name = regexp_replace({key}, '\\s+', '-', 'g')),
+        (SELECT canon.target FROM canonical canon WHERE canon.name = replace({key}, ' ', '-')),
         {key}
     )"""
 
@@ -106,8 +107,8 @@ remapped AS (
             FROM (
                 SELECT {canonical_color_sql("j.key")} AS color, j.value
                 FROM jsonb_each(p.learned_color_scores) j
-                WHERE btrim(j.key) <> ''
             ) e
+            WHERE e.color <> ''
             GROUP BY e.color
         ) s
     ), '{{}}'::jsonb) AS scores
@@ -139,8 +140,8 @@ remapped AS (
                             SELECT {canonical_color_sql("c.value")} AS color, c.position
                             FROM jsonb_array_elements_text(o.value -> 'preferred_colors')
                                 WITH ORDINALITY AS c(value, position)
-                            WHERE btrim(c.value) <> ''
                         ) e
+                        WHERE e.color <> ''
                         GROUP BY e.color
                     ) s
                 ), '[]'::jsonb))

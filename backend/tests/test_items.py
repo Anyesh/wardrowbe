@@ -1724,8 +1724,17 @@ class TestItemColorNormalisation:
         assert data["primary_color"] == "gray"
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("primary_color", "stored_primary"), [("Khaki", "tan"), ("\u00a0\t", None)]
+    )
     async def test_update_item_stores_canonical_colours(
-        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+        self,
+        client: AsyncClient,
+        test_user,
+        auth_headers,
+        db_session: AsyncSession,
+        primary_color,
+        stored_primary,
     ):
         item = ClothingItem(
             user_id=test_user.id,
@@ -1739,14 +1748,14 @@ class TestItemColorNormalisation:
 
         response = await client.patch(
             f"/api/v1/items/{item.id}",
-            json={"colors": ["Charcoal", "gray", "Chartreuse"], "primary_color": "Khaki"},
+            json={"colors": ["Charcoal", "gray", "Chartreuse"], "primary_color": primary_color},
             headers=auth_headers,
         )
 
         assert response.status_code == 200, response.text
         data = response.json()
         assert data["colors"] == ["gray", "chartreuse"]
-        assert data["primary_color"] == "tan"
+        assert data["primary_color"] == stored_primary
 
     @pytest.mark.asyncio
     async def test_update_item_tags_store_canonical_colours(

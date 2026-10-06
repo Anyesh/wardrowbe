@@ -6,11 +6,15 @@ const SWATCHES = new Map<string, string>(CLOTHING_COLORS.map((c) => [c.value, c.
 // (salmon, say), so they get a neutral swatch rather than none.
 export const UNKNOWN_COLOR_SWATCH = 'hsl(var(--muted))';
 
+// Unicode White_Space spelled out rather than \s because the backend and the colour migrations' SQL
+// use this exact class, and \s differs between JavaScript, Python and Postgres.
+const WHITESPACE_RUN = /[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/g;
+
 // Mirrors normalize_color in backend/app/utils/garment_vocabulary.py, so that "Light Blue" reads as
 // the stored "light-blue" on both sides.
 export function normalizeColor(name: string): string | null {
-  const key = name.trim().toLowerCase();
-  for (const candidate of [key, key.replace(/\s+/g, '-')]) {
+  const key = name.replace(WHITESPACE_RUN, ' ').replace(/^ | $/g, '').toLowerCase();
+  for (const candidate of [key, key.replaceAll(' ', '-')]) {
     if (SWATCHES.has(candidate)) return candidate;
     if (Object.hasOwn(COLOR_ALIASES, candidate)) return COLOR_ALIASES[candidate];
   }

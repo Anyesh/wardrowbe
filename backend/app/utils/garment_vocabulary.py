@@ -21,11 +21,22 @@ COLORS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["colors"])
 COLOR_ALIASES: dict[str, str] = dict(_DATA["color_aliases"])
 
 
+# Unicode White_Space spelled out rather than \s, because migrations 952169051179 and 6c1e8f2a9d47
+# and frontend/lib/colors.ts use this same class and must agree on tabs, NBSP and ideographic spaces.
+_WHITESPACE_RUN = re.compile(
+    r"[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+"
+)
+
+
+def _color_key(name: str) -> str:
+    return _WHITESPACE_RUN.sub(" ", name).strip(" ").lower()
+
+
 # "Light Blue" from a free-text client or an old row means the stored "light-blue", so a name is
-# also tried with its inner whitespace collapsed to one hyphen.
+# also tried with its spaces turned into hyphens.
 def normalize_color(name: str) -> str | None:
-    key = name.strip().lower()
-    for candidate in (key, re.sub(r"\s+", "-", key)):
+    key = _color_key(name)
+    for candidate in (key, key.replace(" ", "-")):
         if candidate in COLORS:
             return candidate
         if candidate in COLOR_ALIASES:
@@ -33,11 +44,15 @@ def normalize_color(name: str) -> str | None:
     return None
 
 
-# Unlike normalize_color, unknown names pass through (lowercased) so that API
-# clients sending colours outside the vocabulary keep working.
+# Unlike normalize_color, unknown names pass through (whitespace-collapsed and lowercased) so that
+# API clients sending colours outside the vocabulary keep working.
 def canonical_color(name: str) -> str:
-    key = name.strip().lower()
+    key = _color_key(name)
     return normalize_color(key) or key
+
+
+def canonical_primary_color(name: str) -> str | None:
+    return canonical_color(name) or None
 
 
 def canonical_colors(names: list[str]) -> list[str]:

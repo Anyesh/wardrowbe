@@ -88,14 +88,19 @@ ARRAY_COLUMNS = [
 ]
 
 
-# The SQL form of normalize_color at this revision: trim and lowercase, try the name as written and
-# with its whitespace collapsed to one hyphen, and keep an unknown name in its trimmed lowercase.
+# Unicode White_Space spelled out because btrim and [[:space:]] miss NBSP and the other non-ASCII
+# spaces that normalize_color treats as whitespace.
+WHITESPACE_RUN = r"[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+"
+
+
+# The SQL form of canonical_color at this revision: lowercase, collapse each whitespace run to one
+# space and trim, try the name as written and with its spaces turned into hyphens, and keep an
+# unknown name in that collapsed lowercase form.
 def canonical_color_sql(value: str) -> str:
-    key = f"lower(btrim({value}))"
+    key = f"btrim(regexp_replace(lower({value}), '{WHITESPACE_RUN}', ' ', 'g'), ' ')"
     return f"""COALESCE(
         (SELECT canon.target FROM canonical canon WHERE canon.name = {key}),
-        (SELECT canon.target FROM canonical canon
-            WHERE canon.name = regexp_replace({key}, '\\s+', '-', 'g')),
+        (SELECT canon.target FROM canonical canon WHERE canon.name = replace({key}, ' ', '-')),
         {key}
     )"""
 
@@ -114,8 +119,8 @@ def _remap_array(table: str, key: str, column: str) -> sa.TextClause:
                     FROM (
                         SELECT {canonical_color_sql("u.value")} AS color, u.position
                         FROM unnest(t.{column}) WITH ORDINALITY AS u(value, position)
-                        WHERE btrim(u.value) <> ''
                     ) e
+                    WHERE e.color <> ''
                     GROUP BY e.color
                 ) s
                 ORDER BY s.first
@@ -133,14 +138,14 @@ def _remap_array(table: str, key: str, column: str) -> sa.TextClause:
 def upgrade() -> None:
     bind = op.get_bind()
     params = {"names": list(CANONICAL), "targets": list(CANONICAL.values())}
-    canonical_primary = canonical_color_sql("t.primary_color")
+    # A blank primary colour becomes NULL, as the item schemas store it.
+    canonical_primary = f"NULLIF({canonical_color_sql('t.primary_color')}, '')"
     bind.execute(
         sa.text(
             f"""
             WITH {CANONICAL_CTE}
             UPDATE clothing_items t SET primary_color = {canonical_primary}
-            WHERE btrim(t.primary_color) <> ''
-                AND t.primary_color IS DISTINCT FROM {canonical_primary}
+            WHERE t.primary_color IS DISTINCT FROM {canonical_primary}
             """
         ),
         params,

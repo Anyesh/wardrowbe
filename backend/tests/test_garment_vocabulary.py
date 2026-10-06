@@ -1,4 +1,6 @@
+import json
 import re
+from pathlib import Path
 
 import pytest
 
@@ -27,11 +29,14 @@ from app.utils.garment_vocabulary import (
     MATERIALS,
     OCCASIONS,
     TYPES,
+    canonical_color,
     canonical_colors,
     normalize_color,
     render_tagging_prompt,
 )
 from app.utils.prompts import load_prompt
+
+COLOR_NAME_CASES = json.loads((Path(__file__).parent / "fixtures" / "color_names.json").read_text())
 
 
 def _prompt_options(heading: str) -> set[str]:
@@ -151,32 +156,25 @@ def test_color_alias_is_a_lowercase_name_for_a_stored_color(alias):
 
 
 @pytest.mark.parametrize(
-    ("name", "stored"),
-    [
-        ("charcoal", "gray"),
-        ("khaki", "tan"),
-        ("teal", "blue"),
-        ("army-green", "olive"),
-        ("dark-brown", "brown"),
-        (" Grey ", "gray"),
-        ("light-blue", "light-blue"),
-        ("Light Blue", "light-blue"),
-        (" LIGHT  BLUE ", "light-blue"),
-        ("NAVY", "navy"),
-        ("Army Green", "olive"),
-        ("dark   brown", "brown"),
-        ("gold", "gold"),
-        ("chartreuse", None),
-        ("", None),
-    ],
+    ("name", "normalized", "canonical"),
+    [(case["name"], case["normalized"], case["canonical"]) for case in COLOR_NAME_CASES],
 )
-def test_normalize_color(name, stored):
-    assert normalize_color(name) == stored
+def test_color_name_rule(name, normalized, canonical):
+    assert normalize_color(name) == normalized
+    assert canonical_color(name) == canonical
 
 
 def test_canonical_colors_aliases_dedupes_and_keeps_unknowns_in_order():
-    assert canonical_colors(["Charcoal", "gray", " Chartreuse ", "", "khaki", "tan"]) == [
-        "gray",
-        "chartreuse",
-        "tan",
-    ]
+    assert canonical_colors(
+        [
+            "Charcoal",
+            "gray",
+            " Chartreuse ",
+            "",
+            "khaki",
+            "\u00a0\t",
+            "tan",
+            "dark\u00a0 blue",
+            "navy",
+        ]
+    ) == ["gray", "chartreuse", "tan", "navy"]

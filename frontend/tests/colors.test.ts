@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { UNKNOWN_COLOR_SWATCH, colorSwatch, normalizeColor } from '@/lib/colors';
 
@@ -21,16 +23,14 @@ describe('colour swatches', () => {
   });
 });
 
+// The same cases drive normalize_color and canonical_color in the backend and the colour migrations'
+// SQL, so the three implementations cannot drift apart.
+const COLOR_NAME_CASES = JSON.parse(
+  readFileSync(resolve(__dirname, '..', '..', 'backend', 'tests', 'fixtures', 'color_names.json'), 'utf8'),
+) as Array<{ name: string; normalized: string | null }>;
+
 describe('normalizeColor', () => {
-  it.each([
-    ['Light Blue', 'light-blue'],
-    ['light  blue', 'light-blue'],
-    ['NAVY', 'navy'],
-    ['charcoal', 'gray'],
-    ['dark brown', 'brown'],
-    ['salmon', null],
-    ['', null],
-  ])('reads %j as %j', (name, stored) => {
+  it.each(COLOR_NAME_CASES.map((c) => [c.name, c.normalized]))('reads %j as %j', (name, stored) => {
     expect(normalizeColor(name)).toBe(stored);
   });
 });

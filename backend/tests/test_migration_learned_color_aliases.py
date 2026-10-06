@@ -17,7 +17,7 @@ def _alembic(*args: str) -> None:
 
 
 REMAPPED = (
-    {"gray": 0.4, "tan": -0.5, "navy": 0.35, "salmon": 0.1, "light-blue": 0.3},
+    {"gray": 0.4, "tan": -0.5, "navy": 0.4, "salmon": 0.1, "light-blue": 0.3},
     {
         "work": {"preferred_colors": ["gray", "navy", "blue", "light-blue"], "success_rate": 0.75},
         "casual": {"preferred_colors": [], "success_rate": 0.5},
@@ -48,14 +48,23 @@ async def test_remaps_learned_profile_colours_idempotently(
                     "gray": 0.2,
                     "Khaki": -0.5,
                     "navy": 0.35,
+                    "Dark\u00a0 Blue": 0.45,
                     "Salmon": 0.1,
                     "Light Blue": 0.2,
                     "light-blue": 0.4,
-                    " ": 0.9,
+                    "\u00a0\t": 0.9,
                 },
                 learned_occasion_patterns={
                     "work": {
-                        "preferred_colors": ["charcoal", "NAVY", "gray", "teal", "Light Blue", ""],
+                        "preferred_colors": [
+                            "charcoal",
+                            "NAVY",
+                            "gray",
+                            "teal",
+                            "Light Blue",
+                            "\u00a0",
+                            "\tdark  blue",
+                        ],
                         "success_rate": 0.75,
                     },
                     "casual": {"preferred_colors": [], "success_rate": 0.5},

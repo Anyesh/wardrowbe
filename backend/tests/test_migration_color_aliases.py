@@ -1,14 +1,27 @@
+import importlib.util
+import json
 import os
 import subprocess
+from pathlib import Path
 
 import pytest
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import ClothingItem, User, UserPreference
 
 REVISION = "952169051179"
 PREVIOUS = "d5e6f7a8b9c0"
+TESTS = Path(__file__).parent
+COLOR_NAME_CASES = json.loads((TESTS / "fixtures" / "color_names.json").read_text())
+
+
+def _migration(revision: str):
+    (path,) = (TESTS.parent / "migrations" / "versions").glob(f"{revision}_*.py")
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _alembic(*args: str) -> None:
@@ -19,9 +32,9 @@ def _alembic(*args: str) -> None:
 REMAPPED = {
     "pants": ("gray", ["gray", "tan", "blue", "olive", "brown"]),
     "shirt": ("light-blue", ["light-blue", "salmon"]),
-    "jacket": ("light-blue", ["navy", "light-blue", "salmon"]),
+    "jacket": ("light-blue", ["navy", "light-blue", "salmon", "gray"]),
     "hat": (None, []),
-    "scarf": ("", None),
+    "scarf": (None, None),
     "favorites": ["tan", "navy", "gray", "olive"],
     "avoid": None,
 }
@@ -76,12 +89,24 @@ async def test_remaps_and_deduplicates_colours_idempotently(
                     type="jacket",
                     image_path="w.jpg",
                     primary_color=" Light Blue ",
-                    colors=["Navy", "NAVY", "Light Blue", None, "light-blue", "  ", "Salmon"],
+                    colors=[
+                        "Navy",
+                        "NAVY",
+                        "Light Blue",
+                        None,
+                        "light-blue",
+                        "\u00a0\t",
+                        "Salmon",
+                        "dark\u00a0 blue",
+                        "\tLight  Grey\n",
+                    ],
                 ),
                 ClothingItem(
                     user_id=user_id, type="hat", image_path="z.jpg", primary_color=None, colors=[]
                 ),
-                ClothingItem(user_id=user_id, type="scarf", image_path="v.jpg", primary_color=""),
+                ClothingItem(
+                    user_id=user_id, type="scarf", image_path="v.jpg", primary_color="\u00a0\t "
+                ),
                 UserPreference(
                     user_id=user_id,
                     color_favorites=["khaki", "tan", "NAVY", "charcoal", "Army Green"],
@@ -103,3 +128,28 @@ async def test_remaps_and_deduplicates_colours_idempotently(
     assert await _stored_colours(db_session, user_id) == REMAPPED
     await _rerun_migration(db_session)
     assert await _stored_colours(db_session, user_id) == REMAPPED
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("revision", [REVISION, "6c1e8f2a9d47"])
+async def test_sql_colour_rule_matches_canonical_color(db_session: AsyncSession, revision):
+    migration = _migration(revision)
+    names = [case["name"] for case in COLOR_NAME_CASES]
+    result = await db_session.execute(
+        text(
+            f"""
+            WITH {migration.CANONICAL_CTE}
+            SELECT {migration.canonical_color_sql("n.name")}
+            FROM unnest(CAST(:inputs AS text[])) WITH ORDINALITY AS n(name, position)
+            ORDER BY n.position
+            """
+        ),
+        {
+            "names": list(migration.CANONICAL),
+            "targets": list(migration.CANONICAL.values()),
+            "inputs": names,
+        },
+    )
+    assert dict(zip(names, result.scalars(), strict=True)) == {
+        case["name"]: case["canonical"] for case in COLOR_NAME_CASES
+    }

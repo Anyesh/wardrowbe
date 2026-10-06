@@ -1,0 +1,112 @@
+[
+  {
+    "name": "charcoal",
+    "normalized": "gray",
+    "canonical": "gray"
+  },
+  {
+    "name": "khaki",
+    "normalized": "tan",
+    "canonical": "tan"
+  },
+  {
+    "name": "teal",
+    "normalized": "blue",
+    "canonical": "blue"
+  },
+  {
+    "name": "army-green",
+    "normalized": "olive",
+    "canonical": "olive"
+  },
+  {
+    "name": "dark-brown",
+    "normalized": "brown",
+    "canonical": "brown"
+  },
+  {
+    "name": " Grey ",
+    "normalized": "gray",
+    "canonical": "gray"
+  },
+  {
+    "name": "light-blue",
+    "normalized": "light-blue",
+    "canonical": "light-blue"
+  },
+  {
+    "name": "Light Blue",
+    "normalized": "light-blue",
+    "canonical": "light-blue"
+  },
+  {
+    "name": " LIGHT  BLUE ",
+    "normalized": "light-blue",
+    "canonical": "light-blue"
+  },
+  {
+    "name": "NAVY",
+    "normalized": "navy",
+    "canonical": "navy"
+  },
+  {
+    "name": "Army Green",
+    "normalized": "olive",
+    "canonical": "olive"
+  },
+  {
+    "name": "dark   brown",
+    "normalized": "brown",
+    "canonical": "brown"
+  },
+  {
+    "name": "dark  blue",
+    "normalized": "navy",
+    "canonical": "navy"
+  },
+  {
+    "name": "light  grey",
+    "normalized": "gray",
+    "canonical": "gray"
+  },
+  {
+    "name": "\tDark\u00a0Blue\n",
+    "normalized": "navy",
+    "canonical": "navy"
+  },
+  {
+    "name": "\u00a0light\u3000blue\u00a0",
+    "normalized": "light-blue",
+    "canonical": "light-blue"
+  },
+  {
+    "name": "Forest\t\tGreen",
+    "normalized": "green",
+    "canonical": "green"
+  },
+  {
+    "name": "gold",
+    "normalized": "gold",
+    "canonical": "gold"
+  },
+  {
+    "name": "chartreuse",
+    "normalized": null,
+    "canonical": "chartreuse"
+  },
+  {
+    "name": " Sea \u00a0Foam ",
+    "normalized": null,
+    "canonical": "sea foam"
+  },
+  {
+    "name": "",
+    "normalized": null,
+    "canonical": ""
+  },
+  {
+    "name": "\u00a0\t ",
+    "normalized": null,
+    "canonical": ""
+  }
+]
