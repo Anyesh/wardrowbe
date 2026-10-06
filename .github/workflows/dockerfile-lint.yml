@@ -1,0 +1,26 @@
+name: Dockerfile lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  hadolint:
+    name: Hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Lint all Dockerfiles
+        run: |
+          docker build -t wardrowbe-hadolint -f .github/hadolint/Dockerfile .github/hadolint
+          git ls-files -z -- 'Dockerfile*' '**/Dockerfile*' |
+            xargs -0 docker run --rm --mount "type=bind,src=$PWD,dst=/repo,readonly" \
+              -w /repo wardrowbe-hadolint hadolint

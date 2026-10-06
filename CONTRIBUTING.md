@@ -102,6 +102,20 @@ npm run typecheck
 npm run lint
 ```
 
+### Dockerfile checks
+
+CI runs Hadolint from the pinned image in `.github/hadolint/Dockerfile`. Dependabot
+updates that image. Run the same check locally with Docker from the repository root:
+
+```bash
+docker build -t wardrowbe-hadolint -f .github/hadolint/Dockerfile .github/hadolint
+git ls-files -z -- 'Dockerfile*' '**/Dockerfile*' | xargs -0 docker run --rm --mount "type=bind,src=$PWD,dst=/repo,readonly" -w /repo wardrowbe-hadolint hadolint
+```
+
+The shared `.hadolint.yaml` reports informational suggestions and fails on warnings or
+errors. The inline exceptions for package version pins keep system packages current
+when the base image's Debian or Alpine repository changes.
+
 ## Code Style
 
 ### Python (Backend)
