@@ -6,10 +6,12 @@ Create Date: 2026-10-05
 
 """
 
-from collections.abc import Sequence
+import re
+from collections.abc import Iterator, Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 
 revision: str = "952169051179"
 down_revision: str | None = "b7e2c9a41f36"
@@ -76,82 +78,93 @@ COLOR_ALIASES = {
 # Every stored colour maps to itself so that a cased or spaced spelling of it resolves as well.
 CANONICAL = {**{color: color for color in COLORS}, **COLOR_ALIASES}
 
-CANONICAL_CTE = (
-    "canonical(name, target) AS "
-    "(SELECT * FROM unnest(CAST(:names AS text[]), CAST(:targets AS text[])))"
+BATCH_SIZE = 1000
+
+# Unicode White_Space spelled out rather than \s, as normalize_color spells it.
+WHITESPACE_RUN = re.compile(
+    r"[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+"
 )
 
-ARRAY_COLUMNS = [
-    ("clothing_items", "id", "colors"),
-    ("user_preferences", "user_id", "color_favorites"),
-    ("user_preferences", "user_id", "color_avoid"),
-]
+
+# canonical_color at this revision, applied in Python rather than SQL because Postgres lower()
+# disagrees with str.lower() on characters such as İ and Ⓐ, and lowercases only ASCII on a
+# C-collation database, so unknown names would be stored differently from runtime writes.
+def canonical_color(name: str) -> str:
+    key = WHITESPACE_RUN.sub(" ", name).strip(" ").lower()
+    for candidate in (key, key.replace(" ", "-")):
+        if candidate in CANONICAL:
+            return CANONICAL[candidate]
+    return key
 
 
-# Unicode White_Space spelled out because btrim and [[:space:]] miss NBSP and the other non-ASCII
-# spaces that normalize_color treats as whitespace.
-WHITESPACE_RUN = r"[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+"
+# Keeps each colour at the position of its first occurrence, so the order the user or tagger chose
+# survives while charcoal + gray collapse into one gray. NULL and blank entries are dropped because
+# no colour filter or swatch can use them.
+def canonical_colors(names: list[str | None]) -> list[str]:
+    return list(dict.fromkeys(c for c in (canonical_color(n) for n in names if n is not None) if c))
 
 
-# The SQL form of canonical_color at this revision: lowercase, collapse each whitespace run to one
-# space and trim, try the name as written and with its spaces turned into hyphens, and keep an
-# unknown name in that collapsed lowercase form.
-def canonical_color_sql(value: str) -> str:
-    key = f"btrim(regexp_replace(lower({value}), '{WHITESPACE_RUN}', ' ', 'g'), ' ')"
-    return f"""COALESCE(
-        (SELECT canon.target FROM canonical canon WHERE canon.name = {key}),
-        (SELECT canon.target FROM canonical canon WHERE canon.name = replace({key}, ' ', '-')),
-        {key}
-    )"""
+# A blank primary colour becomes NULL, as the item schemas store it.
+def canonical_primary_color(name: str) -> str | None:
+    return canonical_color(name) or None
 
 
-def _remap_array(table: str, key: str, column: str) -> sa.TextClause:
-    # Keeps each colour at the position of its first occurrence, so the order the user or tagger
-    # chose survives while charcoal + gray collapse into one gray. NULL and blank entries are
-    # dropped because no colour filter or swatch can use them.
-    return sa.text(
-        f"""
-        WITH {CANONICAL_CTE},
-        remapped AS (
-            SELECT t.{key} AS key, ARRAY(
-                SELECT s.color FROM (
-                    SELECT e.color, min(e.position) AS first
-                    FROM (
-                        SELECT {canonical_color_sql("u.value")} AS color, u.position
-                        FROM unnest(t.{column}) WITH ORDINALITY AS u(value, position)
-                    ) e
-                    WHERE e.color <> ''
-                    GROUP BY e.color
-                ) s
-                ORDER BY s.first
-            ) AS colors
-            FROM {table} t
-            WHERE t.{column} IS NOT NULL
-        )
-        UPDATE {table} t SET {column} = r.colors
-        FROM remapped r
-        WHERE t.{key} = r.key AND CAST(t.{column} AS text[]) IS DISTINCT FROM r.colors
-        """
-    )
+ITEMS = sa.table(
+    "clothing_items",
+    sa.column("id", UUID(as_uuid=True)),
+    sa.column("primary_color", sa.String),
+    sa.column("colors", ARRAY(sa.String)),
+)
+PREFERENCES = sa.table(
+    "user_preferences",
+    sa.column("user_id", UUID(as_uuid=True)),
+    sa.column("color_favorites", ARRAY(sa.String)),
+    sa.column("color_avoid", ARRAY(sa.String)),
+)
+
+
+def _batches(bind: sa.Connection, table: sa.TableClause, key: str) -> Iterator[list[sa.Row]]:
+    after = None
+    while True:
+        query = sa.select(table).order_by(table.c[key]).limit(BATCH_SIZE)
+        if after is not None:
+            query = query.where(table.c[key] > after)
+        rows = bind.execute(query).all()
+        if not rows:
+            return
+        yield rows
+        after = getattr(rows[-1], key)
+
+
+def _remap(bind: sa.Connection, table: sa.TableClause, key: str, remappers: dict) -> None:
+    for rows in _batches(bind, table, key):
+        for row in rows:
+            changes = {}
+            for column, remap in remappers.items():
+                value = getattr(row, column)
+                if value is not None and (remapped := remap(value)) != value:
+                    changes[column] = remapped
+            # Only rows whose colours change are written, so a rerun touches nothing.
+            if changes:
+                bind.execute(
+                    sa.update(table).where(table.c[key] == getattr(row, key)).values(**changes)
+                )
 
 
 def upgrade() -> None:
     bind = op.get_bind()
-    params = {"names": list(CANONICAL), "targets": list(CANONICAL.values())}
-    # A blank primary colour becomes NULL, as the item schemas store it.
-    canonical_primary = f"NULLIF({canonical_color_sql('t.primary_color')}, '')"
-    bind.execute(
-        sa.text(
-            f"""
-            WITH {CANONICAL_CTE}
-            UPDATE clothing_items t SET primary_color = {canonical_primary}
-            WHERE t.primary_color IS DISTINCT FROM {canonical_primary}
-            """
-        ),
-        params,
+    _remap(
+        bind,
+        ITEMS,
+        "id",
+        {"primary_color": canonical_primary_color, "colors": canonical_colors},
     )
-    for table, key, column in ARRAY_COLUMNS:
-        bind.execute(_remap_array(table, key, column), params)
+    _remap(
+        bind,
+        PREFERENCES,
+        "user_id",
+        {"color_favorites": canonical_colors, "color_avoid": canonical_colors},
+    )
 
 
 def downgrade() -> None:

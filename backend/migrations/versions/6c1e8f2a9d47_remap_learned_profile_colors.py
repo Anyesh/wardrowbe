@@ -6,10 +6,12 @@ Create Date: 2026-10-05
 
 """
 
-from collections.abc import Sequence
+import re
+from collections.abc import Iterator, Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 revision: str = "6c1e8f2a9d47"
 down_revision: str | None = "952169051179"
@@ -74,93 +76,99 @@ COLOR_ALIASES = {
 
 CANONICAL = {**{color: color for color in COLORS}, **COLOR_ALIASES}
 
-WHITESPACE_RUN = r"[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+"
+BATCH_SIZE = 1000
 
-CANONICAL_CTE = (
-    "canonical(name, target) AS "
-    "(SELECT * FROM unnest(CAST(:names AS text[]), CAST(:targets AS text[])))"
+WHITESPACE_RUN = re.compile(
+    r"[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+"
 )
 
 
-def canonical_color_sql(value: str) -> str:
-    key = f"btrim(regexp_replace(lower({value}), '{WHITESPACE_RUN}', ' ', 'g'), ' ')"
-    return f"""COALESCE(
-        (SELECT canon.target FROM canonical canon WHERE canon.name = {key}),
-        (SELECT canon.target FROM canonical canon WHERE canon.name = replace({key}, ' ', '-')),
-        {key}
-    )"""
+# Applied in Python rather than SQL for the reason 952169051179 gives: Postgres lower() and
+# str.lower() disagree on characters such as İ and Ⓐ.
+def canonical_color(name: str) -> str:
+    key = WHITESPACE_RUN.sub(" ", name).strip(" ").lower()
+    for candidate in (key, key.replace(" ", "-")):
+        if candidate in CANONICAL:
+            return CANONICAL[candidate]
+    return key
+
+
+# Keeps each colour at the position of its first occurrence, as 952169051179 does for arrays, and
+# drops entries that are not names because the API reads preferred_colors as a list of strings.
+def canonical_colors(names: list) -> list[str]:
+    return list(
+        dict.fromkeys(c for c in (canonical_color(n) for n in names if isinstance(n, str)) if c)
+    )
 
 
 # Aliases of one colour merge to the mean of their scores because the profile keeps no sample
 # counts; a lone colour keeps its stored value untouched. Non-numeric scores are dropped, as
 # _canonical_color_scores drops them at runtime, because every reader compares scores as numbers.
-REMAP_COLOR_SCORES = f"""
-WITH {CANONICAL_CTE},
-remapped AS (
-    SELECT p.user_id, COALESCE((
-        SELECT jsonb_object_agg(s.color, s.score) FROM (
-            SELECT
-                e.color,
-                CASE WHEN count(*) = 1 THEN (array_agg(e.value))[1]
-                    ELSE to_jsonb(round(avg(CAST(e.value AS numeric)), 3))
-                END AS score
-            FROM (
-                SELECT {canonical_color_sql("j.key")} AS color, j.value
-                FROM jsonb_each(p.learned_color_scores) j
-                WHERE jsonb_typeof(j.value) = 'number'
-            ) e
-            WHERE e.color <> ''
-            GROUP BY e.color
-        ) s
-    ), '{{}}'::jsonb) AS scores
-    FROM user_learning_profiles p
-    WHERE jsonb_typeof(p.learned_color_scores) = 'object'
-        AND p.learned_color_scores <> '{{}}'::jsonb
-)
-UPDATE user_learning_profiles p SET learned_color_scores = r.scores
-FROM remapped r
-WHERE p.user_id = r.user_id AND p.learned_color_scores IS DISTINCT FROM r.scores
-"""
+def remap_color_scores(scores):
+    if not isinstance(scores, dict):
+        return scores
+    merged: dict[str, list[int | float]] = {}
+    for name, score in scores.items():
+        color = canonical_color(name)
+        if color and isinstance(score, int | float) and not isinstance(score, bool):
+            merged.setdefault(color, []).append(score)
+    return {
+        color: values[0] if len(values) == 1 else round(sum(values) / len(values), 3)
+        for color, values in merged.items()
+    }
 
-# Keeps each colour at the position of its first occurrence, as 952169051179 does for arrays.
-REMAP_OCCASION_COLORS = f"""
-WITH {CANONICAL_CTE},
-remapped AS (
-    SELECT p.user_id, (
-        SELECT jsonb_object_agg(
-            o.key,
-            CASE WHEN jsonb_typeof(o.value -> 'preferred_colors') = 'array' THEN
-                jsonb_set(o.value, '{{preferred_colors}}', COALESCE((
-                    SELECT jsonb_agg(s.color ORDER BY s.first) FROM (
-                        SELECT e.color, min(e.position) AS first
-                        FROM (
-                            SELECT {canonical_color_sql("c.value")} AS color, c.position
-                            FROM jsonb_array_elements_text(o.value -> 'preferred_colors')
-                                WITH ORDINALITY AS c(value, position)
-                        ) e
-                        WHERE e.color <> ''
-                        GROUP BY e.color
-                    ) s
-                ), '[]'::jsonb))
-            ELSE o.value END
-        )
-        FROM jsonb_each(p.learned_occasion_patterns) o
-    ) AS patterns
-    FROM user_learning_profiles p
-    WHERE jsonb_typeof(p.learned_occasion_patterns) = 'object'
-        AND p.learned_occasion_patterns <> '{{}}'::jsonb
+
+def _remap_occasion(pattern):
+    if isinstance(pattern, dict) and isinstance(pattern.get("preferred_colors"), list):
+        return {**pattern, "preferred_colors": canonical_colors(pattern["preferred_colors"])}
+    return pattern
+
+
+def remap_occasion_patterns(patterns):
+    if not isinstance(patterns, dict):
+        return patterns
+    return {occasion: _remap_occasion(pattern) for occasion, pattern in patterns.items()}
+
+
+PROFILES = sa.table(
+    "user_learning_profiles",
+    sa.column("user_id", UUID(as_uuid=True)),
+    sa.column("learned_color_scores", JSONB),
+    sa.column("learned_occasion_patterns", JSONB),
 )
-UPDATE user_learning_profiles p SET learned_occasion_patterns = r.patterns
-FROM remapped r
-WHERE p.user_id = r.user_id AND p.learned_occasion_patterns IS DISTINCT FROM r.patterns
-"""
+REMAPPERS = {
+    "learned_color_scores": remap_color_scores,
+    "learned_occasion_patterns": remap_occasion_patterns,
+}
+
+
+def _batches(bind: sa.Connection) -> Iterator[list[sa.Row]]:
+    after = None
+    while True:
+        query = sa.select(PROFILES).order_by(PROFILES.c.user_id).limit(BATCH_SIZE)
+        if after is not None:
+            query = query.where(PROFILES.c.user_id > after)
+        rows = bind.execute(query).all()
+        if not rows:
+            return
+        yield rows
+        after = rows[-1].user_id
 
 
 def upgrade() -> None:
     bind = op.get_bind()
-    params = {"names": list(CANONICAL), "targets": list(CANONICAL.values())}
-    bind.execute(sa.text(REMAP_COLOR_SCORES), params)
-    bind.execute(sa.text(REMAP_OCCASION_COLORS), params)
+    for rows in _batches(bind):
+        for row in rows:
+            changes = {}
+            for column, remap in REMAPPERS.items():
+                value = getattr(row, column)
+                if (remapped := remap(value)) != value:
+                    changes[column] = remapped
+            # Only profiles whose colours change are written, so a rerun touches nothing.
+            if changes:
+                bind.execute(
+                    sa.update(PROFILES).where(PROFILES.c.user_id == row.user_id).values(**changes)
+                )
 
 
 def downgrade() -> None:
