@@ -95,6 +95,7 @@
     "createFailed": "创建家庭失败，请重试。",
     "created": "家庭创建成功！",
     "inviteFailed": "发送邀请失败",
+    "inviteNotEmailed": "邀请已保存，但邮件未能发送。请改为分享邀请码。",
     "inviteSent": "邀请已发送！",
     "joined": "成功加入家庭！",
     "nameUpdateFailed": "更新家庭名称失败",

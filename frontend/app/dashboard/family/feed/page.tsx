@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentFamilyMember, useFamily } from '@/lib/hooks/use-family';
 import { useFamilyOutfits, type Outfit, type OutfitSource } from '@/lib/hooks/use-outfits';
+import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import Image from 'next/image';
@@ -88,6 +89,7 @@ function FeedOutfitCard({
 }) {
   const t = useTranslations('family');
   const tc = useTranslations('common');
+  const occasionLabel = useOccasionLabel();
   const [showRatingForm, setShowRatingForm] = useState(false);
   const myRating = outfit.family_ratings?.find((r) => r.user_id === currentMemberId);
 
@@ -99,7 +101,7 @@ function FeedOutfitCard({
           <div className="flex items-center gap-2">
             <SourceBadge source={outfit.source} />
             <Badge variant="secondary" className="capitalize text-xs">
-              {outfit.occasion}
+              {occasionLabel(outfit.occasion)}
             </Badge>
           </div>
           <span className="text-xs text-muted-foreground">

@@ -163,7 +163,7 @@ async def get_analytics(
     )
     rating_result = await db.execute(rating_query)
     avg_rating_raw = rating_result.scalar()
-    average_rating = round(float(avg_rating_raw), 2) if avg_rating_raw else None
+    average_rating = round(float(avg_rating_raw), 2) if avg_rating_raw is not None else None
 
     wardrobe_stats = WardrobeStats(
         total_items=total_items,
@@ -171,7 +171,7 @@ async def get_analytics(
         total_outfits=total_outfits,
         outfits_this_week=outfits_this_week,
         outfits_this_month=outfits_this_month,
-        acceptance_rate=round(acceptance_rate, 1) if acceptance_rate else None,
+        acceptance_rate=round(acceptance_rate, 1) if acceptance_rate is not None else None,
         average_rating=average_rating,
         total_wears=total_wears,
     )

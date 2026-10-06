@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import Annotated
 from uuid import UUID
 
@@ -321,27 +320,28 @@ async def invite_member(
             detail="Family not found",
         )
 
+    provider = EmailProvider(EmailConfig(address=invite_data.email))
     invite = await family_service.create_invite(family, current_user, invite_data)
     await db.commit()
 
-    app_url = os.getenv("APP_URL", "http://localhost:3000")
-    provider = EmailProvider(EmailConfig(address=invite.email))
+    email_sent = False
     if provider.is_configured():
         email = build_family_invite_email(
             to=invite.email,
             family_name=family.name,
             inviter_name=current_user.display_name,
             invite_token=invite.token,
-            app_url=app_url,
         )
         result = await provider.send(email)
-        if not result.get("success"):
+        email_sent = bool(result.get("success"))
+        if not email_sent:
             logger.warning("Failed to send family invite email: %s", result.get("error"))
 
     return InviteResponse(
         id=invite.id,
         email=invite.email,
         expires_at=invite.expires_at,
+        email_sent=email_sent,
     )
 
 

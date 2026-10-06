@@ -257,8 +257,12 @@ function FamilyView() {
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
     try {
-      await inviteMember.mutateAsync({ email: inviteEmail.trim(), role: inviteRole });
-      toast.success(t('toasts.inviteSent'));
+      const invite = await inviteMember.mutateAsync({ email: inviteEmail.trim(), role: inviteRole });
+      if (invite.email_sent) {
+        toast.success(t('toasts.inviteSent'));
+      } else {
+        toast.warning(t('toasts.inviteNotEmailed'));
+      }
       setInviteEmail('');
     } catch (error) {
       toast.error(t('toasts.inviteFailed'));

@@ -3,7 +3,6 @@ import logging
 from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from arq import create_pool
 from arq.jobs import Job
@@ -51,6 +50,8 @@ from app.services.image_service import ImageService
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
 from app.utils.signed_urls import sign_image_url
+from app.utils.timezone import get_user_today
+from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
 from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
 from app.workers.settings import get_redis_settings
 
@@ -111,6 +112,16 @@ async def _resolve_bulk_item_ids(
     next_cursor = item_ids[-1] if has_more and item_ids else None
     logger.info(f"Bulk {action} select_all: {len(item_ids)} items, has_more={has_more}")
     return item_ids, next_cursor, has_more
+
+
+async def _read_image_or_413(image: UploadFile) -> bytes:
+    try:
+        return await read_upload_within_limit(image, settings.max_upload_size_mb)
+    except UploadTooLargeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=str(e),
+        ) from None
 
 
 @router.get("", response_model=ItemListResponse)
@@ -183,7 +194,7 @@ async def create_item(
     image_service = ImageService()
     item_service = ItemService(db)
 
-    content = await image.read()
+    content = await _read_image_or_413(image)
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service.validate_image(content, content_type):
@@ -350,7 +361,18 @@ async def bulk_create_items(
                         continue
 
                 # Read and validate image
-                content = await upload_file.read()
+                try:
+                    content = await read_upload_within_limit(
+                        upload_file, settings.max_upload_size_mb
+                    )
+                except UploadTooLargeError as e:
+                    results.append(
+                        BulkUploadResult(
+                            filename=filename, success=False, error=str(e), error_code="too_large"
+                        )
+                    )
+                    failed += 1
+                    continue
                 content_type = upload_file.content_type or "application/octet-stream"
 
                 if not image_service.validate_image(content, content_type):
@@ -359,6 +381,7 @@ async def bulk_create_items(
                             filename=filename,
                             success=False,
                             error="Invalid image format. Supported: JPEG, PNG, WebP, HEIC",
+                            error_code="unsupported_format",
                         )
                     )
                     failed += 1
@@ -374,6 +397,7 @@ async def bulk_create_items(
                                 filename=filename,
                                 success=False,
                                 error="Duplicate image - already exists in wardrobe",
+                                error_code="duplicate",
                             )
                         )
                         failed += 1
@@ -436,6 +460,7 @@ async def bulk_create_items(
                         filename=filename,
                         success=False,
                         error=str(e),
+                        error_code="invalid_image",
                     )
                 )
                 failed += 1
@@ -473,6 +498,7 @@ async def bulk_create_items(
                         filename=filename,
                         success=False,
                         error="Failed to process image",
+                        error_code="processing_failed",
                     )
                 )
                 failed += 1
@@ -1343,11 +1369,7 @@ async def log_item_wear(
 
     # Use user's timezone to determine today if worn_at not provided
     if request.worn_at is None:
-        try:
-            user_tz = ZoneInfo(current_user.timezone or "UTC")
-        except Exception:
-            user_tz = ZoneInfo("UTC")
-        worn_at = datetime.now(UTC).astimezone(user_tz).date()
+        worn_at = get_user_today(current_user)
     else:
         worn_at = request.worn_at
 
@@ -1443,7 +1465,7 @@ async def get_item_wear_stats(
             detail="Item not found",
         )
 
-    return await item_service.get_wear_stats(item, current_user.timezone or "UTC")
+    return await item_service.get_wear_stats(item, get_user_today(current_user))
 
 
 @router.post("/{item_id}/wash", response_model=ItemResponse)
@@ -1470,11 +1492,7 @@ async def log_item_wash(
 
     # Use user's timezone to determine today if washed_at not provided
     if request.washed_at is None:
-        try:
-            user_tz = ZoneInfo(current_user.timezone or "UTC")
-        except Exception:
-            user_tz = ZoneInfo("UTC")
-        washed_at = datetime.now(UTC).astimezone(user_tz).date()
+        washed_at = get_user_today(current_user)
     else:
         washed_at = request.washed_at
 
@@ -1868,7 +1886,7 @@ async def replace_item_image(
         )
 
     image_service = ImageService()
-    content = await image.read()
+    content = await _read_image_or_413(image)
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service.validate_image(content, content_type):
@@ -1954,7 +1972,7 @@ async def add_item_image(
 
     # Process image
     image_service_inst = ImageService()
-    content = await image.read()
+    content = await _read_image_or_413(image)
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service_inst.validate_image(content, content_type):

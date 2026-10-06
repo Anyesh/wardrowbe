@@ -32,6 +32,7 @@ import Image from 'next/image';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
 import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
+import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
 import { displayValue, tempSymbol, TempUnit } from '@/lib/temperature';
 import { usePendingOutfits, useAcceptOutfit, useRejectOutfit } from '@/lib/hooks/use-outfits';
 import { useSchedules, useNotificationSettings } from '@/lib/hooks/use-notifications';
@@ -123,6 +124,7 @@ function PendingOutfitsCard() {
   const rejectOutfit = useRejectOutfit();
   const t = useTranslations('dashboard');
   const tc = useTranslations('common');
+  const occasionLabel = useOccasionLabel();
 
   const handleAccept = async (id: string) => {
     try {
@@ -221,7 +223,7 @@ function PendingOutfitsCard() {
               ))}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium capitalize truncate">{outfit.occasion}</p>
+              <p className="text-sm font-medium capitalize truncate">{occasionLabel(outfit.occasion)}</p>
               <p className="text-xs text-muted-foreground">
                 {outfit.scheduled_for ? new Date(outfit.scheduled_for).toLocaleDateString('en-US', {
                   weekday: 'short',
@@ -262,6 +264,7 @@ function NextScheduledCard() {
   const { data: schedules, isLoading } = useSchedules();
   const t = useTranslations('dashboard');
   const tDays = useTranslations('notifications');
+  const occasionLabel = useOccasionLabel();
 
   const nextSchedule = useMemo(() => {
     if (!schedules || schedules.length === 0) return null;
@@ -353,7 +356,7 @@ function NextScheduledCard() {
           {t('nextScheduled.dayAtTime', { day: dayStr, time: timeStr })}
         </p>
         <p className="text-sm text-muted-foreground capitalize">
-          {t('nextScheduled.occasionOutfit', { occasion: schedule.occasion })}
+          {t('nextScheduled.occasionOutfit', { occasion: occasionLabel(schedule.occasion) })}
         </p>
         {daysUntil === 0 && (
           <Badge variant="secondary" className="mt-2">{t('nextScheduled.comingUp')}</Badge>
@@ -487,12 +490,12 @@ function WeeklySummaryCard() {
           </div>
           <div>
             <p className="text-2xl font-bold">
-              {wardrobe.acceptance_rate ? `${wardrobe.acceptance_rate}%` : '-'}
+              {wardrobe.acceptance_rate != null ? `${wardrobe.acceptance_rate}%` : '-'}
             </p>
             <p className="text-xs text-muted-foreground">{t('weeklySummary.accepted')}</p>
           </div>
         </div>
-        {wardrobe.average_rating && (
+        {wardrobe.average_rating != null && (
           <p className="text-xs text-muted-foreground mt-2">
             {t('weeklySummary.avgRatingValue', { rating: wardrobe.average_rating })}
           </p>

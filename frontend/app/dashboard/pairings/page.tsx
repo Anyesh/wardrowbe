@@ -19,7 +19,6 @@ import { PairingCard } from '@/components/pairing-card';
 import { FeedbackDialog } from '@/components/feedback-dialog';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import { Pairing } from '@/lib/types';
-import { Outfit } from '@/lib/hooks/use-outfits';
 
 function EmptyPairings({ t }: { t: (key: string) => string }) {
   return (
@@ -72,8 +71,8 @@ export default function PairingsPage() {
   const tc = useTranslations('common');
   const [page, setPage] = useState(1);
   const [sourceType, setSourceType] = useState<string | undefined>(undefined);
-  const [feedbackOutfit, setFeedbackOutfit] = useState<Outfit | null>(null);
-  const [previewOutfit, setPreviewOutfit] = useState<Outfit | null>(null);
+  const [feedbackOutfit, setFeedbackOutfit] = useState<Pairing | null>(null);
+  const [previewOutfit, setPreviewOutfit] = useState<Pairing | null>(null);
 
   const { data, isLoading, isError } = usePairings(page, 20, sourceType);
   const { data: itemTypes } = useItemTypes();
@@ -140,8 +139,8 @@ export default function PairingsPage() {
               <PairingCard
                 key={pairing.id}
                 pairing={pairing}
-                onFeedback={() => setFeedbackOutfit(pairing as unknown as Outfit)}
-                onPreview={() => setPreviewOutfit(pairing as unknown as Outfit)}
+                onFeedback={() => setFeedbackOutfit(pairing)}
+                onPreview={() => setPreviewOutfit(pairing)}
               />
             ))}
           </div>

@@ -26,6 +26,7 @@ import { ApiError, getErrorMessage } from '@/lib/api';
 import { useItems } from '@/lib/hooks/use-items';
 import { useOutfit } from '@/lib/hooks/use-outfits';
 import { useCreateStudioOutfit, usePatchOutfit } from '@/lib/hooks/use-studio';
+import { useUserToday } from '@/lib/hooks/use-user';
 import {
   INITIAL_STUDIO_STATE,
   studioReducer,
@@ -58,6 +59,7 @@ export default function StudioEditorPage() {
 
   const createMutation = useCreateStudioOutfit();
   const patchMutation = usePatchOutfit();
+  const getUserToday = useUserToday();
 
   const {
     data: editOutfit,
@@ -220,9 +222,7 @@ export default function StudioEditorPage() {
         items: state.items.map((i) => i.id),
         occasion: state.occasion,
         name: state.name.trim() || undefined,
-        scheduled_for: markWorn
-          ? new Date().toISOString().slice(0, 10)
-          : null,
+        scheduled_for: markWorn ? getUserToday() : null,
         mark_worn: markWorn,
       });
       clearDraft();

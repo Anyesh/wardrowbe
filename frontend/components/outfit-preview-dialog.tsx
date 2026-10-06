@@ -18,8 +18,22 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 
+export type OutfitPreview = Pick<
+  Outfit,
+  | 'id'
+  | 'items'
+  | 'occasion'
+  | 'scheduled_for'
+  | 'reasoning'
+  | 'highlights'
+  | 'style_notes'
+  | 'family_ratings'
+  | 'family_rating_average'
+  | 'family_rating_count'
+>;
+
 interface OutfitPreviewDialogProps {
-  outfit: Outfit;
+  outfit: OutfitPreview;
   open: boolean;
   onClose: () => void;
   isOwner?: boolean;

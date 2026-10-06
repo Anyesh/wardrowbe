@@ -1,7 +1,10 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.email import EmailAddress
+from app.schemas.text import SingleLineName
 
 
 class FamilyMember(BaseModel):
@@ -36,11 +39,11 @@ class FamilyResponse(BaseModel):
 
 
 class FamilyCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
+    name: SingleLineName = Field(..., min_length=1, max_length=100)
 
 
 class FamilyUpdate(BaseModel):
-    name: str | None = Field(None, min_length=1, max_length=100)
+    name: SingleLineName | None = Field(None, min_length=1, max_length=100)
 
 
 class FamilyCreateResponse(BaseModel):
@@ -67,7 +70,7 @@ class JoinFamilyResponse(BaseModel):
 
 
 class InviteMemberRequest(BaseModel):
-    email: EmailStr
+    email: EmailAddress
     role: str = Field(default="member", pattern="^(admin|member)$")
 
 
@@ -77,6 +80,8 @@ class InviteResponse(BaseModel):
     id: UUID
     email: str
     expires_at: datetime
+    # False when SMTP is unconfigured or the send failed, so the inviter knows to share the code.
+    email_sent: bool
 
 
 class InviteCodeResponse(BaseModel):

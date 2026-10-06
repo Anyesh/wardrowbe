@@ -148,7 +148,7 @@ export function useInviteMember() {
       if (session?.accessToken) {
         setAccessToken(session.accessToken as string);
       }
-      return api.post<{ id: string; email: string; expires_at: string }>(
+      return api.post<{ id: string; email: string; expires_at: string; email_sent: boolean }>(
         '/families/me/invite',
         { email, role: role || 'member' }
       );

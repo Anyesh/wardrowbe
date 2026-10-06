@@ -62,7 +62,7 @@ async def readiness_check(db: DbSession) -> dict[str, Any]:
 
 @router.get("/health/features")
 async def feature_check() -> dict[str, Any]:
-    features = {}
+    features: dict[str, Any] = {"max_upload_size_mb": get_settings().max_upload_size_mb}
     try:
         from app.services.background_removal import get_provider
 

@@ -1,48 +1,52 @@
-import html as html_mod
 import logging
-from dataclasses import dataclass
-from datetime import UTC, datetime, time
-from enum import StrEnum
+from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, case, func, literal, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import set_committed_value
 
+from app.config import get_settings
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
-from app.models.outfit import Outfit, OutfitItem
+from app.models.outfit import Outfit, OutfitItem, OutfitStatus
 from app.models.schedule import Schedule
 from app.models.user import User
-from app.schemas.notification import EmailConfig, ExpoPushConfig, MattermostConfig, NtfyConfig
+from app.schemas.notification import NotificationChannel
 from app.services.notification_providers import (
-    EmailMessage,
-    EmailProvider,
-    ExpoPushMessage,
-    ExpoPushProvider,
-    MattermostAttachment,
-    MattermostMessage,
-    MattermostProvider,
-    NtfyNotification,
-    NtfyProvider,
+    NotificationMessage,
+    NotificationResult,
+    WeatherSummary,
+    build_provider,
+    format_temperature,
+    send_via_channel,
 )
+from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
 
+# A row written by another version (a channel since removed, or one added later) has no provider
+# here, so it is neither listed nor sent to.
+KNOWN_CHANNEL = NotificationSettings.channel.in_([channel.value for channel in NotificationChannel])
 
-class DeliveryStatus(StrEnum):
-    PENDING = "pending"
-    SENT = "sent"
-    DELIVERED = "delivered"
-    FAILED = "failed"
-    RETRYING = "retrying"
+WEATHER_TAGS = (
+    (("rain", "drizzle", "shower"), "umbrella"),
+    (("sun", "clear"), "sunny"),
+    (("cloud", "overcast"), "cloud"),
+    (("snow", "sleet"), "snowflake"),
+    (("wind",), "wind_face"),
+)
 
 
-@dataclass
-class NotificationResult:
-    channel: str
-    status: DeliveryStatus
-    error: str | None = None
-    response: dict | None = None
+# Returns the title word and the mid-sentence form, because a weekday stays capitalised
+# mid-sentence while today and tomorrow do not.
+def _outfit_day(scheduled_for: date | None, today: date) -> tuple[str, str]:
+    if scheduled_for is None or scheduled_for == today:
+        return "Today", "today"
+    if scheduled_for == today + timedelta(days=1):
+        return "Tomorrow", "tomorrow"
+    weekday = scheduled_for.strftime("%A")
+    return weekday, weekday
 
 
 class NotificationService:
@@ -53,7 +57,7 @@ class NotificationService:
     async def get_user_settings(self, user_id: UUID) -> list[NotificationSettings]:
         result = await self.db.execute(
             select(NotificationSettings)
-            .where(NotificationSettings.user_id == user_id)
+            .where(NotificationSettings.user_id == user_id, KNOWN_CHANNEL)
             .order_by(NotificationSettings.priority)
         )
         return list(result.scalars().all())
@@ -66,6 +70,7 @@ class NotificationService:
                 and_(
                     NotificationSettings.id == setting_id,
                     NotificationSettings.user_id == user_id,
+                    KNOWN_CHANNEL,
                 )
             )
         )
@@ -130,32 +135,9 @@ class NotificationService:
         await self.db.flush()
         return True
 
-    async def test_setting(self, setting_id: UUID, user_id: UUID) -> tuple[bool, str]:
-        setting = await self.get_setting_by_id(setting_id, user_id)
-        if not setting:
-            return False, "Setting not found"
-
+    async def test_setting(self, setting: NotificationSettings) -> tuple[bool, str]:
         try:
-            if setting.channel == "ntfy":
-                success, message = await NtfyProvider(
-                    NtfyConfig(**setting.config)
-                ).test_connection()
-            elif setting.channel == "mattermost":
-                success, message = await MattermostProvider(
-                    MattermostConfig(**setting.config)
-                ).test_connection()
-            elif setting.channel == "email":
-                success, message = await EmailProvider(
-                    EmailConfig(**setting.config)
-                ).test_connection()
-            elif setting.channel == "expo_push":
-                success, message = await ExpoPushProvider(
-                    ExpoPushConfig(**setting.config)
-                ).test_connection()
-            else:
-                return False, f"Unknown channel: {setting.channel}"
-
-            return success, message
+            return await build_provider(setting.channel, setting.config).test_connection()
         except Exception as e:
             return False, str(e)
 
@@ -245,14 +227,63 @@ class NotificationService:
 
 
 class NotificationDispatcher:
-    def __init__(self, db: AsyncSession, app_url: str):
+    def __init__(self, db: AsyncSession):
         self.db = db
-        self.app_url = app_url.rstrip("/")
+        self.settings = get_settings()
+
+    async def enabled_channels(self, user_id: UUID | str) -> list[NotificationSettings]:
+        result = await self.db.execute(
+            select(NotificationSettings)
+            .where(
+                and_(
+                    NotificationSettings.user_id == user_id,
+                    NotificationSettings.enabled == True,  # noqa: E712
+                    KNOWN_CHANNEL,
+                )
+            )
+            .order_by(NotificationSettings.priority)
+        )
+        return list(result.scalars().all())
+
+    async def deliver(
+        self, user_id: UUID | str, message: NotificationMessage
+    ) -> list[NotificationResult]:
+        results = []
+        for channel in await self.enabled_channels(user_id):
+            result = await send_via_channel(channel, message)
+            results.append(result)
+            if result.status == NotificationStatus.sent:
+                break
+        return results
+
+    # Every attempt is kept with its own channel's error, including the failures a fallback
+    # channel then covered, so the history shows why a higher-priority channel was skipped.
+    def record_attempts(
+        self,
+        user_id: UUID | str,
+        results: list[NotificationResult],
+        payload: dict,
+        outfit_id: UUID | None = None,
+    ) -> list[Notification]:
+        now = datetime.now(UTC)
+        rows = [
+            Notification(
+                user_id=user_id,
+                outfit_id=outfit_id,
+                channel=result.channel,
+                status=result.status,
+                payload=payload,
+                sent_at=now if result.status == NotificationStatus.sent else None,
+                error_message=result.error,
+            )
+            for result in results
+        ]
+        self.db.add_all(rows)
+        return rows
 
     async def send_outfit_notification(
-        self, user_id: UUID, outfit_id: UUID, for_tomorrow: bool = False
+        self, user_id: UUID, outfit_id: UUID
     ) -> list[NotificationResult]:
-        # Get user (skip deleted users)
         user_result = await self.db.execute(
             select(User).where(User.id == user_id, User.is_active.is_(True))
         )
@@ -260,7 +291,6 @@ class NotificationDispatcher:
         if not user:
             raise ValueError("User not found")
 
-        # Get outfit with items loaded
         outfit_result = await self.db.execute(
             select(Outfit)
             .where(Outfit.id == outfit_id)
@@ -270,74 +300,58 @@ class NotificationDispatcher:
         if not outfit:
             raise ValueError("Outfit not found")
 
-        # Get enabled channels sorted by priority
-        channels_result = await self.db.execute(
-            select(NotificationSettings)
-            .where(
-                and_(
-                    NotificationSettings.user_id == user_id,
-                    NotificationSettings.enabled == True,  # noqa: E712
-                )
-            )
-            .order_by(NotificationSettings.priority)
-        )
-        channels = list(channels_result.scalars().all())
-
-        if not channels:
+        results = await self.deliver(user_id, self._build_outfit_message(outfit, user))
+        if not results:
             return [
                 NotificationResult(
                     channel="none",
-                    status=DeliveryStatus.FAILED,
+                    status=NotificationStatus.failed,
                     error="No notification channels configured",
                 )
             ]
 
-        results = []
-        success = False
-
-        for channel_config in channels:
-            if success:
-                break
-
-            result = await self._send_via_channel(channel_config, outfit, user, for_tomorrow)
-            results.append(result)
-
-            if result.status == DeliveryStatus.SENT:
-                success = True
-
-                # Record notification
-                notification = Notification(
-                    user_id=user_id,
-                    outfit_id=outfit_id,
-                    channel=channel_config.channel,
-                    status=NotificationStatus.sent,
-                    payload={"occasion": outfit.occasion},
-                    sent_at=datetime.now(UTC),
-                )
-                self.db.add(notification)
-
-                # Update outfit status
-                outfit.sent_at = datetime.now(UTC)
-                outfit.status = "sent"
-
-                await self.db.flush()
-
-        if not success:
-            # Record failed notification for retry
-            notification = Notification(
-                user_id=user_id,
-                outfit_id=outfit_id,
-                channel=channels[0].channel if channels else "unknown",
-                status=NotificationStatus.retrying,
-                payload={"occasion": outfit.occasion},
-                attempts=1,
-                last_attempt_at=datetime.now(UTC),
-                error_message=results[-1].error if results else "Unknown error",
-            )
-            self.db.add(notification)
-            await self.db.flush()
+        rows = self.record_attempts(
+            user_id, results, {"occasion": outfit.occasion}, outfit_id=outfit_id
+        )
+        if results[-1].status == NotificationStatus.sent:
+            await self._mark_outfit_sent(outfit, rows[-1].sent_at)
+        else:
+            # Only one row is retried, so that the retry job sends the outfit at most once rather
+            # than once per failed channel.
+            retry = next((r for r, res in zip(rows, results, strict=True) if res.retryable), None)
+            if retry is not None:
+                retry.status = NotificationStatus.retrying
+                retry.attempts = 1
+                retry.last_attempt_at = datetime.now(UTC)
+        await self.db.flush()
 
         return results
+
+    # A send can land after the user accepted, rejected or skipped the outfit, also while it was in
+    # flight, so the row decides rather than the loaded object, which may be stale: only a pending
+    # outfit moves to sent, because overwriting the verdict would drop it from learning and
+    # analytics. The loaded object takes the row's values so a later flush cannot write it back.
+    async def _mark_outfit_sent(self, outfit: Outfit, sent_at: datetime) -> None:
+        result = await self.db.execute(
+            update(Outfit)
+            .where(Outfit.id == outfit.id)
+            .values(
+                status=case(
+                    (
+                        Outfit.status == OutfitStatus.pending,
+                        literal(OutfitStatus.sent, Outfit.status.type),
+                    ),
+                    else_=Outfit.status,
+                ),
+                sent_at=func.coalesce(Outfit.sent_at, sent_at),
+            )
+            .returning(Outfit.status, Outfit.sent_at)
+            .execution_options(synchronize_session=False)
+        )
+        stored = result.one_or_none()
+        if stored is not None:
+            set_committed_value(outfit, "status", stored.status)
+            set_committed_value(outfit, "sent_at", stored.sent_at)
 
     async def retry_notification(self, notification: Notification) -> NotificationResult:
         user_result = await self.db.execute(
@@ -347,11 +361,11 @@ class NotificationDispatcher:
         if not user:
             return NotificationResult(
                 channel=notification.channel,
-                status=DeliveryStatus.FAILED,
+                status=NotificationStatus.failed,
                 error="User not found",
+                retryable=False,
             )
 
-        # Get outfit with items loaded
         outfit_result = await self.db.execute(
             select(Outfit)
             .where(Outfit.id == notification.outfit_id)
@@ -361,11 +375,11 @@ class NotificationDispatcher:
         if not outfit:
             return NotificationResult(
                 channel=notification.channel,
-                status=DeliveryStatus.FAILED,
+                status=NotificationStatus.failed,
                 error="Outfit not found",
+                retryable=False,
             )
 
-        # Get the channel config for this notification's channel
         channel_result = await self.db.execute(
             select(NotificationSettings).where(
                 and_(
@@ -379,325 +393,72 @@ class NotificationDispatcher:
         if not channel_config:
             return NotificationResult(
                 channel=notification.channel,
-                status=DeliveryStatus.FAILED,
+                status=NotificationStatus.failed,
                 error=f"Channel {notification.channel} not configured or disabled",
+                retryable=False,
             )
 
-        # Attempt to send
-        return await self._send_via_channel(channel_config, outfit, user)
+        result = await send_via_channel(channel_config, self._build_outfit_message(outfit, user))
+        if result.status == NotificationStatus.sent:
+            await self._mark_outfit_sent(outfit, datetime.now(UTC))
+        return result
 
-    async def _send_via_channel(
-        self,
-        channel_config: NotificationSettings,
-        outfit: Outfit,
-        user: User,
-        for_tomorrow: bool = False,
-    ) -> NotificationResult:
-        try:
-            if channel_config.channel == "ntfy":
-                provider = NtfyProvider(NtfyConfig(**channel_config.config))
-                message = self._build_ntfy_notification(outfit, user, for_tomorrow)
-                result = await provider.send(message)
-
-            elif channel_config.channel == "mattermost":
-                provider = MattermostProvider(MattermostConfig(**channel_config.config))
-                message = self._build_mattermost_message(outfit, user, for_tomorrow)
-                result = await provider.send(message)
-
-            elif channel_config.channel == "email":
-                provider = EmailProvider(EmailConfig(**channel_config.config))
-                message = self._build_email_message(outfit, user, provider.to_address, for_tomorrow)
-                result = await provider.send(message)
-
-            elif channel_config.channel == "expo_push":
-                provider = ExpoPushProvider(ExpoPushConfig(**channel_config.config))
-                message = self._build_expo_push_message(outfit, user, for_tomorrow)
-                result = await provider.send(message)
-
-            else:
-                return NotificationResult(
-                    channel=channel_config.channel,
-                    status=DeliveryStatus.FAILED,
-                    error=f"Unknown channel: {channel_config.channel}",
-                )
-
-            if result.get("success"):
-                return NotificationResult(
-                    channel=channel_config.channel,
-                    status=DeliveryStatus.SENT,
-                    response=result,
-                )
-            else:
-                return NotificationResult(
-                    channel=channel_config.channel,
-                    status=DeliveryStatus.FAILED,
-                    error=result.get("error"),
-                )
-
-        except Exception as e:
-            logger.exception(f"Failed to send via {channel_config.channel}")
-            return NotificationResult(
-                channel=channel_config.channel,
-                status=DeliveryStatus.FAILED,
-                error=str(e),
-            )
-
-    def _build_ntfy_notification(
-        self, outfit: Outfit, user: User, for_tomorrow: bool = False
-    ) -> NtfyNotification:
-        # Weather info for title
+    # The day is derived at send time from the outfit's date rather than stored, so a retry that
+    # lands after the user's midnight still names the outfit's day correctly.
+    def _build_outfit_message(self, outfit: Outfit, user: User) -> NotificationMessage:
+        today = get_user_today(user)
+        for_tomorrow = outfit.scheduled_for == today + timedelta(days=1)
+        day_label, day_phrase = _outfit_day(outfit.scheduled_for, today)
         weather = outfit.weather_data or {}
         temp = weather.get("temperature")
-        condition = weather.get("condition", "").lower()
-
-        # Day prefix for messages
-        day_label = "Tomorrow" if for_tomorrow else "Today"
-
-        # Build title with weather (ASCII-safe for HTTP headers)
+        condition = weather.get("condition")
+        # "Date" alone reads as a calendar date, so the title always names the occasion's outfit.
+        occasion = outfit.occasion.replace("-", " ").title()
+        title = f"{day_label}'s {occasion} Outfit"
         if temp is not None:
-            title = f"{day_label}'s {outfit.occasion.title()} - {temp}C"
-        else:
-            title = f"{day_label}'s {outfit.occasion.title()} Outfit"
+            title = f"{title} - {format_temperature(temp)}"
 
-        # Build message body with structured data
-        parts = []
-
-        # Add headline if available (stored in reasoning field)
-        if outfit.reasoning:
-            parts.append(outfit.reasoning)
-
-        # Add highlights from ai_raw_response if available
         highlights = []
-        if outfit.ai_raw_response and isinstance(outfit.ai_raw_response, dict):
+        if isinstance(outfit.ai_raw_response, dict):
             highlights = outfit.ai_raw_response.get("highlights", [])
+        if not isinstance(highlights, list):
+            highlights = []
+        highlights = [str(h) for h in highlights[:3]]
 
-        if highlights and isinstance(highlights, list):
-            # Format highlights as bullet points
-            highlight_lines = [f"* {h}" for h in highlights[:3]]  # Limit to 3
-            parts.append("\n".join(highlight_lines))
+        tip_line = f"Tip: {outfit.style_notes}" if outfit.style_notes else None
+        highlight_lines = "\n".join(f"* {h}" for h in highlights) or None
+        body_parts = list(filter(None, [outfit.reasoning, highlight_lines, tip_line]))
+        short_parts = list(filter(None, [outfit.reasoning, tip_line]))
 
-        # Add styling tip if available
-        if outfit.style_notes:
-            parts.append(f"Tip: {outfit.style_notes}")
-
-        message = "\n\n".join(parts) if parts else "Your outfit is ready."
-
-        # Choose a single contextual tag based on weather
-        tag = "shirt"  # default
-        if condition:
-            if any(w in condition for w in ["rain", "drizzle", "shower"]):
-                tag = "umbrella"
-            elif any(w in condition for w in ["sun", "clear"]):
-                tag = "sunny"
-            elif any(w in condition for w in ["cloud", "overcast"]):
-                tag = "cloud"
-            elif any(w in condition for w in ["snow", "sleet"]):
-                tag = "snowflake"
-            elif any(w in condition for w in ["wind"]):
-                tag = "wind_face"
-
-        return NtfyNotification(
-            topic="",  # Will be set by provider
-            title=title,
-            message=message,
-            tags=[tag],
-            priority=3,
-            click=f"{self.app_url}/dashboard/history",
-        )
-
-    def _build_mattermost_message(
-        self, outfit: Outfit, user: User, for_tomorrow: bool = False
-    ) -> MattermostMessage:
-        weather_text = ""
-        if outfit.weather_data:
-            weather = outfit.weather_data
-            weather_text = f" | {weather.get('temperature', '?')}C {weather.get('condition', '')}"
-
-        day_label = "Tomorrow" if for_tomorrow else "Today"
         greeting = "Good evening" if for_tomorrow else "Good morning"
-
-        # Build message text with structured data
-        text_parts = []
-
-        # Add headline (stored in reasoning)
-        if outfit.reasoning:
-            text_parts.append(f"**{outfit.reasoning}**")
-
-        # Add highlights from ai_raw_response as markdown list
-        highlights = []
-        if outfit.ai_raw_response and isinstance(outfit.ai_raw_response, dict):
-            highlights = outfit.ai_raw_response.get("highlights", [])
-
-        if highlights and isinstance(highlights, list):
-            highlight_lines = [f"- {h}" for h in highlights[:3]]
-            text_parts.append("\n".join(highlight_lines))
-
-        # Add styling tip
-        if outfit.style_notes:
-            text_parts.append(f"_Tip: {outfit.style_notes}_")
-
-        attachment_text = "\n\n".join(text_parts) if text_parts else "Your outfit is ready!"
-
-        attachment = MattermostAttachment(
-            title=f"{day_label}'s Outfit: {outfit.occasion.title()}{weather_text}",
-            text=attachment_text,
-            color="#3B82F6",
+        lowered = str(condition or "").lower()
+        tag = next(
+            (tag for words, tag in WEATHER_TAGS if any(w in lowered for w in words)),
+            "shirt",
         )
 
-        return MattermostMessage(
-            text=f"{greeting}, {user.display_name}! Here's your outfit suggestion for {day_label.lower()}:",
-            attachments=[attachment],
-        )
-
-    def _build_email_message(
-        self, outfit: Outfit, user: User, to: str, for_tomorrow: bool = False
-    ) -> EmailMessage:
-        weather_html = ""
-        if outfit.weather_data:
-            weather = outfit.weather_data
-            forecast_note = " (forecast)" if for_tomorrow else ""
-            condition = html_mod.escape(str(weather.get("condition", "Unknown")))
-            weather_html = f"""
-            <p style="color: #6B7280; margin: 0;">
-                {weather.get("temperature", "?")}C, {condition}{forecast_note}
-            </p>
-            """
-
-        day_label = "Tomorrow" if for_tomorrow else "Today"
-        occasion_escaped = html_mod.escape(outfit.occasion.title())
-
-        # Build highlights HTML
-        highlights_html = ""
-        highlights = []
-        if outfit.ai_raw_response and isinstance(outfit.ai_raw_response, dict):
-            highlights = outfit.ai_raw_response.get("highlights", [])
-
-        if highlights and isinstance(highlights, list):
-            items_html = "".join(
-                f'<li style="color: #4B5563; margin: 5px 0;">{html_mod.escape(str(h))}</li>'
-                for h in highlights[:3]
-            )
-            highlights_html = f"""
-            <ul style="margin: 15px 0; padding-left: 20px;">
-                {items_html}
-            </ul>
-            """
-
-        # Build styling tip HTML
-        styling_tip_html = ""
-        if outfit.style_notes:
-            styling_tip_html = f"""
-            <div style="background: #F3F4F6; border-radius: 8px; padding: 12px; margin: 15px 0; border: 1px solid #E5E7EB;">
-                <p style="color: #4B5563; margin: 0;">
-                    <strong style="color: #1F2937;">Tip:</strong> {html_mod.escape(outfit.style_notes)}
-                </p>
-            </div>
-            """
-
-        reasoning_escaped = (
-            html_mod.escape(outfit.reasoning) if outfit.reasoning else "Your outfit is ready!"
-        )
-
-        html_body = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color: #1F2937; margin: 0;">Wardrowbe</h1>
-            </div>
-
-            <div style="background: #F9FAFB; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                <h2 style="color: #1F2937; margin: 0 0 10px 0;">
-                    {day_label}'s Outfit: {occasion_escaped}
-                </h2>
-                {weather_html}
-            </div>
-
-            <div style="background: #F3F4F6; border-radius: 8px; padding: 15px; margin: 20px 0;">
-                <p style="color: #1F2937; font-weight: 600; margin: 0 0 10px 0;">
-                    {reasoning_escaped}
-                </p>
-                {highlights_html}
-            </div>
-
-            {styling_tip_html}
-
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="{self.app_url}/dashboard/history"
-                   style="background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; margin: 5px;">
-                    View Outfit
-                </a>
-            </div>
-
-            <div style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 40px;">
-                <p>Sent by Wardrowbe</p>
-                <p>
-                    <a href="{self.app_url}/dashboard/notifications" style="color: #6B7280;">
-                        Manage notification settings
-                    </a>
-                </p>
-            </div>
-        </body>
-        </html>
-        """
-
-        # Build text body with highlights
-        text_parts = [
-            f"Wardrowbe - {day_label}'s Outfit",
-            "",
-            f"Occasion: {outfit.occasion.title()}",
-            "",
-            outfit.reasoning or "Your outfit is ready!",
-        ]
-
-        if highlights:
-            text_parts.append("")
-            for h in highlights[:3]:
-                text_parts.append(f"- {h}")
-
-        if outfit.style_notes:
-            text_parts.append("")
-            text_parts.append(f"Tip: {outfit.style_notes}")
-
-        text_parts.append("")
-        text_parts.append(f"View outfit: {self.app_url}/dashboard/history")
-
-        text_body = "\n".join(text_parts)
-
-        return EmailMessage(
-            to=to,
-            subject=f"{day_label}'s Outfit: {occasion_escaped}",
-            html_body=html_body,
-            text_body=text_body,
-        )
-
-    def _build_expo_push_message(
-        self, outfit: Outfit, user: User, for_tomorrow: bool = False
-    ) -> ExpoPushMessage:
-        weather = outfit.weather_data or {}
-        temp = weather.get("temperature")
-        day_label = "Tomorrow" if for_tomorrow else "Today"
-
-        if temp is not None:
-            title = f"{day_label}'s {outfit.occasion.title()} - {temp}\u00b0C"
-        else:
-            title = f"{day_label}'s {outfit.occasion.title()} Outfit"
-
-        parts = []
-        if outfit.reasoning:
-            parts.append(outfit.reasoning)
-        if outfit.style_notes:
-            parts.append(f"Tip: {outfit.style_notes}")
-
-        body = " \u2022 ".join(parts) if parts else "Your outfit is ready!"
-
-        return ExpoPushMessage(
-            to="",  # Provider uses its stored token
+        return NotificationMessage(
             title=title,
-            body=body,
+            body="\n\n".join(body_parts) if body_parts else "Your outfit is ready.",
+            short_body=" \u2022 ".join(short_parts) if short_parts else "Your outfit is ready!",
+            heading=f"{day_label}'s Outfit: {occasion}",
+            greeting=(
+                f"{greeting}, {user.display_name}! Here's your outfit suggestion for {day_phrase}:"
+            ),
+            weather=(
+                WeatherSummary(
+                    temperature=temp,
+                    condition=str(condition) if condition is not None else None,
+                    forecast=for_tomorrow,
+                )
+                if outfit.weather_data
+                else None
+            ),
+            lead=outfit.reasoning,
+            highlights=highlights,
+            tip=outfit.style_notes,
+            url=self.settings.app_link("/dashboard/history"),
+            url_label="View Outfit",
+            tags=[tag],
             data={"outfit_id": str(outfit.id), "screen": "history"},
         )
