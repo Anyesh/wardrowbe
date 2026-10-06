@@ -38,8 +38,12 @@ _INVISIBLE_RANGES = (
 )
 
 
+# A combining mark draws on the character before it, so a name of marks alone has nothing to show.
+_COMBINING_CATEGORIES = {"Mn", "Me"}
+
+
 def _is_invisible(char: str) -> bool:
-    if char.isspace():
+    if char.isspace() or unicodedata.category(char) in _COMBINING_CATEGORIES:
         return True
     code = ord(char)
     return any(low <= code <= high for low, high in _INVISIBLE_RANGES)

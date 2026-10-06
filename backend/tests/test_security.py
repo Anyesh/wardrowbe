@@ -90,6 +90,7 @@ class TestNamesAreSingleLine:
             ("\ufff0", "jane.doe@example.com", "jane.doe"),
             ("\ufff9\ufffb", "jane.doe@example.com", "jane.doe"),
             ("\U00013430", "jane.doe@example.com", "jane.doe"),
+            ("\u0301\u0308", "jane.doe@example.com", "jane.doe"),
             ("\u200c\u200d\u00ad\u3164", "jane.doe@example.com", "jane.doe"),
             pytest.param(
                 "\u200b" * 100 + "Bob",
@@ -119,6 +120,8 @@ class TestNamesAreSingleLine:
             "\u2603\ufe0f",
             "\u06dd",
             "\u0600\u0661\u0662\u0663",
+            "Rene\u0301",
+            "\u0928\u092e\u0938\u094d\u0924\u0947",
         ],
     )
     def test_every_request_accepts_a_plain_name(self, build, name):
