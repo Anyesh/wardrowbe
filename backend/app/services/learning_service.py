@@ -33,6 +33,7 @@ from app.models.learning import (
 from app.models.outfit import Outfit, OutfitItem, OutfitStatus, UserFeedback
 from app.models.preference import UserPreference
 from app.utils.clothing import ITEM_ROLE
+from app.utils.garment_vocabulary import canonical_color
 from app.utils.signed_urls import sign_image_url
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,18 @@ def slot_composition(item_types: Iterable[str | None]) -> dict[str, str]:
         if role and role != "accessory":
             composition[_COMPOSITION_KEYS.get(role, role)] = normalized
     return composition
+
+
+# Aliases of one colour merge to their mean because the profile keeps no per-colour sample
+# counts. Migration 6c1e8f2a9d47 merged stored rows the same way but left a lone colour's score
+# unrounded, whereas this rounds every score to 3 places on the next feedback write.
+def _canonical_color_scores(scores: dict[str, float]) -> dict[str, float]:
+    merged: dict[str, list[float]] = {}
+    for name, score in scores.items():
+        color = canonical_color(name)
+        if color:
+            merged.setdefault(color, []).append(score)
+    return {color: round(sum(values) / len(values), 3) for color, values in merged.items()}
 
 
 class PairSignalType(enum.Enum):
@@ -579,9 +592,7 @@ class LearningService:
 
                 # Color signals
                 if item.primary_color:
-                    if item.primary_color not in color_scores:
-                        color_scores[item.primary_color] = []
-                    color_scores[item.primary_color].append(signal)
+                    color_scores.setdefault(canonical_color(item.primary_color), []).append(signal)
 
                 # Style signals
                 for style in item.style or []:
@@ -605,7 +616,7 @@ class LearningService:
             # Track colors per occasion
             for oi in outfit.items:
                 if oi.item.primary_color:
-                    color = oi.item.primary_color
+                    color = canonical_color(oi.item.primary_color)
                     if color not in occasion_patterns[occasion]["colors"]:
                         occasion_patterns[occasion]["colors"][color] = 0
                     if signal > 0:
@@ -692,13 +703,17 @@ class LearningService:
         profile.learned_occasion_patterns = learned_occasion_patterns
         profile.learned_weather_preferences = learned_weather_prefs
         profile.overall_acceptance_rate = (
-            Decimal(str(round(acceptance_rate, 4))) if acceptance_rate else None
+            Decimal(str(round(acceptance_rate, 4))) if acceptance_rate is not None else None
         )
-        profile.average_overall_rating = Decimal(str(round(avg_rating, 2))) if avg_rating else None
+        profile.average_overall_rating = (
+            Decimal(str(round(avg_rating, 2))) if avg_rating is not None else None
+        )
         profile.average_comfort_rating = (
-            Decimal(str(round(avg_comfort, 2))) if avg_comfort else None
+            Decimal(str(round(avg_comfort, 2))) if avg_comfort is not None else None
         )
-        profile.average_style_rating = Decimal(str(round(avg_style, 2))) if avg_style else None
+        profile.average_style_rating = (
+            Decimal(str(round(avg_style, 2))) if avg_style is not None else None
+        )
         profile.feedback_count = len(outfits)
         profile.outfits_rated = rating_count
         profile.last_computed_at = datetime.now(UTC)
@@ -746,16 +761,16 @@ class LearningService:
         profile = await self._get_or_create_profile(user_id)
         alpha = self.EMA_ALPHA
 
-        new_color_scores = dict(profile.learned_color_scores or {})
+        new_color_scores = _canonical_color_scores(profile.color_scores)
         for oi in outfit.items:
-            color = oi.item.primary_color
-            if color:
+            if oi.item.primary_color:
+                color = canonical_color(oi.item.primary_color)
                 old = new_color_scores.get(color, 0.0)
                 new_color_scores[color] = round(old * (1 - alpha) + signal * alpha, 3)
         profile.learned_color_scores = new_color_scores
         flag_modified(profile, "learned_color_scores")
 
-        new_style_scores = dict(profile.learned_style_scores or {})
+        new_style_scores = profile.style_scores
         for oi in outfit.items:
             for style in oi.item.style or []:
                 old = new_style_scores.get(style, 0.0)
@@ -764,13 +779,13 @@ class LearningService:
         flag_modified(profile, "learned_style_scores")
 
         occasion = outfit.occasion
-        new_occasion_patterns = dict(profile.learned_occasion_patterns or {})
+        new_occasion_patterns = profile.occasion_patterns
         occ_data = dict(new_occasion_patterns.get(occasion, {}))
 
         occ_colors = dict(occ_data.get("colors", occ_data.get("preferred_colors_scores", {})))
         for oi in outfit.items:
-            color = oi.item.primary_color
-            if color and signal > 0:
+            if oi.item.primary_color and signal > 0:
+                color = canonical_color(oi.item.primary_color)
                 occ_colors[color] = occ_colors.get(color, 0) + 1
 
         old_rate = occ_data.get("success_rate", 0.5)
@@ -859,59 +874,6 @@ class LearningService:
 
         return suggestions[:limit]
 
-    async def get_learned_preferences(
-        self,
-        user_id: UUID,
-    ) -> dict:
-        """
-        Get learned preferences for use in recommendations.
-
-        Returns a dict that can be used to augment the recommendation prompt.
-        """
-        profile = await self._get_or_create_profile(user_id)
-
-        if not profile.last_computed_at:
-            return {}
-
-        preferences = {}
-
-        # Top liked colors
-        if profile.learned_color_scores:
-            liked_colors = sorted(
-                [(c, s) for c, s in profile.learned_color_scores.items() if s > 0.2],
-                key=lambda x: x[1],
-                reverse=True,
-            )[:5]
-            disliked_colors = sorted(
-                [(c, s) for c, s in profile.learned_color_scores.items() if s < -0.2],
-                key=lambda x: x[1],
-            )[:3]
-
-            if liked_colors:
-                preferences["learned_favorite_colors"] = [c for c, _ in liked_colors]
-            if disliked_colors:
-                preferences["learned_avoid_colors"] = [c for c, _ in disliked_colors]
-
-        # Top liked styles
-        if profile.learned_style_scores:
-            liked_styles = sorted(
-                [(s, score) for s, score in profile.learned_style_scores.items() if score > 0.2],
-                key=lambda x: x[1],
-                reverse=True,
-            )[:3]
-            if liked_styles:
-                preferences["learned_preferred_styles"] = [s for s, _ in liked_styles]
-
-        # Occasion-specific preferences
-        if profile.learned_occasion_patterns:
-            preferences["occasion_insights"] = profile.learned_occasion_patterns
-
-        # Weather preferences
-        if profile.learned_weather_preferences:
-            preferences["weather_insights"] = profile.learned_weather_preferences
-
-        return preferences
-
     async def generate_insights(self, user_id: UUID) -> list[StyleInsight]:
         """Generate human-readable insights about the user's style."""
         profile = await self._get_or_create_profile(user_id)
@@ -924,9 +886,9 @@ class LearningService:
         expiry = now + timedelta(days=30)
 
         # Color insights
-        if profile.learned_color_scores:
+        if profile.color_scores:
             top_colors = sorted(
-                profile.learned_color_scores.items(),
+                profile.color_scores.items(),
                 key=lambda x: x[1],
                 reverse=True,
             )
@@ -947,7 +909,7 @@ class LearningService:
                 )
 
             # Look for avoided colors
-            avoided = [c for c, s in profile.learned_color_scores.items() if s < -0.3]
+            avoided = [c for c, s in profile.color_scores.items() if s < -0.3]
             if avoided:
                 insights.append(
                     StyleInsight(
@@ -993,9 +955,9 @@ class LearningService:
                 )
 
         # Style insights
-        if profile.learned_style_scores:
+        if profile.style_scores:
             top_styles = sorted(
-                profile.learned_style_scores.items(),
+                profile.style_scores.items(),
                 key=lambda x: x[1],
                 reverse=True,
             )[:2]
@@ -1141,10 +1103,10 @@ class LearningService:
         updates = {}
 
         # Suggest adding learned favorite colors
-        if profile.learned_color_scores:
+        if profile.color_scores:
             strong_likes = [
                 c
-                for c, s in profile.learned_color_scores.items()
+                for c, s in profile.color_scores.items()
                 if s >= threshold and c not in (prefs.color_favorites or [])
             ]
             if strong_likes:
@@ -1152,7 +1114,7 @@ class LearningService:
 
             strong_dislikes = [
                 c
-                for c, s in profile.learned_color_scores.items()
+                for c, s in profile.color_scores.items()
                 if s <= -threshold and c not in (prefs.color_avoid or [])
             ]
             if strong_dislikes:
@@ -1162,6 +1124,6 @@ class LearningService:
             "updated": bool(updates),
             "suggestions": updates,
             "confidence": float(profile.overall_acceptance_rate)
-            if profile.overall_acceptance_rate
+            if profile.overall_acceptance_rate is not None
             else None,
         }

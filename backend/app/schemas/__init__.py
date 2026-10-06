@@ -26,22 +26,18 @@ from app.schemas.item import (
 )
 from app.schemas.user import (
     SessionUser,
-    UserCreate,
     UserResponse,
     UserSyncRequest,
     UserSyncResponse,
-    UserUpdate,
 )
 
 __all__ = [
     "AuthSession",
     "TokenPayload",
     "SessionUser",
-    "UserCreate",
     "UserResponse",
     "UserSyncRequest",
     "UserSyncResponse",
-    "UserUpdate",
     "ArchiveRequest",
     "ItemCreate",
     "ItemFilter",

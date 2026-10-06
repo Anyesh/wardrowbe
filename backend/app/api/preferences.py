@@ -4,10 +4,10 @@ from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import DbSession
 from app.models.user import User
+from app.schemas.outfit import stored_occasion_or_default
 from app.schemas.preference import PreferenceResponse, PreferenceUpdate
 from app.services.preference_service import PreferenceService
 from app.utils.auth import get_current_user
@@ -31,9 +31,7 @@ def _build_preference_response(preferences) -> PreferenceResponse:
         style_profile=preferences.style_profile
         if preferences.style_profile is not None
         else default_style,
-        default_occasion=preferences.default_occasion
-        if preferences.default_occasion is not None
-        else "casual",
+        default_occasion=stored_occasion_or_default(preferences.default_occasion),
         temperature_unit=preferences.temperature_unit
         if preferences.temperature_unit is not None
         else "celsius",
@@ -60,7 +58,7 @@ def _build_preference_response(preferences) -> PreferenceResponse:
 
 @router.get("", response_model=PreferenceResponse)
 async def get_preferences(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> PreferenceResponse:
     service = PreferenceService(db)
@@ -71,7 +69,7 @@ async def get_preferences(
 @router.patch("", response_model=PreferenceResponse)
 async def update_preferences(
     data: PreferenceUpdate,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> PreferenceResponse:
     service = PreferenceService(db)
@@ -81,7 +79,7 @@ async def update_preferences(
 
 @router.post("/reset", response_model=PreferenceResponse)
 async def reset_preferences(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> PreferenceResponse:
     service = PreferenceService(db)
@@ -92,7 +90,7 @@ async def reset_preferences(
 @router.post("/excluded-items/{item_id}", response_model=dict)
 async def add_excluded_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     service = PreferenceService(db)
@@ -103,7 +101,7 @@ async def add_excluded_item(
 @router.delete("/excluded-items/{item_id}", response_model=dict)
 async def remove_excluded_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     service = PreferenceService(db)

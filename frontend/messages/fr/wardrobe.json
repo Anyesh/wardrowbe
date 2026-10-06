@@ -260,7 +260,14 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
+    "failure": {
+      "tooLarge": "{name} dépasse {limit} Mo",
+      "tooLargeForServer": "{name} est trop volumineux pour être accepté par le serveur",
+      "unsupportedFormat": "{name} n'est pas dans un format pris en charge (JPEG, PNG, WebP ou HEIC)",
+      "duplicate": "{name} est déjà dans votre garde-robe",
+      "generic": "{name} n'a pas pu être importé"
+    }
   },
   "wearCount": "{count, plural, one {Porté # fois} other {Porté # fois}}",
   "wornAgo": {
