@@ -72,6 +72,12 @@ spec:
                   name: wardrobe-secrets
                   key: ai-api-key
                   optional: true
+            - name: FORWARD_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: wardrobe-secrets
+                  key: forward-auth-secret
+                  optional: true
             - name: NTFY_TOKEN
               valueFrom:
                 secretKeyRef:

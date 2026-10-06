@@ -55,21 +55,21 @@ class UserService:
         self, sync_data: UserSyncRequest, *, email_verified: bool
     ) -> tuple[User, bool]:
         """
-        Sync user from OIDC provider.
-        Creates user if not exists, updates if exists.
-        Returns (user, is_new_user).
+        Creates or updates the user for an identity verified by the caller (dev login,
+        OIDC id_token or forward-auth proxy headers). Returns (user, is_new_user).
 
-        email_verified states whether the caller's identity source vouched for sync_data.email,
-        and is recorded on the user whenever its email is set.
+        email_verified states whether the caller's identity source vouched for sync_data.email
+        (OIDC's email_verified for the token's own email claim, dev login, or the proxy's
+        Remote-Email behind the shared secret), and is recorded on the user whenever its
+        email is set.
 
-        Migration behavior: If external_id doesn't match but email does,
-        we update the external_id. This allows seamless migration between
-        auth providers (e.g., TinyAuth forward-auth to direct Pocket ID OIDC).
-        That takeover requires both the caller's email and the existing account's email
-        to be verified. A verified caller whose email is held by an unverified account
-        reclaims it instead: that account keeps its data under a detached placeholder
-        address. Any other email clash, or a sign-in that keeps losing races, raises
-        UserEmailConflictError.
+        An unknown external_id whose email matches an existing user adopts that user under
+        the new external_id, so that switching between dev, forward-auth and OIDC keeps the
+        account. Adoption hands over the account, so it requires both the caller's email and
+        the existing account's email to be verified. A verified caller whose email is held by
+        an unverified account reclaims it instead: that account keeps its data under a
+        detached placeholder address. Any other email clash, or a sign-in that keeps losing
+        races, raises UserEmailConflictError.
         """
         if sync_data.email.strip().lower().endswith(f"@{DETACHED_EMAIL_DOMAIN}"):
             raise UserEmailConflictError(EMAIL_IN_USE)

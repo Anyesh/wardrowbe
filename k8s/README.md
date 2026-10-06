@@ -174,6 +174,7 @@ Wardrobe supports multiple auth providers via NextAuth:
 
 1. **Development Mode** (default): Simple email/name login
 2. **OIDC Provider**: Authentik, Keycloak, Auth0, etc.
+3. **Forward-auth**: an authenticating proxy such as TinyAuth or Authelia in front of the ingress. Set `forward-auth-secret` in `secrets.yaml` and `TINYAUTH_URL` or `FORWARD_AUTH_LOGOUT_URL` in `configmap.yaml`; the proxy setup is in the main README's "Forward-auth" section.
 
 Configure OIDC in `configmap.yaml` and `secrets.yaml`:
 

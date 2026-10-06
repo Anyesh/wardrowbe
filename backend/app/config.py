@@ -8,6 +8,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 logger = logging.getLogger(__name__)
 
 DEFAULT_SECRET_KEY = "change-me-in-production"
+FORWARD_AUTH_SECRET_MIN_LENGTH = 32
+NO_AUTH_CONFIGURED_MESSAGE = (
+    "No authentication method configured. "
+    "Set OIDC_ISSUER_URL + OIDC_CLIENT_ID, set FORWARD_AUTH_SECRET, or enable DEBUG mode."
+)
 
 
 class Settings(BaseSettings):
@@ -56,6 +61,10 @@ class Settings(BaseSettings):
     oidc_client_secret: str | None = None
     oidc_mobile_client_id: str | None = None
     oidc_ca_bundle: str | None = Field(default=None)
+
+    # Shared secret the authenticating reverse proxy adds as X-Forward-Auth-Secret,
+    # so that Remote-* identity headers are only trusted when the proxy sent them.
+    forward_auth_secret: str | None = Field(default=None)
 
     # AI capability switches.
     # ai_internal_enabled is the master switch; ai_vision_enabled / ai_text_enabled
@@ -182,6 +191,10 @@ class Settings(BaseSettings):
         """True if any internal AI capability is active."""
         return self.effective_ai_vision_enabled or self.effective_ai_text_enabled
 
+    @property
+    def forward_auth_configured(self) -> bool:
+        return bool(self.forward_auth_secret)
+
     def validate_security(self) -> str | None:
         if self.secret_key == DEFAULT_SECRET_KEY and not self.debug:
             raise RuntimeError(
@@ -196,18 +209,26 @@ class Settings(BaseSettings):
                 "OIDC is partially configured: both OIDC_ISSUER_URL and OIDC_CLIENT_ID must be set together."
             )
 
-        oidc_configured = oidc_issuer and oidc_client
-        is_dev = self.debug and not oidc_configured
-        if not oidc_configured and not is_dev:
-            return (
-                "No authentication method configured. "
-                "Set OIDC_ISSUER_URL + OIDC_CLIENT_ID, or enable DEBUG mode."
+        if (
+            self.forward_auth_configured
+            and len(self.forward_auth_secret) < FORWARD_AUTH_SECRET_MIN_LENGTH
+        ):
+            raise RuntimeError(
+                f"FORWARD_AUTH_SECRET must be at least {FORWARD_AUTH_SECRET_MIN_LENGTH} characters."
             )
+
+        oidc_configured = oidc_issuer and oidc_client
+        is_dev = self.debug and not oidc_configured and not self.forward_auth_configured
+        if not oidc_configured and not self.forward_auth_configured and not is_dev:
+            return NO_AUTH_CONFIGURED_MESSAGE
 
         return None
 
     def get_auth_mode(self) -> str:
-        if self.oidc_issuer_url and self.oidc_client_id:
+        oidc_configured = bool(self.oidc_issuer_url and self.oidc_client_id)
+        if self.forward_auth_configured:
+            return "forward-auth+oidc" if oidc_configured else "forward-auth"
+        if oidc_configured:
             return "oidc"
         if self.debug:
             return "dev"
