@@ -2921,6 +2921,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "pyyaml" },
     { name = "ruff" },
 ]
 lint = [
@@ -2935,7 +2936,7 @@ requires-dist = [
     { name = "arq", specifier = ">=0.25.0" },
     { name = "asyncpg", specifier = ">=0.29.0" },
     { name = "email-validator", specifier = ">=2.1.0" },
-    { name = "fastapi", specifier = ">=0.109.0" },
+    { name = "fastapi", specifier = ">=0.121.1" },
     { name = "httpx", specifier = ">=0.26.0" },
     { name = "imagehash", specifier = ">=4.3.1" },
     { name = "pillow", specifier = ">=10.2.0" },
@@ -2960,6 +2961,7 @@ dev = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=0.23.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.4.4" },
 ]
 lint = [{ name = "ruff", specifier = ">=0.4.4" }]

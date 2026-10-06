@@ -47,5 +47,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-# Type alias for dependency injection
-DbSession = Annotated[AsyncSession, Depends(get_db)]
+# scope="function" so that the commit runs before the response is sent: with the default
+# request scope a client could act on a 200 before its writes are visible, and a failed
+# commit could no longer turn that 200 into an error.
+DbSession = Annotated[AsyncSession, Depends(get_db, scope="function")]

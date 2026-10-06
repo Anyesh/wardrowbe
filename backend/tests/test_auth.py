@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.api.auth import create_access_token
+from app.services.user_service import UserService
 from app.utils.auth import decode_token
 
 
@@ -58,14 +59,23 @@ class TestAuthSync:
     """Tests for auth sync endpoint."""
 
     @pytest.mark.asyncio
-    async def test_sync_new_user(self, client: AsyncClient):
-        """Test syncing a new user creates the user."""
+    @pytest.mark.parametrize(
+        ("avatar_url", "stored_avatar"),
+        [
+            pytest.param(
+                "https://idp.example.com/a.png", "https://idp.example.com/a.png", id="kept"
+            ),
+            pytest.param("https://idp.example.com/" + "a" * 600, None, id="over-column-dropped"),
+        ],
+    )
+    async def test_sync_new_user(self, client: AsyncClient, db_session, avatar_url, stored_avatar):
         response = await client.post(
             "/api/v1/auth/sync",
             json={
                 "external_id": "new-user-123",
                 "email": "newuser@example.com",
                 "display_name": "New User",
+                "avatar_url": avatar_url,
             },
         )
         assert response.status_code == 200
@@ -74,6 +84,8 @@ class TestAuthSync:
         assert data["display_name"] == "New User"
         assert "access_token" in data
         assert data["is_new_user"] is True
+        user = await UserService(db_session).get_by_external_id("new-user-123")
+        assert user.avatar_url == stored_avatar
 
     @pytest.mark.asyncio
     async def test_sync_existing_user(self, client: AsyncClient, test_user):
@@ -92,14 +104,18 @@ class TestAuthSync:
         assert data["is_new_user"] is False
 
     @pytest.mark.asyncio
-    async def test_sync_missing_required_fields(self, client: AsyncClient):
-        response = await client.post(
-            "/api/v1/auth/sync",
-            json={
-                "external_id": "test-123",
-                # display_name still required; email is now optional
-            },
-        )
+    @pytest.mark.parametrize(
+        "body",
+        [
+            pytest.param({"external_id": "test-123"}, id="no-display-name"),
+            pytest.param(
+                {"external_id": "s" * 256, "email": "a@example.com", "display_name": "A"},
+                id="subject-over-column",
+            ),
+        ],
+    )
+    async def test_sync_refuses_a_malformed_body(self, client: AsyncClient, body):
+        response = await client.post("/api/v1/auth/sync", json=body)
         assert response.status_code == 422
 
     @pytest.mark.asyncio
@@ -126,6 +142,46 @@ class TestAuthSync:
         )
         assert response.status_code == 400
         assert "email" in response.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "email", ["admin@nas.local", "alice@fae2e.test", "me@pi.localhost", "bob@home.arpa"]
+    )
+    async def test_sync_then_session_accepts_special_use_domains(
+        self, client: AsyncClient, email: str
+    ):
+        synced = await client.post(
+            "/api/v1/auth/sync",
+            json={"external_id": f"nas-{email}", "email": email, "display_name": "NAS User"},
+        )
+        assert synced.status_code == 200
+        token = synced.json()["access_token"]
+
+        session = await client.get(
+            "/api/v1/auth/session", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert session.status_code == 200
+        assert session.json()["email"] == email
+
+    @pytest.mark.asyncio
+    async def test_sync_normalises_email_case_and_whitespace(self, client: AsyncClient):
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={"external_id": "nas-upper", "email": "  Admin@NAS.Local ", "display_name": "A"},
+        )
+        assert response.status_code == 200
+        assert response.json()["email"] == "admin@nas.local"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("email", ["not-an-email", "x@nowhere.invalid", "x@hidden.onion"])
+    async def test_sync_rejects_malformed_or_non_lan_reserved_email(
+        self, client: AsyncClient, email: str
+    ):
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={"external_id": f"garbage-{email}", "email": email, "display_name": "G"},
+        )
+        assert response.status_code == 422
 
 
 class TestMobileCallback:

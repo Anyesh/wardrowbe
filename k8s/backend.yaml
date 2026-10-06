@@ -48,6 +48,9 @@ spec:
             capabilities:
               drop:
                 - ALL
+          envFrom:
+            - configMapRef:
+                name: wardrobe-config
           env:
             - name: DATABASE_URL
               valueFrom:
@@ -58,145 +61,22 @@ spec:
               value: "redis://redis:6379"
             - name: STORAGE_PATH
               value: "/data/uploads"
-            - name: AI_BASE_URL
+            - name: SECRET_KEY
               valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AI_BASE_URL
+                secretKeyRef:
+                  name: wardrobe-secrets
+                  key: backend-secret-key
             - name: AI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: wardrobe-secrets
                   key: ai-api-key
                   optional: true
-            - name: AI_VISION_MODEL
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AI_VISION_MODEL
-            - name: AI_TEXT_MODEL
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AI_TEXT_MODEL
-            - name: AI_TIMEOUT
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AI_TIMEOUT
-            - name: AI_MAX_RETRIES
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AI_MAX_RETRIES
-            - name: AI_REASONING_EFFORT
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AI_REASONING_EFFORT
-            - name: AI_TAGGING_CONCURRENCY
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AI_TAGGING_CONCURRENCY
-            - name: AI_INTERNAL_ENABLED
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AI_INTERNAL_ENABLED
-                  optional: true
-            - name: AI_VISION_ENABLED
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AI_VISION_ENABLED
-                  optional: true
-            - name: AI_TEXT_ENABLED
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AI_TEXT_ENABLED
-                  optional: true
-            - name: LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: LOG_LEVEL
-            - name: AUTH_TRUST_HEADER
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: AUTH_TRUST_HEADER
-            - name: SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: wardrobe-secrets
-                  key: backend-secret-key
-            - name: OIDC_ISSUER_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: OIDC_ISSUER_URL
-            - name: OIDC_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: wardrobe-secrets
-                  key: oidc-client-id
-            - name: OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: wardrobe-secrets
-                  key: oidc-client-secret
-            - name: OIDC_MOBILE_CLIENT_ID
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: OIDC_MOBILE_CLIENT_ID
-                  optional: true
-            - name: APP_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: APP_URL
-            - name: NTFY_SERVER
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: NTFY_SERVER
-            - name: NTFY_TOPIC
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: NTFY_TOPIC
             - name: NTFY_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: wardrobe-notifications
                   key: ntfy-token
-                  optional: true
-            - name: SMTP_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: SMTP_HOST
-                  optional: true
-            - name: SMTP_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: SMTP_PORT
-                  optional: true
-            - name: SMTP_FROM_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: SMTP_FROM_NAME
-                  optional: true
-            - name: SMTP_FROM_EMAIL
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: SMTP_FROM_EMAIL
                   optional: true
             - name: SMTP_USER
               valueFrom:
@@ -210,6 +90,16 @@ spec:
                   name: wardrobe-notifications
                   key: smtp-password
                   optional: true
+            - name: OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: wardrobe-secrets
+                  key: oidc-client-id
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: wardrobe-secrets
+                  key: oidc-client-secret
           volumeMounts:
             - name: uploads
               mountPath: /data/uploads

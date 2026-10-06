@@ -5,11 +5,11 @@ from urllib.parse import urlencode
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.database import get_db
+from app.database import DbSession
 from app.models.user import User
+from app.schemas.email import normalise_email
 from app.schemas.user import (
     AuthConfigOIDC,
     AuthConfigResponse,
@@ -91,14 +91,34 @@ async def auth_status() -> AuthStatusResponse:
     return AuthStatusResponse(configured=True, mode=mode)
 
 
+def _invalid_email_claim() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="The OIDC provider sent an email claim that is not a valid email address",
+    )
+
+
+def _claims_email(oidc_claims: dict) -> str | None:
+    raw_email = oidc_claims.get("email")
+    if raw_email is None or (isinstance(raw_email, str) and not raw_email.strip()):
+        return None
+    if not isinstance(raw_email, str):
+        raise _invalid_email_claim()
+    try:
+        return normalise_email(raw_email)
+    except ValueError:
+        raise _invalid_email_claim() from None
+
+
 @router.post("/sync", response_model=UserSyncResponse)
 async def sync_user(
     request: Request,
     sync_data: UserSyncRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
 ) -> UserSyncResponse:
     await rate_limit_by_ip(request, "auth_sync", 10, 60)
     if _is_dev_mode():
+        email_verified = True
         if not sync_data.email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -136,9 +156,9 @@ async def sync_user(
                 detail="Token subject does not match external_id",
             )
 
-        claims_email = oidc_claims.get("email", "").lower().strip()
+        claims_email = _claims_email(oidc_claims)
         if sync_data.email:
-            request_email = sync_data.email.lower().strip()
+            request_email = sync_data.email
             if claims_email and claims_email != request_email:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -153,17 +173,17 @@ async def sync_user(
                 detail="No email provided by OIDC provider. Configure your provider to include the email claim.",
             )
 
-        sync_data = sync_data.model_copy(update={"email": effective_email})
-
-        # Check provider migration: different external_id, same email requires verified email
-        user_service_check = UserService(db)
-        existing_user = await user_service_check.get_by_email(effective_email)
-        if existing_user and existing_user.external_id != sync_data.external_id:
-            if oidc_claims.get("email_verified") is not True:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Email already associated with another account. Verified email required for migration.",
-                )
+        # Validated again rather than copied so the blank-name fallback sees the token's email.
+        sync_data = UserSyncRequest.model_validate(
+            {**sync_data.model_dump(), "email": effective_email}
+        )
+        verified_claim = oidc_claims.get("email_verified")
+        email_verified = (
+            bool(claims_email)
+            and claims_email == effective_email
+            # Apple sends the claim as the string "true"; nothing else counts as verified.
+            and (verified_claim is True or verified_claim == "true")
+        )
     else:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -173,7 +193,7 @@ async def sync_user(
     user_service = UserService(db)
 
     try:
-        user, is_new = await user_service.sync_from_oidc(sync_data)
+        user, is_new = await user_service.sync_from_oidc(sync_data, email_verified=email_verified)
     except UserEmailConflictError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
