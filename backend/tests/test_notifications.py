@@ -633,8 +633,16 @@ class TestMattermostEscaping:
                 "1\\. one\n2\\) two\n\\- dash\n  \\+ plus\n\\# hash\n\\> quote\n"
                 "Setext\n\\===\n\\---\nO'Brien wrote 5\\*3 - 1.5",
             ),
+            (
+                lambda: NotificationMessage(
+                    title="Linked", body="bare\r- CR list\r\n+ CRLF\n\r1. after LF", url="https://x"
+                ),
+                "",
+                "Linked",
+                "bare\r\\- CR list\r\n\\+ CRLF\n\r1\\. after LF",
+            ),
         ],
-        ids=["outfit", "laundry", "line-start-markers"],
+        ids=["outfit", "laundry", "line-start-markers", "carriage-returns"],
     )
     async def test_user_text_cannot_mention_or_link(self, build, text, title, attachment_text):
         post = AsyncMock(

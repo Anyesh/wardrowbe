@@ -190,8 +190,9 @@ class MattermostMessage:
 _MATTERMOST_MARKUP = re.compile(r"([\\`*_~\[\]<>#|])")
 _MATTERMOST_MENTION = re.compile(r"@(?=[\w.-])")
 # List items ("-", "+", "1.", "1)") and setext underlines ("===", "---") are markup only at the
-# start of a line, so only there is their last character escaped.
-_MATTERMOST_LINE_MARKER = re.compile(r"^([ \t]*)(\d+[.)]|[-+=])", re.MULTILINE)
+# start of a line, so only there is their last character escaped. Mattermost breaks lines at "\r"
+# as well as "\n", which re.MULTILINE's "^" does not.
+_MATTERMOST_LINE_MARKER = re.compile(r"(?:\A|(?<=[\r\n]))([ \t]*)(\d+[.)]|[-+=])")
 
 
 def _escape_line_marker(match: re.Match) -> str:
