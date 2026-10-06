@@ -476,26 +476,6 @@ class TestEmailProviderAddresses:
         assert ascii_smtp_server == []
 
 
-class TestFamilyInviteEmailBody:
-    def test_names_are_escaped_in_html_and_plain_in_text(self, monkeypatch):
-        settings = Settings(_env_file=None, app_url="https://x.com")
-        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
-
-        email = build_family_invite_email(
-            to="guest@example.com",
-            family_name="Smith & <Co>",
-            inviter_name='<img src=x onerror="alert(1)">',
-            invite_token="tok",
-        )
-
-        assert "<img" not in email.html_body
-        assert "<strong>&lt;img src=x onerror=&quot;alert(1)&quot;&gt;</strong>" in email.html_body
-        assert "<strong>Smith &amp; &lt;Co&gt;</strong>" in email.html_body
-        assert email.text_body.startswith(
-            '<img src=x onerror="alert(1)"> invited you to join the family "Smith & <Co>"'
-        )
-
-
 class TestChannelRegistry:
     def test_every_channel_has_a_config_and_provider(self):
         assert set(CHANNELS) == set(NotificationChannel)
@@ -513,14 +493,43 @@ class TestChannelRegistry:
 
 
 class TestNotificationEmail:
-    def test_user_text_is_escaped(self):
-        email = build_notification_email(
-            "to@example.com",
-            NotificationMessage(title="Laundry <b>", body="1 item: <script>x</script>"),
-        )
-        assert "<script>" not in email.html_body
-        assert "&lt;script&gt;" in email.html_body
-        assert "<b>" not in email.html_body
+    @pytest.mark.parametrize(
+        ("build", "forbidden", "escaped", "plain"),
+        [
+            (
+                lambda: build_notification_email(
+                    "to@example.com",
+                    NotificationMessage(title="Laundry <b>", body="1 item: <script>x</script>"),
+                ),
+                ["<script>", "<b>"],
+                ["Laundry &lt;b&gt;", "1 item: &lt;script&gt;x&lt;/script&gt;"],
+                "1 item: <script>x</script>",
+            ),
+            (
+                lambda: build_family_invite_email(
+                    to="guest@example.com",
+                    family_name="Smith & <Co>",
+                    inviter_name='<img src=x onerror="alert(1)">',
+                    invite_token="tok",
+                ),
+                ["<img"],
+                [
+                    "<strong>&lt;img src=x onerror=&quot;alert(1)&quot;&gt;</strong>",
+                    "<strong>Smith &amp; &lt;Co&gt;</strong>",
+                ],
+                '<img src=x onerror="alert(1)"> invited you to join the family "Smith & <Co>"',
+            ),
+        ],
+        ids=["notification", "family-invite"],
+    )
+    def test_user_text_is_escaped_in_html_and_plain_in_text(self, build, forbidden, escaped, plain):
+        email = build()
+
+        for markup in forbidden:
+            assert markup not in email.html_body
+        for fragment in escaped:
+            assert fragment in email.html_body
+        assert plain in email.text_body
 
 
 HOSTILE_NAME = "@channel [win](https://evil.example) *now* <@here> ~town_square #1 \\"
