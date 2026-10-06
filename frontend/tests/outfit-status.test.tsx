@@ -5,7 +5,6 @@ import { NextIntlClientProvider } from 'next-intl'
 import type { ReactNode } from 'react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { OutfitStatusFilter, OutfitStatusIcon } from '@/components/outfit-status'
-import { OUTFIT_STATUSES } from '@/lib/types'
 
 // tests/setup.ts stubs next-intl to echo keys; these assertions need the real catalog.
 vi.unmock('next-intl')
@@ -30,15 +29,16 @@ beforeAll(() => {
 })
 
 describe('OutfitStatusIcon', () => {
-  it('labels a skipped outfit from the catalog', () => {
-    render(<OutfitStatusIcon status="skipped" />, { wrapper: Wrapper })
-    expect(screen.getByRole('img', { name: 'Skipped' })).toBeInTheDocument()
-  })
-
-  it.each(OUTFIT_STATUSES)('labels %s with a catalog string', (status) => {
+  it.each([
+    ['pending', 'Pending'],
+    ['sent', 'Sent'],
+    ['viewed', 'Viewed'],
+    ['accepted', 'Accepted'],
+    ['rejected', 'Rejected'],
+    ['skipped', 'Skipped'],
+    ['expired', 'Expired'],
+  ] as const)('labels %s as %s', (status, label) => {
     render(<OutfitStatusIcon status={status} />, { wrapper: Wrapper })
-    const label = history.status[status]
-    expect(label, `history.status.${status} missing from messages/en`).toEqual(expect.any(String))
     expect(screen.getByRole('img', { name: label })).toBeInTheDocument()
   })
 })
@@ -49,8 +49,14 @@ describe('OutfitStatusFilter', () => {
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' })
     const options = screen.getAllByRole('option').map((o) => o.textContent)
     expect(options).toEqual([
-      history.filters.allStatus,
-      ...OUTFIT_STATUSES.map((s) => history.status[s]),
+      'All status',
+      'Pending',
+      'Sent',
+      'Viewed',
+      'Accepted',
+      'Rejected',
+      'Skipped',
+      'Expired',
     ])
   })
 
@@ -60,12 +66,12 @@ describe('OutfitStatusFilter', () => {
       wrapper: Wrapper,
     })
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' })
-    fireEvent.click(screen.getByRole('option', { name: history.status.skipped }))
+    fireEvent.click(screen.getByRole('option', { name: 'Skipped' }))
     expect(onChange).toHaveBeenLastCalledWith('skipped')
 
     rerender(<OutfitStatusFilter value="skipped" onChange={onChange} />)
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' })
-    fireEvent.click(screen.getByRole('option', { name: history.filters.allStatus }))
+    fireEvent.click(screen.getByRole('option', { name: 'All status' }))
     expect(onChange).toHaveBeenLastCalledWith(undefined)
   })
 })
