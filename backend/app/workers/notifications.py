@@ -104,8 +104,8 @@ async def _retry_notification(
 async def _record_failed_retry(
     db: AsyncSession, notification: Notification, notification_id: UUID, error: Exception
 ) -> None:
-    await db.rollback()
     try:
+        await db.rollback()
         await db.refresh(notification)
         notification.attempts += 1
         notification.error_message = str(error)
@@ -160,8 +160,9 @@ async def retry_failed_notifications(ctx: dict):
                     notification_id,
                 )
             except Exception:
-                # Nothing was sent when the lock itself fails, so no attempt is charged.
-                logger.exception("Could not lock notification %s for retry", notification_id)
+                # A lock error is either before the send, so nothing was sent, or on release after
+                # the attempt was already committed, so no attempt is charged here.
+                logger.exception("Retry lock for notification %s failed", notification_id)
 
         logger.info(f"Retried {retried} notifications")
         return {"retried": retried}
