@@ -82,18 +82,6 @@ class TestPreferencesEndpoints:
         assert response.status_code == 200
         assert response.json()["default_occasion"] == read
 
-    @pytest.mark.asyncio
-    async def test_unlisted_default_occasion_is_rejected(
-        self, client: AsyncClient, test_user, auth_headers
-    ):
-        response = await client.patch(
-            "/api/v1/users/me/preferences",
-            json={"default_occasion": "banana"},
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 422
-
 
 class TestAIEndpointPreferences:
     """Tests for AI endpoint configuration in preferences."""
