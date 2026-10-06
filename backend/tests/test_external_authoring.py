@@ -185,6 +185,22 @@ async def test_create_suggestion_rejects_unknown_fields(
 
 
 @pytest.mark.asyncio
+async def test_create_suggestion_stores_canonical_palette(
+    client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+):
+    (shirt,) = await _make_wardrobe(db_session, test_user, ["shirt"])
+
+    resp = await client.post(
+        "/api/v1/outfits/suggestions",
+        json={"items": [str(shirt.id)], "occasion": "casual", "palette": ["Khaki", "tan"]},
+        headers=auth_headers,
+    )
+
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["palette"] == ["tan"]
+
+
+@pytest.mark.asyncio
 async def test_create_suggestion_validates_attribute_bounds(
     client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
 ):
@@ -294,7 +310,7 @@ async def test_create_pairing_persists_external_pairing(
     assert body["source_item"]["id"] == str(shirt.id)
     assert body["season"] == "fall"
     assert body["formality"] == "smart-casual"
-    assert body["palette"] == ["blue", "grey"]
+    assert body["palette"] == ["blue", "gray"]
     assert body["notes"] == "Good transitional-weather pick"
     # The source item leads when left out of the partner list
     assert [i["id"] for i in body["items"]] == [str(shirt.id), str(jeans.id), str(jacket.id)]

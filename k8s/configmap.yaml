@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: wardrobe-config
   namespace: wardrobe
+# backend, worker and image-worker load every key here through envFrom, so a
+# setting added below reaches all three without editing the Deployments.
 data:
   # Database
   POSTGRES_USER: "wardrobe"
@@ -24,7 +26,8 @@ data:
   AI_BASE_URL: "https://api.openai.com/v1"
   AI_VISION_MODEL: "gpt-4o"
   AI_TEXT_MODEL: "gpt-4o"
-  AI_TIMEOUT: "120"
+  # AI_TIMEOUT defaults to 120 seconds; slow local models often need 300-600.
+  # AI_TIMEOUT: "300"
   AI_MAX_RETRIES: "3"
   # Reasoning effort for thinking-capable models. "none" because a thinking model
   # otherwise spends the whole completion budget on hidden monologue and returns
@@ -52,3 +55,16 @@ data:
   # Optional: ntfy.sh server for push notifications
   NTFY_SERVER: ""
   NTFY_TOPIC: ""
+
+  # Optional: email notifications (SMTP_USER/SMTP_PASSWORD live in wardrobe-notifications)
+  SMTP_HOST: ""
+  SMTP_PORT: "587"
+  SMTP_FROM_NAME: "Wardrowbe"
+  SMTP_FROM_EMAIL: ""
+
+  # Image worker (rotation, background removal)
+  IMAGE_WORKER_CONCURRENCY: "1"
+  MAX_IMAGE_MEGAPIXELS: "50"
+  BG_REMOVAL_PROVIDER: "rembg"
+  BG_REMOVAL_MODEL: "u2net"
+  BG_REMOVAL_URL: ""

@@ -260,7 +260,14 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
+    "failure": {
+      "tooLarge": "{name} 超过 {limit} MB",
+      "tooLargeForServer": "{name} 太大，服务器无法接收",
+      "unsupportedFormat": "{name} 的格式不受支持（支持 JPEG、PNG、WebP、HEIC）",
+      "duplicate": "{name} 已在你的衣橱中",
+      "generic": "{name} 无法上传"
+    }
   },
   "wearCount": "{count, plural, one {已穿着 # 次} other {已穿着 # 次}}",
   "wornAgo": {
