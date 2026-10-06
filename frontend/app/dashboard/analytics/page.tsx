@@ -224,15 +224,15 @@ export default function AnalyticsPage() {
         />
         <StatCard
           title={t('stats.acceptanceRate.title')}
-          value={wardrobe.acceptance_rate ? t('percent', { value: wardrobe.acceptance_rate }) : '-'}
-          description={wardrobe.acceptance_rate ? t('stats.acceptanceRate.description') : t('stats.totalWears.noData')}
+          value={wardrobe.acceptance_rate != null ? t('percent', { value: wardrobe.acceptance_rate }) : '-'}
+          description={wardrobe.acceptance_rate != null ? t('stats.acceptanceRate.description') : t('stats.totalWears.noData')}
           icon={TrendingUp}
-          trend={wardrobe.acceptance_rate && wardrobe.acceptance_rate > 50 ? 'up' : undefined}
+          trend={wardrobe.acceptance_rate != null && wardrobe.acceptance_rate > 50 ? 'up' : undefined}
         />
         <StatCard
           title={t('stats.totalWears.title')}
           value={wardrobe.total_wears}
-          description={wardrobe.average_rating ? t('stats.avgRating', { rating: wardrobe.average_rating }) : t('stats.totalWears.description')}
+          description={wardrobe.average_rating != null ? t('stats.avgRating', { rating: wardrobe.average_rating }) : t('stats.totalWears.description')}
           icon={Activity}
         />
       </div>

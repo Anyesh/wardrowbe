@@ -490,12 +490,12 @@ function WeeklySummaryCard() {
           </div>
           <div>
             <p className="text-2xl font-bold">
-              {wardrobe.acceptance_rate ? `${wardrobe.acceptance_rate}%` : '-'}
+              {wardrobe.acceptance_rate != null ? `${wardrobe.acceptance_rate}%` : '-'}
             </p>
             <p className="text-xs text-muted-foreground">{t('weeklySummary.accepted')}</p>
           </div>
         </div>
-        {wardrobe.average_rating && (
+        {wardrobe.average_rating != null && (
           <p className="text-xs text-muted-foreground mt-2">
             {t('weeklySummary.avgRatingValue', { rating: wardrobe.average_rating })}
           </p>

@@ -387,25 +387,25 @@ export default function LearningPage() {
             />
             <StatCard
               title={t('stats.acceptanceRate')}
-              value={profile.overall_acceptance_rate
+              value={profile.overall_acceptance_rate != null
                 ? t('percent', { value: Math.round(profile.overall_acceptance_rate * 100) })
                 : '-'}
-              description={profile.overall_acceptance_rate
+              description={profile.overall_acceptance_rate != null
                 ? t('stats.suggestionsAccepted')
                 : t('stats.notEnoughData')}
               icon={TrendingUp}
-              trend={profile.overall_acceptance_rate && profile.overall_acceptance_rate > 0.5 ? 'up' : undefined}
+              trend={profile.overall_acceptance_rate != null && profile.overall_acceptance_rate > 0.5 ? 'up' : undefined}
             />
             <StatCard
               title={t('stats.averageRating')}
-              value={profile.average_rating ? profile.average_rating.toFixed(1) : '-'}
-              description={profile.average_rating ? t('stats.outOf5Stars') : t('stats.rateMoreOutfits')}
+              value={profile.average_rating != null ? profile.average_rating.toFixed(1) : '-'}
+              description={profile.average_rating != null ? t('stats.outOf5Stars') : t('stats.rateMoreOutfits')}
               icon={Sparkles}
             />
             <StatCard
               title={t('stats.styleRating')}
-              value={profile.average_style_rating ? profile.average_style_rating.toFixed(1) : '-'}
-              description={profile.average_style_rating ? t('stats.styleSatisfaction') : t('stats.rateOutfitStyles')}
+              value={profile.average_style_rating != null ? profile.average_style_rating.toFixed(1) : '-'}
+              description={profile.average_style_rating != null ? t('stats.styleSatisfaction') : t('stats.rateOutfitStyles')}
               icon={Heart}
             />
           </div>
