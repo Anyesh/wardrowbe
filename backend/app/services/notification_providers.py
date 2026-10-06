@@ -311,6 +311,10 @@ def _smtp_sender(value: str) -> str:
             return smtp_address(candidate)
         except EmailNotValidError:
             continue
+    if "@" in value:
+        logger.warning(
+            "SMTP_FROM_EMAIL %r is not one email address; the mail server may refuse it", value
+        )
     return value
 
 

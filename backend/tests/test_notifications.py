@@ -456,6 +456,24 @@ def _plain_email(to: str) -> EmailMessage:
 
 
 class TestEmailProviderAddresses:
+    @pytest.mark.parametrize(
+        ("from_email", "warned"),
+        [
+            pytest.param("closet@example.com", False, id="address"),
+            pytest.param("mailer", False, id="bare-login"),
+            pytest.param("Wardrowbe <closet@example.com>", False, id="whole-header"),
+            pytest.param("a@x.com <b@y.com>", True, id="two-addresses"),
+            pytest.param("user@", True, id="no-domain"),
+        ],
+    )
+    def test_a_sender_meant_as_an_address_that_is_not_one_is_logged(
+        self, caplog, from_email, warned
+    ):
+        with caplog.at_level("WARNING", logger="app.services.notification_providers"):
+            notification_providers._smtp_sender(from_email)
+
+        assert ("SMTP_FROM_EMAIL" in caplog.text) is warned
+
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         ("from_name", "from_email", "address", "sender", "recipient", "from_header"),
