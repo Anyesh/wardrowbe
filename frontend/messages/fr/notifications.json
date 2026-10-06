@@ -28,6 +28,8 @@
       "mattermostWebhook": "Créez un webhook entrant dans les paramètres Mattermost",
       "topicSubscribe": "Abonnez-vous à ce sujet dans votre application ntfy"
     },
+    "invalidConfig": "Paramètres invalides",
+    "invalidConfigHint": "Ces paramètres ne sont plus acceptés, donc rien n'est envoyé par ce canal. Supprimez-le puis ajoutez-le à nouveau.",
     "mobileAppRegistered": "Enregistré depuis l’application mobile",
     "noChannels": "Aucun canal de notification configuré",
     "noChannelsDesc": "Ajoutez un canal pour commencer à recevoir des suggestions de tenues",

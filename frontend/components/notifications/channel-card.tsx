@@ -47,6 +47,9 @@ export function ChannelCard({
             <div>
               <p className="font-medium">{t(`channels.types.${setting.channel}`)}</p>
               <p className="text-sm text-muted-foreground">{details[setting.channel]}</p>
+              {setting.config_error && (
+                <p className="text-sm text-destructive">{t('channels.invalidConfigHint')}</p>
+              )}
             </div>
           </div>
           <Switch checked={setting.enabled} onCheckedChange={onToggle} />
@@ -66,6 +69,9 @@ export function ChannelCard({
             {t('channels.test')}
           </Button>
           <Badge variant="secondary">{t('channels.priority', { level: setting.priority })}</Badge>
+          {setting.config_error && (
+            <Badge variant="destructive">{t('channels.invalidConfig')}</Badge>
+          )}
           <Button
             variant="ghost"
             size="sm"

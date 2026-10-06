@@ -91,6 +91,7 @@ class NotificationSettingsResponse(NotificationSettingsBase):
     user_id: UUID
     created_at: datetime
     updated_at: datetime
+    config_error: str | None = None
 
     class Config:
         from_attributes = True

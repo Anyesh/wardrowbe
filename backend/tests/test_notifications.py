@@ -601,7 +601,7 @@ class TestNtfyHeaders:
 
 class TestNotificationSettingsList:
     @pytest.mark.asyncio
-    async def test_skips_a_stored_channel_this_version_cannot_send_to(
+    async def test_skips_unknown_channels_and_flags_configs_this_version_rejects(
         self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
     ):
         db_session.add_all(
@@ -613,7 +613,13 @@ class TestNotificationSettingsList:
                     user_id=test_user.id,
                     channel="email",
                     priority=2,
-                    config={"address": "a@example.com"},
+                    config={"address": "a..b@example.com"},
+                ),
+                NotificationSettings(
+                    user_id=test_user.id,
+                    channel="ntfy",
+                    priority=3,
+                    config={"server": "https://ntfy.example.com", "topic": "outfits"},
                 ),
             ]
         )
@@ -622,7 +628,16 @@ class TestNotificationSettingsList:
         response = await client.get("/api/v1/notifications/settings", headers=auth_headers)
 
         assert response.status_code == 200
-        assert [row["channel"] for row in response.json()] == ["email"]
+        assert [
+            (row["channel"], row["config"], row["config_error"]) for row in response.json()
+        ] == [
+            (
+                "email",
+                {"address": "a..b@example.com"},
+                "Value error, An email address cannot have two periods in a row.",
+            ),
+            ("ntfy", {"server": "https://ntfy.example.com", "topic": "outfits"}, None),
+        ]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -819,8 +834,8 @@ class TestDispatcherDelivery:
                 NotificationSettings(
                     user_id=test_user.id,
                     channel="email",
-                    priority=3,
-                    config={"address": "a@example.com"},
+                    priority=0,
+                    config={"address": "a..b@example.com"},
                 ),
                 NotificationSettings(
                     user_id=test_user.id,
@@ -848,8 +863,11 @@ class TestDispatcherDelivery:
                 test_user.id, outfit.id
             )
 
-        assert [r.channel for r in results] == ["mattermost", "ntfy"]
-        assert [r.status for r in results] == [NotificationStatus.failed, NotificationStatus.sent]
+        assert [(r.channel, r.status) for r in results] == [
+            ("email", NotificationStatus.failed),
+            ("mattermost", NotificationStatus.failed),
+            ("ntfy", NotificationStatus.sent),
+        ]
         assert [c.args[0] for c in post.call_args_list] == [
             webhook,
             "https://ntfy.example.com/outfits",

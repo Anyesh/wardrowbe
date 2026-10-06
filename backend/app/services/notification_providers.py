@@ -10,7 +10,7 @@ from typing import Protocol
 
 import aiosmtplib
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app.config import get_settings
 from app.models.notification import NotificationSettings, NotificationStatus
@@ -482,6 +482,16 @@ def _channel_spec(channel: str) -> ChannelSpec:
 
 def parse_channel_config(channel: str, config: dict) -> BaseModel:
     return _channel_spec(channel).config(**config)
+
+
+# A row saved before validation tightened (a..b@x.com passed the old email regex) no longer parses,
+# so it is reported to the user rather than hidden, while the dispatcher falls through past it.
+def channel_config_error(channel: str, config: dict) -> str | None:
+    try:
+        parse_channel_config(channel, config)
+    except ValidationError as e:
+        return e.errors()[0]["msg"]
+    return None
 
 
 def build_provider(channel: str, config: dict) -> NotificationProvider:

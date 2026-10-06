@@ -28,6 +28,8 @@
       "mattermostWebhook": "Mattermost設定で受信Webhookを作成してください",
       "topicSubscribe": "ntfyアプリでこのトピックを購読してください"
     },
+    "invalidConfig": "無効な設定",
+    "invalidConfigHint": "この設定は現在受け付けられないため、このチャンネルには何も送信されません。削除してからもう一度追加してください。",
     "mobileAppRegistered": "モバイルアプリから登録済み",
     "noChannels": "通知チャンネルが未設定",
     "noChannelsDesc": "チャンネルを追加してコーデ提案の受信を開始",

@@ -28,6 +28,8 @@
       "mattermostWebhook": "Mattermost 설정에서 수신 웹훅을 생성하세요",
       "topicSubscribe": "ntfy 앱에서 이 토픽을 구독하세요"
     },
+    "invalidConfig": "잘못된 설정",
+    "invalidConfigHint": "이 설정은 더 이상 허용되지 않아 이 채널로는 아무것도 전송되지 않습니다. 삭제한 후 다시 추가하세요.",
     "mobileAppRegistered": "모바일 앱에서 등록됨",
     "noChannels": "설정된 알림 채널이 없어요",
     "noChannelsDesc": "채널을 추가하면 코디 추천을 받을 수 있어요",

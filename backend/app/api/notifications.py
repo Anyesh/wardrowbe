@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from sqlalchemy import and_, select
 
 from app.config import get_settings
@@ -24,13 +24,19 @@ from app.schemas.notification import (
     ScheduleUpdate,
     TestNotificationResponse,
 )
-from app.services.notification_providers import parse_channel_config
+from app.services.notification_providers import channel_config_error
 from app.services.notification_service import NotificationService
 from app.utils.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _setting_response(setting: NotificationSettings) -> NotificationSettingsResponse:
+    return NotificationSettingsResponse.model_validate(setting).model_copy(
+        update={"config_error": channel_config_error(setting.channel, setting.config)}
+    )
 
 
 def _parse_local_time(time_str: str) -> time:
@@ -60,7 +66,7 @@ async def list_notification_settings(
 ):
     service = NotificationService(db)
     settings = await service.get_user_settings(current_user.id)
-    return settings
+    return [_setting_response(setting) for setting in settings]
 
 
 @router.post("/settings", response_model=NotificationSettingsResponse, status_code=201)
@@ -69,10 +75,8 @@ async def create_notification_setting(
     current_user: Annotated[User, Depends(get_current_user)],
     db: DbSession,
 ):
-    try:
-        parse_channel_config(data.channel, data.config)
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e.errors()[0]["msg"])) from None
+    if error := channel_config_error(data.channel, data.config):
+        raise HTTPException(status_code=400, detail=error)
 
     service = NotificationService(db)
     try:
@@ -99,7 +103,7 @@ async def get_notification_setting(
     setting = await service.get_setting_by_id(setting_id, current_user.id)
     if not setting:
         raise HTTPException(status_code=404, detail="Setting not found")
-    return setting
+    return _setting_response(setting)
 
 
 @router.patch("/settings/{setting_id}", response_model=NotificationSettingsResponse)
@@ -117,10 +121,8 @@ async def update_notification_setting(
         if not existing:
             raise HTTPException(status_code=404, detail="Setting not found")
 
-        try:
-            parse_channel_config(existing.channel, data.config)
-        except ValidationError as e:
-            raise HTTPException(status_code=400, detail=str(e.errors()[0]["msg"])) from None
+        if error := channel_config_error(existing.channel, data.config):
+            raise HTTPException(status_code=400, detail=error)
 
     setting = await service.update_setting(
         setting_id=setting_id,
@@ -132,7 +134,7 @@ async def update_notification_setting(
     if not setting:
         raise HTTPException(status_code=404, detail="Setting not found")
     await db.commit()
-    return setting
+    return _setting_response(setting)
 
 
 @router.delete("/settings/{setting_id}", response_model=MessageResponse)

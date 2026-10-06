@@ -36,6 +36,15 @@ const expoSetting: NotificationSettings = {
   config: { push_token: 'ExponentPushToken[abc]' },
   created_at: '2026-10-05T00:00:00Z',
   updated_at: '2026-10-05T00:00:00Z',
+  config_error: null,
+}
+
+const rejectedEmailSetting: NotificationSettings = {
+  ...expoSetting,
+  id: 'email-1',
+  channel: 'email',
+  config: { address: 'a..b@example.com' },
+  config_error: 'Value error, An email address cannot have two periods in a row.',
 }
 
 describe('ChannelCard', () => {
@@ -46,8 +55,20 @@ describe('ChannelCard', () => {
     expect(screen.queryByText('ExponentPushToken[abc]')).not.toBeInTheDocument()
   })
 
-  it.each(SUPPORTED_LOCALES)('labels expo_push in %s', (locale) => {
-    const { container } = renderCard(locale, expoSetting)
-    expect(container.textContent).not.toMatch(/notifications\.channels/)
+  it.each([
+    ['a valid channel', expoSetting, []],
+    ['a channel this version rejects', rejectedEmailSetting, ['Invalid settings', 'These settings are no longer accepted, so nothing is sent through this channel. Delete it and add it again.']],
+  ] as const)('flags %s', (_case, setting, shown) => {
+    const { container } = renderCard('en', setting)
+    for (const text of shown) expect(screen.getByText(text)).toBeInTheDocument()
+    expect(container.textContent?.includes('Invalid settings')).toBe(shown.length > 0)
   })
+
+  it.each(SUPPORTED_LOCALES.flatMap((locale) => [[locale, expoSetting], [locale, rejectedEmailSetting]] as const))(
+    'labels every card text in %s',
+    (locale, setting) => {
+      const { container } = renderCard(locale, setting)
+      expect(container.textContent).not.toMatch(/notifications\.channels/)
+    },
+  )
 })

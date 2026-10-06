@@ -28,6 +28,8 @@
       "mattermostWebhook": "在 Mattermost 設定中建立傳入 Webhook",
       "topicSubscribe": "在你的 ntfy 應用程式中訂閱此主題"
     },
+    "invalidConfig": "設定無效",
+    "invalidConfigHint": "這些設定已不再被接受，因此不會透過此頻道傳送任何內容。請刪除後重新新增。",
     "mobileAppRegistered": "已從行動應用程式註冊",
     "noChannels": "尚未設定通知頻道",
     "noChannelsDesc": "新增頻道以開始接收穿搭建議",
