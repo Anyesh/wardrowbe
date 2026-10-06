@@ -559,9 +559,7 @@ class NotificationResult:
     status: NotificationStatus
     error: str | None = None
     response: dict | None = None
-    # False when every later attempt would fail the same way: a stored config this version
-    # rejects, a user, outfit or channel that no longer exists or is disabled, or an address
-    # the mail server cannot accept without SMTPUTF8.
+    # False when a later attempt would fail the same way, so retrying it cannot help.
     retryable: bool = True
 
 
