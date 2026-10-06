@@ -134,27 +134,38 @@ async def test_create_from_scratch_leaves_authoring_attributes_unset(
 
 
 @pytest.mark.asyncio
-async def test_create_from_scratch_mark_worn(db_session, studio_user, wardrobe_items):
+@pytest.mark.parametrize(
+    ("scheduled_for", "worn_on"),
+    [(date(2020, 1, 2), date(2020, 1, 2)), (None, date(2019, 12, 31))],
+    ids=["dated", "undated-is-the-users-today"],
+)
+async def test_create_from_scratch_mark_worn(
+    db_session, studio_user, wardrobe_items, scheduled_for, worn_on
+):
+    studio_user.timezone = "America/Los_Angeles"
+    await db_session.commit()
     service = StudioService(db_session)
     shirt, jeans, sneakers = wardrobe_items[0], wardrobe_items[1], wardrobe_items[2]
-    today = date.today()
 
-    outfit = await service.create_from_scratch(
-        user=studio_user,
-        item_ids=[shirt.id, jeans.id, sneakers.id],
-        occasion="casual",
-        name=None,
-        scheduled_for=today,
-        mark_worn=True,
-        source_item_id=None,
-    )
+    with patch("app.utils.timezone.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 1, 1, 3, 0, tzinfo=UTC)
+        outfit = await service.create_from_scratch(
+            user=studio_user,
+            item_ids=[shirt.id, jeans.id, sneakers.id],
+            occasion="casual",
+            name=None,
+            scheduled_for=scheduled_for,
+            mark_worn=True,
+            source_item_id=None,
+        )
     await db_session.commit()
 
-    assert outfit.feedback.worn_at == today
-
+    assert outfit.scheduled_for == worn_on
+    assert outfit.feedback.worn_at == worn_on
     await db_session.refresh(shirt)
     assert shirt.wear_count == 1
     assert shirt.wears_since_wash == 1
+    assert shirt.last_worn_at == worn_on
 
 
 @pytest.mark.asyncio

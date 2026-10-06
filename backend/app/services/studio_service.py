@@ -155,6 +155,9 @@ class StudioService:
         items = await validate_item_ownership(self.db, user.id, item_ids)
         ordered = self._order_items_canonically(items)
 
+        # Marking an undated outfit worn means it was worn today, as wear_today assumes.
+        if mark_worn and scheduled_for is None:
+            scheduled_for = get_user_today(user)
         effective_worn = scheduled_for if mark_worn else None
 
         outfit = Outfit(
