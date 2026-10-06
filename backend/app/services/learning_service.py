@@ -1124,6 +1124,6 @@ class LearningService:
             "updated": bool(updates),
             "suggestions": updates,
             "confidence": float(profile.overall_acceptance_rate)
-            if profile.overall_acceptance_rate
+            if profile.overall_acceptance_rate is not None
             else None,
         }

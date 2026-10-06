@@ -287,15 +287,28 @@ class TestAcceptanceRateOfZero:
         ],
     )
     async def test_is_reported_as_zero_not_missing(
-        self, client, db_session, test_user, auth_headers, accepted, learning_rate, analytics_rate
+        self,
+        client,
+        db_session,
+        test_user_with_preferences,
+        auth_headers,
+        accepted,
+        learning_rate,
+        analytics_rate,
     ):
         for day in (1, 2, 3):
-            await _seed_outfit(db_session, test_user.id, ["navy"], day=day, accepted=accepted)
+            await _seed_outfit(
+                db_session, test_user_with_preferences.id, ["navy"], day=day, accepted=accepted
+            )
 
         learning = await client.post("/api/v1/learning/recompute", headers=auth_headers)
+        insights = await client.get("/api/v1/learning", headers=auth_headers)
         analytics = await client.get("/api/v1/analytics", headers=auth_headers)
 
         assert learning.json()["overall_acceptance_rate"] == pytest.approx(learning_rate)
+        assert insights.json()["preference_suggestions"]["confidence"] == pytest.approx(
+            learning_rate
+        )
         assert analytics.json()["wardrobe"]["acceptance_rate"] == pytest.approx(analytics_rate)
 
 
