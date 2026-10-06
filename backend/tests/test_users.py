@@ -80,6 +80,8 @@ class TestUserUpdate:
             pytest.param({"display_name": None}, id="null-name"),
             pytest.param({"display_name": "x" * 101}, id="name-over-column"),
             pytest.param({"location_name": "x" * 101}, id="place-over-column"),
+            pytest.param({"location_name": "Paris\r\nBcc: x@example.com"}, id="place-crlf"),
+            pytest.param({"location_name": "Paris\u2028Lyon"}, id="place-line-separator"),
             pytest.param({"location_lat": 91}, id="lat-out-of-range"),
             pytest.param({"location_lon": -181}, id="lon-out-of-range"),
             pytest.param({"location_lat": 1e10}, id="lat-over-column"),

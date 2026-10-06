@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
 from app.schemas.email import EmailAddress
-from app.schemas.text import SingleLineName, flatten_control_characters, is_blank
+from app.schemas.text import SingleLineName, SingleLineText, flatten_control_characters, is_blank
 from app.utils.locale import DEFAULT_LOCALE
 
 DISPLAY_NAME_MAX_LENGTH = 100
@@ -15,7 +15,7 @@ AVATAR_URL_MAX_LENGTH = 500
 DisplayName = Annotated[SingleLineName, Field(min_length=1, max_length=DISPLAY_NAME_MAX_LENGTH)]
 Latitude = Annotated[Decimal, Field(ge=-90, le=90)]
 Longitude = Annotated[Decimal, Field(ge=-180, le=180)]
-PlaceName = Annotated[str, Field(max_length=100)]
+PlaceName = Annotated[SingleLineText, Field(max_length=100)]
 
 
 # The IdP owns this name and a refusal would lock the user out on every login, so it is flattened
@@ -46,7 +46,8 @@ class UserBase(BaseModel):
     locale: str = Field(default=DEFAULT_LOCALE, max_length=10)
     location_lat: Latitude | None = None
     location_lon: Longitude | None = None
-    location_name: PlaceName | None = None
+    # Plain str so that a place stored before line breaks were refused still reads back.
+    location_name: str | None = Field(None, max_length=100)
 
 
 class UserResponse(UserBase):
