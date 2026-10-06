@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { cn, chunkArray, formatWornAgo } from '@/lib/utils'
+import { cn, chunkArray, formatWornAgo, isDeliverableEmail } from '@/lib/utils'
 
 const mockT = vi.fn((key: string, params?: Record<string, unknown>) =>
   params ? `${key}:${JSON.stringify(params)}` : key
@@ -91,6 +91,22 @@ describe('formatWornAgo', () => {
     const result = formatWornAgo(dateStr)
     expect(result).toBe('wornAgo.today')
   })
+
+  it('counts whole days across a daylight-saving change in the browser zone', () => {
+    const originalTz = process.env.TZ
+    process.env.TZ = 'Australia/Sydney'
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-05T03:00:00Z'))
+    try {
+      expect(formatWornAgo('2026-10-04', 'Australia/Sydney', mockT)).toBe('wornAgo.yesterday')
+      expect(formatWornAgo('2026-09-30', 'Australia/Sydney', mockT)).toBe(
+        'wornAgo.daysAgo:{"days":5}'
+      )
+    } finally {
+      vi.useRealTimers()
+      process.env.TZ = originalTz
+    }
+  })
 })
 
 describe('chunkArray utility', () => {
@@ -123,5 +139,17 @@ describe('chunkArray utility', () => {
       items.slice(40, 45),
     ])
     expect(result.flat()).toEqual(items)
+  })
+})
+
+describe('isDeliverableEmail', () => {
+  it.each([
+    ['user@example.com', true],
+    ['abc@detached.invalid', false],
+    [' ABC@Detached.INVALID ', false],
+    ['', false],
+    [undefined, false],
+  ])('%j -> %s', (email, expected) => {
+    expect(isDeliverableEmail(email)).toBe(expected)
   })
 })

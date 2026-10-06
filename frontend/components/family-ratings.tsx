@@ -127,7 +127,7 @@ export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: Famil
       {ratings.map((r) => (
         <div key={r.id} className="flex items-start gap-3 p-2 rounded-lg bg-muted/50">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={r.user_avatar_url} />
+            <AvatarImage src={r.user_avatar_url ?? undefined} />
             <AvatarFallback className="text-xs">
               {getInitials(r.user_display_name)}
             </AvatarFallback>

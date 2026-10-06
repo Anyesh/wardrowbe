@@ -13,7 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { useSubmitFeedback, type Outfit } from '@/lib/hooks/use-outfits';
+import { useSubmitFeedback, type FeedbackSummary, type Outfit } from '@/lib/hooks/use-outfits';
 import { useItems } from '@/lib/hooks/use-items';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -49,8 +49,12 @@ function StarRating({
   );
 }
 
+export type FeedbackTarget = Pick<Outfit, 'id' | 'items'> & {
+  feedback: Pick<FeedbackSummary, 'rating' | 'comment'> | null;
+};
+
 interface FeedbackDialogProps {
-  outfit: Outfit;
+  outfit: FeedbackTarget;
   open: boolean;
   onClose: () => void;
 }
