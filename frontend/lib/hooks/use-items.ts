@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, getAccessToken, setAccessToken, ApiError, NetworkError } from '@/lib/api';
 import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
@@ -19,6 +19,15 @@ function useSetTokenIfAvailable() {
   if (session?.accessToken) {
     setAccessToken(session.accessToken as string);
   }
+}
+
+// Outfit and calendar payloads embed each item's primary image, so they go
+// stale whenever that image changes, not only the item caches.
+function invalidatePrimaryImageQueries(queryClient: QueryClient, itemId: string) {
+  queryClient.invalidateQueries({ queryKey: ['items'] });
+  queryClient.invalidateQueries({ queryKey: ['item', itemId] });
+  queryClient.invalidateQueries({ queryKey: ['outfits'] });
+  queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
 }
 
 export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
@@ -203,10 +212,7 @@ export function useRemoveBackground() {
       return api.post<Item>(`/items/${id}/remove-background`, { bg_color: bg_color ?? '#FFFFFF' });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+      invalidatePrimaryImageQueries(queryClient, variables.id);
     },
   });
 }
@@ -223,10 +229,7 @@ export function useRestoreOriginal() {
       return api.post<Item>(`/items/${id}/restore-original`);
     },
     onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', id] });
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+      invalidatePrimaryImageQueries(queryClient, id);
     },
   });
 }
@@ -261,10 +264,7 @@ export function useReplaceItemImage() {
       return response.json() as Promise<Item>;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.itemId] });
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+      invalidatePrimaryImageQueries(queryClient, variables.itemId);
     },
   });
 }
@@ -512,8 +512,7 @@ export function useSetPrimaryImage() {
       return api.post<Item>(`/items/${itemId}/images/${imageId}/set-primary`);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.itemId] });
+      invalidatePrimaryImageQueries(queryClient, variables.itemId);
     },
   });
 }
@@ -536,10 +535,7 @@ export function useRotateImage() {
       return api.post<Item>(`/items/${id}/rotate?direction=${direction}`);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+      invalidatePrimaryImageQueries(queryClient, variables.id);
     },
   });
 }
@@ -602,11 +598,19 @@ export function useCancelAnalysis() {
   });
 }
 
+export type BulkUploadErrorCode =
+  | 'too_large'
+  | 'unsupported_format'
+  | 'duplicate'
+  | 'invalid_image'
+  | 'processing_failed';
+
 export interface BulkUploadResult {
   filename: string;
   success: boolean;
   item?: Item;
   error?: string;
+  error_code?: BulkUploadErrorCode | null;
   duplicate?: boolean;
   existing_item_id?: string;
 }

@@ -28,6 +28,9 @@
       "mattermostWebhook": "在 Mattermost 设置中创建一个传入 Webhook",
       "topicSubscribe": "在你的 ntfy 应用中订阅此主题"
     },
+    "invalidConfig": "设置无效",
+    "invalidConfigHint": "这些设置已不再被接受，因此不会通过此渠道发送任何内容。请删除后重新添加。",
+    "mobileAppRegistered": "已从移动应用注册",
     "noChannels": "尚未配置通知渠道",
     "noChannelsDesc": "添加一个渠道来开始接收穿搭建议",
     "placeholders": {
@@ -41,6 +44,7 @@
     "title": "通知渠道",
     "types": {
       "email": "邮件",
+      "expo_push": "移动应用推送",
       "mattermost": "Mattermost",
       "ntfy": "ntfy 推送通知"
     },

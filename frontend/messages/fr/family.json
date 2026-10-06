@@ -95,6 +95,7 @@
     "createFailed": "Échec de la création de la famille. Veuillez réessayer.",
     "created": "Famille créée !",
     "inviteFailed": "Échec de l'envoi de l'invitation",
+    "inviteNotEmailed": "Invitation enregistrée, mais l'e-mail n'a pas pu être envoyé. Partagez plutôt le code d'invitation.",
     "inviteSent": "Invitation envoyée !",
     "joined": "Famille rejointe !",
     "nameUpdateFailed": "Échec de la mise à jour du nom de la famille",

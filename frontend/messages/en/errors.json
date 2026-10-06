@@ -2,6 +2,7 @@
   "default": "Something went wrong. Please try again.",
   "invite": {
     "alreadyInFamily": "You are already in a family.",
+    "emailNotVerified": "Your sign-in provider has not verified your email address. Verify it there and sign in again to accept this invite.",
     "invalidLink": "This invite link is invalid or has expired.",
     "wrongEmail": "This invite was sent to a different email address."
   },

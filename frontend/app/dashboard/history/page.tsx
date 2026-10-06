@@ -13,9 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCalendarOutfits, type Outfit, type OutfitFilters } from '@/lib/hooks/use-outfits';
+import {
+  useCalendarOutfits,
+  type Outfit,
+  type OutfitFilters,
+  type OutfitStatus,
+} from '@/lib/hooks/use-outfits';
+import { useOccasions } from '@/lib/hooks/use-translated-constants';
 import { OutfitCalendar } from '@/components/outfit-calendar';
 import { OutfitHistoryCard } from '@/components/outfit-history-card';
+import { OutfitStatusFilter } from '@/components/outfit-status';
 import { FeedbackDialog } from '@/components/feedback-dialog';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import { format, isSameDay, parseISO } from 'date-fns';
@@ -92,7 +99,7 @@ function CalendarSkeleton() {
 
 export default function HistoryPage() {
   const t = useTranslations('history');
-  const tc = useTranslations('constants');
+  const occasions = useOccasions();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -123,11 +130,8 @@ export default function HistoryPage() {
     }));
   };
 
-  const handleStatusChange = (value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      status: value === 'all' ? undefined : value,
-    }));
+  const handleStatusChange = (status: OutfitStatus | undefined) => {
+    setFilters((prev) => ({ ...prev, status }));
   };
 
   if (isError) {
@@ -158,25 +162,14 @@ export default function HistoryPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('filters.allOccasions')}</SelectItem>
-            <SelectItem value="casual">{tc('occasions.casual')}</SelectItem>
-            <SelectItem value="office">{tc('occasions.office')}</SelectItem>
-            <SelectItem value="formal">{tc('occasions.formal')}</SelectItem>
-            <SelectItem value="date">{tc('occasions.date')}</SelectItem>
-            <SelectItem value="workout">{t('filters.workout')}</SelectItem>
+            {occasions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
-        <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder={t('filters.allStatus')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('filters.allStatus')}</SelectItem>
-            <SelectItem value="accepted">{t('status.accepted')}</SelectItem>
-            <SelectItem value="rejected">{t('status.rejected')}</SelectItem>
-            <SelectItem value="pending">{t('status.pending')}</SelectItem>
-            <SelectItem value="viewed">{t('status.viewed')}</SelectItem>
-          </SelectContent>
-        </Select>
+        <OutfitStatusFilter value={filters.status} onChange={handleStatusChange} />
       </div>
 
       {/* Main content - two column layout */}

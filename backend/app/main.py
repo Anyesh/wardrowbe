@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from app.api.router import api_router
 from app.config import get_settings
 from app.database import engine
+from app.logging_config import configure_logging
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    configure_logging(settings)
     warning = settings.validate_security()
     if warning:
         logger.error("Configuration: %s", warning)

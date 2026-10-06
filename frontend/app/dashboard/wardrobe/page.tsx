@@ -28,7 +28,8 @@ import { AnalysisQueuePanel } from '@/components/analysis-queue-panel';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
 import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
-import { useUserProfile } from '@/lib/hooks/use-user';
+import { useUserTimezone } from '@/lib/hooks/use-user';
+import { colorSwatch, normalizeColor } from '@/lib/colors';
 import { Item } from '@/lib/types';
 import { useClothingTypes, useClothingColors, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 import { toast } from 'sonner';
@@ -80,7 +81,8 @@ function ItemCard({
   const tc = useTranslations('common');
   const clothingColors = useClothingColors();
   const subtypeLabel = useSubtypeLabel();
-  const colorInfo = clothingColors.find((c) => c.value === item.primary_color);
+  const primaryColor = item.primary_color ? normalizeColor(item.primary_color) : null;
+  const colorName = clothingColors.find((c) => c.value === primaryColor)?.name ?? item.primary_color;
   const isProcessing = item.status === 'processing';
   const isError = item.status === 'error' && !errorDismissed;
   const isBackgroundRemovalKind = item.processing_kind === 'background_removal';
@@ -251,17 +253,17 @@ function ItemCard({
               {item.tags?.logprobs_confidence != null && ` · ${t('ai.confident', { percent: Math.round(item.tags.logprobs_confidence * 100) })}`}
             </p>
           </div>
-          {colorInfo && (
+          {item.primary_color && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div
                     className="w-4 h-4 rounded-full border shrink-0"
-                    style={{ backgroundColor: colorInfo.hex }}
+                    style={{ backgroundColor: colorSwatch(item.primary_color) }}
                   />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{colorInfo.name}</p>
+                  <p>{colorName}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -321,8 +323,7 @@ function EmptyWardrobe({ onAddClick }: { onAddClick: () => void }) {
 export default function WardrobePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { data: userProfile } = useUserProfile();
-  const userTimezone = userProfile?.timezone || 'UTC';
+  const userTimezone = useUserTimezone();
   const t = useTranslations('wardrobe');
   const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();
