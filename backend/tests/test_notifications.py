@@ -23,6 +23,7 @@ from app.schemas.notification import (
     NotificationChannel,
     NtfyConfig,
 )
+from app.services import notification_providers
 from app.services.notification_providers import (
     CHANNELS,
     EmailMessage,
@@ -395,9 +396,10 @@ class TestEmailProviderSettings:
 # An SMTP server that, like many self-hosted relays, does not advertise SMTPUTF8.
 @pytest_asyncio.fixture
 async def ascii_smtp_server(monkeypatch):
-    received: list[tuple[list[str], bytes]] = []
+    received: list[tuple[str, list[str], bytes]] = []
 
     async def session(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        sender = ""
         recipients: list[str] = []
         writer.write(b"220 fake ESMTP\r\n")
         while line := await reader.readline():
@@ -408,11 +410,13 @@ async def ascii_smtp_server(monkeypatch):
                 reply = b"250-fake\r\n250 AUTH PLAIN\r\n"
             elif verb == "AUTH":
                 reply = b"235 ok\r\n"
+            elif verb == "MAIL":
+                sender = command.split(":", 1)[1].split()[0].strip("<>")
             elif verb == "RCPT":
                 recipients.append(command.split(":", 1)[1].strip("<> "))
             elif verb == "DATA":
                 writer.write(b"354 go\r\n")
-                received.append((recipients, await reader.readuntil(b"\r\n.\r\n")))
+                received.append((sender, recipients, await reader.readuntil(b"\r\n.\r\n")))
             elif verb == "QUIT":
                 writer.write(b"221 bye\r\n")
                 break
@@ -437,6 +441,13 @@ async def ascii_smtp_server(monkeypatch):
     await server.wait_closed()
 
 
+def _set_from_email(monkeypatch, from_email: str) -> None:
+    settings = notification_providers.get_settings().model_copy(
+        update={"smtp_from_email": from_email}
+    )
+    monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+
+
 def _plain_email(to: str) -> EmailMessage:
     return EmailMessage(to=to, subject="Hello", html_body="<p>Hello</p>", text_body="Hello")
 
@@ -444,33 +455,57 @@ def _plain_email(to: str) -> EmailMessage:
 class TestEmailProviderAddresses:
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("address", "envelope"),
+        ("from_email", "address", "sender", "recipient"),
         [
-            ("guest@example.com", "guest@example.com"),
-            ("user@münchen.de", "user@xn--mnchen-3ya.de"),
+            ("closet@example.com", "guest@example.com", "closet@example.com", "guest@example.com"),
+            (
+                "closet@example.com",
+                "user@münchen.de",
+                "closet@example.com",
+                "user@xn--mnchen-3ya.de",
+            ),
+            (
+                "closet@münchen.de",
+                "guest@example.com",
+                "closet@xn--mnchen-3ya.de",
+                "guest@example.com",
+            ),
         ],
     )
     async def test_sends_an_ascii_local_part_without_smtputf8(
-        self, ascii_smtp_server, address, envelope
+        self, ascii_smtp_server, monkeypatch, from_email, address, sender, recipient
     ):
+        _set_from_email(monkeypatch, from_email)
         provider = EmailProvider(EmailConfig(address=address))
 
         result = await provider.send(_plain_email(address))
 
         assert result == {"success": True}
-        ((recipients, data),) = ascii_smtp_server
-        assert recipients == [envelope]
-        assert f"To: {envelope}\r\n".encode() in data
+        ((envelope_from, recipients, data),) = ascii_smtp_server
+        assert (envelope_from, recipients) == (sender, [recipient])
+        assert f"From: Wardrowbe <{sender}>\r\n".encode() in data
+        assert f"To: {recipient}\r\n".encode() in data
 
     @pytest.mark.asyncio
-    async def test_non_ascii_local_part_fails_clearly_without_smtputf8(self, ascii_smtp_server):
-        provider = EmailProvider(EmailConfig(address="jörg@example.com"))
+    @pytest.mark.parametrize(
+        ("from_email", "address", "named"),
+        [
+            ("closet@example.com", "jörg@example.com", "jörg@example.com"),
+            ("jörg@münchen.de", "guest@example.com", "jörg@münchen.de"),
+        ],
+        ids=["recipient", "sender"],
+    )
+    async def test_non_ascii_local_part_fails_clearly_without_smtputf8(
+        self, ascii_smtp_server, monkeypatch, from_email, address, named
+    ):
+        _set_from_email(monkeypatch, from_email)
+        provider = EmailProvider(EmailConfig(address=address))
 
-        result = await provider.send(_plain_email("jörg@example.com"))
+        result = await provider.send(_plain_email(address))
 
         assert result == {
             "success": False,
-            "error": "The mail server does not support SMTPUTF8, which jörg@example.com needs "
+            "error": f"The mail server does not support SMTPUTF8, which {named} needs "
             "because its name before the @ is not ASCII",
         }
         assert ascii_smtp_server == []

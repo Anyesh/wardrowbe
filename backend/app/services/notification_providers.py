@@ -10,6 +10,7 @@ from typing import Protocol
 
 import aiosmtplib
 import httpx
+from email_validator import EmailNotValidError
 from pydantic import BaseModel, ValidationError
 
 from app.config import get_settings
@@ -296,6 +297,15 @@ class MattermostProvider:
             return False, str(e)
 
 
+# SMTP_FROM_EMAIL falls back to SMTP_USER, which on many relays is a bare login such as "mailer"
+# that the relay rewrites itself, so a sender that is not an address is sent as written.
+def _smtp_sender(value: str) -> str:
+    try:
+        return smtp_address(value)
+    except EmailNotValidError:
+        return value
+
+
 # Email Provider
 @dataclass
 class EmailMessage:
@@ -325,10 +335,11 @@ class EmailProvider:
             return {"success": False, "error": "SMTP not configured"}
 
         try:
+            sender = _smtp_sender(self.from_email)
             recipient = smtp_address(message.to)
             msg = MIMEMultipart("alternative")
             msg["Subject"] = message.subject
-            msg["From"] = f"{self.from_name} <{self.from_email}>"
+            msg["From"] = f"{self.from_name} <{sender}>"
             msg["To"] = recipient
 
             if message.text_body:
@@ -346,11 +357,12 @@ class EmailProvider:
             )
             return {"success": True}
         except aiosmtplib.SMTPNotSupported as e:
-            if recipient.isascii():
+            needs_utf8 = next((a for a in (sender, recipient) if not a.isascii()), None)
+            if needs_utf8 is None:
                 logger.exception("Email send failed")
                 return {"success": False, "error": str(e)}
             error = (
-                f"The mail server does not support SMTPUTF8, which {recipient} needs "
+                f"The mail server does not support SMTPUTF8, which {needs_utf8} needs "
                 "because its name before the @ is not ASCII"
             )
             logger.warning("Email send failed: %s", error)
