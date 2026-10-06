@@ -341,7 +341,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
                       className="w-10 h-10 rounded border shadow-inner"
                       style={{ backgroundColor: matchedColor.hex }}
                     />
-                    <span className="text-xs font-medium">{clothingColors.find((c) => c.value === matchedColor.value)?.name ?? matchedColor.name}</span>
+                    <span className="text-xs font-medium">{clothingColors.find((c) => c.value === matchedColor.value)?.name ?? matchedColor.value}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -358,7 +358,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
                   </Button>
                   <Button size="sm" onClick={handleConfirm}>
                     <Check className="h-4 w-4 mr-1" />
-                    {t('useColor', { color: clothingColors.find((c) => c.value === matchedColor.value)?.name ?? matchedColor.name })}
+                    {t('useColor', { color: clothingColors.find((c) => c.value === matchedColor.value)?.name ?? matchedColor.value })}
                   </Button>
                 </div>
               </div>

@@ -7,18 +7,7 @@ from app.models.item import ClothingItem
 from app.models.preference import UserPreference
 from app.services.weather_service import WeatherData
 from app.utils.clothing import ITEM_ROLE
-from app.utils.garment_vocabulary import FORMALITY
-
-OCCASION_FORMALITY = {
-    "casual": ["very-casual", "casual", "smart-casual"],
-    "work": ["smart-casual", "business-casual", "formal"],
-    "office": ["smart-casual", "business-casual", "formal"],
-    "formal": ["business-casual", "formal", "very-formal"],
-    "sporty": ["very-casual", "casual"],
-    "outdoor": ["very-casual", "casual"],
-    "date": ["smart-casual", "business-casual", "formal"],
-    "party": ["smart-casual", "business-casual", "formal"],
-}
+from app.utils.garment_vocabulary import FORMALITY, OCCASION_FORMALITY
 
 _NORTH_SEASON = {
     1: "winter",
@@ -211,7 +200,7 @@ def _weather_score(
 
 def _formality_score(item: ClothingItem, occasion: str) -> float:
     item_formality = (item.formality or "casual").lower()
-    allowed = OCCASION_FORMALITY.get(occasion.lower(), ["casual", "smart-casual"])
+    allowed = OCCASION_FORMALITY.get(occasion.lower(), ("casual", "smart-casual"))
 
     if item_formality in allowed:
         return 1.0

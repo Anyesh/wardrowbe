@@ -1,17 +1,19 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
+from app.schemas.color import ColorList, ColorName
+from app.schemas.outfit import Occasion
 from app.utils.garment_vocabulary import DEFAULT_WASH_INTERVALS
 from app.utils.signed_urls import sign_image_url
 
 
 class ItemTags(BaseModel):
-    colors: list[str] = Field(default_factory=list)
-    primary_color: str | None = None
+    colors: ColorList = Field(default_factory=list)
+    primary_color: ColorName | None = None
     pattern: str | None = None
     material: str | None = None
     style: list[str] = Field(default_factory=list)
@@ -33,8 +35,8 @@ class ItemBase(BaseModel):
 
 class ItemCreate(ItemBase):
     tags: ItemTags | None = None
-    colors: list[str] | None = None
-    primary_color: str | None = None
+    colors: ColorList | None = None
+    primary_color: ColorName | None = None
 
 
 class ItemUpdate(BaseModel):
@@ -47,8 +49,8 @@ class ItemUpdate(BaseModel):
     purchase_price: Decimal | None = Field(None, ge=0)
     favorite: bool | None = None
     tags: ItemTags | None = None
-    colors: list[str] | None = None
-    primary_color: str | None = None
+    colors: ColorList | None = None
+    primary_color: ColorName | None = None
     wash_interval: int | None = None
 
 
@@ -203,7 +205,7 @@ class ItemListResponse(BaseModel):
 class ItemFilter(BaseModel):
     type: str | None = None
     subtype: str | None = None
-    colors: list[str] | None = None
+    colors: ColorList | None = None
     status: str | None = None
     tagging_status: str | None = None
     favorite: bool | None = None
@@ -216,7 +218,7 @@ class ItemFilter(BaseModel):
 
 class LogWearRequest(BaseModel):
     worn_at: date | None = None  # If None, use user's timezone to determine today
-    occasion: str | None = None
+    occasion: Occasion | None = None
     notes: str | None = None
 
 
@@ -224,11 +226,17 @@ class ArchiveRequest(BaseModel):
     reason: str | None = Field(None, max_length=50)
 
 
+BulkUploadErrorCode = Literal[
+    "too_large", "unsupported_format", "duplicate", "invalid_image", "processing_failed"
+]
+
+
 class BulkUploadResult(BaseModel):
     filename: str
     success: bool
     item: ItemResponse | None = None
     error: str | None = None
+    error_code: BulkUploadErrorCode | None = None
     duplicate: bool = False
     existing_item_id: UUID | None = None
 

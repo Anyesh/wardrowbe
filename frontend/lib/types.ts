@@ -1,4 +1,4 @@
-import { CLOTHING_TYPE_VALUES } from '@/lib/generated/garment-vocabulary';
+import { CLOTHING_TYPE_VALUES, OCCASION_VALUES } from '@/lib/generated/garment-vocabulary';
 
 // API response types matching backend schemas
 
@@ -166,32 +166,7 @@ export interface Preferences {
   ai_endpoints: AIEndpoint[];
 }
 
-// Color options for the app
-// Hex values tuned for typical clothing colors, not pure/saturated colors
-export const CLOTHING_COLORS = [
-  { name: 'Black', value: 'black', hex: '#1a1a1a' },
-  { name: 'Charcoal', value: 'charcoal', hex: '#36454F' },
-  { name: 'Gray', value: 'gray', hex: '#808080' },
-  { name: 'White', value: 'white', hex: '#FAFAFA' },
-  { name: 'Cream', value: 'cream', hex: '#F5F5DC' },
-  { name: 'Beige', value: 'beige', hex: '#D4C4A8' },
-  { name: 'Tan', value: 'tan', hex: '#C9B896' },
-  { name: 'Khaki', value: 'khaki', hex: '#A89F6B' },
-  { name: 'Olive', value: 'olive', hex: '#707B52' },
-  { name: 'Army Green', value: 'army-green', hex: '#5B6340' },
-  { name: 'Green', value: 'green', hex: '#4A7C59' },
-  { name: 'Teal', value: 'teal', hex: '#367588' },
-  { name: 'Navy', value: 'navy', hex: '#1B2A4A' },
-  { name: 'Blue', value: 'blue', hex: '#4A7DB8' },
-  { name: 'Brown', value: 'brown', hex: '#8B5A3C' },
-  { name: 'Dark Brown', value: 'dark-brown', hex: '#5C4033' },
-  { name: 'Burgundy', value: 'burgundy', hex: '#722F37' },
-  { name: 'Red', value: 'red', hex: '#C44536' },
-  { name: 'Pink', value: 'pink', hex: '#E8A0B0' },
-  { name: 'Purple', value: 'purple', hex: '#6B5B7A' },
-  { name: 'Yellow', value: 'yellow', hex: '#D4A84B' },
-  { name: 'Orange', value: 'orange', hex: '#D2691E' },
-] as const;
+export { CLOTHING_COLORS } from '@/lib/generated/garment-vocabulary';
 
 // Picker order is alphabetical by value. The values come from the generated vocabulary, so the
 // labels are not stored here: they are translated from constants.types at render time.
@@ -216,14 +191,15 @@ export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
   tie: ['necktie', 'bow-tie', 'bolo'],
 };
 
-export const OCCASIONS = [
-  { value: 'casual' },
-  { value: 'office' },
-  { value: 'formal' },
-  { value: 'date' },
-  { value: 'sporty' },
-  { value: 'outdoor' },
-] as const;
+export type Occasion = (typeof OCCASION_VALUES)[number];
+
+// Pickers offer only these so that the chip row stays short; the backend accepts every value in
+// OCCASION_VALUES, and outfits created through the API can carry any of them.
+const FEATURED_OCCASION_VALUES = ['casual', 'office', 'formal', 'date', 'sporty', 'outdoor'] as const satisfies readonly Occasion[];
+
+export type FeaturedOccasion = (typeof FEATURED_OCCASION_VALUES)[number];
+
+export const FEATURED_OCCASIONS = FEATURED_OCCASION_VALUES.map((value) => ({ value }));
 
 // Family types
 export interface FamilyMember {
@@ -288,30 +264,28 @@ export interface WashHistoryEntry {
   created_at: string;
 }
 
-// Family rating types
 export interface FamilyRating {
   id: string;
   user_id: string;
   user_display_name: string;
-  user_avatar_url?: string;
+  user_avatar_url: string | null;
   rating: number;
-  comment?: string;
+  comment: string | null;
   created_at: string;
 }
 
-// Outfit types
 export interface OutfitItem {
   id: string;
   type: string;
-  subtype?: string;
-  name?: string;
-  primary_color?: string;
+  subtype: string | null;
+  name: string | null;
+  primary_color: string | null;
   colors: string[];
-  image_path: string;
-  thumbnail_path?: string;
-  image_url?: string;
-  thumbnail_url?: string;
-  layer_type?: string;
+  image_path: string | null;
+  thumbnail_path: string | null;
+  image_url: string | null;
+  thumbnail_url: string | null;
+  layer_type: string | null;
   position: number;
 }
 
@@ -320,36 +294,76 @@ export interface WeatherData {
   feels_like: number;
   humidity: number;
   precipitation_chance: number;
+  precipitation_mm: number;
+  wind_speed: number;
   condition: string;
+  condition_code: number;
+  is_day: boolean;
+  uv_index: number;
+  timestamp: string;
+  // Optional because outfits stored before the forecast range existed lack these keys.
+  temp_min?: number | null;
+  temp_max?: number | null;
+  window_min?: number | null;
+  window_max?: number | null;
+}
+
+// /weather/current serves the same snapshot outfits store, minus the wearing-window range.
+export type CurrentWeather = Omit<WeatherData, 'window_min' | 'window_max'>;
+
+export interface WoreInsteadItem {
+  id: string;
+  type: string;
+  name: string | null;
+  thumbnail_path: string | null;
+  thumbnail_url: string | null;
 }
 
 export interface FeedbackSummary {
-  rating?: number;
-  comment?: string;
-  worn_at?: string;
+  rating: number | null;
+  comment: string | null;
+  worn_at: string | null;
+  actually_worn: boolean | null;
+  wore_instead_items: WoreInsteadItem[] | null;
 }
+
+export const OUTFIT_STATUSES = [
+  'pending',
+  'sent',
+  'viewed',
+  'accepted',
+  'rejected',
+  'skipped',
+  'expired',
+] as const;
+
+export type OutfitStatus = (typeof OUTFIT_STATUSES)[number];
 
 export type OutfitSource = 'scheduled' | 'on_demand' | 'manual' | 'pairing' | 'external';
 
 export interface Outfit {
   id: string;
   occasion: string;
-  scheduled_for: string;
-  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+  scheduled_for: string | null;
+  status: OutfitStatus;
+  name: string | null;
+  replaces_outfit_id: string | null;
+  cloned_from_outfit_id: string | null;
   source: OutfitSource;
-  reasoning?: string;
-  style_notes?: string;
-  season?: string | null;
-  formality?: string | null;
-  palette?: string[] | null;
-  notes?: string | null;
-  highlights?: string[];
-  weather?: WeatherData;
+  reasoning: string | null;
+  style_notes: string | null;
+  season: string | null;
+  formality: string | null;
+  palette: string[] | null;
+  notes: string | null;
+  highlights: string[] | null;
+  weather: WeatherData | null;
   items: OutfitItem[];
-  feedback?: FeedbackSummary;
-  family_ratings?: FamilyRating[];
-  family_rating_average?: number;
-  family_rating_count?: number;
+  feedback: FeedbackSummary | null;
+  family_ratings: FamilyRating[] | null;
+  family_rating_average: number | null;
+  family_rating_count: number | null;
+  is_starter_suggestion: boolean;
   created_at: string;
 }
 
@@ -370,17 +384,43 @@ export interface SuggestRequest {
 export interface SourceItem {
   id: string;
   type: string;
-  subtype?: string;
-  name?: string;
-  primary_color?: string;
+  subtype: string | null;
+  name: string | null;
+  primary_color: string | null;
   image_path: string;
-  thumbnail_path?: string;
-  image_url?: string;
-  thumbnail_url?: string;
+  thumbnail_path: string | null;
+  image_url: string;
+  thumbnail_url: string | null;
 }
 
-export interface Pairing extends Outfit {
-  source_item?: SourceItem;
+export interface PairingItem extends OutfitItem {
+  image_path: string;
+  image_url: string;
+}
+
+export interface Pairing
+  extends Pick<
+    Outfit,
+    | 'id'
+    | 'occasion'
+    | 'status'
+    | 'source'
+    | 'reasoning'
+    | 'style_notes'
+    | 'season'
+    | 'formality'
+    | 'palette'
+    | 'notes'
+    | 'highlights'
+    | 'family_ratings'
+    | 'family_rating_average'
+    | 'family_rating_count'
+    | 'created_at'
+  > {
+  scheduled_for: string;
+  source_item: SourceItem | null;
+  items: PairingItem[];
+  feedback: Pick<FeedbackSummary, 'rating' | 'comment' | 'worn_at'> | null;
 }
 
 export interface PairingListResponse {

@@ -19,6 +19,7 @@ from app.models.user import User
 from app.schemas.item import DEFAULT_WASH_INTERVALS
 from app.services.learning_service import LearningService
 from app.utils.clothing import canonical_item_order
+from app.utils.timezone import get_user_today
 
 
 class ItemOwnershipError(Exception):
@@ -154,6 +155,9 @@ class StudioService:
         items = await validate_item_ownership(self.db, user.id, item_ids)
         ordered = self._order_items_canonically(items)
 
+        # Marking an undated outfit worn means it was worn today, as wear_today assumes.
+        if mark_worn and scheduled_for is None:
+            scheduled_for = get_user_today(user)
         effective_worn = scheduled_for if mark_worn else None
 
         outfit = Outfit(
@@ -335,7 +339,7 @@ class StudioService:
         if template.scheduled_for is not None:
             raise OutfitNotTemplateError("wear_today requires a lookbook template")
 
-        target_date = scheduled_for or date.today()
+        target_date = scheduled_for if scheduled_for is not None else get_user_today(user)
 
         wear = Outfit(
             user_id=user.id,

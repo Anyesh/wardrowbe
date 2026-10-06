@@ -6,6 +6,7 @@ import pytest
 
 from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus
+from app.models.preference import UserPreference
 from app.models.user import User
 from app.services.item_scorer import ScoredItem
 from app.services.recommendation_service import (
@@ -52,7 +53,7 @@ class TestGetTimeOfDay:
     def test_time_buckets(self, hour, expected):
         user = _make_user("UTC")
         mock_dt = datetime(2026, 3, 8, hour, 30, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -61,7 +62,7 @@ class TestGetTimeOfDay:
     def test_respects_user_timezone(self):
         user = _make_user("Asia/Kolkata")
         mock_dt = datetime(2026, 3, 8, 13, 30, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -70,7 +71,7 @@ class TestGetTimeOfDay:
     def test_invalid_timezone_falls_back_to_utc(self):
         user = _make_user("Invalid/Timezone")
         mock_dt = datetime(2026, 3, 8, 9, 0, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -80,7 +81,7 @@ class TestGetTimeOfDay:
         user = _make_user()
         user.timezone = None
         mock_dt = datetime(2026, 3, 8, 22, 0, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -349,6 +350,34 @@ class TestSuggestEndpointRuntime:
         assert response.status_code == 200
         data = response.json()
         assert data["is_starter_suggestion"] is True
+
+    @pytest.mark.asyncio
+    async def test_suggest_without_occasion_falls_back_from_an_unlisted_default(
+        self, client, test_user, auth_headers, db_session
+    ):
+        db_session.add(UserPreference(user_id=test_user.id, default_occasion="banana"))
+        outfit = Outfit(
+            user_id=test_user.id,
+            occasion="casual",
+            status=OutfitStatus.pending,
+            source=OutfitSource.on_demand,
+        )
+        outfit.feedback = None
+        outfit.family_ratings = []
+        outfit.items = []
+        db_session.add(outfit)
+        await db_session.commit()
+        generate = AsyncMock(return_value=outfit)
+
+        with patch("app.api.outfits.RecommendationService.generate_recommendation", generate):
+            response = await client.post(
+                "/api/v1/outfits/suggest",
+                json={"weather_override": {"temperature": 20, "condition": "clear"}},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        assert generate.await_args.kwargs["occasion"] == "casual"
 
 
 def _make_item(**kwargs) -> ClothingItem:

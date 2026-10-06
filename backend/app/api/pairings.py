@@ -6,9 +6,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import DbSession
 from app.models.outfit import Outfit
 from app.models.user import User
 from app.schemas.outfit import MAX_AUTHORING_TEXT_LENGTH, OutfitAttributeFields
@@ -230,7 +229,7 @@ def pairing_to_response(outfit: Outfit) -> PairingResponse:
 async def generate_pairings(
     item_id: UUID,
     request: GeneratePairingsRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> GeneratePairingsResponse:
     service = PairingService(db)
@@ -271,7 +270,7 @@ async def generate_pairings(
 
 @router.get("", response_model=PairingListResponse)
 async def list_pairings(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -297,7 +296,7 @@ async def list_pairings(
 @router.get("/item/{item_id}", response_model=PairingListResponse)
 async def list_item_pairings(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -336,7 +335,7 @@ class PairingCreateRequest(OutfitAttributeFields):
 async def create_external_pairing(
     item_id: UUID,
     request: PairingCreateRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> PairingResponse:
     """Persist an externally-authored pairing; available regardless of the AI flags."""
@@ -388,7 +387,7 @@ async def create_external_pairing(
 @router.delete("/{pairing_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_pairing(
     pairing_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     query = select(Outfit).where(

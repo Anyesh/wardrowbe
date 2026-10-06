@@ -22,8 +22,7 @@
   },
   "filters": {
     "allOccasions": "所有場合",
-    "allStatus": "所有狀態",
-    "workout": "運動"
+    "allStatus": "所有狀態"
   },
   "loadError": "載入歷史紀錄失敗，請重試。",
   "noOutfitsForDate": "{date} 沒有穿搭",
@@ -41,6 +40,7 @@
     "pending": "待處理",
     "rejected": "已拒絕",
     "sent": "已傳送",
+    "skipped": "已略過",
     "viewed": "已查看"
   },
   "subtitle": "查看你過去的穿搭推薦",

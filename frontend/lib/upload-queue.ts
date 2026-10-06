@@ -1,3 +1,5 @@
+import type { BulkUploadErrorCode } from '@/lib/hooks/use-items';
+
 const DB_NAME = 'wardrobe_upload_queue';
 const DB_VERSION = 1;
 const STORE_NAME = 'pending_uploads';
@@ -18,6 +20,8 @@ export interface QueuedUpload {
   status: UploadStatus;
   attempts: number;
   lastError: string | null;
+  // Optional because records queued before error codes existed are still in IndexedDB.
+  errorCode?: BulkUploadErrorCode | null;
   terminal: boolean;
 }
 
@@ -192,6 +196,7 @@ export async function enqueueFiles(
         status: 'pending',
         attempts: 0,
         lastError: null,
+        errorCode: null,
         terminal: false,
       };
       await putRecord(record);
@@ -232,6 +237,7 @@ export async function markRetryable(id: string, error: string): Promise<void> {
   record.terminal = false;
   record.attempts += 1;
   record.lastError = error;
+  record.errorCode = null;
   record.updatedAt = Date.now();
   await putRecord(record);
 }
@@ -247,16 +253,22 @@ export async function markPendingForRetry(id: string): Promise<void> {
   record.terminal = false;
   record.attempts = 0;
   record.lastError = null;
+  record.errorCode = null;
   record.updatedAt = Date.now();
   await putRecord(record);
 }
 
-export async function markTerminal(id: string, error: string): Promise<void> {
+export async function markTerminal(
+  id: string,
+  error: string,
+  errorCode: BulkUploadErrorCode | null = null
+): Promise<void> {
   const record = await getRecord(id);
   if (!record) return;
   record.status = 'failed';
   record.terminal = true;
   record.lastError = error;
+  record.errorCode = errorCode;
   record.updatedAt = Date.now();
   await putRecord(record);
 }
