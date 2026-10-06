@@ -85,6 +85,7 @@ class TestUserUpdate:
             pytest.param({"location_lat": 91}, id="lat-out-of-range"),
             pytest.param({"location_lon": -181}, id="lon-out-of-range"),
             pytest.param({"location_lat": 1e10}, id="lat-over-column"),
+            pytest.param({"body_measurements": {"chest": 10**400}}, id="measurement-over-float"),
         ],
     )
     async def test_update_user_rejects_a_bad_body_and_changes_nothing(

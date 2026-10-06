@@ -1,4 +1,3 @@
-import math
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,6 +9,7 @@ from app.schemas.user import DisplayName, Latitude, Longitude, PlaceName
 from app.services.user_service import UserService
 from app.utils.auth import get_current_user
 from app.utils.locale import SUPPORTED_LOCALES, is_supported_locale
+from app.utils.numbers import is_finite_number
 from app.utils.timezone import is_valid_timezone
 
 router = APIRouter(prefix="/users/me", tags=["Users"])
@@ -98,8 +98,7 @@ async def update_profile(
                 continue
             # Numeric fields are interpolated into the AI prompt, so anything other than a
             # real positive number (strings, bools, NaN/inf) is rejected, not just <= 0.
-            is_number = isinstance(value, (int, float)) and not isinstance(value, bool)
-            if not is_number or not math.isfinite(value) or value <= 0:
+            if not is_finite_number(value) or value <= 0:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"{key} must be a positive number",
