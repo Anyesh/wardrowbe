@@ -2,9 +2,10 @@ import logging
 from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.config import get_settings
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
@@ -46,15 +47,6 @@ def _outfit_day(scheduled_for: date | None, today: date) -> tuple[str, str]:
         return "Tomorrow", "tomorrow"
     weekday = scheduled_for.strftime("%A")
     return weekday, weekday
-
-
-# A retry can land after the user already accepted, rejected or skipped the outfit, so only a
-# pending outfit moves to sent; overwriting the verdict would drop it from learning and analytics.
-def _mark_outfit_sent(outfit: Outfit, sent_at: datetime) -> None:
-    if outfit.sent_at is None:
-        outfit.sent_at = sent_at
-    if outfit.status == OutfitStatus.pending:
-        outfit.status = OutfitStatus.sent
 
 
 class NotificationService:
@@ -322,7 +314,7 @@ class NotificationDispatcher:
             user_id, results, {"occasion": outfit.occasion}, outfit_id=outfit_id
         )
         if results[-1].status == NotificationStatus.sent:
-            _mark_outfit_sent(outfit, rows[-1].sent_at)
+            await self._mark_outfit_sent(outfit, rows[-1].sent_at)
         else:
             # Only one row is retried, so that the retry job sends the outfit at most once rather
             # than once per failed channel.
@@ -334,6 +326,29 @@ class NotificationDispatcher:
         await self.db.flush()
 
         return results
+
+    # A send can land after the user accepted, rejected or skipped the outfit, also while it was in
+    # flight, so the row decides rather than the loaded object, which may be stale: only a pending
+    # outfit moves to sent, because overwriting the verdict would drop it from learning and
+    # analytics. The loaded object takes the row's values so a later flush cannot write it back.
+    async def _mark_outfit_sent(self, outfit: Outfit, sent_at: datetime) -> None:
+        result = await self.db.execute(
+            update(Outfit)
+            .where(Outfit.id == outfit.id)
+            .values(
+                status=case(
+                    (Outfit.status == OutfitStatus.pending, OutfitStatus.sent),
+                    else_=Outfit.status,
+                ),
+                sent_at=func.coalesce(Outfit.sent_at, sent_at),
+            )
+            .returning(Outfit.status, Outfit.sent_at)
+            .execution_options(synchronize_session=False)
+        )
+        stored = result.one_or_none()
+        if stored is not None:
+            set_committed_value(outfit, "status", stored.status)
+            set_committed_value(outfit, "sent_at", stored.sent_at)
 
     async def retry_notification(self, notification: Notification) -> NotificationResult:
         user_result = await self.db.execute(
@@ -382,7 +397,7 @@ class NotificationDispatcher:
 
         result = await send_via_channel(channel_config, self._build_outfit_message(outfit, user))
         if result.status == NotificationStatus.sent:
-            _mark_outfit_sent(outfit, datetime.now(UTC))
+            await self._mark_outfit_sent(outfit, datetime.now(UTC))
         return result
 
     # The day is derived at send time from the outfit's date rather than stored, so a retry that

@@ -11,7 +11,7 @@ import httpx
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy import JSON, select
+from sqlalchemy import JSON, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
@@ -1284,18 +1284,39 @@ class TestDispatcherDelivery:
     )
     @pytest.mark.asyncio
     async def test_retry_marks_only_a_pending_outfit_sent(
-        self, db_session: AsyncSession, test_user, outfit, status, sent_at, kept
+        self, db_session: AsyncSession, session_maker, test_user, outfit, status, sent_at, kept
     ):
-        outfit.status = status
-        outfit.sent_at = sent_at
         notification = await self._retrying_mattermost(db_session, test_user, outfit)
+        deliver = self._post(failing=set()).side_effect
+
+        # The user's verdict commits from another session while the send is in flight, after the
+        # worker loaded the outfit as pending.
+        async def post_while_the_user_decides(url, **kwargs):
+            async with session_maker() as other:
+                await other.execute(
+                    update(Outfit)
+                    .where(Outfit.id == outfit.id)
+                    .values(status=status, sent_at=sent_at)
+                )
+                await other.commit()
+            return await deliver(url, **kwargs)
 
         with (
-            patch.object(httpx.AsyncClient, "post", self._post(failing=set())),
+            patch.object(
+                httpx.AsyncClient, "post", AsyncMock(side_effect=post_while_the_user_decides)
+            ),
             patch("app.services.notification_service.datetime") as clock,
         ):
             clock.now.return_value = RETRIED_AT
             result = await NotificationDispatcher(db_session).retry_notification(notification)
+        await db_session.commit()
 
+        async with session_maker() as other:
+            stored = (
+                await other.execute(
+                    select(Outfit.status, Outfit.sent_at).where(Outfit.id == outfit.id)
+                )
+            ).one()
         assert result.status == NotificationStatus.sent
+        assert tuple(stored) == kept
         assert (outfit.status, outfit.sent_at) == kept
