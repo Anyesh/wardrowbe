@@ -9,11 +9,14 @@ from pydantic import ValidationError
 
 from app.api.auth import _is_dev_mode
 from app.api.outfits import StudioCreateRequest, SuggestionCreateRequest, SuggestRequest
+from app.api.users import UserProfileUpdate
 from app.config import Settings
 from app.models import Family, FamilyInvite, User
+from app.schemas.family import FamilyCreate, FamilyUpdate
 from app.schemas.item import LogWearRequest
 from app.schemas.notification import NtfyConfig, ScheduleBase, ScheduleUpdate
 from app.schemas.preference import PreferenceUpdate
+from app.schemas.user import UserSyncRequest
 from app.services.user_service import UserService
 from app.utils.garment_vocabulary import OCCASIONS
 
@@ -31,6 +34,47 @@ OCCASION_REQUESTS = {
         occasion=PreferenceUpdate(default_occasion=occasion).default_occasion
     ),
 }
+
+
+# Every user-written name that reaches an email Subject header or a chat message.
+NAME_REQUESTS = {
+    "family-create": lambda name: FamilyCreate(name=name).name,
+    "family-update": lambda name: FamilyUpdate(name=name).name,
+    "profile-update": lambda name: UserProfileUpdate(display_name=name).display_name,
+    "sign-in-sync": lambda name: UserSyncRequest(external_id="sub", display_name=name).display_name,
+}
+
+
+class TestNamesAreSingleLine:
+    @pytest.mark.parametrize("build", NAME_REQUESTS.values(), ids=NAME_REQUESTS.keys())
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "Smith\r\nBcc: victim@example.com",
+            "Smith\nFamily",
+            "Tab\tName",
+            "Nul\x00",
+            "Line\u2028Sep",
+        ],
+    )
+    def test_every_request_rejects_line_breaks_and_control_characters(self, build, name):
+        with pytest.raises(ValidationError):
+            build(name)
+
+    @pytest.mark.parametrize("build", NAME_REQUESTS.values(), ids=NAME_REQUESTS.keys())
+    def test_every_request_accepts_a_plain_name(self, build):
+        assert build("Smith & Co ☃ Müller") == "Smith & Co ☃ Müller"
+
+    @pytest.mark.asyncio
+    async def test_family_with_a_header_breaking_name_is_never_created(self, client, auth_headers):
+        response = await client.post(
+            "/api/v1/families",
+            json={"name": "Smith\r\nBcc: victim@example.com"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert (await client.get("/api/v1/families/me", headers=auth_headers)).status_code == 404
 
 
 class TestAIEndpointSchemeValidation:

@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.database import DbSession
 from app.models.user import User
+from app.schemas.text import SingleLineText
 from app.services.user_service import UserService
 from app.utils.auth import get_current_user
 from app.utils.locale import SUPPORTED_LOCALES, is_supported_locale
@@ -42,7 +43,7 @@ class UserProfileUpdate(BaseModel):
     # from a real success.
     model_config = ConfigDict(extra="forbid")
 
-    display_name: str | None = None
+    display_name: SingleLineText | None = None
     timezone: str | None = None
     locale: str | None = None
     location_lat: Decimal | None = None
