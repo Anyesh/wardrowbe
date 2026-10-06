@@ -1,12 +1,13 @@
 FROM node:24-alpine
+RUN corepack enable
 
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY package.json package-lock.json* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install dependencies
-RUN npm install
+RUN pnpm install --frozen-lockfile
 
 # The rest will be mounted as volume
 # But we need node_modules to persist, so we use a named volume
@@ -17,4 +18,4 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Install deps again at startup in case package.json changed
-CMD npm install && npm run dev
+CMD ["sh", "-c", "CI=true pnpm install --frozen-lockfile && exec pnpm run dev"]

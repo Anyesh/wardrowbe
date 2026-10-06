@@ -21,7 +21,7 @@ on:
 jobs:
   # Each (service, platform) pair builds natively on a runner of that
   # architecture and pushes a single-platform image by digest. This avoids
-  # QEMU-emulated arm64 builds, which crash native npm/esbuild binaries with
+  # QEMU-emulated arm64 builds, which crash package-manager/esbuild binaries with
   # SIGILL under emulation (see incident 2026-08-22: frontend arm64 build
   # hung for 6h under QEMU and was force-cancelled, leaving frontend stuck on
   # the previous version while backend published fine).

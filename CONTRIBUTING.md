@@ -39,7 +39,7 @@ look.
 ### Prerequisites
 
 - Docker and Docker Compose
-- Node.js 18+ (for frontend development)
+- Node.js 24 with Corepack (matching frontend CI and Docker)
 - Python 3.11+ (for backend development)
 - An AI service (Ollama recommended for development)
 
@@ -83,23 +83,29 @@ ruff format .
 
 ### Frontend Development
 
+The frontend pins pnpm in `frontend/package.json`; `corepack pnpm` selects that version
+even when a different pnpm is installed globally.
+Use pnpm for dependency changes and commit `frontend/pnpm-lock.yaml` with the
+manifest. Installations reject new, unreviewed dependency build scripts; review
+the script before recording a narrow decision in `frontend/pnpm-workspace.yaml`.
+
 ```bash
 cd frontend
 
 # Install dependencies
-npm install
+corepack pnpm install --frozen-lockfile
 
 # Run dev server (if not using Docker)
-npm run dev
+corepack pnpm run dev
 
 # Run tests
-npm test
+corepack pnpm test
 
 # Check types
-npm run typecheck
+corepack pnpm run typecheck
 
 # Run linting
-npm run lint
+corepack pnpm run lint
 ```
 
 ## Code Style
@@ -191,7 +197,7 @@ Before pushing:
 
 ```bash
 cd frontend
-npm run i18n:check
+corepack pnpm run i18n:check
 ```
 
 That runs three gates, none of which `tsc`, ESLint or Vitest can replace, because `t()` takes a
@@ -213,11 +219,12 @@ formality scale, the occasions (with the formality band the scorer expects for e
 colours (with their swatch hex, plus the aliases the tagger folds onto them) live in one file,
 `backend/app/data/garment_vocabulary.json`. The tagging prompt, the backend lists and
 validators, and `frontend/lib/generated/garment-vocabulary.ts` are all derived from it. After
-editing it, run `cd frontend && npm run vocab:gen`, add the labels under `constants.types`,
+editing it, run `cd frontend && corepack pnpm run vocab:gen`, add the labels under `constants.types`,
 `constants.materials`, `constants.formalities`, `constants.roles`, `constants.occasions` and
 `constants.colors` in every locale, and commit the generated file. Turning a stored colour into an
 alias also needs an Alembic data migration that remaps the rows already holding it.
-`npm run vocab:check` fails CI when the generated file is stale. The occasion pickers show only the short featured list in `frontend/lib/types.ts`.
+`corepack pnpm run vocab:check` fails CI when the generated file is stale. The occasion pickers show
+only the short featured list in `frontend/lib/types.ts`.
 
 ## Project Structure
 
@@ -246,7 +253,7 @@ frontend/
 ├── components/       # React components
 │   └── ui/          # shadcn/ui components
 ├── lib/             # Utilities and API client
-│   ├── generated/   # Written by `npm run vocab:gen`, never edit by hand
+│   ├── generated/   # Written by `corepack pnpm run vocab:gen`, never edit by hand
 │   └── hooks/       # Custom React hooks
 └── tests/           # Test files
 ```
@@ -277,13 +284,10 @@ pytest tests/test_items.py::TestItemList::test_list_items_empty
 cd frontend
 
 # Run all tests
-npm test
-
-# Run with coverage
-npm run test:coverage
+corepack pnpm test
 
 # Run in watch mode
-npm run test -- --watch
+corepack pnpm exec vitest --watch
 ```
 
 ## Database Migrations

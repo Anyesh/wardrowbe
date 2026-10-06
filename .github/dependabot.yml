@@ -11,7 +11,7 @@ updates:
         patterns:
           - "*"
 
-  # NPM dependencies
+  # Frontend pnpm dependencies (Dependabot uses the npm ecosystem for pnpm)
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
