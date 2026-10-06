@@ -4,9 +4,10 @@ import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from email.errors import HeaderDefect
+from email.errors import HeaderDefect, HeaderParseError
 from email.headerregistry import Address
 from email.message import EmailMessage as MimeMessage
+from email.utils import parseaddr
 from typing import Protocol
 
 import aiosmtplib
@@ -301,22 +302,28 @@ class MattermostProvider:
 
 
 # SMTP_FROM_EMAIL falls back to SMTP_USER, which on many relays is a bare login such as "mailer"
-# that the relay rewrites itself, so a sender that is not an address is sent as written.
+# that the relay rewrites itself, so a sender that is not an address is sent as written. A
+# SMTP_FROM_EMAIL written as a whole From header, "Wardrowbe <noreply@example.com>", is cut to its
+# address because the name comes from SMTP_FROM_NAME.
 def _smtp_sender(value: str) -> str:
-    try:
-        return smtp_address(value)
-    except EmailNotValidError:
-        return value
+    for candidate in (value, parseaddr(value)[1]):
+        try:
+            return smtp_address(candidate)
+        except EmailNotValidError:
+            continue
+    return value
 
 
 # Address(addr_spec=...) unquotes a quoted local part, which Address(username=...) would quote a
-# second time, but it refuses a bare login and a non-ASCII local part, which SMTPUTF8 relays
-# accept, so those are passed as separate parts. The display name is then encoded on its own and
-# the address stays plain, where a single "name <address>" string would be encoded as one word.
+# second time, but it refuses a bare login, a non-ASCII local part (which SMTPUTF8 relays accept)
+# and any sender it cannot parse as one address, with an exception type that depends on how the
+# parse fails, so those are passed as separate parts and left for the relay to accept or refuse.
+# The display name is then encoded on its own and the address stays plain, where a single
+# "name <address>" string would be encoded as one word.
 def _header_address(address: str, display_name: str = "") -> Address:
     try:
         return Address(display_name=display_name, addr_spec=address)
-    except HeaderDefect:
+    except (HeaderDefect, HeaderParseError, ValueError, IndexError):
         username, at, domain = address.rpartition("@")
         if not at:
             username, domain = address, ""
