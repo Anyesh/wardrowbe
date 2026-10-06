@@ -1,15 +1,72 @@
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
 
 from app.services.ai_service import AIResponseTruncatedError, AIService, ClothingTags
+from app.utils.locale import SUPPORTED_LOCALES
 
 FAKE_REQUEST = httpx.Request("POST", "http://ai-endpoint.test/chat/completions")
 
 
 def _mock_response(json_data: dict, status_code: int = 200) -> httpx.Response:
     return httpx.Response(status_code, json=json_data, request=FAKE_REQUEST)
+
+
+class TestLocalizedDescription:
+    @pytest.mark.parametrize(
+        ("locale", "language"),
+        [
+            ("en", "English"),
+            ("zh-CN", "Simplified Chinese"),
+            ("zh-TW", "Traditional Chinese"),
+            ("ko", "Korean"),
+            ("ja", "Japanese"),
+            ("fr", "French"),
+            ("de", "German"),
+            ("it", "Italian"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_only_description_prompt_uses_locale(self, locale, language):
+        service = AIService()
+        call = AsyncMock(
+            side_effect=[
+                ('{"type": "shirt", "material": "cotton"}', None, None),
+                ("A shirt", None, None),
+            ]
+        )
+        with (
+            patch.object(service, "_preprocess_image", return_value="image-data"),
+            patch.object(service, "_call_with_fallback", call),
+        ):
+            tags = await service.analyze_image("unused.jpg", locale=locale)
+
+        tagging_messages = call.call_args_list[0].args[0]
+        description_messages = call.call_args_list[1].args[0]
+        assert language in description_messages[0]["content"]
+        assert "{language}" not in description_messages[0]["content"]
+        assert language not in tagging_messages[0]["content"]
+        assert tags.type == "shirt"
+        assert tags.material == "cotton"
+        assert tags.description == "A shirt"
+
+    def test_every_supported_locale_has_a_description_language(self):
+        from app.services.ai_service import DESCRIPTION_LANGUAGES
+
+        assert set(DESCRIPTION_LANGUAGES) == set(SUPPORTED_LOCALES)
+
+    @pytest.mark.asyncio
+    async def test_unexpected_stored_locale_falls_back_to_english(self):
+        service = AIService()
+        call = AsyncMock(side_effect=[(None, None, None), ("A shirt", None, None)])
+        with (
+            patch.object(service, "_preprocess_image", return_value="image-data"),
+            patch.object(service, "_call_with_fallback", call),
+        ):
+            await service.analyze_image("unused.jpg", locale="unexpected")
+
+        assert "in English" in call.call_args_list[1].args[0][0]["content"]
 
 
 class TestTagParsing:
