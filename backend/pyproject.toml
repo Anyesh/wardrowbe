@@ -33,6 +33,10 @@ line-ending = "auto"
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
 
+[tool.ty.src]
+# Start with the shared utilities; expand this scope as existing diagnostics are fixed.
+include = ["app/utils"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

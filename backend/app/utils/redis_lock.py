@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
+from redis.exceptions import LockNotOwnedError
 
 from app.config import get_settings
 
@@ -35,5 +36,5 @@ async def distributed_lock(key: str, timeout: int = 10, blocking_timeout: int = 
         if acquired:
             try:
                 await lock.release()
-            except aioredis.exceptions.LockNotOwnedError:
+            except LockNotOwnedError:
                 logger.warning("Lock %s already released (expired?)", key)
