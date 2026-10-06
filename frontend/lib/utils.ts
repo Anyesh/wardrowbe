@@ -5,6 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// The .invalid TLD is reserved by RFC 2606 and is where the backend parks a reclaimed
+// account's address, so such an address must never be offered as a delivery target.
+export function isDeliverableEmail(email: string | null | undefined): email is string {
+  return !!email && !email.trim().toLowerCase().endsWith('.invalid');
+}
+
 export function chunkArray<T>(items: T[], size: number): T[][] {
   if (size <= 0) return [items];
   const chunks: T[][] = [];

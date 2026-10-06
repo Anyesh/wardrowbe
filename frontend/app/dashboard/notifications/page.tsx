@@ -61,6 +61,7 @@ import {
   Schedule,
 } from '@/lib/hooks/use-notifications';
 import { useUserProfile } from '@/lib/hooks/use-user';
+import { isDeliverableEmail } from '@/lib/utils';
 import { useOccasions } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
 
@@ -202,7 +203,7 @@ function AddChannelDialog({
     if (channel === 'ntfy' && ntfyDefaults) {
       setConfig({ server: ntfyDefaults.server, token: ntfyDefaults.token });
     } else if (channel === 'email') {
-      setConfig(userEmail ? { address: userEmail } : {});
+      setConfig(isDeliverableEmail(userEmail) ? { address: userEmail } : {});
     } else {
       setConfig({});
     }

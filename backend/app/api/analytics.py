@@ -5,9 +5,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, computed_field
 from sqlalchemy import and_, case, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import DbSession
 from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import Outfit, OutfitStatus, UserFeedback
 from app.models.user import User
@@ -101,7 +100,7 @@ def composition_insights(c: WardrobeComposition) -> list[str]:
 
 @router.get("", response_model=AnalyticsResponse)
 async def get_analytics(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     days: int = Query(30, ge=7, le=365, description="Number of days for trends"),
 ) -> AnalyticsResponse:

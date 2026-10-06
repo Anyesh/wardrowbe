@@ -2,31 +2,18 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.utils.locale import DEFAULT_LOCALE
 
 
 class UserBase(BaseModel):
-    email: EmailStr
+    # Plain str because responses must not fail on a detached account's reserved-TLD address.
+    email: str
     display_name: str = Field(..., min_length=1, max_length=100)
     avatar_url: str | None = None
     timezone: str = Field(default="UTC", max_length=50)
     locale: str = Field(default=DEFAULT_LOCALE, max_length=10)
-    location_lat: Decimal | None = Field(None, ge=-90, le=90)
-    location_lon: Decimal | None = Field(None, ge=-180, le=180)
-    location_name: str | None = Field(None, max_length=100)
-
-
-class UserCreate(UserBase):
-    external_id: str = Field(..., min_length=1, max_length=255)
-
-
-class UserUpdate(BaseModel):
-    display_name: str | None = Field(None, min_length=1, max_length=100)
-    avatar_url: str | None = None
-    timezone: str | None = Field(None, max_length=50)
-    locale: str | None = Field(None, max_length=10)
     location_lat: Decimal | None = Field(None, ge=-90, le=90)
     location_lon: Decimal | None = Field(None, ge=-180, le=180)
     location_name: str | None = Field(None, max_length=100)

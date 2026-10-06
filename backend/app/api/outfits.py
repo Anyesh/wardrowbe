@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import get_settings
-from app.database import get_db
+from app.database import DbSession
 from app.models.item import ClothingItem
 from app.models.outfit import (
     FamilyOutfitRating,
@@ -435,7 +435,7 @@ def outfit_to_response(
 @router.post("/suggest", response_model=OutfitResponse)
 async def suggest_outfit(
     request: SuggestRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     await rate_limit_by_user(str(current_user.id), "suggest", max_requests=10, window_seconds=60)
@@ -507,7 +507,7 @@ async def suggest_outfit(
 @router.post("/suggest-options", response_model=list[OutfitResponse])
 async def suggest_outfit_options(
     request: SuggestRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[OutfitResponse]:
     await rate_limit_by_user(str(current_user.id), "suggest", max_requests=10, window_seconds=60)
@@ -606,7 +606,7 @@ class SuggestionCreateRequest(OutfitAttributeFields):
 @router.post("/suggestions", response_model=OutfitResponse, status_code=status.HTTP_201_CREATED)
 async def create_external_suggestion(
     request: SuggestionCreateRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     """Persist an externally-authored suggestion; available regardless of the AI flags."""
@@ -650,7 +650,7 @@ async def create_external_suggestion(
 
 @router.get("", response_model=OutfitListResponse)
 async def list_outfits(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -712,7 +712,7 @@ async def list_outfits(
 @router.post("/bulk/delete", response_model=BulkDeleteOutfitsResponse)
 async def bulk_delete_outfits(
     request: BulkDeleteOutfitsRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkDeleteOutfitsResponse:
     service = OutfitService(db)
@@ -792,7 +792,7 @@ async def bulk_delete_outfits(
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(
     outfit_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     query = (
@@ -822,7 +822,7 @@ async def get_outfit(
 @router.post("/{outfit_id}/accept", response_model=OutfitResponse)
 async def accept_outfit(
     outfit_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     query = (
@@ -857,7 +857,7 @@ async def accept_outfit(
 @router.post("/{outfit_id}/reject", response_model=OutfitResponse)
 async def reject_outfit(
     outfit_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     query = (
@@ -894,7 +894,7 @@ async def reject_outfit(
 @router.post("/{outfit_id}/skip", response_model=OutfitResponse)
 async def skip_outfit(
     outfit_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     service = OutfitService(db)
@@ -908,7 +908,7 @@ async def skip_outfit(
 @router.delete("/{outfit_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_outfit(
     outfit_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     query = select(Outfit).where(and_(Outfit.id == outfit_id, Outfit.user_id == current_user.id))
@@ -930,7 +930,7 @@ async def delete_outfit(
 async def submit_feedback(
     outfit_id: UUID,
     request: FeedbackRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> FeedbackResponse:
     query = (
@@ -1048,7 +1048,7 @@ async def submit_feedback(
 @router.get("/{outfit_id}/feedback", response_model=FeedbackResponse)
 async def get_feedback(
     outfit_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> FeedbackResponse:
     query = (
@@ -1094,7 +1094,7 @@ async def get_feedback(
 async def submit_family_rating(
     outfit_id: UUID,
     request: FamilyRatingRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> FamilyRatingResponse:
     result = await db.execute(select(Outfit).where(Outfit.id == outfit_id))
@@ -1179,7 +1179,7 @@ async def submit_family_rating(
 @router.get("/{outfit_id}/family-ratings", response_model=list[FamilyRatingResponse])
 async def get_family_ratings(
     outfit_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[FamilyRatingResponse]:
     result = await db.execute(select(Outfit).where(Outfit.id == outfit_id))
@@ -1290,7 +1290,7 @@ async def _run_learning_safely(db: AsyncSession, outfit_id: UUID, user_id: UUID)
 @router.post("/studio", response_model=OutfitResponse, status_code=status.HTTP_201_CREATED)
 async def create_studio_outfit(
     request: StudioCreateRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     _check_studio_kill_switch()
@@ -1334,7 +1334,7 @@ async def create_studio_outfit(
 async def create_wore_instead_outfit(
     outfit_id: UUID,
     request: WoreInsteadRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     _check_studio_kill_switch()
@@ -1378,7 +1378,7 @@ async def create_wore_instead_outfit(
 async def clone_outfit_to_lookbook(
     outfit_id: UUID,
     request: CloneToLookbookRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     _check_studio_kill_switch()
@@ -1410,7 +1410,7 @@ async def clone_outfit_to_lookbook(
 async def wear_outfit_today(
     outfit_id: UUID,
     request: WearTodayRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     _check_studio_kill_switch()
@@ -1449,7 +1449,7 @@ async def wear_outfit_today(
 async def patch_outfit_endpoint(
     outfit_id: UUID,
     request: PatchOutfitRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     _check_studio_kill_switch()
@@ -1502,7 +1502,7 @@ async def patch_outfit_endpoint(
 @router.delete("/{outfit_id}/family-rating", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_family_rating(
     outfit_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     result = await db.execute(

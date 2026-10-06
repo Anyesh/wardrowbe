@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
 import {
   Loader2,
   Users,
@@ -19,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useFamily } from '@/lib/hooks/use-family';
+import { useCurrentFamilyMember, useFamily } from '@/lib/hooks/use-family';
 import { useFamilyOutfits, type Outfit, type OutfitSource } from '@/lib/hooks/use-outfits';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
@@ -276,11 +275,19 @@ function NoFamilyState() {
 
 function FeedContent() {
   const t = useTranslations('family');
-  const { data: session } = useSession();
+  const te = useTranslations('errors');
   const { data: family, isLoading: familyLoading } = useFamily();
-  const currentEmail = session?.user?.email;
-  const currentMember = family?.members.find((m) => m.email === currentEmail);
-  const otherMembers = family?.members.filter((m) => m.email !== currentEmail) ?? [];
+  const {
+    member: currentMember,
+    isPending: memberPending,
+    isError: memberError,
+  } = useCurrentFamilyMember(family);
+  // Until the current member is known, filtering on it would list the user among the others
+  // and auto-select their own feed.
+  const otherMembers =
+    memberPending || memberError
+      ? []
+      : (family?.members.filter((m) => m.id !== currentMember?.id) ?? []);
 
   const [selectedMember, setSelectedMember] = useState<string | undefined>(undefined);
   const [previewOutfit, setPreviewOutfit] = useState<Outfit | null>(null);
@@ -291,7 +298,7 @@ function FeedContent() {
 
   const selectedMemberInfo = otherMembers.find((m) => m.id === activeMemberId);
 
-  if (familyLoading) {
+  if (familyLoading || memberPending) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -301,6 +308,10 @@ function FeedContent() {
 
   if (!family) {
     return <NoFamilyState />;
+  }
+
+  if (memberError) {
+    return <div className="text-center py-8 text-red-500">{te('pageLoad.title')}</div>;
   }
 
   if (otherMembers.length === 0) {
