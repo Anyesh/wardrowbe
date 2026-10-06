@@ -939,7 +939,18 @@ class TestNotificationHistory:
 
 TODAY = date(2026, 10, 6)
 FIRST_SENT_AT = datetime(2026, 10, 6, 7, 0, tzinfo=UTC)
-RETRIED_AT = datetime(2026, 10, 6, 8, 30, tzinfo=UTC)
+DELIVERED_AT = datetime(2026, 10, 6, 8, 30, tzinfo=UTC)
+
+
+async def _first_send(dispatcher: NotificationDispatcher, notification: Notification):
+    [result] = await dispatcher.send_outfit_notification(
+        notification.user_id, notification.outfit_id
+    )
+    return result
+
+
+async def _retry(dispatcher: NotificationDispatcher, notification: Notification):
+    return await dispatcher.retry_notification(notification)
 
 
 class TestDispatcherDelivery:
@@ -1274,17 +1285,26 @@ class TestDispatcherDelivery:
     @pytest.mark.parametrize(
         ("status", "sent_at", "kept"),
         [
-            (OutfitStatus.pending, None, (OutfitStatus.sent, RETRIED_AT)),
-            (OutfitStatus.accepted, None, (OutfitStatus.accepted, RETRIED_AT)),
-            (OutfitStatus.rejected, None, (OutfitStatus.rejected, RETRIED_AT)),
-            (OutfitStatus.skipped, None, (OutfitStatus.skipped, RETRIED_AT)),
+            (OutfitStatus.pending, None, (OutfitStatus.sent, DELIVERED_AT)),
+            (OutfitStatus.accepted, None, (OutfitStatus.accepted, DELIVERED_AT)),
+            (OutfitStatus.rejected, None, (OutfitStatus.rejected, DELIVERED_AT)),
+            (OutfitStatus.skipped, None, (OutfitStatus.skipped, DELIVERED_AT)),
             (OutfitStatus.sent, FIRST_SENT_AT, (OutfitStatus.sent, FIRST_SENT_AT)),
         ],
         ids=["pending", "accepted", "rejected", "skipped", "already-sent"],
     )
+    @pytest.mark.parametrize("send", [_first_send, _retry], ids=["first-send", "retry"])
     @pytest.mark.asyncio
-    async def test_retry_marks_only_a_pending_outfit_sent(
-        self, db_session: AsyncSession, session_maker, test_user, outfit, status, sent_at, kept
+    async def test_send_marks_only_a_pending_outfit_sent(
+        self,
+        db_session: AsyncSession,
+        session_maker,
+        test_user,
+        outfit,
+        send,
+        status,
+        sent_at,
+        kept,
     ):
         notification = await self._retrying_mattermost(db_session, test_user, outfit)
         deliver = self._post(failing=set()).side_effect
@@ -1307,8 +1327,8 @@ class TestDispatcherDelivery:
             ),
             patch("app.services.notification_service.datetime") as clock,
         ):
-            clock.now.return_value = RETRIED_AT
-            result = await NotificationDispatcher(db_session).retry_notification(notification)
+            clock.now.return_value = DELIVERED_AT
+            result = await send(NotificationDispatcher(db_session), notification)
         await db_session.commit()
 
         async with session_maker() as other:
