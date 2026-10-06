@@ -11,6 +11,7 @@ from app.models.notification import Notification, NotificationSettings, Notifica
 from app.models.outfit import Outfit, OutfitItem
 from app.models.schedule import Schedule
 from app.models.user import User
+from app.schemas.notification import NotificationChannel
 from app.services.notification_providers import (
     NotificationMessage,
     NotificationResult,
@@ -22,6 +23,10 @@ from app.services.notification_providers import (
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
+
+# A row written by another version (a channel since removed, or one added later) has no provider
+# here, so it is neither listed nor sent to.
+KNOWN_CHANNEL = NotificationSettings.channel.in_([channel.value for channel in NotificationChannel])
 
 WEATHER_TAGS = (
     (("rain", "drizzle", "shower"), "umbrella"),
@@ -51,7 +56,7 @@ class NotificationService:
     async def get_user_settings(self, user_id: UUID) -> list[NotificationSettings]:
         result = await self.db.execute(
             select(NotificationSettings)
-            .where(NotificationSettings.user_id == user_id)
+            .where(NotificationSettings.user_id == user_id, KNOWN_CHANNEL)
             .order_by(NotificationSettings.priority)
         )
         return list(result.scalars().all())
@@ -235,6 +240,7 @@ class NotificationDispatcher:
                 and_(
                     NotificationSettings.user_id == user_id,
                     NotificationSettings.enabled == True,  # noqa: E712
+                    KNOWN_CHANNEL,
                 )
             )
             .order_by(NotificationSettings.priority)

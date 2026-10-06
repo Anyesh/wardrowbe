@@ -427,6 +427,32 @@ class TestNtfyHeaders:
         assert title == f"=?UTF-8?B?{encoded}?="
 
 
+class TestNotificationSettingsList:
+    @pytest.mark.asyncio
+    async def test_skips_a_stored_channel_this_version_cannot_send_to(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        db_session.add_all(
+            [
+                NotificationSettings(
+                    user_id=test_user.id, channel="pushover", priority=1, config={"key": "k"}
+                ),
+                NotificationSettings(
+                    user_id=test_user.id,
+                    channel="email",
+                    priority=2,
+                    config={"address": "a@example.com"},
+                ),
+            ]
+        )
+        await db_session.commit()
+
+        response = await client.get("/api/v1/notifications/settings", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert [row["channel"] for row in response.json()] == ["email"]
+
+
 class TestNotificationHistory:
     @pytest.mark.asyncio
     async def test_returns_rows_with_unknown_channel(
