@@ -25,7 +25,8 @@ from app.api.auth import create_access_token
 from app.config import get_settings
 from app.database import get_db
 from app.main import app
-from app.models import User, UserPreference
+from app.models import User, UserIdentity, UserPreference
+from tests.identity_helpers import add_users_with_identities
 
 # Test database URL from environment — set in docker-compose.dev.yml, never falls back to DATABASE_URL.
 TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
@@ -121,7 +122,7 @@ async def _clear_rate_limits():
 
 
 @pytest_asyncio.fixture
-async def test_user(db_session: AsyncSession) -> User:
+async def test_user_identity(db_session: AsyncSession) -> UserIdentity:
     unique_id = uuid4()
     user = User(
         id=unique_id,
@@ -133,10 +134,15 @@ async def test_user(db_session: AsyncSession) -> User:
         onboarding_completed=False,
         email_verified=True,
     )
-    db_session.add(user)
+    (identity,) = await add_users_with_identities(db_session, user)
     await db_session.commit()
     await db_session.refresh(user)
-    return user
+    return identity
+
+
+@pytest_asyncio.fixture
+async def test_user(db_session: AsyncSession, test_user_identity: UserIdentity) -> User:
+    return await db_session.get(User, test_user_identity.user_id)
 
 
 @pytest_asyncio.fixture

@@ -118,6 +118,7 @@ async def sync_user(
 ) -> UserSyncResponse:
     await rate_limit_by_ip(request, "auth_sync", 10, 60)
     if _is_dev_mode():
+        provider = "dev"
         email_verified = True
         if not sync_data.email:
             raise HTTPException(
@@ -125,6 +126,7 @@ async def sync_user(
                 detail="email is required",
             )
     elif _oidc_configured():
+        provider = "oidc"
         if not sync_data.id_token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -193,7 +195,9 @@ async def sync_user(
     user_service = UserService(db)
 
     try:
-        user, is_new = await user_service.sync_from_oidc(sync_data, email_verified=email_verified)
+        user, is_new = await user_service.sync_from_oidc(
+            sync_data, provider=provider, email_verified=email_verified
+        )
     except UserEmailConflictError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

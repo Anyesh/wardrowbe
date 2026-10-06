@@ -34,8 +34,8 @@ class User(Base):
     # Superseded by user_identities, which migration 921b8d3bc2b8 backfilled from it as legacy rows.
     external_id: Mapped[str | None] = mapped_column(String(255), unique=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    # Whether the identity source vouched for the current email; only such rows may be adopted
-    # by another external_id, so that a squatted, unverified email cannot be taken over.
+    # Whether the identity source vouched for the current email; only such rows may gain an
+    # identity by email, so that a squatted, unverified email cannot be taken over.
     email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
