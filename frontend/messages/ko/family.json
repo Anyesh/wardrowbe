@@ -95,6 +95,7 @@
     "createFailed": "가족 만들기에 실패했어요. 다시 시도해 주세요.",
     "created": "가족이 생성되었어요!",
     "inviteFailed": "초대 전송 실패",
+    "inviteNotEmailed": "초대는 저장되었지만 이메일을 보내지 못했습니다. 대신 초대 코드를 공유하세요.",
     "inviteSent": "초대가 전송되었어요!",
     "joined": "가족에 참여했어요!",
     "nameUpdateFailed": "가족 이름 수정 실패",

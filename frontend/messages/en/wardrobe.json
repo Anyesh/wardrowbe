@@ -260,7 +260,14 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
+    "failure": {
+      "tooLarge": "{name} is larger than {limit} MB",
+      "tooLargeForServer": "{name} is too large for the server to accept",
+      "unsupportedFormat": "{name} is not a supported format (JPEG, PNG, WebP or HEIC)",
+      "duplicate": "{name} is already in your wardrobe",
+      "generic": "{name} could not be uploaded"
+    }
   },
   "wearCount": "{count, plural, one {Worn # time} other {Worn # times}}",
   "wornAgo": {

@@ -4,9 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import DbSession
 from app.models import User
 from app.services.family_service import FamilyService
 from app.services.image_service import ImageService
@@ -22,7 +21,7 @@ FILENAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp)$")
 async def get_image(
     user_id: str,
     filename: str,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
     expires: str | None = Query(None),
     sig: str | None = Query(None),

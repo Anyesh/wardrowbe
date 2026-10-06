@@ -95,6 +95,7 @@
     "createFailed": "Familie konnte nicht erstellt werden. Bitte versuche es erneut.",
     "created": "Familie erstellt!",
     "inviteFailed": "Einladung konnte nicht gesendet werden",
+    "inviteNotEmailed": "Einladung gespeichert, aber die E-Mail konnte nicht gesendet werden. Teile stattdessen den Einladungscode.",
     "inviteSent": "Einladung gesendet!",
     "joined": "Familie beigetreten!",
     "nameUpdateFailed": "Familienname konnte nicht aktualisiert werden",
