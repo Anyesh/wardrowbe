@@ -63,10 +63,23 @@ class TestUserClock:
     def test_bad_stored_zone_reads_as_utc(self):
         assert get_user_timezone(_user("Mars/User_Clock")) == ZoneInfo("UTC")
 
-    def test_today_and_now_follow_the_user_zone(self):
-        instant = datetime(2026, 3, 8, 20, 30, tzinfo=UTC)
-        user = _user("Asia/Tokyo")
+    @pytest.mark.parametrize(
+        ("zone", "instant", "today", "clock"),
+        [
+            ("Asia/Tokyo", datetime(2026, 3, 8, 20, 30, tzinfo=UTC), "2026-03-09", "05:30"),
+            ("Pacific/Tongatapu", datetime(2026, 10, 5, 10, 59, tzinfo=UTC), "2026-10-05", "23:59"),
+            ("Pacific/Tongatapu", datetime(2026, 10, 5, 11, 0, tzinfo=UTC), "2026-10-06", "00:00"),
+            ("Asia/Kathmandu", datetime(2026, 10, 5, 18, 14, tzinfo=UTC), "2026-10-05", "23:59"),
+            ("Asia/Kathmandu", datetime(2026, 10, 5, 18, 15, tzinfo=UTC), "2026-10-06", "00:00"),
+            ("America/New_York", datetime(2026, 3, 8, 4, 59, tzinfo=UTC), "2026-03-07", "23:59"),
+            ("America/New_York", datetime(2026, 3, 8, 7, 0, tzinfo=UTC), "2026-03-08", "03:00"),
+            ("America/New_York", datetime(2026, 11, 1, 5, 30, tzinfo=UTC), "2026-11-01", "01:30"),
+            ("America/New_York", datetime(2026, 11, 1, 6, 30, tzinfo=UTC), "2026-11-01", "01:30"),
+        ],
+    )
+    def test_today_and_now_follow_the_user_zone(self, zone, instant, today, clock):
+        user = _user(zone)
         with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = instant
-            assert get_user_today(user).isoformat() == "2026-03-09"
-            assert get_user_now(user).hour == 5
+            assert get_user_today(user).isoformat() == today
+            assert get_user_now(user).strftime("%H:%M") == clock
