@@ -60,6 +60,12 @@ spec:
                 secretKeyRef:
                   name: wardrobe-secrets
                   key: oidc-client-secret
+            - name: OIDC_TOKEN_ENDPOINT_AUTH_METHOD
+              valueFrom:
+                configMapKeyRef:
+                  name: wardrobe-config
+                  key: OIDC_TOKEN_ENDPOINT_AUTH_METHOD
+                  optional: true
             - name: OIDC_END_SESSION_URL
               valueFrom:
                 configMapKeyRef:

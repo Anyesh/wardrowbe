@@ -10,6 +10,19 @@ interface OIDCProfile {
   picture?: string;
 }
 
+function getTokenEndpointAuthMethod(): 'client_secret_basic' | 'client_secret_post' | undefined {
+  const method = process.env.OIDC_TOKEN_ENDPOINT_AUTH_METHOD;
+  if (!method) {
+    return undefined;
+  }
+  if (method === 'client_secret_basic' || method === 'client_secret_post') {
+    return method;
+  }
+  throw new Error('OIDC_TOKEN_ENDPOINT_AUTH_METHOD must be client_secret_basic or client_secret_post');
+}
+
+const tokenEndpointAuthMethod = getTokenEndpointAuthMethod();
+
 const OIDCProvider: OAuthConfig<OIDCProfile> = {
   id: 'oidc',
   name: 'SSO',
@@ -17,6 +30,9 @@ const OIDCProvider: OAuthConfig<OIDCProfile> = {
   wellKnown: `${process.env.OIDC_ISSUER_URL?.replace(/\/+$/, '')}/.well-known/openid-configuration`,
   clientId: process.env.OIDC_CLIENT_ID!,
   clientSecret: process.env.OIDC_CLIENT_SECRET!,
+  ...(tokenEndpointAuthMethod && {
+    client: { token_endpoint_auth_method: tokenEndpointAuthMethod },
+  }),
   authorization: {
     params: {
       scope: 'openid email profile',
