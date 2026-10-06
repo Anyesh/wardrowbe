@@ -938,6 +938,8 @@ class TestNotificationHistory:
 
 
 TODAY = date(2026, 10, 6)
+FIRST_SENT_AT = datetime(2026, 10, 6, 7, 0, tzinfo=UTC)
+RETRIED_AT = datetime(2026, 10, 6, 8, 30, tzinfo=UTC)
 
 
 class TestDispatcherDelivery:
@@ -1215,48 +1217,13 @@ class TestDispatcherDelivery:
 
         assert message.title == title
 
-    @pytest.mark.parametrize(
-        ("scheduled_for", "day_label", "greeting", "day_phrase"),
-        [
-            (date(2026, 10, 7), "Tomorrow", "Good evening", "tomorrow"),
-            (TODAY, "Today", "Good morning", "today"),
-            (date(2026, 10, 5), "Monday", "Good morning", "Monday"),
-        ],
-    )
-    @pytest.mark.parametrize(
-        ("status", "sent_at", "kept_status"),
-        [
-            (OutfitStatus.pending, None, OutfitStatus.sent),
-            (OutfitStatus.accepted, None, OutfitStatus.accepted),
-            (OutfitStatus.rejected, None, OutfitStatus.rejected),
-            (OutfitStatus.skipped, None, OutfitStatus.skipped),
-            (OutfitStatus.sent, datetime(2026, 10, 6, 7, 0, tzinfo=UTC), OutfitStatus.sent),
-        ],
-    )
-    @pytest.mark.asyncio
-    async def test_retry_labels_the_day_from_the_outfit_date_and_marks_it_sent(
-        self,
-        db_session: AsyncSession,
-        test_user,
-        outfit,
-        scheduled_for,
-        day_label,
-        greeting,
-        day_phrase,
-        status,
-        sent_at,
-        kept_status,
-    ):
-        webhook = "https://chat.example.com/hooks/abc"
-        outfit.scheduled_for = scheduled_for
-        outfit.status = status
-        outfit.sent_at = sent_at
+    async def _retrying_mattermost(self, db_session: AsyncSession, test_user, outfit):
         db_session.add(
             NotificationSettings(
                 user_id=test_user.id,
                 channel="mattermost",
                 priority=1,
-                config={"webhook_url": webhook},
+                config={"webhook_url": "https://chat.example.com/hooks/abc"},
             )
         )
         notification = Notification(
@@ -1269,6 +1236,29 @@ class TestDispatcherDelivery:
         )
         db_session.add(notification)
         await db_session.commit()
+        return notification
+
+    @pytest.mark.parametrize(
+        ("scheduled_for", "day_label", "greeting", "day_phrase"),
+        [
+            (date(2026, 10, 7), "Tomorrow", "Good evening", "tomorrow"),
+            (TODAY, "Today", "Good morning", "today"),
+            (date(2026, 10, 5), "Monday", "Good morning", "Monday"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_retry_labels_the_day_from_the_outfit_date(
+        self,
+        db_session: AsyncSession,
+        test_user,
+        outfit,
+        scheduled_for,
+        day_label,
+        greeting,
+        day_phrase,
+    ):
+        outfit.scheduled_for = scheduled_for
+        notification = await self._retrying_mattermost(db_session, test_user, outfit)
         post = self._post(failing=set())
 
         with patch.object(httpx.AsyncClient, "post", post):
@@ -1280,7 +1270,32 @@ class TestDispatcherDelivery:
         assert payload["text"].endswith(f"suggestion for {day_phrase}:")
         [attachment] = payload["attachments"]
         assert attachment["title"].startswith(f"{day_label}'s Outfit: Casual")
-        assert outfit.status == kept_status
-        assert outfit.sent_at is not None
-        if sent_at is not None:
-            assert outfit.sent_at == sent_at
+
+    @pytest.mark.parametrize(
+        ("status", "sent_at", "kept"),
+        [
+            (OutfitStatus.pending, None, (OutfitStatus.sent, RETRIED_AT)),
+            (OutfitStatus.accepted, None, (OutfitStatus.accepted, RETRIED_AT)),
+            (OutfitStatus.rejected, None, (OutfitStatus.rejected, RETRIED_AT)),
+            (OutfitStatus.skipped, None, (OutfitStatus.skipped, RETRIED_AT)),
+            (OutfitStatus.sent, FIRST_SENT_AT, (OutfitStatus.sent, FIRST_SENT_AT)),
+        ],
+        ids=["pending", "accepted", "rejected", "skipped", "already-sent"],
+    )
+    @pytest.mark.asyncio
+    async def test_retry_marks_only_a_pending_outfit_sent(
+        self, db_session: AsyncSession, test_user, outfit, status, sent_at, kept
+    ):
+        outfit.status = status
+        outfit.sent_at = sent_at
+        notification = await self._retrying_mattermost(db_session, test_user, outfit)
+
+        with (
+            patch.object(httpx.AsyncClient, "post", self._post(failing=set())),
+            patch("app.services.notification_service.datetime") as clock,
+        ):
+            clock.now.return_value = RETRIED_AT
+            result = await NotificationDispatcher(db_session).retry_notification(notification)
+
+        assert result.status == NotificationStatus.sent
+        assert (outfit.status, outfit.sent_at) == kept
