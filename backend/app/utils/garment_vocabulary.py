@@ -14,9 +14,7 @@ MATERIALS: tuple[str, ...] = tuple(_DATA["materials"])
 FORMALITY: tuple[str, ...] = tuple(_DATA["formality"])
 OCCASIONS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["occasions"])
 OCCASION_FORMALITY: dict[str, tuple[str, ...]] = {
-    entry["value"]: tuple(entry["formality"])
-    for entry in _DATA["occasions"]
-    if "formality" in entry
+    entry["value"]: tuple(entry["formality"]) for entry in _DATA["occasions"]
 }
 COLORS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["colors"])
 COLOR_ALIASES: dict[str, str] = dict(_DATA["color_aliases"])

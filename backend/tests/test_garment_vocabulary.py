@@ -111,12 +111,24 @@ def test_server_set_pairing_occasion_cannot_be_authored():
     assert PAIRING_OCCASION not in OCCASIONS
 
 
-def test_scorer_occasion_formality_comes_from_the_vocabulary():
-    assert set(OCCASION_FORMALITY) == {
-        "casual", "work", "office", "formal", "sporty", "outdoor", "date", "party",
-    }  # fmt: skip
-    assert set(OCCASION_FORMALITY) <= set(OCCASIONS)
-    assert OCCASION_FORMALITY["formal"] == ("business-casual", "formal", "very-formal")
+# Without a range the scorer treats an occasion as casual, which ranked jeans first for interviews.
+def test_every_occasion_has_a_formality_range():
+    assert set(OCCASION_FORMALITY) == PRE_VOCABULARY_OCCASIONS
+    assert all(OCCASION_FORMALITY.values())
+
+
+@pytest.mark.parametrize(
+    ("occasion", "formalities"),
+    [
+        ("formal", ("business-casual", "formal", "very-formal")),
+        ("interview", ("business-casual", "formal", "very-formal")),
+        ("wedding", ("business-casual", "formal", "very-formal")),
+        ("brunch", ("casual", "smart-casual")),
+        ("gym", ("very-casual", "casual")),
+    ],
+)
+def test_scorer_occasion_formality_comes_from_the_vocabulary(occasion, formalities):
+    assert OCCASION_FORMALITY[occasion] == formalities
 
 
 # The colours the tagger validated before the vocabulary owned them. Dropping one would orphan the
