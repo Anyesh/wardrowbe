@@ -17,11 +17,17 @@ from app.models.item import ClothingItem
 from app.models.notification import Notification, NotificationSettings, NotificationStatus
 from app.models.outfit import Outfit, OutfitSource, OutfitStatus
 from app.models.schedule import Schedule
-from app.schemas.notification import EmailConfig, NotificationChannel, NtfyConfig
+from app.schemas.notification import (
+    EmailConfig,
+    MattermostConfig,
+    NotificationChannel,
+    NtfyConfig,
+)
 from app.services.notification_providers import (
     CHANNELS,
     EmailMessage,
     EmailProvider,
+    MattermostProvider,
     NotificationMessage,
     NtfyNotification,
     NtfyProvider,
@@ -515,6 +521,61 @@ class TestNotificationEmail:
         assert "<script>" not in email.html_body
         assert "&lt;script&gt;" in email.html_body
         assert "<b>" not in email.html_body
+
+
+HOSTILE_NAME = "@channel [win](https://evil.example) *now* <@here> ~town_square #1 \\"
+ESCAPED_NAME = (
+    "@\u200bchannel \\[win\\](https://evil.example) \\*now\\* \\<@\u200bhere\\> "
+    "\\~town\\_square \\#1 \\\\"
+)
+
+
+def _hostile_outfit_message() -> NotificationMessage:
+    outfit = SimpleNamespace(
+        id=uuid4(),
+        scheduled_for=None,
+        weather_data=None,
+        occasion="casual",
+        reasoning=f"Pair {HOSTILE_NAME}",
+        ai_raw_response={"highlights": [HOSTILE_NAME]},
+        style_notes=HOSTILE_NAME,
+    )
+    user = SimpleNamespace(display_name=HOSTILE_NAME, timezone="UTC")
+    return NotificationDispatcher(None)._build_outfit_message(outfit, user)
+
+
+class TestMattermostEscaping:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("build", "text", "attachment_text"),
+        [
+            (
+                _hostile_outfit_message,
+                f"Good morning, {ESCAPED_NAME}! Here's your outfit suggestion for today:",
+                f"**Pair {ESCAPED_NAME}**\n\n- {ESCAPED_NAME}\n\n_Tip: {ESCAPED_NAME}_",
+            ),
+            (
+                lambda: wash_reminder_message([ClothingItem(type="shirt", name=HOSTILE_NAME)]),
+                "",
+                f"1 item needs washing: {ESCAPED_NAME}",
+            ),
+        ],
+        ids=["outfit", "laundry"],
+    )
+    async def test_user_text_cannot_mention_or_link(self, build, text, attachment_text):
+        post = AsyncMock(
+            return_value=httpx.Response(200, request=httpx.Request("POST", "https://x"))
+        )
+        provider = MattermostProvider(
+            MattermostConfig(webhook_url="https://chat.example.com/hooks/abc")
+        )
+
+        with patch.object(httpx.AsyncClient, "post", post):
+            await provider.deliver(build())
+
+        payload = post.call_args.kwargs["json"]
+        assert payload["text"] == text
+        assert payload["attachments"][0]["text"] == attachment_text
 
 
 class TestNtfyHeaders:

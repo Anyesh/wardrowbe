@@ -1,6 +1,7 @@
 import base64
 import html
 import logging
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from email.mime.multipart import MIMEMultipart
@@ -191,16 +192,27 @@ def _mattermost_weather(weather: WeatherSummary | None) -> str:
     return f" | {format_temperature(weather.temperature)} {weather.condition or ''}"
 
 
+_MATTERMOST_MARKUP = re.compile(r"([\\`*_~\[\]<>#|])")
+_MATTERMOST_MENTION = re.compile(r"@(?=[\w.-])")
+
+
+# Display names, item names and the AI text that quotes them are rendered as Mattermost markdown,
+# where "[x](url)" forges a link and "@channel" pings everyone, so markup characters are
+# backslash-escaped and a zero-width space after "@" stops any mention from resolving.
+def _mattermost_escape(text: str) -> str:
+    return _MATTERMOST_MENTION.sub("@\u200b", _MATTERMOST_MARKUP.sub(r"\\\1", text))
+
+
 def _mattermost_text(message: NotificationMessage) -> str:
     if not message.has_sections:
-        return message.body
+        return _mattermost_escape(message.body)
     parts = []
     if message.lead:
-        parts.append(f"**{message.lead}**")
+        parts.append(f"**{_mattermost_escape(message.lead)}**")
     if message.highlights:
-        parts.append("\n".join(f"- {h}" for h in message.highlights))
+        parts.append("\n".join(f"- {_mattermost_escape(h)}" for h in message.highlights))
     if message.tip:
-        parts.append(f"_Tip: {message.tip}_")
+        parts.append(f"_Tip: {_mattermost_escape(message.tip)}_")
     return "\n\n".join(parts)
 
 
@@ -247,7 +259,7 @@ class MattermostProvider:
     async def deliver(self, message: NotificationMessage) -> dict:
         return await self.send(
             MattermostMessage(
-                text=message.greeting or "",
+                text=_mattermost_escape(message.greeting or ""),
                 attachments=[
                     MattermostAttachment(
                         title=f"{message.full_heading}{_mattermost_weather(message.weather)}",
