@@ -189,18 +189,29 @@ class MattermostMessage:
 def _mattermost_weather(weather: WeatherSummary | None) -> str:
     if weather is None:
         return ""
-    return f" | {format_temperature(weather.temperature)} {weather.condition or ''}"
+    condition = _mattermost_escape(weather.condition or "")
+    return f" | {format_temperature(weather.temperature)} {condition}"
 
 
 _MATTERMOST_MARKUP = re.compile(r"([\\`*_~\[\]<>#|])")
 _MATTERMOST_MENTION = re.compile(r"@(?=[\w.-])")
+# List items ("-", "+", "1.", "1)") and setext underlines ("===", "---") are markup only at the
+# start of a line, so only there is their last character escaped.
+_MATTERMOST_LINE_MARKER = re.compile(r"^([ \t]*)(\d+[.)]|[-+=])", re.MULTILINE)
+
+
+def _escape_line_marker(match: re.Match) -> str:
+    indent, marker = match.groups()
+    return f"{indent}{marker[:-1]}\\{marker[-1]}"
 
 
 # Display names, item names and the AI text that quotes them are rendered as Mattermost markdown,
 # where "[x](url)" forges a link and "@channel" pings everyone, so markup characters are
 # backslash-escaped and a zero-width space after "@" stops any mention from resolving.
 def _mattermost_escape(text: str) -> str:
-    return _MATTERMOST_MENTION.sub("@\u200b", _MATTERMOST_MARKUP.sub(r"\\\1", text))
+    escaped = _MATTERMOST_MARKUP.sub(r"\\\1", text)
+    escaped = _MATTERMOST_LINE_MARKER.sub(_escape_line_marker, escaped)
+    return _MATTERMOST_MENTION.sub("@\u200b", escaped)
 
 
 def _mattermost_text(message: NotificationMessage) -> str:
@@ -262,7 +273,10 @@ class MattermostProvider:
                 text=_mattermost_escape(message.greeting or ""),
                 attachments=[
                     MattermostAttachment(
-                        title=f"{message.full_heading}{_mattermost_weather(message.weather)}",
+                        title=(
+                            f"{_mattermost_escape(message.full_heading)}"
+                            f"{_mattermost_weather(message.weather)}"
+                        ),
                         title_link=message.url,
                         text=_mattermost_text(message),
                     )

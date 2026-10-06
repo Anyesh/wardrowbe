@@ -296,7 +296,7 @@ def _outfit_email() -> EmailMessage:
     outfit = SimpleNamespace(
         id=uuid4(),
         scheduled_for=None,
-        weather_data=None,
+        weather_data={"temperature": 20, "condition": HOSTILE_NAME},
         occasion="casual",
         reasoning=None,
         ai_raw_response=None,
@@ -543,7 +543,7 @@ def _hostile_outfit_message() -> NotificationMessage:
     outfit = SimpleNamespace(
         id=uuid4(),
         scheduled_for=None,
-        weather_data=None,
+        weather_data={"temperature": 20, "condition": HOSTILE_NAME},
         occasion="casual",
         reasoning=f"Pair {HOSTILE_NAME}",
         ai_raw_response={"highlights": [HOSTILE_NAME]},
@@ -556,22 +556,35 @@ def _hostile_outfit_message() -> NotificationMessage:
 class TestMattermostEscaping:
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("build", "text", "attachment_text"),
+        ("build", "text", "title", "attachment_text"),
         [
             (
                 _hostile_outfit_message,
                 f"Good morning, {ESCAPED_NAME}! Here's your outfit suggestion for today:",
+                f"Today's Outfit: Casual | 20°C {ESCAPED_NAME}",
                 f"**Pair {ESCAPED_NAME}**\n\n- {ESCAPED_NAME}\n\n_Tip: {ESCAPED_NAME}_",
             ),
             (
                 lambda: wash_reminder_message([ClothingItem(type="shirt", name=HOSTILE_NAME)]),
                 "",
+                "Laundry Reminder",
                 f"1 item needs washing: {ESCAPED_NAME}",
             ),
+            (
+                lambda: NotificationMessage(
+                    title=f"12. {HOSTILE_NAME}",
+                    body="1. one\n2) two\n- dash\n  + plus\n# hash\n> quote\n"
+                    "Setext\n===\n---\nO'Brien wrote 5*3 - 1.5",
+                ),
+                "",
+                f"12\\. {ESCAPED_NAME}",
+                "1\\. one\n2\\) two\n\\- dash\n  \\+ plus\n\\# hash\n\\> quote\n"
+                "Setext\n\\===\n\\---\nO'Brien wrote 5\\*3 - 1.5",
+            ),
         ],
-        ids=["outfit", "laundry"],
+        ids=["outfit", "laundry", "line-start-markers"],
     )
-    async def test_user_text_cannot_mention_or_link(self, build, text, attachment_text):
+    async def test_user_text_cannot_mention_or_link(self, build, text, title, attachment_text):
         post = AsyncMock(
             return_value=httpx.Response(200, request=httpx.Request("POST", "https://x"))
         )
@@ -584,6 +597,7 @@ class TestMattermostEscaping:
 
         payload = post.call_args.kwargs["json"]
         assert payload["text"] == text
+        assert payload["attachments"][0]["title"] == title
         assert payload["attachments"][0]["text"] == attachment_text
 
 
