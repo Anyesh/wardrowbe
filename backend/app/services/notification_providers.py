@@ -8,7 +8,6 @@ from email.errors import HeaderDefect, HeaderParseError
 from email.headerregistry import Address
 from email.message import EmailMessage as MimeMessage
 from email.utils import parseaddr
-from functools import lru_cache
 from typing import Protocol
 
 import aiosmtplib
@@ -302,28 +301,38 @@ class MattermostProvider:
             return False, str(e)
 
 
+class InvalidSenderError(ValueError):
+    pass
+
+
+_BARE_LOGIN = re.compile(r"[\w.+\-\\/=]+")
+
+
 # SMTP_FROM_EMAIL falls back to SMTP_USER, which on many relays is a bare login such as "mailer"
-# that the relay rewrites itself, so a sender that is not an address is sent as written. A
-# SMTP_FROM_EMAIL written as a whole From header, "Wardrowbe <noreply@example.com>", is cut to its
-# address because the name comes from SMTP_FROM_NAME.
+# that the relay rewrites itself, so a bare login is sent as written. A SMTP_FROM_EMAIL written as
+# a whole From header, "Wardrowbe <noreply@example.com>", is cut to its address because the name
+# comes from SMTP_FROM_NAME. Anything else would go out as a sender no client can read.
 def _smtp_sender(value: str) -> str:
-    reason = ""
     for candidate in (value, parseaddr(value)[1]):
         try:
             return smtp_address(candidate)
-        except EmailNotValidError as e:
-            reason = reason or str(e)
-    if "@" in value:
-        _warn_unvalidated_sender(value, reason)
-    return value
-
-
-# Logged once per value because the sender is resolved on every send.
-@lru_cache(maxsize=16)
-def _warn_unvalidated_sender(value: str, reason: str) -> None:
-    logger.warning(
-        "SMTP_FROM_EMAIL %r is not a valid email address (%s); sending it as written", value, reason
+        except EmailNotValidError:
+            continue
+    if _BARE_LOGIN.fullmatch(value) or _is_one_address(value):
+        return value
+    raise InvalidSenderError(
+        f"SMTP_FROM_EMAIL {value!r} is neither an email address nor a bare SMTP login"
     )
+
+
+# email_validator refuses a quoted local part such as "no reply"@example.com, which RFC 5321
+# allows and the stdlib parses as one address.
+def _is_one_address(value: str) -> bool:
+    try:
+        address = Address(addr_spec=value)
+    except (HeaderDefect, HeaderParseError, ValueError, IndexError):
+        return False
+    return bool(address.username and address.domain)
 
 
 # Address(addr_spec=...) unquotes a quoted local part, which Address(username=...) would quote a
@@ -395,6 +404,17 @@ class EmailProvider:
                 start_tls=self.smtp_use_tls,
             )
             return {"success": True}
+        except InvalidSenderError as e:
+            logger.warning("Email send failed: %s", e)
+            return {"success": False, "error": str(e), "retryable": False}
+        # A 5xx reply is permanent by RFC 5321, so only a 4xx reply is worth another attempt.
+        except aiosmtplib.SMTPRecipientsRefused as e:
+            logger.warning("Email send failed: %s", e)
+            permanent = all(refused.code >= 500 for refused in e.recipients)
+            return {"success": False, "error": str(e), "retryable": not permanent}
+        except aiosmtplib.SMTPResponseException as e:
+            logger.warning("Email send failed: %s %s", e.code, e.message)
+            return {"success": False, "error": f"{e.code} {e.message}", "retryable": e.code < 500}
         except aiosmtplib.SMTPNotSupported as e:
             needs_utf8 = next((a for a in (sender, recipient) if not a.isascii()), None)
             if needs_utf8 is None:

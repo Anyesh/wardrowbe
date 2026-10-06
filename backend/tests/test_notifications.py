@@ -417,6 +417,10 @@ async def ascii_smtp_server(monkeypatch):
                 reply = b"235 ok\r\n"
             elif verb == "MAIL":
                 sender = command.split(":", 1)[1].strip().lstrip("<").partition(">")[0]
+                if sender.startswith("refused@"):
+                    reply = b"553 sender not allowed\r\n"
+                elif sender.startswith("busy@"):
+                    reply = b"451 try again later\r\n"
             elif verb == "RCPT":
                 recipients.append(command.split(":", 1)[1].strip("<> "))
             elif verb == "DATA":
@@ -456,27 +460,37 @@ def _plain_email(to: str) -> EmailMessage:
 
 
 class TestEmailProviderAddresses:
+    # A sender that is not an address or a bare login, or a 5xx reply, fails the same way on every
+    # attempt, so only a 4xx reply is worth retrying.
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("from_email", "warned"),
+        ("from_email", "error", "retryable"),
         [
-            pytest.param("closet@example.com", False, id="address"),
-            pytest.param("mailer", False, id="bare-login"),
-            pytest.param("Wardrowbe <closet@example.com>", False, id="whole-header"),
-            pytest.param("a@x.com <b@y.com>", True, id="two-addresses"),
-            pytest.param("user@", True, id="no-domain"),
-            pytest.param("noreply@localhost", False, id="lan-domain"),
+            pytest.param("refused@example.com", "553", False, id="permanent-refusal"),
+            pytest.param("busy@example.com", "451", True, id="temporary-refusal"),
+            pytest.param("user@", "SMTP_FROM_EMAIL", False, id="no-domain"),
+            pytest.param("a;b", "SMTP_FROM_EMAIL", False, id="semicolon"),
+            pytest.param("user:x", "SMTP_FROM_EMAIL", False, id="colon"),
+            pytest.param("tom,jerry", "SMTP_FROM_EMAIL", False, id="comma"),
+            pytest.param("@example.com", "SMTP_FROM_EMAIL", False, id="no-local-part"),
+            pytest.param("a@b@example.com", "SMTP_FROM_EMAIL", False, id="two-ats"),
+            pytest.param("a@x.com <b@y.com>", "SMTP_FROM_EMAIL", False, id="two-addresses"),
         ],
     )
-    def test_a_sender_meant_as_an_address_that_is_not_one_is_logged_once(
-        self, caplog, from_email, warned
+    async def test_a_send_that_cannot_go_out_is_retried_only_when_it_may_later(
+        self, ascii_smtp_server, monkeypatch, from_email, error, retryable
     ):
-        notification_providers._warn_unvalidated_sender.cache_clear()
+        _update_smtp_settings(monkeypatch, smtp_from_email=from_email)
+        setting = SimpleNamespace(channel="email", config={"address": "guest@example.com"})
 
-        with caplog.at_level("WARNING", logger="app.services.notification_providers"):
-            notification_providers._smtp_sender(from_email)
-            notification_providers._smtp_sender(from_email)
+        result = await send_via_channel(setting, NotificationMessage(title="Hi", body="Hi"))
 
-        assert caplog.text.count("SMTP_FROM_EMAIL") == (1 if warned else 0)
+        assert (result.status, error in result.error, result.retryable) == (
+            NotificationStatus.failed,
+            True,
+            retryable,
+        )
+        assert ascii_smtp_server == []
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -524,51 +538,11 @@ class TestEmailProviderAddresses:
             ),
             (
                 "Wardrowbe",
-                "user:x",
-                "guest@example.com",
-                "user:x",
-                "guest@example.com",
-                'Wardrowbe <"user:x">',
-            ),
-            (
-                "Wardrowbe",
-                "a;b",
-                "guest@example.com",
-                "a;b",
-                "guest@example.com",
-                'Wardrowbe <"a;b">',
-            ),
-            (
-                "Wardrowbe",
-                "tom,jerry",
-                "guest@example.com",
-                "tom,jerry",
-                "guest@example.com",
-                'Wardrowbe <"tom,jerry">',
-            ),
-            (
-                "Wardrowbe",
                 "Wardrowbe <noreply@example.com>",
                 "guest@example.com",
                 "noreply@example.com",
                 "guest@example.com",
                 "Wardrowbe <noreply@example.com>",
-            ),
-            (
-                "Wardrowbe",
-                "@example.com",
-                "guest@example.com",
-                "@example.com",
-                "guest@example.com",
-                "Wardrowbe <@example.com>",
-            ),
-            (
-                "Wardrowbe",
-                "a@b@example.com",
-                "guest@example.com",
-                '"a@b"@example.com',
-                "guest@example.com",
-                'Wardrowbe <"a@b"@example.com>',
             ),
             (
                 "Wardrowbe",
@@ -578,14 +552,6 @@ class TestEmailProviderAddresses:
                 "guest@example.com",
                 "Wardrowbe <a@example.com>",
             ),
-            (
-                "Wardrowbe",
-                "user@",
-                "guest@example.com",
-                "user",
-                "guest@example.com",
-                "Wardrowbe <user>",
-            ),
         ],
         ids=[
             "ascii",
@@ -593,14 +559,8 @@ class TestEmailProviderAddresses:
             "non-ascii-name",
             "quoted-name-bare-login",
             "quoted-local-part",
-            "colon",
-            "semicolon",
-            "comma",
             "name-and-address",
-            "no-local-part",
-            "two-ats",
             "angle-brackets",
-            "no-domain",
         ],
     )
     async def test_sends_an_ascii_local_part_without_smtputf8(
