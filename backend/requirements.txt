@@ -23,7 +23,7 @@ pillow-heif>=0.14.0
 
 # Background jobs
 redis>=5.0.1
-arq>=0.25.0
+arq>=0.26.3
 watchfiles>=0.21.0  # Hot reload for worker in development
 
 # Scheduling
