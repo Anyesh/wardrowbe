@@ -613,7 +613,7 @@ class TestMattermostEscaping:
             (
                 _hostile_outfit_message,
                 f"Good morning, {ESCAPED_NAME}! Here's your outfit suggestion for today:",
-                f"Today's Outfit: Casual | 20°C {ESCAPED_NAME}",
+                f"Today's Outfit: Casual | 20°C {HOSTILE_NAME}",
                 f"**Pair {ESCAPED_NAME}**\n\n- {ESCAPED_NAME}\n\n_Tip: {ESCAPED_NAME}_",
             ),
             (

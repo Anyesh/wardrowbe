@@ -187,13 +187,6 @@ class MattermostMessage:
     attachments: list[MattermostAttachment] = field(default_factory=list)
 
 
-def _mattermost_weather(weather: WeatherSummary | None) -> str:
-    if weather is None:
-        return ""
-    condition = _mattermost_escape(weather.condition or "")
-    return f" | {format_temperature(weather.temperature)} {condition}"
-
-
 _MATTERMOST_MARKUP = re.compile(r"([\\`*_~\[\]<>#|])")
 _MATTERMOST_MENTION = re.compile(r"@(?=[\w.-])")
 # List items ("-", "+", "1.", "1)") and setext underlines ("===", "---") are markup only at the
@@ -213,6 +206,16 @@ def _mattermost_escape(text: str) -> str:
     escaped = _MATTERMOST_MARKUP.sub(r"\\\1", text)
     escaped = _MATTERMOST_LINE_MARKER.sub(_escape_line_marker, escaped)
     return _MATTERMOST_MENTION.sub("@\u200b", escaped)
+
+
+# Mattermost shows a linked attachment title as plain text, where escaping would leave literal
+# backslashes, and renders an unlinked one as markdown that can forge a link.
+def _mattermost_title(message: NotificationMessage) -> str:
+    title = message.full_heading
+    if message.weather is not None:
+        weather = message.weather
+        title = f"{title} | {format_temperature(weather.temperature)} {weather.condition or ''}"
+    return title if message.url else _mattermost_escape(title)
 
 
 def _mattermost_text(message: NotificationMessage) -> str:
@@ -274,10 +277,7 @@ class MattermostProvider:
                 text=_mattermost_escape(message.greeting or ""),
                 attachments=[
                     MattermostAttachment(
-                        title=(
-                            f"{_mattermost_escape(message.full_heading)}"
-                            f"{_mattermost_weather(message.weather)}"
-                        ),
+                        title=_mattermost_title(message),
                         title_link=message.url,
                         text=_mattermost_text(message),
                     )
