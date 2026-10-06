@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
+from app.schemas.email import EmailAddress
 from app.schemas.outfit import Occasion
 
 
@@ -53,15 +54,7 @@ class MattermostConfig(BaseModel):
 
 
 class EmailConfig(BaseModel):
-    address: str
-
-    @field_validator("address")
-    @classmethod
-    def validate_email(cls, v: str) -> str:
-        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-        if not re.match(pattern, v):
-            raise ValueError("Invalid email address")
-        return v
+    address: EmailAddress
 
 
 class ExpoPushConfig(BaseModel):

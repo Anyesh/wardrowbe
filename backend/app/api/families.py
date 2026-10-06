@@ -320,10 +320,10 @@ async def invite_member(
             detail="Family not found",
         )
 
+    provider = EmailProvider(EmailConfig(address=invite_data.email))
     invite = await family_service.create_invite(family, current_user, invite_data)
     await db.commit()
 
-    provider = EmailProvider(EmailConfig(address=invite.email))
     if provider.is_configured():
         email = build_family_invite_email(
             to=invite.email,
