@@ -213,6 +213,7 @@ export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
   skirt: ['mini', 'midi', 'maxi', 'pleated', 'wrap', 'pencil'],
   sweater: ['pullover', 'crewneck', 'turtleneck', 'v-neck'],
   socks: ['ankle', 'crew', 'knee-high', 'no-show', 'dress', 'athletic'],
+  tights: ['sheer', 'opaque', 'patterned', 'thermal'],
   tie: ['necktie', 'bow-tie', 'bolo'],
 };
 

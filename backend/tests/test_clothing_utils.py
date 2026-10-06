@@ -123,6 +123,25 @@ def test_socks_get_own_slot():
     assert len(result) == 3
 
 
+def test_tights_coexist_with_skirt_and_socks_but_only_one_legwear_item():
+    skirt, tights, other_tights, socks, shoes = _ids(5)
+    item_type_map = {
+        skirt: "skirt",
+        tights: "tights",
+        other_tights: "tights",
+        socks: "socks",
+        shoes: "shoes",
+    }
+    result = deduplicate_by_body_slot([skirt, tights, other_tights, socks, shoes], item_type_map)
+    assert result == [skirt, tights, socks, shoes]
+
+
+def test_tights_coexist_with_dress():
+    dress, tights, shoes = _ids(3)
+    item_type_map = {dress: "dress", tights: "tights", shoes: "shoes"}
+    assert deduplicate_by_body_slot([dress, tights, shoes], item_type_map) == [dress, tights, shoes]
+
+
 def test_multiple_accessories_allowed():
     hat_id, scarf_id, belt_id, shirt_id = _ids(4)
     item_type_map = {
