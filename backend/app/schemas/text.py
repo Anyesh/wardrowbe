@@ -11,8 +11,9 @@ _FORBIDDEN_CATEGORIES = {"Cc", "Zl", "Zp"}
 
 # A name made only of these renders blank, and str.strip keeps them. Python has no property for
 # Default_Ignorable_Code_Point, so these are its ranges from DerivedCoreProperties.txt (Unicode
-# 18.0), plus the Braille blank, which is not ignorable but renders as an empty cell. Matching the
-# Cf category instead would refuse visible format characters such as U+06DD END OF AYAH.
+# 18.0), plus three that are not ignorable but render nothing on their own: the Braille blank, the
+# interlinear annotation controls and the Egyptian hieroglyph format controls. Matching the Cf
+# category instead would refuse visible format characters such as U+06DD END OF AYAH.
 _INVISIBLE_RANGES = (
     (0x00AD, 0x00AD),
     (0x034F, 0x034F),
@@ -29,6 +30,8 @@ _INVISIBLE_RANGES = (
     (0xFEFF, 0xFEFF),
     (0xFFA0, 0xFFA0),
     (0xFFF0, 0xFFF8),
+    (0xFFF9, 0xFFFB),
+    (0x13430, 0x1343F),
     (0x1BCA0, 0x1BCA3),
     (0x1D173, 0x1D17A),
     (0xE0000, 0xE0FFF),

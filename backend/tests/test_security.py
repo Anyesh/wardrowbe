@@ -88,6 +88,8 @@ class TestNamesAreSingleLine:
             ("\u17b4", "jane.doe@example.com", "jane.doe"),
             ("\u2065", "jane.doe@example.com", "jane.doe"),
             ("\ufff0", "jane.doe@example.com", "jane.doe"),
+            ("\ufff9\ufffb", "jane.doe@example.com", "jane.doe"),
+            ("\U00013430", "jane.doe@example.com", "jane.doe"),
             ("\u200c\u200d\u00ad\u3164", "jane.doe@example.com", "jane.doe"),
             pytest.param(
                 "\u200b" * 100 + "Bob",
