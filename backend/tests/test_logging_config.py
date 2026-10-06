@@ -51,43 +51,37 @@ def test_configure_logging_twice_keeps_one_handler(app_logger):
     assert app_logger.level == logging.DEBUG
 
 
-def _record_calls(monkeypatch, module):
-    calls = []
-    monkeypatch.setattr(module, "configure_logging", calls.append)
-    return calls
-
-
 async def _noop(ctx):
     return None
 
 
-@pytest.mark.asyncio
-async def test_tagging_worker_startup_configures_logging(monkeypatch):
-    calls = _record_calls(monkeypatch, worker)
-    monkeypatch.setattr(worker, "get_settings", lambda: Settings(ai_internal_enabled=False))
+async def _start_tagging_worker(monkeypatch, settings):
+    monkeypatch.setattr(worker, "get_settings", lambda: settings)
     monkeypatch.setattr(worker, "init_db", _noop)
     monkeypatch.setattr(worker, "recover_stale_processing_items", _noop)
-
     await worker.startup({})
 
-    assert len(calls) == 1
 
-
-@pytest.mark.asyncio
-async def test_image_worker_startup_configures_logging(monkeypatch):
-    calls = _record_calls(monkeypatch, image_worker)
+async def _start_image_worker(monkeypatch, settings):
+    monkeypatch.setattr(image_worker, "get_settings", lambda: settings)
     monkeypatch.setattr(image_worker, "init_db", _noop)
-
     await image_worker.startup({})
 
-    assert len(calls) == 1
 
-
-@pytest.mark.asyncio
-async def test_api_lifespan_configures_logging(monkeypatch):
-    calls = _record_calls(monkeypatch, main)
-
+async def _start_api(monkeypatch, settings):
+    monkeypatch.setattr(main, "settings", settings)
     async with main.lifespan(main.app):
         pass
 
-    assert calls == [main.settings]
+
+@pytest.mark.parametrize(
+    "start",
+    [_start_tagging_worker, _start_image_worker, _start_api],
+    ids=["tagging-worker", "image-worker", "api"],
+)
+@pytest.mark.asyncio
+async def test_every_entrypoint_configures_app_logging(app_logger, monkeypatch, start):
+    await start(monkeypatch, Settings(log_level="WARNING", ai_internal_enabled=False))
+
+    assert app_logger.level == logging.WARNING
+    assert len(app_logger.handlers) == 1
