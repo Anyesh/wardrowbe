@@ -27,38 +27,54 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-def _is_name_list(value: object) -> bool:
-    return isinstance(value, list) and all(isinstance(name, str) for name in value)
-
-
-def _is_count_map(value: object) -> bool:
-    return isinstance(value, dict) and all(is_finite_number(count) for count in value.values())
-
-
-_PATTERN_FIELD_CHECKS: dict[str, Callable[[object], bool]] = {
-    "preferred_colors": _is_name_list,
-    "success_rate": is_finite_number,
-    "preferred_layers": is_finite_number,
-    "colors": _is_count_map,
-    "preferred_colors_scores": _is_count_map,
-}
-
-
 def _readable_scores(raw: object) -> dict[str, float]:
     if not isinstance(raw, dict):
         return {}
     return {name: score for name, score in raw.items() if is_finite_number(score)}
 
 
+def _readable_number(value: object) -> object | None:
+    return value if is_finite_number(value) else None
+
+
+def _readable_names(value: object) -> list[str] | None:
+    if not isinstance(value, list):
+        return None
+    return [name for name in value if isinstance(name, str)] or None
+
+
+def _readable_counts(value: object) -> dict[str, float] | None:
+    return _readable_scores(value) or None
+
+
+_PATTERN_FIELD_READERS: dict[str, Callable[[object], object | None]] = {
+    "preferred_colors": _readable_names,
+    "success_rate": _readable_number,
+    "preferred_layers": _readable_number,
+    "colors": _readable_counts,
+    "preferred_colors_scores": _readable_counts,
+}
+
+
+# The feedback writer saves these patterns back, so a bad field must cost only that field and
+# not the valid ones beside it.
+def _readable_pattern(entry: dict) -> dict:
+    readable = {}
+    for field, value in entry.items():
+        reader = _PATTERN_FIELD_READERS.get(field)
+        kept = reader(value) if reader else value
+        if kept is not None:
+            readable[field] = kept
+    return readable
+
+
 def _readable_patterns(raw: object) -> dict[str, dict]:
     if not isinstance(raw, dict):
         return {}
-    return {
-        key: dict(entry)
-        for key, entry in raw.items()
-        if isinstance(entry, dict)
-        and all(check(entry[f]) for f, check in _PATTERN_FIELD_CHECKS.items() if f in entry)
+    patterns = {
+        key: _readable_pattern(entry) for key, entry in raw.items() if isinstance(entry, dict)
     }
+    return {key: entry for key, entry in patterns.items() if entry}
 
 
 class UserLearningProfile(Base):

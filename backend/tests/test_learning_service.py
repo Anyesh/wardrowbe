@@ -334,6 +334,17 @@ class TestLearnedColoursAreCanonical:
                 learned_occasion_patterns={
                     "casual": {"preferred_colors": ["charcoal", "gray"]},
                     "wedding": "often",
+                    "formal": {
+                        "preferred_colors": ["navy", 3],
+                        "success_rate": 0.7,
+                        "colors": {"navy": 2, "red": None},
+                        "count": 4,
+                    },
+                    "party": {"preferred_colors": [None], "success_rate": "high"},
+                },
+                learned_weather_preferences={
+                    "cold": {"preferred_layers": 2, "success_rate": "high"},
+                    "hot": {"success_rate": 10**400},
                 },
                 feedback_count=3,
             )
@@ -354,6 +365,14 @@ class TestLearnedColoursAreCanonical:
         assert profile.learned_occasion_patterns["casual"]["preferred_colors"] == ["gray"]
         assert profile.learned_style_scores == {"minimal": 0.3}
         assert "wedding" not in profile.learned_occasion_patterns
+        assert "party" not in profile.learned_occasion_patterns
+        assert profile.learned_occasion_patterns["formal"] == {
+            "preferred_colors": ["navy"],
+            "success_rate": 0.7,
+            "colors": {"navy": 2},
+            "count": 4,
+        }
+        assert profile.weather_preferences == {"cold": {"preferred_layers": 2}}
 
 
 READABLE_PROFILE = {
