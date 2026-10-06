@@ -16,6 +16,7 @@ from app.services.notification_providers import (
     NotificationResult,
     WeatherSummary,
     build_provider,
+    format_temperature,
     send_via_channel,
 )
 from app.utils.timezone import get_user_today
@@ -365,12 +366,11 @@ class NotificationDispatcher:
         weather = outfit.weather_data or {}
         temp = weather.get("temperature")
         condition = weather.get("condition")
-        occasion = outfit.occasion.title()
-
+        # "Date" alone reads as a calendar date, so the title always names the occasion's outfit.
+        occasion = outfit.occasion.replace("-", " ").title()
+        title = f"{day_label}'s {occasion} Outfit"
         if temp is not None:
-            title = f"{day_label}'s {occasion} - {temp}\u00b0C"
-        else:
-            title = f"{day_label}'s {occasion} Outfit"
+            title = f"{title} - {format_temperature(temp)}"
 
         highlights = []
         if isinstance(outfit.ai_raw_response, dict):

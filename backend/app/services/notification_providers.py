@@ -31,6 +31,10 @@ class WeatherSummary:
     forecast: bool = False
 
 
+def format_temperature(temperature: float | int | None) -> str:
+    return "?°C" if temperature is None else f"{round(temperature)}°C"
+
+
 @dataclass
 class NotificationMessage:
     """Channel-neutral content; each provider renders the fields its medium can show.
@@ -183,8 +187,7 @@ class MattermostMessage:
 def _mattermost_weather(weather: WeatherSummary | None) -> str:
     if weather is None:
         return ""
-    temperature = "?" if weather.temperature is None else weather.temperature
-    return f" | {temperature}C {weather.condition or ''}"
+    return f" | {format_temperature(weather.temperature)} {weather.condition or ''}"
 
 
 def _mattermost_text(message: NotificationMessage) -> str:
@@ -497,12 +500,12 @@ def _html_text(text: str) -> str:
 def _email_weather_html(weather: WeatherSummary | None) -> str:
     if weather is None:
         return ""
-    temperature = "?" if weather.temperature is None else weather.temperature
+    temperature = format_temperature(weather.temperature)
     condition = html.escape(weather.condition or "Unknown", quote=False)
     forecast_note = " (forecast)" if weather.forecast else ""
     return f"""
     <p style="color: #6B7280; margin: 0;">
-        {temperature}C, {condition}{forecast_note}
+        {temperature}, {condition}{forecast_note}
     </p>
     """
 

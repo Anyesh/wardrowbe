@@ -527,7 +527,7 @@ class TestDispatcherDelivery:
             f"Good morning, {test_user.display_name}! Here's your outfit suggestion for today:"
         )
         [attachment] = payload["attachments"]
-        assert attachment["title"] == "Today's Outfit: Casual | 20C Sunny"
+        assert attachment["title"] == "Today's Outfit: Casual | 20°C Sunny"
         assert attachment["title_link"].endswith("/dashboard/history")
         assert "Light layers" in attachment["text"]
 
@@ -546,7 +546,7 @@ class TestDispatcherDelivery:
         email = email_send.call_args.args[0]
         assert email.subject == "Tomorrow's Outfit: Casual"
         assert "Tomorrow's Outfit: Casual" in email.html_body
-        assert "20C, Sunny (forecast)" in email.html_body
+        assert "20°C, Sunny (forecast)" in email.html_body
 
     @pytest.mark.asyncio
     async def test_expo_outfit_body_is_reasoning_and_tip_only(
@@ -559,7 +559,7 @@ class TestDispatcherDelivery:
 
         payload = post.call_args.kwargs["json"]
         assert payload["to"] == token
-        assert payload["title"] == "Today's Casual - 20\u00b0C"
+        assert payload["title"] == "Today's Casual Outfit - 20°C"
         assert payload["body"] == "Light layers \u2022 Tip: Roll the sleeves"
         assert payload["data"] == {"outfit_id": str(outfit.id), "screen": "history"}
 
@@ -655,6 +655,31 @@ class TestDispatcherDelivery:
         assert row.channel == "mattermost"
         assert row.status == NotificationStatus.retrying
         assert row.error_message == "HTTP 500: down"
+
+    @pytest.mark.parametrize(
+        ("occasion", "weather", "title"),
+        [
+            ("date", {"temperature": 18.0}, "Today's Date Outfit - 18°C"),
+            ("smart-casual", {"temperature": 17.6}, "Today's Smart Casual Outfit - 18°C"),
+            ("casual", None, "Today's Casual Outfit"),
+        ],
+    )
+    def test_title_names_the_occasion_outfit_and_rounds_degrees(
+        self, test_user, occasion, weather, title
+    ):
+        outfit = SimpleNamespace(
+            id=uuid4(),
+            scheduled_for=TODAY,
+            occasion=occasion,
+            weather_data=weather,
+            reasoning=None,
+            ai_raw_response=None,
+            style_notes=None,
+        )
+
+        message = NotificationDispatcher(None)._build_outfit_message(outfit, test_user)
+
+        assert message.title == title
 
     @pytest.mark.parametrize(
         ("scheduled_for", "day_label"),

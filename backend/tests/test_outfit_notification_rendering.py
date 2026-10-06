@@ -2,8 +2,9 @@
 
 `fixtures/outfit_notifications_expected.json` started as the output of main's per-channel builders
 (commit 7a8faac) for the outfit below, with the email HTML whitespace collapsed. It differs from
-main only where the redesign meant to: the ntfy title carries the degree sign, the Mattermost
-title links to the history page, and the email text puts the occasion in the heading.
+main only where the redesign meant to: push titles read "<Day>'s <Occasion> Outfit", every
+temperature carries the degree sign, the Mattermost title links to the history page, and the email
+text puts the occasion in the heading.
 """
 
 import json
