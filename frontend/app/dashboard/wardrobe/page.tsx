@@ -28,7 +28,8 @@ import { AnalysisQueuePanel } from '@/components/analysis-queue-panel';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
 import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
-import { useUserProfile } from '@/lib/hooks/use-user';
+import { useUserTimezone } from '@/lib/hooks/use-user';
+import { colorSwatch } from '@/lib/colors';
 import { Item } from '@/lib/types';
 import { findClothingColor, useClothingTypes, useClothingColors, useColorLabel, useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
 import { toast } from 'sonner';
@@ -259,11 +260,11 @@ function ItemCard({
                 <TooltipTrigger asChild>
                   <div
                     className="w-4 h-4 rounded-full border shrink-0"
-                    style={{ backgroundColor: colorInfo.hex }}
+                    style={{ backgroundColor: colorSwatch(item.primary_color) }}
                   />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{colorInfo.name}</p>
+                  <p>{displayColor}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -327,8 +328,7 @@ function EmptyWardrobe({ onAddClick }: { onAddClick: () => void }) {
 export default function WardrobePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { data: userProfile } = useUserProfile();
-  const userTimezone = userProfile?.timezone || 'UTC';
+  const userTimezone = useUserTimezone();
   const t = useTranslations('wardrobe');
   const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();

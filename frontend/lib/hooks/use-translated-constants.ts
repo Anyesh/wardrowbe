@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import {
   CLOTHING_TYPES,
   CLOTHING_COLORS,
-  OCCASIONS,
+  FEATURED_OCCASIONS,
 } from '@/lib/types';
 
 const STYLE_VALUES = ['bold', 'casual', 'formal', 'minimalist', 'sporty'] as const;
@@ -39,7 +39,7 @@ export function findClothingColor<T extends { value: string }>(
 export function useOccasions() {
   const t = useTranslations('constants.occasions');
 
-  return useMemo(() => OCCASIONS.map((o) => ({
+  return useMemo(() => FEATURED_OCCASIONS.map((o) => ({
     ...o,
     label: t(o.value),
   })), [t]);
@@ -91,6 +91,14 @@ export function useMaterialLabel() {
 
 export function useFormalityLabel() {
   return useCatalogLabel(useTranslations('constants.formalities'));
+}
+
+export function useOccasionLabel() {
+  return useCatalogLabel(useTranslations('constants.occasions'));
+}
+
+export function useColorLabel() {
+  return useCatalogLabel(useTranslations('constants.colors'));
 }
 
 export function useRoleLabel() {

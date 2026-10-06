@@ -95,6 +95,7 @@
     "createFailed": "Creazione della famiglia fallita. Riprova.",
     "created": "Famiglia creata!",
     "inviteFailed": "Invio invito fallito",
+    "inviteNotEmailed": "Invito salvato, ma non è stato possibile inviare l'email. Condividi invece il codice di invito.",
     "inviteSent": "Invito inviato!",
     "joined": "Ti sei unito alla famiglia!",
     "nameUpdateFailed": "Aggiornamento nome famiglia fallito",

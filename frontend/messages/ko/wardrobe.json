@@ -260,7 +260,14 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
+    "failure": {
+      "tooLarge": "{name}의 크기가 {limit}MB를 초과합니다",
+      "tooLargeForServer": "{name}은(는) 서버에서 받기에 너무 큽니다",
+      "unsupportedFormat": "{name}은(는) 지원되지 않는 형식입니다(JPEG, PNG, WebP, HEIC 지원)",
+      "duplicate": "{name}은(는) 이미 옷장에 있습니다",
+      "generic": "{name}을(를) 업로드하지 못했습니다"
+    }
   },
   "wearCount": "{count, plural, other {#회 착용}}",
   "wornAgo": {
