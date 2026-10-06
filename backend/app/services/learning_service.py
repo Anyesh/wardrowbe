@@ -53,11 +53,14 @@ def slot_composition(item_types: Iterable[str | None]) -> dict[str, str]:
 
 
 # Aliases of one colour merge to their mean because the profile keeps no per-colour sample
-# counts; migration 6c1e8f2a9d47 merges stored profiles the same way.
+# counts, and blank names or non-numeric scores are dropped because every reader compares scores
+# as numbers; migration 6c1e8f2a9d47 cleans stored profiles the same way.
 def _canonical_color_scores(scores: dict[str, float]) -> dict[str, float]:
     merged: dict[str, list[float]] = {}
-    for color, score in scores.items():
-        merged.setdefault(canonical_color(color), []).append(score)
+    for name, score in scores.items():
+        color = canonical_color(name)
+        if color and isinstance(score, int | float) and not isinstance(score, bool):
+            merged.setdefault(color, []).append(score)
     return {color: round(sum(values) / len(values), 3) for color, values in merged.items()}
 
 

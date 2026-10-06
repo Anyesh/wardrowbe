@@ -92,8 +92,8 @@ def canonical_color_sql(value: str) -> str:
 
 
 # Aliases of one colour merge to the mean of their scores because the profile keeps no sample
-# counts; a lone colour keeps its stored value untouched. Rows holding any non-numeric score are
-# skipped rather than guessed at.
+# counts; a lone colour keeps its stored value untouched. Non-numeric scores are dropped, as
+# _canonical_color_scores drops them at runtime, because every reader compares scores as numbers.
 REMAP_COLOR_SCORES = f"""
 WITH {CANONICAL_CTE},
 remapped AS (
@@ -107,6 +107,7 @@ remapped AS (
             FROM (
                 SELECT {canonical_color_sql("j.key")} AS color, j.value
                 FROM jsonb_each(p.learned_color_scores) j
+                WHERE jsonb_typeof(j.value) = 'number'
             ) e
             WHERE e.color <> ''
             GROUP BY e.color
@@ -115,10 +116,6 @@ remapped AS (
     FROM user_learning_profiles p
     WHERE jsonb_typeof(p.learned_color_scores) = 'object'
         AND p.learned_color_scores <> '{{}}'::jsonb
-        AND NOT EXISTS (
-            SELECT 1 FROM jsonb_each(p.learned_color_scores) e
-            WHERE jsonb_typeof(e.value) <> 'number'
-        )
 )
 UPDATE user_learning_profiles p SET learned_color_scores = r.scores
 FROM remapped r

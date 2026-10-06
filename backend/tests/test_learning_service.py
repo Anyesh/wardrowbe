@@ -296,7 +296,15 @@ class TestLearnedColoursAreCanonical:
         db_session.add(
             UserLearningProfile(
                 user_id=user_id,
-                learned_color_scores={"charcoal": 0.6, "gray": 0.2, "teal": -0.4},
+                learned_color_scores={
+                    "charcoal": 0.6,
+                    "gray": 0.2,
+                    "teal": -0.4,
+                    "olive": "high",
+                    "tan": None,
+                    "cream": True,
+                    "\u00a0": 0.9,
+                },
                 learned_style_scores={},
                 learned_occasion_patterns={"casual": {"preferred_colors": ["charcoal", "gray"]}},
                 feedback_count=3,

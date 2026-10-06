@@ -53,6 +53,9 @@ async def test_remaps_learned_profile_colours_idempotently(
                     "Light Blue": 0.2,
                     "light-blue": 0.4,
                     "\u00a0\t": 0.9,
+                    "olive": "high",
+                    "beige": None,
+                    "cream": True,
                 },
                 learned_occasion_patterns={
                     "work": {
