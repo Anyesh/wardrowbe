@@ -4,6 +4,7 @@ import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from email.errors import HeaderDefect
 from email.headerregistry import Address
 from email.message import EmailMessage as MimeMessage
 from typing import Protocol
@@ -308,14 +309,18 @@ def _smtp_sender(value: str) -> str:
         return value
 
 
-# Address(addr_spec=...) refuses a bare login and a non-ASCII local part, which SMTPUTF8 relays
-# accept, so the parts are passed separately. The display name is then encoded on its own and the
-# address stays plain, where a single "name <address>" string would be encoded as one word.
+# Address(addr_spec=...) unquotes a quoted local part, which Address(username=...) would quote a
+# second time, but it refuses a bare login and a non-ASCII local part, which SMTPUTF8 relays
+# accept, so those are passed as separate parts. The display name is then encoded on its own and
+# the address stays plain, where a single "name <address>" string would be encoded as one word.
 def _header_address(address: str, display_name: str = "") -> Address:
-    username, at, domain = address.rpartition("@")
-    if not at:
-        username, domain = address, ""
-    return Address(display_name=display_name, username=username, domain=domain)
+    try:
+        return Address(display_name=display_name, addr_spec=address)
+    except HeaderDefect:
+        username, at, domain = address.rpartition("@")
+        if not at:
+            username, domain = address, ""
+        return Address(display_name=display_name, username=username, domain=domain)
 
 
 # Email Provider

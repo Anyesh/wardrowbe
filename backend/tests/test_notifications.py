@@ -415,7 +415,7 @@ async def ascii_smtp_server(monkeypatch):
             elif verb == "AUTH":
                 reply = b"235 ok\r\n"
             elif verb == "MAIL":
-                sender = command.split(":", 1)[1].split()[0].strip("<>")
+                sender = command.split(":", 1)[1].strip().lstrip("<").partition(">")[0]
             elif verb == "RCPT":
                 recipients.append(command.split(":", 1)[1].strip("<> "))
             elif verb == "DATA":
@@ -491,8 +491,22 @@ class TestEmailProviderAddresses:
                 "guest@example.com",
                 '"Smith, \\"Co\\" <x>" <mailer>',
             ),
+            (
+                "Wardrowbe",
+                '"no reply"@example.com',
+                "guest@example.com",
+                '"no reply"@example.com',
+                "guest@example.com",
+                'Wardrowbe <"no reply"@example.com>',
+            ),
         ],
-        ids=["ascii", "idna-recipient", "non-ascii-name", "quoted-name-bare-login"],
+        ids=[
+            "ascii",
+            "idna-recipient",
+            "non-ascii-name",
+            "quoted-name-bare-login",
+            "quoted-local-part",
+        ],
     )
     async def test_sends_an_ascii_local_part_without_smtputf8(
         self,
