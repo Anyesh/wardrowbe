@@ -1,13 +1,12 @@
 import math
-from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.database import DbSession
 from app.models.user import User
-from app.schemas.text import SingleLineText
+from app.schemas.user import DisplayName, Latitude, Longitude, PlaceName
 from app.services.user_service import UserService
 from app.utils.auth import get_current_user
 from app.utils.locale import SUPPORTED_LOCALES, is_supported_locale
@@ -43,13 +42,21 @@ class UserProfileUpdate(BaseModel):
     # from a real success.
     model_config = ConfigDict(extra="forbid")
 
-    display_name: SingleLineText | None = None
+    display_name: DisplayName | None = None
     timezone: str | None = None
     locale: str | None = None
-    location_lat: Decimal | None = None
-    location_lon: Decimal | None = None
-    location_name: str | None = None
+    location_lat: Latitude | None = None
+    location_lon: Longitude | None = None
+    location_name: PlaceName | None = None
     body_measurements: dict | None = None
+
+    # The column is NOT NULL, so an explicit null must be refused here instead of failing the flush.
+    @field_validator("display_name")
+    @classmethod
+    def _display_name_is_not_null(cls, value: str | None) -> str:
+        if value is None:
+            raise ValueError("display_name cannot be null")
+        return value
 
 
 @router.get("", response_model=UserProfileResponse)

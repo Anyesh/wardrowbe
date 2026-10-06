@@ -65,21 +65,29 @@ class TestUserUpdate:
         assert float(data["location_lon"]) == pytest.approx(-74.0060, rel=1e-4)
 
     @pytest.mark.asyncio
-    async def test_update_user_rejects_unknown_field(
-        self, client: AsyncClient, test_user, auth_headers
+    @pytest.mark.parametrize(
+        "body",
+        [
+            pytest.param({"timeZone": "Europe/Amsterdam"}, id="unknown-field"),
+            pytest.param({"display_name": ""}, id="blank-name"),
+            pytest.param({"display_name": None}, id="null-name"),
+            pytest.param({"display_name": "x" * 101}, id="name-over-column"),
+            pytest.param({"location_name": "x" * 101}, id="place-over-column"),
+            pytest.param({"location_lat": 91}, id="lat-out-of-range"),
+            pytest.param({"location_lon": -181}, id="lon-out-of-range"),
+            pytest.param({"location_lat": 1e10}, id="lat-over-column"),
+        ],
+    )
+    async def test_update_user_rejects_a_bad_body_and_changes_nothing(
+        self, client: AsyncClient, test_user, auth_headers, body
     ):
-        """An unrecognized key (e.g. a client-side naming mismatch like
-        timeZone instead of timezone) must 422, not silently no-op with a
-        200 that leaves the field unchanged."""
-        response = await client.patch(
-            "/api/v1/users/me",
-            json={"timeZone": "Europe/Amsterdam"},
-            headers=auth_headers,
-        )
-        assert response.status_code == 422
+        before = (await client.get("/api/v1/users/me", headers=auth_headers)).json()
 
-        unchanged = await client.get("/api/v1/users/me", headers=auth_headers)
-        assert unchanged.json()["timezone"] != "Europe/Amsterdam"
+        response = await client.patch("/api/v1/users/me", json=body, headers=auth_headers)
+
+        assert response.status_code == 422
+        after = await client.get("/api/v1/users/me", headers=auth_headers)
+        assert after.json() == before
 
 
 class TestUserTimezone:
