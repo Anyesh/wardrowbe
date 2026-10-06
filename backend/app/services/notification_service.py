@@ -48,9 +48,13 @@ def _outfit_day(scheduled_for: date | None, today: date) -> tuple[str, str]:
     return weekday, weekday
 
 
+# A retry can land after the user already accepted, rejected or skipped the outfit, so only a
+# pending outfit moves to sent; overwriting the verdict would drop it from learning and analytics.
 def _mark_outfit_sent(outfit: Outfit, sent_at: datetime) -> None:
-    outfit.sent_at = sent_at
-    outfit.status = OutfitStatus.sent
+    if outfit.sent_at is None:
+        outfit.sent_at = sent_at
+    if outfit.status == OutfitStatus.pending:
+        outfit.status = OutfitStatus.sent
 
 
 class NotificationService:

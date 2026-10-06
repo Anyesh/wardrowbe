@@ -1134,6 +1134,16 @@ class TestDispatcherDelivery:
             (date(2026, 10, 5), "Monday", "Good morning", "Monday"),
         ],
     )
+    @pytest.mark.parametrize(
+        ("status", "sent_at", "kept_status"),
+        [
+            (OutfitStatus.pending, None, OutfitStatus.sent),
+            (OutfitStatus.accepted, None, OutfitStatus.accepted),
+            (OutfitStatus.rejected, None, OutfitStatus.rejected),
+            (OutfitStatus.skipped, None, OutfitStatus.skipped),
+            (OutfitStatus.sent, datetime(2026, 10, 6, 7, 0, tzinfo=UTC), OutfitStatus.sent),
+        ],
+    )
     @pytest.mark.asyncio
     async def test_retry_labels_the_day_from_the_outfit_date_and_marks_it_sent(
         self,
@@ -1144,9 +1154,14 @@ class TestDispatcherDelivery:
         day_label,
         greeting,
         day_phrase,
+        status,
+        sent_at,
+        kept_status,
     ):
         webhook = "https://chat.example.com/hooks/abc"
         outfit.scheduled_for = scheduled_for
+        outfit.status = status
+        outfit.sent_at = sent_at
         db_session.add(
             NotificationSettings(
                 user_id=test_user.id,
@@ -1176,4 +1191,7 @@ class TestDispatcherDelivery:
         assert payload["text"].endswith(f"suggestion for {day_phrase}:")
         [attachment] = payload["attachments"]
         assert attachment["title"].startswith(f"{day_label}'s Outfit: Casual")
-        assert (outfit.status, outfit.sent_at is not None) == ("sent", True)
+        assert outfit.status == kept_status
+        assert outfit.sent_at is not None
+        if sent_at is not None:
+            assert outfit.sent_at == sent_at
