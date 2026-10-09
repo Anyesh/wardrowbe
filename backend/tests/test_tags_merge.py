@@ -267,9 +267,8 @@ class TestTagsMergeOnAnalysis:
             await tagging.tag_item_image({}, str(item.id), str(item_image))
 
         await db_session.refresh(item)
-        assert list(item.style) == list(
-            item.tags["style"]
-        ), "the column guard kept the user's style; tags must not keep the AI's"
+        assert list(item.style) == ["casual"], "column guard must keep the user's style"
+        assert list(item.tags["style"]) == ["casual"], "tags must hold the kept value, not the AI's"
 
     @pytest.mark.asyncio
     async def test_analysis_fills_empty_fields(self, db_session, test_user, stub_ai, item_image):
@@ -312,3 +311,20 @@ class TestTagsMergeOnAnalysis:
 
         assert item.tags["size"] == "M"
         assert item.tags["care_instructions"] == "Dry clean"
+
+    @pytest.mark.asyncio
+    async def test_user_set_fit_survives_analysis(self, db_session, test_user, stub_ai, item_image):
+        """`fit` has no mirrored column, so only the JSONB merge protects it."""
+        item = await _make_item(
+            db_session, test_user, image_path=str(item_image), tags={"fit": "relaxed"}
+        )
+        stub_ai(_ai_tags(fit="slim"))
+
+        with (
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+        ):
+            await tagging.tag_item_image({}, str(item.id), str(item_image))
+
+        await db_session.refresh(item)
+        assert item.tags["fit"] == "relaxed"

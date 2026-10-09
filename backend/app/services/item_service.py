@@ -241,7 +241,13 @@ class ItemService:
             # Merge rather than replace: the tags JSONB also holds user-owned
             # keys (size, care_instructions, source_url) that a partial update
             # does not mention. An explicit null clears that one key.
-            merged = dict(item.tags or {})
+            # Re-read under a row lock: two concurrent writers must not each merge
+            # into a stale snapshot and then overwrite the other. Selecting one
+            # column still locks the row until the caller commits.
+            locked = await self.db.execute(
+                select(ClothingItem.tags).where(ClothingItem.id == item.id).with_for_update()
+            )
+            merged = dict(locked.scalar_one_or_none() or {})
             for key, val in incoming.items():
                 if val is None:
                     merged.pop(key, None)
