@@ -272,10 +272,21 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                     "ai_confidence",
                     "status",
                     "ai_raw_response",
-                    "tags",
                     "ai_description",
                 ):
                     setattr(item, field, value)
+                elif field == "tags":
+                    # Merge rather than replace. The tags JSONB also carries
+                    # user-owned keys the model never emits (size,
+                    # care_instructions), and the loop below deliberately keeps
+                    # user-set columns, so a wholesale write would contradict it.
+                    # Empty AI values are dropped so a null cannot erase a real one.
+                    ai_clean = {
+                        k: v
+                        for k, v in (value or {}).items()
+                        if v is not None and v != [] and v != "" and v != {}
+                    }
+                    item.tags = {**(item.tags or {}), **ai_clean}
                 elif field in ("tagging_status", "tagged_by", "tagged_at"):
                     if was_pending:
                         setattr(item, field, value)
@@ -299,6 +310,26 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                         or current_value == {}
                     ):
                         setattr(item, field, value)
+
+            # The guards above may have kept a user's column value while the
+            # AI's went into tags; mirror the columns back so the JSONB and the
+            # columns cannot disagree.
+            item.tags = {
+                **(item.tags or {}),
+                **{
+                    k: getattr(item, k)
+                    for k in (
+                        "colors",
+                        "primary_color",
+                        "pattern",
+                        "material",
+                        "style",
+                        "season",
+                        "formality",
+                    )
+                    if getattr(item, k) not in (None, [], "")
+                },
+            }
 
             item.ai_completed_at = datetime.now(UTC)
 
