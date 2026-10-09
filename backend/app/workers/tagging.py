@@ -248,7 +248,9 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         # Update item in database
         db = get_db_session(ctx)
         try:
-            result = await db.execute(select(ClothingItem).where(ClothingItem.id == UUID(item_id)))
+            result = await db.execute(
+                select(ClothingItem).where(ClothingItem.id == UUID(item_id)).with_for_update()
+            )
             item = result.scalar_one_or_none()
 
             if item is None:
@@ -272,10 +274,24 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                     "ai_confidence",
                     "status",
                     "ai_raw_response",
-                    "tags",
                     "ai_description",
                 ):
                     setattr(item, field, value)
+                elif field == "tags":
+                    # Merge, do not replace. The JSONB also carries user-owned
+                    # keys the model never emits (size, care_instructions,
+                    # source_url). Same rule as the column guards below: the
+                    # AI fills a key that is empty and never overwrites one
+                    # that is set, so a manual `fit` survives re-analysis.
+                    # Empty AI values are skipped, so a null cannot erase a
+                    # real value.
+                    merged = dict(item.tags or {})
+                    for key, val in (value or {}).items():
+                        if val in (None, [], "", {}):
+                            continue
+                        if merged.get(key) in (None, [], "", {}):
+                            merged[key] = val
+                    item.tags = merged
                 elif field in ("tagging_status", "tagged_by", "tagged_at"):
                     if was_pending:
                         setattr(item, field, value)
@@ -299,6 +315,26 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                         or current_value == {}
                     ):
                         setattr(item, field, value)
+
+            # The guards above may have kept a user's column value while the
+            # AI's went into tags; mirror the columns back so the JSONB and the
+            # columns cannot disagree.
+            item.tags = {
+                **(item.tags or {}),
+                **{
+                    k: getattr(item, k)
+                    for k in (
+                        "colors",
+                        "primary_color",
+                        "pattern",
+                        "material",
+                        "style",
+                        "season",
+                        "formality",
+                    )
+                    if getattr(item, k) not in (None, [], "")
+                },
+            }
 
             item.ai_completed_at = datetime.now(UTC)
 

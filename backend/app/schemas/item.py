@@ -20,6 +20,11 @@ class ItemTags(BaseModel):
     season: list[str] = Field(default_factory=list)
     formality: str | None = None
     fit: str | None = None
+    # User-owned keys. The AI never emits these, so the tagging worker and
+    # ItemService.update must merge the tags JSONB rather than replace it.
+    size: str | None = Field(None, max_length=32)
+    care_instructions: str | None = Field(None, max_length=255)
+    source_url: str | None = Field(None, max_length=500)
 
 
 class ItemBase(BaseModel):
