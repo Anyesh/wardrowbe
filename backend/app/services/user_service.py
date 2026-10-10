@@ -4,13 +4,14 @@ from datetime import UTC, datetime
 from typing import NamedTuple
 from uuid import UUID
 
-from sqlalchemy import Select, delete, insert, select, update
+from sqlalchemy import Select, delete, exists, insert, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.identity import UserIdentity
 from app.models.user import User
+from app.schemas.auth import IDENTITY_TOKEN, TokenPayload
 from app.schemas.user import UserSyncRequest
 
 # Reserved by RFC 2606, so a detached address can never be delivered to or claimed by a sign-in.
@@ -44,15 +45,37 @@ class UserService:
         result = await self.db.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
-    async def get_by_external_id(
-        self, external_id: str, load_preferences: bool = True
-    ) -> User | None:
-        query = select(User).where(User.external_id == external_id)
-
-        if load_preferences:
-            query = query.options(selectinload(User.preferences))
-
-        return await self._fetch_current(query)
+    async def get_by_token(self, token: TokenPayload) -> User | None:
+        if token.sub_type == IDENTITY_TOKEN:
+            try:
+                user_id, identity_id = UUID(token.sub), UUID(token.iid or "")
+            except ValueError:
+                return None
+            # Bound to the identity row, so replacing or deleting that identity ends the token.
+            query = (
+                select(User)
+                .join(
+                    UserIdentity,
+                    (UserIdentity.id == identity_id) & (UserIdentity.user_id == User.id),
+                )
+                .where(User.id == user_id)
+            )
+        elif token.sub_type is None:
+            # Minted before identities existed, with the user's external_id as sub. Accepted
+            # only while the frozen external_id still names the user and the user still holds
+            # that subject as a legacy, oidc or dev identity, so an adoption that ends it, or
+            # the revoke SQL that NULLs external_id, ends these tokens for good.
+            query = select(User).where(
+                User.external_id == token.sub,
+                exists().where(
+                    UserIdentity.user_id == User.id,
+                    UserIdentity.subject == token.sub,
+                    UserIdentity.provider.in_((LEGACY, *LEGACY_CLAIMING_PROVIDERS)),
+                ),
+            )
+        else:
+            return None
+        return await self._fetch_current(query.options(selectinload(User.preferences)))
 
     async def get_by_identity(self, provider: str, subject: str) -> User | None:
         return await self._fetch_current(
@@ -72,10 +95,10 @@ class UserService:
 
     async def sync_from_oidc(
         self, sync_data: UserSyncRequest, *, provider: str, email_verified: bool
-    ) -> tuple[User, bool]:
+    ) -> tuple[User, UUID, bool]:
         """
         Sign in the identity (provider, sync_data.external_id), creating its user if needed.
-        Returns (user, is_new_user).
+        Returns (user, identity_id, is_new_user); tokens are bound to identity_id.
 
         provider names the authentication path that vouched for the subject, never the
         client-supplied sync_data.provider. email_verified states whether that path vouched for
@@ -104,7 +127,7 @@ class UserService:
                 signed_in = await self._sync_once(sync_data, provider, email_verified)
             except _RowChanged:
                 continue
-            return signed_in.user, signed_in.is_new
+            return signed_in
         raise UserEmailConflictError(CONCURRENT_SIGN_IN)
 
     async def _sync_once(
@@ -319,7 +342,6 @@ class UserService:
         reclaim_from: User | None = None,
     ) -> _SignIn:
         user = User(
-            external_id=sync_data.external_id,
             email=sync_data.email,
             email_verified=email_verified,
             display_name=sync_data.display_name,

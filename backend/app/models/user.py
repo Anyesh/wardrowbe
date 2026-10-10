@@ -31,7 +31,9 @@ class User(Base):
     family_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("families.id", ondelete="SET NULL")
     )
-    # Superseded by user_identities, which migration 921b8d3bc2b8 backfilled from it as legacy rows.
+    # Frozen: user_identities, backfilled from it as legacy rows, holds sign-in identities. Only
+    # tokens minted before that table existed are checked against it, so it is never written
+    # and new users get NULL; it is dropped in the next release.
     external_id: Mapped[str | None] = mapped_column(String(255), unique=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     # Whether the identity source vouched for the current email; only such rows may gain an

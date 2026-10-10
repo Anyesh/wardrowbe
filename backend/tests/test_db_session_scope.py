@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import app.database as database
 from app.api.auth import create_access_token
 from app.main import app
-from app.models import User
+from app.models import User, UserIdentity
 from app.services.preference_service import PreferenceService
 from app.services.user_service import UserService
 
@@ -80,7 +80,9 @@ async def test_sync_commits_new_user_before_response_starts(real_get_db, monkeyp
     async def on_response_start():
         events.append("response.start")
         async with real_get_db() as other:
-            found = await other.execute(select(User.id).where(User.external_id == external_id))
+            found = await other.execute(
+                select(UserIdentity.id).where(UserIdentity.subject == external_id)
+            )
             visible_at_response_start.append(found.scalar_one_or_none() is not None)
 
     monkeypatch.setattr(AsyncSession, "commit", recording_commit)
@@ -97,7 +99,8 @@ async def test_sync_commits_new_user_before_response_starts(real_get_db, monkeyp
         )
     finally:
         async with real_get_db() as cleanup:
-            await cleanup.execute(delete(User).where(User.external_id == external_id))
+            holders = select(UserIdentity.user_id).where(UserIdentity.subject == external_id)
+            await cleanup.execute(delete(User).where(User.id.in_(holders)))
             await original_commit(cleanup)
 
     assert status == 200
@@ -106,7 +109,9 @@ async def test_sync_commits_new_user_before_response_starts(real_get_db, monkeyp
 
 
 @pytest.mark.asyncio
-async def test_authenticated_request_shares_one_session(real_get_db, monkeypatch, test_user):
+async def test_authenticated_request_shares_one_session(
+    real_get_db, monkeypatch, test_user, test_user_identity
+):
     opened: list[AsyncSession] = []
     seen_by_auth: list[AsyncSession] = []
     seen_by_endpoint: list[AsyncSession] = []
@@ -134,7 +139,9 @@ async def test_authenticated_request_shares_one_session(real_get_db, monkeypatch
     status, _ = await _asgi_call(
         "GET",
         "/api/v1/users/me/preferences",
-        headers={"Authorization": f"Bearer {create_access_token(test_user.external_id)}"},
+        headers={
+            "Authorization": f"Bearer {create_access_token(test_user.id, test_user_identity.id)}"
+        },
     )
 
     assert status == 200

@@ -159,8 +159,8 @@ async def test_user_with_preferences(db_session: AsyncSession, test_user: User) 
 
 
 @pytest.fixture
-def auth_headers(test_user: User) -> dict[str, str]:
-    token = create_access_token(test_user.external_id)
+def auth_headers(test_user: User, test_user_identity: UserIdentity) -> dict[str, str]:
+    token = create_access_token(test_user.id, test_user_identity.id)
     return {"Authorization": f"Bearer {token}"}
 
 

@@ -8,12 +8,12 @@ from sqlalchemy import delete, or_, select, text
 from app.models import User, UserIdentity
 from app.schemas.user import UserSyncRequest
 from app.services.user_service import UserEmailConflictError, UserService
-from tests.identity_helpers import add_users_with_identities, identities_of
+from tests.identity_helpers import add_users_with_identities, identities_of, identity_ids_of
 
 
 async def _wait_until_blocked_by(session_maker, waiter_pid: int, racer_pids: list[int]):
     # Any racer counts, because twins of one identity can queue behind each other's
-    # uncommitted external_id before reaching the first sync's rows.
+    # uncommitted identity row before reaching the first sync's rows.
     for _ in range(100):
         async with session_maker() as probe:
             blocked = await probe.scalar(
@@ -111,7 +111,7 @@ async def _race(
 def _outcome(result, names: dict) -> str | tuple[str, bool]:
     if isinstance(result, UserEmailConflictError):
         return "conflict"
-    user, is_new = result
+    user, _, is_new = result
     return names.get(user.id, "new"), is_new
 
 
@@ -156,7 +156,7 @@ async def test_concurrent_syncs_of_one_identity_converge_on_one_user(
             User(external_id=external_id, email=f"old-{email}", display_name="Stored"),
         )
     try:
-        (user_a, new_a), (user_b, new_b), emails = await _race(
+        (user_a, _, new_a), (user_b, _, new_b), emails = await _race(
             session_maker,
             sync,
             sync,
@@ -231,7 +231,7 @@ async def test_reclaim_racing_another_sign_in_acts_on_the_committed_holder(
         )
 
     try:
-        (first_user, _), other_result, emails = await _race(
+        (first_user, _, _), other_result, emails = await _race(
             session_maker,
             sync(*first[:2]),
             sync(*other[:2]),
@@ -257,14 +257,14 @@ async def test_verified_burst_against_an_unverified_first_sign_in_reclaims_once(
     unverified = UserSyncRequest(external_id=f"u-{run}", email=email, display_name="U")
     verified = UserSyncRequest(external_id=f"v-{run}", email=email, display_name="V")
     try:
-        (squatter, _), *results, emails = await _race(
+        (squatter, _, _), *results, emails = await _race(
             session_maker, unverified, *[verified] * twins, first_verified=False
         )
     finally:
         await _cleanup(session_maker, [unverified.external_id, verified.external_id])
 
-    assert sorted(is_new for _, is_new in results) == [False] * (twins - 1) + [True]
-    assert len({user.id for user, _ in results}) == 1
+    assert sorted(is_new for _, _, is_new in results) == [False] * (twins - 1) + [True]
+    assert len({user.id for user, _, _ in results}) == 1
     assert {
         external_id: emails.get(external_id)
         for external_id in (unverified.external_id, verified.external_id)
@@ -292,7 +292,7 @@ async def test_concurrent_first_sync_with_same_email_adopts_only_when_verified(
         for role in ("first", "second")
     }
     try:
-        (user_a, _), second_result, _ = await _race(
+        (user_a, _, _), second_result, _ = await _race(
             session_maker, syncs["first"], syncs["second"], others_verified=second_verified
         )
 
@@ -361,7 +361,7 @@ async def test_verified_caller_adopts_a_verified_holder_or_reclaims_from_an_unve
         "detached": f"{stored.id}@detached.invalid",
     }
 
-    user, created = await UserService(db_session).sync_from_oidc(
+    user, _, created = await UserService(db_session).sync_from_oidc(
         caller, provider="oidc", email_verified=True
     )
 
@@ -417,12 +417,12 @@ async def test_changed_email_is_adopted_when_verified_and_reclaimed_when_not(
             provider="oidc",
             email_verified=True,
         )
-    changed, _ = await service.sync_from_oidc(
+    changed, _, _ = await service.sync_from_oidc(
         change, provider="oidc", email_verified=change_verified
     )
     assert (changed.email, changed.email_verified) == (target, change_verified)
 
-    owned, created = await service.sync_from_oidc(owner, provider="oidc", email_verified=True)
+    owned, _, created = await service.sync_from_oidc(owner, provider="oidc", email_verified=True)
 
     await db_session.refresh(test_user)
     assert (owned.email, owned.email_verified, created) == (target, True, is_new)
@@ -440,13 +440,13 @@ async def test_verified_sign_in_marks_unchanged_email_verified(db_session):
     )
     service = UserService(db_session)
 
-    user, _ = await service.sync_from_oidc(sync, provider="oidc", email_verified=False)
+    user, _, _ = await service.sync_from_oidc(sync, provider="oidc", email_verified=False)
     assert user.email_verified is False
 
-    user, _ = await service.sync_from_oidc(sync, provider="oidc", email_verified=True)
+    user, _, _ = await service.sync_from_oidc(sync, provider="oidc", email_verified=True)
     assert user.email_verified is True
 
-    user, _ = await service.sync_from_oidc(sync, provider="oidc", email_verified=False)
+    user, _, _ = await service.sync_from_oidc(sync, provider="oidc", email_verified=False)
     assert user.email_verified is True
 
 
@@ -574,7 +574,7 @@ async def test_identity_writes_racing_on_one_holder_converge(
     await _commit_users(session_maker, holder, provider=stored[0])
     subjects = {name: f"{name}-{run}" for name in ("s", "t", "a", "b", "l", "o", "d")}
     try:
-        (first_user, _), other_result, _ = await _race(
+        (first_user, first_identity_id, _), other_result, _ = await _race(
             session_maker,
             UserSyncRequest(external_id=subjects[first[1]], email=email, display_name="First"),
             UserSyncRequest(external_id=subjects[other[1]], email=email, display_name="Other"),
@@ -582,10 +582,14 @@ async def test_identity_writes_racing_on_one_holder_converge(
             others_provider=other[0],
         )
         async with session_maker() as check:
-            held = await identities_of(check, holder.id)
+            held = await identity_ids_of(check, holder.id)
     finally:
         await _cleanup(session_maker, subjects.values())
 
     assert first_user.id == holder.id
     assert _outcome(other_result, {holder.id: "holder"}) == ("holder", False)
-    assert held == {(provider, subjects[name]) for provider, name in final}
+    assert set(held) == {(provider, subjects[name]) for provider, name in final}
+    # Each sync's token is bound to the row it left behind, never to one a racer replaced.
+    assert other_result.identity_id == held[(other[0], subjects[other[1]])]
+    first_key = (first[0], subjects[first[1]])
+    assert first_identity_id == held.get(first_key, first_identity_id)

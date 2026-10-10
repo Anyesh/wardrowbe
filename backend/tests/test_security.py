@@ -18,9 +18,9 @@ from app.schemas.item import LogWearRequest
 from app.schemas.notification import NtfyConfig, ScheduleBase, ScheduleUpdate
 from app.schemas.preference import PreferenceUpdate
 from app.schemas.user import UserSyncRequest
-from app.services.user_service import UserService
+from app.utils.auth import decode_token
 from app.utils.garment_vocabulary import OCCASIONS
-from tests.identity_helpers import identities_of
+from tests.identity_helpers import identities_of, identity_ids_of, user_of_subject
 
 ITEM_ID = "00000000-0000-0000-0000-000000000001"
 OCCASION_REQUESTS = {
@@ -409,7 +409,7 @@ class TestAuthEmailValidation:
 
         assert response.status_code == 200
         assert response.json()["email"] == stored
-        user = await UserService(db_session).get_by_external_id(external_id)
+        user = await user_of_subject(db_session, external_id)
         assert (user.email, user.email_verified, user.display_name) == (stored, True, stored_name)
 
     @pytest.mark.asyncio
@@ -458,7 +458,7 @@ class TestAuthEmailValidation:
 
         assert response.status_code == expected_status
         assert expected_detail in response.json()["detail"]
-        assert await UserService(db_session).get_by_external_id(external_id) is None
+        assert await user_of_subject(db_session, external_id) is None
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -488,7 +488,7 @@ class TestAuthEmailValidation:
 
         assert response.status_code == 200
         assert response.json()["is_new_user"] is True
-        user = await UserService(db_session).get_by_external_id(external_id)
+        user = await user_of_subject(db_session, external_id)
         assert user.email_verified is expected_verified
 
     @pytest.mark.asyncio
@@ -522,7 +522,7 @@ class TestAuthEmailValidation:
             response = await client.post("/api/v1/auth/sync", json=body)
 
         assert response.status_code == expected_status
-        assert await UserService(db_session).get_by_external_id(external_id) is None
+        assert await user_of_subject(db_session, external_id) is None
 
 
 class TestProviderMigrationRequiresVerifiedEmail:
@@ -627,10 +627,9 @@ class TestSignInThroughAnotherProvider:
         )
 
         assert session.status_code == 200
-        assert await identities_of(db_session, UUID(first.json()["id"])) == {
-            ("dev", f"dev-{run}"),
-            ("oidc", f"oidc-{run}"),
-        }
+        held = await identity_ids_of(db_session, UUID(first.json()["id"]))
+        assert set(held) == {("dev", f"dev-{run}"), ("oidc", f"oidc-{run}")}
+        assert decode_token(second.json()["access_token"]).iid == str(held[("oidc", f"oidc-{run}")])
 
 
 DIFFERENT_EMAIL = "This invite was sent to a different email address"

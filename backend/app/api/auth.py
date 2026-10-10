@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Annotated
 from urllib.parse import urlencode
+from uuid import UUID
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -9,6 +10,7 @@ from fastapi.responses import RedirectResponse
 from app.config import get_settings
 from app.database import DbSession
 from app.models.user import User
+from app.schemas.auth import IDENTITY_TOKEN
 from app.schemas.email import normalise_email
 from app.schemas.user import (
     AuthConfigOIDC,
@@ -27,14 +29,18 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 settings = get_settings()
 
 
-def create_access_token(external_id: str, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    user_id: UUID, identity_id: UUID, expires_delta: timedelta | None = None
+) -> str:
     now = datetime.utcnow()
     if expires_delta:
         expire = now + expires_delta
     else:
         expire = now + timedelta(days=7)
     to_encode = {
-        "sub": external_id,
+        "sub": str(user_id),
+        "iid": str(identity_id),
+        "sub_type": IDENTITY_TOKEN,
         "exp": expire,
         "iat": now,
     }
@@ -195,7 +201,7 @@ async def sync_user(
     user_service = UserService(db)
 
     try:
-        user, is_new = await user_service.sync_from_oidc(
+        user, identity_id, is_new = await user_service.sync_from_oidc(
             sync_data, provider=provider, email_verified=email_verified
         )
     except UserEmailConflictError as e:
@@ -204,7 +210,7 @@ async def sync_user(
             detail=str(e),
         ) from None
 
-    access_token = create_access_token(user.external_id)
+    access_token = create_access_token(user.id, identity_id)
 
     return UserSyncResponse(
         id=user.id,

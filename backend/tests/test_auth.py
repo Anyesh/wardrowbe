@@ -1,36 +1,60 @@
+from datetime import datetime, timedelta
+from uuid import uuid4
+
+import jwt
 import pytest
+from fastapi import HTTPException
 from httpx import AsyncClient
+from sqlalchemy import delete, inspect, update
 
 from app.api.auth import create_access_token
+from app.config import get_settings
+from app.models import User, UserIdentity
+from app.schemas.auth import IDENTITY_TOKEN
 from app.services.user_service import UserService
 from app.utils.auth import decode_token
+from tests.identity_helpers import (
+    add_users_with_identities,
+    legacy_token,
+    user_of_subject,
+)
+
+USER_ID, IDENTITY_ID = uuid4(), uuid4()
+
+
+def _bearer(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _token(**claims) -> str:
+    now = datetime.utcnow()
+    return jwt.encode(
+        {"exp": now + timedelta(days=1), "iat": now, **claims},
+        get_settings().secret_key,
+        algorithm="HS256",
+    )
 
 
 class TestJWTToken:
-    """Tests for JWT token creation and validation."""
-
-    def test_create_access_token(self):
-        """Test that access token is created successfully."""
-        token = create_access_token("test-user-id")
-        assert token is not None
-        assert isinstance(token, str)
-        assert len(token) > 0
-
-    def test_decode_valid_token(self):
-        """Test that valid token is decoded correctly."""
-        external_id = "test-user-id"
-        token = create_access_token(external_id)
-        payload = decode_token(token)
-        assert payload.sub == external_id
+    @pytest.mark.parametrize(
+        ("mint", "expected"),
+        [
+            pytest.param(
+                lambda: create_access_token(USER_ID, IDENTITY_ID),
+                (str(USER_ID), str(IDENTITY_ID), IDENTITY_TOKEN),
+                id="identity",
+            ),
+            pytest.param(
+                lambda: legacy_token("legacy-sub"), ("legacy-sub", None, None), id="legacy"
+            ),
+        ],
+    )
+    def test_decode_valid_token(self, mint, expected):
+        payload = decode_token(mint())
+        assert (payload.sub, payload.iid, payload.sub_type) == expected
 
     def test_decode_expired_token(self):
-        """Test that expired token raises error."""
-        from datetime import timedelta
-
-        from fastapi import HTTPException
-
-        # Create token that expired 1 hour ago
-        token = create_access_token("test-user", expires_delta=timedelta(hours=-1))
+        token = create_access_token(USER_ID, IDENTITY_ID, expires_delta=timedelta(hours=-1))
 
         with pytest.raises(HTTPException) as exc_info:
             decode_token(token)
@@ -84,7 +108,7 @@ class TestAuthSync:
         assert data["display_name"] == "New User"
         assert "access_token" in data
         assert data["is_new_user"] is True
-        user = await UserService(db_session).get_by_external_id("new-user-123")
+        user = await user_of_subject(db_session, "new-user-123")
         assert user.avatar_url == stored_avatar
 
     @pytest.mark.asyncio
@@ -251,8 +275,12 @@ class TestProtectedRoutes:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_valid_token_succeeds(self, client: AsyncClient, test_user, auth_headers):
-        """Test that valid token allows access to protected routes."""
+    # The legacy token is minted in the same second its user and identity were created, as a
+    # first sign-in on main did, and must still authenticate.
+    @pytest.mark.parametrize("kind", ["identity", "legacy-same-second"])
+    async def test_valid_token_succeeds(self, client: AsyncClient, test_user, auth_headers, kind):
+        if kind != "identity":
+            auth_headers = _bearer(legacy_token(test_user.external_id))
         response = await client.get("/api/v1/users/me", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
@@ -276,3 +304,130 @@ class TestProtectedRoutes:
         image = await client.get(f"/api/v1/images/{test_user.id}/missing.jpg", headers=auth_headers)
 
         assert (me.status_code, image.status_code) == expected
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "mint",
+        [
+            pytest.param(
+                lambda user, own, other: legacy_token(f"nobody-{uuid4()}"), id="unknown-legacy-sub"
+            ),
+            pytest.param(
+                lambda user, own, other: _token(
+                    sub=str(user.id), iid=str(own.id), sub_type="session"
+                ),
+                id="unknown-sub-type",
+            ),
+            pytest.param(
+                lambda user, own, other: _token(
+                    sub=other.subject, iid=str(other.id), sub_type=IDENTITY_TOKEN
+                ),
+                id="identity-sub-is-an-external-id",
+            ),
+            pytest.param(
+                lambda user, own, other: _token(
+                    sub=str(user.id), iid=str(other.id), sub_type=IDENTITY_TOKEN
+                ),
+                id="identity-of-another-user",
+            ),
+            pytest.param(
+                lambda user, own, other: _token(
+                    sub=str(user.id), iid="not-a-uuid", sub_type=IDENTITY_TOKEN
+                ),
+                id="unparsable-iid",
+            ),
+            pytest.param(
+                lambda user, own, other: _token(sub=str(user.id), sub_type=IDENTITY_TOKEN),
+                id="missing-iid",
+            ),
+        ],
+    )
+    async def test_token_not_bound_to_the_user_is_refused(
+        self, client: AsyncClient, db_session, test_user, test_user_identity, mint
+    ):
+        other = User(
+            external_id=f"other-{uuid4()}", email=f"other-{uuid4()}@example.com", display_name="O"
+        )
+        (other_identity,) = await add_users_with_identities(db_session, other)
+        await db_session.commit()
+
+        response = await client.get(
+            "/api/v1/users/me", headers=_bearer(mint(test_user, test_user_identity, other_identity))
+        )
+
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_replaced_identity_token_is_refused(
+        self, client: AsyncClient, db_session, test_user, auth_headers
+    ):
+        await db_session.execute(
+            update(UserIdentity).where(UserIdentity.user_id == test_user.id).values(provider="dev")
+        )
+        await db_session.commit()
+
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={
+                "external_id": f"replacement-{uuid4()}",
+                "email": test_user.email,
+                "display_name": "Replacement",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["id"] == str(test_user.id)
+        old = await client.get("/api/v1/users/me", headers=auth_headers)
+        new = await client.get("/api/v1/users/me", headers=_bearer(response.json()["access_token"]))
+        assert (old.status_code, new.status_code) == (401, 200)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("then", ["sign-in-elsewhere", "re-adopt-by-email"])
+    async def test_revoked_identity_stays_revoked(
+        self, client: AsyncClient, db_session, test_user, then
+    ):
+        subject = test_user.external_id
+        token = legacy_token(subject)
+        await db_session.execute(
+            delete(UserIdentity).where(
+                UserIdentity.user_id == test_user.id, UserIdentity.subject == subject
+            )
+        )
+        await db_session.execute(
+            update(User)
+            .where(User.id == test_user.id, User.external_id == subject)
+            .values(external_id=None)
+        )
+        await db_session.commit()
+        email = (
+            f"elsewhere-{uuid4()}@example.com" if then == "sign-in-elsewhere" else test_user.email
+        )
+
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={"external_id": subject, "email": email, "display_name": "Back"},
+        )
+
+        assert response.status_code == 200
+        signed_into_revoked = response.json()["id"] == str(test_user.id)
+        assert signed_into_revoked is (then == "re-adopt-by-email")
+        assert (await client.get("/api/v1/users/me", headers=_bearer(token))).status_code == 401
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("kind", ["identity", "legacy"])
+    async def test_token_user_has_preferences_loaded(
+        self, db_session, test_user_with_preferences, test_user_identity, kind
+    ):
+        user = test_user_with_preferences
+        token = (
+            create_access_token(user.id, test_user_identity.id)
+            if kind == "identity"
+            else legacy_token(user.external_id)
+        )
+        db_session.expunge_all()
+
+        found = await UserService(db_session).get_by_token(decode_token(token))
+
+        assert found.id == user.id
+        assert "preferences" not in inspect(found).unloaded
+        assert found.preferences.color_favorites == ["black", "navy", "white"]

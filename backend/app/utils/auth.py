@@ -48,7 +48,7 @@ async def get_current_user_optional(
     try:
         token_data = decode_token(credentials.credentials)
         user_service = UserService(db)
-        user = await user_service.get_by_external_id(token_data.sub)
+        user = await user_service.get_by_token(token_data)
     except HTTPException:
         return None
     # A deactivated account is treated as anonymous, as get_current_user refuses it.
@@ -64,7 +64,7 @@ async def get_current_user(
 
     if credentials:
         token_data = decode_token(credentials.credentials)
-        user = await user_service.get_by_external_id(token_data.sub)
+        user = await user_service.get_by_token(token_data)
 
     if not user:
         raise HTTPException(
