@@ -150,9 +150,10 @@ Then:
 #    on every node. With a registry, a re-pushed :latest is not pulled again under IfNotPresent;
 #    push a new tag and point the deployments at it with `kubectl -n wardrobe set image`.
 # 2. Restart the pods on the new images.
-kubectl -n wardrobe rollout restart deployment/backend deployment/worker
+kubectl -n wardrobe rollout restart deployment/backend deployment/worker deployment/frontend
 kubectl -n wardrobe rollout status deployment/backend
 kubectl -n wardrobe rollout status deployment/worker
+kubectl -n wardrobe rollout status deployment/frontend
 # Only if image-worker is deployed (kubectl -n wardrobe get deployment image-worker):
 kubectl -n wardrobe rollout restart deployment/image-worker
 kubectl -n wardrobe rollout status deployment/image-worker
