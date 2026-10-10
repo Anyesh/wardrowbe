@@ -92,7 +92,7 @@ class TestForwardAuthSync:
         assert data["is_new_user"] is True
         assert data["onboarding_completed"] is False
         user = await _token_user(db_session, data["access_token"], "forward_auth", "tinyauth-alice")
-        assert str(user.id) == data["id"]
+        assert (str(user.id), user.external_id) == (data["id"], None)
 
     @pytest.mark.asyncio
     async def test_body_identity_is_ignored(self, client: AsyncClient, db_session: AsyncSession):
