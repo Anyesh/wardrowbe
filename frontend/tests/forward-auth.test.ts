@@ -92,11 +92,11 @@ describe('forward-auth authorize', () => {
     )
 
     const init = spy.mock.calls[0][1] as RequestInit
-    expect(init.headers).toMatchObject({ 'remote-user': latin1('josé') })
-    expect(JSON.parse(init.body as string)).toMatchObject({
-      external_id: 'josé',
-      display_name: 'José Müller',
+    expect(init.headers).toMatchObject({
+      'remote-user': latin1('josé'),
+      'remote-name': latin1('José Müller'),
     })
+    expect(init.body).toBeUndefined()
     expect(user).toMatchObject({ id: 'josé' })
   })
 
@@ -117,7 +117,7 @@ describe('forward-auth authorize', () => {
 
     const init = spy.mock.calls[0][1] as RequestInit
     expect(Object.keys(init.headers as Record<string, string>).sort()).toEqual(
-      ['content-type', 'remote-email', 'remote-user', 'x-forward-auth-secret'].sort()
+      ['remote-email', 'remote-user', 'x-forward-auth-secret'].sort()
     )
   })
 

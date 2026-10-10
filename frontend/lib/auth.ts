@@ -126,11 +126,10 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
   }
 
   const userId = decodeProxyHeader(remoteUser);
-  const remoteName = headerValue(headers, 'remote-name');
 
   // The raw header strings are relayed as-is, because fetch only accepts Latin-1 header values and
   // the backend applies the same UTF-8 decoding to the bytes.
-  const forwarded: Record<string, string> = { 'content-type': 'application/json' };
+  const forwarded: Record<string, string> = {};
   for (const name of FORWARDED_HEADERS) {
     const value = headerValue(headers, name);
     if (value) forwarded[name] = value;
@@ -146,12 +145,6 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
   const response = await fetch(`${backendUrl()}/api/v1/auth/sync`, {
     method: 'POST',
     headers: forwarded,
-    // The backend takes identity from the headers; the body only satisfies the request schema.
-    body: JSON.stringify({
-      external_id: userId,
-      email: remoteEmail,
-      display_name: (remoteName ? decodeProxyHeader(remoteName) : remoteEmail.split('@')[0]).slice(0, 100),
-    }),
   }).catch((error: unknown) => {
     throw serverError(error);
   });
