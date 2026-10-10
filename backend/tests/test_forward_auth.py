@@ -8,9 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import _is_dev_mode, create_access_token
 from app.config import Settings, get_settings
 from app.models import User, UserIdentity
-from app.services.user_service import FORWARD_AUTH, UserService
+from app.schemas.user import UserSyncRequest
+from app.services.user_service import FORWARD_AUTH, UserEmailConflictError, UserService
 from app.utils.auth import decode_token
-from tests.identity_helpers import identities_of, identity_ids_of, user_of_subject
+from tests.identity_helpers import (
+    add_users_with_identities,
+    identities_of,
+    identity_ids_of,
+    legacy_token,
+    user_of_subject,
+)
 
 PROXY_SECRET = "s" * 32
 SYNC_URL = "/api/v1/auth/sync"
@@ -168,6 +175,101 @@ class TestForwardAuthSync:
             ("legacy", test_user.external_id),
             ("forward_auth", "tinyauth-bob"),
         }
+
+
+class TestForwardAuthLegacyClaim:
+    # A pre-identities user's external_id became a legacy identity. A proxy username can equal
+    # it, so a proxy sign-in only takes it over when the account's verified email shows the
+    # proxy user is its owner.
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("subject", "stored_email", "verified", "holds_proxy_identity", "outcome"),
+        [
+            pytest.param("alice", "proxy", True, False, "claim", id="claims-by-proxy-email"),
+            pytest.param(
+                "Alice", "placeholder", True, False, "claim", id="claims-by-pre-identities-email"
+            ),
+            pytest.param(
+                "alice", "proxy", True, True, "adopt", id="same-email-replaces-proxy-identity"
+            ),
+            pytest.param("alice", "other", True, False, "conflict", id="other-email-conflicts"),
+            pytest.param(
+                "al ice", "other", True, False, "conflict", id="subject-not-an-email-local-part"
+            ),
+            pytest.param(
+                "alice", "placeholder", True, True, "conflict", id="placeholder-with-proxy-identity"
+            ),
+            pytest.param(
+                "alice", "other", True, True, "conflict", id="other-email-with-proxy-identity"
+            ),
+            pytest.param("alice", "proxy", False, False, "reclaim", id="unverified-is-reclaimed"),
+            pytest.param("alice", "other", False, False, "new", id="unverified-is-ignored"),
+        ],
+    )
+    async def test_proxy_sign_in_of_a_legacy_subject(
+        self,
+        db_session: AsyncSession,
+        subject: str,
+        stored_email: str,
+        verified: bool,
+        holds_proxy_identity: bool,
+        outcome: str,
+    ):
+        run = uuid4()
+        subject = f"{subject}-{run}"
+        emails = {
+            "proxy": f"real-{run}@example.net",
+            "placeholder": f"{subject}@example.com",
+            "other": f"someone-{run}@example.com",
+        }
+        stored = User(
+            external_id=subject,
+            email=emails[stored_email],
+            display_name="Stored",
+            email_verified=verified,
+        )
+        await add_users_with_identities(db_session, stored)
+        before = {("legacy", subject)}
+        if holds_proxy_identity:
+            db_session.add(
+                UserIdentity(user_id=stored.id, provider=FORWARD_AUTH, subject=f"old-{run}")
+            )
+            before.add((FORWARD_AUTH, f"old-{run}"))
+        await db_session.commit()
+        sync = UserSyncRequest(external_id=subject, email=emails["proxy"], display_name="Proxy")
+        service = UserService(db_session)
+
+        if outcome == "conflict":
+            with pytest.raises(UserEmailConflictError, match="^legacy_identity_conflict$"):
+                await service.sync_from_oidc(sync, provider=FORWARD_AUTH, email_verified=True)
+            await db_session.refresh(stored)
+            assert (stored.email, await identities_of(db_session, stored.id)) == (
+                emails[stored_email],
+                before,
+            )
+            assert await service.get_by_identity(FORWARD_AUTH, subject) is None
+            return
+
+        user, identity_id, is_new = await service.sync_from_oidc(
+            sync, provider=FORWARD_AUTH, email_verified=True
+        )
+        await db_session.refresh(stored)
+        held = await identity_ids_of(db_session, user.id)
+        assert identity_id == held[(FORWARD_AUTH, subject)]
+        assert (user.email, user.email_verified) == (emails["proxy"], True)
+        if outcome in ("claim", "adopt"):
+            assert (user.id, is_new) == (stored.id, False)
+            assert set(held) == {("legacy", subject), (FORWARD_AUTH, subject)}
+            # The kept legacy row keeps the account's pre-upgrade sessions working.
+            pre_upgrade = await service.get_by_token(decode_token(legacy_token(subject)))
+            assert pre_upgrade is not None and pre_upgrade.id == stored.id
+        else:
+            assert (user.id != stored.id, is_new) == (True, True)
+            assert set(held) == {(FORWARD_AUTH, subject)}
+            assert await identities_of(db_session, stored.id) == before
+            assert stored.email == (
+                f"{stored.id}@detached.invalid" if outcome == "reclaim" else emails["other"]
+            )
 
 
 class TestForwardAuthRejections:

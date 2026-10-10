@@ -605,6 +605,91 @@ async def test_identity_writes_racing_on_one_holder_converge(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    ("holder_verified", "first", "other_outcome", "holder_after"),
+    [
+        pytest.param(
+            False,
+            ("oidc", "owner-email"),
+            ("holder", False),
+            ("owner-email", {"legacy", "oidc", "forward_auth"}),
+            id="holder-verifies-before-proxy-reclaim",
+        ),
+        pytest.param(
+            False,
+            ("forward_auth", "owner-email"),
+            "Email already in use by another account.",
+            ("detached", {"legacy", "oidc"}),
+            id="proxy-reclaims-before-holder-verifies",
+        ),
+        pytest.param(
+            True,
+            ("oidc", "moved-email"),
+            "legacy_identity_conflict",
+            ("moved-email", {"legacy", "oidc"}),
+            id="holder-moves-email-before-proxy-claim",
+        ),
+    ],
+)
+async def test_proxy_legacy_claim_racing_the_holders_own_sign_in(
+    session_maker, holder_verified, first, other_outcome, holder_after
+):
+    # The holder signs in through OIDC as the proxy user signs in with the holder's legacy
+    # subject; whichever commits first, the other decides again on the committed holder.
+    run = uuid4()
+    subject, oidc_subject = f"proxy-{run}", f"oidc-{run}"
+    emails = {
+        "owner-email": f"owner-{run}@example.com",
+        "moved-email": f"moved-{run}@example.com",
+    }
+    holder = User(
+        external_id=subject,
+        email=emails["owner-email"],
+        display_name="Holder",
+        email_verified=holder_verified,
+    )
+    await _commit_users(session_maker, holder)
+    async with session_maker() as setup:
+        await setup.execute(
+            insert(UserIdentity).values(user_id=holder.id, provider="oidc", subject=oidc_subject)
+        )
+        await setup.commit()
+    syncs = {
+        "oidc": UserSyncRequest(
+            external_id=oidc_subject, email=emails[first[1]], display_name="Holder"
+        ),
+        "forward_auth": UserSyncRequest(
+            external_id=subject, email=emails["owner-email"], display_name="Proxy"
+        ),
+    }
+    other = "forward_auth" if first[0] == "oidc" else "oidc"
+    try:
+        _, other_result, _ = await _race(
+            session_maker,
+            syncs[first[0]],
+            syncs[other],
+            first_provider=first[0],
+            others_provider=other,
+        )
+        async with session_maker() as check:
+            stored = await check.get(User, holder.id)
+            held = await identities_of(check, holder.id)
+    finally:
+        await _cleanup(session_maker, [subject, oidc_subject])
+
+    if isinstance(other_outcome, str):
+        assert isinstance(other_result, UserEmailConflictError)
+        assert str(other_result) == other_outcome
+    else:
+        assert _outcome(other_result, {holder.id: "holder"}) == other_outcome
+    emails["detached"] = f"{holder.id}@detached.invalid"
+    assert (stored.email, {provider for provider, _ in held}) == (
+        emails[holder_after[0]],
+        holder_after[1],
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     ("violation", "surfaces"),
     [
         pytest.param("not-null", IntegrityError, id="not-null-is-a-bug"),
