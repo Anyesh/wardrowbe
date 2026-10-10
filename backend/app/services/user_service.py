@@ -24,7 +24,11 @@ LEGACY_CLAIMING_PROVIDERS = frozenset({"oidc", "dev"})
 CONCURRENT_SIGN_IN = (
     "Email already associated with another account that is signing in concurrently."
 )
+SIGN_IN_UNIQUE_CONSTRAINTS = frozenset(
+    {"users_email_key", "uq_user_identities_provider_subject", "uq_user_identities_user_provider"}
+)
 SYNC_ATTEMPTS = 5
+UNIQUE_VIOLATION = "23505"
 UNVERIFIED_EMAIL_IN_USE = (
     "Email already in use by another account. "
     "Sign in with a provider that verifies this address to use it."
@@ -325,12 +329,15 @@ class UserService:
     @asynccontextmanager
     async def _attempt_savepoint(self) -> AsyncIterator[None]:
         # A savepoint so that a lost race undoes this attempt's writes and leaves the request's
-        # transaction usable for the next attempt or the 409. A unique violation means a
-        # concurrent sign-in committed the identity or email after this attempt's reads.
+        # transaction usable for the next attempt or the 409. Only a unique violation on a
+        # column sign-in writes means a concurrent sign-in committed the identity or email after
+        # this attempt's reads; any other integrity error is a bug and must not become a 409.
         try:
             async with self.db.begin_nested():
                 yield
         except IntegrityError as e:
+            if not _lost_sign_in_race(e):
+                raise
             raise _RowChanged from e
 
     async def _insert_synced_user(
@@ -364,6 +371,14 @@ class UserService:
     async def complete_onboarding(self, user: User) -> None:
         user.onboarding_completed = True
         await self.db.flush()
+
+
+def _lost_sign_in_race(error: IntegrityError) -> bool:
+    driver_error = getattr(error.orig, "driver_exception", None)
+    return (
+        getattr(error.orig, "sqlstate", None) == UNIQUE_VIOLATION
+        and getattr(driver_error, "constraint_name", None) in SIGN_IN_UNIQUE_CONSTRAINTS
+    )
 
 
 class UserEmailConflictError(Exception):

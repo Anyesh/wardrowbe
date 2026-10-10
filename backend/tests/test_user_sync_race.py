@@ -3,7 +3,8 @@ from contextlib import AsyncExitStack
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import delete, or_, select, text
+from sqlalchemy import delete, insert, or_, select, text, update
+from sqlalchemy.exc import IntegrityError
 
 from app.models import User, UserIdentity
 from app.schemas.user import UserSyncRequest
@@ -593,3 +594,41 @@ async def test_identity_writes_racing_on_one_holder_converge(
     assert other_result.identity_id == held[(other[0], subjects[other[1]])]
     first_key = (first[0], subjects[first[1]])
     assert first_identity_id == held.get(first_key, first_identity_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("violation", "surfaces"),
+    [
+        pytest.param("not-null", IntegrityError, id="not-null-is-a-bug"),
+        pytest.param("external-id-unique", IntegrityError, id="frozen-external-id-is-a-bug"),
+        pytest.param("identity-unique", UserEmailConflictError, id="identity-unique-is-a-race"),
+    ],
+)
+async def test_only_a_violation_a_concurrent_sign_in_can_cause_is_retried(
+    db_session, test_user, violation, surfaces
+):
+    service = UserService(db_session)
+    insert_identity = service._insert_identity
+
+    async def violating(user_id, provider, subject):
+        if violation == "not-null":
+            await db_session.execute(
+                insert(UserIdentity).values(user_id=user_id, provider=provider, subject=None)
+            )
+        elif violation == "external-id-unique":
+            await db_session.execute(
+                update(User).where(User.id == user_id).values(external_id=test_user.external_id)
+            )
+        else:
+            await insert_identity(user_id, provider, subject)
+        return await insert_identity(user_id, provider, subject)
+
+    service._insert_identity = violating
+    run = uuid4()
+    sync = UserSyncRequest(
+        external_id=f"new-{run}", email=f"new-{run}@example.com", display_name="N"
+    )
+
+    with pytest.raises(surfaces):
+        await service.sync_from_oidc(sync, provider="oidc", email_verified=True)
