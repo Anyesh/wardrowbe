@@ -112,9 +112,17 @@ class TestForwardAuthSync:
         assert await user_of_subject(db_session, "body-attacker") is None
 
     @pytest.mark.asyncio
-    async def test_display_name_falls_back_to_remote_user(self, client: AsyncClient):
-        headers = _proxy_headers()
-        del headers["Remote-Name"]
+    @pytest.mark.parametrize(
+        "name",
+        [None, "\u200b\u2060".encode(), "\u0301".encode(), b"\x01"],
+        ids=["missing", "zero-width-only", "combining-mark-only", "control-only"],
+    )
+    async def test_display_name_falls_back_to_remote_user(
+        self, client: AsyncClient, name: bytes | None
+    ):
+        headers = _proxy_headers(name=name)
+        if name is None:
+            del headers["Remote-Name"]
         with patch("app.api.auth.settings", _forward_auth_only()):
             response = await client.post(SYNC_URL, headers=headers)
 

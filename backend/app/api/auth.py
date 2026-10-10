@@ -20,6 +20,7 @@ from app.schemas.user import (
     UserResponse,
     UserSyncRequest,
     UserSyncResponse,
+    fit_idp_display_name,
 )
 from app.services.user_service import FORWARD_AUTH, UserEmailConflictError, UserService
 from app.utils.auth import get_current_user
@@ -149,7 +150,8 @@ async def _forward_auth_identity(
             detail="The auth proxy must send Remote-User and Remote-Email headers",
         )
 
-    display_name = proxy_header(request.headers, "Remote-Name") or remote_user
+    # A name that fits to blank would otherwise fall back to the email's local part.
+    display_name = fit_idp_display_name(proxy_header(request.headers, "Remote-Name")) or remote_user
     try:
         sync_data = UserSyncRequest(
             external_id=remote_user,
