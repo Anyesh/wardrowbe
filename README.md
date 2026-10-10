@@ -400,7 +400,7 @@ END $$;
 COMMIT;
 ```
 
-Downgrading below this migration keeps one sign-in per account (OIDC first, then development login, then the pre-upgrade one) and gives an account that loses every candidate a placeholder no sign-in matches. On the old version a verified sign-in whose email matches a placeholder account's verified email is linked to that account, while a matching unverified email moves to a new account and leaves the placeholder account's data behind. Every token issued after the upgrade stops working. Restore the backup instead where you can. To downgrade anyway, stop the backend and workers first, because the new backend answers every signed-in request with an error once the table is gone, and run the downgrade with the new image, since only it contains this migration:
+Downgrading below this migration keeps one sign-in per account (OIDC first, then development login, then the pre-upgrade one) and gives an account that loses every candidate a placeholder no sign-in matches. Forward-auth sign-ins are never kept, so an account whose only sign-in is forward-auth gets a placeholder. On the old version a verified sign-in whose email matches a placeholder account's verified email is linked to that account, while a matching unverified email moves to a new account and leaves the placeholder account's data behind. Every token issued after the upgrade stops working. Restore the backup instead where you can. To downgrade anyway, stop the backend and workers first, because the new backend answers every signed-in request with an error once the table is gone, and run the downgrade with the new image, since only it contains this migration:
 
 ```bash
 docker compose stop backend worker image-worker
@@ -493,7 +493,7 @@ http://localhost:8080/api/auth/callback/oidc
 
 #### Accounts and sign-in identities
 
-An account holds at most one sign-in identity per provider (development login, OIDC). A new identity whose verified email belongs to an existing account with a verified email joins that account, and its sessions sit alongside the sessions of the account's other providers. A second identity from the same provider replaces the first, so two OIDC subjects that share an email address take turns holding the account and each sign-in ends the other's sessions.
+An account holds at most one sign-in identity per provider (development login, OIDC, forward-auth). A new identity whose verified email belongs to an existing account with a verified email joins that account, and its sessions sit alongside the sessions of the account's other providers. A second identity from the same provider replaces the first, so two OIDC subjects, or two proxy usernames, that share an email address take turns holding the account and each sign-in ends the other's sessions.
 
 To block a person, deactivate their account. Every request their tokens make is refused from then on. If the account's email is unverified, a sign-in whose provider verifies that address still gets a new account with it, so check `email_verified` too:
 
@@ -524,8 +524,8 @@ Unlinking does not block the person: while the account's email is verified, any 
 Forward-auth lets an authenticating reverse proxy sign people in to Wardrowbe. It works like this:
 
 1. The proxy (TinyAuth or Authelia behind Caddy, Traefik or nginx) authenticates the browser and adds `Remote-User`, `Remote-Email`, optionally `Remote-Name`, and a static `X-Forward-Auth-Secret` header to every request it forwards.
-2. On `/login` the app signs in by itself: the backend checks the secret, then creates or finds the user keyed by `Remote-User`. A wrong or missing secret gets a 401, so headers sent without it are ignored.
-3. After sign-in, requests use Wardrowbe's own session token, and the proxy headers never sign a request in. They can only refuse one: a request that carries the right secret and a `Remote-User` other than the session's user gets a 401. So if the proxy starts reporting a different `Remote-User`, the next page load signs the old session out, and a tab that is already open has its API calls refused until it reloads.
+2. On `/login` the app signs in by itself: the backend checks the secret, then signs in the forward-auth identity named by `Remote-User`, creating an account for it when no account matches (see [Accounts and sign-in identities](#accounts-and-sign-in-identities)). A wrong or missing secret gets a 401, so headers sent without it are ignored.
+3. After sign-in, requests use Wardrowbe's own session token, and the proxy headers never sign a request in. They can only refuse one: a request that carries the right secret and a `Remote-User` that is not a forward-auth identity of the session's account gets a 401, images included. So if the proxy starts reporting a different `Remote-User`, the next page load signs the old session out, and a tab that is already open has its API calls refused until it reloads.
 4. Logging out ends the Wardrowbe session, then sends the browser to the proxy's logout page so the proxy session ends too (TinyAuth's page asks for one more click).
 
 Set these in `.env`:
@@ -592,9 +592,15 @@ services:
 Traefik applies the middlewares in the listed order, and an empty `customrequestheaders` value removes that header.
 
 > [!WARNING]
-> The first time a `Remote-User` signs in, a `Remote-Email` that matches an existing account takes that account over. OIDC sign-in does this only when the provider marks the email as verified, but the proxy sends no such flag, so Wardrowbe trusts every `Remote-Email`. The proxy's identity provider must therefore pass only emails it has verified. TinyAuth with a generic OAuth provider that lets people set an unverified email, or with an empty OAuth whitelist so that anyone can sign up there, lets someone claim an address they do not own and take over the matching Wardrowbe account. This matters most when OIDC is configured alongside forward-auth, because the OIDC users' accounts are what such an email would adopt.
+> The first time a `Remote-User` signs in, a `Remote-Email` that matches an existing account with a verified email joins that account, alongside its other sign-ins. OIDC sign-in does this only when the provider marks the email as verified, but the proxy sends no such flag, so Wardrowbe trusts every `Remote-Email`. The proxy's identity provider must therefore pass only emails it has verified. TinyAuth with a generic OAuth provider that lets people set an unverified email, or with an empty OAuth whitelist so that anyone can sign up there, lets someone claim an address they do not own and sign in to the matching Wardrowbe account. This matters most when OIDC is configured alongside forward-auth, because the OIDC users' accounts are what such an email would join.
 >
 > If this database ever ran in development mode, anyone could also have signed in under any email address they typed. Check the existing users' emails before turning forward-auth on.
+
+Accounts from before sign-in identities keep their old sign-in as a `legacy` identity, and a proxy username can be equal to one. A proxy sign-in claims it only when the account's email is verified and is either the proxy's `Remote-Email` or `<Remote-User>@example.com` (what older forward-auth versions stored when the proxy sent no email), and the account has no forward-auth identity yet. The legacy identity stays, so the account's OIDC sign-in and its sessions from before the upgrade keep working. An account with an unverified email is skipped, and `Remote-Email` decides as for any new username. An account that already has a forward-auth identity and the proxy's exact email follows the email rule, so the two usernames take turns. Any other match is refused, and the login page reports a username conflict. To resolve it, either unlink the account's `legacy` identity by id with the transaction in [Accounts and sign-in identities](#accounts-and-sign-in-identities), so the proxy user gets an account of its own, or, if the proxy user owns the account, give the account the proxy user's address as a verified email, since an unverified one would make the next proxy sign-in move the address to a new account:
+
+```sql
+UPDATE users SET email = 'proxy-user@example.com', email_verified = true WHERE id = '<user id>';
+```
 
 The mobile app cannot sign in through a forward-auth proxy, so it needs OIDC. Both can be configured at once: set `OIDC_ISSUER_URL` and `OIDC_CLIENT_ID` alongside `FORWARD_AUTH_SECRET`, and browsers use the proxy while the app uses OIDC. The app has to reach Wardrowbe through a hostname or path that skips the forward-auth check, since it cannot complete the proxy's login page.
 
