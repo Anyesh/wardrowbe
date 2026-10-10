@@ -4,7 +4,7 @@ uvicorn[standard]>=0.27.0
 python-multipart>=0.0.6
 
 # Database
-sqlalchemy[asyncio]>=2.0.25
+sqlalchemy[asyncio]>=2.1
 asyncpg>=0.29.0
 alembic>=1.13.1
 
