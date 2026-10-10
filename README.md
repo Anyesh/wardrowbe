@@ -359,16 +359,22 @@ This SQL repairs both. Replace `<backup time>` with the time from the backup's f
 
 ```sql
 BEGIN;
-UPDATE user_identities i SET subject = u.external_id
-FROM users u
-WHERE i.user_id = u.id AND i.provider = 'legacy'
-  AND u.external_id IS NOT NULL AND i.subject <> u.external_id;
+CREATE TEMP TABLE stale ON COMMIT DROP AS
+SELECT i.id, i.user_id FROM user_identities i JOIN users u ON u.id = i.user_id
+WHERE i.provider = 'legacy' AND u.external_id IS NOT NULL AND i.subject <> u.external_id;
+DELETE FROM user_identities WHERE id IN (SELECT id FROM stale);
 INSERT INTO user_identities (id, user_id, provider, subject, created_at)
 SELECT gen_random_uuid(), u.id, 'legacy', u.external_id, u.created_at
 FROM users u
 WHERE u.external_id IS NOT NULL
-  AND u.created_at >= TIMESTAMPTZ '<backup time>Z'
-  AND NOT EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id);
+  AND (
+    u.id IN (SELECT user_id FROM stale)
+    OR (
+      u.created_at >= TIMESTAMPTZ '<backup time>Z'
+      AND NOT EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id)
+    )
+  )
+ON CONFLICT DO NOTHING;
 COMMIT;
 ```
 
@@ -456,20 +462,26 @@ http://localhost:8080/api/auth/callback/oidc
 
 An account holds at most one sign-in identity per provider (development login, OIDC). A new identity whose verified email belongs to an existing account with a verified email joins that account, and its sessions sit alongside the sessions of the account's other providers. A second identity from the same provider replaces the first, so two OIDC subjects that share an email address take turns holding the account and each sign-in ends the other's sessions.
 
-To block a person, deactivate their account. Their tokens stop working at once:
+To block a person, deactivate their account. Every request their tokens make is refused from then on:
 
 ```sql
 UPDATE users SET is_active = false WHERE email = 'person@example.com';
 ```
 
-To unlink one sign-in identity and end its sessions, delete its row and clear the matching pre-upgrade sign-in in one transaction:
+To unlink one sign-in identity and end its sessions, run the transaction below. It deletes the identity and clears the account's pre-upgrade sign-in when that names the identity or when the account keeps no other identity, so a later downgrade cannot hand the account back to an old sign-in. List the account's identities first with `SELECT provider, subject FROM user_identities WHERE user_id = '<user id>';`, then use the provider shown there: `oidc` or `dev`, or `legacy` for a sign-in that has not been used since the upgrade.
 
 ```sql
 BEGIN;
 UPDATE users SET external_id = NULL
-WHERE id = (SELECT user_id FROM user_identities WHERE provider = 'oidc' AND subject = '<subject>')
-  AND external_id = '<subject>';
-DELETE FROM user_identities WHERE provider = 'oidc' AND subject = '<subject>';
+WHERE id = (SELECT user_id FROM user_identities WHERE provider = '<provider>' AND subject = '<subject>')
+  AND (
+    external_id = '<subject>'
+    OR NOT EXISTS (
+      SELECT 1 FROM user_identities i
+      WHERE i.user_id = users.id AND NOT (i.provider = '<provider>' AND i.subject = '<subject>')
+    )
+  );
+DELETE FROM user_identities WHERE provider = '<provider>' AND subject = '<subject>';
 COMMIT;
 ```
 
