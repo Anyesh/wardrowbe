@@ -264,6 +264,10 @@ class UserService:
                 )
             )
         ).one_or_none()
+        if replaced is not None and replaced.subject == subject:
+            # A twin request adopted with this subject while this one waited on the user's
+            # lock; replacing its row would end the token the twin just issued.
+            return replaced.id
         if replaced is not None:
             result = await self.db.execute(
                 delete(UserIdentity)

@@ -562,6 +562,13 @@ async def test_concurrent_email_swap_between_two_accounts_completes(session_make
             {("oidc", "o"), ("dev", "d")},
             id="oidc-and-dev-adoptions",
         ),
+        pytest.param(
+            ("legacy", "l"),
+            ("oidc", "s"),
+            ("oidc", "s"),
+            {("oidc", "s")},
+            id="twin-adoptions",
+        ),
     ],
 )
 async def test_identity_writes_racing_on_one_holder_converge(
