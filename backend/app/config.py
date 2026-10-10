@@ -216,6 +216,14 @@ class Settings(BaseSettings):
             raise RuntimeError(
                 f"FORWARD_AUTH_SECRET must be at least {FORWARD_AUTH_SECRET_MIN_LENGTH} characters."
             )
+        # Proxies trim header whitespace and the frontend can only relay Latin-1 header values,
+        # so any other character would make every forward-auth sign-in fail the comparison.
+        if self.forward_auth_configured and not all(
+            "!" <= char <= "~" for char in self.forward_auth_secret
+        ):
+            raise RuntimeError(
+                "FORWARD_AUTH_SECRET must contain only visible ASCII characters and no spaces."
+            )
 
         oidc_configured = oidc_issuer and oidc_client
         is_dev = self.debug and not oidc_configured and not self.forward_auth_configured

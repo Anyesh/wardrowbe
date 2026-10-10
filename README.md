@@ -531,7 +531,7 @@ Forward-auth lets an authenticating reverse proxy sign people in to Wardrowbe. I
 Set these in `.env`:
 
 ```env
-# At least 32 characters, e.g. the output of: openssl rand -hex 32
+# At least 32 visible ASCII characters and no spaces, e.g. the output of: openssl rand -hex 32
 FORWARD_AUTH_SECRET=
 # The public URL the proxy serves
 NEXTAUTH_URL=https://wardrobe.example.com

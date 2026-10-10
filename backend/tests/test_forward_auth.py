@@ -646,8 +646,13 @@ class TestForwardAuthPrecedence:
 
 
 class TestForwardAuthSettings:
-    def test_short_secret_fails_validation(self):
-        settings = Settings(secret_key="a-strong-custom-secret", forward_auth_secret="s" * 31)
+    @pytest.mark.parametrize(
+        "secret",
+        ["s" * 31, "é" * 32, " " + "s" * 32, "s" * 16 + " " + "s" * 16, "s" * 32 + "\t"],
+        ids=["short", "non-ascii", "leading-space", "inner-space", "trailing-tab"],
+    )
+    def test_secret_a_proxy_cannot_send_verbatim_fails_validation(self, secret: str):
+        settings = Settings(secret_key="a-strong-custom-secret", forward_auth_secret=secret)
         with pytest.raises(RuntimeError, match="FORWARD_AUTH_SECRET"):
             settings.validate_security()
 
