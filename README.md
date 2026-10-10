@@ -367,10 +367,8 @@ SELECT i.id, i.user_id FROM user_identities i JOIN users u ON u.id = i.user_id
 WHERE i.provider IN ('legacy', 'oidc', 'dev') AND i.created_at = u.created_at
   AND u.created_at < TIMESTAMPTZ '<backup time>Z'
   AND u.external_id IS NOT NULL AND i.subject <> u.external_id;
-DELETE FROM user_identities WHERE id IN (SELECT id FROM stale);
-INSERT INTO user_identities (id, user_id, provider, subject, created_at)
-SELECT gen_random_uuid(), u.id, 'legacy', u.external_id, u.created_at
-FROM users u
+CREATE TEMP TABLE targets ON COMMIT DROP AS
+SELECT u.id FROM users u
 WHERE u.external_id IS NOT NULL
   AND (
     u.id IN (SELECT user_id FROM stale)
@@ -378,15 +376,23 @@ WHERE u.external_id IS NOT NULL
       u.created_at >= TIMESTAMPTZ '<backup time>Z'
       AND NOT EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id)
     )
-  )
+  );
+DELETE FROM user_identities WHERE id IN (SELECT id FROM stale);
+INSERT INTO user_identities (id, user_id, provider, subject, created_at)
+SELECT gen_random_uuid(), u.id, 'legacy', u.external_id, u.created_at
+FROM users u WHERE u.id IN (SELECT id FROM targets)
 ON CONFLICT DO NOTHING;
 DO $$
 DECLARE skipped text;
 BEGIN
   SELECT string_agg(u.email, ', ') INTO skipped FROM users u
-  WHERE u.external_id IS NOT NULL
-    AND (u.id IN (SELECT user_id FROM stale) OR u.created_at >= TIMESTAMPTZ '<backup time>Z')
-    AND NOT EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id);
+  WHERE u.id IN (SELECT id FROM targets)
+    AND (
+      NOT EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id
+        AND i.subject = u.external_id AND i.provider IN ('legacy', 'oidc', 'dev'))
+      OR EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id <> u.id
+        AND i.subject = u.external_id AND i.provider IN ('legacy', 'oidc', 'dev'))
+    );
   IF skipped IS NOT NULL THEN
     RAISE EXCEPTION 'Nothing was changed. Another account holds the sign-in of: %', skipped;
   END IF;
@@ -394,7 +400,14 @@ END $$;
 COMMIT;
 ```
 
-Downgrading below this migration keeps one sign-in per account (OIDC first, then development login, then the pre-upgrade one) and gives an account that loses every candidate a placeholder no sign-in matches. On the old version a verified sign-in whose email matches a placeholder account's verified email is linked to that account, while a matching unverified email moves to a new account and leaves the placeholder account's data behind. Every token issued after the upgrade stops working. Restore the backup instead where you can.
+Downgrading below this migration keeps one sign-in per account (OIDC first, then development login, then the pre-upgrade one) and gives an account that loses every candidate a placeholder no sign-in matches. On the old version a verified sign-in whose email matches a placeholder account's verified email is linked to that account, while a matching unverified email moves to a new account and leaves the placeholder account's data behind. Every token issued after the upgrade stops working. Restore the backup instead where you can. To downgrade anyway, stop the backend and workers first, because the new backend answers every signed-in request with an error once the table is gone, and run the downgrade with the new image, since only it contains this migration:
+
+```bash
+docker compose stop backend worker image-worker
+docker compose run --rm --no-deps backend alembic downgrade 6c1e8f2a9d47
+```
+
+Then point the image tags at the previous release and run `docker compose up -d`.
 
 ## Configuration
 
