@@ -501,7 +501,7 @@ To block a person, deactivate their account. Every request their tokens make is 
 UPDATE users SET is_active = false WHERE email = 'person@example.com';
 ```
 
-To unlink one sign-in identity and end its sessions, find the identity's id with `SELECT id, provider, subject FROM user_identities WHERE user_id = '<user id>';` and run the transaction below with it. It deletes the identity and clears the account's pre-upgrade sign-in when that names the identity or when the account keeps no other identity, so a later downgrade cannot hand the account back to an old sign-in. The id stays the same when a pre-upgrade (`legacy`) sign-in is used again after you listed it. The `DELETE` must report one row; zero means another sign-in replaced the identity in the meantime, so list the identities again.
+To unlink one sign-in identity and end its sessions, find the identity's id with `SELECT id, provider, subject FROM user_identities WHERE user_id = '<user id>';` and run the transaction below with it. It deletes the identity and clears the account's pre-upgrade sign-in when that names the identity (a forward-auth identity never does, even when a kept `legacy` identity has the same subject) or when the account keeps no other identity, so a later downgrade cannot hand the account back to an old sign-in. The id stays the same when a pre-upgrade (`legacy`) sign-in is used again after you listed it. The `DELETE` must report one row; zero means another sign-in replaced the identity in the meantime, so list the identities again.
 
 ```sql
 BEGIN;
@@ -510,7 +510,7 @@ UPDATE users u SET external_id = NULL
 FROM user_identities i
 WHERE i.id = '<identity id>' AND u.id = i.user_id
   AND (
-    u.external_id = i.subject
+    (u.external_id = i.subject AND i.provider <> 'forward_auth')
     OR NOT EXISTS (SELECT 1 FROM user_identities o WHERE o.user_id = u.id AND o.id <> i.id)
   );
 DELETE FROM user_identities WHERE id = '<identity id>';
@@ -524,14 +524,14 @@ Unlinking does not block the person: while the account's email is verified, any 
 Forward-auth lets an authenticating reverse proxy sign people in to Wardrowbe. It works like this:
 
 1. The proxy (TinyAuth or Authelia behind Caddy, Traefik or nginx) authenticates the browser and adds `Remote-User`, `Remote-Email`, optionally `Remote-Name`, and a static `X-Forward-Auth-Secret` header to every request it forwards.
-2. On `/login` the app signs in by itself: the backend checks the secret, then signs in the forward-auth identity named by `Remote-User`, creating an account for it when no account matches (see [Accounts and sign-in identities](#accounts-and-sign-in-identities)). A wrong or missing secret gets a 401, so headers sent without it are ignored.
-3. After sign-in, requests use Wardrowbe's own session token, and the proxy headers never sign a request in. They can only refuse one: a request that carries the right secret and a `Remote-User` that is not a forward-auth identity of the session's account gets a 401, images included. So if the proxy starts reporting a different `Remote-User`, the next page load signs the old session out, and a tab that is already open has its API calls refused until it reloads.
+2. On `/login` the app signs in by itself: the backend checks the secret, then signs in the forward-auth identity named by `Remote-User`, creating an account for it when no account matches (see [Accounts and sign-in identities](#accounts-and-sign-in-identities)). A wrong secret gets a 401, and `Remote-*` headers sent without the secret are ignored.
+3. After sign-in, requests use Wardrowbe's own session token, and the proxy headers never sign a request in. They can only refuse one: a request that carries the right secret and a `Remote-User` that is not a forward-auth identity of the session's account gets a 401. Image links the app already handed out are signed and keep working until they expire. So if the proxy starts reporting a different `Remote-User`, the next page load signs the old session out, and a tab that is already open has its API calls refused until it reloads.
 4. Logging out ends the Wardrowbe session, then sends the browser to the proxy's logout page so the proxy session ends too (TinyAuth's page asks for one more click).
 
 Set these in `.env`:
 
 ```env
-# At least 32 visible ASCII characters and no spaces, e.g. the output of: openssl rand -hex 32
+# At least 32 random visible ASCII characters and no spaces, e.g. the output of: openssl rand -hex 32
 FORWARD_AUTH_SECRET=
 # The public URL the proxy serves
 NEXTAUTH_URL=https://wardrobe.example.com
