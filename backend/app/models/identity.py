@@ -7,9 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 
-# legacy rows are the external_id every user had before identities existed; oidc and dev claim
-# them on sign-in, and forward_auth is written by the proxy sign-in path.
-IDENTITY_PROVIDERS = ("legacy", "dev", "oidc", "forward_auth")
+# legacy rows are the external_id every user had before identities existed, and oidc and dev
+# claim them on sign-in. forward_auth is accepted so a proxy sign-in path can be added without
+# another migration; nothing writes it yet.
 
 
 class UserIdentity(Base):

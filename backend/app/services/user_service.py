@@ -222,7 +222,7 @@ class UserService:
         return _SignIn(holder, identity_id, False)
 
     # Invariant: every identity write to an existing user happens after that user's row lock
-    # (the CAS in _update_unchanged or _lock_in_id_order), and forward-auth sign-in must keep
+    # (the CAS in _update_unchanged or _lock_in_id_order), and any new sign-in path must keep
     # to it. That is what makes the re-checks below sound and rules out lock cycles between
     # sign-in paths: a statement run after the lock takes a fresh snapshot, which already holds
     # the outcome of any writer the lock waited out.
