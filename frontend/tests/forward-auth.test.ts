@@ -3,7 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { Account, User } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
 import { authOptions, authorizeForwardAuth } from '@/lib/auth'
-import { FORWARD_AUTH_ACCOUNT_CONFLICT, FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors'
+import {
+  FORWARD_AUTH_ACCOUNT_CONFLICT,
+  FORWARD_AUTH_SERVER_ERROR,
+  FORWARD_AUTH_USERNAME_CONFLICT,
+} from '@/lib/auth-errors'
 
 const SECRET = 'proxy-shared-secret-that-is-long-enough'
 
@@ -140,13 +144,14 @@ describe('forward-auth authorize', () => {
     expect(await authorizeForwardAuth(proxyHeaders())).toBeNull()
   })
 
-  it('fails as an account conflict when the backend answers 409', async () => {
-    mockFetch(
-      new Response(JSON.stringify({ detail: 'already in use by another account.' }), { status: 409 })
-    )
+  it.each([
+    ['Email already in use by another account.', FORWARD_AUTH_ACCOUNT_CONFLICT],
+    ['legacy_identity_conflict', FORWARD_AUTH_USERNAME_CONFLICT],
+  ])('fails with the matching conflict when the backend answers 409 %s', async (detail, code) => {
+    mockFetch(new Response(JSON.stringify({ detail }), { status: 409 }))
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    await expect(authorizeForwardAuth(proxyHeaders())).rejects.toThrow(FORWARD_AUTH_ACCOUNT_CONFLICT)
+    await expect(authorizeForwardAuth(proxyHeaders())).rejects.toThrow(new Error(code))
   })
 
   it.each([500, 503])('fails as a server error when the backend answers %i', async (status) => {

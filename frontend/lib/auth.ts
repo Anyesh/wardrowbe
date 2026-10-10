@@ -2,7 +2,11 @@ import type { NextAuthOptions, User } from 'next-auth';
 import type { OAuthConfig } from 'next-auth/providers/oauth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { Provider } from 'next-auth/providers/index';
-import { FORWARD_AUTH_ACCOUNT_CONFLICT, FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
+import {
+  FORWARD_AUTH_ACCOUNT_CONFLICT,
+  FORWARD_AUTH_SERVER_ERROR,
+  FORWARD_AUTH_USERNAME_CONFLICT,
+} from '@/lib/auth-errors';
 import { decodeProxyHeader } from '@/lib/proxy-headers';
 
 interface OIDCProfile {
@@ -110,6 +114,7 @@ function headerValue(headers: IncomingHeaders, name: string): string | undefined
 // it holds no forward-auth configuration that could drift from the backend's.
 // The backend answers 400 or 401 only when the proxy's headers or shared secret are wrong.
 const PROXY_HEADER_REJECTIONS = new Set([400, 401]);
+const LEGACY_IDENTITY_CONFLICT = 'legacy_identity_conflict';
 
 export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<User | null> {
   const remoteUser = headerValue(headers, 'remote-user');
@@ -156,11 +161,17 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
     console.error('Forward-auth sync rejected:', errorData.detail || response.status);
     return null;
   }
-  // A 409 means Remote-Email already belongs to a different account, which retrying cannot fix.
+  // A 409 means Remote-Email already belongs to a different account, or Remote-User names an
+  // account from before sign-in identities whose email is not the proxy user's. Retrying cannot
+  // fix either.
   if (response.status === 409) {
     const errorData = await response.json().catch(() => ({}));
     console.error('Forward-auth sync conflict:', errorData.detail || response.status);
-    throw new Error(FORWARD_AUTH_ACCOUNT_CONFLICT);
+    throw new Error(
+      errorData.detail === LEGACY_IDENTITY_CONFLICT
+        ? FORWARD_AUTH_USERNAME_CONFLICT
+        : FORWARD_AUTH_ACCOUNT_CONFLICT
+    );
   }
   if (!response.ok) {
     throw serverError(`Forward-auth sync answered ${response.status}`);

@@ -5,7 +5,11 @@ import { signIn, getProviders, useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { FORWARD_AUTH_ACCOUNT_CONFLICT, FORWARD_AUTH_SERVER_ERROR } from '@/lib/auth-errors';
+import {
+  FORWARD_AUTH_ACCOUNT_CONFLICT,
+  FORWARD_AUTH_SERVER_ERROR,
+  FORWARD_AUTH_USERNAME_CONFLICT,
+} from '@/lib/auth-errors';
 import { useAuthConfig } from '@/lib/hooks/use-auth-config';
 
 function OIDCLoginButton({ callbackUrl }: { callbackUrl: string }) {
@@ -91,17 +95,19 @@ function DevLogin({ callbackUrl }: { callbackUrl: string }) {
 }
 
 type ForwardSignInState = 'idle' | 'signingIn' | 'failed';
-type ForwardFailure = 'headers' | 'server' | 'conflict';
+type ForwardFailure = 'headers' | 'server' | 'conflict' | 'usernameConflict';
 
 const FORWARD_FAILURE_MESSAGES = {
   headers: 'forwardAuth.headersMissing',
   server: 'forwardAuth.serverError',
   conflict: 'forwardAuth.accountConflict',
+  usernameConflict: 'forwardAuth.usernameConflict',
 } as const;
 
 function forwardFailureFor(errorCode: string | null | undefined): ForwardFailure {
   if (errorCode === FORWARD_AUTH_SERVER_ERROR) return 'server';
   if (errorCode === FORWARD_AUTH_ACCOUNT_CONFLICT) return 'conflict';
+  if (errorCode === FORWARD_AUTH_USERNAME_CONFLICT) return 'usernameConflict';
   return 'headers';
 }
 
