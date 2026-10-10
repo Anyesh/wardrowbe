@@ -359,12 +359,13 @@ This SQL repairs both, including a previous sign-in the new backend has already 
 
 ```sql
 BEGIN;
-LOCK TABLE users, user_identities IN SHARE ROW EXCLUSIVE MODE;
--- Rows the migration copied keep the user's created_at; those are the rows the old backend can
--- have left stale by moving external_id.
+LOCK TABLE users, user_identities IN EXCLUSIVE MODE;
+-- Rows the migration copied keep the created_at of a user that existed before the backup; those
+-- are the rows the old backend can have left stale by moving external_id.
 CREATE TEMP TABLE stale ON COMMIT DROP AS
 SELECT i.id, i.user_id FROM user_identities i JOIN users u ON u.id = i.user_id
 WHERE i.provider IN ('legacy', 'oidc', 'dev') AND i.created_at = u.created_at
+  AND u.created_at < TIMESTAMPTZ '<backup time>Z'
   AND u.external_id IS NOT NULL AND i.subject <> u.external_id;
 DELETE FROM user_identities WHERE id IN (SELECT id FROM stale);
 INSERT INTO user_identities (id, user_id, provider, subject, created_at)
@@ -382,7 +383,7 @@ ON CONFLICT DO NOTHING;
 COMMIT;
 ```
 
-Downgrading below this migration keeps one sign-in per account (OIDC first, then development login, then the pre-upgrade one) and gives an account that loses every candidate a placeholder no sign-in matches. A placeholder account with an unverified email can then be taken over by a verified sign-in with that email, and every token issued after the upgrade stops working. Restore the backup instead where you can.
+Downgrading below this migration keeps one sign-in per account (OIDC first, then development login, then the pre-upgrade one) and gives an account that loses every candidate a placeholder no sign-in matches. On the old version a verified sign-in whose email matches a placeholder account's verified email is linked to that account, while a matching unverified email moves to a new account and leaves the placeholder account's data behind. Every token issued after the upgrade stops working. Restore the backup instead where you can.
 
 ## Configuration
 
@@ -466,7 +467,7 @@ http://localhost:8080/api/auth/callback/oidc
 
 An account holds at most one sign-in identity per provider (development login, OIDC). A new identity whose verified email belongs to an existing account with a verified email joins that account, and its sessions sit alongside the sessions of the account's other providers. A second identity from the same provider replaces the first, so two OIDC subjects that share an email address take turns holding the account and each sign-in ends the other's sessions.
 
-To block a person, deactivate their account. Every request their tokens make is refused from then on:
+To block a person, deactivate their account. Every request their tokens make is refused from then on. If the account's email is unverified, a sign-in whose provider verifies that address still gets a new account with it, so check `email_verified` too:
 
 ```sql
 UPDATE users SET is_active = false WHERE email = 'person@example.com';
@@ -476,7 +477,7 @@ To unlink one sign-in identity and end its sessions, find the identity's id with
 
 ```sql
 BEGIN;
-LOCK TABLE users, user_identities IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE users, user_identities IN EXCLUSIVE MODE;
 UPDATE users u SET external_id = NULL
 FROM user_identities i
 WHERE i.id = '<identity id>' AND u.id = i.user_id
