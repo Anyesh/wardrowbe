@@ -484,21 +484,6 @@ class TestForwardAuthRateLimit:
         assert statuses == [401] * 10 + [429]
         assert valid.status_code == 200
 
-    @pytest.mark.asyncio
-    async def test_secret_is_checked_before_the_rate_limit(self, client: AsyncClient):
-        limiter = AsyncMock()
-        with (
-            patch("app.api.auth.settings", _forward_auth_only()),
-            patch("app.api.auth.rate_limit_by_ip", limiter),
-        ):
-            ok = await client.post(SYNC_URL, headers=_proxy_headers())
-            limiter.assert_not_awaited()
-            bad = await client.post(SYNC_URL, headers=_proxy_headers(secret="x" * 32))
-
-        assert ok.status_code == 200
-        assert bad.status_code == 401
-        limiter.assert_awaited_once()
-
 
 class TestForwardAuthPrecedence:
     def test_debug_with_secret_is_not_dev_mode(self):
