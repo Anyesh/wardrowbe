@@ -355,7 +355,7 @@ If the migration ran while the old backend was still serving (the steps above we
 - Users the old backend created after the migration have no identity, so they can sign in only through a verified email address. An unverified one gets a conflict error, and a verified sign-in claiming the same address takes the address over and detaches the old account.
 - Accounts the old backend linked to a new sign-in by email keep accepting the previous sign-in too.
 
-This SQL repairs the accounts that existed before the backup, including one whose previous sign-in the new backend has already accepted since, and gives an identity to every account the old backend created without one. It holds sign-ins back until it commits. Any other account the old backend linked to a new sign-in by email during the overlap (one created between the backup and the migration, or one the new backend created or linked) keeps the sign-ins it holds; the one the old backend linked gets the account back by signing in again with the same verified email, and an identity that should lose access has to be unlinked by hand (below). Take the backup right before upgrading to keep that window short. Replace `<backup time>` with the time from the backup's file name, written as `2026-10-11T09:30:00`:
+This SQL repairs the accounts that existed before the backup, including one whose previous sign-in the new backend has already accepted since, and gives an identity to every account the old backend created without one. It holds sign-ins back until it commits. If another account still holds a sign-in it needs to restore, it changes nothing and names the accounts it could not repair; unlink the conflicting identity by hand (below) and run it again. Any other account the old backend linked to a new sign-in by email during the overlap (one created between the backup and the migration, or one the new backend created or linked) keeps the sign-ins it holds; the one the old backend linked gets the account back by signing in again with the same verified email, and an identity that should lose access has to be unlinked by hand (below). Take the backup right before upgrading to keep that window short. Replace `<backup time>` with the time from the backup's file name, written as `2026-10-11T09:30:00`:
 
 ```sql
 BEGIN;
@@ -380,6 +380,17 @@ WHERE u.external_id IS NOT NULL
     )
   )
 ON CONFLICT DO NOTHING;
+DO $$
+DECLARE skipped text;
+BEGIN
+  SELECT string_agg(u.email, ', ') INTO skipped FROM users u
+  WHERE u.external_id IS NOT NULL
+    AND (u.id IN (SELECT user_id FROM stale) OR u.created_at >= TIMESTAMPTZ '<backup time>Z')
+    AND NOT EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id);
+  IF skipped IS NOT NULL THEN
+    RAISE EXCEPTION 'Nothing was changed. Another account holds the sign-in of: %', skipped;
+  END IF;
+END $$;
 COMMIT;
 ```
 
