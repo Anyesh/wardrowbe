@@ -4,7 +4,9 @@ import { decodeProxyHeader } from '@/lib/proxy-headers';
 import { clearSessionCookies, sessionCookie } from '@/lib/session-cookies';
 
 // A proxy that switches users keeps the old NextAuth session cookie, and a GET to
-// /api/auth/signout only renders a confirmation page, so the session is ended here.
+// /api/auth/signout only renders a confirmation page, so the session is ended here. Only a
+// forward-auth session is compared, because an OIDC or dev session behind a proxy that also
+// sends Remote-User was never that user's, and the backend refuses its API calls itself.
 export async function middleware(request: NextRequest) {
   const rawRemoteUser = request.headers.get('remote-user');
   if (!rawRemoteUser) return NextResponse.next();
@@ -12,7 +14,7 @@ export async function middleware(request: NextRequest) {
 
   const { name, secure } = sessionCookie();
   const token = await getToken({ req: request, cookieName: name, secureCookie: secure });
-  if (!token?.sub || token.sub === remoteUser) return NextResponse.next();
+  if (!token?.proxyUser || token.proxyUser === remoteUser) return NextResponse.next();
 
   const { pathname, search } = request.nextUrl;
   let response: NextResponse;

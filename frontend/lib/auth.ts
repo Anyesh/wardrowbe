@@ -237,6 +237,7 @@ export const authOptions: NextAuthOptions = {
         return {
           ...token,
           sub: user.id,
+          proxyUser: user.id,
           accessToken: user.accessToken,
           backendUserId: user.backendUserId,
           isNewUser: user.isNewUser,

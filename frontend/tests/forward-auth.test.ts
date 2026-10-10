@@ -213,6 +213,7 @@ describe('jwt callback', () => {
     expect(spy).not.toHaveBeenCalled()
     expect(token).toMatchObject({
       sub: 'alice',
+      proxyUser: 'alice',
       accessToken: 'backend-jwt',
       backendUserId: SYNC_RESPONSE.id,
       isNewUser: true,
@@ -234,5 +235,6 @@ describe('jwt callback', () => {
 
     expect(spy).toHaveBeenCalledTimes(1)
     expect(token.accessToken).toBe('backend-jwt')
+    expect(token.proxyUser).toBeUndefined()
   })
 })

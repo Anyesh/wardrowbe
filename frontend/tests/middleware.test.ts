@@ -9,7 +9,11 @@ const SECRET = 'nextauth-test-secret'
 const SESSION = 'next-auth.session-token'
 const SECURE_SESSION = '__Secure-next-auth.session-token'
 
-async function sessionFor(sub: string) {
+async function sessionFor(proxyUser: string) {
+  return encode({ token: { sub: proxyUser, proxyUser, accessToken: 'backend-jwt' }, secret: SECRET })
+}
+
+async function otherProviderSession(sub: string) {
   return encode({ token: { sub, accessToken: 'backend-jwt' }, secret: SECRET })
 }
 
@@ -47,15 +51,27 @@ describe('forward-auth user-switch middleware', () => {
     process.env = { ...originalEnv }
   })
 
-  it('does nothing without a Remote-User header, so dev and OIDC sessions are untouched', async () => {
+  it('does nothing without a Remote-User header', async () => {
     const response = await middleware(
-      request('/dashboard', { cookies: { [SESSION]: await sessionFor('dev-user') } })
+      request('/dashboard', { cookies: { [SESSION]: await sessionFor('alice') } })
     )
 
     expect(response.status).toBe(200)
     expect(response.headers.get('x-middleware-next')).toBe('1')
     expect(clearedCookies(response)).toEqual([])
   })
+
+  it.each(['/dashboard', '/api/v1/items'])(
+    'leaves an OIDC or dev session alone on %s when a proxy sends Remote-User',
+    async (path) => {
+      const response = await middleware(
+        request(path, { remoteUser: 'alice', cookies: { [SESSION]: await otherProviderSession('oidc-sub') } })
+      )
+
+      expect(response.headers.get('x-middleware-next')).toBe('1')
+      expect(clearedCookies(response)).toEqual([])
+    }
+  )
 
   it('lets the request through when the proxy user matches the session', async () => {
     const response = await middleware(
