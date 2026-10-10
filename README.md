@@ -355,12 +355,13 @@ If the migration ran while the old backend was still serving (the steps above we
 - Users the old backend created after the migration have no identity, so they can sign in only through a verified email address. An unverified one gets a conflict error, and a verified sign-in claiming the same address takes the address over and detaches the old account.
 - Accounts the old backend linked to a new sign-in by email keep accepting the previous sign-in too.
 
-This SQL repairs both, including a previous sign-in the new backend has already accepted since. It holds sign-ins back until it commits. Replace `<backup time>` with the time from the backup's file name, written as `2026-10-11T09:30:00`:
+This SQL repairs both, including a previous sign-in the new backend has already accepted since, and holds sign-ins back until it commits. It cannot repair an account that both backends linked to different sign-ins by email during the overlap: that account keeps the sign-in the new backend linked, and the one the old backend linked gets it back by signing in again with the same verified email. Unlink by hand (below) if the kept one should not have access. Replace `<backup time>` with the time from the backup's file name, written as `2026-10-11T09:30:00`:
 
 ```sql
 BEGIN;
 LOCK TABLE users, user_identities IN SHARE ROW EXCLUSIVE MODE;
--- Rows the migration copied keep the user's created_at, and only those can have gone stale.
+-- Rows the migration copied keep the user's created_at; those are the rows the old backend can
+-- have left stale by moving external_id.
 CREATE TEMP TABLE stale ON COMMIT DROP AS
 SELECT i.id, i.user_id FROM user_identities i JOIN users u ON u.id = i.user_id
 WHERE i.provider IN ('legacy', 'oidc', 'dev') AND i.created_at = u.created_at
@@ -471,20 +472,19 @@ To block a person, deactivate their account. Every request their tokens make is 
 UPDATE users SET is_active = false WHERE email = 'person@example.com';
 ```
 
-To unlink one sign-in identity and end its sessions, run the transaction below. It deletes the identity and clears the account's pre-upgrade sign-in when that names the identity or when the account keeps no other identity, so a later downgrade cannot hand the account back to an old sign-in. List the account's identities first with `SELECT provider, subject FROM user_identities WHERE user_id = '<user id>';`, then use the provider shown there: `oidc` or `dev`, or `legacy` for a sign-in that has not been used since the upgrade.
+To unlink one sign-in identity and end its sessions, find the identity's id with `SELECT id, provider, subject FROM user_identities WHERE user_id = '<user id>';` and run the transaction below with it. It deletes the identity and clears the account's pre-upgrade sign-in when that names the identity or when the account keeps no other identity, so a later downgrade cannot hand the account back to an old sign-in. The id stays the same when a pre-upgrade (`legacy`) sign-in is used again after you listed it. The `DELETE` must report one row; zero means another sign-in replaced the identity in the meantime, so list the identities again.
 
 ```sql
 BEGIN;
-UPDATE users SET external_id = NULL
-WHERE id = (SELECT user_id FROM user_identities WHERE provider = '<provider>' AND subject = '<subject>')
+LOCK TABLE users, user_identities IN SHARE ROW EXCLUSIVE MODE;
+UPDATE users u SET external_id = NULL
+FROM user_identities i
+WHERE i.id = '<identity id>' AND u.id = i.user_id
   AND (
-    external_id = '<subject>'
-    OR NOT EXISTS (
-      SELECT 1 FROM user_identities i
-      WHERE i.user_id = users.id AND NOT (i.provider = '<provider>' AND i.subject = '<subject>')
-    )
+    u.external_id = i.subject
+    OR NOT EXISTS (SELECT 1 FROM user_identities o WHERE o.user_id = u.id AND o.id <> i.id)
   );
-DELETE FROM user_identities WHERE provider = '<provider>' AND subject = '<subject>';
+DELETE FROM user_identities WHERE id = '<identity id>';
 COMMIT;
 ```
 

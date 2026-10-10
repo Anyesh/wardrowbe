@@ -136,7 +136,14 @@ kubectl apply -f network-policy.yaml
 
 ## Upgrading
 
-The manifests use `:latest` images with `imagePullPolicy: IfNotPresent`, so a node keeps running the image it already has until the new one is loaded and the pods restart. Back up the database first, as described in the main [README](../README.md#upgrading), then:
+The manifests use `:latest` images with `imagePullPolicy: IfNotPresent`, so a node keeps running the image it already has until the new one is loaded and the pods restart. Back up the database first; keep the file, since the main [README](../README.md#upgrading) explains why and its repair SQL needs the UTC time in the name:
+
+```bash
+kubectl -n wardrobe exec deployment/postgres -- sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+  > backup-$(date -u +%Y%m%dT%H%M%SZ).sql
+```
+
+Then:
 
 ```bash
 # 1. Make the new images reach the nodes. With images loaded onto each node, load the new ones
