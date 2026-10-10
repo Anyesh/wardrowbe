@@ -740,6 +740,33 @@ class TestRequestsAfterSignIn:
         assert {response.json()["email"] for response in responses} == {test_user.email}
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("remote_user", "expected"),
+        [
+            pytest.param("tinyauth-alice", (200, 404), id="same-user-reaches-the-file-lookup"),
+            pytest.param("tinyauth-other", (401, 401), id="switched-user-is-refused-everywhere"),
+        ],
+    )
+    async def test_proxy_user_switch_is_refused_on_every_route(
+        self, client: AsyncClient, remote_user: str, expected: tuple
+    ):
+        with (
+            patch("app.api.auth.settings", _forward_auth_only()),
+            patch("app.utils.auth.settings", _forward_auth_only()),
+        ):
+            signed_in = (await client.post(SYNC_URL, headers=_proxy_headers())).json()
+            headers = {
+                **_proxy_headers(user=remote_user),
+                "Authorization": f"Bearer {signed_in['access_token']}",
+            }
+            me = await client.get("/api/v1/users/me", headers=headers)
+            image = await client.get(
+                f"/api/v1/images/{signed_in['id']}/missing.jpg", headers=headers
+            )
+
+        assert (me.status_code, image.status_code) == expected
+
+    @pytest.mark.asyncio
     async def test_bearer_matching_non_ascii_remote_user_is_accepted(
         self, client: AsyncClient, db_session: AsyncSession
     ):
