@@ -99,6 +99,7 @@ kubectl -n wardrobe get pods -w
 ```bash
 kubectl apply -f backend.yaml
 kubectl apply -f worker.yaml
+kubectl apply -f image-worker.yaml
 kubectl apply -f frontend.yaml
 ```
 
@@ -131,6 +132,21 @@ kubectl -n wardrobe exec deployment/backend -- alembic upgrade head
 
 ```bash
 kubectl apply -f network-policy.yaml
+```
+
+## Upgrading
+
+The manifests use `:latest` images with `imagePullPolicy: IfNotPresent`, so a node keeps running the image it already has until the new one is loaded and the pods restart. Back up the database first, as described in the main [README](../README.md#upgrading), then:
+
+```bash
+# 1. Load or push the new images the way you did at install time.
+# 2. Restart the pods on the new images (include image-worker only if you deployed it).
+kubectl -n wardrobe rollout restart deployment/backend deployment/worker deployment/image-worker
+kubectl -n wardrobe rollout status deployment/backend
+kubectl -n wardrobe rollout status deployment/worker
+kubectl -n wardrobe rollout status deployment/image-worker
+# 3. Migrate inside the new backend.
+kubectl -n wardrobe exec deployment/backend -- alembic upgrade head
 ```
 
 ## Files
