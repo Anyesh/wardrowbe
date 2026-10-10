@@ -275,9 +275,7 @@ class TestProtectedRoutes:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    # The legacy token is minted in the same second its user and identity were created, as a
-    # first sign-in on main did, and must still authenticate.
-    @pytest.mark.parametrize("kind", ["identity", "legacy-same-second"])
+    @pytest.mark.parametrize("kind", ["identity", "legacy"])
     async def test_valid_token_succeeds(self, client: AsyncClient, test_user, auth_headers, kind):
         if kind != "identity":
             auth_headers = _bearer(legacy_token(test_user.external_id))
