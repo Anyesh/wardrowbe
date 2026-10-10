@@ -61,6 +61,17 @@ describe('header logout', () => {
     expect(signOut).toHaveBeenCalledWith({ redirect: false })
   })
 
+  it('ends the proxy session through /auth/logout when the auth config could not be read', async () => {
+    global.fetch = vi.fn(() => Promise.resolve(new Response('{}', { status: 503 }))) as unknown as typeof fetch
+    const client = renderHeader()
+    await waitFor(() => expect(client.getQueryState(['auth-config'])?.status).toBe('error'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'signOut' }))
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/auth/logout'))
+    expect(signOut).toHaveBeenCalledWith({ redirect: false })
+  })
+
   it('keeps the NextAuth sign-out redirect outside forward-auth mode', async () => {
     mockAuthConfig(false)
     const client = renderHeader()

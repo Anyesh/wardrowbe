@@ -25,9 +25,10 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   const handleLogout = async () => {
-    if (authConfig.data?.forward_auth) {
-      // The proxy session outlives the NextAuth one, so /auth/logout has to end it too or
-      // /login would sign the user straight back in.
+    // The proxy session outlives the NextAuth one, so /auth/logout has to end it too or /login
+    // would sign the user straight back in. A config that failed to load takes this path as
+    // well, because /auth/logout also works without a proxy.
+    if (authConfig.data?.forward_auth !== false) {
       await signOut({ redirect: false });
       window.location.assign('/auth/logout');
       return;
