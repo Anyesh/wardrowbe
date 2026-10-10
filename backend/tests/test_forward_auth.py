@@ -282,6 +282,40 @@ class TestForwardAuthLegacyClaim:
                 f"{stored.id}@detached.invalid" if outcome == "reclaim" else emails["other"]
             )
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("proxy_user", "stored_subject", "stored_email"),
+        [
+            pytest.param("bob", "bob", "bob@forward-auth.local", id="frontend-placeholder"),
+            pytest.param("åsa", "Ã¥sa", "Ã¥sa@forward-auth.local", id="username-read-as-latin1"),
+        ],
+    )
+    async def test_proxy_sign_in_claims_what_older_forward_auth_stored(
+        self, db_session: AsyncSession, proxy_user: str, stored_subject: str, stored_email: str
+    ):
+        run = uuid4()
+        proxy_user, stored_subject = f"{run}{proxy_user}", f"{run}{stored_subject}"
+        stored = User(
+            external_id=stored_subject,
+            email=f"{run}{stored_email}",
+            display_name="Stored",
+            email_verified=True,
+        )
+        await add_users_with_identities(db_session, stored)
+        await db_session.commit()
+        sync = UserSyncRequest(
+            external_id=proxy_user, email=f"real-{run}@example.net", display_name="Proxy"
+        )
+
+        user, identity_id, is_new = await UserService(db_session).sync_from_oidc(
+            sync, provider=FORWARD_AUTH, email_verified=True
+        )
+
+        held = await identity_ids_of(db_session, user.id)
+        assert (user.id, is_new, user.email) == (stored.id, False, f"real-{run}@example.net")
+        assert set(held) == {("legacy", stored_subject), (FORWARD_AUTH, proxy_user)}
+        assert identity_id == held[(FORWARD_AUTH, proxy_user)]
+
 
 class TestForwardAuthRejections:
     @pytest.mark.asyncio

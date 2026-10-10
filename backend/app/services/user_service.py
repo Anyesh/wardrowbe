@@ -21,6 +21,10 @@ EMAIL_IN_USE = "Email already in use by another account."
 FORWARD_AUTH = "forward_auth"
 LEGACY = "legacy"
 LEGACY_IDENTITY_CONFLICT = "legacy_identity_conflict"
+# Forward-auth before identities gave a user the proxy sent no Remote-Email for
+# "<Remote-User>@forward-auth.local" (frontend sign-in) or "<Remote-User>@example.com" (backend
+# header check).
+PRE_IDENTITY_PROXY_EMAIL_DOMAINS = ("forward-auth.local", "example.com")
 # Any oidc or dev subject equal to a user's external_id signed into that user before identities
 # existed, so these providers claim a matching legacy identity without granting anything new.
 LEGACY_CLAIMING_PROVIDERS = frozenset({"oidc", "dev"})
@@ -97,6 +101,16 @@ class UserService:
     async def holds_identity(self, user_id: UUID, provider: str, subject: str) -> bool:
         return await self._identity_id(user_id, provider, subject) is not None
 
+    async def _legacy_holder_of_proxy_user(self, subject: str) -> tuple[str, User | None]:
+        # Forward-auth before identities stored Remote-User as Starlette and Node read it, as
+        # Latin-1, so a non-ASCII username's legacy row holds its UTF-8 bytes as Latin-1.
+        latin1 = subject.encode("utf-8").decode("latin-1")
+        for legacy_subject in dict.fromkeys((subject, latin1)):
+            user = await self.get_by_identity(LEGACY, legacy_subject)
+            if user is not None:
+                return legacy_subject, user
+        return subject, None
+
     async def _fetch_current(self, query: Select) -> User | None:
         # populate_existing because a sync attempt that lost a race leaves the row's earlier
         # state in the identity map, and the next attempt must decide on the committed state.
@@ -117,9 +131,9 @@ class UserService:
         A user holds at most one identity per provider. An oidc or dev subject matching a
         user's legacy identity (its external_id from before identities existed) claims it. A
         forward_auth subject is a proxy username that may only coincide with a legacy subject,
-        so it claims a verified legacy holder only when that holder's email is the proxy's or
-        the "<Remote-User>@example.com" forward-auth gave users before identities, and the
-        holder has no forward_auth identity yet; the legacy row stays for its other owner. An
+        so it claims a verified legacy holder only when that holder's email is the proxy's or a
+        placeholder forward-auth gave users before identities, and the holder has no
+        forward_auth identity yet; the legacy row stays for its other owner. An
         unverified legacy holder is ignored, and any other verified one raises
         UserEmailConflictError(LEGACY_IDENTITY_CONFLICT) unless it already holds a forward_auth
         identity and the proxy's exact email, which the email rules below then decide. An
@@ -158,17 +172,19 @@ class UserService:
             user = await self.get_by_identity(LEGACY, subject)
             if user is not None:
                 return await self._sign_in_existing(
-                    user, sync_data, provider, email_verified, claim=True
+                    user, sync_data, provider, email_verified, legacy_subject=subject
                 )
         elif provider == FORWARD_AUTH:
-            user = await self.get_by_identity(LEGACY, subject)
+            legacy_subject, user = await self._legacy_holder_of_proxy_user(subject)
             # An unverified holder may be a squatter on the owner's address, so the email rules
             # below decide, and may reclaim the address, rather than its legacy row.
             if user is not None and user.email_verified:
                 holds_proxy_identity = await self._holds_provider(user.id, FORWARD_AUTH)
-                if not holds_proxy_identity and _is_proxy_users_email(user.email, sync_data):
+                if not holds_proxy_identity and _is_proxy_users_email(
+                    user.email, sync_data.email, legacy_subject
+                ):
                     return await self._sign_in_existing(
-                        user, sync_data, provider, email_verified, claim=True
+                        user, sync_data, provider, email_verified, legacy_subject=legacy_subject
                     )
                 if not (holds_proxy_identity and user.email == sync_data.email):
                     raise UserEmailConflictError(LEGACY_IDENTITY_CONFLICT)
@@ -198,7 +214,7 @@ class UserService:
         provider: str,
         email_verified: bool,
         *,
-        claim: bool = False,
+        legacy_subject: str | None = None,
     ) -> _SignIn:
         holder = None
         if user.email != sync_data.email:
@@ -224,12 +240,12 @@ class UserService:
                 await self._lock_in_id_order(holder, user)
                 await self._detach_email(holder)
             await self._update_unchanged(user, **values)
-            identity_id = await self._held_identity(
-                user.id, LEGACY if claim else provider, sync_data.external_id
-            )
-            if claim:
+            if legacy_subject is None:
+                identity_id = await self._held_identity(user.id, provider, sync_data.external_id)
+            else:
+                legacy_id = await self._held_identity(user.id, LEGACY, legacy_subject)
                 identity_id = await self._claim_legacy(
-                    user.id, identity_id, provider, sync_data.external_id
+                    user.id, legacy_id, provider, sync_data.external_id
                 )
         await self.db.refresh(user)
         return _SignIn(user, identity_id, False)
@@ -423,12 +439,13 @@ class UserService:
         await self.db.flush()
 
 
-def _is_proxy_users_email(email: str, sync_data: UserSyncRequest) -> bool:
-    # Forward-auth before identities stored a user the proxy sent no Remote-Email for under
-    # "<Remote-User>@example.com", and stored addresses as sent, so both sides are normalised.
+def _is_proxy_users_email(email: str, proxy_email: str, legacy_subject: str) -> bool:
+    # Stored addresses were kept as sent, so the stored side is normalised too.
     stored = _normalised(email)
-    placeholder = _normalised(f"{sync_data.external_id}@example.com")
-    return stored is not None and stored in (sync_data.email, placeholder)
+    placeholders = {
+        _normalised(f"{legacy_subject}@{domain}") for domain in PRE_IDENTITY_PROXY_EMAIL_DOMAINS
+    }
+    return stored is not None and (stored == proxy_email or stored in placeholders)
 
 
 def _normalised(email: str) -> str | None:
