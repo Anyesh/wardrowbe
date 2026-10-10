@@ -20,6 +20,9 @@ from tests.identity_helpers import (
 )
 
 PROXY_SECRET = "s" * 32
+# The first of each pair ends in a UTF-8 byte that Latin-1 reads as whitespace (\xa0, \x85), so
+# trimming before decoding would collapse it onto the second.
+TRAILING_BYTE_PAIRS = [("voilà", "voilÃ"), ("Å", "Ã")]
 SYNC_URL = "/api/v1/auth/sync"
 
 
@@ -432,21 +435,24 @@ class TestForwardAuthRejections:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("user", "other"), TRAILING_BYTE_PAIRS, ids=["trailing-nbsp", "trailing-nel"]
+    )
     async def test_remote_users_differing_in_a_trailing_byte_get_separate_accounts(
-        self, client: AsyncClient
+        self, client: AsyncClient, user: str, other: str
     ):
         prefix = str(uuid4())
         with patch("app.api.auth.settings", _forward_auth_only()):
             first = await client.post(
                 SYNC_URL,
                 headers=_proxy_headers(
-                    user=f"{prefix}voilà".encode(), email=f"{prefix}-a@example.com"
+                    user=f"{prefix}{user}".encode(), email=f"{prefix}-a@example.com"
                 ),
             )
             second = await client.post(
                 SYNC_URL,
                 headers=_proxy_headers(
-                    user=f"{prefix}voilÃ".encode(), email=f"{prefix}-b@example.com"
+                    user=f"{prefix}{other}".encode(), email=f"{prefix}-b@example.com"
                 ),
             )
 
@@ -824,16 +830,19 @@ class TestRequestsAfterSignIn:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("user", "other"), TRAILING_BYTE_PAIRS, ids=["trailing-nbsp", "trailing-nel"]
+    )
     async def test_bearer_for_a_remote_user_differing_in_a_trailing_byte_returns_401(
-        self, client: AsyncClient, db_session: AsyncSession
+        self, client: AsyncClient, db_session: AsyncSession, user: str, other: str
     ):
-        subject = f"{uuid4()}voilà"
-        bearer = await _proxy_user_bearer(db_session, subject)
+        prefix = str(uuid4())
+        bearer = await _proxy_user_bearer(db_session, f"{prefix}{user}")
 
         with patch("app.utils.auth.settings", _forward_auth_only()):
             response = await client.get(
                 "/api/v1/users/me",
-                headers={**_proxy_headers(user=subject.replace("à", "Ã").encode()), **bearer},
+                headers={**_proxy_headers(user=f"{prefix}{other}".encode()), **bearer},
             )
 
         assert response.status_code == 401

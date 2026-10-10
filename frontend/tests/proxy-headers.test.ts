@@ -32,8 +32,11 @@ describe('decodeProxyHeader', () => {
     expect(decodeProxyHeader(asNodeReadsIt(value))).toBe(expected)
   })
 
-  it('tells apart ids that differ only in a trailing UTF-8 byte', () => {
-    expect(decodeProxyHeader(asNodeReadsIt('voilà'))).not.toBe(decodeProxyHeader(asNodeReadsIt('voilÃ')))
+  it.each([
+    ['voilà', 'voilÃ'],
+    ['Å', 'Ã'],
+  ])('tells apart ids that differ only in a trailing UTF-8 byte: %s', (value, other) => {
+    expect(decodeProxyHeader(asNodeReadsIt(value))).not.toBe(decodeProxyHeader(asNodeReadsIt(other)))
   })
 
   it('trims spaces and tabs around the decoded value', () => {
