@@ -140,10 +140,12 @@ The manifests use `:latest` images with `imagePullPolicy: IfNotPresent`, so a no
 
 ```bash
 # 1. Load or push the new images the way you did at install time.
-# 2. Restart the pods on the new images (include image-worker only if you deployed it).
-kubectl -n wardrobe rollout restart deployment/backend deployment/worker deployment/image-worker
+# 2. Restart the pods on the new images.
+kubectl -n wardrobe rollout restart deployment/backend deployment/worker
 kubectl -n wardrobe rollout status deployment/backend
 kubectl -n wardrobe rollout status deployment/worker
+# Only if image-worker is deployed (kubectl -n wardrobe get deployment image-worker):
+kubectl -n wardrobe rollout restart deployment/image-worker
 kubectl -n wardrobe rollout status deployment/image-worker
 # 3. Migrate inside the new backend.
 kubectl -n wardrobe exec deployment/backend -- alembic upgrade head
