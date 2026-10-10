@@ -364,14 +364,24 @@ class TestForwardAuthRejections:
         assert await user_of_subject(db_session, "tinyauth-alice") is None
 
     @pytest.mark.asyncio
-    async def test_missing_remote_user_returns_400(self, client: AsyncClient):
-        headers = _proxy_headers()
-        del headers["Remote-User"]
+    @pytest.mark.parametrize(
+        "user",
+        [None, "\u200b\ufeff".encode(), "\u0301".encode()],
+        ids=["missing", "zero-width-only", "combining-mark-only"],
+    )
+    async def test_missing_or_blank_remote_user_returns_400(
+        self, client: AsyncClient, db_session: AsyncSession, user: bytes | None
+    ):
+        headers = _proxy_headers(user=user)
+        if user is None:
+            del headers["Remote-User"]
         with patch("app.api.auth.settings", _forward_auth_only()):
             response = await client.post(SYNC_URL, headers=headers)
 
         assert response.status_code == 400
         assert "Remote-User" in response.json()["detail"]
+        if user is not None:
+            assert await user_of_subject(db_session, user.decode()) is None
 
     @pytest.mark.asyncio
     async def test_overlong_remote_user_returns_400(

@@ -13,6 +13,7 @@ from app.database import DbSession
 from app.models.user import User
 from app.schemas.auth import IDENTITY_TOKEN
 from app.schemas.email import normalise_email
+from app.schemas.text import is_blank
 from app.schemas.user import (
     AuthConfigOIDC,
     AuthConfigResponse,
@@ -144,7 +145,7 @@ async def _forward_auth_identity(
 
     remote_user = proxy_header(request.headers, "Remote-User")
     remote_email = proxy_header(request.headers, "Remote-Email")
-    if not remote_user or not remote_email:
+    if is_blank(remote_user) or not remote_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The auth proxy must send Remote-User and Remote-Email headers",
