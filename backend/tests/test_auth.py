@@ -12,7 +12,7 @@ from app.config import get_settings
 from app.models import User, UserIdentity
 from app.schemas.auth import IDENTITY_TOKEN
 from app.services.user_service import UserService
-from app.utils.auth import decode_token
+from app.utils.auth import decode_token, get_current_session
 from tests.identity_helpers import (
     add_users_with_identities,
     legacy_token,
@@ -431,3 +431,13 @@ class TestProtectedRoutes:
         assert found.id == user.id
         assert "preferences" not in inspect(found).unloaded
         assert found.preferences.color_favorites == ["black", "navy", "white"]
+
+
+@pytest.mark.asyncio
+async def test_session_of_a_user_without_a_pre_upgrade_sign_in(db_session, test_user):
+    test_user.external_id = None
+    await db_session.commit()
+
+    session = await get_current_session(test_user)
+
+    assert (session.user_id, session.external_id) == (test_user.id, None)

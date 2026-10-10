@@ -20,7 +20,7 @@ class TokenPayload(BaseModel):
 
 class AuthSession(BaseModel):
     user_id: UUID
-    external_id: str
+    external_id: str | None
     email: str
     display_name: str
     family_id: UUID | None = None

@@ -100,7 +100,7 @@ class UserSyncResponse(BaseModel):
 
 class SessionUser(BaseModel):
     id: UUID
-    external_id: str
+    external_id: str | None
     email: str
     display_name: str
     family_id: UUID | None = None
