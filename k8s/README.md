@@ -139,7 +139,9 @@ kubectl apply -f network-policy.yaml
 The manifests use `:latest` images with `imagePullPolicy: IfNotPresent`, so a node keeps running the image it already has until the new one is loaded and the pods restart. Back up the database first, as described in the main [README](../README.md#upgrading), then:
 
 ```bash
-# 1. Load or push the new images the way you did at install time.
+# 1. Make the new images reach the nodes. With images loaded onto each node, load the new ones
+#    on every node. With a registry, a re-pushed :latest is not pulled again under IfNotPresent;
+#    push a new tag and point the deployments at it with `kubectl -n wardrobe set image`.
 # 2. Restart the pods on the new images.
 kubectl -n wardrobe rollout restart deployment/backend deployment/worker
 kubectl -n wardrobe rollout status deployment/backend
@@ -147,7 +149,10 @@ kubectl -n wardrobe rollout status deployment/worker
 # Only if image-worker is deployed (kubectl -n wardrobe get deployment image-worker):
 kubectl -n wardrobe rollout restart deployment/image-worker
 kubectl -n wardrobe rollout status deployment/image-worker
-# 3. Migrate inside the new backend.
+# 3. Check the backend pod runs the new image (compare the digest with the one you built or pushed),
+#    because migrating inside an old pod finds nothing to do and still reports success.
+kubectl -n wardrobe get pods -l app=backend -o jsonpath='{.items[*].status.containerStatuses[*].imageID}'
+# 4. Migrate inside the new backend.
 kubectl -n wardrobe exec deployment/backend -- alembic upgrade head
 ```
 

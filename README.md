@@ -355,13 +355,16 @@ If the migration ran while the old backend was still serving (the steps above we
 - Users the old backend created after the migration have no identity, so they can sign in only through a verified email address. An unverified one gets a conflict error, and a verified sign-in claiming the same address takes the address over and detaches the old account.
 - Accounts the old backend linked to a new sign-in by email keep accepting the previous sign-in too.
 
-This SQL repairs both. Replace `<backup time>` with the time from the backup's file name, written as `2026-10-11T09:30:00`:
+This SQL repairs both, including a previous sign-in the new backend has already accepted since. It holds sign-ins back until it commits. Replace `<backup time>` with the time from the backup's file name, written as `2026-10-11T09:30:00`:
 
 ```sql
 BEGIN;
+LOCK TABLE users, user_identities IN SHARE ROW EXCLUSIVE MODE;
+-- Rows the migration copied keep the user's created_at, and only those can have gone stale.
 CREATE TEMP TABLE stale ON COMMIT DROP AS
 SELECT i.id, i.user_id FROM user_identities i JOIN users u ON u.id = i.user_id
-WHERE i.provider = 'legacy' AND u.external_id IS NOT NULL AND i.subject <> u.external_id;
+WHERE i.provider IN ('legacy', 'oidc', 'dev') AND i.created_at = u.created_at
+  AND u.external_id IS NOT NULL AND i.subject <> u.external_id;
 DELETE FROM user_identities WHERE id IN (SELECT id FROM stale);
 INSERT INTO user_identities (id, user_id, provider, subject, created_at)
 SELECT gen_random_uuid(), u.id, 'legacy', u.external_id, u.created_at
