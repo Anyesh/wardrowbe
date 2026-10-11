@@ -1,12 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { getToken, type JWT } from 'next-auth/jwt';
 import { decodeProxyHeader } from '@/lib/proxy-headers';
 import { clearSessionCookies, sessionCookie } from '@/lib/session-cookies';
 
 // A proxy that switches users keeps the old NextAuth session cookie, and a GET to
-// /api/auth/signout only renders a confirmation page, so the session is ended here. Only a
-// forward-auth session is compared, because an OIDC or dev session behind a proxy that also
-// sends Remote-User was never that user's, and the backend refuses its API calls itself.
+// /api/auth/signout only renders a confirmation page, so the session is ended here.
 const NEXTAUTH_PREFIX = '/api/auth/';
 
 // NextAuth answers the session action for any path whose first segment after /api/auth decodes
@@ -21,19 +19,39 @@ function nextAuthAction(pathname: string): string | null {
   }
 }
 
+// A forward-auth session exists only because the proxy sent its Remote-User, so a request without
+// it came past the proxy. A proxy that also sends the forward-auth secret makes the login page
+// offer forward-auth alone, so an OIDC or dev session there was left by whoever used the browser
+// before, and its token still works wherever the backend is reached without the secret. A proxy
+// that sends Remote-User without the secret may sit in front of an OIDC deployment, which must
+// keep its sessions.
+function belongsToRequest(token: JWT, request: NextRequest): boolean {
+  const rawRemoteUser = request.headers.get('remote-user');
+  const remoteUser = rawRemoteUser ? decodeProxyHeader(rawRemoteUser) : null;
+  if (token.proxyUser) return token.proxyUser === remoteUser;
+  return !(remoteUser && request.headers.get('x-forward-auth-secret'));
+}
+
+async function sessionToken(request: NextRequest): Promise<JWT | null> {
+  const { name, secure } = sessionCookie();
+  try {
+    return await getToken({ req: request, cookieName: name, secureCookie: secure });
+  } catch (error) {
+    // getToken decodes an Authorization bearer value outside its own error handling, and a
+    // malformed one carries no session.
+    if (error instanceof URIError) return null;
+    throw error;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const action = nextAuthAction(pathname);
   // Every other NextAuth action, sign-in included, has to work for the new proxy user.
   if (action !== null && action !== 'session') return NextResponse.next();
 
-  const rawRemoteUser = request.headers.get('remote-user');
-  if (!rawRemoteUser) return NextResponse.next();
-  const remoteUser = decodeProxyHeader(rawRemoteUser);
-
-  const { name, secure } = sessionCookie();
-  const token = await getToken({ req: request, cookieName: name, secureCookie: secure });
-  if (!token?.proxyUser || token.proxyUser === remoteUser) return NextResponse.next();
+  const token = await sessionToken(request);
+  if (!token || belongsToRequest(token, request)) return NextResponse.next();
 
   let response: NextResponse;
   if (action === 'session') {

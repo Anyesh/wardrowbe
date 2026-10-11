@@ -17,9 +17,18 @@ async function otherProviderSession(sub: string) {
   return encode({ token: { sub, accessToken: 'backend-jwt' }, secret: SECRET })
 }
 
-function request(path: string, init: { remoteUser?: string; cookies?: Record<string, string> } = {}) {
+type RequestInit = {
+  remoteUser?: string
+  secret?: boolean
+  authorization?: string
+  cookies?: Record<string, string>
+}
+
+function request(path: string, init: RequestInit = {}) {
   const headers = new Headers()
   if (init.remoteUser) headers.set('remote-user', init.remoteUser)
+  if (init.secret) headers.set('x-forward-auth-secret', 'proxy-secret')
+  if (init.authorization) headers.set('authorization', init.authorization)
   if (init.cookies) {
     headers.set(
       'cookie',
@@ -51,9 +60,13 @@ describe('forward-auth user-switch middleware', () => {
     process.env = { ...originalEnv }
   })
 
-  it('does nothing without a Remote-User header', async () => {
+  // Only a proxy that sends the forward-auth secret makes the login page offer forward-auth alone.
+  it.each([
+    { name: 'with no proxy in front', remoteUser: undefined, secret: false },
+    { name: 'behind a proxy that sends Remote-User without the secret', remoteUser: 'alice', secret: false },
+  ])('leaves an OIDC or dev session alone $name', async ({ remoteUser, secret }) => {
     const response = await middleware(
-      request('/dashboard', { cookies: { [SESSION]: await sessionFor('alice') } })
+      request('/dashboard', { remoteUser, secret, cookies: { [SESSION]: await otherProviderSession('oidc-sub') } })
     )
 
     expect(response.status).toBe(200)
@@ -61,13 +74,30 @@ describe('forward-auth user-switch middleware', () => {
     expect(clearedCookies(response)).toEqual([])
   })
 
-  it('leaves an OIDC or dev session alone when a proxy sends Remote-User', async () => {
-    const response = await middleware(
-      request('/dashboard', { remoteUser: 'alice', cookies: { [SESSION]: await otherProviderSession('oidc-sub') } })
+  // A forward-auth session without Remote-User reached the frontend past the proxy, and an OIDC or
+  // dev session behind a forward-auth proxy was left by whoever used the browser before.
+  it.each([
+    { name: 'a forward-auth session without Remote-User', remoteUser: undefined, secret: false, oidc: false },
+    { name: 'an OIDC or dev session behind a forward-auth proxy', remoteUser: 'bob', secret: true, oidc: true },
+  ])('ends $name', async ({ remoteUser, secret, oidc }) => {
+    const session = oidc ? await otherProviderSession('alice-oidc-sub') : await sessionFor('alice')
+
+    const page = await middleware(request('/dashboard', { remoteUser, secret, cookies: { [SESSION]: session } }))
+    const sessionAction = await middleware(
+      request('/api/auth/session', { remoteUser, secret, cookies: { [SESSION]: session } })
     )
 
+    expect(page.status).toBe(307)
+    expect(new URL(page.headers.get('location')!).pathname).toBe('/login')
+    expect(clearedCookies(page)).toEqual([SESSION])
+    expect(await sessionAction.json()).toEqual({})
+    expect(clearedCookies(sessionAction)).toEqual([SESSION])
+  })
+
+  it('treats a bearer header it cannot decode as no session', async () => {
+    const response = await middleware(request('/dashboard', { remoteUser: 'alice', authorization: 'Bearer %' }))
+
     expect(response.headers.get('x-middleware-next')).toBe('1')
-    expect(clearedCookies(response)).toEqual([])
   })
 
   it('lets the request through when the proxy user matches the session', async () => {
@@ -90,7 +120,7 @@ describe('forward-auth user-switch middleware', () => {
   })
 
   it('lets the request through when nobody is signed in yet', async () => {
-    const response = await middleware(request('/dashboard', { remoteUser: 'alice' }))
+    const response = await middleware(request('/dashboard', { remoteUser: 'alice', secret: true }))
 
     expect(response.headers.get('x-middleware-next')).toBe('1')
   })
