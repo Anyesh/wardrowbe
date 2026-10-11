@@ -58,7 +58,7 @@ describe('header logout', () => {
     fireEvent.click(screen.getByRole('button', { name: 'signOut' }))
 
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/auth/logout'))
-    expect(signOut).toHaveBeenCalledWith({ redirect: false })
+    expect(signOut).not.toHaveBeenCalled()
   })
 
   it('ends the proxy session through /auth/logout when the auth config could not be read', async () => {
@@ -69,7 +69,7 @@ describe('header logout', () => {
     fireEvent.click(screen.getByRole('button', { name: 'signOut' }))
 
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/auth/logout'))
-    expect(signOut).toHaveBeenCalledWith({ redirect: false })
+    expect(signOut).not.toHaveBeenCalled()
   })
 
   it('keeps the NextAuth sign-out redirect outside forward-auth mode', async () => {

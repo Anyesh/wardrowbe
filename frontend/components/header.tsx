@@ -24,12 +24,13 @@ export function Header({ onMenuClick }: HeaderProps) {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     // The proxy session outlives the NextAuth one, so /auth/logout has to end it too or /login
     // would sign the user straight back in. A config that failed to load takes this path as
-    // well, because /auth/logout also works without a proxy.
+    // well, because /auth/logout also works without a proxy. The route clears the session
+    // cookies itself; a client signOut first would tell every tab, and one of them could sign
+    // back in through the still-live proxy session before the proxy logout.
     if (authConfig.data?.forward_auth !== false) {
-      await signOut({ redirect: false });
       window.location.assign('/auth/logout');
       return;
     }
