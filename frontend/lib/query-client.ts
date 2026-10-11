@@ -19,6 +19,8 @@ function handleError(error: unknown) {
   // Let other errors bubble up to error boundary
 }
 
+// A caller that shows its own translated toast (or handles the failure silently) sets
+// meta.toastsOwnErrors, so that the raw server message does not appear beside it.
 export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -41,11 +43,12 @@ export function createQueryClient(): QueryClient {
       },
     },
     queryCache: new QueryCache({
-      onError: handleError,
+      onError: (error, query) => {
+        if (query.meta?.toastsOwnErrors) return;
+        handleError(error);
+      },
     }),
     mutationCache: new MutationCache({
-      // A caller that shows its own translated toast opts out, so that the raw server message
-      // does not appear as a second toast beside it.
       onError: (error, _variables, _context, mutation) => {
         if (mutation.meta?.toastsOwnErrors) return;
         handleError(error);

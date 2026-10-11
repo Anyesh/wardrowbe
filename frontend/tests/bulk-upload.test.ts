@@ -10,6 +10,10 @@ import {
 import type { BulkUploadResponse } from '@/lib/hooks/use-items'
 import { fetchBulkUploadLimit } from '@/lib/hooks/use-features'
 import { queryKeys } from '@/lib/hooks/query-keys'
+import { createQueryClient } from '@/lib/query-client'
+import { toast } from 'sonner'
+
+vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
 
 // Minimal fake XHR standing in for uploadBulkItemsChunk's XMLHttpRequest use -
 // queues one canned response per call, replayed on send() via a `load` event.
@@ -175,9 +179,34 @@ describe('fetchBulkUploadLimit', () => {
     expect(await fetchBulkUploadLimit(client)).toBeNull()
   })
 
-  it('returns null when the features request fails', async () => {
-    vi.mocked(fetch).mockRejectedValueOnce(new Error('offline'))
-    expect(await fetchBulkUploadLimit(clientWithFeatures())).toBeNull()
+  describe('when the features request fails', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.mocked(toast.error).mockClear()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it.each([
+      ['rejects', () => Promise.reject(new Error('offline'))],
+      [
+        'hangs',
+        (_input: RequestInfo | URL, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))
+          }),
+      ],
+    ])('returns null without a global toast when it %s', async (_label, respond) => {
+      vi.mocked(fetch).mockImplementationOnce(respond)
+
+      const limit = fetchBulkUploadLimit(createQueryClient())
+      await vi.advanceTimersByTimeAsync(30_000)
+
+      expect(await limit).toBeNull()
+      expect(toast.error).not.toHaveBeenCalled()
+    })
   })
 })
 
