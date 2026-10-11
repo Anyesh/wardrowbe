@@ -548,7 +548,7 @@ Put the proxy in front of the frontend on `:3000` with the default `docker-compo
 
 Every snippet below strips any `Remote-*` and `X-Forward-Auth-Secret` headers the client sent before the auth server's headers are set, and adds the secret on the way to Wardrowbe. Keep both steps if you adapt them to another proxy.
 
-**Caddy + TinyAuth** (with the default compose; use `localhost:8080` for prod):
+**Caddy + TinyAuth**, both on the stack's Docker network (with the prod compose, proxy to `nginx:80` instead of `frontend:3000`):
 
 ```caddyfile
 wardrobe.example.com {
@@ -559,7 +559,7 @@ wardrobe.example.com {
 			uri /api/auth/caddy
 			copy_headers Remote-User Remote-Email Remote-Name
 		}
-		reverse_proxy localhost:3000 {
+		reverse_proxy frontend:3000 {
 			header_up X-Forward-Auth-Secret {$FORWARD_AUTH_SECRET}
 		}
 	}

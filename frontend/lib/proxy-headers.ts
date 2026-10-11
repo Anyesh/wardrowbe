@@ -20,7 +20,7 @@ function decodeUtf8(value: string): string {
 
 // Node decodes header bytes as Latin-1, but proxies send UTF-8 names and ids verbatim. This mirrors
 // the backend's proxy_header so that the frontend keys a session by the same Remote-User the backend
-// stores as external_id.
+// stores as the forward-auth identity's subject.
 export function decodeProxyHeader(value: string): string {
   return decodeUtf8(value).replace(OPTIONAL_WHITESPACE, '');
 }
