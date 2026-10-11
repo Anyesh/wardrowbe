@@ -4,10 +4,11 @@ from fastapi import HTTPException
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.config import get_settings
+from app.schemas.auth import TokenPayload
 from app.utils.auth import decode_token
 
-# MCP tools never see the HTTP request, so the authenticated external id reaches them this way.
-current_external_id: ContextVar[str | None] = ContextVar("mcp_current_external_id", default=None)
+# MCP tools never see the HTTP request, so the authenticated token reaches them this way.
+current_token: ContextVar[TokenPayload | None] = ContextVar("mcp_current_token", default=None)
 
 _NOT_FOUND = b'{"detail":"Not Found"}'
 _NOT_AUTHENTICATED = b'{"detail":"Not authenticated"}'
@@ -30,11 +31,11 @@ class MCPAuthMiddleware:
         except HTTPException:
             await _respond(send, 401, _NOT_AUTHENTICATED, challenge=True)
             return
-        reset = current_external_id.set(payload.sub)
+        reset = current_token.set(payload)
         try:
             await self.app(scope, receive, send)
         finally:
-            current_external_id.reset(reset)
+            current_token.reset(reset)
 
 
 def _bearer_token(scope: Scope) -> str | None:

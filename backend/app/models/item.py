@@ -38,6 +38,11 @@ class TaggingStatus(enum.StrEnum):
     tagged = "tagged"
 
 
+class ProcessingKind(enum.StrEnum):
+    rotate = "rotate"
+    background_removal = "background_removal"
+
+
 class TaggedBy(enum.StrEnum):
     auto = "auto"
     manual = "manual"

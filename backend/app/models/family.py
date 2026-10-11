@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -10,6 +11,11 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.user import User
+
+
+class FamilyRole(enum.StrEnum):
+    admin = "admin"
+    member = "member"
 
 
 class Family(Base):

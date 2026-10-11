@@ -1,14 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
-
-// Helper to set token if available (for NextAuth mode)
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
+import { queryKeys } from '@/lib/hooks/query-keys';
+import { SLOW_STALE_TIME } from '@/lib/hooks/query-timing';
+import type { KeyedInsight } from '@/lib/insights';
 
 export interface ColorDistribution {
   color: string;
@@ -35,6 +31,7 @@ export interface WearStats {
 
 export interface AcceptanceRateTrend {
   period: string;
+  period_start: string;
   total: number;
   accepted: number;
   rejected: number;
@@ -60,7 +57,9 @@ export interface AnalyticsData {
   least_worn: WearStats[];
   never_worn: WearStats[];
   acceptance_trend: AcceptanceRateTrend[];
+  // English sentences from older API versions; insight_items is what the UI renders.
   insights: string[];
+  insight_items?: KeyedInsight[];
 }
 
 export function useAnalytics(days = 30) {
@@ -68,11 +67,11 @@ export function useAnalytics(days = 30) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['analytics', days],
+    queryKey: queryKeys.analytics.summary(days),
     queryFn: () => api.get<AnalyticsData>('/analytics', {
       params: { days: String(days) },
     }),
     enabled: status !== 'loading',
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: SLOW_STALE_TIME,
   });
 }

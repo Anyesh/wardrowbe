@@ -170,6 +170,9 @@
       "originalRestoreError": "Originalbild konnte nicht wiederhergestellt werden",
       "originalRestored": "Originalbild wiederhergestellt",
       "washError": "Konnte nicht als gewaschen markiert werden",
+      "logWear": "Tragen erfassen",
+      "wearLogged": "Tragen erfasst",
+      "wearLogError": "Tragen konnte nicht erfasst werden",
       "washed": "Stück als gewaschen markiert"
     },
     "brand": "Marke",

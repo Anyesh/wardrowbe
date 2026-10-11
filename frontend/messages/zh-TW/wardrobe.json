@@ -170,6 +170,9 @@
       "originalRestoreError": "還原原圖失敗",
       "originalRestored": "原圖已還原",
       "washError": "標記為已洗失敗",
+      "logWear": "記錄穿著",
+      "wearLogged": "已記錄穿著",
+      "wearLogError": "記錄穿著失敗",
       "washed": "單品已標記為已洗"
     },
     "brand": "品牌",

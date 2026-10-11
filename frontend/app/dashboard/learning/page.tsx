@@ -29,12 +29,16 @@ import {
   type StyleInsight,
   type LearnedColorScore,
 } from '@/lib/hooks/use-learning';
-import { useColorLabel } from '@/lib/hooks/use-translated-constants';
+import { useColorLabel, useOccasionLabel, useStyleLabel } from '@/lib/hooks/use-translated-constants';
+import { useInsightCategoryLabel, useLearningInsightText } from '@/lib/hooks/use-insight-text';
 import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDate } from '@/lib/utils';
+import { useUserTimezone } from '@/lib/hooks/use-user';
+import { RATING_MAX } from '@/lib/generated/scales';
 
 function StatCard({
   title,
@@ -113,8 +117,36 @@ function LoadingSkeleton() {
   );
 }
 
+const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric',
+};
+
+const INTERPRETATION_KEYS: Record<string, string> = {
+  stronglyLiked: 'interpretationStronglyLiked',
+  liked: 'interpretationLiked',
+  neutral: 'interpretationNeutral',
+  disliked: 'interpretationDisliked',
+  stronglyDisliked: 'interpretationStronglyDisliked',
+};
+
+const WEATHER_TYPE_KEYS: Record<string, string> = {
+  cold: 'weatherTypeCold',
+  cool: 'weatherTypeCool',
+  mild: 'weatherTypeMild',
+  hot: 'weatherTypeHot',
+};
+
 function ColorPreferenceBar({ colorScore }: { colorScore: LearnedColorScore }) {
+  const t = useTranslations('learning');
   const colorLabel = useColorLabel();
+  const interpretationKey = colorScore.interpretation_key
+    ? INTERPRETATION_KEYS[colorScore.interpretation_key]
+    : undefined;
   const score = colorScore.score;
   const percentage = Math.abs(score) * 100;
   const isPositive = score >= 0;
@@ -131,7 +163,7 @@ function ColorPreferenceBar({ colorScore }: { colorScore: LearnedColorScore }) {
             ) : (
               <ThumbsDown className="h-3 w-3 text-red-500" />
             )}
-            {colorScore.interpretation}
+            {interpretationKey ? t(interpretationKey) : colorScore.interpretation}
           </span>
         </div>
         <div className="h-2 bg-muted rounded overflow-hidden">
@@ -219,6 +251,12 @@ function InsightCard({
   onAcknowledge: (id: string) => void;
 }) {
   const t = useTranslations('learning');
+  const insightText = useLearningInsightText();
+  const categoryLabel = useInsightCategoryLabel();
+  // Insights stored before message keys existed have none; their English text shows.
+  const message = insight.message_key
+    ? insightText({ key: insight.message_key, params: insight.message_params ?? {} })
+    : null;
   const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
     color: Sparkles,
     style: Heart,
@@ -249,11 +287,11 @@ function InsightCard({
       <div className="flex items-start gap-3 pr-6">
         <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
         <div>
-          <h4 className="font-medium">{insight.title}</h4>
-          <p className="text-sm text-muted-foreground mt-1">{insight.description}</p>
+          <h4 className="font-medium">{message?.title ?? insight.title}</h4>
+          <p className="text-sm text-muted-foreground mt-1">{message?.description ?? insight.description}</p>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="outline" className="text-xs">
-              {insight.category}
+              {categoryLabel(insight.category)}
             </Badge>
             <span className="text-xs text-muted-foreground">
               {t('confidence', { percent: Math.round(insight.confidence * 100) })}
@@ -303,6 +341,10 @@ function NoLearningData({ onRecompute, isRefreshing }: { onRecompute: () => void
 export default function LearningPage() {
   const t = useTranslations('learning');
   const colorLabel = useColorLabel();
+  const occasionLabel = useOccasionLabel();
+  const styleLabel = useStyleLabel();
+  const locale = useLocale();
+  const timezone = useUserTimezone();
   const { data, isLoading, isError } = useLearning();
   const recompute = useRecomputeLearning();
   const generateInsights = useGenerateInsights();
@@ -399,7 +441,9 @@ export default function LearningPage() {
             <StatCard
               title={t('stats.averageRating')}
               value={profile.average_rating != null ? profile.average_rating.toFixed(1) : '-'}
-              description={profile.average_rating != null ? t('stats.outOf5Stars') : t('stats.rateMoreOutfits')}
+              description={profile.average_rating != null
+                ? t('stats.outOfStars', { max: RATING_MAX })
+                : t('stats.rateMoreOutfits')}
               icon={Sparkles}
             />
             <StatCard
@@ -486,7 +530,7 @@ export default function LearningPage() {
                       const percentage = Math.abs(styleScore.score) * 100;
                       return (
                         <div key={styleScore.style} className="flex items-center justify-between">
-                          <span className="capitalize">{styleScore.style}</span>
+                          <span>{styleLabel(styleScore.style)}</span>
                           <div className="flex items-center gap-2">
                             <Progress
                               value={percentage}
@@ -542,7 +586,7 @@ export default function LearningPage() {
                   {profile.occasion_patterns.map((pattern) => (
                     <div key={pattern.occasion} className="p-4 rounded-lg bg-muted/50">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium capitalize">{pattern.occasion}</h4>
+                        <h4 className="font-medium">{occasionLabel(pattern.occasion)}</h4>
                         <Badge variant="outline">
                           {t('successRate', { percent: Math.round(pattern.success_rate * 100) })}
                         </Badge>
@@ -589,7 +633,11 @@ export default function LearningPage() {
                         {pref.weather_type === 'mild' && '🌤️'}
                         {pref.weather_type === 'hot' && '☀️'}
                       </div>
-                      <h4 className="font-medium capitalize">{pref.weather_type}</h4>
+                      {WEATHER_TYPE_KEYS[pref.weather_type] ? (
+                        <h4 className="font-medium">{t(WEATHER_TYPE_KEYS[pref.weather_type])}</h4>
+                      ) : (
+                        <h4 className="font-medium capitalize">{pref.weather_type}</h4>
+                      )}
                       <p className="text-sm text-muted-foreground mt-1">
                         {t('weatherPreferences.layers', { count: pref.preferred_layers.toFixed(1) })}
                       </p>
@@ -658,7 +706,12 @@ export default function LearningPage() {
           {/* Last Updated */}
           {profile.last_computed_at && (
             <p className="text-xs text-muted-foreground text-center">
-              {t('lastUpdated', { date: new Date(profile.last_computed_at).toLocaleString() })}
+              {t('lastUpdated', {
+                date: formatDate(profile.last_computed_at, locale, {
+                  ...DATE_TIME_OPTIONS,
+                  timeZone: timezone,
+                }),
+              })}
             </p>
           )}
         </>

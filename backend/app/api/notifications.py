@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import and_, select
 
+from app.api.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.config import get_settings
 from app.database import DbSession
 from app.models.notification import Notification, NotificationSettings
@@ -319,13 +320,13 @@ async def delete_schedule(
 async def list_notification_history(
     current_user: Annotated[User, Depends(get_current_user)],
     db: DbSession,
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
     offset: int = Query(0, ge=0),
 ):
     result = await db.execute(
         select(Notification)
         .where(Notification.user_id == current_user.id)
-        .order_by(Notification.created_at.desc())
+        .order_by(Notification.created_at.desc(), Notification.id.asc())
         .offset(offset)
         .limit(limit)
     )

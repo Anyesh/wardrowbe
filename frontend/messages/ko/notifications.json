@@ -25,6 +25,7 @@
     },
     "helpers": {
       "accessTokenOptional": "ntfy 서버가 인증을 사용하는 경우 필요해요",
+      "accessTokenServerDefault": "비워 두면 이 서버에 설정된 액세스 토큰을 사용합니다",
       "mattermostWebhook": "Mattermost 설정에서 수신 웹훅을 생성하세요",
       "topicSubscribe": "ntfy 앱에서 이 토픽을 구독하세요"
     },

@@ -130,7 +130,7 @@ def register(mcp: MCPServer) -> None:
         request = validated(FeedbackRequest, payload)
         async with tool_context() as ctx:
             outfit = await load_owned_outfit(ctx, outfit_id)
-            feedback = await OutfitService(ctx.db).apply_feedback(ctx.user, outfit, request)
+            feedback, _ = await OutfitService(ctx.db).apply_feedback(ctx.user, outfit, request)
             await ctx.db.commit()
             await ctx.db.refresh(feedback)
             response = feedback_to_response(feedback).model_dump(mode="json")

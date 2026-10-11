@@ -10,10 +10,20 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from sqlalchemy import case, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from app.api.pagination import PaginationParams
 from app.config import get_settings
 from app.database import DbSession
-from app.models.item import ClothingItem, ItemStatus, TaggingStatus
+from app.models.item import (
+    ClothingItem,
+    ItemHistory,
+    ItemImage,
+    ItemStatus,
+    ProcessingKind,
+    TaggingStatus,
+)
+from app.models.outfit import Outfit, OutfitItem
 from app.models.user import User
 from app.schemas.item import (
     AnalysisCompletion,
@@ -50,7 +60,7 @@ from app.services.image_service import ImageService
 from app.services.item_service import ItemService, stamp_manual_tag_writeback
 from app.services.user_service import UserService
 from app.utils.auth import get_current_user
-from app.utils.signed_urls import sign_image_url
+from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
 from app.utils.upload_tokens import redeem_upload_token
 from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
@@ -121,8 +131,7 @@ async def _read_image_or_413(image: UploadFile) -> bytes:
 async def list_items(
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pagination: Annotated[PaginationParams, Depends()],
     type: str | None = None,
     subtype: str | None = None,
     colors: str | None = None,
@@ -155,16 +164,16 @@ async def list_items(
     items, total = await item_service.get_list(
         user_id=current_user.id,
         filters=filters,
-        page=page,
-        page_size=page_size,
+        page=pagination.page,
+        page_size=pagination.page_size,
     )
 
     return ItemListResponse(
         items=[ItemResponse.model_validate(item) for item in items],
         total=total,
-        page=page,
-        page_size=page_size,
-        has_more=(page * page_size) < total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        has_more=pagination.has_more(total),
     )
 
 
@@ -227,7 +236,7 @@ async def _store_new_item(
         try:
             redis = await create_pool(get_redis_settings())
             try:
-                full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
+                full_image_path = str(image_service.get_image_path(image_paths["image_path"]))
                 job = await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
@@ -443,7 +452,9 @@ async def bulk_create_items(
                     # `processing` whenever the AI is fast enough to win the race.
                     await db.commit()
                     try:
-                        full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
+                        full_image_path = str(
+                            image_service.get_image_path(image_paths["image_path"])
+                        )
                         job = await redis.enqueue_job(
                             "tag_item_image",
                             str(item.id),
@@ -697,10 +708,11 @@ async def bulk_analyze_items(
             detail="Failed to connect to job queue",
         ) from None
 
+    image_service = ImageService()
     try:
         for item, job_id in to_enqueue:
             try:
-                full_image_path = f"{settings.storage_path}/{item.image_path}"
+                full_image_path = str(image_service.get_image_path(item.image_path))
                 job = await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
@@ -866,7 +878,7 @@ async def bulk_rotate_items(
 
     for item in to_queue:
         item.status = ItemStatus.processing
-        item.processing_kind = "rotate"
+        item.processing_kind = ProcessingKind.rotate
         # Clear any stale ai_started_at from a prior tagging run, otherwise the
         # frontend reads it as this job's elapsed time and shows a wildly wrong
         # duration for what is a sub-second rotation.
@@ -974,7 +986,7 @@ async def bulk_remove_background_items(
 
     for item in to_queue:
         item.status = ItemStatus.processing
-        item.processing_kind = "background_removal"
+        item.processing_kind = ProcessingKind.background_removal
         # Clear any stale ai_started_at left over from a prior tagging run -
         # otherwise the frontend reads it as this job's elapsed "analyzing"
         # time, showing a wildly wrong duration for what is actually a
@@ -1057,8 +1069,8 @@ def _tagging_scope(user_id: UUID) -> tuple:
         # aren't AI tagging - exclude them so they don't pollute this banner's
         # counts. is_distinct_from (not not_in) so a NULL processing_kind,
         # which every ordinary tagging item has, stays included.
-        ClothingItem.processing_kind.is_distinct_from("background_removal"),
-        ClothingItem.processing_kind.is_distinct_from("rotate"),
+        ClothingItem.processing_kind.is_distinct_from(ProcessingKind.background_removal),
+        ClothingItem.processing_kind.is_distinct_from(ProcessingKind.rotate),
     )
 
 
@@ -1110,7 +1122,7 @@ async def _items_being_analyzed(
             item_id=row.id,
             name=row.name,
             type=row.type,
-            image_url=sign_image_url(row.thumbnail_path or row.image_path),
+            image_url=sign_optional(row.thumbnail_path, fallback=row.image_path),
             started_at=row.ai_started_at,
         )
         for row in result
@@ -1401,12 +1413,6 @@ async def get_item_history(
     current_user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(10, ge=1, le=100),
 ) -> list[dict]:
-    from sqlalchemy import select as sa_select
-    from sqlalchemy.orm import selectinload
-
-    from app.models.item import ItemHistory
-    from app.models.outfit import Outfit, OutfitItem
-
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 
@@ -1418,7 +1424,7 @@ async def get_item_history(
 
     # Eagerly load outfit and its items for context
     result = await db.execute(
-        sa_select(ItemHistory)
+        select(ItemHistory)
         .where(ItemHistory.item_id == item_id)
         .options(
             selectinload(ItemHistory.outfit)
@@ -1447,9 +1453,7 @@ async def get_item_history(
                         "id": str(oi.item.id),
                         "type": oi.item.type,
                         "name": oi.item.name,
-                        "thumbnail_url": sign_image_url(oi.item.thumbnail_path)
-                        if oi.item.thumbnail_path
-                        else None,
+                        "thumbnail_url": sign_optional(oi.item.thumbnail_path),
                     }
                     for oi in sorted(h.outfit.items, key=lambda x: x.position)
                 ],
@@ -1556,6 +1560,8 @@ async def trigger_ai_analysis(
         await db.commit()
         return {"status": "deferred", "reason": "vision disabled"}
 
+    image_service = ImageService()
+
     if item.status == ItemStatus.processing and item.ai_job_id:
         # Dedup: a live job already owns this item. If ai_job_id is None instead,
         # a prior enqueue silently failed and there's nothing to dedup against -
@@ -1587,7 +1593,7 @@ async def trigger_ai_analysis(
         try:
             redis = await create_pool(get_redis_settings())
             try:
-                full_image_path = f"{settings.storage_path}/{image_path}"
+                full_image_path = str(image_service.get_image_path(image_path))
                 enqueued = await redis.enqueue_job(
                     "tag_item_image",
                     str(item_id),
@@ -1618,7 +1624,7 @@ async def trigger_ai_analysis(
 
         redis = await create_pool(get_redis_settings())
         try:
-            full_image_path = f"{settings.storage_path}/{item.image_path}"
+            full_image_path = str(image_service.get_image_path(item.image_path))
             job = await redis.enqueue_job(
                 "tag_item_image",
                 str(item.id),
@@ -1788,7 +1794,8 @@ async def remove_item_background(
         )
 
     recovering_from_error = (
-        item.status == ItemStatus.error and item.processing_kind == "background_removal"
+        item.status == ItemStatus.error
+        and item.processing_kind == ProcessingKind.background_removal
     )
 
     hex_color = request.bg_color.lstrip("#")
@@ -1957,8 +1964,6 @@ async def add_item_image(
     current_user: Annotated[User, Depends(get_current_user)],
     image: UploadFile = File(...),
 ) -> ItemImageResponse:
-    from app.models.item import ItemImage
-
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 
@@ -1969,8 +1974,6 @@ async def add_item_image(
         )
 
     # Check max images limit
-    from sqlalchemy import func, select
-
     count_result = await db.execute(select(func.count()).where(ItemImage.item_id == item_id))
     current_count = count_result.scalar() or 0
     if current_count >= 4:
@@ -2023,10 +2026,6 @@ async def delete_item_image(
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
-    from sqlalchemy import select
-
-    from app.models.item import ItemImage
-
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 
@@ -2068,10 +2067,6 @@ async def reorder_item_images(
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[ItemImageResponse]:
-    from sqlalchemy import select
-
-    from app.models.item import ItemImage
-
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 
@@ -2102,10 +2097,6 @@ async def set_primary_image(
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
-    from sqlalchemy import select
-
-    from app.models.item import ItemImage
-
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 

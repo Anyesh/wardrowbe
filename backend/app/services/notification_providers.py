@@ -96,7 +96,15 @@ class NtfyProvider:
     def __init__(self, config: NtfyConfig):
         self.server = config.server.rstrip("/")
         self.topic = config.topic
-        self.token = config.token
+        self.token = config.token or self._operator_token()
+
+    def _operator_token(self) -> str | None:
+        settings = get_settings()
+        if not settings.ntfy_token or not settings.ntfy_server:
+            return None
+        if settings.ntfy_server.rstrip("/") != self.server:
+            return None
+        return settings.ntfy_token
 
     async def send(self, notification: NtfyNotification) -> dict:
         headers = {

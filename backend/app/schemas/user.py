@@ -20,7 +20,7 @@ PlaceName = Annotated[SingleLineText, Field(max_length=100)]
 
 # The IdP owns this name and a refusal would lock the user out on every login, so it is flattened
 # and cut to the column width instead of being refused.
-def _fit_idp_display_name(value: object) -> object:
+def fit_idp_display_name(value: object) -> object:
     flattened = flatten_control_characters(value)
     if not isinstance(flattened, str):
         return flattened
@@ -53,7 +53,7 @@ class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    external_id: str
+    external_id: str | None
     family_id: UUID | None = None
     role: str
     is_active: bool
@@ -70,7 +70,7 @@ class UserSyncRequest(BaseModel):
     email: EmailAddress | None = Field(
         None, description="Email address; derived from ID token when omitted"
     )
-    display_name: Annotated[str, BeforeValidator(_fit_idp_display_name)]
+    display_name: Annotated[str, BeforeValidator(fit_idp_display_name)]
     avatar_url: Annotated[str | None, BeforeValidator(_drop_overlong_avatar_url)] = None
     id_token: str | None = Field(
         None, description="OIDC ID token for verification (required when OIDC is configured)"
@@ -100,7 +100,7 @@ class UserSyncResponse(BaseModel):
 
 class SessionUser(BaseModel):
     id: UUID
-    external_id: str
+    external_id: str | None
     email: str
     display_name: str
     family_id: UUID | None = None
@@ -122,3 +122,5 @@ class AuthConfigOIDC(BaseModel):
 class AuthConfigResponse(BaseModel):
     oidc: AuthConfigOIDC
     dev_mode: bool = False
+    forward_auth: bool = False
+    mobile_notice: str | None = None

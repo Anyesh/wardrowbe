@@ -7,11 +7,12 @@ import {
   GlassWater,
   Heart,
   Shirt,
+  Tag,
   TreePine,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { useOccasions } from '@/lib/hooks/use-translated-constants';
+import { useOccasionOptions } from '@/lib/hooks/use-translated-constants';
 import type { FeaturedOccasion } from '@/lib/types';
 
 export const OCCASION_CONFIG: Record<
@@ -50,17 +51,30 @@ export const OCCASION_CONFIG: Record<
   },
 };
 
+const OTHER_OCCASION_CONFIG = {
+  icon: <Tag className="h-4 w-4" />,
+  color:
+    'hover:border-zinc-400 hover:bg-zinc-50 data-[selected=true]:border-zinc-500 data-[selected=true]:bg-zinc-50 data-[selected=true]:text-zinc-700',
+};
+
+function configFor(value: string) {
+  return value in OCCASION_CONFIG
+    ? OCCASION_CONFIG[value as FeaturedOccasion]
+    : OTHER_OCCASION_CONFIG;
+}
+
 interface OccasionChipsProps {
   selected: string | null;
   onSelect: (occasion: string) => void;
+  extraOccasions?: readonly (string | null | undefined)[];
 }
 
-export function OccasionChips({ selected, onSelect }: OccasionChipsProps) {
-  const occasions = useOccasions();
+export function OccasionChips({ selected, onSelect, extraOccasions = [] }: OccasionChipsProps) {
+  const occasions = useOccasionOptions([...extraOccasions, selected]);
   return (
     <div className="flex flex-wrap gap-2">
       {occasions.map((occasion) => {
-        const config = OCCASION_CONFIG[occasion.value];
+        const config = configFor(occasion.value);
         return (
           <button
             key={occasion.value}

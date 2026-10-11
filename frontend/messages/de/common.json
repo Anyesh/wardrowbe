@@ -54,6 +54,8 @@
   "previous": "Zurück",
   "previousPage": "Vorherige Seite",
   "privacyMatters": "Deine Privatsphäre ist uns wichtig",
+  "rateStars": "Mit {count, plural, one {# Stern} other {# Sternen}} bewerten",
+  "ratedStars": "Mit {rating, plural, one {# Stern} other {# Sternen}} von {max} bewertet",
   "remove": "Entfernen",
   "retry": "Erneut versuchen",
   "save": "Speichern",

@@ -23,6 +23,11 @@ vi.mock('next-auth/react', () => ({
 }))
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
+  useFormatter: () => ({
+    number: (value: number) => String(value),
+    list: (items: string[]) => items.join(', '),
+  }),
   useTranslations: () => {
     const t = (key: string) => key;
     t.raw = (key: string) => key;

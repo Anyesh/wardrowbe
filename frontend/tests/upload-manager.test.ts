@@ -5,6 +5,7 @@ import { QueryClient } from '@tanstack/react-query'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { enqueueFiles, getPendingUploads, markUploading } from '@/lib/upload-queue'
 import * as manager from '@/lib/upload-manager'
+import { queryKeys } from '@/lib/hooks/query-keys'
 
 // This file runs in the node environment (not jsdom, see the directive
 // above) - jsdom's FormData rejects a Blob that round-tripped through
@@ -28,11 +29,20 @@ function jsonResponse(body: unknown, ok = true, status = 200) {
   } as Response
 }
 
+// Seeding the features query keeps the manager from spending a mocked fetch
+// response on GET /health/features; without max_bulk_upload_count the
+// manager falls back to learning the limit from the server's 400.
+function clientWithFeatures(features: Record<string, unknown> = { background_removal: false }) {
+  const client = new QueryClient()
+  client.setQueryData(queryKeys.features, features)
+  return client
+}
+
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
   vi.restoreAllMocks()
   vi.spyOn(globalThis, 'fetch')
-  manager.init(new QueryClient())
+  manager.init(clientWithFeatures())
 })
 
 describe('startDrain', () => {
@@ -252,8 +262,52 @@ describe('startDrain', () => {
     expect(chunkSizes).toEqual([2, 1])
   })
 
+  it('chunks by the limit the features endpoint reports, without a rejected request first', async () => {
+    manager.init(clientWithFeatures({ background_removal: false, max_bulk_upload_count: 2 }))
+    await enqueueFiles(
+      [makeFile('a.jpg'), makeFile('b.jpg'), makeFile('c.jpg'), makeFile('d.jpg')],
+      false
+    )
+    vi.mocked(fetch).mockReset()
+    const sentCounts: number[] = []
+    vi.mocked(fetch).mockImplementation(async (_url, init) => {
+      const names = (init?.body as FormData).getAll('upload_keys').map(String)
+      sentCounts.push(names.length)
+      return jsonResponse({
+        total: names.length,
+        successful: names.length,
+        failed: 0,
+        results: names.map((filename) => ({ filename, success: true })),
+      })
+    })
+
+    await manager.startDrain()
+
+    expect(await getPendingUploads()).toHaveLength(0)
+    expect(sentCounts).toEqual([2, 2])
+  })
+
+  it('still drains when the features request fails', async () => {
+    manager.init(new QueryClient())
+    await enqueueFiles([makeFile('a.jpg')], false)
+    vi.mocked(fetch).mockReset()
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url).includes('/health/features')) throw new Error('offline')
+      return jsonResponse({
+        total: 1,
+        successful: 1,
+        failed: 0,
+        results: [{ filename: 'a.jpg', success: true }],
+      })
+    })
+
+    await manager.startDrain()
+
+    expect(await getPendingUploads()).toHaveLength(0)
+  })
+
   it('invalidates the items query after each chunk', async () => {
-    const queryClient = new QueryClient()
+    const queryClient = clientWithFeatures()
     const spy = vi.spyOn(queryClient, 'invalidateQueries')
     manager.init(queryClient)
 

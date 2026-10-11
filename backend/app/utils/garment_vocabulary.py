@@ -5,6 +5,8 @@ from pathlib import Path
 _VOCABULARY_PATH = Path(__file__).parent.parent / "data" / "garment_vocabulary.json"
 _DATA = json.loads(_VOCABULARY_PATH.read_text())
 
+# Order matters because canonical_item_order sorts an outfit's items by their role's position here.
+ROLES: tuple[str, ...] = tuple(_DATA["roles"])
 TYPES: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["types"])
 ITEM_ROLE: dict[str, str] = {entry["value"]: entry["role"] for entry in _DATA["types"]}
 DEFAULT_WASH_INTERVALS: dict[str, int] = {

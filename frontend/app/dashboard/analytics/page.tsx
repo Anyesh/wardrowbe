@@ -14,7 +14,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
-import { useColorLabel } from '@/lib/hooks/use-translated-constants';
+import { AcceptanceTrendChart } from '@/components/acceptance-trend-chart';
+import { useColorLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useAnalyticsInsightLines } from '@/lib/hooks/use-insight-text';
 import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -116,6 +118,7 @@ function ColorBar({ color, percentage }: { color: string; percentage: number }) 
 }
 
 function ItemCard({ item }: { item: { id: string; name: string | null; type: string; thumbnail_url: string | null; wear_count: number } }) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('analytics');
   return (
     <Link
@@ -126,7 +129,7 @@ function ItemCard({ item }: { item: { id: string; name: string | null; type: str
         {item.thumbnail_url ? (
           <Image
             src={item.thumbnail_url}
-            alt={item.name || item.type}
+            alt={item.name || typeLabel(item.type)}
             fill
             className="object-cover"
             sizes="48px"
@@ -138,46 +141,19 @@ function ItemCard({ item }: { item: { id: string; name: string | null; type: str
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{item.name || item.type}</p>
-        <p className="text-sm text-muted-foreground capitalize">{item.type}</p>
+        <p className="font-medium truncate">{item.name || typeLabel(item.type)}</p>
+        <p className="text-sm text-muted-foreground capitalize">{typeLabel(item.type)}</p>
       </div>
       <Badge variant="secondary">{t('wearCount', { count: item.wear_count })}</Badge>
     </Link>
   );
 }
 
-function AcceptanceTrendChart({ data }: { data: { period: string; rate: number; total: number }[] }) {
-  const t = useTranslations('analytics');
-  const maxTotal = Math.max(...data.map((d) => d.total), 1);
-
-  return (
-    <div className="space-y-2">
-      {data.map((week, i) => (
-        <div key={i} className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground w-16 flex-shrink-0">{week.period}</span>
-          <div className="flex-1 flex items-center gap-2">
-            <div
-              className="h-4 bg-primary/20 rounded relative overflow-hidden"
-              style={{ width: `${(week.total / maxTotal) * 100}%`, minWidth: week.total > 0 ? '20px' : '0' }}
-            >
-              <div
-                className="absolute inset-y-0 left-0 bg-primary rounded"
-                style={{ width: `${week.rate}%` }}
-              />
-            </div>
-            {week.total > 0 && (
-              <span className="text-xs text-muted-foreground">{t('percent', { value: week.rate.toFixed(0) })}</span>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function AnalyticsPage() {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('analytics');
   const { data, isLoading, isError } = useAnalytics(60);
+  const insights = useAnalyticsInsightLines(data);
 
   if (isLoading) {
     return (
@@ -199,7 +175,7 @@ export default function AnalyticsPage() {
     );
   }
 
-  const { wardrobe, color_distribution, type_distribution, most_worn, least_worn, never_worn, acceptance_trend, insights } = data;
+  const { wardrobe, color_distribution, type_distribution, most_worn, least_worn, never_worn, acceptance_trend } = data;
 
   return (
     <div className="space-y-6">
@@ -298,7 +274,7 @@ export default function AnalyticsPage() {
               <div className="space-y-3">
                 {type_distribution.map((type) => (
                   <div key={type.type} className="flex items-center justify-between">
-                    <span className="capitalize">{type.type}</span>
+                    <span className="capitalize">{typeLabel(type.type)}</span>
                     <div className="flex items-center gap-2">
                       <Progress value={type.percentage} className="w-24 h-2" />
                       <span className="text-sm text-muted-foreground w-12 text-right">

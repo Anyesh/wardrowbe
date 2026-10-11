@@ -25,6 +25,7 @@
     },
     "helpers": {
       "accessTokenOptional": "如果 ntfy 服务器需要认证则必填",
+      "accessTokenServerDefault": "留空则使用此服务器上配置的访问令牌",
       "mattermostWebhook": "在 Mattermost 设置中创建一个传入 Webhook",
       "topicSubscribe": "在你的 ntfy 应用中订阅此主题"
     },

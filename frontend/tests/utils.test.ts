@@ -1,5 +1,15 @@
-import { describe, it, expect, vi } from 'vitest'
-import { cn, chunkArray, formatWornAgo, isDeliverableEmail } from '@/lib/utils'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
+import {
+  cn,
+  chunkArray,
+  formatDate,
+  formatDateKey,
+  formatRelativeDate,
+  formatShortDate,
+  formatWornAgo,
+  getTodayDateStringInTimezone,
+  isDeliverableEmail,
+} from '@/lib/utils'
 
 const mockT = vi.fn((key: string, params?: Record<string, unknown>) =>
   params ? `${key}:${JSON.stringify(params)}` : key
@@ -151,5 +161,113 @@ describe('isDeliverableEmail', () => {
     [undefined, false],
   ])('%j -> %s', (email, expected) => {
     expect(isDeliverableEmail(email)).toBe(expected)
+  })
+})
+
+describe('date helpers', () => {
+  const originalTz = process.env.TZ
+
+  const inTimezone = (tz: string) => {
+    process.env.TZ = tz
+  }
+
+  afterEach(() => {
+    process.env.TZ = originalTz
+    vi.useRealTimers()
+  })
+
+  describe('formatDateKey', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    it('keeps the local day just before midnight west of UTC', () => {
+      inTimezone('America/New_York')
+      vi.setSystemTime(new Date('2026-03-15T03:30:00Z'))
+      expect(formatDateKey(new Date())).toBe('2026-03-14')
+    })
+
+    it('keeps the local day just after midnight east of UTC', () => {
+      inTimezone('Asia/Kathmandu')
+      vi.setSystemTime(new Date('2026-03-14T20:00:00Z'))
+      expect(formatDateKey(new Date())).toBe('2026-03-15')
+    })
+
+    it('zero-pads month and day', () => {
+      expect(formatDateKey(new Date(2026, 0, 5))).toBe('2026-01-05')
+    })
+
+    it('rolls a month-overflow date into the right key', () => {
+      expect(formatDateKey(new Date(2026, 2, 0))).toBe('2026-02-28')
+    })
+  })
+
+  describe('formatShortDate', () => {
+    it('formats a date key as the same local calendar day west of UTC', () => {
+      inTimezone('America/Los_Angeles')
+      expect(formatShortDate('2026-10-05', 'en')).toBe('Mon, Oct 5')
+    })
+
+    it('uses the given locale rather than the runtime default', () => {
+      expect(formatShortDate('2026-10-05', 'de')).toBe('Mo., 5. Okt.')
+    })
+
+    it('accepts a Date', () => {
+      expect(formatShortDate(new Date(2026, 9, 5), 'en')).toBe('Mon, Oct 5')
+    })
+  })
+
+  describe('formatDate', () => {
+    it('reads a date key as local, not UTC midnight', () => {
+      inTimezone('America/Los_Angeles')
+      expect(formatDate('2026-10-05', 'en-US')).toBe('10/5/2026')
+    })
+
+    it('reads a timestamp as an instant', () => {
+      inTimezone('Asia/Kathmandu')
+      expect(formatDate('2026-10-05T20:00:00Z', 'en-US')).toBe('10/6/2026')
+    })
+
+    it('passes format options through', () => {
+      expect(
+        formatDate('2026-10-05', 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      ).toBe('Oct 5, 2026')
+    })
+  })
+
+  describe('formatRelativeDate', () => {
+    const today = '2026-10-05'
+
+    it.each([
+      ['en', ['in 3 days', '3 days ago', 'tomorrow', 'today']],
+      ['de', ['in 3 Tagen', 'vor 3 Tagen', 'morgen', 'heute']],
+      ['ja', ['3 日後', '3 日前', '明日', '今日']],
+    ])('words the distance in calendar days on the %s locale', (locale, expected) => {
+      expect(
+        ['2026-10-08', '2026-10-02', '2026-10-06', '2026-10-05'].map((key) =>
+          formatRelativeDate(key, locale as string, today)
+        )
+      ).toEqual(expected)
+    })
+
+    it('switches to weeks, months and years as the distance grows', () => {
+      expect(formatRelativeDate('2026-10-19', 'en', today)).toBe('in 2 weeks')
+      expect(formatRelativeDate('2026-08-05', 'en', today)).toBe('2 months ago')
+      expect(formatRelativeDate('2025-10-05', 'en', today)).toBe('last year')
+    })
+
+    it('counts a day across a daylight-saving change as one day', () => {
+      inTimezone('America/New_York')
+      expect(formatRelativeDate('2026-03-08', 'en', '2026-03-09')).toBe('yesterday')
+    })
+
+    it('counts from the given today, not the browser day', () => {
+      inTimezone('America/Los_Angeles')
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-10-06T03:00:00Z'))
+      const today = getTodayDateStringInTimezone('America/Los_Angeles')
+      expect(formatRelativeDate('2026-10-05', 'en', today)).toBe('today')
+      expect(formatRelativeDate('2026-10-06', 'en', today)).toBe('tomorrow')
+    })
   })
 })

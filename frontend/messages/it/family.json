@@ -29,13 +29,6 @@
     },
     "rateOutfit": "Valuta l'outfit di {member}",
     "ratingCount": "({count, plural, one {{count} valutazione} other {{count} valutazioni}})",
-    "sourceBadges": {
-      "external": "Esterno",
-      "manual": "Manuale",
-      "onDemand": "Su richiesta",
-      "pairing": "Abbinamento",
-      "scheduled": "Programmato"
-    },
     "subtitle": "Sfoglia e valuta gli outfit dei membri della tua famiglia",
     "title": "Feed Famiglia",
     "unknownMember": "Questo membro",

@@ -16,6 +16,7 @@
     "title": "Aucune combinaison pour le moment"
   },
   "generate": {
+    "colorAndType": "{type} {color}",
     "description": "L'IA créera des tenues complètes avec cet article",
     "failed": "Échec de la génération des combinaisons",
     "generate": "Générer des tenues",

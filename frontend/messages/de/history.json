@@ -27,13 +27,6 @@
   "loadError": "Verlauf konnte nicht geladen werden. Bitte versuche es erneut.",
   "noOutfitsForDate": "Keine Outfits für {date}",
   "outfitCount": "{count, plural, one {# Outfit} other {# Outfits}}",
-  "sourceBadges": {
-    "external": "Extern",
-    "manual": "Manuell",
-    "onDemand": "Auf Anfrage",
-    "pairing": "Kombination",
-    "scheduled": "Geplant"
-  },
   "status": {
     "accepted": "Angenommen",
     "expired": "Abgelaufen",

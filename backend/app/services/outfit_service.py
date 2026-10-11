@@ -3,7 +3,7 @@ from datetime import date, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import Select, and_, func, select, update
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,8 +17,8 @@ from app.models.outfit import (
     UserFeedback,
 )
 from app.models.user import User
-from app.schemas.item import DEFAULT_WASH_INTERVALS
 from app.schemas.outfit import FeedbackRequest
+from app.services.item_service import ItemService
 from app.services.studio_service import StudioService
 from app.utils.timezone import get_user_today
 
@@ -37,7 +37,12 @@ class OutfitListFilters:
     item_type: str | None = None
     family_member_view: bool = False
     search: str | None = None
+    occasions: list[str] | None = None
     cloned_from_outfit_id: UUID | None = None
+
+
+def _escape_like(term: str) -> str:
+    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 class OutfitService:
@@ -128,8 +133,17 @@ class OutfitService:
         if filters.item_type:
             clauses.append(Outfit.source_item.has(ClothingItem.type == filters.item_type))
 
+        # Occasions match too because unnamed outfits are titled by their translated occasion;
+        # the client sends the occasion keys whose label contains the search term.
+        search_matches = []
         if filters.search:
-            clauses.append(Outfit.name.ilike(f"%{filters.search}%"))
+            search_matches.append(
+                Outfit.name.ilike(f"%{_escape_like(filters.search)}%", escape="\\")
+            )
+        if filters.occasions:
+            search_matches.append(Outfit.occasion.in_(filters.occasions))
+        if search_matches:
+            clauses.append(or_(*search_matches))
 
         if filters.cloned_from_outfit_id is not None:
             clauses.append(Outfit.cloned_from_outfit_id == filters.cloned_from_outfit_id)
@@ -174,7 +188,7 @@ class OutfitService:
                 selectinload(Outfit.feedback),
                 selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
             )
-            .order_by(Outfit.created_at.desc())
+            .order_by(Outfit.created_at.desc(), Outfit.id.asc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
@@ -205,7 +219,7 @@ class OutfitService:
 
     async def apply_feedback(
         self, user: User, outfit: Outfit, request: FeedbackRequest
-    ) -> UserFeedback:
+    ) -> tuple[UserFeedback, Outfit | None]:
         if outfit.feedback:
             feedback = outfit.feedback
         else:
@@ -229,34 +243,25 @@ class OutfitService:
         if request.worn and not feedback.worn_at:
             user_today = get_user_today(user)
             feedback.worn_at = user_today
-            for outfit_item in outfit.items:
-                item = outfit_item.item
-                effective_interval = (
-                    item.wash_interval
-                    if item.wash_interval is not None
-                    else DEFAULT_WASH_INTERVALS.get(item.type, 3)
-                )
-                await self.db.execute(
-                    update(ClothingItem)
-                    .where(ClothingItem.id == item.id)
-                    .values(
-                        wear_count=ClothingItem.wear_count + 1,
-                        last_worn_at=user_today,
-                        wears_since_wash=ClothingItem.wears_since_wash + 1,
-                        needs_wash=ClothingItem.wears_since_wash + 1 >= effective_interval,
-                    )
-                )
+            await ItemService(self.db).record_wears(
+                user.id,
+                [outfit_item.item_id for outfit_item in outfit.items],
+                user_today,
+                occasion=outfit.occasion,
+                outfit_id=outfit.id,
+            )
         if request.worn_with_modifications is not None:
             feedback.worn_with_modifications = request.worn_with_modifications
         if request.modification_notes is not None:
             feedback.modification_notes = request.modification_notes
         if request.actually_worn is not None:
             feedback.actually_worn = request.actually_worn
+        replacement: Outfit | None = None
         if request.wore_instead_items is not None:
             feedback.wore_instead_items = [str(item_id) for item_id in request.wore_instead_items]
             if request.wore_instead_items:
                 studio_service = StudioService(self.db)
-                await studio_service.create_wore_instead(
+                replacement = await studio_service.create_wore_instead(
                     user=user,
                     original_outfit_id=outfit.id,
                     item_ids=list(request.wore_instead_items),
@@ -265,4 +270,4 @@ class OutfitService:
                     scheduled_for=None,
                 )
 
-        return feedback
+        return feedback, replacement

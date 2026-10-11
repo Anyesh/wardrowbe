@@ -16,6 +16,7 @@ from app.models.outfit import (
     OutfitStatus,
 )
 from app.models.user import User
+from tests.identity_helpers import add_users_with_identities
 
 
 def _make_item(user_id, item_type="shirt", **kwargs) -> ClothingItem:
@@ -239,7 +240,7 @@ class TestFamilyRatingEndpoint:
             is_active=True,
             family_id=family.id,
         )
-        db_session.add(rater)
+        (rater_identity,) = await add_users_with_identities(db_session, rater)
         await db_session.flush()
 
         item = _make_item(test_user.id)
@@ -250,7 +251,7 @@ class TestFamilyRatingEndpoint:
         db_session.add(pairing)
         await db_session.commit()
 
-        rater_token = create_access_token(rater.external_id)
+        rater_token = create_access_token(rater.id, rater_identity.id)
         rater_headers = {"Authorization": f"Bearer {rater_token}"}
 
         response = await client.post(
@@ -282,10 +283,10 @@ class TestFamilyRatingEndpoint:
             timezone="UTC",
             is_active=True,
         )
-        db_session.add(outsider)
+        (outsider_identity,) = await add_users_with_identities(db_session, outsider)
         await db_session.commit()
 
-        outsider_token = create_access_token(outsider.external_id)
+        outsider_token = create_access_token(outsider.id, outsider_identity.id)
         outsider_headers = {"Authorization": f"Bearer {outsider_token}"}
 
         response = await client.post(
@@ -314,7 +315,7 @@ class TestFamilyRatingEndpoint:
             is_active=True,
             family_id=family.id,
         )
-        db_session.add(rater)
+        (rater_identity,) = await add_users_with_identities(db_session, rater)
         await db_session.flush()
 
         item = _make_item(test_user.id)
@@ -325,7 +326,7 @@ class TestFamilyRatingEndpoint:
         db_session.add(pairing)
         await db_session.commit()
 
-        rater_token = create_access_token(rater.external_id)
+        rater_token = create_access_token(rater.id, rater_identity.id)
         rater_headers = {"Authorization": f"Bearer {rater_token}"}
 
         # First rating

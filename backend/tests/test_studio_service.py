@@ -458,6 +458,7 @@ async def test_wore_instead(db_session, studio_user, wardrobe_items):
     await db_session.commit()
 
     assert replacement.replaces_outfit_id == original.id
+    assert replacement.name is None
     assert len(replacement.items) == 2
     assert replacement.feedback.rating == 5
 

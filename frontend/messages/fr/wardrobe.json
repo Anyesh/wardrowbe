@@ -170,6 +170,9 @@
       "originalRestoreError": "Échec de la restauration de l'image originale",
       "originalRestored": "Image originale restaurée",
       "washError": "Échec du marquage comme lavé",
+      "logWear": "Noter un port",
+      "wearLogged": "Port enregistré",
+      "wearLogError": "Échec de l'enregistrement du port",
       "washed": "Article marqué comme lavé"
     },
     "brand": "Marque",

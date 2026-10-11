@@ -27,13 +27,6 @@
   "loadError": "기록을 불러오지 못했어요. 다시 시도해 주세요.",
   "noOutfitsForDate": "{date}에 코디가 없어요",
   "outfitCount": "{count, plural, other {코디 #개}}",
-  "sourceBadges": {
-    "external": "외부",
-    "manual": "수동",
-    "onDemand": "즉시",
-    "pairing": "페어링",
-    "scheduled": "예약됨"
-  },
   "status": {
     "accepted": "수락됨",
     "expired": "만료됨",

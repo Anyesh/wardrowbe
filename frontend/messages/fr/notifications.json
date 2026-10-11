@@ -25,6 +25,7 @@
     },
     "helpers": {
       "accessTokenOptional": "Requis si votre serveur ntfy utilise l'authentification",
+      "accessTokenServerDefault": "Laissez vide pour utiliser le jeton d'accès configuré sur ce serveur",
       "mattermostWebhook": "Créez un webhook entrant dans les paramètres Mattermost",
       "topicSubscribe": "Abonnez-vous à ce sujet dans votre application ntfy"
     },

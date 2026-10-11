@@ -1,7 +1,5 @@
 import importlib.util
 import json
-import os
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -10,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import ClothingItem, User, UserPreference
 from app.utils.garment_vocabulary import canonical_color
+from tests.migration_helpers import migration_downgrade
 
 REVISION = "952169051179"
 PREVIOUS = "d5e6f7a8b9c0"
@@ -23,11 +22,6 @@ def _migration(revision: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
-
-
-def _alembic(*args: str) -> None:
-    env = {**os.environ, "DATABASE_URL": os.environ["TEST_DATABASE_URL"]}
-    subprocess.run(["python", "-m", "alembic", *args], env=env, check=True, capture_output=True)
 
 
 REMAPPED = {
@@ -55,20 +49,12 @@ async def _stored_colours(db_session: AsyncSession, user_id) -> dict:
     return stored
 
 
-async def _rerun_migration(db_session: AsyncSession) -> None:
-    await db_session.commit()
-    _alembic("downgrade", PREVIOUS)
-    _alembic("upgrade", "head")
-
-
 @pytest.mark.asyncio
 async def test_remaps_and_deduplicates_colours_idempotently(
     db_session: AsyncSession, test_user: User
 ):
     user_id = test_user.id
-    await db_session.commit()
-    _alembic("downgrade", PREVIOUS)
-    try:
+    async with migration_downgrade(db_session, PREVIOUS):
         db_session.add_all(
             [
                 ClothingItem(
@@ -128,11 +114,10 @@ async def test_remaps_and_deduplicates_colours_idempotently(
             update(UserPreference).where(UserPreference.user_id == user_id).values(color_avoid=None)
         )
         await db_session.commit()
-    finally:
-        _alembic("upgrade", "head")
 
     assert await _stored_colours(db_session, user_id) == REMAPPED
-    await _rerun_migration(db_session)
+    async with migration_downgrade(db_session, PREVIOUS):
+        pass
     assert await _stored_colours(db_session, user_id) == REMAPPED
 
 

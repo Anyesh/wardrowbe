@@ -1,4 +1,5 @@
 {
+  "roles": ["full_body", "base_top", "mid_layer", "suit", "outer_layer", "bottom", "footwear", "socks", "neckwear", "accessory"],
   "types": [
     {"value": "shirt", "role": "base_top", "wash_interval": 2},
     {"value": "t-shirt", "role": "base_top", "wash_interval": 1},

@@ -8,6 +8,12 @@ from app.models.preference import UserPreference
 from app.services.weather_service import WeatherData
 from app.utils.clothing import ITEM_ROLE
 from app.utils.garment_vocabulary import FORMALITY, OCCASION_FORMALITY
+from app.utils.preference_defaults import DEFAULT_PREFER_UNDERUSED_ITEMS
+from app.utils.scales import (
+    DEFAULT_AVOID_REPEAT_DAYS,
+    DEFAULT_COLD_THRESHOLD,
+    DEFAULT_HOT_THRESHOLD,
+)
 
 _NORTH_SEASON = {
     1: "winter",
@@ -58,8 +64,6 @@ SEASON_ADJACENCY = {
 TOP_N = 70
 MIN_ITEMS_FOR_SCORING = 50
 
-DEFAULT_COLD_THRESHOLD = 10
-DEFAULT_HOT_THRESHOLD = 25
 SENSITIVITY_SHIFT = 5
 
 # An outfit is unwearable without these, so the prompt must keep candidates for them even
@@ -394,7 +398,7 @@ def score_items(
         scored = [ScoredItem(item=item) for item in items]
         return _sort_mandatory_first(scored, mandatory_item_ids)
 
-    avoid_days = 7
+    avoid_days = DEFAULT_AVOID_REPEAT_DAYS
     if preferences and preferences.avoid_repeat_days is not None:
         avoid_days = preferences.avoid_repeat_days
 
@@ -404,7 +408,9 @@ def score_items(
         elif preferences.variety_level == "low":
             avoid_days = max(1, int(avoid_days * 0.5))
 
-    use_underused = preferences.prefer_underused_items if preferences else True
+    use_underused = (
+        preferences.prefer_underused_items if preferences else DEFAULT_PREFER_UNDERUSED_ITEMS
+    )
     median_wear = median([i.wear_count or 0 for i in items]) if use_underused and items else 0
 
     scored = []

@@ -1,4 +1,14 @@
 {
+  "insightColorHeavy": "옷장에 {color} 계열이 많아요({percent}). 다양한 색을 더해 보세요!",
+  "insightGreatTaste": "안목이 훌륭해요! 추천의 {percent}를 수락하셨어요.",
+  "insightLimitedColors": "옷장의 색상이 다양하지 않아요. 새로운 색에 도전해 보세요!",
+  "insightManyRejections": "거절한 추천이 많아요. 스타일 취향을 업데이트해 보세요.",
+  "insightMoreBottomsThanTops": "상의보다 하의가 더 많아요. 셔츠를 몇 벌 추가해 보세요!",
+  "insightMoreTopsThanBottoms": "하의보다 상의가 훨씬 많아요. 바지나 스커트를 추가해 보세요!",
+  "insightMostlyLayers": "상의 대부분이 카디건, 조끼 같은 겹쳐 입는 옷이에요. 안에 입을 기본 아이템을 몇 벌 추가해 보세요!",
+  "insightNeverWorn": "{count, plural, one {한 번도 입지 않은 아이템이 #개 있어요. 코디에 활용해 보세요!} other {한 번도 입지 않은 아이템이 #개 있어요. 코디에 활용해 보세요!}}",
+  "insightNoOutfitsThisWeek": "이번 주에는 코디를 만들지 않았어요. 추천을 받아 보세요!",
+  "insightStartAdding": "옷장에 아이템을 추가하며 시작해 보세요!",
   "insights": {
     "acceptanceTrend": {
       "description": "시간에 따른 추천 반응 변화",

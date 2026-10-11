@@ -1,13 +1,13 @@
 from uuid import uuid4
 
 from app.utils.clothing import (
-    _CANONICAL_ROLE_ORDER,
     ITEM_ROLE,
     WardrobeComposition,
     canonical_item_order,
     count_composition,
     deduplicate_by_body_slot,
 )
+from app.utils.garment_vocabulary import ROLES
 
 
 def _ids(n):
@@ -194,7 +194,22 @@ def test_canonical_order_puts_suit_with_the_outer_layers():
 
 
 def test_canonical_order_covers_every_item_role():
-    assert set(ITEM_ROLE.values()) <= set(_CANONICAL_ROLE_ORDER)
+    assert set(ITEM_ROLE.values()) <= set(ROLES)
+
+
+def test_canonical_role_order_is_the_vocabulary_role_order():
+    assert ROLES == (
+        "full_body",
+        "base_top",
+        "mid_layer",
+        "suit",
+        "outer_layer",
+        "bottom",
+        "footwear",
+        "socks",
+        "neckwear",
+        "accessory",
+    )
 
 
 def test_canonical_item_order_sorts_by_role():

@@ -1,11 +1,25 @@
+import React from 'react'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mergeBulkUploadResponses, uploadFilesWithinServerLimit } from '@/lib/hooks/use-items'
+import { act, renderHook } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  mergeBulkUploadResponses,
+  uploadFilesWithinServerLimit,
+  useBulkCreateItems,
+} from '@/lib/hooks/use-items'
 import type { BulkUploadResponse } from '@/lib/hooks/use-items'
+import { fetchBulkUploadLimit } from '@/lib/hooks/use-features'
+import { queryKeys } from '@/lib/hooks/query-keys'
+import { createQueryClient } from '@/lib/query-client'
+import { toast } from 'sonner'
+
+vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
 
 // Minimal fake XHR standing in for uploadBulkItemsChunk's XMLHttpRequest use -
 // queues one canned response per call, replayed on send() via a `load` event.
 class FakeXhr {
   static queue: Array<{ status: number; body: unknown }> = []
+  static sentImageCounts: number[] = []
   upload = { addEventListener: () => {} }
   status = 0
   responseText = ''
@@ -15,7 +29,8 @@ class FakeXhr {
   addEventListener(event: string, handler: () => void) {
     ;(this.listeners[event] ??= []).push(handler)
   }
-  send() {
+  send(body: FormData) {
+    FakeXhr.sentImageCounts.push(body.getAll('images').length)
     const next = FakeXhr.queue.shift()
     if (!next) throw new Error('FakeXhr.queue exhausted')
     this.status = next.status
@@ -80,6 +95,7 @@ describe('uploadFilesWithinServerLimit', () => {
   beforeEach(() => {
     originalXhr = globalThis.XMLHttpRequest
     FakeXhr.queue = []
+    FakeXhr.sentImageCounts = []
     // @ts-expect-error - test double stands in for the real constructor
     globalThis.XMLHttpRequest = FakeXhr
   })
@@ -134,5 +150,115 @@ describe('uploadFilesWithinServerLimit', () => {
     await expect(uploadFilesWithinServerLimit(files, false, 'token', vi.fn())).rejects.toThrow(
       'Internal error'
     )
+  })
+})
+
+function successBody(names: string[]) {
+  return {
+    total: names.length,
+    successful: names.length,
+    failed: 0,
+    results: names.map((filename) => ({ filename, success: true })),
+  }
+}
+
+function clientWithFeatures(features?: Record<string, unknown>): QueryClient {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  if (features) client.setQueryData(queryKeys.features, features)
+  return client
+}
+
+describe('fetchBulkUploadLimit', () => {
+  it('reads max_bulk_upload_count from the features query', async () => {
+    const client = clientWithFeatures({ background_removal: false, max_bulk_upload_count: 2 })
+    expect(await fetchBulkUploadLimit(client)).toBe(2)
+  })
+
+  it('returns null when the server does not report a limit', async () => {
+    const client = clientWithFeatures({ background_removal: false })
+    expect(await fetchBulkUploadLimit(client)).toBeNull()
+  })
+
+  describe('when the features request fails', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.mocked(toast.error).mockClear()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it.each([
+      ['rejects', () => Promise.reject(new Error('offline'))],
+      [
+        'hangs',
+        (_input: RequestInfo | URL, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))
+          }),
+      ],
+    ])('returns null without a global toast when it %s', async (_label, respond) => {
+      vi.mocked(fetch).mockImplementationOnce(respond)
+
+      const limit = fetchBulkUploadLimit(createQueryClient())
+      await vi.advanceTimersByTimeAsync(30_000)
+
+      expect(await limit).toBeNull()
+      expect(toast.error).not.toHaveBeenCalled()
+    })
+  })
+})
+
+describe('useBulkCreateItems', () => {
+  let originalXhr: typeof XMLHttpRequest
+
+  beforeEach(() => {
+    originalXhr = globalThis.XMLHttpRequest
+    FakeXhr.queue = []
+    FakeXhr.sentImageCounts = []
+    // @ts-expect-error - test double stands in for the real constructor
+    globalThis.XMLHttpRequest = FakeXhr
+  })
+
+  afterEach(() => {
+    globalThis.XMLHttpRequest = originalXhr
+  })
+
+  function renderWith(client: QueryClient) {
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client }, children)
+    return renderHook(() => useBulkCreateItems(), { wrapper })
+  }
+
+  it('chunks by the limit the features endpoint reports, without a rejected request first', async () => {
+    const client = clientWithFeatures({ background_removal: false, max_bulk_upload_count: 2 })
+    FakeXhr.queue.push(
+      { status: 201, body: successBody(['a.jpg', 'b.jpg']) },
+      { status: 201, body: successBody(['c.jpg']) }
+    )
+    const { result } = renderWith(client)
+    const files = ['a.jpg', 'b.jpg', 'c.jpg'].map((name) => new File(['x'], name))
+
+    let outcome: Awaited<ReturnType<typeof result.current.mutateAsync>> | undefined
+    await act(async () => {
+      outcome = await result.current.mutateAsync({ files })
+    })
+
+    expect(FakeXhr.sentImageCounts).toEqual([2, 1])
+    expect(outcome?.unprotected?.successful).toBe(3)
+  })
+
+  it('falls back to the default chunk when the features request fails', async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('offline'))
+    FakeXhr.queue.push({ status: 201, body: successBody(['a.jpg', 'b.jpg', 'c.jpg']) })
+    const { result } = renderWith(clientWithFeatures())
+    const files = ['a.jpg', 'b.jpg', 'c.jpg'].map((name) => new File(['x'], name))
+
+    await act(async () => {
+      await result.current.mutateAsync({ files })
+    })
+
+    expect(FakeXhr.sentImageCounts).toEqual([3])
   })
 })

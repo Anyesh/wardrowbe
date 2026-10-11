@@ -354,7 +354,7 @@ class PairingService:
                 selectinload(Outfit.source_item),
                 selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
             )
-            .order_by(Outfit.created_at.desc())
+            .order_by(Outfit.created_at.desc(), Outfit.id.asc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
@@ -396,7 +396,7 @@ class PairingService:
                 selectinload(Outfit.source_item),
                 selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
             )
-            .order_by(Outfit.created_at.desc())
+            .order_by(Outfit.created_at.desc(), Outfit.id.asc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )

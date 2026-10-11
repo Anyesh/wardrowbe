@@ -3,8 +3,10 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { getTodayDateStringInTimezone, resolveTimezone } from '@/lib/utils';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export interface UserProfile {
   id: string;
@@ -32,19 +34,12 @@ export interface UserProfileUpdate {
   body_measurements?: Record<string, number | string> | null;
 }
 
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
-
 export function useUserProfile() {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['user-profile'],
+    queryKey: queryKeys.userProfile,
     queryFn: () => api.get<UserProfile>('/users/me'),
     enabled: status !== 'loading',
   });
@@ -69,13 +64,11 @@ export function useUpdateUserProfile({ toastsOwnErrors = false } = {}) {
   return useMutation({
     meta: { toastsOwnErrors },
     mutationFn: async (data: UserProfileUpdate) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<UserProfile>('/users/me', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.userProfile });
     },
   });
 }

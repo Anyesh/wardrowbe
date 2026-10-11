@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Calendar } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,7 +25,9 @@ import { OutfitHistoryCard } from '@/components/outfit-history-card';
 import { OutfitStatusFilter } from '@/components/outfit-status';
 import { FeedbackDialog } from '@/components/feedback-dialog';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
-import { format, isSameDay, parseISO } from 'date-fns';
+import { isSameDay, parseISO } from 'date-fns';
+import { formatDate, parseDateString } from '@/lib/utils';
+import { useUserToday } from '@/lib/hooks/use-user';
 
 function EmptyHistory({ t }: { t: (key: string) => string }) {
   return (
@@ -45,11 +47,14 @@ function EmptyHistory({ t }: { t: (key: string) => string }) {
 }
 
 function EmptyDate({ date, t }: { date: Date; t: (key: string, params?: Record<string, string | number>) => string }) {
+  const locale = useLocale();
   return (
     <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
       <Calendar className="h-8 w-8 text-muted-foreground mb-2" />
       <p className="text-sm text-muted-foreground">
-        {t('noOutfitsForDate', { date: format(date, 'MMMM d, yyyy') })}
+        {t('noOutfitsForDate', {
+          date: formatDate(date, locale, { month: 'long', day: 'numeric', year: 'numeric' }),
+        })}
       </p>
     </div>
   );
@@ -100,10 +105,16 @@ function CalendarSkeleton() {
 export default function HistoryPage() {
   const t = useTranslations('history');
   const occasions = useOccasions();
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(now);
+  const locale = useLocale();
+  const todayKey = useUserToday()();
+  const today = useMemo(() => parseDateString(todayKey), [todayKey]);
+  // Null until the user navigates, so that the view follows the profile timezone once it loads
+  // instead of freezing on the browser's day from the first render.
+  const [viewedMonth, setViewedMonth] = useState<{ year: number; month: number } | null>(null);
+  const [pickedDate, setPickedDate] = useState<Date | null>(null);
+  const year = viewedMonth?.year ?? today.getFullYear();
+  const month = viewedMonth?.month ?? today.getMonth() + 1;
+  const selectedDate = pickedDate ?? today;
   const [filters, setFilters] = useState<OutfitFilters>({});
   const [feedbackOutfit, setFeedbackOutfit] = useState<Outfit | null>(null);
   const [previewOutfit, setPreviewOutfit] = useState<Outfit | null>(null);
@@ -119,8 +130,7 @@ export default function HistoryPage() {
   }, [data?.outfits, selectedDate]);
 
   const handleMonthChange = (newYear: number, newMonth: number) => {
-    setYear(newYear);
-    setMonth(newMonth);
+    setViewedMonth({ year: newYear, month: newMonth });
   };
 
   const handleOccasionChange = (value: string) => {
@@ -185,7 +195,7 @@ export default function HistoryPage() {
                 month={month}
                 outfits={data?.outfits || []}
                 selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
+                onSelectDate={setPickedDate}
                 onMonthChange={handleMonthChange}
               />
             )}
@@ -198,7 +208,7 @@ export default function HistoryPage() {
           {selectedDate && (
             <div className="border-b pb-3">
               <h2 className="text-lg font-semibold">
-                {format(selectedDate, 'EEEE, MMMM d')}
+                {formatDate(selectedDate, locale, { weekday: 'long', month: 'long', day: 'numeric' })}
               </h2>
               <p className="text-sm text-muted-foreground">
                 {t('outfitCount', { count: selectedDateOutfits.length })}

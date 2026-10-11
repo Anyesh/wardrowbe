@@ -29,13 +29,6 @@
     },
     "rateOutfit": "{member}のコーデを評価",
     "ratingCount": "（{count, plural, one {{count} 件の評価} other {{count} 件の評価}}）",
-    "sourceBadges": {
-      "external": "外部",
-      "manual": "手動",
-      "onDemand": "オンデマンド",
-      "pairing": "ペアリング",
-      "scheduled": "スケジュール"
-    },
     "subtitle": "家族のコーディネートを見て評価",
     "title": "ファミリーフィード",
     "unknownMember": "このメンバー",

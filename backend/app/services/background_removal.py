@@ -16,6 +16,8 @@ class BackgroundRemovalProvider(ABC):
         """Remove background from image. Returns RGBA image with transparent background."""
 
 
+# rembg is imported lazily because it is an optional extra (requirements-extras.txt): a
+# module-level import would break every install that uses the http provider or none.
 class RembgProvider(BackgroundRemovalProvider):
     def __init__(self, model: str = "u2net"):
         self.model = model

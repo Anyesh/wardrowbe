@@ -5,9 +5,12 @@ from pydantic import AfterValidator, BaseModel, Field, field_validator
 
 from app.schemas.color import ColorList
 from app.utils.garment_vocabulary import OCCASIONS
+from app.utils.preference_defaults import DEFAULT_OCCASION
+from app.utils.scales import RATING_MAX, RATING_MIN
 
 MAX_AUTHORING_TEXT_LENGTH = 2000
 VALID_OCCASIONS = frozenset(OCCASIONS)
+_RATING_RANGE = f"{RATING_MIN}-{RATING_MAX}"
 
 
 def _normalize_occasion(value: str) -> str:
@@ -20,8 +23,6 @@ def _normalize_occasion(value: str) -> str:
 
 
 Occasion = Annotated[str, Field(max_length=50), AfterValidator(_normalize_occasion)]
-
-DEFAULT_OCCASION = "casual"
 
 
 # Default occasions saved before they were validated can hold any string, and reading them back
@@ -74,9 +75,15 @@ class OutfitAttributeFields(BaseModel):
 
 class FeedbackRequest(BaseModel):
     accepted: bool | None = Field(None, description="Whether outfit was accepted")
-    rating: int | None = Field(None, ge=1, le=5, description="Overall rating 1-5")
-    comfort_rating: int | None = Field(None, ge=1, le=5, description="Comfort rating 1-5")
-    style_rating: int | None = Field(None, ge=1, le=5, description="Style rating 1-5")
+    rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Overall rating {_RATING_RANGE}"
+    )
+    comfort_rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Comfort rating {_RATING_RANGE}"
+    )
+    style_rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Style rating {_RATING_RANGE}"
+    )
     comment: str | None = Field(None, max_length=1000, description="Optional comment")
     worn: bool | None = Field(None, description="Whether the outfit was worn")
     worn_with_modifications: bool | None = Field(

@@ -9,7 +9,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session_maker
-from app.mcp.auth import current_external_id
+from app.mcp.auth import current_token
 from app.models.user import User
 from app.services.user_service import UserService
 
@@ -43,11 +43,11 @@ def _detail_message(exc: HTTPException) -> str:
 
 @asynccontextmanager
 async def tool_context():
-    external_id = current_external_id.get()
-    if external_id is None:
+    token = current_token.get()
+    if token is None:
         raise ToolError("Not authenticated")
     async with async_session_maker() as session:
-        user = await UserService(session).get_by_external_id(external_id)
+        user = await UserService(session).get_by_token(token)
         if user is None or not user.is_active:
             raise ToolError("Unknown or inactive user")
         try:

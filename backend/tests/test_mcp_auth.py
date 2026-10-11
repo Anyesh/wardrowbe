@@ -1,13 +1,16 @@
+from uuid import uuid4
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.api.auth import create_access_token
 from app.config import Settings
-from app.mcp.auth import MCPAuthMiddleware, current_external_id
+from app.mcp.auth import MCPAuthMiddleware, current_token
 
 
 async def _echo_app(scope, receive, send):
-    body = (current_external_id.get() or "").encode()
+    token = current_token.get()
+    body = (token.sub if token else "").encode()
     await send({"type": "http.response.start", "status": 200, "headers": []})
     await send({"type": "http.response.body", "body": body})
 
@@ -45,9 +48,10 @@ async def test_rejects_missing_or_invalid_token(headers):
 
 @pytest.mark.asyncio
 async def test_valid_token_sets_contextvar_for_the_request_only():
-    token = create_access_token("ext-user-42")
+    user_id = uuid4()
+    token = create_access_token(user_id, uuid4())
     async with _client() as c:
         resp = await c.post("/", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
-    assert resp.text == "ext-user-42"
-    assert current_external_id.get() is None
+    assert resp.text == str(user_id)
+    assert current_token.get() is None
