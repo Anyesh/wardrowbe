@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { signIn, getProviders, useSession } from 'next-auth/react';
+import { signIn, getProviders, getSession, useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -128,7 +128,13 @@ function useForwardSignIn(auto: boolean) {
     if (!result?.ok || result.error) {
       setFailure(forwardFailureFor(result?.error));
       setState('failed');
+      return;
     }
+    // Success normally ends on the redirect effect, which waits for an accessToken. A logout or
+    // proxy user switch in another tab can clear the new cookie first, and the button must not
+    // stay disabled then.
+    const session = await getSession();
+    if (!session?.accessToken) setState('idle');
   }, []);
 
   useEffect(() => {

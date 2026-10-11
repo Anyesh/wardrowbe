@@ -20,6 +20,7 @@ const nav = vi.hoisted(() => {
 
 const auth = vi.hoisted(() => ({
   signIn: vi.fn(),
+  getSession: vi.fn(),
   getProviders: vi.fn(),
   status: 'unauthenticated' as 'loading' | 'authenticated' | 'unauthenticated',
   session: null as { accessToken: string } | null,
@@ -34,6 +35,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-auth/react', () => ({
   useSession: () => ({ data: auth.session, status: auth.status }),
   signIn: auth.signIn,
+  getSession: auth.getSession,
   signOut: vi.fn(),
   getProviders: auth.getProviders,
 }))
@@ -69,6 +71,7 @@ describe('login page in forward-auth mode', () => {
       'forward-auth': { id: 'forward-auth', type: 'credentials' },
     })
     auth.signIn.mockResolvedValue({ ok: true, error: null, status: 200, url: '/dashboard' })
+    auth.getSession.mockResolvedValue({ accessToken: 'backend-jwt' })
     mockBackend({ forward_auth: true })
   })
 
@@ -153,6 +156,18 @@ describe('login page in forward-auth mode', () => {
 
     fireEvent.click(button)
     await waitFor(() => expect(auth.signIn).toHaveBeenCalledWith('forward-auth', { redirect: false }))
+  })
+
+  // A logout or proxy user switch in another tab can clear the cookie the callback just set, so
+  // the sign-in succeeds yet leaves no session for the redirect effect to follow.
+  it('offers the button again when a successful sign-in leaves no session', async () => {
+    auth.getSession.mockResolvedValue(null)
+
+    renderLogin()
+
+    const button = await screen.findByRole('button', { name: 'forwardAuth.continue' })
+    await waitFor(() => expect(button).toBeEnabled())
+    expect(auth.signIn).toHaveBeenCalledTimes(1)
   })
 
   it('does not sign in again when a session already exists', async () => {
