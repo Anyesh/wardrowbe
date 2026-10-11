@@ -6,6 +6,7 @@ import { clearSessionCookies, sessionCookie } from '@/lib/session-cookies';
 // A proxy that switches users keeps the old NextAuth session cookie, and a GET to
 // /api/auth/signout only renders a confirmation page, so the session is ended here.
 const NEXTAUTH_PREFIX = '/api/auth/';
+const LOGIN_PATH = '/login';
 
 // NextAuth answers the session action for any path whose first segment after /api/auth decodes
 // to "session", such as /api/auth/session/x or /api/auth/%73ession.
@@ -46,6 +47,11 @@ async function sessionToken(request: NextRequest): Promise<JWT | null> {
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  if (pathname === LOGIN_PATH) {
+    const response = NextResponse.next();
+    if (request.nextUrl.searchParams.get('loggedOut') === '1') clearSessionCookies(request, response);
+    return response;
+  }
   const action = nextAuthAction(pathname);
   // Every other NextAuth action, sign-in included, has to work for the new proxy user.
   if (action !== null && action !== 'session') return NextResponse.next();
@@ -80,6 +86,14 @@ export async function middleware(request: NextRequest) {
 // before forwarding it, uploads included, and the backend refuses a switched proxy user itself.
 // NextAuth's routes are the exception, since its session action hands the backend token to the
 // browser. Static files (any path with an extension) carry no session and are left out too.
+//
+// The logout route clears the session before sending the browser to /login?loggedOut=1, but a
+// session request still in flight in another tab sets the cookie again when it answers, so the
+// logged-out page clears it once more.
 export const config = {
-  matcher: ['/((?!api/|login|auth/logout|_next|.*\\..*).*)', '/api/auth/:path*'],
+  matcher: [
+    '/((?!api/|login|auth/logout|_next|.*\\..*).*)',
+    '/api/auth/:path*',
+    { source: '/login', has: [{ type: 'query', key: 'loggedOut', value: '1' }] },
+  ],
 };

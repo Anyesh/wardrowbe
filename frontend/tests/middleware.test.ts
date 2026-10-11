@@ -136,6 +136,20 @@ describe('forward-auth user-switch middleware', () => {
     expect(response.headers.get('x-middleware-next')).toBe('1')
   })
 
+  // A session request that was in flight in another tab when the user logged out answers with a
+  // fresh session cookie; landing on the logged-out page must not sign the browser back in.
+  it.each([
+    ['the proxy user it belongs to', { remoteUser: 'alice', secret: PROXY_SECRET }],
+    ['no proxy', {}],
+  ])('clears a session that came back after logout, with %s', async (_, init) => {
+    const response = await middleware(
+      request('/login?loggedOut=1', { ...init, cookies: { [SESSION]: await sessionFor('alice'), 'next-auth.csrf-token': 'keep-me' } })
+    )
+
+    expect(response.headers.get('x-middleware-next')).toBe('1')
+    expect(clearedCookies(response)).toEqual([SESSION])
+  })
+
   it('redirects a page to login and clears every session chunk when the proxy user changed', async () => {
     const token = await sessionFor('alice')
     const half = Math.ceil(token.length / 2)
@@ -200,7 +214,14 @@ describe('forward-auth user-switch middleware', () => {
 
 describe('middleware matcher', () => {
   const matchers = getMiddlewareMatchers(config.matcher, {} as never)
-  const matches = (path: string) => matchers.some((m) => new RegExp(m.regexp).test(path))
+  const matches = (path: string) => {
+    const url = new URL(path, 'http://wardrobe.example.com')
+    return matchers.some(
+      (m) =>
+        new RegExp(m.regexp).test(url.pathname) &&
+        (m.has ?? []).every((h) => h.type === 'query' && url.searchParams.get(h.key) === h.value)
+    )
+  }
 
   it.each([
     '/',
@@ -210,6 +231,7 @@ describe('middleware matcher', () => {
     '/api/auth/session',
     '/api/auth/session/x',
     '/api/auth/%73ession',
+    '/login?loggedOut=1',
   ])(
     'runs on %s',
     (path) => {
@@ -224,6 +246,7 @@ describe('middleware matcher', () => {
     '/api/v1/items/upload',
     '/api/v1/auth/config',
     '/login',
+    '/login?callbackUrl=%2Fdashboard',
     '/auth/logout',
     '/_next/static/chunks/main.js',
     '/_next/image',
