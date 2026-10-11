@@ -170,6 +170,9 @@
       "originalRestoreError": "Failed to restore original image",
       "originalRestored": "Original image restored",
       "washError": "Failed to mark as washed",
+      "logWear": "Log wear",
+      "wearLogged": "Wear logged",
+      "wearLogError": "Failed to log wear",
       "washed": "Item marked as washed"
     },
     "brand": "Brand",

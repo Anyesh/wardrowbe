@@ -60,7 +60,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
+import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
 import {
   useClothingTypes,
@@ -162,6 +162,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const replaceImage = useReplaceItemImage();
   const replaceImageInputRef = useRef<HTMLInputElement>(null);
   const { data: features } = useFeatures();
+  const logWear = useLogWear();
   const logWash = useLogWash();
   const { data: washHistory } = useWashHistory(item?.id || '');
   const { data: wearStats } = useItemWearStats(item?.id || '');
@@ -199,6 +200,16 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to update item:', error);
+    }
+  };
+
+  const handleLogWear = async () => {
+    try {
+      await logWear.mutateAsync({ id: item.id });
+      toast.success(t('actions.wearLogged'));
+    } catch (error) {
+      console.error('Failed to log wear:', error);
+      toast.error(t('actions.wearLogError'));
     }
   };
 
@@ -805,20 +816,36 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         <Droplets className={`h-4 w-4 ${item.needs_wash ? 'text-amber-500' : 'text-muted-foreground'}`} />
                         {t('view.washStatus')}
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={handleMarkWashed}
-                        disabled={logWash.isPending}
-                      >
-                        {logWash.isPending ? (
-                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        ) : (
-                          <Droplets className="h-3 w-3 mr-1" />
-                        )}
-                        {t('actions.markWashed')}
-                      </Button>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={handleLogWear}
+                          disabled={logWear.isPending}
+                        >
+                          {logWear.isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          ) : (
+                            <Shirt className="h-3 w-3 mr-1" />
+                          )}
+                          {t('actions.logWear')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={handleMarkWashed}
+                          disabled={logWash.isPending}
+                        >
+                          {logWash.isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          ) : (
+                            <Droplets className="h-3 w-3 mr-1" />
+                          )}
+                          {t('actions.markWashed')}
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs text-muted-foreground">
