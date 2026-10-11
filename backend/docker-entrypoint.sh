@@ -4,6 +4,7 @@ set -e
 # A models volume keeps whatever the image that first seeded it baked, so links to models this
 # image no longer bakes are dropped (rembg cannot create a model dir over a dangling link) and
 # models it does bake are linked in. Skipped when the dir is not writable, e.g. a read-only mount.
+# Failures only warn, because a stale cache entry must not keep the worker from starting.
 link_baked_models() {
     home="${REMBG_HOME:-/opt/rembg}"
     if [ ! -d "$home/models" ] || [ ! -w "$home/models" ]; then
@@ -12,13 +13,16 @@ link_baked_models() {
     for entry in "$home/models"/*; do
         if [ -L "$entry" ] && [ ! -e "$entry" ]; then
             case "$(readlink "$entry")" in
-                "$home/baked"/*) rm "$entry" ;;
+                "$home/baked"/*) ;;
+                *) [ -d "$home/baked/${entry##*/}" ] || continue ;;
             esac
+            rm -f "$entry" || echo "warning: cannot remove stale rembg model link $entry" >&2
         fi
     done
     for baked in "$home/baked"/*; do
-        if [ -d "$baked" ] && [ ! -e "$home/models/${baked##*/}" ]; then
-            ln -s "$baked" "$home/models/"
+        target="$home/models/${baked##*/}"
+        if [ -d "$baked" ] && [ ! -e "$target" ] && [ ! -L "$target" ]; then
+            ln -s "$baked" "$home/models/" || echo "warning: cannot link baked model $baked" >&2
         fi
     done
 }
@@ -48,7 +52,8 @@ if [ "$(id -u)" = "0" ]; then
     # -h changes a link itself, never the file it points to.
     models="${REMBG_HOME:-/opt/rembg}/models"
     if [ -d "$models" ] && [ -w "$models" ]; then
-        find -H "$models" -mindepth 1 ! -user "$PUID" -exec chown -h appuser:appuser {} +
+        find -H "$models" -mindepth 1 ! -user "$PUID" -exec chown -h appuser:appuser {} + ||
+            echo "warning: cannot hand $models to PUID $PUID" >&2
     fi
 
     exec gosu appuser "$@"

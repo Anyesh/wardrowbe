@@ -65,3 +65,17 @@ docker run --rm --network none -v "$volume:/seed" --entrypoint sh "$image" -c \
     'chmod 1777 /seed && touch /seed/.keep'
 docker run --rm --network none --user "$uid:$gid" -v "$volume:/opt/rembg/models" \
     "$image" python -c "$load" "$model"
+
+echo "a root-owned link to a retired model in a sticky volume, direct non-root uid, no network"
+volume="$(new_volume sticky)"
+docker run --rm --network none -v "$volume:/seed" --entrypoint sh "$image" -c \
+    'chmod 1777 /seed && ln -s /opt/rembg/baked/retired /seed/retired'
+docker run --rm --network none --user "$uid:$gid" -v "$volume:/opt/rembg/models" \
+    "$image" python -c "$load" "$model"
+
+echo "a dangling link named after the baked model, no network"
+volume="$(new_volume dangling)"
+docker run --rm --network none -v "$volume:/seed" --entrypoint sh "$image" -c \
+    "chmod 1777 /seed && ln -s /nonexistent /seed/$model"
+docker run --rm --network none -e PUID="$uid" -e PGID="$gid" -v "$volume:/opt/rembg/models" \
+    "$image" python -c "$load" "$model"
