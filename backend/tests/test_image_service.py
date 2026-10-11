@@ -1,4 +1,6 @@
+import importlib.util
 from io import BytesIO
+from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -69,3 +71,22 @@ class TestVariantTable:
                 variant.max_px,
                 variant.max_px // 2,
             )
+
+
+class TestRegenerateThumbnailsScript:
+    def test_rewrites_derived_variants_from_the_table(self, tmp_path):
+        spec = importlib.util.spec_from_file_location(
+            "regenerate_thumbnails",
+            Path(__file__).parent.parent / "scripts" / "regenerate_thumbnails.py",
+        )
+        script = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(script)
+        original = tmp_path / "abc.jpg"
+        Image.new("RGBA", (3000, 1500), (200, 10, 10, 128)).convert("RGB").save(original)
+
+        script.regenerate_variants(ImageService(str(tmp_path)), original)
+
+        for variant in VARIANTS[1:]:
+            written = Image.open(tmp_path / f"abc{variant.suffix}.jpg")
+            assert written.size == (variant.max_px, variant.max_px // 2)
+        assert Image.open(original).size == (3000, 1500)

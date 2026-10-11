@@ -112,7 +112,7 @@ class ImageService:
 
         return image
 
-    def _encode_variant(self, image: Image.Image, variant: ImageVariant) -> bytes:
+    def encode_variant(self, image: Image.Image, variant: ImageVariant) -> bytes:
         image = _flatten_to_rgb(image.copy())
         image.thumbnail(variant.box, Image.Resampling.LANCZOS)
         output = BytesIO()
@@ -154,7 +154,7 @@ class ImageService:
 
         for variant in VARIANTS:
             filename = f"{base_name}{variant.suffix}.jpg"
-            (user_path / filename).write_bytes(self._encode_variant(image, variant))
+            (user_path / filename).write_bytes(self.encode_variant(image, variant))
             paths[variant.path_field] = f"{user_id}/{filename}"
 
         paths["image_hash"] = self._phash_of(image)
@@ -243,7 +243,7 @@ class ImageService:
         for variant in VARIANTS:
             # The original is written back to image_path itself so that the stored path stays valid.
             path = image_path if variant is ORIGINAL else f"{base_path}{variant.suffix}.jpg"
-            (self.storage_path / path).write_bytes(self._encode_variant(image, variant))
+            (self.storage_path / path).write_bytes(self.encode_variant(image, variant))
             paths[variant.path_field] = path
         return paths
 
