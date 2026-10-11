@@ -11,6 +11,7 @@ from sqlalchemy import update
 from app.api.outfits import StudioCreateRequest, SuggestionCreateRequest, SuggestRequest
 from app.api.users import UserProfileUpdate
 from app.config import DEFAULT_SECRET_KEY, Settings
+from app.main import docs_urls
 from app.models import Family, FamilyInvite, User, UserIdentity
 from app.schemas.family import FamilyCreate, FamilyUpdate
 from app.schemas.item import LogWearRequest
@@ -767,6 +768,31 @@ class TestDefaultSecretKeyWithRealAuth:
         settings = Settings(debug=False, secret_key=DEFAULT_SECRET_KEY)
         with pytest.raises(RuntimeError, match="SECRET_KEY"):
             settings.validate_security()
+
+
+class TestApiDocsExposure:
+    OIDC = {"oidc_issuer_url": "https://auth.example.com", "oidc_client_id": "test-client"}
+    FORWARD_AUTH = {"forward_auth_secret": "p" * 32}
+
+    @pytest.mark.parametrize(
+        ("debug", "auth", "exposed"),
+        [
+            (True, {}, True),
+            (False, {}, False),
+            (True, OIDC, False),
+            (True, FORWARD_AUTH, False),
+        ],
+        ids=["dev", "no-debug", "debug-with-oidc", "debug-with-forward-auth"],
+    )
+    def test_docs_are_exposed_only_in_dev_mode(self, debug, auth, exposed):
+        settings = Settings(debug=debug, secret_key="a-strong-custom-secret", **auth)
+
+        urls = docs_urls(settings)
+
+        assert (urls["docs_url"] == "/docs") is exposed
+        assert (urls["redoc_url"] == "/redoc") is exposed
+        assert (urls["openapi_url"] == "/openapi.json") is exposed
+        assert [url is None for url in urls.values()] == [not exposed] * 3
 
 
 class TestOidcConfigured:
