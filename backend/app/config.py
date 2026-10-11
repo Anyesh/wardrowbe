@@ -123,7 +123,6 @@ class Settings(BaseSettings):
 
     # Notifications - default ntfy channel (used when user has none configured)
     ntfy_server: str | None = None
-    ntfy_topic: str | None = None
     ntfy_token: str | None = None
     smtp_host: str | None = None
     smtp_port: int = 587

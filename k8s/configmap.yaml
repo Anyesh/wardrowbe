@@ -68,7 +68,6 @@ data:
 
   # Optional: ntfy.sh server for push notifications
   NTFY_SERVER: ""
-  NTFY_TOPIC: ""
 
   # Optional: email notifications (SMTP_USER/SMTP_PASSWORD live in wardrobe-notifications)
   SMTP_HOST: ""
