@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Annotated
+from typing import Annotated, NoReturn
 from urllib.parse import urlencode
 from uuid import UUID
 
@@ -123,17 +123,19 @@ def _claims_email(oidc_claims: dict) -> str | None:
         raise _invalid_email_claim() from None
 
 
+async def _refuse_forgery(request: Request, detail: str) -> NoReturn:
+    # Only forged credentials count, because browser sign-ins can all arrive from the frontend
+    # container's IP, and counting successes or a user's own account problems would lock every
+    # user out together.
+    await rate_limit_by_ip(request, *SYNC_RATE_LIMIT)
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+
+
 async def _forward_auth_identity(
     request: Request, presented_secret: str
 ) -> tuple[UserSyncRequest, str, bool]:
     if not forward_auth_secret_matches(presented_secret, settings.forward_auth_secret):
-        # Only failures count, because browser sign-ins can all arrive from the frontend
-        # container's IP, and limiting successes would lock every user out together.
-        await rate_limit_by_ip(request, *SYNC_RATE_LIMIT)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid forward-auth secret",
-        )
+        await _refuse_forgery(request, "Invalid forward-auth secret")
 
     remote_user = proxy_header(request.headers, "Remote-User")
     remote_email = proxy_header(request.headers, "Remote-Email")
@@ -160,12 +162,11 @@ async def _forward_auth_identity(
     return sync_data, FORWARD_AUTH, True
 
 
-async def _oidc_identity(sync_data: UserSyncRequest) -> tuple[UserSyncRequest, str, bool]:
+async def _oidc_identity(
+    request: Request, sync_data: UserSyncRequest
+) -> tuple[UserSyncRequest, str, bool]:
     if not sync_data.id_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="OIDC id_token is required for authentication",
-        )
+        await _refuse_forgery(request, "OIDC id_token is required for authentication")
 
     valid_audiences = [settings.oidc_client_id]
     if settings.oidc_mobile_client_id and settings.oidc_mobile_client_id != settings.oidc_client_id:
@@ -178,25 +179,16 @@ async def _oidc_identity(sync_data: UserSyncRequest) -> tuple[UserSyncRequest, s
             valid_audiences,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
-        ) from None
+        await _refuse_forgery(request, str(e))
 
     if oidc_claims.get("sub") != sync_data.external_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token subject does not match external_id",
-        )
+        await _refuse_forgery(request, "Token subject does not match external_id")
 
     claims_email = _claims_email(oidc_claims)
     if sync_data.email:
         request_email = sync_data.email
         if claims_email and claims_email != request_email:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token email does not match request email",
-            )
+            await _refuse_forgery(request, "Token email does not match request email")
         effective_email = request_email
     elif claims_email:
         effective_email = claims_email
@@ -219,7 +211,7 @@ async def _oidc_identity(sync_data: UserSyncRequest) -> tuple[UserSyncRequest, s
 
 
 async def _body_identity(
-    sync_data: UserSyncRequest | None,
+    request: Request, sync_data: UserSyncRequest | None
 ) -> tuple[UserSyncRequest, str, bool]:
     if sync_data is None:
         raise HTTPException(
@@ -234,7 +226,7 @@ async def _body_identity(
             )
         return sync_data, "dev", True
     if settings.oidc_configured:
-        return await _oidc_identity(sync_data)
+        return await _oidc_identity(request, sync_data)
     if settings.forward_auth_configured:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -266,8 +258,7 @@ async def sync_user(
             request, presented_secret
         )
     else:
-        await rate_limit_by_ip(request, *SYNC_RATE_LIMIT)
-        sync_data, provider, email_verified = await _body_identity(sync_data)
+        sync_data, provider, email_verified = await _body_identity(request, sync_data)
 
     try:
         user, identity_id, is_new = await UserService(db).sync_from_oidc(

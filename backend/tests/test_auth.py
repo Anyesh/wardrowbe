@@ -1,4 +1,6 @@
+from contextlib import contextmanager
 from datetime import datetime, timedelta
+from unittest.mock import PropertyMock, patch
 from uuid import uuid4
 
 import jwt
@@ -7,8 +9,8 @@ from fastapi import HTTPException
 from httpx import AsyncClient
 from sqlalchemy import delete, inspect, update
 
-from app.api.auth import create_access_token
-from app.config import get_settings
+from app.api.auth import SYNC_RATE_LIMIT, create_access_token
+from app.config import Settings, get_settings
 from app.models import User, UserIdentity
 from app.schemas.auth import IDENTITY_TOKEN
 from app.services.user_service import UserService
@@ -20,6 +22,7 @@ from tests.identity_helpers import (
 )
 
 USER_ID, IDENTITY_ID = uuid4(), uuid4()
+SYNC_LIMIT = SYNC_RATE_LIMIT[1]
 
 
 def _bearer(token: str) -> dict[str, str]:
@@ -79,8 +82,110 @@ class TestAuthConfig:
         assert data["oidc"]["enabled"] is False
 
 
+@contextmanager
+def _sign_in_mode(mode: str):
+    with (
+        patch.object(Settings, "dev_mode", new_callable=PropertyMock, return_value=mode == "dev"),
+        patch.object(
+            Settings, "oidc_configured", new_callable=PropertyMock, return_value=mode == "oidc"
+        ),
+        patch("app.api.auth.validate_oidc_id_token") as validate,
+    ):
+        yield validate
+
+
 class TestAuthSync:
     """Tests for auth sync endpoint."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("mode", ["dev", "oidc"])
+    async def test_successful_syncs_do_not_consume_the_rate_limit(
+        self, client: AsyncClient, mode: str
+    ):
+        body = {"external_id": "steady", "email": "steady@example.com", "display_name": "S"}
+        with _sign_in_mode(mode) as validate:
+            validate.return_value = {"sub": "steady", "email": "steady@example.com"}
+            statuses = [
+                (await client.post("/api/v1/auth/sync", json={**body, "id_token": "t"})).status_code
+                for _ in range(SYNC_LIMIT + 1)
+            ]
+
+        assert statuses == [200] * (SYNC_LIMIT + 1)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("id_token", "claims"),
+        [
+            pytest.param(None, None, id="missing-id-token"),
+            pytest.param("t", ValueError("Invalid token"), id="invalid-id-token"),
+            pytest.param("t", {"sub": "someone-else"}, id="subject-mismatch"),
+            pytest.param("t", {"sub": "forger", "email": "real@example.com"}, id="email-mismatch"),
+        ],
+    )
+    async def test_forged_oidc_syncs_are_limited_without_blocking_valid_ones(
+        self, client: AsyncClient, id_token: str | None, claims: dict | Exception | None
+    ):
+        forged = {
+            "external_id": "forger",
+            "email": "forged@example.com",
+            "display_name": "F",
+            "id_token": id_token,
+        }
+        with _sign_in_mode("oidc") as validate:
+            if isinstance(claims, Exception):
+                validate.side_effect = claims
+            else:
+                validate.return_value = claims
+            statuses = [
+                (await client.post("/api/v1/auth/sync", json=forged)).status_code
+                for _ in range(SYNC_LIMIT + 1)
+            ]
+            validate.side_effect = None
+            validate.return_value = {"sub": "honest", "email": "honest@example.com"}
+            valid = await client.post(
+                "/api/v1/auth/sync",
+                json={
+                    "external_id": "honest",
+                    "email": "honest@example.com",
+                    "display_name": "H",
+                    "id_token": "t",
+                },
+            )
+
+        assert statuses == [401] * SYNC_LIMIT + [429]
+        assert valid.status_code == 200
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("mode", "email_of", "expected"),
+        [
+            pytest.param("dev", lambda user: None, 400, id="dev-missing-email"),
+            pytest.param("oidc", lambda user: None, 400, id="oidc-missing-email"),
+            pytest.param("oidc", lambda user: user.email, 409, id="oidc-unverified-email-in-use"),
+        ],
+    )
+    async def test_user_state_errors_do_not_consume_the_rate_limit(
+        self, client: AsyncClient, test_user, mode: str, email_of, expected: int
+    ):
+        email = email_of(test_user)
+        with _sign_in_mode(mode) as validate:
+            validate.return_value = {"sub": "newcomer", "email": email, "email_verified": False}
+            statuses = [
+                (
+                    await client.post(
+                        "/api/v1/auth/sync",
+                        json={
+                            "external_id": "newcomer",
+                            "email": email,
+                            "display_name": "N",
+                            "id_token": "t",
+                        },
+                    )
+                ).status_code
+                for _ in range(SYNC_LIMIT + 1)
+            ]
+
+        assert statuses == [expected] * (SYNC_LIMIT + 1)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
