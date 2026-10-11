@@ -407,10 +407,11 @@ class TestEmptyCompletion:
             patch("httpx.AsyncClient.post", return_value=_mock_response(payload)) as mock_post,
             patch("app.services.ai_service.asyncio.sleep"),
         ):
-            with pytest.raises(AIResponseTruncatedError):
+            with pytest.raises(AIResponseTruncatedError) as exc_info:
                 await _complete(service, path)
 
         assert mock_post.call_count == expected_calls
+        assert exc_info.value.retryable is (finish_reason != "length")
 
     def _analyze_responses(self, tags_content: str, description: str | int) -> list:
         tags_payload = self._empty_vision_response()

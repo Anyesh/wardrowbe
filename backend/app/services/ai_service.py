@@ -828,7 +828,14 @@ class AIResponseTruncatedError(RuntimeError):
     string then fails with an unhelpful message, which used to get swallowed into a
     generic "AI service is not available" error even though the endpoint responded
     successfully. This error preserves the real cause so callers can surface it.
+
+    ``retryable`` is False for a length cutoff with reasoning already at its floor, which
+    repeats identically, so the tagging worker fails the job instead of rerunning it.
     """
+
+    def __init__(self, message: str, *, retryable: bool = True):
+        super().__init__(message)
+        self.retryable = retryable
 
 
 def _reasoning_text(message: dict) -> str | None:
@@ -872,7 +879,8 @@ def _empty_response_error(
     return AIResponseTruncatedError(
         f"{endpoint_name} (model: {used_model}) returned an empty response: {detail}. "
         f"Try raising AI_MAX_TOKENS (currently {max_tokens}) or disabling extended "
-        "thinking/reasoning mode for this model."
+        "thinking/reasoning mode for this model.",
+        retryable=finish_reason != "length",
     )
 
 

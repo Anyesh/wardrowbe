@@ -11,7 +11,7 @@ from sqlalchemy import select, update
 from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus, TaggedBy, TaggingStatus
 from app.models.preference import UserPreference
-from app.services.ai_service import AIService, ClothingTags
+from app.services.ai_service import AIResponseTruncatedError, AIService, ClothingTags
 from app.workers.db import get_db_session
 
 logger = logging.getLogger(__name__)
@@ -324,7 +324,7 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         # Returning normally here made max_tries dead: arq books a returned value
         # as success. arq only reschedules on Retry, so a plain re-raise would
         # surface the failure but still never retry.
-        if _is_final_attempt(ctx):
+        if _is_final_attempt(ctx) or (isinstance(e, AIResponseTruncatedError) and not e.retryable):
             await update_item_status_to_error(ctx, item_id, error_msg)
             raise
         await clear_ai_started_at(ctx, item_id)
