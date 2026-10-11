@@ -298,11 +298,13 @@ class TestItemPairScores:
         [pair] = await _pair_rows(db_session, user_id)
         pair.times_paired, pair.times_accepted, pair.total_rating_sum = 7, 7, 30
         [never_worn_with] = await _ready_items(db_session, user_id, ("chinos",))
+        # Every writer stores item1_id < item2_id, so the stale row must too.
+        stale_low, stale_high = sorted((pair.item1_id, UUID(never_worn_with)))
         db_session.add(
             ItemPairScore(
                 user_id=user_id,
-                item1_id=pair.item1_id,
-                item2_id=UUID(never_worn_with),
+                item1_id=stale_low,
+                item2_id=stale_high,
                 times_paired=3,
             )
         )
