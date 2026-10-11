@@ -164,6 +164,9 @@ describe('middleware matcher', () => {
     '/_next/static/chunks/main.js',
     '/_next/image',
     '/favicon.ico',
+    '/logo.svg',
+    '/icon-192.png',
+    '/manifest.json',
   ])('skips %s', (path) => {
     expect(matches(path)).toBe(false)
   })

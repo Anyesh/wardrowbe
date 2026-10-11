@@ -37,6 +37,7 @@ export async function middleware(request: NextRequest) {
 // API routes are left out, because Next buffers the whole body of every matched non-GET request
 // before forwarding it, uploads included, and the backend refuses a switched proxy user itself.
 // The session endpoint is the exception, since it hands the backend token to the browser.
+// Static files (any path with an extension) carry no session and are left out too.
 export const config = {
-  matcher: ['/((?!api/|login|auth/logout|_next|favicon.ico).*)', '/api/auth/session'],
+  matcher: ['/((?!api/|login|auth/logout|_next|.*\\..*).*)', '/api/auth/session'],
 };
