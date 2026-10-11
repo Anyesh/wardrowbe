@@ -54,7 +54,7 @@ export const queryKeys = {
     infinite: (filters: OutfitFilters, pageSize: number) =>
       [...OUTFITS, 'infinite', filters, pageSize] as const,
   },
-  outfit: (outfitId: string | undefined) => ['outfit', outfitId] as const,
+  outfit: (outfitId: string) => ['outfit', outfitId] as const,
   calendarOutfits: {
     all: CALENDAR_OUTFITS,
     month: (year: number, month: number, filters: OutfitFilters) =>
@@ -69,7 +69,7 @@ export const queryKeys = {
     list: (memberId: string | undefined, page: number, pageSize: number) =>
       [...FAMILY_OUTFITS, memberId, page, pageSize] as const,
   },
-  familyRatings: (outfitId: string | undefined) => ['familyRatings', outfitId] as const,
+  familyRatings: (outfitId: string) => ['familyRatings', outfitId] as const,
 
   analytics: {
     all: ANALYTICS,

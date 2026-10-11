@@ -145,7 +145,7 @@ export function useOutfit(outfitId: string | undefined) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: queryKeys.outfit(outfitId),
+    queryKey: queryKeys.outfit(outfitId ?? ''),
     queryFn: () => api.get<Outfit>(`/outfits/${outfitId}`),
     enabled: !!outfitId && status !== 'loading',
   });
@@ -325,7 +325,7 @@ export function useFamilyRatings(outfitId: string | undefined) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: queryKeys.familyRatings(outfitId),
+    queryKey: queryKeys.familyRatings(outfitId ?? ''),
     queryFn: () => api.get<FamilyRating[]>(`/outfits/${outfitId}/family-ratings`),
     enabled: !!outfitId && status !== 'loading',
   });

@@ -33,7 +33,6 @@ describe('queryKeys equal the literal keys they replaced', () => {
       ['outfits', 'infinite', outfitFilters, 20],
     ],
     ['outfit', queryKeys.outfit('o1'), ['outfit', 'o1']],
-    ['outfit (undefined id)', queryKeys.outfit(undefined), ['outfit', undefined]],
     ['calendarOutfits.all', queryKeys.calendarOutfits.all, ['calendarOutfits']],
     [
       'calendarOutfits.month',
