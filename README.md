@@ -602,7 +602,7 @@ Accounts from before sign-in identities keep their old sign-in as a `legacy` ide
 UPDATE users SET email = 'proxy-user@example.com', email_verified = true WHERE id = '<user id>';
 ```
 
-The mobile app cannot sign in through a forward-auth proxy, so it needs OIDC. Both can be configured at once: set `OIDC_ISSUER_URL` and `OIDC_CLIENT_ID` alongside `FORWARD_AUTH_SECRET`, and browsers use the proxy while the app uses OIDC. The app has to reach Wardrowbe through a hostname or path that skips the forward-auth check, since it cannot complete the proxy's login page.
+The mobile app cannot sign in through a forward-auth proxy, so it needs OIDC. Both can be configured at once: set `OIDC_ISSUER_URL` and `OIDC_CLIENT_ID` alongside `FORWARD_AUTH_SECRET`, and browsers use the proxy while the app uses OIDC. The app has to reach Wardrowbe through a separate hostname that skips the forward-auth check, since it cannot complete the proxy's login page. If it has to be a path on the browser's hostname instead, let it skip the check only for `/api/v1/`, never for pages or `/api/auth/`: a browser that reaches those without the proxy's headers keeps the session of whoever signed in before it.
 
 > [!WARNING]
 > Do not add `X-Forward-Auth-Secret` on the route the app uses. The app signs in with OIDC and never needs the secret, and a route that skips the proxy's check but still adds it lets anyone sign in as any user by sending their own `Remote-User` and `Remote-Email`. If your proxy can only add the secret on every route, that route must also strip every client-supplied `Remote-*` header first, as the snippets above do. An OIDC sign-in that then arrives with the secret but no `Remote-User` is still verified as OIDC.
