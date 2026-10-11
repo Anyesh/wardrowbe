@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { API_BASE_PATH } from '@/lib/api';
+import { safeCallbackUrl } from '@/lib/callback-url';
 import {
   FORWARD_AUTH_ACCOUNT_CONFLICT,
   FORWARD_AUTH_SERVER_ERROR,
@@ -13,12 +14,12 @@ import {
 } from '@/lib/auth-errors';
 import { useAuthConfig } from '@/lib/hooks/use-auth-config';
 
-function OIDCLoginButton({ callbackUrl }: { callbackUrl: string }) {
+function OIDCLoginButton({ getCallbackUrl }: { getCallbackUrl: () => string }) {
   const t = useTranslations('auth');
 
   return (
     <button
-      onClick={() => signIn('oidc', { callbackUrl })}
+      onClick={() => signIn('oidc', { callbackUrl: getCallbackUrl() })}
       className="flex w-full items-center justify-center gap-3 rounded-md bg-primary px-4 py-3 text-primary-foreground hover:bg-primary/90 transition-colors"
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -29,7 +30,7 @@ function OIDCLoginButton({ callbackUrl }: { callbackUrl: string }) {
   );
 }
 
-function DevLogin({ callbackUrl }: { callbackUrl: string }) {
+function DevLogin({ getCallbackUrl }: { getCallbackUrl: () => string }) {
   const [email, setEmail] = useState('dev@wardrobe.local');
   const [name, setName] = useState('Dev User');
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +42,7 @@ function DevLogin({ callbackUrl }: { callbackUrl: string }) {
     await signIn('dev-credentials', {
       email,
       name,
-      callbackUrl,
+      callbackUrl: getCallbackUrl(),
     });
   };
 
@@ -199,15 +200,21 @@ function LoginContent() {
   const error = searchParams.get('error');
   const syncErrorParam = searchParams.get('syncError');
   const loggedOut = searchParams.get('loggedOut') === '1';
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const callbackParam = searchParams.get('callbackUrl');
+  // Resolved on use rather than during render, because the page is server-rendered too and
+  // the same-origin check needs window.location.
+  const getCallbackUrl = useCallback(
+    () => safeCallbackUrl(callbackParam, window.location.origin),
+    [callbackParam]
+  );
   const [backendError, setBackendError] = useState<string | null>(null);
   const t = useTranslations('auth');
 
   useEffect(() => {
     if (status === 'authenticated' && session?.accessToken) {
-      router.push(callbackUrl);
+      router.push(getCallbackUrl());
     }
-  }, [status, session?.accessToken, callbackUrl, router]);
+  }, [status, session?.accessToken, getCallbackUrl, router]);
 
   // Check backend auth configuration on mount
   useEffect(() => {
@@ -288,8 +295,8 @@ function LoginContent() {
             onSignIn={forward.signInThroughProxy}
           />
         )}
-        {authMode === 'oidc' && <OIDCLoginButton callbackUrl={callbackUrl} />}
-        {authMode === 'dev' && <DevLogin callbackUrl={callbackUrl} />}
+        {authMode === 'oidc' && <OIDCLoginButton getCallbackUrl={getCallbackUrl} />}
+        {authMode === 'dev' && <DevLogin getCallbackUrl={getCallbackUrl} />}
         {authMode === 'unconfigured' && (
           <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm space-y-2">
             <p className="font-medium text-destructive">{t('unconfigured.title')}</p>

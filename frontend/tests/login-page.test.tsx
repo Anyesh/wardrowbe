@@ -9,25 +9,30 @@ import {
   FORWARD_AUTH_USERNAME_CONFLICT,
 } from '@/lib/auth-errors'
 
-const nav = vi.hoisted(() => ({
-  params: new URLSearchParams(),
-  push: vi.fn(),
-}))
+const nav = vi.hoisted(() => {
+  const push = vi.fn()
+  return {
+    params: new URLSearchParams(),
+    push,
+    router: { push, replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() },
+  }
+})
 
 const auth = vi.hoisted(() => ({
   signIn: vi.fn(),
   getProviders: vi.fn(),
   status: 'unauthenticated' as 'loading' | 'authenticated' | 'unauthenticated',
+  session: null as { accessToken: string } | null,
 }))
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: nav.push, replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+  useRouter: () => nav.router,
   usePathname: () => '/login',
   useSearchParams: () => nav.params,
 }))
 
 vi.mock('next-auth/react', () => ({
-  useSession: () => ({ data: null, status: auth.status }),
+  useSession: () => ({ data: auth.session, status: auth.status }),
   signIn: auth.signIn,
   signOut: vi.fn(),
   getProviders: auth.getProviders,
@@ -59,6 +64,7 @@ describe('login page in forward-auth mode', () => {
     vi.clearAllMocks()
     nav.params = new URLSearchParams()
     auth.status = 'unauthenticated'
+    auth.session = null
     auth.getProviders.mockResolvedValue({
       'forward-auth': { id: 'forward-auth', type: 'credentials' },
     })
@@ -164,7 +170,35 @@ describe('login page without forward-auth', () => {
     vi.clearAllMocks()
     nav.params = new URLSearchParams()
     auth.status = 'unauthenticated'
+    auth.session = null
     mockBackend({ forward_auth: false })
+  })
+
+  it.each([
+    ['//evil.example', '/dashboard'],
+    ['/\\evil.example', '/dashboard'],
+    ['https://evil.example/dashboard', '/dashboard'],
+    ['/dashboard/outfits?page=2', '/dashboard/outfits?page=2'],
+  ])('sends a signed-in user from callbackUrl %s to %s', async (callbackUrl, expected) => {
+    auth.getProviders.mockResolvedValue({})
+    auth.status = 'authenticated'
+    auth.session = { accessToken: 'token' }
+    nav.params = new URLSearchParams({ callbackUrl })
+
+    renderLogin()
+
+    await waitFor(() => expect(nav.push).toHaveBeenCalledWith(expected))
+    expect(nav.push).toHaveBeenCalledTimes(1)
+  })
+
+  it('hands sign-in only a same-origin callbackUrl', async () => {
+    auth.getProviders.mockResolvedValue({ oidc: { id: 'oidc', type: 'oauth' } })
+    nav.params = new URLSearchParams({ callbackUrl: '//evil.example' })
+
+    renderLogin()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'title' }))
+    expect(auth.signIn).toHaveBeenCalledWith('oidc', { callbackUrl: '/dashboard' })
   })
 
   it('keeps the dev login form and never calls the proxy provider', async () => {
