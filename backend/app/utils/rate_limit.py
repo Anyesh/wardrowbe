@@ -1,5 +1,5 @@
-import ipaddress
 import logging
+from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
 from uuid import UUID
 
 from fastapi import HTTPException, Request, status
@@ -10,8 +10,56 @@ from app.config import get_settings
 logger = logging.getLogger(__name__)
 
 
+IPV6_CLIENT_PREFIX = 64
+
+
+def _parse_address(value: str) -> IPv4Address | IPv6Address | None:
+    # An address is tried whole first, because an unbracketed IPv6 address such as
+    # 2001:db8::7:4711 would otherwise lose its last group as a port.
+    try:
+        return ip_address(value)
+    except ValueError:
+        pass
+    if value.startswith("["):
+        host, separator, port = value[1:].partition("]:")
+        if not separator or not _is_port(port):
+            return None
+        try:
+            return IPv6Address(host)
+        except ValueError:
+            return None
+    if value.count(":") == 1:
+        host, port = value.split(":")
+        if not _is_port(port):
+            return None
+        try:
+            return IPv4Address(host)
+        except ValueError:
+            return None
+    return None
+
+
+def _is_port(value: str) -> bool:
+    return value.isascii() and value.isdigit() and int(value) <= 65535
+
+
+def _client_bucket(value: str) -> str | None:
+    address = _parse_address(value)
+    if address is None:
+        return None
+    if isinstance(address, IPv6Address):
+        if address.ipv4_mapped is not None:
+            return str(address.ipv4_mapped)
+        # One subscriber is handed a whole /64, so per-address buckets would give them billions
+        # of fresh limits. ULA and link-local stay per address so docker peers remain distinct.
+        if address.is_global:
+            return str(ip_network(f"{address}/{IPV6_CLIENT_PREFIX}", strict=False))
+    return str(address)
+
+
 def _get_client_ip(request: Request) -> str:
-    peer = request.client.host if request.client else "unknown"
+    raw_peer = request.client.host if request.client else "unknown"
+    peer = _client_bucket(raw_peer) or raw_peer
     hops = get_settings().trusted_proxy_count
     if hops == 0:
         return peer
@@ -28,10 +76,7 @@ def _get_client_ip(request: Request) -> str:
     # entry may have been written by the client; the socket peer is the one address it cannot forge.
     if len(entries) < hops:
         return peer
-    try:
-        return str(ipaddress.ip_address(entries[-hops]))
-    except ValueError:
-        return peer
+    return _client_bucket(entries[-hops]) or peer
 
 
 async def check_rate_limit(key: str, limit: int, window_seconds: int) -> None:
