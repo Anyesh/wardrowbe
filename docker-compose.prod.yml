@@ -90,7 +90,7 @@ services:
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       OIDC_CA_BUNDLE: ${OIDC_CA_BUNDLE:-}
-      # The authenticating proxy must send this as X-Forward-Auth-Secret (README: Forward-auth)
+      # The authenticating proxy must send this as X-Forward-Auth-Secret (docs/forward-auth.md)
       FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
       # nginx appends X-Forwarded-For; add one for each proxy in front of it that appends too
       TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-1}
