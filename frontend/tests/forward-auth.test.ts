@@ -123,21 +123,27 @@ describe('forward-auth authorize', () => {
   })
 
   // The middleware ends a forward-auth session on any request without the frontend's own secret,
-  // so signing one in without it would loop between sign-in and the login page.
+  // so signing one in without it would loop between sign-in and the login page. A secret the proxy
+  // sends but the frontend does not share is a deployment fault the login page cannot name, so
+  // the log does.
   it.each([
-    ['the secret is missing', { 'x-forward-auth-secret': undefined }, SECRET],
-    ['Remote-User is missing', { 'remote-user': undefined }, SECRET],
-    ['Remote-Email is missing', { 'remote-email': undefined }, SECRET],
-    ['the secret is not the frontend\'s', { 'x-forward-auth-secret': `${SECRET}-other` }, SECRET],
-    ['the frontend has no FORWARD_AUTH_SECRET', {}, undefined],
-  ])('refuses without calling the backend when %s', async (_label, overrides, frontendSecret) => {
+    ['the secret is missing', { 'x-forward-auth-secret': undefined }, SECRET, null],
+    ['Remote-User is missing', { 'remote-user': undefined }, SECRET, null],
+    ['Remote-Email is missing', { 'remote-email': undefined }, SECRET, null],
+    ['the secret is not the frontend\'s', { 'x-forward-auth-secret': `${SECRET}-other` }, SECRET, /does not match/],
+    ['the frontend has no FORWARD_AUTH_SECRET', {}, undefined, /not set/],
+  ])('refuses without calling the backend when %s', async (_label, overrides, frontendSecret, logged) => {
     if (frontendSecret === undefined) delete process.env.FORWARD_AUTH_SECRET
     const spy = mockFetch(new Response(JSON.stringify(SYNC_RESPONSE), { status: 200 }))
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const user = await authorizeForwardAuth(proxyHeaders(overrides))
 
     expect(user).toBeNull()
     expect(spy).not.toHaveBeenCalled()
+    if (logged) expect(errorLog).toHaveBeenCalledWith(expect.stringMatching(logged))
+    else expect(errorLog).not.toHaveBeenCalled()
+    errorLog.mockRestore()
   })
 
   it.each([

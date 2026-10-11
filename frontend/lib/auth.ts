@@ -110,8 +110,6 @@ function headerValue(headers: IncomingHeaders, name: string): string | undefined
   return (Array.isArray(value) ? value[0] : value) || undefined;
 }
 
-// The backend alone verifies the secret; the frontend only relays what the proxy sent so that
-// it holds no forward-auth configuration that could drift from the backend's.
 // The backend answers 400 or 401 only when the proxy's headers or shared secret are wrong.
 const PROXY_HEADER_REJECTIONS = new Set([400, 401]);
 const LEGACY_IDENTITY_CONFLICT = 'legacy_identity_conflict';
@@ -119,10 +117,25 @@ const LEGACY_IDENTITY_CONFLICT = 'legacy_identity_conflict';
 export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<User | null> {
   const remoteUser = headerValue(headers, 'remote-user');
   const remoteEmail = headerValue(headers, 'remote-email');
+  const presentedSecret = headerValue(headers, 'x-forward-auth-secret');
   // Without the secret the backend would fall through to its OIDC or dev branch, so this provider
-  // must never call it without one. The frontend checks the secret too, because the middleware
-  // ends a forward-auth session on every request without it, which would loop through sign-in.
-  if (!remoteUser || !remoteEmail || !proxySecretMatches(headerValue(headers, 'x-forward-auth-secret'))) {
+  // must never call it without one.
+  if (!remoteUser || !remoteEmail || !presentedSecret) {
+    return null;
+  }
+  // The frontend checks the secret too, because the middleware ends a forward-auth session on every
+  // request without it, which would loop through sign-in. The login page can only say the proxy's
+  // headers are wrong, so a secret the frontend does not share is named here.
+  if (!process.env.FORWARD_AUTH_SECRET) {
+    console.error(
+      'Forward-auth sign-in refused: FORWARD_AUTH_SECRET is not set for the frontend. Give it the backend\'s value.'
+    );
+    return null;
+  }
+  if (!proxySecretMatches(presentedSecret)) {
+    console.error(
+      "Forward-auth sign-in refused: X-Forward-Auth-Secret does not match the frontend's FORWARD_AUTH_SECRET."
+    );
     return null;
   }
 

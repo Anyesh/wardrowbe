@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { encode } from 'next-auth/jwt'
 import { getMiddlewareMatchers } from 'next/dist/build/analysis/get-page-static-info'
@@ -87,6 +87,7 @@ describe('forward-auth user-switch middleware', () => {
     { name: 'an OIDC or dev session behind a forward-auth proxy', remoteUser: 'bob', secret: PROXY_SECRET, oidc: true },
   ])('ends $name', async ({ remoteUser, secret, oidc }) => {
     const session = oidc ? await otherProviderSession('alice-oidc-sub') : await sessionFor('alice')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     const page = await middleware(request('/dashboard', { remoteUser, secret, cookies: { [SESSION]: session } }))
     const sessionAction = await middleware(
@@ -98,6 +99,10 @@ describe('forward-auth user-switch middleware', () => {
     expect(clearedCookies(page)).toEqual([SESSION])
     expect(await sessionAction.json()).toEqual({})
     expect(clearedCookies(sessionAction)).toEqual([SESSION])
+    // Repeated on every page load when only the frontend has the secret, which is how an operator
+    // tells that misconfiguration from a previous user's session.
+    expect(warn).toHaveBeenCalledTimes(oidc ? 2 : 0)
+    warn.mockRestore()
   })
 
   it('treats a bearer header it cannot decode as no session', async () => {

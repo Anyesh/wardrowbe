@@ -426,7 +426,7 @@ Then point the image tags at the previous release and run `docker compose up -d`
 | `OIDC_CLIENT_ID` | OIDC client ID | If OIDC |
 | `OIDC_CLIENT_SECRET` | OIDC client secret | If OIDC |
 | `OIDC_CA_BUNDLE` | Path inside the backend container to a PEM CA certificate the backend trusts for the OIDC provider (private CA or self-signed certs) | No |
-| `FORWARD_AUTH_SECRET` | Shared secret the forward-auth proxy sends as `X-Forward-Auth-Secret` (at least 32 characters; enables forward-auth) | No |
+| `FORWARD_AUTH_SECRET` | Shared secret the forward-auth proxy sends as `X-Forward-Auth-Secret` (at least 32 characters; enables forward-auth). Set the same value for the backend and the frontend | No |
 | `TINYAUTH_URL` | TinyAuth base URL, where logout sends the browser in forward-auth mode | No |
 | `FORWARD_AUTH_LOGOUT_URL` | Proxy logout URL for Authelia and others in forward-auth mode | No |
 | `LOCAL_DNS` | Custom DNS server for container name resolution (e.g. local OIDC host) | No |
@@ -524,7 +524,7 @@ Unlinking does not block the person: while the account's email is verified, any 
 Forward-auth lets an authenticating reverse proxy sign people in to Wardrowbe. It works like this:
 
 1. The proxy (TinyAuth or Authelia behind Caddy, Traefik or nginx) authenticates the browser and adds `Remote-User`, `Remote-Email`, optionally `Remote-Name`, and a static `X-Forward-Auth-Secret` header to every request it forwards.
-2. On `/login` the app signs in by itself: the backend checks the secret, then signs in the forward-auth identity named by `Remote-User`, creating an account for it when no account matches (see [Accounts and sign-in identities](#accounts-and-sign-in-identities)). A wrong secret gets a 401, and `Remote-*` headers sent without the secret are ignored.
+2. On `/login` the app signs in by itself: the backend checks the secret, then signs in the forward-auth identity named by `Remote-User`, creating an account for it when no account matches (see [Accounts and sign-in identities](#accounts-and-sign-in-identities)). A wrong secret is refused, and `Remote-*` headers sent without the secret are ignored.
 3. After sign-in, requests use Wardrowbe's own session token, and the proxy headers never sign a request in. They can only refuse one: a request that carries the right secret and a `Remote-User` that is not a forward-auth identity of the session's account gets a 401. Image links the app already handed out are signed and keep working until they expire. So if the proxy starts reporting a different `Remote-User`, the next page load signs the old session out, and a tab that is already open has its API calls refused until it reloads (unless those calls skip the proxy, see the mobile app below). A page load also signs out a forward-auth session that reaches the app without the secret or without `Remote-User`, and an OIDC or development session in a browser the proxy now serves, since the login page offers only forward-auth there.
 4. Logging out ends the Wardrowbe session, then sends the browser to the proxy's logout page so the proxy session ends too (TinyAuth's page asks for one more click).
 
@@ -544,6 +544,8 @@ TINYAUTH_URL=https://tinyauth.example.com
 ```
 
 Authelia only follows `rd` to an HTTPS address inside one of its session cookie domains; otherwise it stays on its own portal after logging out.
+
+If only one of the two services gets the secret, sign-in fails. With only the backend's, the login page reports missing proxy headers and the frontend log says its `FORWARD_AUTH_SECRET` is not set. With only the frontend's, the login page offers OIDC or development sign-in, and every page load through the proxy signs that session out again, with a warning in the frontend log.
 
 Put the proxy in front of the frontend on `:3000` with the default `docker-compose.yml`, or in front of nginx on `:8080` with `docker-compose.prod.yml`. Only the proxy should be able to reach those ports. The prod compose already binds nginx to `127.0.0.1` and publishes nothing else; with the default compose, set `FRONTEND_PORT=127.0.0.1:3000` and `BACKEND_PORT=127.0.0.1:8000` in `.env` (or remove the `ports:` entries if the proxy shares the stack's Docker network), so nobody on your LAN can skip the proxy or watch the secret go past in plain HTTP.
 

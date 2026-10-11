@@ -52,6 +52,14 @@ export async function middleware(request: NextRequest) {
 
   const token = await sessionToken(request);
   if (!token || belongsToRequest(token, request)) return NextResponse.next();
+  if (!token.proxyUser) {
+    // The login page offers OIDC or dev sign-in when the backend has no forward-auth secret, so a
+    // frontend that has one would end each of those sessions with nothing on screen to say why.
+    console.warn(
+      'Ended an OIDC or dev session on a request through the forward-auth proxy. If this repeats after ' +
+        'every sign-in, the frontend has FORWARD_AUTH_SECRET but the backend does not.'
+    );
+  }
 
   let response: NextResponse;
   if (action === 'session') {
