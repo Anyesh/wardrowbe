@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, API_BASE_PATH, getAccessToken, ApiError, NetworkError } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
@@ -23,11 +23,8 @@ import { fetchBulkUploadLimit } from '@/lib/hooks/use-features';
 // chunk over that limit fails as a whole with a 400.
 const BULK_UPLOAD_CHUNK_SIZE = 20;
 
-export function useItems(filters: ItemFilter = {}, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
-  const { data: session, status } = useSession();
-  useSetTokenIfAvailable();
-
-  return useQuery({
+function itemListQuery(filters: ItemFilter, page: number, pageSize: number) {
+  return {
     queryKey: queryKeys.items.list(filters, page, pageSize),
     queryFn: async () => {
       const params: Record<string, string> = {
@@ -46,15 +43,55 @@ export function useItems(filters: ItemFilter = {}, page = 1, pageSize = DEFAULT_
 
       return api.get<ItemListResponse>('/items', { params });
     },
-    enabled: status !== 'loading',
-    refetchInterval: (query) => {
-      const data = query.state.data as ItemListResponse | undefined;
-      return processingPollInterval(!!data?.items?.some((item) => item.status === 'processing'));
-    },
+    refetchInterval: (query: { state: { data: ItemListResponse | undefined } }) =>
+      processingPollInterval(!!query.state.data?.items?.some((item) => item.status === 'processing')),
     // Tagging runs server-side in the worker, so it keeps going while the tab is
     // hidden. Without this the polling stops and the UI looks frozen, which reads
     // as "analysis stopped when I switched tabs".
     refetchIntervalInBackground: true,
+  };
+}
+
+export function useItems(filters: ItemFilter = {}, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
+  return useQuery({
+    ...itemListQuery(filters, page, pageSize),
+    enabled: status !== 'loading',
+  });
+}
+
+// Each page stays its own queryKeys.items.list entry, so the optimistic list updaters keep
+// working and a cached page shows at once instead of being copied into component state.
+export function useItemPages(filters: ItemFilter, pageCount: number, pageSize = DEFAULT_PAGE_SIZE) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
+  return useQueries({
+    queries: Array.from({ length: pageCount }, (_, index) => ({
+      ...itemListQuery(filters, index + 1, pageSize),
+      enabled: status !== 'loading',
+    })),
+    combine: (results) => {
+      const seen = new Set<string>();
+      const items: Item[] = [];
+      for (const result of results) {
+        for (const item of result.data?.items ?? []) {
+          if (seen.has(item.id)) continue;
+          seen.add(item.id);
+          items.push(item);
+        }
+      }
+      const loaded = results.filter((result) => result.data);
+      return {
+        items,
+        total: results[0]?.data?.total ?? 0,
+        hasMore: loaded[loaded.length - 1]?.data?.has_more ?? false,
+        isLoading: results[0]?.isLoading ?? false,
+        isFetching: results.some((result) => result.isFetching),
+      };
+    },
   });
 }
 
