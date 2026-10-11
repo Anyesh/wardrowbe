@@ -32,13 +32,36 @@ docker run --rm --network none --user "$uid:$gid" "$image" python -c "$load" "$m
 echo "root entrypoint remapped to PUID/PGID, no network"
 docker run --rm --network none -e PUID="$uid" -e PGID="$gid" "$image" python -c "$load" "$model"
 
-echo "a model another uid downloaded into a persisted models volume, read after a PUID change"
-volume="rembg-check-$$"
-docker volume create "$volume" >/dev/null
-trap 'docker volume rm -f "$volume" >/dev/null' EXIT
+volumes=""
+trap 'for v in $volumes; do docker volume rm -f "$v" >/dev/null; done' EXIT
+new_volume() {
+    v="rembg-check-$$-$1"
+    docker volume create "$v" >/dev/null
+    volumes="$volumes $v"
+    echo "$v"
+}
+
+echo "a model another uid downloaded into a persisted models volume, used after a PUID change"
+volume="$(new_volume downloaded)"
 docker run --rm --network none --user 1001:1001 -v "$volume:/opt/rembg/models" \
     --entrypoint sh "$image" -c \
-    'mkdir /opt/rembg/models/other && echo x > /opt/rembg/models/other/other.onnx && chmod 600 /opt/rembg/models/other/other.onnx'
+    'mkdir /opt/rembg/models/other /opt/rembg/models/partial && echo x > /opt/rembg/models/other/other.onnx && chmod 600 /opt/rembg/models/other/other.onnx'
 docker run --rm --network none -e PUID="$uid" -e PGID="$gid" -v "$volume:/opt/rembg/models" \
-    "$image" cat /opt/rembg/models/other/other.onnx >/dev/null
-echo "readable"
+    "$image" sh -c 'cat /opt/rembg/models/other/other.onnx >/dev/null && touch /opt/rembg/models/partial/partial.onnx'
+echo "readable, and an interrupted download can be resumed"
+
+# Docker copies the image's models into a named volume only while it is empty, so a volume an
+# older image seeded must still get the models this image bakes.
+echo "a models volume seeded by an image that baked a different model, no network"
+volume="$(new_volume stale)"
+docker run --rm --network none -v "$volume:/seed" --entrypoint sh "$image" -c \
+    'chmod 1777 /seed && ln -s /opt/rembg/baked/retired /seed/retired'
+docker run --rm --network none -e PUID="$uid" -e PGID="$gid" -v "$volume:/opt/rembg/models" \
+    "$image" sh -c 'test ! -L /opt/rembg/models/retired && python -c "$1" "$2"' sh "$load" "$model"
+
+echo "an empty writable models volume under a direct non-root uid, no network"
+volume="$(new_volume empty)"
+docker run --rm --network none -v "$volume:/seed" --entrypoint sh "$image" -c \
+    'chmod 1777 /seed && touch /seed/.keep'
+docker run --rm --network none --user "$uid:$gid" -v "$volume:/opt/rembg/models" \
+    "$image" python -c "$load" "$model"

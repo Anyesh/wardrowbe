@@ -390,7 +390,7 @@ Works out of the box: the backend image ships rembg with the default `u2net` mod
 <details>
 <summary>Other rembg models, or an HTTP provider</summary>
 
-Change the rembg model with `BG_REMOVAL_MODEL` (options: `isnet-general-use`, `silueta`, `u2netp`). A non-default model is downloaded the first time background removal runs, so that first run needs internet access; the compose files keep it in the `rembg_models` volume so later runs work offline. On Kubernetes, mount a PersistentVolume at `/opt/rembg/models` on the image-worker if you change the model, or it is downloaded again on every pod start.
+Change the rembg model with `BG_REMOVAL_MODEL` (options: `isnet-general-use`, `silueta`, `u2netp`). A non-default model is downloaded the first time background removal runs, so that first run needs internet access; the compose files keep it in the `rembg_models` volume so later runs work offline. On Kubernetes, mount a PersistentVolume at `/opt/rembg/models` on the image-worker if you change the model, or it is downloaded again on every pod start. The volume must be writable by uid 1000: the manifests' `fsGroup` covers a PersistentVolumeClaim, but a `hostPath` volume needs its directory owned by that uid. The worker links the baked `u2net` into the volume on start, so switching back needs no download.
 
 To use an HTTP provider (e.g. [withoutbg](https://github.com/nicholasgasior/withoutbg)) instead:
 

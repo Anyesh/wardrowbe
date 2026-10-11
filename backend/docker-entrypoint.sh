@@ -1,6 +1,28 @@
 #!/bin/sh
 set -e
 
+# A models volume keeps whatever the image that first seeded it baked, so links to models this
+# image no longer bakes are dropped (rembg cannot create a model dir over a dangling link) and
+# models it does bake are linked in. Skipped when the dir is not writable, e.g. a read-only mount.
+link_baked_models() {
+    home="${REMBG_HOME:-/opt/rembg}"
+    if [ ! -d "$home/models" ] || [ ! -w "$home/models" ]; then
+        return 0
+    fi
+    for entry in "$home/models"/*; do
+        if [ -L "$entry" ] && [ ! -e "$entry" ]; then
+            case "$(readlink "$entry")" in
+                "$home/baked"/*) rm "$entry" ;;
+            esac
+        fi
+    done
+    for baked in "$home/baked"/*; do
+        if [ -d "$baked" ] && [ ! -e "$home/models/${baked##*/}" ]; then
+            ln -s "$baked" "$home/models/"
+        fi
+    done
+}
+
 if [ "$(id -u)" = "0" ]; then
     PUID="${PUID:-1000}"
     PGID="${PGID:-1000}"
@@ -20,15 +42,17 @@ if [ "$(id -u)" = "0" ]; then
         fi
     done
 
-    # rembg saves a downloaded model 0600 for the uid that fetched it, so a persisted models
-    # volume would stay unreadable after a PUID change. find skips entries already readable,
-    # which keeps a read-only mount of complete models startable.
+    link_baked_models
+    # rembg saves a model 0600 in a 0755 dir owned by the uid that downloaded it, so after a PUID
+    # change a persisted model is unreadable and an interrupted download cannot be resumed.
+    # -h changes a link itself, never the file it points to.
     models="${REMBG_HOME:-/opt/rembg}/models"
-    if [ -d "$models" ]; then
-        find "$models" \( -type d ! -perm -a+rx -o -type f ! -perm -a+r \) -exec chmod a+rX {} +
+    if [ -d "$models" ] && [ -w "$models" ]; then
+        find -H "$models" -mindepth 1 ! -user "$PUID" -exec chown -h appuser:appuser {} +
     fi
 
     exec gosu appuser "$@"
 fi
 
+link_baked_models
 exec "$@"
