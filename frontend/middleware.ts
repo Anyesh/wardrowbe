@@ -7,9 +7,26 @@ import { clearSessionCookies, sessionCookie } from '@/lib/session-cookies';
 // /api/auth/signout only renders a confirmation page, so the session is ended here. Only a
 // forward-auth session is compared, because an OIDC or dev session behind a proxy that also
 // sends Remote-User was never that user's, and the backend refuses its API calls itself.
-const SESSION_ENDPOINT = '/api/auth/session';
+const NEXTAUTH_PREFIX = '/api/auth/';
+
+// NextAuth answers the session action for any path whose first segment after /api/auth decodes
+// to "session", such as /api/auth/session/x or /api/auth/%73ession.
+function nextAuthAction(pathname: string): string | null {
+  if (!pathname.startsWith(NEXTAUTH_PREFIX)) return null;
+  const segment = pathname.slice(NEXTAUTH_PREFIX.length).split('/')[0];
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
 
 export async function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  const action = nextAuthAction(pathname);
+  // Every other NextAuth action, sign-in included, has to work for the new proxy user.
+  if (action !== null && action !== 'session') return NextResponse.next();
+
   const rawRemoteUser = request.headers.get('remote-user');
   if (!rawRemoteUser) return NextResponse.next();
   const remoteUser = decodeProxyHeader(rawRemoteUser);
@@ -18,9 +35,8 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request, cookieName: name, secureCookie: secure });
   if (!token?.proxyUser || token.proxyUser === remoteUser) return NextResponse.next();
 
-  const { pathname, search } = request.nextUrl;
   let response: NextResponse;
-  if (pathname === SESSION_ENDPOINT) {
+  if (action === 'session') {
     // Answered as signed out rather than redirected, because the client reads it as JSON and
     // must never receive the previous user's backend token.
     response = NextResponse.json({});
@@ -36,8 +52,8 @@ export async function middleware(request: NextRequest) {
 
 // API routes are left out, because Next buffers the whole body of every matched non-GET request
 // before forwarding it, uploads included, and the backend refuses a switched proxy user itself.
-// The session endpoint is the exception, since it hands the backend token to the browser.
-// Static files (any path with an extension) carry no session and are left out too.
+// NextAuth's routes are the exception, since its session action hands the backend token to the
+// browser. Static files (any path with an extension) carry no session and are left out too.
 export const config = {
-  matcher: ['/((?!api/|login|auth/logout|_next|.*\\..*).*)', '/api/auth/session'],
+  matcher: ['/((?!api/|login|auth/logout|_next|.*\\..*).*)', '/api/auth/:path*'],
 };

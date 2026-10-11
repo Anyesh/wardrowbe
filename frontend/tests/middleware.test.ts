@@ -117,15 +117,31 @@ describe('forward-auth user-switch middleware', () => {
     expect(clearedCookies(response)).toEqual([`${SESSION}.0`, `${SESSION}.1`])
   })
 
-  it('answers the session endpoint with no session when the proxy user changed', async () => {
-    const response = await middleware(
-      request('/api/auth/session', { remoteUser: 'bob', cookies: { [SESSION]: await sessionFor('alice') } })
-    )
+  // NextAuth takes the action from the first segment after /api/auth and decodes it.
+  it.each(['/api/auth/session', '/api/auth/session/x', '/api/auth/%73ession'])(
+    'answers %s with no session when the proxy user changed',
+    async (path) => {
+      const response = await middleware(
+        request(path, { remoteUser: 'bob', cookies: { [SESSION]: await sessionFor('alice') } })
+      )
 
-    expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({})
-    expect(clearedCookies(response)).toEqual([SESSION])
-  })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({})
+      expect(clearedCookies(response)).toEqual([SESSION])
+    }
+  )
+
+  it.each(['/api/auth/callback/forward-auth', '/api/auth/csrf', '/api/auth/sessions'])(
+    'lets %s through so the new proxy user can sign in',
+    async (path) => {
+      const response = await middleware(
+        request(path, { remoteUser: 'bob', cookies: { [SESSION]: await sessionFor('alice') } })
+      )
+
+      expect(response.headers.get('x-middleware-next')).toBe('1')
+      expect(clearedCookies(response)).toEqual([])
+    }
+  )
 
   it('reads and clears the __Secure- cookie when NEXTAUTH_URL is https', async () => {
     process.env.NEXTAUTH_URL = 'https://wardrobe.example.com'
@@ -145,7 +161,15 @@ describe('middleware matcher', () => {
   const matchers = getMiddlewareMatchers(config.matcher, {} as never)
   const matches = (path: string) => matchers.some((m) => new RegExp(m.regexp).test(path))
 
-  it.each(['/', '/dashboard', '/dashboard/wardrobe', '/onboarding', '/api/auth/session'])(
+  it.each([
+    '/',
+    '/dashboard',
+    '/dashboard/wardrobe',
+    '/onboarding',
+    '/api/auth/session',
+    '/api/auth/session/x',
+    '/api/auth/%73ession',
+  ])(
     'runs on %s',
     (path) => {
       expect(matches(path)).toBe(true)
@@ -158,7 +182,6 @@ describe('middleware matcher', () => {
     '/api/v1/items',
     '/api/v1/items/upload',
     '/api/v1/auth/config',
-    '/api/auth/callback/forward-auth',
     '/login',
     '/auth/logout',
     '/_next/static/chunks/main.js',
