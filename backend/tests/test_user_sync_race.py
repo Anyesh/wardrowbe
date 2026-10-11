@@ -738,6 +738,41 @@ async def test_proxy_legacy_claim_racing_the_holders_own_sign_in(
 
 
 @pytest.mark.asyncio
+async def test_proxy_twins_claiming_a_placeholder_account_converge(session_maker):
+    # The twin decides after the first claim moved the holder off its placeholder address and
+    # added the forward_auth identity, so it must not mix the two states into a conflict.
+    run = uuid4()
+    subject = f"proxy-{run}"
+    holder = User(
+        external_id=subject,
+        email=f"{subject}@forward-auth.local",
+        display_name="Holder",
+        email_verified=True,
+    )
+    await _commit_users(session_maker, holder)
+    sync = UserSyncRequest(
+        external_id=subject, email=f"owner-{run}@example.com", display_name="Proxy"
+    )
+    try:
+        (first_user, _, _), other_result, _ = await _race(
+            session_maker,
+            sync,
+            sync,
+            first_provider="forward_auth",
+            others_provider="forward_auth",
+            commit_first_before="_sign_in_existing",
+        )
+        async with session_maker() as check:
+            held = await identities_of(check, holder.id)
+    finally:
+        await _cleanup(session_maker, [subject])
+
+    assert first_user.id == holder.id
+    assert _outcome(other_result, {holder.id: "holder"}) == ("holder", False)
+    assert held == {("legacy", subject), ("forward_auth", subject)}
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("violation", "surfaces"),
     [

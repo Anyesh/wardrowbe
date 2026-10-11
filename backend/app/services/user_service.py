@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy import Select, delete, exists, insert, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import aliased, selectinload
 
 from app.models.identity import UserIdentity
 from app.models.user import User
@@ -46,6 +46,12 @@ class _SignIn(NamedTuple):
     user: User
     identity_id: UUID
     is_new: bool
+
+
+class _LegacyHolder(NamedTuple):
+    user: User
+    subject: str
+    holds_proxy_identity: bool
 
 
 class UserService:
@@ -101,15 +107,31 @@ class UserService:
     async def holds_identity(self, user_id: UUID, provider: str, subject: str) -> bool:
         return await self._identity_id(user_id, provider, subject) is not None
 
-    async def _legacy_holder_of_proxy_user(self, subject: str) -> tuple[str, User | None]:
+    async def _legacy_holder_of_proxy_user(self, subject: str) -> _LegacyHolder | None:
         # Forward-auth before identities stored Remote-User as Starlette and Node read it, as
         # Latin-1, so a non-ASCII username's legacy row holds its UTF-8 bytes as Latin-1.
         latin1 = subject.encode("utf-8").decode("latin-1")
+        legacy = aliased(UserIdentity)
         for legacy_subject in dict.fromkeys((subject, latin1)):
-            user = await self.get_by_identity(LEGACY, legacy_subject)
-            if user is not None:
-                return legacy_subject, user
-        return subject, None
+            # One statement, so the holder's email and whether it has a forward_auth identity
+            # come from the same snapshot: a twin's claim changes both, and a conflict decided
+            # on one old and one new value would refuse the twin.
+            row = (
+                await self.db.execute(
+                    select(
+                        User,
+                        exists().where(
+                            UserIdentity.user_id == User.id, UserIdentity.provider == FORWARD_AUTH
+                        ),
+                    )
+                    .join(legacy, legacy.user_id == User.id)
+                    .where(legacy.provider == LEGACY, legacy.subject == legacy_subject)
+                    .execution_options(populate_existing=True)
+                )
+            ).one_or_none()
+            if row is not None:
+                return _LegacyHolder(row[0], legacy_subject, row[1])
+        return None
 
     async def _fetch_current(self, query: Select) -> User | None:
         # populate_existing because a sync attempt that lost a race leaves the row's earlier
@@ -175,18 +197,21 @@ class UserService:
                     user, sync_data, provider, email_verified, legacy_subject=subject
                 )
         elif provider == FORWARD_AUTH:
-            legacy_subject, user = await self._legacy_holder_of_proxy_user(subject)
+            legacy = await self._legacy_holder_of_proxy_user(subject)
             # An unverified holder may be a squatter on the owner's address, so the email rules
             # below decide, and may reclaim the address, rather than its legacy row.
-            if user is not None and user.email_verified:
-                holds_proxy_identity = await self._holds_provider(user.id, FORWARD_AUTH)
-                if not holds_proxy_identity and _is_proxy_users_email(
-                    user.email, sync_data.email, legacy_subject
+            if legacy is not None and legacy.user.email_verified:
+                if not legacy.holds_proxy_identity and _is_proxy_users_email(
+                    legacy.user.email, sync_data.email, legacy.subject
                 ):
                     return await self._sign_in_existing(
-                        user, sync_data, provider, email_verified, legacy_subject=legacy_subject
+                        legacy.user,
+                        sync_data,
+                        provider,
+                        email_verified,
+                        legacy_subject=legacy.subject,
                     )
-                if not (holds_proxy_identity and user.email == sync_data.email):
+                if not (legacy.holds_proxy_identity and legacy.user.email == sync_data.email):
                     raise UserEmailConflictError(LEGACY_IDENTITY_CONFLICT)
         holder = await self.get_by_email(sync_data.email)
         if holder is None:
@@ -284,17 +309,6 @@ class UserService:
         if identity_id is None:
             raise _RowChanged
         return identity_id
-
-    async def _holds_provider(self, user_id: UUID, provider: str) -> bool:
-        return bool(
-            await self.db.scalar(
-                select(
-                    exists().where(
-                        UserIdentity.user_id == user_id, UserIdentity.provider == provider
-                    )
-                )
-            )
-        )
 
     async def _claim_legacy(
         self, user_id: UUID, identity_id: UUID, provider: str, subject: str
