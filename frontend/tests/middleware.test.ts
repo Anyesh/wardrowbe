@@ -117,6 +117,16 @@ describe('forward-auth user-switch middleware', () => {
     expect(clearedCookies(response)).toEqual([`${SESSION}.0`, `${SESSION}.1`])
   })
 
+  it('answers the session endpoint with no session when the proxy user changed', async () => {
+    const response = await middleware(
+      request('/api/auth/session', { remoteUser: 'bob', cookies: { [SESSION]: await sessionFor('alice') } })
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({})
+    expect(clearedCookies(response)).toEqual([SESSION])
+  })
+
   it('reads and clears the __Secure- cookie when NEXTAUTH_URL is https', async () => {
     process.env.NEXTAUTH_URL = 'https://wardrobe.example.com'
 
@@ -135,7 +145,7 @@ describe('middleware matcher', () => {
   const matchers = getMiddlewareMatchers(config.matcher, {} as never)
   const matches = (path: string) => matchers.some((m) => new RegExp(m.regexp).test(path))
 
-  it.each(['/', '/dashboard', '/dashboard/wardrobe', '/onboarding'])(
+  it.each(['/', '/dashboard', '/dashboard/wardrobe', '/onboarding', '/api/auth/session'])(
     'runs on %s',
     (path) => {
       expect(matches(path)).toBe(true)
@@ -148,7 +158,6 @@ describe('middleware matcher', () => {
     '/api/v1/items',
     '/api/v1/items/upload',
     '/api/v1/auth/config',
-    '/api/auth/session',
     '/api/auth/callback/forward-auth',
     '/login',
     '/auth/logout',
