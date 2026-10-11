@@ -52,6 +52,7 @@ const learningData = vi.hoisted(() => ({
   preference_suggestions: { updated: false },
 }))
 
+vi.mock('@/lib/hooks/use-user', () => ({ useUserTimezone: () => 'UTC' }))
 vi.mock('@/lib/hooks/use-learning', () => {
   const mutation = { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }
   return {

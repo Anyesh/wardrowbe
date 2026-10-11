@@ -37,6 +37,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/lib/utils';
+import { useUserTimezone } from '@/lib/hooks/use-user';
 import { RATING_MAX } from '@/lib/generated/scales';
 
 function StatCard({
@@ -343,6 +344,7 @@ export default function LearningPage() {
   const occasionLabel = useOccasionLabel();
   const styleLabel = useStyleLabel();
   const locale = useLocale();
+  const timezone = useUserTimezone();
   const { data, isLoading, isError } = useLearning();
   const recompute = useRecomputeLearning();
   const generateInsights = useGenerateInsights();
@@ -631,11 +633,11 @@ export default function LearningPage() {
                         {pref.weather_type === 'mild' && '🌤️'}
                         {pref.weather_type === 'hot' && '☀️'}
                       </div>
-                      <h4 className="font-medium capitalize">
-                        {WEATHER_TYPE_KEYS[pref.weather_type]
-                          ? t(WEATHER_TYPE_KEYS[pref.weather_type])
-                          : pref.weather_type}
-                      </h4>
+                      {WEATHER_TYPE_KEYS[pref.weather_type] ? (
+                        <h4 className="font-medium">{t(WEATHER_TYPE_KEYS[pref.weather_type])}</h4>
+                      ) : (
+                        <h4 className="font-medium capitalize">{pref.weather_type}</h4>
+                      )}
                       <p className="text-sm text-muted-foreground mt-1">
                         {t('weatherPreferences.layers', { count: pref.preferred_layers.toFixed(1) })}
                       </p>
@@ -705,7 +707,10 @@ export default function LearningPage() {
           {profile.last_computed_at && (
             <p className="text-xs text-muted-foreground text-center">
               {t('lastUpdated', {
-                date: formatDate(profile.last_computed_at, locale, DATE_TIME_OPTIONS),
+                date: formatDate(profile.last_computed_at, locale, {
+                  ...DATE_TIME_OPTIONS,
+                  timeZone: timezone,
+                }),
               })}
             </p>
           )}
