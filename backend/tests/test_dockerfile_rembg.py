@@ -6,6 +6,7 @@ import pytest
 from app.config import Settings
 
 DOCKERFILE = Path(__file__).resolve().parents[1] / "Dockerfile"
+DOCKERIGNORE = DOCKERFILE.with_name(".dockerignore")
 
 
 def _dockerfile_text():
@@ -74,3 +75,10 @@ def test_compose_default_matches_settings_default(compose_name):
 
     assert match, f"{compose_name} must pass BG_REMOVAL_MODEL with a default"
     assert match.group(1) == Settings.model_fields["bg_removal_model"].default
+
+
+@pytest.mark.parametrize("pattern", [".env", ".env.*", ".venv", "**/__pycache__"])
+def test_build_context_leaves_out_secrets_and_local_state(pattern):
+    # `COPY . .` would otherwise bake a developer's .env and virtualenv into the image
+    assert DOCKERIGNORE.exists(), "backend/.dockerignore must exist"
+    assert pattern in DOCKERIGNORE.read_text().split()
