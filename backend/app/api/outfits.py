@@ -932,12 +932,13 @@ async def submit_feedback(
         feedback.modification_notes = request.modification_notes
     if request.actually_worn is not None:
         feedback.actually_worn = request.actually_worn
+    replacement: Outfit | None = None
     if request.wore_instead_items is not None:
         feedback.wore_instead_items = [str(item_id) for item_id in request.wore_instead_items]
         if request.wore_instead_items:
             studio_service = StudioService(db)
             try:
-                await studio_service.create_wore_instead(
+                replacement = await studio_service.create_wore_instead(
                     user=current_user,
                     original_outfit_id=outfit_id,
                     item_ids=list(request.wore_instead_items),
@@ -957,12 +958,9 @@ async def submit_feedback(
     await db.commit()
     await db.refresh(feedback)
 
-    try:
-        learning_service = LearningService(db)
-        await learning_service.process_feedback(outfit_id, current_user.id)
-        logger.info(f"Learning processed for outfit {outfit_id}")
-    except Exception as e:
-        logger.exception(f"Learning processing failed for outfit {outfit_id}: {e}")
+    await _run_learning_safely(db, outfit_id, current_user.id)
+    if replacement is not None:
+        await _run_learning_safely(db, replacement.id, current_user.id)
 
     return FeedbackResponse(
         id=feedback.id,

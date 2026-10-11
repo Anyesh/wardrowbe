@@ -227,10 +227,18 @@ class TestItemPairScores:
         assert pair.weather_performance == {"mild": {"count": 1, "positive": 1}}
 
     @pytest.mark.asyncio
-    async def test_repeated_wore_instead_leaves_the_replacement_pairs_unchanged(
-        self, client, db_session, test_user, auth_headers
+    @pytest.mark.parametrize(
+        ("endpoint", "body"),
+        [
+            pytest.param("wore-instead", {"rating": 5}, id="wore-instead"),
+            pytest.param("feedback", {"accepted": False, "rating": 5}, id="feedback"),
+        ],
+    )
+    async def test_wore_instead_scores_the_replacement_pairs_once(
+        self, client, db_session, test_user, auth_headers, endpoint, body
     ):
         item_ids = await _ready_items(db_session, test_user.id, ("t-shirt", "jeans", "sneakers"))
+        items_field = "items" if endpoint == "wore-instead" else "wore_instead_items"
         original = Outfit(
             user_id=test_user.id,
             occasion="casual",
@@ -243,8 +251,8 @@ class TestItemPairScores:
 
         for _ in range(2):
             response = await client.post(
-                f"/api/v1/outfits/{original.id}/wore-instead",
-                json={"items": item_ids[:2], "rating": 5},
+                f"/api/v1/outfits/{original.id}/{endpoint}",
+                json={**body, items_field: item_ids[:2]},
                 headers=auth_headers,
             )
             assert response.status_code == 200
