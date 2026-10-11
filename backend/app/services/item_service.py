@@ -6,7 +6,14 @@ from sqlalchemy import and_, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
-from app.models.item import ClothingItem, ItemHistory, ItemStatus, TaggingStatus, WashHistory
+from app.models.item import (
+    TAG_COLUMNS,
+    ClothingItem,
+    ItemHistory,
+    ItemStatus,
+    TaggingStatus,
+    WashHistory,
+)
 from app.schemas.item import DEFAULT_WASH_INTERVALS, ItemCreate, ItemFilter, ItemUpdate
 
 
@@ -233,30 +240,38 @@ class ItemService:
     async def update(self, item: ClothingItem, item_data: ItemUpdate) -> ClothingItem:
         update_data = item_data.model_dump(exclude_unset=True)
 
-        if "tags" in update_data and update_data["tags"]:
-            tags = update_data["tags"]
-            if isinstance(tags, dict):
-                update_data["tags"] = {k: v for k, v in tags.items() if v is not None}
-            else:
-                update_data["tags"] = tags.model_dump(exclude_none=True)
+        incoming: dict = {}
+        if "tags" in update_data and update_data["tags"] is not None:
+            incoming = update_data["tags"]
+            if not isinstance(incoming, dict):
+                incoming = incoming.model_dump(exclude_unset=True)
+            # Merge rather than replace: the tags JSONB also holds user-owned
+            # keys (size, care_instructions, source_url) that a partial update
+            # does not mention. An explicit null clears that one key.
+            # Re-read under a row lock: two concurrent writers must not each merge
+            # into a stale snapshot and then overwrite the other. Selecting one
+            # column still locks the row until the caller commits.
+            locked = await self.db.execute(
+                select(ClothingItem.tags).where(ClothingItem.id == item.id).with_for_update()
+            )
+            merged = dict(locked.scalar_one_or_none() or {})
+            for key, val in incoming.items():
+                if val is None:
+                    merged.pop(key, None)
+                else:
+                    merged[key] = val
+            update_data["tags"] = merged
 
         for field, value in update_data.items():
             setattr(item, field, value)
 
         if "tags" in update_data:
             attributes.flag_modified(item, "tags")
-            tag_data = update_data["tags"] or {}
-            for column in (
-                "colors",
-                "primary_color",
-                "pattern",
-                "material",
-                "style",
-                "season",
-                "formality",
-            ):
-                if column in tag_data:
-                    setattr(item, column, tag_data[column])
+            # Mirror from what the caller sent, not from the merged result, so
+            # clearing a tag also clears its column instead of leaving it stale.
+            for column in TAG_COLUMNS:
+                if column in incoming:
+                    setattr(item, column, incoming[column])
 
         await self.db.flush()
         # Re-fetch with eager loading to ensure relationships are properly loaded

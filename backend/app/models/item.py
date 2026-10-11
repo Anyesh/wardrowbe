@@ -26,6 +26,10 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
+# Columns that mirror the tags JSONB key of the same name, so every writer of one must write both.
+TAG_COLUMNS = ("colors", "primary_color", "pattern", "material", "style", "season", "formality")
+
+
 class ItemStatus(enum.StrEnum):
     processing = "processing"
     ready = "ready"

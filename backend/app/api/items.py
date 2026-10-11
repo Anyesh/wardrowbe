@@ -27,6 +27,7 @@ from app.models.item import (
 from app.models.outfit import Outfit, OutfitItem
 from app.models.user import User
 from app.schemas.item import (
+    USER_TAG_KEYS,
     AnalysisCompletion,
     AnalysisFailure,
     AnalysisInProgress,
@@ -79,7 +80,7 @@ _EMPTY_TAG_VALUES = (None, "", [], {})
 
 def _has_tag_content(field: str, value: Any) -> bool:
     if field == "tags" and isinstance(value, dict):
-        return any(v not in _EMPTY_TAG_VALUES for v in value.values())
+        return any(v not in _EMPTY_TAG_VALUES for k, v in value.items() if k not in USER_TAG_KEYS)
     return value not in _EMPTY_TAG_VALUES
 
 

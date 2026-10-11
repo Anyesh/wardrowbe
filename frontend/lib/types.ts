@@ -12,6 +12,10 @@ export interface ItemTags {
   formality?: string;
   fit?: string;
   logprobs_confidence?: number;
+  // User-owned keys. The AI never emits these.
+  size?: string;
+  care_instructions?: string;
+  source_url?: string;
 }
 
 export interface Item {
