@@ -27,13 +27,6 @@
   "loadError": "加载历史记录失败，请重试。",
   "noOutfitsForDate": "{date}没有穿搭",
   "outfitCount": "{count, plural, one {# 套穿搭} other {# 套穿搭}}",
-  "sourceBadges": {
-    "external": "外部",
-    "manual": "手动",
-    "onDemand": "即时获取",
-    "pairing": "搭配",
-    "scheduled": "定时推送"
-  },
   "status": {
     "accepted": "已采纳",
     "expired": "已过期",

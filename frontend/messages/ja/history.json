@@ -27,13 +27,6 @@
   "loadError": "履歴の読み込みに失敗しました。もう一度お試しください。",
   "noOutfitsForDate": "{date}にコーデはありません",
   "outfitCount": "{count, plural, one {# 件のコーデ} other {# 件のコーデ}}",
-  "sourceBadges": {
-    "external": "外部",
-    "manual": "手動",
-    "onDemand": "オンデマンド",
-    "pairing": "ペアリング",
-    "scheduled": "スケジュール"
-  },
   "status": {
     "accepted": "承認済み",
     "expired": "期限切れ",

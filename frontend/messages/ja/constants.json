@@ -78,6 +78,13 @@
     "weekend": "週末",
     "work": "仕事"
   },
+  "outfitSources": {
+    "external": "外部",
+    "manual": "手動",
+    "onDemand": "オンデマンド",
+    "pairing": "ペアリング",
+    "scheduled": "スケジュール"
+  },
   "patterns": {
     "animal-print": "アニマル柄",
     "camouflage": "迷彩",

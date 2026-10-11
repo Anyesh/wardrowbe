@@ -78,6 +78,13 @@
     "weekend": "Weekend",
     "work": "Work"
   },
+  "outfitSources": {
+    "external": "External",
+    "manual": "Manual",
+    "onDemand": "On Demand",
+    "pairing": "Pairing",
+    "scheduled": "Scheduled"
+  },
   "patterns": {
     "animal-print": "Animal Print",
     "camouflage": "Camouflage",

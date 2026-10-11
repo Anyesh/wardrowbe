@@ -78,6 +78,13 @@
     "weekend": "주말",
     "work": "업무"
   },
+  "outfitSources": {
+    "external": "외부",
+    "manual": "수동",
+    "onDemand": "즉시",
+    "pairing": "페어링",
+    "scheduled": "예약됨"
+  },
   "patterns": {
     "animal-print": "애니멀 프린트",
     "camouflage": "카모플라주",

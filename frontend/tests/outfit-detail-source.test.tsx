@@ -56,7 +56,7 @@ describe('outfit detail source label', () => {
         <OutfitDetailPage />
       </NextIntlClientProvider>,
     )
-    expect(screen.getByText(de.history.sourceBadges.onDemand)).toBeInTheDocument()
+    expect(screen.getByText(de.constants.outfitSources.onDemand)).toBeInTheDocument()
     expect(screen.queryByText('on demand')).not.toBeInTheDocument()
   })
 
