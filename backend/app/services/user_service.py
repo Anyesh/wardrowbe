@@ -459,14 +459,16 @@ def _is_proxy_users_email(email: str, proxy_email: str, legacy_subject: str) -> 
     placeholders = {
         _normalised(f"{legacy_subject}@{domain}") for domain in PRE_IDENTITY_PROXY_EMAIL_DOMAINS
     }
-    return stored is not None and (stored == proxy_email or stored in placeholders)
+    return stored == proxy_email or stored in placeholders
 
 
-def _normalised(email: str) -> str | None:
+def _normalised(email: str) -> str:
+    # A Latin-1 read CJK username holds C1 control characters that normalisation refuses,
+    # and such an address can still equal its own placeholder.
     try:
         return normalise_email(email)
     except ValueError:
-        return None
+        return email.strip().lower()
 
 
 def _lost_sign_in_race(error: IntegrityError) -> bool:

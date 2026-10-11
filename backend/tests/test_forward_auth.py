@@ -22,6 +22,8 @@ from tests.identity_helpers import (
 PROXY_SECRET = "s" * 32
 # The first of each pair ends in a UTF-8 byte that Latin-1 reads as whitespace (\xa0, \x85), so
 # trimming before decoding would collapse it onto the second.
+# Its UTF-8 bytes include 0x90 and 0x8d, which Latin-1 reads as C1 control characters.
+LATIN1_NAME = "名前".encode().decode("latin-1")
 TRAILING_BYTE_PAIRS = [("voilà", "voilÃ"), ("Å", "Ã")]
 SYNC_URL = "/api/v1/auth/sync"
 
@@ -288,6 +290,12 @@ class TestForwardAuthLegacyClaim:
         [
             pytest.param("bob", "bob", "bob@forward-auth.local", id="frontend-placeholder"),
             pytest.param("åsa", "Ã¥sa", "Ã¥sa@forward-auth.local", id="username-read-as-latin1"),
+            pytest.param(
+                "名前",
+                LATIN1_NAME,
+                f"{LATIN1_NAME}@forward-auth.local",
+                id="cjk-username-read-as-latin1",
+            ),
         ],
     )
     async def test_proxy_sign_in_claims_what_older_forward_auth_stored(
