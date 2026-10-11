@@ -85,6 +85,7 @@ export function BulkActionToolbar({
     ? selection.excludedIds.size > 0
     : selection.selectedIds.size > 0 && selection.selectedIds.size < pageItems;
   const hasSelection = selectedCount > 0;
+  const isEverythingSelected = hasSelection && selectedCount === totalItems;
   const canSelectAllMatching =
     selection.mode === 'some' && selection.selectedIds.size === pageItems && pageItems > 0 && pageItems < totalItems;
 
@@ -105,7 +106,7 @@ export function BulkActionToolbar({
           <Square className="h-5 w-5 text-muted-foreground" />
         )}
         <span className="text-sm font-medium whitespace-nowrap hidden sm:inline">
-          {isAllSelected ? t('bulkActions.all') : t('selectAll')}
+          {isEverythingSelected ? t('bulkActions.all') : t('selectAll')}
         </span>
       </div>
 
