@@ -21,7 +21,6 @@ from sqlalchemy import and_, delete, func, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.item import ClothingItem
 from app.models.learning import (
@@ -53,23 +52,27 @@ def slot_composition(item_types: Iterable[str | None]) -> dict[str, str]:
     return composition
 
 
-# Aliases of one colour merge to their mean because the profile keeps no per-colour sample
-# counts. Migration 6c1e8f2a9d47 merged stored rows the same way but left a lone colour's score
-# unrounded, whereas this rounds every score to 3 places on the next feedback write.
-def _canonical_color_scores(scores: dict[str, float]) -> dict[str, float]:
-    merged: dict[str, list[float]] = {}
-    for name, score in scores.items():
-        color = canonical_color(name)
-        if color:
-            merged.setdefault(color, []).append(score)
-    return {color: round(sum(values) / len(values), 3) for color, values in merged.items()}
-
-
-# Ties break on the colour name so the incremental path, which reads its counts back from JSONB
-# (key order not preserved), picks the same colours as a full recompute.
+# Ties break on the colour name so that the choice does not depend on item order. A colour seen only
+# in outfits with a negative signal has a zero count and is not preferred.
 def _top_occasion_colors(counts: dict[str, int]) -> list[str]:
-    ranked = sorted(counts.items(), key=lambda entry: (-entry[1], entry[0]))
+    ranked = sorted(
+        (entry for entry in counts.items() if entry[1] > 0),
+        key=lambda entry: (-entry[1], entry[0]),
+    )
     return [color for color, _ in ranked[:3]]
+
+
+# Studio outfits stay pending with feedback.accepted set, so they must match on feedback too.
+_HAS_PROFILE_SIGNAL = or_(
+    Outfit.status.in_([OutfitStatus.accepted, OutfitStatus.rejected]),
+    Outfit.feedback.has(UserFeedback.accepted.is_not(None)),
+)
+
+
+def _outfit_accepted(outfit: Outfit) -> bool:
+    if outfit.status in (OutfitStatus.accepted, OutfitStatus.rejected):
+        return outfit.status == OutfitStatus.accepted
+    return bool(outfit.feedback and outfit.feedback.accepted)
 
 
 _HAS_PAIR_SIGNAL = or_(
@@ -218,18 +221,7 @@ class LearningService:
         )
         await self.db.commit()
 
-        result = await self.db.execute(
-            select(Outfit)
-            .where(Outfit.id == outfit_id)
-            .options(
-                selectinload(Outfit.feedback),
-                selectinload(Outfit.items).selectinload(OutfitItem.item),
-            )
-        )
-        outfit = result.scalar_one()
-
-        signal = self._get_outfit_signal(outfit)
-        await self._update_profile_incremental(user_id, outfit, signal)
+        await self._recompute_profile(user_id)
 
     async def _update_outfit_performance(self, outfit: Outfit) -> None:
         """Compute and store outfit performance metrics."""
@@ -473,16 +465,12 @@ class LearningService:
         """
         logger.info(f"Recomputing learning profile for user {user_id}")
         await self.rebuild_all_pair_scores(user_id)
+        return await self._recompute_profile(user_id)
 
-        # Get all feedbacks with outfit details
+    async def _recompute_profile(self, user_id: UUID) -> UserLearningProfile:
         result = await self.db.execute(
             select(Outfit)
-            .where(
-                and_(
-                    Outfit.user_id == user_id,
-                    Outfit.status.in_([OutfitStatus.accepted, OutfitStatus.rejected]),
-                )
-            )
+            .where(Outfit.user_id == user_id, _HAS_PROFILE_SIGNAL)
             .options(
                 selectinload(Outfit.feedback),
                 selectinload(Outfit.items).selectinload(OutfitItem.item),
@@ -563,8 +551,7 @@ class LearningService:
                         weather_prefs[bucket]["positive"] += 1
                     weather_prefs[bucket]["layers"].append(len(outfit.items))
 
-            # Aggregate statistics
-            if outfit.status == OutfitStatus.accepted:
+            if _outfit_accepted(outfit):
                 total_accepted += 1
             else:
                 total_rejected += 1
@@ -675,59 +662,6 @@ class LearningService:
                     signal -= 0.2
 
         return max(-1.0, min(1.0, signal))
-
-    EMA_ALPHA = 0.15
-
-    async def _update_profile_incremental(
-        self, user_id: UUID, outfit: Outfit, signal: float
-    ) -> None:
-        profile = await self._get_or_create_profile(user_id)
-        alpha = self.EMA_ALPHA
-
-        new_color_scores = _canonical_color_scores(profile.color_scores)
-        for oi in outfit.items:
-            if oi.item.primary_color:
-                color = canonical_color(oi.item.primary_color)
-                old = new_color_scores.get(color, 0.0)
-                new_color_scores[color] = round(old * (1 - alpha) + signal * alpha, 3)
-        profile.learned_color_scores = new_color_scores
-        flag_modified(profile, "learned_color_scores")
-
-        new_style_scores = profile.style_scores
-        for oi in outfit.items:
-            for style in oi.item.style or []:
-                old = new_style_scores.get(style, 0.0)
-                new_style_scores[style] = round(old * (1 - alpha) + signal * alpha, 3)
-        profile.learned_style_scores = new_style_scores
-        flag_modified(profile, "learned_style_scores")
-
-        occasion = outfit.occasion
-        new_occasion_patterns = profile.occasion_patterns
-        occ_data = dict(new_occasion_patterns.get(occasion, {}))
-
-        occ_colors = dict(occ_data.get("colors", occ_data.get("preferred_colors_scores", {})))
-        for oi in outfit.items:
-            if oi.item.primary_color:
-                color = canonical_color(oi.item.primary_color)
-                occ_colors[color] = occ_colors.get(color, 0) + (1 if signal > 0 else 0)
-
-        old_rate = occ_data.get("success_rate", 0.5)
-        positive_signal = 1.0 if signal > 0 else 0.0
-        new_rate = round(old_rate * (1 - alpha) + positive_signal * alpha, 2)
-
-        occ_data["colors"] = occ_colors
-        occ_data["preferred_colors"] = _top_occasion_colors(occ_colors)
-        occ_data["success_rate"] = new_rate
-        new_occasion_patterns[occasion] = occ_data
-        profile.learned_occasion_patterns = new_occasion_patterns
-        flag_modified(profile, "learned_occasion_patterns")
-
-        profile.feedback_count = (profile.feedback_count or 0) + 1
-        profile.last_computed_at = datetime.now(UTC)
-
-        await self.db.commit()
-        await self.db.refresh(profile)
-        logger.info(f"Incremental learning update for user {user_id}")
 
     async def _get_or_create_profile(self, user_id: UUID) -> UserLearningProfile:
         """Get existing profile or create a new one."""

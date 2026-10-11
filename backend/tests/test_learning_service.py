@@ -6,49 +6,12 @@ from uuid import UUID, uuid4
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from app.models.item import ClothingItem, ItemStatus
 from app.models.learning import ItemPairScore, StyleInsight, UserLearningProfile
 from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus, UserFeedback
 from app.models.user import User
 from app.services.learning_service import LearningService, insight_message, score_interpretation
-
-
-def _make_outfit_with_feedback(user_id, items_data, accepted=True, rating=4, occasion="casual"):
-    outfit = Outfit(
-        id=uuid4(),
-        user_id=user_id,
-        occasion=occasion,
-        status=OutfitStatus.accepted if accepted else OutfitStatus.rejected,
-        weather_data={"temperature": 20, "condition": "clear"},
-    )
-
-    outfit_items = []
-    for item_kwargs in items_data:
-        item = ClothingItem(
-            id=uuid4(),
-            user_id=user_id,
-            type=item_kwargs.get("type", "shirt"),
-            image_path="test.jpg",
-            primary_color=item_kwargs.get("primary_color", "blue"),
-            style=item_kwargs.get("style", []),
-        )
-        oi = OutfitItem(outfit_id=outfit.id, item_id=item.id, position=0)
-        oi.item = item
-        outfit_items.append(oi)
-
-    outfit.items = outfit_items
-
-    feedback = UserFeedback(
-        id=uuid4(),
-        outfit_id=outfit.id,
-        accepted=accepted,
-        rating=rating,
-    )
-    outfit.feedback = feedback
-
-    return outfit
 
 
 @pytest_asyncio.fixture
@@ -66,135 +29,114 @@ async def test_user_for_learning(db_session):
     return user
 
 
-class TestIncrementalEMA:
+async def _profile(db_session, user_id) -> UserLearningProfile:
+    db_session.expire_all()
+    return await db_session.scalar(
+        select(UserLearningProfile).where(UserLearningProfile.user_id == user_id)
+    )
+
+
+class TestProcessFeedbackProfile:
     @pytest.mark.asyncio
-    async def test_ema_computation(self, db_session, test_user_for_learning):
+    @pytest.mark.parametrize(
+        "status",
+        [
+            pytest.param(OutfitStatus.accepted, id="accepted-suggestion"),
+            pytest.param(OutfitStatus.pending, id="studio-outfit"),
+        ],
+    )
+    async def test_one_rated_outfit_fills_the_profile_without_a_recompute(
+        self, db_session, test_user_for_learning, status
+    ):
         user_id = test_user_for_learning.id
-        service = LearningService(db_session)
+        outfit_id = await _seed_outfit(db_session, user_id, ["navy"], status=status, rating=4)
 
-        profile = UserLearningProfile(
-            user_id=user_id,
-            learned_color_scores={"blue": 0.5},
-            learned_style_scores={"casual": 0.3},
-            learned_occasion_patterns={},
-            feedback_count=5,
-        )
-        db_session.add(profile)
-        await db_session.flush()
+        await LearningService(db_session).process_feedback(outfit_id, user_id)
 
-        outfit = _make_outfit_with_feedback(
-            user_id,
-            [{"primary_color": "blue", "style": ["casual"]}],
-            accepted=True,
-            rating=5,
-        )
-
-        signal = service._get_outfit_signal(outfit)
-        assert signal > 0
-
-        await service._update_profile_incremental(user_id, outfit, signal)
-
-        await db_session.refresh(profile)
-        assert profile.learned_color_scores["blue"] != 0.5
-        assert profile.feedback_count == 6
-
-    @pytest.mark.asyncio
-    async def test_creates_profile_if_missing(self, db_session, test_user_for_learning):
-        user_id = test_user_for_learning.id
-        service = LearningService(db_session)
-
-        outfit = _make_outfit_with_feedback(
-            user_id,
-            [{"primary_color": "red"}],
-            accepted=True,
-            rating=4,
-        )
-        signal = service._get_outfit_signal(outfit)
-        await service._update_profile_incremental(user_id, outfit, signal)
-
-        result = await db_session.execute(
-            select(UserLearningProfile).where(UserLearningProfile.user_id == user_id)
-        )
-        profile = result.scalar_one_or_none()
-        assert profile is not None
-        assert "red" in profile.learned_color_scores
-        assert profile.feedback_count == 1
+        profile = await _profile(db_session, user_id)
+        assert (profile.feedback_count, profile.outfits_rated) == (1, 1)
+        assert float(profile.average_overall_rating) == 4.0
+        assert float(profile.overall_acceptance_rate) == 1.0
+        assert profile.learned_color_scores["navy"] > 0
+        assert profile.learned_occasion_patterns["work"]["preferred_colors"] == ["navy"]
 
     @pytest.mark.asyncio
-    async def test_jsonb_flag_modified(self, db_session, test_user_for_learning):
+    async def test_repeat_feedback_leaves_the_profile_unchanged(
+        self, db_session, test_user_for_learning
+    ):
         user_id = test_user_for_learning.id
+        await _seed_outfit(db_session, user_id, ["gray"], day=1)
+        outfit_id = await _seed_outfit(db_session, user_id, ["navy", "red"], day=2)
         service = LearningService(db_session)
 
-        profile = UserLearningProfile(
-            user_id=user_id,
-            learned_color_scores={"green": 0.2},
-            learned_style_scores={},
-            learned_occasion_patterns={},
-            feedback_count=1,
-        )
-        db_session.add(profile)
-        await db_session.flush()
+        snapshots = []
+        for _ in range(2):
+            await service.process_feedback(outfit_id, user_id)
+            profile = await _profile(db_session, user_id)
+            snapshots.append(
+                (
+                    profile.learned_color_scores,
+                    profile.learned_style_scores,
+                    profile.learned_occasion_patterns,
+                    profile.feedback_count,
+                    profile.outfits_rated,
+                    profile.average_overall_rating,
+                    profile.overall_acceptance_rate,
+                )
+            )
 
-        outfit = _make_outfit_with_feedback(
-            user_id,
-            [{"primary_color": "green", "style": ["sporty"]}],
-            accepted=True,
-            rating=5,
-        )
-        signal = service._get_outfit_signal(outfit)
-        await service._update_profile_incremental(user_id, outfit, signal)
-
-        await db_session.refresh(profile)
-        assert profile.learned_color_scores["green"] != 0.2
-        assert "sporty" in profile.learned_style_scores
+        assert snapshots[0] == snapshots[1]
+        assert snapshots[0][3] == 2
 
     @pytest.mark.asyncio
-    async def test_process_feedback_uses_incremental(self, db_session, test_user_for_learning):
+    async def test_negative_feedback_adds_no_preferred_colour(
+        self, db_session, test_user_for_learning
+    ):
         user_id = test_user_for_learning.id
-        service = LearningService(db_session)
+        outfit_id = await _seed_outfit(db_session, user_id, ["navy"], accepted=False, rating=1)
 
-        item = ClothingItem(
-            id=uuid4(),
-            user_id=user_id,
-            type="shirt",
-            image_path="test.jpg",
-            primary_color="navy",
-            style=["classic"],
+        await LearningService(db_session).process_feedback(outfit_id, user_id)
+
+        profile = await _profile(db_session, user_id)
+        assert profile.learned_occasion_patterns["work"]["preferred_colors"] == []
+        assert profile.learned_color_scores["navy"] < 0
+
+    @pytest.mark.asyncio
+    async def test_feedback_replaces_a_junk_stored_profile(
+        self, db_session, test_user_for_learning
+    ):
+        user_id = test_user_for_learning.id
+        db_session.add(
+            UserLearningProfile(
+                user_id=user_id,
+                learned_color_scores={
+                    "charcoal": 0.6,
+                    "teal": -0.4,
+                    "olive": "high",
+                    "tan": None,
+                    "\u00a0": 0.9,
+                    "navy": 10**400,
+                },
+                learned_style_scores={"boho": "high", "preppy": 10**399},
+                learned_occasion_patterns={
+                    "wedding": "often",
+                    "formal": {"preferred_colors": ["navy", 3], "colors": {"red": None}},
+                },
+                learned_weather_preferences={"hot": {"success_rate": 10**400}},
+                feedback_count=3,
+            )
         )
-        db_session.add(item)
-
-        outfit = Outfit(
-            id=uuid4(),
-            user_id=user_id,
-            occasion="work",
-            scheduled_for=date(2026, 3, 8),
-            status=OutfitStatus.accepted,
-            source=OutfitSource.on_demand,
-        )
-        db_session.add(outfit)
-        await db_session.flush()
-
-        oi = OutfitItem(outfit_id=outfit.id, item_id=item.id, position=0)
-        db_session.add(oi)
-
-        feedback = UserFeedback(
-            outfit_id=outfit.id,
-            accepted=True,
-            rating=4,
-        )
-        db_session.add(feedback)
         await db_session.commit()
+        outfit_id = await _seed_outfit(db_session, user_id, ["Charcoal"])
 
-        with patch.object(service, "recompute_learning_profile") as mock_recompute:
-            await service.process_feedback(outfit.id, user_id)
-            mock_recompute.assert_not_called()
+        await LearningService(db_session).process_feedback(outfit_id, user_id)
 
-        result = await db_session.execute(
-            select(UserLearningProfile).where(UserLearningProfile.user_id == user_id)
-        )
-        profile = result.scalar_one_or_none()
-        assert profile is not None
-        assert profile.feedback_count >= 1
+        profile = await _profile(db_session, user_id)
+        assert set(profile.learned_color_scores) == {"gray"}
+        assert profile.learned_style_scores == {}
+        assert set(profile.learned_occasion_patterns) == {"work"}
+        assert profile.learned_weather_preferences == {}
+        assert profile.feedback_count == 1
 
 
 class TestItemPairScores:
@@ -386,13 +328,15 @@ async def _ready_items(db_session, user_id, item_types) -> list[str]:
     return [str(item.id) for item in items]
 
 
-async def _seed_outfit(db_session, user_id, colors, *, occasion="work", day=1, accepted=True):
+async def _seed_outfit(
+    db_session, user_id, colors, *, occasion="work", day=1, accepted=True, status=None, rating=5
+):
     outfit = Outfit(
         id=uuid4(),
         user_id=user_id,
         occasion=occasion,
         scheduled_for=date(2026, 3, day),
-        status=OutfitStatus.accepted if accepted else OutfitStatus.rejected,
+        status=status or (OutfitStatus.accepted if accepted else OutfitStatus.rejected),
         source=OutfitSource.on_demand,
     )
     db_session.add(outfit)
@@ -403,8 +347,9 @@ async def _seed_outfit(db_session, user_id, colors, *, occasion="work", day=1, a
         db_session.add(item)
         await db_session.flush()
         db_session.add(OutfitItem(outfit_id=outfit.id, item_id=item.id, position=position))
-    db_session.add(UserFeedback(outfit_id=outfit.id, accepted=accepted, rating=5))
+    db_session.add(UserFeedback(outfit_id=outfit.id, accepted=accepted, rating=rating))
     await db_session.commit()
+    return outfit.id
 
 
 class TestAcceptanceRateOfZero:
@@ -454,69 +399,6 @@ class TestLearnedColoursAreCanonical:
 
         assert set(profile.learned_color_scores) == {"gray", "tan"}
         assert profile.learned_occasion_patterns["work"]["preferred_colors"] == ["gray", "tan"]
-
-    @pytest.mark.asyncio
-    async def test_incremental_update_merges_aliased_colours(
-        self, db_session, test_user_for_learning
-    ):
-        user_id = test_user_for_learning.id
-        db_session.add(
-            UserLearningProfile(
-                user_id=user_id,
-                learned_color_scores={
-                    "charcoal": 0.6,
-                    "gray": 0.2,
-                    "teal": -0.4,
-                    "olive": "high",
-                    "tan": None,
-                    "cream": True,
-                    "\u00a0": 0.9,
-                    "navy": 10**400,
-                    "plum": -(10**400),
-                },
-                learned_style_scores={"boho": "high", "minimal": 0.3, "preppy": 10**399},
-                learned_occasion_patterns={
-                    "casual": {"preferred_colors": ["charcoal", "gray"]},
-                    "wedding": "often",
-                    "formal": {
-                        "preferred_colors": ["navy", 3],
-                        "success_rate": 0.7,
-                        "colors": {"navy": 2, "red": None},
-                        "count": 4,
-                    },
-                    "party": {"preferred_colors": [None], "success_rate": "high"},
-                },
-                learned_weather_preferences={
-                    "cold": {"preferred_layers": 2, "success_rate": "high"},
-                    "hot": {"success_rate": 10**400},
-                },
-                feedback_count=3,
-            )
-        )
-        await db_session.flush()
-        outfit = _make_outfit_with_feedback(user_id, [{"primary_color": "Charcoal"}], rating=5)
-        service = LearningService(db_session)
-        signal = service._get_outfit_signal(outfit)
-
-        await service._update_profile_incremental(user_id, outfit, signal)
-
-        profile = await db_session.get(UserLearningProfile, user_id)
-        await db_session.refresh(profile)
-        assert set(profile.learned_color_scores) == {"gray", "blue"}
-        alpha = service.EMA_ALPHA
-        assert profile.learned_color_scores["gray"] == round(0.4 * (1 - alpha) + signal * alpha, 3)
-        assert profile.learned_color_scores["blue"] == -0.4
-        assert profile.learned_occasion_patterns["casual"]["preferred_colors"] == ["gray"]
-        assert profile.learned_style_scores == {"minimal": 0.3}
-        assert "wedding" not in profile.learned_occasion_patterns
-        assert "party" not in profile.learned_occasion_patterns
-        assert profile.learned_occasion_patterns["formal"] == {
-            "preferred_colors": ["navy"],
-            "success_rate": 0.7,
-            "colors": {"navy": 2},
-            "count": 4,
-        }
-        assert profile.weather_preferences == {"cold": {"preferred_layers": 2}}
 
 
 READABLE_PROFILE = {
@@ -625,56 +507,18 @@ class TestJunkLearnedProfileIsIgnored:
         assert junk_key not in seen
 
 
-class TestIncrementalOccasionColours:
+class TestOccasionColours:
     @pytest.mark.asyncio
-    async def test_incremental_updates_agree_with_full_recompute(
-        self, db_session, test_user_for_learning
-    ):
+    async def test_recompute_ranks_by_count_then_name(self, db_session, test_user_for_learning):
         user_id = test_user_for_learning.id
         await _seed_outfit(db_session, user_id, ["navy", "red"], day=1)
         await _seed_outfit(db_session, user_id, ["gray", "navy"], day=2)
-        outfits = (
-            await db_session.scalars(
-                select(Outfit)
-                .where(Outfit.user_id == user_id)
-                .order_by(Outfit.scheduled_for)
-                .options(selectinload(Outfit.items).selectinload(OutfitItem.item))
-                .options(selectinload(Outfit.feedback))
-            )
-        ).all()
-        service = LearningService(db_session)
 
-        for outfit in outfits:
-            await service._update_profile_incremental(
-                user_id, outfit, service._get_outfit_signal(outfit)
-            )
-        profile = await db_session.get(UserLearningProfile, user_id)
-        incremental = profile.learned_occasion_patterns["work"]["preferred_colors"]
+        profile = await LearningService(db_session).recompute_learning_profile(user_id)
 
-        recomputed = await service.recompute_learning_profile(user_id)
-
-        assert incremental == ["navy", "gray", "red"]
-        assert recomputed.learned_occasion_patterns["work"]["preferred_colors"] == incremental
-
-    @pytest.mark.asyncio
-    async def test_incremental_update_continues_from_recomputed_counts(
-        self, db_session, test_user_for_learning
-    ):
-        user_id = test_user_for_learning.id
-        await _seed_outfit(db_session, user_id, ["navy", "red"], day=1)
-        service = LearningService(db_session)
-        await service.recompute_learning_profile(user_id)
-
-        outfit = _make_outfit_with_feedback(user_id, [{"primary_color": "gray"}], occasion="work")
-        await service._update_profile_incremental(
-            user_id, outfit, service._get_outfit_signal(outfit)
-        )
-
-        profile = await db_session.get(UserLearningProfile, user_id)
-        await db_session.refresh(profile)
         assert profile.learned_occasion_patterns["work"]["preferred_colors"] == [
-            "gray",
             "navy",
+            "gray",
             "red",
         ]
 
