@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+from app.models.item import ClothingItem
 from app.models.user import User
 from app.services.image_service import VARIANTS, ImageService
 
@@ -54,6 +55,11 @@ class TestVariantTable:
             ("medium_path", "_medium", 800, 90),
             ("thumbnail_path", "_thumb", 400, 88),
         ]
+
+    def test_every_path_field_is_an_item_column(self):
+        columns = set(ClothingItem.__table__.columns.keys())
+
+        assert {v.path_field for v in VARIANTS} <= columns
 
     @pytest.mark.asyncio
     async def test_stored_variants_follow_the_table(self, test_user: User):

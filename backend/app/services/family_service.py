@@ -137,7 +137,7 @@ class FamilyService:
         return True
 
     async def update_member_role(
-        self, family: Family, member_id: UUID, new_role: str
+        self, family: Family, member_id: UUID, new_role: FamilyRole
     ) -> User | None:
         result = await self.db.execute(
             select(User).where(User.id == member_id, User.family_id == family.id)

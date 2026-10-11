@@ -15,7 +15,7 @@ class FamilyMember(BaseModel):
     display_name: str
     email: str
     avatar_url: str | None = None
-    role: str
+    role: FamilyRole
     created_at: datetime
 
 

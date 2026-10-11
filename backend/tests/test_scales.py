@@ -46,6 +46,23 @@ def test_locales_come_from_the_shared_file():
     assert DEFAULT_LOCALE in SUPPORTED_LOCALES
 
 
+def test_scale_ranges_are_ordered():
+    data = json.loads((DATA_DIR / "scales.json").read_text())
+    cold = data["temperature_thresholds_celsius"]["cold"]
+    hot = data["temperature_thresholds_celsius"]["hot"]
+    ranges = [
+        data["rating"],
+        cold,
+        hot,
+        data["avoid_repeat_days"],
+        data["style_score"],
+    ]
+
+    for scale in ranges:
+        assert scale["min"] <= scale.get("default", scale["min"]) <= scale["max"]
+    assert cold["default"] < hot["default"]
+
+
 def test_scales_come_from_the_shared_file():
     data = json.loads((DATA_DIR / "scales.json").read_text())
     cold = data["temperature_thresholds_celsius"]["cold"]
