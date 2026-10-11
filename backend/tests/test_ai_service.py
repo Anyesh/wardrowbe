@@ -12,6 +12,17 @@ def _mock_response(json_data: dict, status_code: int = 200) -> httpx.Response:
     return httpx.Response(status_code, json=json_data, request=FAKE_REQUEST)
 
 
+async def _complete(service: AIService, path: str) -> str:
+    if path == "text":
+        return await service.generate_text("suggest an outfit")
+    content, error, _ = await service._call_with_fallback(
+        [{"role": "user", "content": "tag this"}], "tags"
+    )
+    if error is not None:
+        raise error
+    return content
+
+
 class TestTagParsing:
     """Tests for AI response parsing."""
 
@@ -350,9 +361,9 @@ class TestGenerateTextErrorEnvelope:
                 await service.generate_text("suggest an outfit")
 
 
-class TestVisionEmptyResponse:
+class TestEmptyCompletion:
     """A blank vision completion read as success left analyze_image storing an "unknown"
-    item with no error to raise, so it must fail like the text path does."""
+    item with no error to raise, so both paths must treat it as a failed attempt."""
 
     @staticmethod
     def _empty_vision_response() -> dict:
@@ -380,6 +391,26 @@ class TestVisionEmptyResponse:
 
         assert content is None
         assert isinstance(error, AIResponseTruncatedError)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("path", ["vision", "text"])
+    @pytest.mark.parametrize(("finish_reason", "expected_calls"), [("length", 1), ("stop", 3)])
+    async def test_only_an_empty_completion_that_can_change_is_retried(
+        self, path, finish_reason, expected_calls
+    ):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 3})
+        payload = self._empty_vision_response()
+        payload["choices"][0]["finish_reason"] = finish_reason
+
+        with (
+            patch("httpx.AsyncClient.post", return_value=_mock_response(payload)) as mock_post,
+            patch("app.services.ai_service.asyncio.sleep"),
+        ):
+            with pytest.raises(AIResponseTruncatedError):
+                await _complete(service, path)
+
+        assert mock_post.call_count == expected_calls
 
     @pytest.mark.asyncio
     async def test_analyze_image_raises_instead_of_returning_unknown_tags(self):
@@ -656,7 +687,8 @@ class TestReasoningEffort:
         assert "reasoning" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_truncation_recovers_by_retrying_with_none(self):
+    @pytest.mark.parametrize("path", ["vision", "text"])
+    async def test_truncation_recovers_by_retrying_with_none(self, path):
         service = AIService()
         service.settings = service.settings.model_copy(update={"ai_reasoning_effort": "high"})
         truncated = _mock_response(
@@ -679,7 +711,7 @@ class TestReasoningEffort:
         success = self._success_response('{"outfits": [{"items": [1, 2]}]}')
 
         with patch("httpx.AsyncClient.post", side_effect=[truncated, success]) as mock_post:
-            result = await service.generate_text("suggest an outfit")
+            result = await _complete(service, path)
 
         assert "items" in result
         assert mock_post.call_count == 2

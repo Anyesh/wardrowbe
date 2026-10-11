@@ -495,6 +495,18 @@ class AIService:
 
                         last_error = empty_error
                         logger.warning(str(empty_error))
+                        action = _empty_response_action(
+                            choice, use_reasoning_effort and current_reasoning_effort != "none"
+                        )
+                        if action == "lower_reasoning":
+                            logger.info(
+                                f"Retrying {task_name} via {endpoint.name} with "
+                                "reasoning_effort='none' to prevent truncation"
+                            )
+                            current_reasoning_effort = "none"
+                            continue
+                        if action == "next_endpoint":
+                            break
 
                     except _AIProviderResponseError as e:
                         last_error = e
@@ -731,31 +743,18 @@ class AIService:
                         )
                         if empty_error is not None:
                             last_error = empty_error
-                            finish_reason = choice.get("finish_reason")
-                            reasoning = _reasoning_text(message)
                             logger.warning(str(last_error))
-
-                            # Drop straight to no reasoning rather than replaying the same
-                            # truncated request, which is what turned a single slow call into
-                            # a multi-minute hang. Only worth trying while the endpoint still
-                            # accepts the parameter at all.
-                            if (
-                                reasoning
-                                and use_reasoning_effort
-                                and current_reasoning_effort != "none"
-                            ):
+                            action = _empty_response_action(
+                                choice, use_reasoning_effort and current_reasoning_effort != "none"
+                            )
+                            if action == "lower_reasoning":
                                 logger.info(
                                     f"Retrying text generation via {endpoint.name} with "
                                     "reasoning_effort='none' to prevent truncation"
                                 )
                                 current_reasoning_effort = "none"
                                 continue
-
-                            # A length cutoff with reasoning already at its floor is
-                            # deterministic, so retrying only multiplies the wait. Any other
-                            # empty response can be transient (temperature is non-zero), so
-                            # it keeps the normal retry budget.
-                            if finish_reason == "length":
+                            if action == "next_endpoint":
                                 break
                             if attempt < self.settings.ai_max_retries - 1:
                                 continue
@@ -815,6 +814,20 @@ class AIResponseTruncatedError(RuntimeError):
 
 def _reasoning_text(message: dict) -> str | None:
     return message.get("reasoning_content") or message.get("reasoning")
+
+
+def _empty_response_action(
+    choice: dict, can_lower_reasoning: bool
+) -> Literal["lower_reasoning", "next_endpoint", "retry"]:
+    # Dropping straight to no reasoning avoids replaying the same truncated request, which
+    # is what turned a single slow call into a multi-minute hang. A length cutoff with
+    # reasoning already at its floor is deterministic, so retrying only multiplies the wait;
+    # any other empty response can be transient and keeps the normal retry budget.
+    if can_lower_reasoning and _reasoning_text(choice["message"]):
+        return "lower_reasoning"
+    if choice.get("finish_reason") == "length":
+        return "next_endpoint"
+    return "retry"
 
 
 def _empty_response_error(
