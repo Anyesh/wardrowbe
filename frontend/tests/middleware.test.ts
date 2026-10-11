@@ -61,17 +61,14 @@ describe('forward-auth user-switch middleware', () => {
     expect(clearedCookies(response)).toEqual([])
   })
 
-  it.each(['/dashboard', '/api/v1/items'])(
-    'leaves an OIDC or dev session alone on %s when a proxy sends Remote-User',
-    async (path) => {
-      const response = await middleware(
-        request(path, { remoteUser: 'alice', cookies: { [SESSION]: await otherProviderSession('oidc-sub') } })
-      )
+  it('leaves an OIDC or dev session alone when a proxy sends Remote-User', async () => {
+    const response = await middleware(
+      request('/dashboard', { remoteUser: 'alice', cookies: { [SESSION]: await otherProviderSession('oidc-sub') } })
+    )
 
-      expect(response.headers.get('x-middleware-next')).toBe('1')
-      expect(clearedCookies(response)).toEqual([])
-    }
-  )
+    expect(response.headers.get('x-middleware-next')).toBe('1')
+    expect(clearedCookies(response)).toEqual([])
+  })
 
   it('lets the request through when the proxy user matches the session', async () => {
     const response = await middleware(
@@ -120,17 +117,6 @@ describe('forward-auth user-switch middleware', () => {
     expect(clearedCookies(response)).toEqual([`${SESSION}.0`, `${SESSION}.1`])
   })
 
-  it('answers API calls with 401 JSON when the proxy user changed', async () => {
-    const response = await middleware(
-      request('/api/v1/items', { remoteUser: 'bob', cookies: { [SESSION]: await sessionFor('alice') } })
-    )
-
-    expect(response.status).toBe(401)
-    expect(response.headers.get('content-type')).toContain('application/json')
-    expect(await response.json()).toHaveProperty('detail')
-    expect(clearedCookies(response)).toEqual([SESSION])
-  })
-
   it('reads and clears the __Secure- cookie when NEXTAUTH_URL is https', async () => {
     process.env.NEXTAUTH_URL = 'https://wardrobe.example.com'
 
@@ -149,14 +135,19 @@ describe('middleware matcher', () => {
   const matchers = getMiddlewareMatchers(config.matcher, {} as never)
   const matches = (path: string) => matchers.some((m) => new RegExp(m.regexp).test(path))
 
-  it.each(['/', '/dashboard', '/dashboard/wardrobe', '/onboarding', '/api/v1/items', '/api/v1/auth/config'])(
+  it.each(['/', '/dashboard', '/dashboard/wardrobe', '/onboarding'])(
     'runs on %s',
     (path) => {
       expect(matches(path)).toBe(true)
     }
   )
 
+  // API calls are left to the backend's own check, because a matched request has its whole body
+  // buffered before it is forwarded, uploads included.
   it.each([
+    '/api/v1/items',
+    '/api/v1/items/upload',
+    '/api/v1/auth/config',
     '/api/auth/session',
     '/api/auth/callback/forward-auth',
     '/login',

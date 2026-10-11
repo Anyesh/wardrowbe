@@ -17,22 +17,16 @@ export async function middleware(request: NextRequest) {
   if (!token?.proxyUser || token.proxyUser === remoteUser) return NextResponse.next();
 
   const { pathname, search } = request.nextUrl;
-  let response: NextResponse;
-  if (pathname.startsWith('/api/v1/')) {
-    response = NextResponse.json(
-      { detail: 'The signed-in user changed at the proxy. Sign in again.' },
-      { status: 401 }
-    );
-  } else {
-    const login = request.nextUrl.clone();
-    login.pathname = '/login';
-    login.search = new URLSearchParams({ callbackUrl: `${pathname}${search}` }).toString();
-    response = NextResponse.redirect(login);
-  }
+  const login = request.nextUrl.clone();
+  login.pathname = '/login';
+  login.search = new URLSearchParams({ callbackUrl: `${pathname}${search}` }).toString();
+  const response = NextResponse.redirect(login);
   clearSessionCookies(request, response);
   return response;
 }
 
+// API routes are left out, because Next buffers the whole body of every matched non-GET request
+// before forwarding it, uploads included, and the backend refuses a switched proxy user itself.
 export const config = {
-  matcher: ['/((?!api/auth|login|auth/logout|_next|favicon.ico).*)'],
+  matcher: ['/((?!api/|login|auth/logout|_next|favicon.ico).*)'],
 };
