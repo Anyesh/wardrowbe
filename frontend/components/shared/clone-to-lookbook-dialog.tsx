@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -39,12 +39,17 @@ export function CloneToLookbookDialog({
   const t = useTranslations('outfits.cloneToLookbook');
   const tc = useTranslations('common');
   const occasionLabel = useOccasionLabel();
-  const [name, setName] = useState(() =>
-    t('defaultName', {
-      occasion: occasionLabel(sourceOccasion),
-      date: formatDate(new Date(), locale, { month: 'short', day: 'numeric' }),
-    })
-  );
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    setName(
+      t('defaultName', {
+        occasion: occasionLabel(sourceOccasion),
+        date: formatDate(new Date(), locale, { month: 'short', day: 'numeric' }),
+      })
+    );
+  }, [open, sourceOccasion, occasionLabel, locale, t]);
   const clone = useCloneToLookbook(sourceOutfitId);
 
   const handleConfirm = async () => {
