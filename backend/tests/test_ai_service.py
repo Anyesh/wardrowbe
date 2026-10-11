@@ -413,17 +413,67 @@ class TestEmptyCompletion:
         assert mock_post.call_count == expected_calls
 
     @pytest.mark.asyncio
-    async def test_analyze_image_raises_instead_of_returning_unknown_tags(self):
+    @pytest.mark.parametrize(
+        ("max_retries", "expected_error"),
+        [(1, AIResponseTruncatedError), (0, RuntimeError)],
+        ids=["empty-completions", "no-attempts"],
+    )
+    async def test_analyze_image_raises_when_neither_pass_returns_anything(
+        self, max_retries, expected_error
+    ):
         service = AIService()
-        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        service.settings = service.settings.model_copy(update={"ai_max_retries": max_retries})
         mock_response = _mock_response(self._empty_vision_response())
 
         with (
             patch("httpx.AsyncClient.post", return_value=mock_response),
             patch.object(AIService, "_preprocess_image", return_value="base64data"),
         ):
-            with pytest.raises(AIResponseTruncatedError):
+            with pytest.raises(expected_error):
                 await service.analyze_image("/fake/image.jpg")
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("tags_content", "description_ok", "expected_type", "expected_description"),
+        [
+            ('{"type": "tights", "primary_color": "navy"}', False, "unknown", None),
+            ("", True, "unknown", "A navy jumpsuit"),
+        ],
+        ids=["unsupported-type-without-description", "description-only"],
+    )
+    async def test_analyze_image_keeps_a_partial_result(
+        self, tags_content, description_ok, expected_type, expected_description
+    ):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        tags_payload = self._empty_vision_response()
+        tags_payload["choices"][0]["message"]["content"] = tags_content
+        description = (
+            _mock_response(
+                {
+                    "model": "vision-model",
+                    "choices": [
+                        {"message": {"content": "A navy jumpsuit"}, "finish_reason": "stop"}
+                    ],
+                }
+            )
+            if description_ok
+            else _mock_response({"error": "upstream down"}, status_code=500)
+        )
+
+        with (
+            patch(
+                "httpx.AsyncClient.post", side_effect=[_mock_response(tags_payload), description]
+            ),
+            patch.object(AIService, "_preprocess_image", return_value="base64data"),
+        ):
+            tags = await service.analyze_image("/fake/image.jpg")
+
+        assert tags.type == expected_type
+        assert tags.description == expected_description
+        if tags_content:
+            assert tags.unrecognized_type == "tights"
+            assert tags.primary_color == "navy"
 
 
 class TestLogprobsRejection:

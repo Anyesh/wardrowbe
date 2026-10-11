@@ -581,34 +581,31 @@ class AIService:
         ]
 
         tags = ClothingTags()
-        last_error = None
 
         # First pass: structured tags with logprobs for real confidence
-        content, err, logprobs_content = await self._call_with_fallback(
+        tags_content, tags_error, logprobs_content = await self._call_with_fallback(
             messages_tags, "tags", request_logprobs=True
         )
-        if content:
-            tags = self._parse_tags_from_response(content)
+        if tags_content:
+            tags = self._parse_tags_from_response(tags_content)
             logprobs_confidence = compute_confidence_from_logprobs(logprobs_content)
             if logprobs_confidence is not None:
                 tags.logprobs_confidence = logprobs_confidence
-        if err:
-            last_error = err
 
         # Second pass: human-readable description
-        content, err, _ = await self._call_with_fallback(messages_desc, "description")
-        if content:
-            description = content.strip()
+        description, description_error, _ = await self._call_with_fallback(
+            messages_desc, "description"
+        )
+        if description:
+            description = description.strip()
             if description.startswith('"') and description.endswith('"'):
                 description = description[1:-1]
             tags.description = description
 
-        # Must raise even with no last_error: a pass that yields nothing while reporting
-        # success would otherwise be stored as an "unknown" item with no failure recorded.
-        if tags.type == "unknown" and not tags.description:
-            raise last_error or AIResponseTruncatedError(
-                "no endpoint returned usable tags or a description"
-            )
+        # A partial answer (an unsupported type with its colours, or only a description) is
+        # still worth saving, so this fails only when neither pass produced anything.
+        if not tags_content and not description:
+            raise tags_error or description_error or RuntimeError("AI returned nothing usable")
 
         return tags
 
