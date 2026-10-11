@@ -39,11 +39,14 @@ async def check_rate_limit(key: str, limit: int, window_seconds: int) -> None:
     try:
         redis = Redis.from_url(str(settings.redis_url))
         try:
-            pipe = redis.pipeline()
+            # The window is fixed when the key is first created, because re-arming the expiry on
+            # every hit would let a steady trickle keep the counter alive forever. SET NX rather
+            # than EXPIRE NX so it works on Redis 6, where EXPIRE NX errors and limiting is lost.
+            pipe = redis.pipeline(transaction=True)
+            pipe.set(key, 0, ex=window_seconds, nx=True)
             pipe.incr(key)
-            pipe.expire(key, window_seconds)
             results = await pipe.execute()
-            count = results[0]
+            count = results[1]
             if count > limit:
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,

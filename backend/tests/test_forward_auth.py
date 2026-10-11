@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
@@ -12,7 +13,7 @@ from app.models import User, UserIdentity
 from app.schemas.user import UserSyncRequest
 from app.services.user_service import FORWARD_AUTH, UserEmailConflictError, UserService
 from app.utils.auth import decode_token
-from app.utils.rate_limit import _get_client_ip
+from app.utils.rate_limit import _get_client_ip, check_rate_limit
 from tests.identity_helpers import (
     add_users_with_identities,
     identities_of,
@@ -575,6 +576,23 @@ class TestForwardAuthRateLimit:
 
         assert statuses == [401] * 10 + [429]
         assert valid.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_hits_inside_the_window_do_not_extend_it(self):
+        key = f"rate_limit:test:{uuid4()}"
+        redis = Redis.from_url(str(get_settings().redis_url))
+        try:
+            await check_rate_limit(key, 10, 60)
+            assert 0 < await redis.ttl(key) <= 60
+            # Stands in for most of the window passing, which the second hit must not restart.
+            await redis.expire(key, 5)
+            await check_rate_limit(key, 10, 60)
+
+            assert int(await redis.get(key)) == 2
+            assert 0 < await redis.ttl(key) <= 5
+        finally:
+            await redis.delete(key)
+            await redis.aclose()
 
     @pytest.mark.parametrize(
         ("trusted_proxy_count", "forwarded_for", "peer", "expected"),
