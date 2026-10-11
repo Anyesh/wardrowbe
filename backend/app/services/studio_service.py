@@ -396,9 +396,7 @@ class StudioService:
 
             refreshed = await self._reload_outfit(outfit.id)
             if added or removed:
-                await self.learning.process_item_diff(
-                    refreshed, added_pairs=added, removed_pairs=removed
-                )
+                await self.learning.process_item_diff(refreshed, removed_pairs=removed)
             outfit = refreshed
 
         await self.db.flush()

@@ -1,7 +1,7 @@
 from datetime import UTC, date, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
@@ -255,6 +255,135 @@ class TestItemPairScores:
         assert pair.times_accepted == 1
         assert "casual" in (pair.occasion_performance or {})
         assert pair.occasion_performance["casual"]["count"] == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("first_rating", "second_rating"),
+        [pytest.param(4, 4, id="same-feedback-twice"), pytest.param(2, 5, id="rating-changed")],
+    )
+    async def test_resubmitted_feedback_replaces_the_outfits_contribution(
+        self, db_session, test_user_for_learning, first_rating, second_rating
+    ):
+        user_id = test_user_for_learning.id
+        outfit_id = await self._seed_two_item_outfit(
+            db_session, user_id, accepted=True, rating=first_rating
+        )
+        service = LearningService(db_session)
+        await service.process_feedback(outfit_id, user_id)
+
+        feedback = await db_session.scalar(
+            select(UserFeedback).where(UserFeedback.outfit_id == outfit_id)
+        )
+        feedback.rating = second_rating
+        await db_session.commit()
+        await service.process_feedback(outfit_id, user_id)
+
+        [pair] = await _pair_rows(db_session, user_id)
+        assert (pair.times_paired, pair.times_accepted) == (1, 1)
+        assert (pair.total_rating_sum, pair.rating_count) == (second_rating, 1)
+        assert pair.occasion_performance == {"casual": {"count": 1, "positive": 1}}
+        assert pair.weather_performance == {"mild": {"count": 1, "positive": 1}}
+
+    @pytest.mark.asyncio
+    async def test_repeated_wore_instead_leaves_the_replacement_pairs_unchanged(
+        self, client, db_session, test_user, auth_headers
+    ):
+        item_ids = await _ready_items(db_session, test_user.id, ("t-shirt", "jeans", "sneakers"))
+        original = Outfit(
+            user_id=test_user.id,
+            occasion="casual",
+            scheduled_for=date(2026, 10, 1),
+            status=OutfitStatus.pending,
+            source=OutfitSource.on_demand,
+        )
+        db_session.add(original)
+        await db_session.commit()
+
+        for _ in range(2):
+            response = await client.post(
+                f"/api/v1/outfits/{original.id}/wore-instead",
+                json={"items": item_ids[:2], "rating": 5},
+                headers=auth_headers,
+            )
+            assert response.status_code == 200
+
+        [pair] = await _pair_rows(db_session, test_user.id)
+        assert (pair.times_paired, pair.times_accepted, pair.rating_count) == (1, 1, 1)
+        assert pair.total_rating_sum == 5
+
+    @pytest.mark.asyncio
+    async def test_changing_outfit_items_moves_the_counts_to_the_new_pair(
+        self, client, db_session, test_user, auth_headers
+    ):
+        shirt, jeans, chinos = await _ready_items(
+            db_session, test_user.id, ("t-shirt", "jeans", "chinos")
+        )
+        created = await client.post(
+            "/api/v1/outfits/studio",
+            json={"items": [shirt, jeans], "occasion": "casual"},
+            headers=auth_headers,
+        )
+        assert created.status_code == 201
+
+        patched = await client.patch(
+            f"/api/v1/outfits/{created.json()['id']}",
+            json={"items": [shirt, chinos]},
+            headers=auth_headers,
+        )
+
+        assert patched.status_code == 200
+        [pair] = await _pair_rows(db_session, test_user.id)
+        assert {str(pair.item1_id), str(pair.item2_id)} == {shirt, chinos}
+        assert (pair.times_paired, pair.times_accepted) == (1, 1)
+
+    @pytest.mark.asyncio
+    async def test_full_recompute_heals_drifted_pair_rows(self, db_session, test_user_for_learning):
+        user_id = test_user_for_learning.id
+        outfit_id = await self._seed_two_item_outfit(db_session, user_id, accepted=True, rating=4)
+        service = LearningService(db_session)
+        await service.process_feedback(outfit_id, user_id)
+        [pair] = await _pair_rows(db_session, user_id)
+        pair.times_paired, pair.times_accepted, pair.total_rating_sum = 7, 7, 30
+        [never_worn_with] = await _ready_items(db_session, user_id, ("chinos",))
+        db_session.add(
+            ItemPairScore(
+                user_id=user_id,
+                item1_id=pair.item1_id,
+                item2_id=UUID(never_worn_with),
+                times_paired=3,
+            )
+        )
+        await db_session.commit()
+
+        await service.recompute_learning_profile(user_id)
+
+        [pair] = await _pair_rows(db_session, user_id)
+        assert (pair.times_paired, pair.times_accepted, pair.total_rating_sum) == (1, 1, 4)
+
+
+async def _pair_rows(db_session, user_id) -> list[ItemPairScore]:
+    db_session.expire_all()
+    return list(
+        (await db_session.execute(select(ItemPairScore).where(ItemPairScore.user_id == user_id)))
+        .scalars()
+        .all()
+    )
+
+
+async def _ready_items(db_session, user_id, item_types) -> list[str]:
+    items = [
+        ClothingItem(
+            user_id=user_id,
+            type=item_type,
+            image_path=f"test/{uuid4()}.jpg",
+            status=ItemStatus.ready,
+            primary_color="blue",
+        )
+        for item_type in item_types
+    ]
+    db_session.add_all(items)
+    await db_session.commit()
+    return [str(item.id) for item in items]
 
 
 async def _seed_outfit(db_session, user_id, colors, *, occasion="work", day=1, accepted=True):
