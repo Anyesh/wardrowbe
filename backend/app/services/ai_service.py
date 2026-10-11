@@ -58,6 +58,21 @@ class ClothingTags(BaseModel):
     # something we don't support" (e.g. "tights"), which otherwise both read "unknown".
     unrecognized_type: str | None = None
 
+    def has_content(self) -> bool:
+        return bool(
+            self.type != "unknown"
+            or self.unrecognized_type
+            or self.subtype
+            or self.primary_color
+            or self.colors
+            or self.pattern
+            or self.material
+            or self.formality
+            or self.style
+            or self.season
+            or self.fit
+        )
+
 
 TAGGING_PROMPT = render_tagging_prompt(load_prompt("clothing_analysis"))
 DESCRIPTION_PROMPT = load_prompt("clothing_description")
@@ -423,6 +438,7 @@ class AIService:
         request_logprobs: bool = False,
     ) -> tuple[str | None, Exception | None, list | None]:
         last_error = None
+        every_endpoint_repeats = True
 
         for endpoint in self._endpoints:
             logger.info(f"Trying AI endpoint for {task_name}: {endpoint.name}")
@@ -483,10 +499,30 @@ class AIService:
                                 logprobs_content = lp.get("content")
 
                         used_model = data.get("model", model)
-                        logger.info(
-                            f"AI {task_name} successful via {endpoint.name} (model: {used_model})"
+                        empty_error = _empty_response_error(
+                            choice, endpoint.name, used_model, self.settings.ai_max_tokens
                         )
-                        return content, None, logprobs_content
+                        if empty_error is None:
+                            logger.info(
+                                f"AI {task_name} successful via {endpoint.name} "
+                                f"(model: {used_model})"
+                            )
+                            return content, None, logprobs_content
+
+                        last_error = empty_error
+                        logger.warning(str(empty_error))
+                        action = _empty_response_action(
+                            choice, use_reasoning_effort and current_reasoning_effort != "none"
+                        )
+                        if action == "lower_reasoning":
+                            logger.info(
+                                f"Retrying {task_name} via {endpoint.name} with "
+                                "reasoning_effort='none' to prevent truncation"
+                            )
+                            current_reasoning_effort = "none"
+                            continue
+                        if action == "next_endpoint":
+                            break
 
                     except _AIProviderResponseError as e:
                         last_error = e
@@ -526,6 +562,12 @@ class AIService:
                         # the identical failure.
                         await asyncio.sleep(min(2**attempt, AI_RETRY_MAX_BACKOFF_S))
 
+            every_endpoint_repeats = every_endpoint_repeats and repeats_identically(last_error)
+
+        # An endpoint that failed transiently can answer on a later run, even when the endpoint
+        # tried last returned a cutoff that repeats identically.
+        if not every_endpoint_repeats and repeats_identically(last_error):
+            last_error.retryable = True
         return None, last_error, None
 
     async def analyze_image(self, image_path: str | Path) -> ClothingTags:
@@ -561,30 +603,43 @@ class AIService:
         ]
 
         tags = ClothingTags()
-        last_error = None
 
         # First pass: structured tags with logprobs for real confidence
-        content, err, logprobs_content = await self._call_with_fallback(
+        tags_content, tags_error, logprobs_content = await self._call_with_fallback(
             messages_tags, "tags", request_logprobs=True
         )
-        if content:
-            tags = self._parse_tags_from_response(content)
+        if tags_content:
+            tags = self._parse_tags_from_response(tags_content)
             logprobs_confidence = compute_confidence_from_logprobs(logprobs_content)
             if logprobs_confidence is not None:
                 tags.logprobs_confidence = logprobs_confidence
-        if err:
-            last_error = err
 
         # Second pass: human-readable description
-        content, err, _ = await self._call_with_fallback(messages_desc, "description")
-        if content:
-            description = content.strip()
+        description, description_error, _ = await self._call_with_fallback(
+            messages_desc, "description"
+        )
+        if description:
+            description = description.strip()
             if description.startswith('"') and description.endswith('"'):
                 description = description[1:-1]
             tags.description = description
 
-        if tags.type == "unknown" and not tags.description and last_error:
-            raise last_error
+        # A partial answer (an unsupported type with its colours, or only a description) is
+        # still worth saving, so this fails only when neither pass produced anything usable.
+        # Unparseable tag text counts as nothing, because saving it would store a blank item.
+        if not tags.has_content() and not description:
+            if tags_error is not None:
+                # A rerun can still produce the description, so only a cutoff on both passes
+                # ends the job without one.
+                if repeats_identically(tags_error) and not repeats_identically(description_error):
+                    tags_error.retryable = True
+                raise tags_error
+            if tags_content:
+                reason = description_error or "empty description reply"
+                raise RuntimeError(
+                    f"AI returned no usable tags and no description: {reason}"
+                ) from description_error
+            raise description_error or RuntimeError("AI returned nothing usable")
 
         return tags
 
@@ -714,47 +769,23 @@ class AIService:
                         message = choice["message"]
                         content = message.get("content")
 
-                        if not content or not content.strip():
-                            finish_reason = choice.get("finish_reason")
-                            reasoning = message.get("reasoning_content") or message.get("reasoning")
-                            if finish_reason == "length" and reasoning:
-                                detail = (
-                                    "its reasoning/thinking output consumed the entire "
-                                    "completion token budget before it produced a response"
-                                )
-                            elif finish_reason == "length":
-                                detail = "the response was cut off before any content was generated"
-                            else:
-                                detail = f"finish_reason={finish_reason!r}"
-                            last_error = AIResponseTruncatedError(
-                                f"{endpoint.name} (model: {used_model}) returned an empty "
-                                f"response: {detail}. Try raising AI_MAX_TOKENS (currently "
-                                f"{self.settings.ai_max_tokens}) or disabling extended "
-                                "thinking/reasoning mode for this model."
-                            )
+                        empty_error = _empty_response_error(
+                            choice, endpoint.name, used_model, self.settings.ai_max_tokens
+                        )
+                        if empty_error is not None:
+                            last_error = empty_error
                             logger.warning(str(last_error))
-
-                            # Drop straight to no reasoning rather than replaying the same
-                            # truncated request, which is what turned a single slow call into
-                            # a multi-minute hang. Only worth trying while the endpoint still
-                            # accepts the parameter at all.
-                            if (
-                                reasoning
-                                and use_reasoning_effort
-                                and current_reasoning_effort != "none"
-                            ):
+                            action = _empty_response_action(
+                                choice, use_reasoning_effort and current_reasoning_effort != "none"
+                            )
+                            if action == "lower_reasoning":
                                 logger.info(
                                     f"Retrying text generation via {endpoint.name} with "
                                     "reasoning_effort='none' to prevent truncation"
                                 )
                                 current_reasoning_effort = "none"
                                 continue
-
-                            # A length cutoff with reasoning already at its floor is
-                            # deterministic, so retrying only multiplies the wait. Any other
-                            # empty response can be transient (temperature is non-zero), so
-                            # it keeps the normal retry budget.
-                            if finish_reason == "length":
+                            if action == "next_endpoint":
                                 break
                             if attempt < self.settings.ai_max_retries - 1:
                                 continue
@@ -809,7 +840,64 @@ class AIResponseTruncatedError(RuntimeError):
     string then fails with an unhelpful message, which used to get swallowed into a
     generic "AI service is not available" error even though the endpoint responded
     successfully. This error preserves the real cause so callers can surface it.
+
+    ``retryable`` is False for a length cutoff, because the same request under the same token
+    budget is cut off again, so the tagging worker fails the job instead of rerunning it.
     """
+
+    def __init__(self, message: str, *, retryable: bool = True):
+        super().__init__(message)
+        self.retryable = retryable
+
+
+def repeats_identically(error: BaseException | None) -> bool:
+    return isinstance(error, AIResponseTruncatedError) and not error.retryable
+
+
+def _reasoning_text(message: dict) -> str | None:
+    return message.get("reasoning_content") or message.get("reasoning")
+
+
+def _empty_response_action(
+    choice: dict, can_lower_reasoning: bool
+) -> Literal["lower_reasoning", "next_endpoint", "retry"]:
+    # Dropping straight to no reasoning avoids replaying the same truncated request, which
+    # is what turned a single slow call into a multi-minute hang. A length cutoff with
+    # reasoning already at its floor is deterministic, so retrying only multiplies the wait;
+    # any other empty response can be transient and keeps the normal retry budget.
+    if can_lower_reasoning and _reasoning_text(choice["message"]):
+        return "lower_reasoning"
+    if choice.get("finish_reason") == "length":
+        return "next_endpoint"
+    return "retry"
+
+
+def _empty_response_error(
+    choice: dict, endpoint_name: str, used_model: str, max_tokens: int
+) -> AIResponseTruncatedError | None:
+    message = choice["message"]
+    content = message.get("content")
+    if content and content.strip():
+        return None
+
+    finish_reason = choice.get("finish_reason")
+    reasoning = _reasoning_text(message)
+    if finish_reason == "length" and reasoning:
+        detail = (
+            "its reasoning/thinking output consumed the entire "
+            "completion token budget before it produced a response"
+        )
+    elif finish_reason == "length":
+        detail = "the response was cut off before any content was generated"
+    else:
+        detail = f"finish_reason={finish_reason!r}"
+
+    return AIResponseTruncatedError(
+        f"{endpoint_name} (model: {used_model}) returned an empty response: {detail}. "
+        f"Try raising AI_MAX_TOKENS (currently {max_tokens}) or disabling extended "
+        "thinking/reasoning mode for this model.",
+        retryable=finish_reason != "length",
+    )
 
 
 class AIDisabledError(RuntimeError):

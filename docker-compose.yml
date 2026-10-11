@@ -164,6 +164,7 @@ services:
       BG_REMOVAL_API_KEY: ${BG_REMOVAL_API_KEY:-}
     volumes:
       - wardrobe_data:/data/wardrobe
+      - rembg_models:/opt/rembg/models
     depends_on:
       postgres:
         condition: service_healthy
@@ -175,3 +176,4 @@ volumes:
   postgres_data:
   redis_data:
   wardrobe_data:
+  rembg_models:

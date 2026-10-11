@@ -210,9 +210,13 @@ jobs:
         with:
           context: ./backend
           push: false
+          load: true
           tags: wardrowbe/backend:test
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
+
+      - name: Check baked rembg model loads offline
+        run: backend/scripts/check_rembg_image.sh wardrowbe/backend:test
 
       - name: Build frontend image
         uses: docker/build-push-action@v7

@@ -38,9 +38,9 @@ def register(mcp: MCPServer) -> None:
         formality: str | None = None,
         fit: str | None = None,
     ) -> dict:
-        """Write tags back to an item (external tagging). The tags payload is
-        replaced as a whole, so send the complete tag set, not a delta; non-empty
-        content marks the item tagged (tagged_by=manual)."""
+        """Write tags back to an item (external tagging). Sent fields replace
+        their stored values and omitted fields keep theirs; a tag cannot be
+        cleared here. Non-empty content marks the item tagged (tagged_by=manual)."""
         tags = present(
             colors=colors,
             primary_color=primary_color,

@@ -288,8 +288,13 @@ class TestWriteBack:
         assert data["tagged_by"] is None
 
     @pytest.mark.asyncio
-    async def test_empty_nested_tags_dict_stays_pending(
-        self, client: AsyncClient, auth_headers, test_user, db_session: AsyncSession
+    @pytest.mark.parametrize(
+        "tags",
+        [{"colors": []}, {"size": "M", "care_instructions": "Hand wash"}],
+        ids=["empty", "user-owned-keys-only"],
+    )
+    async def test_nested_tags_without_tag_content_stay_pending(
+        self, client: AsyncClient, auth_headers, test_user, db_session: AsyncSession, tags
     ):
         item = ClothingItem(
             user_id=test_user.id,
@@ -302,7 +307,7 @@ class TestWriteBack:
 
         response = await client.patch(
             f"/api/v1/items/{item.id}",
-            json={"tags": {"colors": []}},
+            json={"tags": tags},
             headers=auth_headers,
         )
 
@@ -432,27 +437,6 @@ class TestTagsToColumnsProjection:
         assert updated.style == ["casual"]
         assert updated.season == ["summer"]
         assert updated.formality == "casual"
-
-    @pytest.mark.asyncio
-    async def test_replacing_tags_clears_columns_the_new_tags_leave_out(
-        self, db_session: AsyncSession, test_user
-    ):
-        service = ItemService(db_session)
-        item = await service.create(
-            user_id=test_user.id,
-            item_data=ItemCreate(type="unknown"),
-            image_paths={"image_path": "test/projection-replace.jpg"},
-        )
-        await service.update(
-            item,
-            ItemUpdate(tags=ItemTags(colors=["red"], material="cotton", style=["casual"])),
-        )
-
-        updated = await service.update(item, ItemUpdate(tags=ItemTags(colors=["blue"])))
-
-        assert updated.colors == ["blue"]
-        assert updated.material is None
-        assert updated.style == []
 
 
 class TestWorkerTaggingOrigin:
