@@ -49,7 +49,9 @@ class TestProcessFeedbackProfile:
         self, db_session, test_user_for_learning, status
     ):
         user_id = test_user_for_learning.id
-        outfit_id = await _seed_outfit(db_session, user_id, ["navy"], status=status, rating=4)
+        outfit_id = await _seed_outfit(
+            db_session, user_id, ["navy", " \u200b"], status=status, rating=4
+        )
 
         await LearningService(db_session).process_feedback(outfit_id, user_id)
 
@@ -57,6 +59,7 @@ class TestProcessFeedbackProfile:
         assert (profile.feedback_count, profile.outfits_rated) == (1, 1)
         assert float(profile.average_overall_rating) == 4.0
         assert float(profile.overall_acceptance_rate) == 1.0
+        assert list(profile.learned_color_scores) == ["navy"]
         assert profile.learned_color_scores["navy"] > 0
         assert profile.learned_occasion_patterns["work"]["preferred_colors"] == ["navy"]
 

@@ -32,7 +32,7 @@ from app.models.learning import (
 from app.models.outfit import Outfit, OutfitItem, OutfitStatus, UserFeedback
 from app.models.preference import UserPreference
 from app.utils.clothing import ITEM_ROLE
-from app.utils.garment_vocabulary import canonical_color
+from app.utils.garment_vocabulary import canonical_primary_color
 from app.utils.scales import rating_to_signed, rating_to_unit
 from app.utils.signed_urls import sign_optional
 
@@ -508,8 +508,9 @@ class LearningService:
                 item = oi.item
 
                 # Color signals
-                if item.primary_color:
-                    color_scores.setdefault(canonical_color(item.primary_color), []).append(signal)
+                color = canonical_primary_color(item.primary_color or "")
+                if color:
+                    color_scores.setdefault(color, []).append(signal)
 
                 # Style signals
                 for style in item.style or []:
@@ -532,8 +533,8 @@ class LearningService:
 
             # Track colors per occasion
             for oi in outfit.items:
-                if oi.item.primary_color:
-                    color = canonical_color(oi.item.primary_color)
+                color = canonical_primary_color(oi.item.primary_color or "")
+                if color:
                     if color not in occasion_patterns[occasion]["colors"]:
                         occasion_patterns[occasion]["colors"][color] = 0
                     if signal > 0:
