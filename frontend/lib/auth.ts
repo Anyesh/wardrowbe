@@ -115,6 +115,10 @@ function headerValue(headers: IncomingHeaders, name: string): string | undefined
 const PROXY_HEADER_REJECTIONS = new Set([400, 401]);
 const LEGACY_IDENTITY_CONFLICT = 'legacy_identity_conflict';
 
+// Undici waits 300 s for response headers, so a backend that accepts the connection and never
+// answers would leave the login page on "Signing in" for five minutes without this bound.
+export const SYNC_TIMEOUT_MS = 15_000;
+
 export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<User | null> {
   const remoteUser = headerValue(headers, 'remote-user');
   const remoteEmail = headerValue(headers, 'remote-email');
@@ -160,6 +164,7 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
   const response = await fetch(`${backendUrl()}${API_BASE_PATH}/auth/sync`, {
     method: 'POST',
     headers: forwarded,
+    signal: AbortSignal.timeout(SYNC_TIMEOUT_MS),
   }).catch((error: unknown) => {
     throw serverError(error);
   });
@@ -275,6 +280,7 @@ export const authOptions: NextAuthOptions = {
               avatar_url: user.image,
               id_token: account?.id_token,
             }),
+            signal: AbortSignal.timeout(SYNC_TIMEOUT_MS),
           });
 
           if (response.ok) {

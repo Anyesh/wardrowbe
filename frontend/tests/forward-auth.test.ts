@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { Account, User } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
-import { authOptions, authorizeForwardAuth } from '@/lib/auth'
+import { SYNC_TIMEOUT_MS, authOptions, authorizeForwardAuth } from '@/lib/auth'
 import {
   FORWARD_AUTH_ACCOUNT_CONFLICT,
   FORWARD_AUTH_SERVER_ERROR,
@@ -41,6 +41,21 @@ function mockFetch(response: Response) {
   return spy
 }
 
+// Resolves only when the request's signal aborts, like a backend that accepts the connection
+// and never answers.
+function mockHangingFetch() {
+  const timeout = new AbortController()
+  vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timeout.signal)
+  const spy = vi.fn(
+    (_url: string, init?: RequestInit) =>
+      new Promise<Response>((_, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(init.signal!.reason))
+      })
+  )
+  global.fetch = spy as unknown as typeof fetch
+  return { spy, expire: () => timeout.abort(new DOMException('Timed out', 'TimeoutError')) }
+}
+
 describe('forward-auth authorize', () => {
   const originalEnv = { ...process.env }
 
@@ -52,6 +67,7 @@ describe('forward-auth authorize', () => {
 
   afterEach(() => {
     process.env = { ...originalEnv }
+    vi.restoreAllMocks()
   })
 
   it('syncs the proxy identity with the backend and keys the user by Remote-User', async () => {
@@ -180,6 +196,17 @@ describe('forward-auth authorize', () => {
     await expect(authorizeForwardAuth(proxyHeaders())).rejects.toThrow(FORWARD_AUTH_SERVER_ERROR)
   })
 
+  it('fails as a server error when the backend never answers', async () => {
+    const { expire } = mockHangingFetch()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const result = authorizeForwardAuth(proxyHeaders())
+    expire()
+
+    await expect(result).rejects.toThrow(FORWARD_AUTH_SERVER_ERROR)
+    expect(AbortSignal.timeout).toHaveBeenCalledWith(SYNC_TIMEOUT_MS)
+  })
+
   it('is registered as a NextAuth provider that reads the request headers', async () => {
     // CredentialsProvider keeps the caller's id and authorize under `options`; NextAuth merges
     // them over the defaults when it initialises.
@@ -200,6 +227,10 @@ describe('jwt callback', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('copies the forward-auth sync result without calling the backend again', async () => {
@@ -248,5 +279,22 @@ describe('jwt callback', () => {
     expect(spy).toHaveBeenCalledTimes(1)
     expect(token.accessToken).toBe('backend-jwt')
     expect(token.proxyUser).toBeUndefined()
+  })
+
+  it('reports an unreachable backend when the sign-in sync never answers', async () => {
+    const { expire } = mockHangingFetch()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const account = { provider: 'dev-credentials', type: 'credentials', providerAccountId: 'dev' } as Account
+
+    const result = jwt({
+      token: { sub: 'dev' } as JWT,
+      user: { id: 'dev', email: 'dev@example.com', name: 'Dev' } as User,
+      account,
+      trigger: 'signIn',
+    })
+    expire()
+
+    expect(((await result) as JWT).syncError).toBe('Unable to connect to backend server')
+    expect(AbortSignal.timeout).toHaveBeenCalledWith(SYNC_TIMEOUT_MS)
   })
 })
