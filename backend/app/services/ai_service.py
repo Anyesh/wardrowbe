@@ -58,6 +58,21 @@ class ClothingTags(BaseModel):
     # something we don't support" (e.g. "tights"), which otherwise both read "unknown".
     unrecognized_type: str | None = None
 
+    def has_content(self) -> bool:
+        return bool(
+            self.type != "unknown"
+            or self.unrecognized_type
+            or self.subtype
+            or self.primary_color
+            or self.colors
+            or self.pattern
+            or self.material
+            or self.formality
+            or self.style
+            or self.season
+            or self.fit
+        )
+
 
 TAGGING_PROMPT = render_tagging_prompt(load_prompt("clothing_analysis"))
 DESCRIPTION_PROMPT = load_prompt("clothing_description")
@@ -605,9 +620,14 @@ class AIService:
         # A partial answer (an unsupported type with its colours, or only a description) is
         # still worth saving, so this fails only when neither pass produced anything usable.
         # Unparseable tag text counts as nothing, because saving it would store a blank item.
-        has_tags = bool(tags.confidence or tags.unrecognized_type)
-        if not has_tags and not description:
-            raise tags_error or description_error or RuntimeError("AI returned nothing usable")
+        if not tags.has_content() and not description:
+            if tags_error is not None:
+                raise tags_error
+            if tags_content:
+                raise RuntimeError(
+                    f"AI returned no usable tags and no description: {description_error}"
+                ) from description_error
+            raise description_error or RuntimeError("AI returned nothing usable")
 
         return tags
 
