@@ -313,6 +313,19 @@ class TestItemPairScores:
         [pair] = await _pair_rows(db_session, user_id)
         assert (pair.times_paired, pair.times_accepted, pair.total_rating_sum) == (1, 1, 4)
 
+    @pytest.mark.asyncio
+    async def test_full_recompute_writes_more_pairs_than_one_statement_can_bind(
+        self, db_session, test_user_for_learning
+    ):
+        # 75 items make 2775 pairs, past the 2730 rows of 12 columns that fit in one statement's
+        # 32767 bind parameters.
+        user_id = test_user_for_learning.id
+        await _seed_outfit(db_session, user_id, ["navy"] * 75)
+
+        await LearningService(db_session).recompute_learning_profile(user_id)
+
+        assert len(await _pair_rows(db_session, user_id)) == 2775
+
 
 async def _pair_rows(db_session, user_id) -> list[ItemPairScore]:
     db_session.expire_all()

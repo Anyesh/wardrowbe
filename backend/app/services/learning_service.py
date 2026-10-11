@@ -82,6 +82,10 @@ _HAS_PAIR_SIGNAL = or_(
 )
 
 
+# Postgres binds at most 32767 parameters per statement; a pair row binds 12, and a pair key 2.
+_PAIR_WRITE_BATCH = 1000
+
+
 def _item_pairs(item_ids: Iterable[UUID]) -> set[tuple[UUID, UUID]]:
     return {tuple(sorted(pair)) for pair in combinations(set(item_ids), 2)}
 
@@ -339,16 +343,17 @@ class LearningService:
             outfit_item_ids = {oi.item_id for oi in outfit.items}
             temp = (outfit.weather_data or {}).get("temperature")
             bucket = self._get_temp_bucket(temp) if temp is not None else None
-            for pair, tally in tallies.items():
-                if pair[0] in outfit_item_ids and pair[1] in outfit_item_ids:
-                    tally.add(outfit.feedback, outfit.occasion, bucket)
+            for pair in _item_pairs(outfit_item_ids) & tallies.keys():
+                tallies[pair].add(outfit.feedback, outfit.occasion, bucket)
 
         empty = [pair for pair, tally in tallies.items() if tally.times_paired == 0]
-        if empty:
+        for start in range(0, len(empty), _PAIR_WRITE_BATCH):
             await self.db.execute(
                 delete(ItemPairScore).where(
                     ItemPairScore.user_id == user_id,
-                    tuple_(ItemPairScore.item1_id, ItemPairScore.item2_id).in_(empty),
+                    tuple_(ItemPairScore.item1_id, ItemPairScore.item2_id).in_(
+                        empty[start : start + _PAIR_WRITE_BATCH]
+                    ),
                 )
             )
 
@@ -369,11 +374,12 @@ class LearningService:
                 ),
                 "compatibility_score": self._compute_pair_compatibility(tally),
             }
-            for (item1_id, item2_id), tally in tallies.items()
+            # Sorted so that concurrent upserts lock shared rows in the same order.
+            for (item1_id, item2_id), tally in sorted(tallies.items(), key=lambda kv: kv[0])
             if tally.times_paired > 0
         ]
-        if rows:
-            stmt = insert(ItemPairScore).values(rows)
+        for start in range(0, len(rows), _PAIR_WRITE_BATCH):
+            stmt = insert(ItemPairScore).values(rows[start : start + _PAIR_WRITE_BATCH])
             stmt = stmt.on_conflict_do_update(
                 constraint="uq_user_item_pair",
                 set_={
