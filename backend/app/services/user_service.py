@@ -198,6 +198,7 @@ class UserService:
         user = await self.get_by_identity(provider, subject)
         if user is not None:
             return await self._sign_in_existing(user, sync_data, provider, email_verified)
+        expected_holder_id = None
         if provider in LEGACY_CLAIMING_PROVIDERS:
             user = await self.get_by_identity(LEGACY, subject)
             if user is not None:
@@ -224,7 +225,12 @@ class UserService:
                     )
                 if not (legacy.holds_proxy_identity and legacy.user.email == sync_data.email):
                     raise UserEmailConflictError(LEGACY_IDENTITY_CONFLICT)
+                expected_holder_id = legacy.user.id
         holder = await self.get_by_email(sync_data.email)
+        if expected_holder_id is not None and (holder is None or holder.id != expected_holder_id):
+            # Retried because the decision above relied on the legacy holder keeping the proxy
+            # email, and it moved off it after that read.
+            raise _RowChanged
         if holder is None:
             return await self._insert_synced_user(sync_data, provider, email_verified)
         if await self._identity_id(holder.id, provider, subject) is not None:

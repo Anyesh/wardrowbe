@@ -773,6 +773,50 @@ async def test_proxy_twins_claiming_a_placeholder_account_converge(session_maker
 
 
 @pytest.mark.asyncio
+async def test_proxy_sign_in_decides_again_when_the_holder_moves_off_the_proxy_email(
+    session_maker,
+):
+    # The holder's legacy row is S and it already signs in through the proxy as T, so a proxy
+    # sign-in of S with the holder's email takes the email path. The holder moving its email in
+    # between leaves no email holder, which must not make S a new account.
+    run = uuid4()
+    subject, other_subject = f"proxy-{run}", f"other-{run}"
+    proxy_email = f"owner-{run}@example.com"
+    holder = User(
+        external_id=subject, email=proxy_email, display_name="Holder", email_verified=True
+    )
+    await _commit_users(session_maker, holder)
+    async with session_maker() as setup:
+        await setup.execute(
+            insert(UserIdentity).values(
+                user_id=holder.id, provider="forward_auth", subject=other_subject
+            )
+        )
+        await setup.commit()
+    try:
+        _, other_result, _ = await _race(
+            session_maker,
+            UserSyncRequest(
+                external_id=other_subject, email=f"moved-{run}@example.com", display_name="H"
+            ),
+            UserSyncRequest(external_id=subject, email=proxy_email, display_name="Proxy"),
+            first_provider="forward_auth",
+            others_provider="forward_auth",
+            commit_first_before="get_by_email",
+        )
+        async with session_maker() as check:
+            held = await identities_of(check, holder.id)
+            proxy_owner = await UserService(check).get_by_identity("forward_auth", subject)
+    finally:
+        await _cleanup(session_maker, [subject, other_subject])
+
+    assert isinstance(other_result, UserEmailConflictError)
+    assert str(other_result) == "legacy_identity_conflict"
+    assert proxy_owner is None
+    assert held == {("legacy", subject), ("forward_auth", other_subject)}
+
+
+@pytest.mark.asyncio
 async def test_proxy_sign_in_retries_when_its_identity_appears_before_the_holder_read(
     session_maker,
 ):
