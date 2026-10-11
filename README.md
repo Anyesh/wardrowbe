@@ -366,12 +366,15 @@ Sign-in tokens issued before the upgrade keep working until they expire (7 days)
 
 This release keeps each user's sign-ins in a new `user_identities` table, one identity per provider, so signing in through a second provider no longer ends the first provider's sessions. The migration copies every user's existing sign-in into it.
 
+<details>
+<summary>Repairing accounts if the migration ran while the old backend was still serving</summary>
+
 If the migration ran while the old backend was still serving (the steps above were not followed), two things can go wrong:
 
 - Users the old backend created after the migration have no identity, so they can sign in only through a verified email address. An unverified one gets a conflict error, and a verified sign-in claiming the same address takes the address over and detaches the old account.
 - Accounts the old backend linked to a new sign-in by email keep accepting the previous sign-in too.
 
-This SQL repairs the accounts that existed before the backup, including one whose previous sign-in the new backend has already accepted since, and gives an identity to every account the old backend created without one. It holds sign-ins back until it commits. If another account still holds a sign-in it needs to restore, it changes nothing and names the accounts it could not repair; unlink the conflicting identity by hand (below) and run it again. Any other account the old backend linked to a new sign-in by email during the overlap (one created between the backup and the migration, or one the new backend created or linked) keeps the sign-ins it holds; the one the old backend linked gets the account back by signing in again with the same verified email, and an identity that should lose access has to be unlinked by hand (below). Take the backup right before upgrading to keep that window short. Replace `<backup time>` with the time from the backup's file name, written as `2026-10-11T09:30:00`:
+This SQL repairs the accounts that existed before the backup, including one whose previous sign-in the new backend has already accepted since, and gives an identity to every account the old backend created without one. It holds sign-ins back until it commits. If another account still holds a sign-in it needs to restore, it changes nothing and names the accounts it could not repair; unlink the conflicting identity by hand (see [Accounts and sign-in identities](#accounts-and-sign-in-identities)) and run it again. Any other account the old backend linked to a new sign-in by email during the overlap (one created between the backup and the migration, or one the new backend created or linked) keeps the sign-ins it holds; the one the old backend linked gets the account back by signing in again with the same verified email, and an identity that should lose access has to be unlinked by hand (same section). Take the backup right before upgrading to keep that window short. Replace `<backup time>` with the time from the backup's file name, written as `2026-10-11T09:30:00`:
 
 ```sql
 BEGIN;
@@ -416,6 +419,11 @@ END $$;
 COMMIT;
 ```
 
+</details>
+
+<details>
+<summary>Downgrading below this migration</summary>
+
 Downgrading below this migration keeps one sign-in per account (OIDC first, then development login, then the pre-upgrade one) and gives an account that loses every candidate a placeholder no sign-in matches. Forward-auth sign-ins are never kept, so an account whose only sign-in is forward-auth gets a placeholder. On the old version a verified sign-in whose email matches a placeholder account's verified email is linked to that account, while a matching unverified email moves to a new account and leaves the placeholder account's data behind. Every token issued after the upgrade stops working. Restore the backup instead where you can. To downgrade anyway, stop the backend and workers first, because the new backend answers every signed-in request with an error once the table is gone, and run the downgrade with the new image, since only it contains this migration:
 
 ```bash
@@ -424,6 +432,8 @@ docker compose run --rm --no-deps backend alembic downgrade 6c1e8f2a9d47
 ```
 
 Then point the image tags at the previous release and run `docker compose up -d`.
+
+</details>
 
 ## Configuration
 
