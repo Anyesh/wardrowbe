@@ -13,6 +13,7 @@ from app.utils.forward_auth import (
     FORWARD_AUTH_SECRET_HEADER,
     forward_auth_secret_matches,
     proxy_header,
+    single_header,
 )
 
 settings = get_settings()
@@ -69,7 +70,7 @@ async def get_current_user_optional(
 # The browser reaches /api/v1 straight through nginx or the ingress, past the frontend middleware
 # that ends a session when the proxy user changes, so a request the proxy vouched for is checked here.
 async def _proxy_user_switched(request: Request, user: User, user_service: UserService) -> bool:
-    presented_secret = request.headers.get(FORWARD_AUTH_SECRET_HEADER)
+    presented_secret = single_header(request.headers, FORWARD_AUTH_SECRET_HEADER)
     if not forward_auth_secret_matches(presented_secret, settings.forward_auth_secret):
         return False
     remote_user = proxy_header(request.headers, "Remote-User")

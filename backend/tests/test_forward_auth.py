@@ -441,10 +441,10 @@ class TestForwardAuthRejections:
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "user",
-        [None, "\u200b\ufeff".encode(), "\u0301".encode()],
-        ids=["missing", "zero-width-only", "combining-mark-only"],
+        [None, "\u200b\ufeff".encode(), "\u0301".encode(), b"mallory, tinyauth-alice"],
+        ids=["missing", "zero-width-only", "combining-mark-only", "comma-joined-duplicate"],
     )
-    async def test_missing_or_blank_remote_user_returns_400(
+    async def test_missing_blank_or_joined_remote_user_returns_400(
         self, client: AsyncClient, db_session: AsyncSession, user: bytes | None
     ):
         headers = _proxy_headers(user=user)
@@ -457,6 +457,30 @@ class TestForwardAuthRejections:
         assert "Remote-User" in response.json()["detail"]
         if user is not None:
             assert await user_of_subject(db_session, user.decode()) is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("name", "client_value"),
+        [
+            ("Remote-User", "mallory"),
+            ("Remote-Email", "mallory@example.com"),
+            ("Remote-Name", "Mallory"),
+            ("X-Forward-Auth-Secret", PROXY_SECRET),
+        ],
+        ids=["remote-user", "remote-email", "remote-name", "secret"],
+    )
+    async def test_repeated_proxy_header_returns_400(
+        self, client: AsyncClient, db_session: AsyncSession, name: str, client_value: str
+    ):
+        # The client's line comes first, as when a proxy appends its header instead of replacing.
+        headers = [(name, client_value), *_proxy_headers().items()]
+        with patch("app.api.auth.settings", _forward_auth_only()):
+            response = await client.post(SYNC_URL, headers=headers)
+
+        assert response.status_code == 400
+        assert name in response.json()["detail"]
+        assert await user_of_subject(db_session, "mallory") is None
+        assert await user_of_subject(db_session, "tinyauth-alice") is None
 
     @pytest.mark.asyncio
     async def test_overlong_remote_user_returns_400(
@@ -970,6 +994,25 @@ class TestRequestsAfterSignIn:
             )
 
         assert (me.status_code, image.status_code) == expected
+
+    @pytest.mark.asyncio
+    async def test_repeated_remote_user_is_refused_after_sign_in(self, client: AsyncClient):
+        with (
+            patch("app.api.auth.settings", _forward_auth_only()),
+            patch("app.utils.auth.settings", _forward_auth_only()),
+        ):
+            signed_in = (await client.post(SYNC_URL, headers=_proxy_headers())).json()
+            response = await client.get(
+                "/api/v1/users/me",
+                headers=[
+                    ("Remote-User", "tinyauth-alice"),
+                    *_proxy_headers(user="tinyauth-other").items(),
+                    ("Authorization", f"Bearer {signed_in['access_token']}"),
+                ],
+            )
+
+        assert response.status_code == 400
+        assert "Remote-User" in response.json()["detail"]
 
     @pytest.mark.asyncio
     async def test_bearer_matching_non_ascii_remote_user_is_accepted(

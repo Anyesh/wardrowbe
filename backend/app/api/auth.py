@@ -29,6 +29,7 @@ from app.utils.forward_auth import (
     FORWARD_AUTH_SECRET_HEADER,
     forward_auth_secret_matches,
     proxy_header,
+    single_header,
 )
 from app.utils.oidc import validate_oidc_id_token
 from app.utils.rate_limit import rate_limit_by_ip
@@ -144,6 +145,13 @@ async def _forward_auth_identity(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The auth proxy must send Remote-User and Remote-Email headers",
         )
+    # Node joins a repeated header into one comma-separated line, so a duplicate relayed by the
+    # frontend arrives looking like a single Remote-User.
+    if "," in remote_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The auth proxy sent a Remote-User containing a comma",
+        )
 
     # A name that fits to blank would otherwise fall back to the email's local part.
     display_name = fit_idp_display_name(proxy_header(request.headers, "Remote-Name")) or remote_user
@@ -244,7 +252,7 @@ async def sync_user(
     db: DbSession,
     sync_data: UserSyncRequest | None = None,
 ) -> UserSyncResponse:
-    presented_secret = request.headers.get(FORWARD_AUTH_SECRET_HEADER)
+    presented_secret = single_header(request.headers, FORWARD_AUTH_SECRET_HEADER)
     # The mobile app cannot pass the proxy's login, so a route that skips the auth check but
     # still adds the secret delivers an OIDC sync with no Remote-User; the token alone proves it.
     oidc_sync_through_proxy = (
