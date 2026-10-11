@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import OutfitsPage from '@/app/dashboard/outfits/page'
@@ -7,6 +7,13 @@ import { api } from '@/lib/api'
 import { queryKeys } from '@/lib/hooks/query-keys'
 import { useBulkDeleteOutfits } from '@/lib/hooks/use-outfits'
 
+const nav = vi.hoisted(() => ({ params: new URLSearchParams() }))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+  usePathname: () => '/dashboard/outfits',
+  useSearchParams: () => nav.params,
+}))
 vi.mock('@/lib/api', () => ({
   api: { get: vi.fn(), post: vi.fn() },
   setAccessToken: vi.fn(),
@@ -25,6 +32,7 @@ function wrapper({ children }: { children: ReactNode }) {
 
 afterEach(() => {
   vi.mocked(api.get).mockReset()
+  nav.params = new URLSearchParams()
 })
 
 describe('outfits load more', () => {
@@ -76,5 +84,27 @@ describe('bulk outfit delete', () => {
     const data = client.getQueryData<{ pages: { outfits: { id: string }[]; total: number }[] }>(key)
     expect(data?.pages.map((page) => page.outfits.map((outfit) => outfit.id))).toEqual([['a'], []])
     expect(data?.pages[0].total).toBe(1)
+  })
+})
+
+describe('outfit search', () => {
+  it('sends the occasions whose label contains the term alongside it', async () => {
+    nav.params = new URLSearchParams('filter=my-looks')
+    vi.mocked(api.get).mockResolvedValue({
+      outfits: [],
+      total: 0,
+      page: 1,
+      page_size: 1,
+      has_more: false,
+    })
+
+    render(<OutfitsPage />, { wrapper })
+    fireEvent.change(screen.getByPlaceholderText('search'), { target: { value: 'Lounge' } })
+
+    await waitFor(() =>
+      expect(api.get).toHaveBeenCalledWith('/outfits', {
+        params: expect.objectContaining({ search: 'Lounge', occasions: 'lounge' }),
+      }),
+    )
   })
 })

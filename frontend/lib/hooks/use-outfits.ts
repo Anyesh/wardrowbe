@@ -42,6 +42,7 @@ export interface OutfitFilters {
   is_replacement?: boolean;
   has_source_item?: boolean;
   search?: string;
+  occasions?: string[];
   cloned_from_outfit_id?: string;
 }
 
@@ -91,6 +92,7 @@ function outfitListParams(filters: OutfitFilters, page: number, pageSize: number
   if (filters.has_source_item !== undefined)
     params.has_source_item = String(filters.has_source_item);
   if (filters.search) params.search = filters.search;
+  if (filters.occasions?.length) params.occasions = filters.occasions.join(',');
   if (filters.cloned_from_outfit_id)
     params.cloned_from_outfit_id = filters.cloned_from_outfit_id;
 

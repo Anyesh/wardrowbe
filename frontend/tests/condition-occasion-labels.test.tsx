@@ -5,7 +5,11 @@ import { NextIntlClientProvider } from 'next-intl'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import LearningPage from '@/app/dashboard/learning/page'
-import { useOccasionLabel, useWeatherConditionLabel } from '@/lib/hooks/use-translated-constants'
+import {
+  useOccasionLabel,
+  useOccasionsMatching,
+  useWeatherConditionLabel,
+} from '@/lib/hooks/use-translated-constants'
 
 vi.unmock('next-intl')
 
@@ -102,5 +106,21 @@ describe('occasion labels', () => {
     render(<LearningPage />, { wrapper: wrapperFor('de', ['learning', 'constants', 'common']) })
     expect(screen.getByText(messages('de', 'constants').occasions['business-casual'])).toBeInTheDocument()
     expect(screen.queryByText('business-casual')).not.toBeInTheDocument()
+  })
+})
+
+describe('occasions matching a search term', () => {
+  it.each([
+    ['de', 'freizeit', ['casual']],
+    ['de', 'SPORT', ['sporty', 'sport']],
+    ['de', 'casual', ['smart-casual', 'business-casual']],
+    ['en', ' casual ', ['casual', 'smart-casual', 'business-casual']],
+    ['en', 'freizeit', []],
+    ['en', '   ', []],
+  ])('in %s, %j matches %j', (locale, term, expected) => {
+    const { result } = renderHook(() => useOccasionsMatching(), {
+      wrapper: wrapperFor(locale, ['constants']),
+    })
+    expect(result.current(term)).toEqual(expected)
   })
 })

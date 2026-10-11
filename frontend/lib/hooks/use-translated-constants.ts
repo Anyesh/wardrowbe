@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { OCCASION_VALUES } from '@/lib/generated/garment-vocabulary';
 import {
   CLOTHING_TYPES,
   CLOTHING_COLORS,
@@ -89,6 +90,21 @@ export function useFormalityLabel() {
 
 export function useOccasionLabel() {
   return useCatalogLabel(useTranslations('constants.occasions'));
+}
+
+// Unnamed outfits are titled by their translated occasion, so a search must also match the
+// occasion keys whose label in the current locale contains the term.
+export function useOccasionsMatching() {
+  const occasionLabel = useOccasionLabel();
+  const locale = useLocale();
+
+  return useCallback((term: string): string[] => {
+    const needle = term.trim().toLocaleLowerCase(locale);
+    if (!needle) return [];
+    return OCCASION_VALUES.filter((value) =>
+      occasionLabel(value).toLocaleLowerCase(locale).includes(needle),
+    );
+  }, [occasionLabel, locale]);
 }
 
 export function useStyleLabel() {

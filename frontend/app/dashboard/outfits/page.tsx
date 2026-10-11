@@ -25,6 +25,7 @@ import {
   type OutfitFilters,
 } from '@/lib/hooks/use-outfits';
 import { cn, formatDateKey, formatShortDate, parseDateString } from '@/lib/utils';
+import { useOccasionsMatching } from '@/lib/hooks/use-translated-constants';
 import { useUserToday } from '@/lib/hooks/use-user';
 import { GRID_PAGE_SIZE } from '@/lib/pagination';
 
@@ -105,9 +106,10 @@ const EMPTY_KEYS: Record<FilterChip, string> = {
   ai: 'empty.ai',
 };
 
-function chipToFilters(chip: FilterChip, search: string): OutfitFilters {
+function chipToFilters(chip: FilterChip, search: string, occasions: string[]): OutfitFilters {
   const filters: OutfitFilters = {};
   if (search) filters.search = search;
+  if (search && occasions.length > 0) filters.occasions = occasions;
   switch (chip) {
     case 'my-looks':
       filters.is_lookbook = true;
@@ -176,9 +178,10 @@ function OutfitsPageContent() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  const occasionsMatching = useOccasionsMatching();
   const filters = useMemo(
-    () => chipToFilters(chip, debouncedSearch),
-    [chip, debouncedSearch],
+    () => chipToFilters(chip, debouncedSearch, occasionsMatching(debouncedSearch)),
+    [chip, debouncedSearch, occasionsMatching],
   );
 
   const listQuery = useInfiniteOutfits(filters, GRID_PAGE_SIZE);
