@@ -24,3 +24,16 @@ function decodeUtf8(value: string): string {
 export function decodeProxyHeader(value: string): string {
   return decodeUtf8(value).replace(OPTIONAL_WHITESPACE, '');
 }
+
+// The same check the backend makes, so that the frontend treats a request as coming through the
+// forward-auth proxy only when the backend would. It runs in constant time like the backend's
+// hmac.compare_digest, because the Edge runtime has no crypto.timingSafeEqual.
+export function proxySecretMatches(presented: string | null | undefined): boolean {
+  const expected = process.env.FORWARD_AUTH_SECRET;
+  if (!presented || !expected) return false;
+  let difference = presented.length ^ expected.length;
+  for (let i = 0; i < expected.length; i++) {
+    difference |= expected.charCodeAt(i) ^ presented.charCodeAt(i);
+  }
+  return difference === 0;
+}

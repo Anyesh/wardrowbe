@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { decodeProxyHeader } from '@/lib/proxy-headers'
+import { describe, it, expect, afterEach } from 'vitest'
+import { decodeProxyHeader, proxySecretMatches } from '@/lib/proxy-headers'
 
 function asNodeReadsIt(utf8: string) {
   return String.fromCharCode(...Array.from(new TextEncoder().encode(utf8)))
@@ -42,5 +42,29 @@ describe('decodeProxyHeader', () => {
   it('trims spaces and tabs around the decoded value', () => {
     expect(decodeProxyHeader('  carol\t')).toBe('carol')
     expect(decodeProxyHeader(asNodeReadsIt(' 山田\t'))).toBe('山田')
+  })
+})
+
+describe('proxySecretMatches', () => {
+  const originalEnv = { ...process.env }
+  const SECRET = 'proxy-shared-secret-that-is-long-enough'
+
+  afterEach(() => {
+    process.env = { ...originalEnv }
+  })
+
+  it.each([
+    ['the configured secret', SECRET, SECRET, true],
+    ['a secret differing in its last character', `${SECRET.slice(0, -1)}X`, SECRET, false],
+    ['a prefix of the secret', SECRET.slice(0, 10), SECRET, false],
+    ['the secret with more after it', `${SECRET}x`, SECRET, false],
+    ['no header', null, SECRET, false],
+    ['an empty header when no secret is configured', '', undefined, false],
+    ['any header when no secret is configured', SECRET, undefined, false],
+  ])('compares %s', (_label, presented, configured, expected) => {
+    if (configured === undefined) delete process.env.FORWARD_AUTH_SECRET
+    else process.env.FORWARD_AUTH_SECRET = configured
+
+    expect(proxySecretMatches(presented)).toBe(expected)
   })
 })

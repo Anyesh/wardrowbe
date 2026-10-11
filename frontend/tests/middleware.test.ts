@@ -8,6 +8,7 @@ import { middleware, config } from '@/middleware'
 const SECRET = 'nextauth-test-secret'
 const SESSION = 'next-auth.session-token'
 const SECURE_SESSION = '__Secure-next-auth.session-token'
+const PROXY_SECRET = 'proxy-shared-secret-that-is-long-enough'
 
 async function sessionFor(proxyUser: string) {
   return encode({ token: { sub: proxyUser, proxyUser, accessToken: 'backend-jwt' }, secret: SECRET })
@@ -19,7 +20,7 @@ async function otherProviderSession(sub: string) {
 
 type RequestInit = {
   remoteUser?: string
-  secret?: boolean
+  secret?: string
   authorization?: string
   cookies?: Record<string, string>
 }
@@ -27,7 +28,7 @@ type RequestInit = {
 function request(path: string, init: RequestInit = {}) {
   const headers = new Headers()
   if (init.remoteUser) headers.set('remote-user', init.remoteUser)
-  if (init.secret) headers.set('x-forward-auth-secret', 'proxy-secret')
+  if (init.secret) headers.set('x-forward-auth-secret', init.secret)
   if (init.authorization) headers.set('authorization', init.authorization)
   if (init.cookies) {
     headers.set(
@@ -54,16 +55,18 @@ describe('forward-auth user-switch middleware', () => {
   beforeEach(() => {
     process.env.NEXTAUTH_SECRET = SECRET
     process.env.NEXTAUTH_URL = 'http://wardrobe.example.com'
+    process.env.FORWARD_AUTH_SECRET = PROXY_SECRET
   })
 
   afterEach(() => {
     process.env = { ...originalEnv }
   })
 
-  // Only a proxy that sends the forward-auth secret makes the login page offer forward-auth alone.
+  // Only a request carrying this deployment's forward-auth secret came through a forward-auth proxy.
   it.each([
-    { name: 'with no proxy in front', remoteUser: undefined, secret: false },
-    { name: 'behind a proxy that sends Remote-User without the secret', remoteUser: 'alice', secret: false },
+    { name: 'with no proxy in front', remoteUser: undefined, secret: undefined },
+    { name: 'behind a proxy that sends Remote-User without the secret', remoteUser: 'alice', secret: undefined },
+    { name: 'behind a proxy whose secret is not this deployment\'s', remoteUser: 'alice', secret: 'stale' },
   ])('leaves an OIDC or dev session alone $name', async ({ remoteUser, secret }) => {
     const response = await middleware(
       request('/dashboard', { remoteUser, secret, cookies: { [SESSION]: await otherProviderSession('oidc-sub') } })
@@ -74,11 +77,14 @@ describe('forward-auth user-switch middleware', () => {
     expect(clearedCookies(response)).toEqual([])
   })
 
-  // A forward-auth session without Remote-User reached the frontend past the proxy, and an OIDC or
-  // dev session behind a forward-auth proxy was left by whoever used the browser before.
+  // A forward-auth session without the secret or its Remote-User reached the frontend past the
+  // proxy, and an OIDC or dev session behind a forward-auth proxy was left by whoever used the
+  // browser before.
   it.each([
-    { name: 'a forward-auth session without Remote-User', remoteUser: undefined, secret: false, oidc: false },
-    { name: 'an OIDC or dev session behind a forward-auth proxy', remoteUser: 'bob', secret: true, oidc: true },
+    { name: 'a forward-auth session without Remote-User', remoteUser: undefined, secret: PROXY_SECRET, oidc: false },
+    { name: 'a forward-auth session without the secret', remoteUser: 'alice', secret: undefined, oidc: false },
+    { name: 'a forward-auth session with a forged secret', remoteUser: 'alice', secret: 'forged', oidc: false },
+    { name: 'an OIDC or dev session behind a forward-auth proxy', remoteUser: 'bob', secret: PROXY_SECRET, oidc: true },
   ])('ends $name', async ({ remoteUser, secret, oidc }) => {
     const session = oidc ? await otherProviderSession('alice-oidc-sub') : await sessionFor('alice')
 
@@ -102,7 +108,7 @@ describe('forward-auth user-switch middleware', () => {
 
   it('lets the request through when the proxy user matches the session', async () => {
     const response = await middleware(
-      request('/dashboard', { remoteUser: 'alice', cookies: { [SESSION]: await sessionFor('alice') } })
+      request('/dashboard', { remoteUser: 'alice', secret: PROXY_SECRET, cookies: { [SESSION]: await sessionFor('alice') } })
     )
 
     expect(response.headers.get('x-middleware-next')).toBe('1')
@@ -112,7 +118,7 @@ describe('forward-auth user-switch middleware', () => {
   it('matches a non-ASCII proxy user that Node read as Latin-1', async () => {
     const latin1 = String.fromCharCode(...Array.from(new TextEncoder().encode('josé')))
     const response = await middleware(
-      request('/dashboard', { remoteUser: latin1, cookies: { [SESSION]: await sessionFor('josé') } })
+      request('/dashboard', { remoteUser: latin1, secret: PROXY_SECRET, cookies: { [SESSION]: await sessionFor('josé') } })
     )
 
     expect(response.headers.get('x-middleware-next')).toBe('1')
@@ -120,7 +126,7 @@ describe('forward-auth user-switch middleware', () => {
   })
 
   it('lets the request through when nobody is signed in yet', async () => {
-    const response = await middleware(request('/dashboard', { remoteUser: 'alice', secret: true }))
+    const response = await middleware(request('/dashboard', { remoteUser: 'alice', secret: PROXY_SECRET }))
 
     expect(response.headers.get('x-middleware-next')).toBe('1')
   })

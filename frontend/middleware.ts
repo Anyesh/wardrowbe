@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getToken, type JWT } from 'next-auth/jwt';
-import { decodeProxyHeader } from '@/lib/proxy-headers';
+import { decodeProxyHeader, proxySecretMatches } from '@/lib/proxy-headers';
 import { clearSessionCookies, sessionCookie } from '@/lib/session-cookies';
 
 // A proxy that switches users keeps the old NextAuth session cookie, and a GET to
@@ -19,17 +19,17 @@ function nextAuthAction(pathname: string): string | null {
   }
 }
 
-// A forward-auth session exists only because the proxy sent its Remote-User, so a request without
-// it came past the proxy. A proxy that also sends the forward-auth secret makes the login page
-// offer forward-auth alone, so an OIDC or dev session there was left by whoever used the browser
-// before, and its token still works wherever the backend is reached without the secret. A proxy
-// that sends Remote-User without the secret may sit in front of an OIDC deployment, which must
-// keep its sessions.
+// A forward-auth session is kept only on a request that came through the proxy for its own user,
+// so a request past the proxy cannot read it back with a forged Remote-User. Behind the proxy the
+// login page offers forward-auth alone, so an OIDC or dev session there was left by whoever used
+// the browser before, and its token still works wherever the backend is reached without the
+// secret. Without this deployment's secret the request may come from a proxy in front of an OIDC
+// deployment, which must keep its sessions.
 function belongsToRequest(token: JWT, request: NextRequest): boolean {
+  const proxied = proxySecretMatches(request.headers.get('x-forward-auth-secret'));
+  if (!token.proxyUser) return !proxied;
   const rawRemoteUser = request.headers.get('remote-user');
-  const remoteUser = rawRemoteUser ? decodeProxyHeader(rawRemoteUser) : null;
-  if (token.proxyUser) return token.proxyUser === remoteUser;
-  return !(remoteUser && request.headers.get('x-forward-auth-secret'));
+  return proxied && rawRemoteUser !== null && token.proxyUser === decodeProxyHeader(rawRemoteUser);
 }
 
 async function sessionToken(request: NextRequest): Promise<JWT | null> {

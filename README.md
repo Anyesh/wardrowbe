@@ -525,13 +525,14 @@ Forward-auth lets an authenticating reverse proxy sign people in to Wardrowbe. I
 
 1. The proxy (TinyAuth or Authelia behind Caddy, Traefik or nginx) authenticates the browser and adds `Remote-User`, `Remote-Email`, optionally `Remote-Name`, and a static `X-Forward-Auth-Secret` header to every request it forwards.
 2. On `/login` the app signs in by itself: the backend checks the secret, then signs in the forward-auth identity named by `Remote-User`, creating an account for it when no account matches (see [Accounts and sign-in identities](#accounts-and-sign-in-identities)). A wrong secret gets a 401, and `Remote-*` headers sent without the secret are ignored.
-3. After sign-in, requests use Wardrowbe's own session token, and the proxy headers never sign a request in. They can only refuse one: a request that carries the right secret and a `Remote-User` that is not a forward-auth identity of the session's account gets a 401. Image links the app already handed out are signed and keep working until they expire. So if the proxy starts reporting a different `Remote-User`, the next page load signs the old session out, and a tab that is already open has its API calls refused until it reloads. A page load also signs out a forward-auth session that reaches the app without `Remote-User`, and an OIDC or development session in a browser the proxy now serves, since the login page offers only forward-auth there.
+3. After sign-in, requests use Wardrowbe's own session token, and the proxy headers never sign a request in. They can only refuse one: a request that carries the right secret and a `Remote-User` that is not a forward-auth identity of the session's account gets a 401. Image links the app already handed out are signed and keep working until they expire. So if the proxy starts reporting a different `Remote-User`, the next page load signs the old session out, and a tab that is already open has its API calls refused until it reloads (unless those calls skip the proxy, see the mobile app below). A page load also signs out a forward-auth session that reaches the app without the secret or without `Remote-User`, and an OIDC or development session in a browser the proxy now serves, since the login page offers only forward-auth there.
 4. Logging out ends the Wardrowbe session, then sends the browser to the proxy's logout page so the proxy session ends too (TinyAuth's page asks for one more click).
 
 Set these in `.env`:
 
 ```env
-# At least 32 random visible ASCII characters and no spaces, e.g. the output of: openssl rand -hex 32
+# At least 32 random visible ASCII characters and no spaces, e.g. the output of: openssl rand -hex 32.
+# The backend and the frontend both read it, and the compose files pass it to both.
 FORWARD_AUTH_SECRET=
 # The public URL the proxy serves
 NEXTAUTH_URL=https://wardrobe.example.com
@@ -602,7 +603,7 @@ Accounts from before sign-in identities keep their old sign-in as a `legacy` ide
 UPDATE users SET email = 'proxy-user@example.com', email_verified = true WHERE id = '<user id>';
 ```
 
-The mobile app cannot sign in through a forward-auth proxy, so it needs OIDC. Both can be configured at once: set `OIDC_ISSUER_URL` and `OIDC_CLIENT_ID` alongside `FORWARD_AUTH_SECRET`, and browsers use the proxy while the app uses OIDC. The app has to reach Wardrowbe through a separate hostname that skips the forward-auth check, since it cannot complete the proxy's login page. If it has to be a path on the browser's hostname instead, let it skip the check only for `/api/v1/`, never for pages or `/api/auth/`: a browser that reaches those without the proxy's headers keeps the session of whoever signed in before it.
+The mobile app cannot sign in through a forward-auth proxy, so it needs OIDC. Both can be configured at once: set `OIDC_ISSUER_URL` and `OIDC_CLIENT_ID` alongside `FORWARD_AUTH_SECRET`, and browsers use the proxy while the app uses OIDC. The app has to reach Wardrowbe through a separate hostname that skips the forward-auth check, since it cannot complete the proxy's login page; expose only `/api/v1/` there. If it has to be a path on the browser's hostname instead, let it skip the check only for `/api/v1/`, never for pages or `/api/auth/`, since the app signs out a forward-auth session on any page load that did not come through the proxy. With that path, the browser's own API calls skip the proxy too, so a tab that is already open when the proxy user changes keeps acting as the previous user until it reloads.
 
 > [!WARNING]
 > Do not add `X-Forward-Auth-Secret` on the route the app uses. The app signs in with OIDC and never needs the secret, and a route that skips the proxy's check but still adds it lets anyone sign in as any user by sending their own `Remote-User` and `Remote-Email`. If your proxy can only add the secret on every route, that route must also strip every client-supplied `Remote-*` header first, as the snippets above do. An OIDC sign-in that then arrives with the secret but no `Remote-User` is still verified as OIDC.

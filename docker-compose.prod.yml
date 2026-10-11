@@ -190,6 +190,7 @@ services:
       # Forward-auth logout target: TINYAUTH_URL for TinyAuth, FORWARD_AUTH_LOGOUT_URL for others
       FORWARD_AUTH_LOGOUT_URL: ${FORWARD_AUTH_LOGOUT_URL:-}
       TINYAUTH_URL: ${TINYAUTH_URL:-}
+      FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
       # Trust self-signed certs for internal OIDC provider
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
     depends_on:

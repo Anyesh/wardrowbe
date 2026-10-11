@@ -94,3 +94,24 @@ def test_every_k8s_configmap_key_is_read():
 
     unknown = set(configmap["data"]) - SETTINGS_KEYS - ENTRYPOINT_KEYS - K8S_NON_BACKEND_KEYS
     assert not unknown, f"wardrobe-config holds keys nothing reads: {sorted(unknown)}"
+
+
+def test_compose_gives_the_frontend_the_backends_forward_auth_secret(compose):
+    # The frontend checks the proxy secret too, so both must read the same value.
+    services = compose["services"]
+    assert (
+        services["frontend"]["environment"]["FORWARD_AUTH_SECRET"]
+        == services["backend"]["environment"]["FORWARD_AUTH_SECRET"]
+    )
+
+
+def test_k8s_gives_the_frontend_the_backends_forward_auth_secret():
+    def secret_ref(filename):
+        (entry,) = (
+            entry
+            for entry in _k8s_container(filename)["env"]
+            if entry["name"] == "FORWARD_AUTH_SECRET"
+        )
+        return entry["valueFrom"]["secretKeyRef"]
+
+    assert secret_ref("frontend.yaml") == secret_ref("backend.yaml")

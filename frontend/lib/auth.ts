@@ -7,7 +7,7 @@ import {
   FORWARD_AUTH_SERVER_ERROR,
   FORWARD_AUTH_USERNAME_CONFLICT,
 } from '@/lib/auth-errors';
-import { decodeProxyHeader } from '@/lib/proxy-headers';
+import { decodeProxyHeader, proxySecretMatches } from '@/lib/proxy-headers';
 
 interface OIDCProfile {
   sub: string;
@@ -120,8 +120,9 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
   const remoteUser = headerValue(headers, 'remote-user');
   const remoteEmail = headerValue(headers, 'remote-email');
   // Without the secret the backend would fall through to its OIDC or dev branch, so this provider
-  // must never call it without one.
-  if (!remoteUser || !remoteEmail || !headerValue(headers, 'x-forward-auth-secret')) {
+  // must never call it without one. The frontend checks the secret too, because the middleware
+  // ends a forward-auth session on every request without it, which would loop through sign-in.
+  if (!remoteUser || !remoteEmail || !proxySecretMatches(headerValue(headers, 'x-forward-auth-secret'))) {
     return null;
   }
 
