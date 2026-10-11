@@ -114,6 +114,9 @@ class UserService:
         latin1 = subject.encode("utf-8").decode("latin-1")
         legacy = aliased(UserIdentity)
         for legacy_subject in dict.fromkeys((subject, latin1)):
+            if _read_as_latin1(legacy_subject) not in (None, subject):
+                # That row is the Latin-1 spelling of another username, so it is that user's.
+                continue
             # One statement, so the holder's email, whether it has a forward_auth identity and
             # whether the caller's own identity exists by now come from the same snapshot: a
             # twin's sign-in changes them together, and a conflict decided on a mix of old and
@@ -468,6 +471,13 @@ def _is_proxy_users_email(email: str, proxy_email: str, legacy_subject: str) -> 
         _normalised(f"{legacy_subject}@{domain}") for domain in PRE_IDENTITY_PROXY_EMAIL_DOMAINS
     }
     return stored == proxy_email or stored in placeholders
+
+
+def _read_as_latin1(subject: str) -> str | None:
+    try:
+        return subject.encode("latin-1").decode("utf-8")
+    except UnicodeError:
+        return None
 
 
 def _normalised(email: str) -> str:

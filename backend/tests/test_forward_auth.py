@@ -324,6 +324,33 @@ class TestForwardAuthLegacyClaim:
         assert set(held) == {("legacy", stored_subject), (FORWARD_AUTH, proxy_user)}
         assert identity_id == held[(FORWARD_AUTH, proxy_user)]
 
+    @pytest.mark.asyncio
+    async def test_username_spelled_as_another_users_latin1_row_does_not_claim_it(
+        self, db_session: AsyncSession
+    ):
+        # Older forward-auth stored "Jürgen" as "JÃ¼rgen", so that row is Jürgen's even though
+        # a proxy username can be written as "JÃ¼rgen" literally.
+        run = uuid4()
+        stored_subject = f"{run}Jürgen".encode().decode("latin-1")
+        stored = User(
+            external_id=stored_subject,
+            email=f"{stored_subject}@forward-auth.local",
+            display_name="Jürgen",
+            email_verified=True,
+        )
+        await add_users_with_identities(db_session, stored)
+        await db_session.commit()
+        sync = UserSyncRequest(
+            external_id=stored_subject, email=f"other-{run}@example.net", display_name="Other"
+        )
+
+        user, _, is_new = await UserService(db_session).sync_from_oidc(
+            sync, provider=FORWARD_AUTH, email_verified=True
+        )
+
+        assert (user.id != stored.id, is_new) == (True, True)
+        assert await identities_of(db_session, stored.id) == {("legacy", stored_subject)}
+
 
 class TestForwardAuthRejections:
     @pytest.mark.asyncio
