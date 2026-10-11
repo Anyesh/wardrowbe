@@ -31,3 +31,14 @@ docker run --rm --network none --user "$uid:$gid" "$image" python -c "$load" "$m
 
 echo "root entrypoint remapped to PUID/PGID, no network"
 docker run --rm --network none -e PUID="$uid" -e PGID="$gid" "$image" python -c "$load" "$model"
+
+echo "a model another uid downloaded into a persisted models volume, read after a PUID change"
+volume="rembg-check-$$"
+docker volume create "$volume" >/dev/null
+trap 'docker volume rm -f "$volume" >/dev/null' EXIT
+docker run --rm --network none --user 1001:1001 -v "$volume:/opt/rembg/models" \
+    --entrypoint sh "$image" -c \
+    'mkdir /opt/rembg/models/other && echo x > /opt/rembg/models/other/other.onnx && chmod 600 /opt/rembg/models/other/other.onnx'
+docker run --rm --network none -e PUID="$uid" -e PGID="$gid" -v "$volume:/opt/rembg/models" \
+    "$image" cat /opt/rembg/models/other/other.onnx >/dev/null
+echo "readable"

@@ -477,10 +477,8 @@ The Settings page can fill in your coordinates from the browser's Geolocation AP
 Remove image backgrounds from wardrobe items. Two backends supported:
 
 **rembg (local, default):**
-```bash
-pip install rembg[cpu]  # add to your image, or install manually
-```
-No config needed — works out of the box. Change model with `BG_REMOVAL_MODEL` (default: `u2net`, options: `isnet-general-use`, `silueta`, `u2netp`).
+
+No config needed, since the backend image ships rembg with the default `u2net` model already downloaded. Change model with `BG_REMOVAL_MODEL` (options: `isnet-general-use`, `silueta`, `u2netp`). A non-default model is downloaded the first time background removal runs, so that first run needs internet access; the compose files keep it in the `rembg_models` volume so later runs work offline. On Kubernetes, mount a PersistentVolume at `/opt/rembg/models` on the image-worker if you change the model, or it is downloaded again on every pod start.
 
 **HTTP provider (e.g. [withoutbg](https://github.com/nicholasgasior/withoutbg)):**
 ```env

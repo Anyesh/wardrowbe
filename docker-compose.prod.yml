@@ -153,6 +153,7 @@ services:
       BG_REMOVAL_API_KEY: ${BG_REMOVAL_API_KEY:-}
     volumes:
       - uploads_data:/data/uploads
+      - rembg_models:/opt/rembg/models
     dns:
       - ${LOCAL_DNS:-8.8.8.8}
       - 8.8.8.8
@@ -230,6 +231,7 @@ volumes:
   postgres_data:
   redis_data:
   uploads_data:
+  rembg_models:
 
 networks:
   wardrobe_net:

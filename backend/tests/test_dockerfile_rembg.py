@@ -66,15 +66,21 @@ def test_numba_cache_is_baked_portably_before_the_model_step():
 
 
 @pytest.mark.parametrize("compose_name", ["docker-compose.yml", "docker-compose.prod.yml"])
-def test_compose_default_matches_settings_default(compose_name):
+def test_compose_passes_the_model_and_persists_its_cache(compose_name):
     compose = Path(__file__).resolve().parents[2] / compose_name
     if not compose.exists():
         pytest.skip(f"{compose_name} is not available in this environment")
+    text = compose.read_text()
+    _, rembg_home = _env_index("REMBG_HOME")
 
-    match = re.search(r"BG_REMOVAL_MODEL:\s*\$\{BG_REMOVAL_MODEL:-([^}]+)\}", compose.read_text())
+    match = re.search(r"BG_REMOVAL_MODEL:\s*\$\{BG_REMOVAL_MODEL:-([^}]+)\}", text)
 
     assert match, f"{compose_name} must pass BG_REMOVAL_MODEL with a default"
     assert match.group(1) == Settings.model_fields["bg_removal_model"].default
+    # A named volume starts as a copy of the baked models, and a model picked at runtime is
+    # downloaded into it once instead of into a container layer that recreation discards
+    assert re.search(rf"^\s*- rembg_models:{re.escape(rembg_home)}/models\s*$", text, re.MULTILINE)
+    assert re.search(r"^  rembg_models:\s*$", text, re.MULTILINE)
 
 
 @pytest.mark.parametrize("pattern", [".env", ".env.*", ".venv", "**/__pycache__"])

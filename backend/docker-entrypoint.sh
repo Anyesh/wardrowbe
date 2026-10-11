@@ -20,6 +20,14 @@ if [ "$(id -u)" = "0" ]; then
         fi
     done
 
+    # rembg saves a downloaded model 0600 for the uid that fetched it, so a persisted models
+    # volume would stay unreadable after a PUID change. find skips entries already readable,
+    # which keeps a read-only mount of complete models startable.
+    models="${REMBG_HOME:-/opt/rembg}/models"
+    if [ -d "$models" ]; then
+        find "$models" \( -type d ! -perm -a+rx -o -type f ! -perm -a+r \) -exec chmod a+rX {} +
+    fi
+
     exec gosu appuser "$@"
 fi
 
