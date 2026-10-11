@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 import pytest
+import yaml
 
 from app.config import Settings
 
@@ -70,17 +71,20 @@ def test_compose_passes_the_model_and_persists_its_cache(compose_name):
     compose = Path(__file__).resolve().parents[2] / compose_name
     if not compose.exists():
         pytest.skip(f"{compose_name} is not available in this environment")
-    text = compose.read_text()
+    config = yaml.safe_load(compose.read_text())
+    worker = config["services"]["image-worker"]
     _, rembg_home = _env_index("REMBG_HOME")
 
-    match = re.search(r"BG_REMOVAL_MODEL:\s*\$\{BG_REMOVAL_MODEL:-([^}]+)\}", text)
+    match = re.fullmatch(
+        r"\$\{BG_REMOVAL_MODEL:-([^}]+)\}", worker["environment"].get("BG_REMOVAL_MODEL", "")
+    )
 
-    assert match, f"{compose_name} must pass BG_REMOVAL_MODEL with a default"
+    assert match, f"{compose_name} must pass BG_REMOVAL_MODEL to image-worker with a default"
     assert match.group(1) == Settings.model_fields["bg_removal_model"].default
-    # A named volume starts as a copy of the baked models, and a model picked at runtime is
-    # downloaded into it once instead of into a container layer that recreation discards
-    assert re.search(rf"^\s*- rembg_models:{re.escape(rembg_home)}/models\s*$", text, re.MULTILINE)
-    assert re.search(r"^  rembg_models:\s*$", text, re.MULTILINE)
+    # A model picked at runtime is downloaded into the volume once instead of into a container
+    # layer that recreation discards
+    assert f"rembg_models:{rembg_home}/models" in worker["volumes"]
+    assert "rembg_models" in config["volumes"]
 
 
 @pytest.mark.parametrize("pattern", [".env", ".env.*", ".venv", "**/__pycache__"])
