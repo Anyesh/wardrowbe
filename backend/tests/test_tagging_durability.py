@@ -124,7 +124,14 @@ class TestWorkerFailsLoudly:
                 await tag_item_image({"job_try": 1}, str(uuid4()), __file__)
 
     @pytest.mark.asyncio
-    async def test_reraises_ai_errors_so_arq_can_retry(self, db_session: AsyncSession, test_user):
+    @pytest.mark.parametrize(
+        "error",
+        [RuntimeError("upstream 500"), AIResponseTruncatedError("upstream 500 cut off")],
+        ids=["error", "retryable-truncation"],
+    )
+    async def test_reraises_ai_errors_so_arq_can_retry(
+        self, db_session: AsyncSession, test_user, error
+    ):
         item = ClothingItem(
             user_id=test_user.id,
             type="unknown",
@@ -139,7 +146,7 @@ class TestWorkerFailsLoudly:
             patch.object(db_session, "close", new_callable=AsyncMock),
             patch.object(AIService, "analyze_image", new_callable=AsyncMock) as analyze,
         ):
-            analyze.side_effect = RuntimeError("upstream 500")
+            analyze.side_effect = error
             with pytest.raises(Retry):
                 await tag_item_image({"job_try": 1}, str(item.id), __file__)
 

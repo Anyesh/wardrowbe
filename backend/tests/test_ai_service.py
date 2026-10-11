@@ -393,6 +393,33 @@ class TestEmptyCompletion:
         assert isinstance(error, AIResponseTruncatedError)
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("first_endpoint", "retryable"),
+        [("unreachable", True), ("cut-off", False)],
+    )
+    async def test_cutoff_is_retryable_unless_every_endpoint_cut_off(
+        self, first_endpoint, retryable
+    ):
+        service = AIService(endpoints=[{"url": "http://custom:11434/v1", "name": "custom"}])
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        first = (
+            httpx.ConnectError("custom down")
+            if first_endpoint == "unreachable"
+            else _mock_response(self._empty_vision_response())
+        )
+
+        with patch(
+            "httpx.AsyncClient.post",
+            side_effect=[first, _mock_response(self._empty_vision_response())],
+        ):
+            _, error, _ = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags"
+            )
+
+        assert isinstance(error, AIResponseTruncatedError)
+        assert error.retryable is retryable
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("path", ["vision", "text"])
     @pytest.mark.parametrize(("finish_reason", "expected_calls"), [("length", 1), ("stop", 3)])
     async def test_only_an_empty_completion_that_can_change_is_retried(
@@ -428,17 +455,24 @@ class TestEmptyCompletion:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("max_retries", "tags_content", "description", "expected_error", "message"),
+        ("max_retries", "tags_content", "description", "expected_error", "message", "retryable"),
         [
-            (1, "", "", AIResponseTruncatedError, "empty response"),
-            (1, "I cannot identify this garment.", 500, RuntimeError, "no usable tags"),
-            (1, "{}", 500, RuntimeError, "no usable tags"),
-            (0, "", "", RuntimeError, "nothing usable"),
+            (1, "", "", AIResponseTruncatedError, "empty response", False),
+            (1, "", 503, AIResponseTruncatedError, "empty response", True),
+            (1, "I cannot identify this garment.", 500, RuntimeError, "no usable tags", True),
+            (1, "{}", '""', RuntimeError, "empty description reply", True),
+            (0, "", "", RuntimeError, "nothing usable", True),
         ],
-        ids=["empty-completions", "unparseable-tags", "empty-json", "no-attempts"],
+        ids=[
+            "empty-completions",
+            "cut-tags-transient-description",
+            "unparseable-tags",
+            "empty-json-empty-description",
+            "no-attempts",
+        ],
     )
     async def test_analyze_image_raises_when_neither_pass_returns_anything_usable(
-        self, max_retries, tags_content, description, expected_error, message
+        self, max_retries, tags_content, description, expected_error, message, retryable
     ):
         service = AIService()
         service.settings = service.settings.model_copy(update={"ai_max_retries": max_retries})
@@ -454,6 +488,7 @@ class TestEmptyCompletion:
                 await service.analyze_image("/fake/image.jpg")
 
         assert type(exc_info.value) is expected_error
+        assert getattr(exc_info.value, "retryable", True) is retryable
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

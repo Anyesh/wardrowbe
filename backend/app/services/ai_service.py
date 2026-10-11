@@ -438,6 +438,7 @@ class AIService:
         request_logprobs: bool = False,
     ) -> tuple[str | None, Exception | None, list | None]:
         last_error = None
+        every_endpoint_repeats = True
 
         for endpoint in self._endpoints:
             logger.info(f"Trying AI endpoint for {task_name}: {endpoint.name}")
@@ -561,6 +562,12 @@ class AIService:
                         # the identical failure.
                         await asyncio.sleep(min(2**attempt, AI_RETRY_MAX_BACKOFF_S))
 
+            every_endpoint_repeats = every_endpoint_repeats and repeats_identically(last_error)
+
+        # An endpoint that failed transiently can answer on a later run, even when the endpoint
+        # tried last returned a cutoff that repeats identically.
+        if not every_endpoint_repeats and repeats_identically(last_error):
+            last_error.retryable = True
         return None, last_error, None
 
     async def analyze_image(self, image_path: str | Path) -> ClothingTags:
@@ -622,10 +629,15 @@ class AIService:
         # Unparseable tag text counts as nothing, because saving it would store a blank item.
         if not tags.has_content() and not description:
             if tags_error is not None:
+                # A rerun can still produce the description, so only a cutoff on both passes
+                # ends the job without one.
+                if repeats_identically(tags_error) and not repeats_identically(description_error):
+                    tags_error.retryable = True
                 raise tags_error
             if tags_content:
+                reason = description_error or "empty description reply"
                 raise RuntimeError(
-                    f"AI returned no usable tags and no description: {description_error}"
+                    f"AI returned no usable tags and no description: {reason}"
                 ) from description_error
             raise description_error or RuntimeError("AI returned nothing usable")
 
@@ -829,13 +841,17 @@ class AIResponseTruncatedError(RuntimeError):
     generic "AI service is not available" error even though the endpoint responded
     successfully. This error preserves the real cause so callers can surface it.
 
-    ``retryable`` is False for a length cutoff with reasoning already at its floor, which
-    repeats identically, so the tagging worker fails the job instead of rerunning it.
+    ``retryable`` is False for a length cutoff, because the same request under the same token
+    budget is cut off again, so the tagging worker fails the job instead of rerunning it.
     """
 
     def __init__(self, message: str, *, retryable: bool = True):
         super().__init__(message)
         self.retryable = retryable
+
+
+def repeats_identically(error: BaseException | None) -> bool:
+    return isinstance(error, AIResponseTruncatedError) and not error.retryable
 
 
 def _reasoning_text(message: dict) -> str | None:
