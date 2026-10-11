@@ -52,6 +52,7 @@ class _LegacyHolder(NamedTuple):
     user: User
     subject: str
     holds_proxy_identity: bool
+    caller_identity_exists: bool
 
 
 class UserService:
@@ -113,15 +114,19 @@ class UserService:
         latin1 = subject.encode("utf-8").decode("latin-1")
         legacy = aliased(UserIdentity)
         for legacy_subject in dict.fromkeys((subject, latin1)):
-            # One statement, so the holder's email and whether it has a forward_auth identity
-            # come from the same snapshot: a twin's claim changes both, and a conflict decided
-            # on one old and one new value would refuse the twin.
+            # One statement, so the holder's email, whether it has a forward_auth identity and
+            # whether the caller's own identity exists by now come from the same snapshot: a
+            # twin's sign-in changes them together, and a conflict decided on a mix of old and
+            # new values would refuse the twin.
             row = (
                 await self.db.execute(
                     select(
                         User,
                         exists().where(
                             UserIdentity.user_id == User.id, UserIdentity.provider == FORWARD_AUTH
+                        ),
+                        exists().where(
+                            UserIdentity.provider == FORWARD_AUTH, UserIdentity.subject == subject
                         ),
                     )
                     .join(legacy, legacy.user_id == User.id)
@@ -130,7 +135,7 @@ class UserService:
                 )
             ).one_or_none()
             if row is not None:
-                return _LegacyHolder(row[0], legacy_subject, row[1])
+                return _LegacyHolder(row[0], legacy_subject, row[1], row[2])
         return None
 
     async def _fetch_current(self, query: Select) -> User | None:
@@ -198,6 +203,9 @@ class UserService:
                 )
         elif provider == FORWARD_AUTH:
             legacy = await self._legacy_holder_of_proxy_user(subject)
+            if legacy is not None and legacy.caller_identity_exists:
+                # Committed since the identity lookup above, which the retry repeats.
+                raise _RowChanged
             # An unverified holder may be a squatter on the owner's address, so the email rules
             # below decide, and may reclaim the address, rather than its legacy row.
             if legacy is not None and legacy.user.email_verified:

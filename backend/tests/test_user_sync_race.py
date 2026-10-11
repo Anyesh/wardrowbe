@@ -773,6 +773,62 @@ async def test_proxy_twins_claiming_a_placeholder_account_converge(session_maker
 
 
 @pytest.mark.asyncio
+async def test_proxy_sign_in_retries_when_its_identity_appears_before_the_holder_read(
+    session_maker,
+):
+    # Between this sign-in's identity lookup and its holder read, a twin reclaims the address
+    # into a new account with ('forward_auth', S), then the holder verifies a new address. The
+    # holder alone now looks like a conflict, but the twin's identity is this caller's.
+    run = uuid4()
+    subject, oidc_subject = f"proxy-{run}", f"oidc-{run}"
+    proxy_email, holder_email = f"owner-{run}@example.com", f"moved-{run}@example.com"
+    holder = User(
+        external_id=subject, email=proxy_email, display_name="Holder", email_verified=False
+    )
+    await _commit_users(session_maker, holder)
+    async with session_maker() as setup:
+        await setup.execute(
+            insert(UserIdentity).values(user_id=holder.id, provider="oidc", subject=oidc_subject)
+        )
+        await setup.commit()
+    proxy = UserSyncRequest(external_id=subject, email=proxy_email, display_name="Proxy")
+    try:
+        async with session_maker() as session:
+            service = UserService(session)
+            original = service._legacy_holder_of_proxy_user
+
+            async def after_twins(*args, **kwargs):
+                for sync, provider in (
+                    (proxy, "forward_auth"),
+                    (
+                        UserSyncRequest(
+                            external_id=oidc_subject, email=holder_email, display_name="Holder"
+                        ),
+                        "oidc",
+                    ),
+                ):
+                    async with session_maker() as twin:
+                        await UserService(twin).sync_from_oidc(
+                            sync, provider=provider, email_verified=True
+                        )
+                        await twin.commit()
+                return await original(*args, **kwargs)
+
+            service._legacy_holder_of_proxy_user = after_twins
+            user, _, is_new = await service.sync_from_oidc(
+                proxy, provider="forward_auth", email_verified=True
+            )
+            await session.commit()
+        async with session_maker() as check:
+            owner = await UserService(check).get_by_identity("forward_auth", subject)
+    finally:
+        await _cleanup(session_maker, [subject, oidc_subject])
+
+    assert (user.id, is_new) == (owner.id, False)
+    assert owner.id != holder.id
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("violation", "surfaces"),
     [
