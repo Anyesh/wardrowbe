@@ -326,7 +326,7 @@ async def list_notification_history(
     result = await db.execute(
         select(Notification)
         .where(Notification.user_id == current_user.id)
-        .order_by(Notification.created_at.desc())
+        .order_by(Notification.created_at.desc(), Notification.id.asc())
         .offset(offset)
         .limit(limit)
     )
