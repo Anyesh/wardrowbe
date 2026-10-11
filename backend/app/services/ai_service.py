@@ -603,8 +603,10 @@ class AIService:
             tags.description = description
 
         # A partial answer (an unsupported type with its colours, or only a description) is
-        # still worth saving, so this fails only when neither pass produced anything.
-        if not tags_content and not description:
+        # still worth saving, so this fails only when neither pass produced anything usable.
+        # Unparseable tag text counts as nothing, because saving it would store a blank item.
+        has_tags = bool(tags.confidence or tags.unrecognized_type)
+        if not has_tags and not description:
             raise tags_error or description_error or RuntimeError("AI returned nothing usable")
 
         return tags

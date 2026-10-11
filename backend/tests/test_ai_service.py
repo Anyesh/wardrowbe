@@ -414,23 +414,37 @@ class TestEmptyCompletion:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("max_retries", "expected_error"),
-        [(1, AIResponseTruncatedError), (0, RuntimeError)],
-        ids=["empty-completions", "no-attempts"],
+        ("max_retries", "tags_content", "expected_error"),
+        [
+            (1, "", AIResponseTruncatedError),
+            (1, "I cannot identify this garment.", httpx.HTTPStatusError),
+            (0, "", RuntimeError),
+        ],
+        ids=["empty-completions", "unparseable-tags", "no-attempts"],
     )
-    async def test_analyze_image_raises_when_neither_pass_returns_anything(
-        self, max_retries, expected_error
+    async def test_analyze_image_raises_when_neither_pass_returns_anything_usable(
+        self, max_retries, tags_content, expected_error
     ):
         service = AIService()
         service.settings = service.settings.model_copy(update={"ai_max_retries": max_retries})
-        mock_response = _mock_response(self._empty_vision_response())
+        tags_payload = self._empty_vision_response()
+        tags_payload["choices"][0]["message"]["content"] = tags_content
+        description_payload = self._empty_vision_response()
+        responses = [
+            _mock_response(tags_payload),
+            _mock_response(description_payload)
+            if not tags_content
+            else _mock_response({"error": "upstream down"}, status_code=500),
+        ]
 
         with (
-            patch("httpx.AsyncClient.post", return_value=mock_response),
+            patch("httpx.AsyncClient.post", side_effect=responses),
             patch.object(AIService, "_preprocess_image", return_value="base64data"),
         ):
-            with pytest.raises(expected_error):
+            with pytest.raises(expected_error) as exc_info:
                 await service.analyze_image("/fake/image.jpg")
+
+        assert type(exc_info.value) is expected_error
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
