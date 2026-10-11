@@ -55,6 +55,7 @@ from app.utils.timezone import get_user_today
 logger = logging.getLogger(__name__)
 
 _RATING_RANGE = f"{RATING_MIN}-{RATING_MAX}"
+MAX_SEARCH_OCCASIONS = 50
 
 
 router = APIRouter(prefix="/outfits", tags=["Outfits"])
@@ -185,6 +186,7 @@ class BulkOutfitFilters(BaseModel):
     has_source_item: bool | None = None
     item_type: str | None = None
     search: str | None = None
+    occasions: Annotated[list[str] | None, Field(max_length=MAX_SEARCH_OCCASIONS)] = None
     cloned_from_outfit_id: UUID | None = None
 
 
@@ -614,6 +616,9 @@ async def list_outfits(
         None, description="Legacy alias for item_type used by /pairings"
     ),
     search: str | None = Query(None, max_length=50),
+    occasions: str | None = Query(
+        None, max_length=500, description="Comma-separated occasion keys the search also matches"
+    ),
     cloned_from_outfit_id: UUID | None = Query(
         None, description="Filter to wear instances of a specific template"
     ),
@@ -637,6 +642,9 @@ async def list_outfits(
         item_type=item_type or source_type,
         family_member_view=family_member_id is not None,
         search=search,
+        occasions=[key.strip() for key in occasions.split(",") if key.strip()]
+        if occasions
+        else None,
         cloned_from_outfit_id=cloned_from_outfit_id,
     )
 
@@ -682,6 +690,7 @@ async def bulk_delete_outfits(
             has_source_item=request.filters.has_source_item if request.filters else None,
             item_type=request.filters.item_type if request.filters else None,
             search=request.filters.search if request.filters else None,
+            occasions=request.filters.occasions if request.filters else None,
             cloned_from_outfit_id=request.filters.cloned_from_outfit_id
             if request.filters
             else None,
