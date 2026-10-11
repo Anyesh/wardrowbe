@@ -60,6 +60,22 @@ export function useNotificationSettings() {
   });
 }
 
+export interface NtfyDefaults {
+  server: string;
+  has_token: boolean;
+}
+
+export function useNtfyDefaults(enabled = true) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
+  return useQuery({
+    queryKey: queryKeys.ntfyDefaults,
+    queryFn: () => api.get<NtfyDefaults>('/notifications/defaults/ntfy'),
+    enabled: enabled && status !== 'loading',
+  });
+}
+
 export function useCreateNotificationSetting() {
   const queryClient = useQueryClient();
   const { data: session } = useSession();

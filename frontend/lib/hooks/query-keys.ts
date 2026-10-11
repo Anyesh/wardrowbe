@@ -90,6 +90,7 @@ export const queryKeys = {
   },
 
   notificationSettings: ['notification-settings'] as const,
+  ntfyDefaults: ['ntfy-defaults'] as const,
   schedules: ['schedules'] as const,
   notificationHistory: (limit: number) => ['notification-history', limit] as const,
 };

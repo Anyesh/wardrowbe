@@ -25,6 +25,7 @@
     },
     "helpers": {
       "accessTokenOptional": "Required if your ntfy server uses authentication",
+      "accessTokenServerDefault": "Leave empty to use the access token configured on this server",
       "mattermostWebhook": "Create an incoming webhook in Mattermost settings",
       "topicSubscribe": "Subscribe to this topic in your ntfy app"
     },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import {
   Bell,
@@ -53,18 +53,13 @@ import {
   useCreateSchedule,
   useUpdateSchedule,
   useDeleteSchedule,
-  ManualNotificationChannel,
   Schedule,
 } from '@/lib/hooks/use-notifications';
 import { ChannelCard } from '@/components/notifications/channel-card';
 import { useUserProfile } from '@/lib/hooks/use-user';
-import { isDeliverableEmail } from '@/lib/utils';
 import { useOccasionLabel, useOccasions } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
-import { API_BASE_PATH } from '@/lib/api';
-
-// Kept out of the catalogs because an ntfy topic is part of a URL and reads the same in every locale.
-const EXAMPLE_NTFY_TOPIC = 'my-wardrobe-notifications';
+import { AddChannelDialog, ChannelFormData } from '@/components/notifications/add-channel-dialog';
 
 const DAY_KEYS = [
   { value: 0, key: 'monday' as const },
@@ -75,229 +70,6 @@ const DAY_KEYS = [
   { value: 5, key: 'saturday' as const },
   { value: 6, key: 'sunday' as const },
 ];
-
-interface ChannelFormData {
-  channel: ManualNotificationChannel;
-  enabled: boolean;
-  priority: number;
-  config: Record<string, string>;
-}
-
-function AddChannelDialog({
-  onAdd,
-  isLoading,
-  onSuccess,
-  userEmail,
-}: {
-  onAdd: (data: ChannelFormData) => Promise<void>;
-  isLoading: boolean;
-  onSuccess?: () => void;
-  userEmail?: string;
-}) {
-  const t = useTranslations('notifications');
-  const tc = useTranslations('common');
-  const [open, setOpen] = useState(false);
-  const [channel, setChannel] = useState<ManualNotificationChannel>('ntfy');
-  const [config, setConfig] = useState<Record<string, string>>({});
-  const [ntfyDefaults, setNtfyDefaults] = useState<{ server: string; token: string } | null>(null);
-
-  // Fetch ntfy defaults when dialog opens
-  useEffect(() => {
-    if (open && !ntfyDefaults) {
-      fetch(`${API_BASE_PATH}/notifications/defaults/ntfy`)
-        .then((res) => res.json())
-        .then((data) => {
-          setNtfyDefaults(data);
-          // Pre-fill server and token if ntfy is selected (user only sets topic)
-          if (channel === 'ntfy' && !config.server) {
-            setConfig({ server: data.server, token: data.token || '' });
-          }
-        })
-        .catch(() => {
-          // Fallback defaults
-          setNtfyDefaults({ server: 'https://ntfy.sh', token: '' });
-        });
-    }
-  }, [open, ntfyDefaults, channel, config.server]);
-
-  // Reset config when channel changes, pre-fill defaults per channel type
-  useEffect(() => {
-    if (channel === 'ntfy' && ntfyDefaults) {
-      setConfig({ server: ntfyDefaults.server, token: ntfyDefaults.token });
-    } else if (channel === 'email') {
-      setConfig(isDeliverableEmail(userEmail) ? { address: userEmail } : {});
-    } else {
-      setConfig({});
-    }
-  }, [channel, ntfyDefaults, userEmail]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Frontend validation
-    if (channel === 'ntfy' && !config.topic?.trim()) {
-      toast.error(t('channels.validation.topicRequired'));
-      return;
-    }
-    if (channel === 'mattermost' && !config.webhook_url?.trim()) {
-      toast.error(t('channels.validation.webhookRequired'));
-      return;
-    }
-    if (channel === 'email' && !config.address?.trim()) {
-      toast.error(t('channels.validation.emailRequired'));
-      return;
-    }
-
-    try {
-      await onAdd({
-        channel,
-        enabled: true,
-        priority: 1,
-        config,
-      });
-      // Close and reset on success
-      setOpen(false);
-      setConfig({});
-      setChannel('ntfy');
-      onSuccess?.();
-    } catch {
-      // Error handled by parent via toast
-    }
-  };
-
-  const closeAndReset = () => {
-    setOpen(false);
-    setConfig({});
-    setChannel('ntfy');
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          {t('channels.addChannel')}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>{t('channels.dialog.title')}</DialogTitle>
-            <DialogDescription>
-              {t('channels.dialog.description')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>{t('channels.channelType')}</Label>
-              <Select
-                value={channel}
-                onValueChange={(v: ManualNotificationChannel) => {
-                  setChannel(v);
-                  setConfig({});
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ntfy">{t('channels.types.ntfy')}</SelectItem>
-                  <SelectItem value="mattermost">{t('channels.types.mattermost')}</SelectItem>
-                  <SelectItem value="email">{t('channels.types.email')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {channel === 'ntfy' && (
-              <>
-                <div className="space-y-2">
-                  <Label>{t('channels.fields.serverUrl')}</Label>
-                  <Input
-                    id="server"
-                    value={config.server || 'https://ntfy.sh'}
-                    onChange={(e) => setConfig({ ...config, server: e.target.value })}
-                    placeholder="https://ntfy.sh"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="topic">{t('channels.fields.topic')}</Label>
-                  <Input
-                    id="topic"
-                    value={config.topic || ''}
-                    onChange={(e) => setConfig({ ...config, topic: e.target.value })}
-                    placeholder={EXAMPLE_NTFY_TOPIC}
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {t('channels.helpers.topicSubscribe')}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="token">{t('channels.fields.accessToken')}</Label>
-                  <Input
-                    id="token"
-                    type="password"
-                    value={config.token || ''}
-                    onChange={(e) => setConfig({ ...config, token: e.target.value })}
-                    placeholder={t('channels.placeholders.accessToken')}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {t('channels.helpers.accessTokenOptional')}
-                  </p>
-                </div>
-              </>
-            )}
-
-            {channel === 'mattermost' && (
-              <div className="space-y-2">
-                <Label htmlFor="webhook">{t('channels.fields.webhookUrl')}</Label>
-                <Input
-                  id="webhook"
-                  value={config.webhook_url || ''}
-                  onChange={(e) => setConfig({ ...config, webhook_url: e.target.value })}
-                  placeholder="https://mattermost.example.com/hooks/xxx"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t('channels.helpers.mattermostWebhook')}
-                </p>
-              </div>
-            )}
-
-            {channel === 'email' && (
-              <div className="space-y-2">
-                <Label htmlFor="email">{t('channels.fields.emailAddress')}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={config.address || ''}
-                  onChange={(e) => setConfig({ ...config, address: e.target.value })}
-                  placeholder={t('channels.placeholders.emailAddress')}
-                  required
-                />
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeAndReset} disabled={isLoading}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  {tc('adding')}
-                </>
-              ) : (
-                t('channels.addChannel')
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function ScheduleCard({
   schedule,
