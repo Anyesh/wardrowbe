@@ -2,8 +2,10 @@ from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import func, select
 
 from app.models.item import ClothingItem, ItemStatus
+from app.models.learning import ItemPairScore
 
 
 async def _items(db_session, user_id):
@@ -79,3 +81,28 @@ async def test_worn_feedback_records_one_history_entry_per_item_even_when_sent_t
         assert entry["occasion"] == "work"
     item = await client.get(f"/api/v1/items/{item_ids[0]}", headers=auth_headers)
     assert item.json()["wear_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_worn_feedback_still_feeds_learning(
+    client: AsyncClient, db_session, test_user, auth_headers
+):
+    item_ids = await _items(db_session, test_user.id)
+    created = await client.post(
+        "/api/v1/outfits/studio",
+        json={"items": item_ids, "occasion": "casual", "scheduled_for": "2026-10-03"},
+        headers=auth_headers,
+    )
+    outfit_id = created.json()["id"]
+
+    response = await client.post(
+        f"/api/v1/outfits/{outfit_id}/feedback",
+        json={"worn": True, "accepted": True, "rating": 5},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    pair_scores = await db_session.scalar(
+        select(func.count()).select_from(ItemPairScore).where(ItemPairScore.user_id == test_user.id)
+    )
+    assert pair_scores == 3
