@@ -16,7 +16,8 @@ link_baked_models() {
                 "$home/baked"/*) ;;
                 *) [ -d "$home/baked/${entry##*/}" ] || continue ;;
             esac
-            rm -f "$entry" || echo "warning: cannot remove stale rembg model link $entry" >&2
+            rm -f "$entry" ||
+                echo "warning: cannot remove stale link $entry; delete it, or background removal with that model fails" >&2
         fi
     done
     for baked in "$home/baked"/*; do
