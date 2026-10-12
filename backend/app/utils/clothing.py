@@ -212,7 +212,8 @@ def fill_missing_regions(
     )
     added = [iid for iid, _ in plan]
     for iid in added:
-        regions = ", ".join(sorted(_regions(item_type_map[iid])))
+        covered = _regions(item_type_map[iid])
+        regions = ", ".join(r for r in REGION_ROLES if r in covered)
         logger.info(f"Adding {item_type_map[iid]} item {iid}: outfit had no {regions} piece")
     return [*item_ids, *added]
 
