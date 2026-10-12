@@ -8,7 +8,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SCAN_DIRS = ['app', 'components', 'lib'];
 
 // components/ui holds unmodified shadcn primitives; their strings are structural, not product copy.
-const SKIP_DIRS = new Set(['node_modules', '.next', 'components/ui']);
+// app/api holds server route handlers, which answer requests and never render text.
+const SKIP_DIRS = new Set(['node_modules', '.next', 'components/ui', 'app/api']);
 // lib/auth.ts labels are NextAuth provider metadata, which only NextAuth's built-in sign-in page
 // renders; the app replaces that page with its own /login.
 const SKIP_FILES = new Set(['app/layout.tsx', 'app/providers.tsx', 'lib/auth.ts']);
@@ -34,6 +35,38 @@ const NOT_COPY = [
   /^(image|video|audio|application|text)\//,
   /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i,
 ];
+
+// An error's own message is English from the server, the browser or a library, so UI code may
+// only log or parse it and must show describeError's translated text instead.
+const ERROR_NAME = /^(e|err|error|\w*Error)$/;
+
+function isLogged(node) {
+  for (let p = node.parent; p; p = p.parent) {
+    if (ts.isCallExpression(p) && /^console\./.test(p.expression.getText())) return true;
+    if (ts.isFunctionLike(p)) return false;
+  }
+  return false;
+}
+
+function isDevelopmentOnly(node) {
+  for (let p = node.parent; p; p = p.parent) {
+    if (
+      ts.isBinaryExpression(p) &&
+      p.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+      /NODE_ENV\s*===\s*['"]development['"]/.test(p.left.getText())
+    )
+      return true;
+  }
+  return false;
+}
+
+function isToastArgument(node) {
+  for (let p = node.parent; p; p = p.parent) {
+    if (ts.isCallExpression(p) && /^toast(\.|$)/.test(p.expression.getText())) return true;
+    if (ts.isFunctionLike(p)) return false;
+  }
+  return false;
+}
 
 // The product name is a proper noun and stays identical in every locale.
 const BRAND = new Set(['Wardrowbe', 'wardrowbe']);
@@ -94,6 +127,21 @@ export function scanSource(text, fileName) {
     if (ts.isPropertyAssignment(node) && TEXT_PROPS.has(node.name.getText(sf).replace(/['"]/g, ''))) {
       const init = node.initializer;
       if (ts.isStringLiteral(init) && isCopy(init.text)) report(node, `prop:${node.name.getText(sf)}`, init.text);
+    }
+
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      node.name.text === 'message' &&
+      ts.isIdentifier(node.expression) &&
+      ERROR_NAME.test(node.expression.text) &&
+      !(ts.isPropertyAccessExpression(node.parent) && node.parent.expression === node) &&
+      !isLogged(node) &&
+      !isDevelopmentOnly(node) &&
+      // lib/ also carries error text as data (queue records, limit parsing), so only a toast
+      // there is a place the user reads it.
+      (!fileName.startsWith('lib/') || isToastArgument(node))
+    ) {
+      report(node, 'error-message', node.getText(sf));
     }
 
     if (ts.isCallExpression(node)) {
