@@ -543,8 +543,23 @@ def test_a_one_piece_that_outranks_the_separates_fills_top_and_bottom(one_piece)
 
 
 @pytest.mark.parametrize("one_piece", ["dress", "suit"])
-def test_fill_takes_a_one_piece_over_a_top_when_no_bottom_exists(one_piece):
+def test_fill_takes_a_one_piece_over_a_better_top_when_no_bottom_exists(one_piece):
     (sneakers,), outfit_types = _typed("sneakers")
-    ranked, ranked_types = _typed("hoodie", one_piece, "shirt")
+    ranked, ranked_types = _typed("shirt", one_piece)
     filled = fill_missing_regions([sneakers], ranked, outfit_types | ranked_types)
     assert filled == [sneakers, ranked[1]]
+
+
+@pytest.mark.parametrize("one_piece", ["dress", "suit"])
+def test_a_weaker_top_swapped_for_a_hoodie_still_beats_a_one_piece(one_piece):
+    (sneakers,), outfit_types = _typed("sneakers")
+    ranked, ranked_types = _typed("hoodie", one_piece, "jeans", "shirt")
+    filled = fill_missing_regions([sneakers], ranked, outfit_types | ranked_types)
+    assert filled == [sneakers, ranked[3], ranked[2]]
+
+
+def test_fill_dresses_all_three_regions():
+    (bag,), outfit_types = _typed("bag")
+    ranked, ranked_types = _typed("dress", "shirt", "jeans", "boots")
+    filled = fill_missing_regions([bag], ranked, outfit_types | ranked_types)
+    assert filled == [bag, ranked[0], ranked[3]]

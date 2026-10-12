@@ -130,70 +130,71 @@ def missing_regions(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> lis
 def _fill_options(
     region: str,
     remaining: frozenset[str],
-    ranked_ids: list[UUID],
+    rank: dict[UUID, int],
     item_type_map: dict[UUID, str],
     taken: frozenset[UUID],
     claimed: frozenset[str],
-) -> list[UUID]:
+) -> list[tuple[UUID, int]]:
     # A piece may only cover regions that are still missing and take free slots, so that
     # a dress never lands on trousers and a hoodie never goes under a coat.
     fits = [
         iid
-        for iid in ranked_ids
+        for iid in rank
         if iid not in taken
         and region in _regions(item_type_map.get(iid, ""))
         and _regions(item_type_map.get(iid, "")) <= remaining
         and not _slots_for_type(item_type_map.get(iid, "")) & claimed
     ]
-    best: dict[frozenset[str], UUID] = {}
+    best: dict[frozenset[str], tuple[UUID, int]] = {}
     for iid in fits:
-        best.setdefault(frozenset(_regions(item_type_map[iid])), iid)
+        best.setdefault(frozenset(_regions(item_type_map[iid])), (iid, rank[iid]))
     single = best.get(frozenset({region}))
     # A real top goes before a better-ranked layer worn alone, because the AI was asked
-    # for a top.
-    if single is not None and item_type_map[single] in WORN_ALONE_TYPES:
-        best[frozenset({region})] = next(
+    # for a top. It competes at the layer's rank, so that swapping in a weaker top never
+    # hands the win to a dress or suit the layer would have beaten.
+    if single is not None and item_type_map[single[0]] in WORN_ALONE_TYPES:
+        top = next(
             (
                 iid
                 for iid in fits
                 if _regions(item_type_map[iid]) == {region}
                 and item_type_map[iid] not in WORN_ALONE_TYPES
             ),
-            single,
+            None,
         )
+        if top is not None:
+            best[frozenset({region})] = (top, single[1])
     return list(best.values())
 
 
 def _best_fill(
     remaining: frozenset[str],
-    ranked_ids: list[UUID],
+    rank: dict[UUID, int],
     item_type_map: dict[UUID, str],
     taken: frozenset[UUID],
     claimed: frozenset[str],
-) -> list[UUID]:
+) -> list[tuple[UUID, int]]:
     if not remaining:
         return []
     region = next(r for r in REGION_ROLES if r in remaining)
-    plans = [_best_fill(remaining - {region}, ranked_ids, item_type_map, taken, claimed)]
-    for pick in _fill_options(region, remaining, ranked_ids, item_type_map, taken, claimed):
+    plans = [_best_fill(remaining - {region}, rank, item_type_map, taken, claimed)]
+    for pick, pick_rank in _fill_options(region, remaining, rank, item_type_map, taken, claimed):
         pick_type = item_type_map[pick]
-        plans.append(
-            [pick]
-            + _best_fill(
-                remaining - _regions(pick_type),
-                ranked_ids,
-                item_type_map,
-                taken | {pick},
-                claimed | _slots_for_type(pick_type),
-            )
+        rest = _best_fill(
+            remaining - _regions(pick_type),
+            rank,
+            item_type_map,
+            taken | {pick},
+            claimed | _slots_for_type(pick_type),
         )
-    rank = {iid: n for n, iid in enumerate(ranked_ids)}
-    # The plan that dresses the most regions wins, then the one whose picks rank best.
+        plans.append([(pick, pick_rank), *rest])
+    # The plan that dresses the most regions wins, then the one whose picks rank best,
+    # compared in region order (upper first).
     return min(
         plans,
         key=lambda plan: (
-            len(remaining - _covered(plan, item_type_map)),
-            [rank[iid] for iid in plan],
+            len(remaining - _covered([iid for iid, _ in plan], item_type_map)),
+            [pick_rank for _, pick_rank in plan],
         ),
     )
 
@@ -202,15 +203,17 @@ def fill_missing_regions(
     item_ids: list[UUID], ranked_candidate_ids: list[UUID], item_type_map: dict[UUID, str]
 ) -> list[UUID]:
     claimed = frozenset().union(*(_slots_for_type(item_type_map.get(iid, "")) for iid in item_ids))
-    added = _best_fill(
+    plan = _best_fill(
         frozenset(missing_regions(item_ids, item_type_map)),
-        ranked_candidate_ids,
+        {iid: n for n, iid in enumerate(ranked_candidate_ids)},
         item_type_map,
         frozenset(item_ids),
         claimed,
     )
+    added = [iid for iid, _ in plan]
     for iid in added:
-        logger.info(f"Adding {item_type_map[iid]} item {iid} to fill a missing region")
+        regions = ", ".join(sorted(_regions(item_type_map[iid])))
+        logger.info(f"Adding {item_type_map[iid]} item {iid}: outfit had no {regions} piece")
     return [*item_ids, *added]
 
 
