@@ -42,9 +42,9 @@ from app.services.weather_service import (
 )
 from app.utils.clothing import (
     canonical_item_order,
-    covers_any_region,
     deduplicate_by_body_slot,
     fill_missing_regions,
+    has_wearable_piece,
     missing_regions,
     remove_legwear,
 )
@@ -885,7 +885,9 @@ class RecommendationService:
                 item_ids = resolve_outfit_items(
                     cached, number_map, item_type_map, mandatory_ids, drop_legwear
                 )
-                if not item_ids or missing_regions(item_ids, item_type_map):
+                if not has_wearable_piece(item_ids, item_type_map) or missing_regions(
+                    item_ids, item_type_map
+                ):
                     logger.info("Cached suggestion is empty or incomplete now, skipping")
                     continue
                 logger.info(f"Using cached suggestion for user {user.id}, occasion: {occasion}")
@@ -986,7 +988,7 @@ class RecommendationService:
                 )
                 # An answer with nothing usable fails rather than being built from scratch
                 # under a headline the AI wrote for other pieces.
-                if not covers_any_region(item_ids, item_type_map):
+                if not has_wearable_piece(item_ids, item_type_map):
                     raise AIRecommendationError("AI did not select any valid items")
                 if missing_regions(item_ids, item_type_map):
                     item_ids = fill_missing_regions(
@@ -1018,11 +1020,11 @@ class RecommendationService:
                     od, number_map, item_type_map, mandatory_ids, drop_legwear
                 )
                 missing = missing_regions(item_ids, item_type_map)
-                if not covers_any_region(item_ids, item_type_map):
+                if not has_wearable_piece(item_ids, item_type_map):
                     logger.warning("AI outfit option has nothing left to wear, skipping")
                 elif missing:
                     logger.warning(f"AI outfit option has no {', '.join(missing)} piece")
-                    partials.append((len(missing), od, item_ids))
+                    partials.append((od, item_ids))
                 else:
                     complete.append((od, item_ids))
 
@@ -1030,9 +1032,20 @@ class RecommendationService:
             # Filling in a piece the AI did not choose is a last resort, because the AI's
             # own complete options are better matched than anything added here.
             if not chosen and partials:
-                _, od, item_ids = min(partials, key=lambda partial: partial[0])
                 ranking = rank_by_fit(candidates, weather, occasion, preferences, learned_prefs)
-                chosen = [(od, fill_missing_regions(item_ids, ranking, item_type_map))]
+                filled = [
+                    (od, item_ids, fill_missing_regions(item_ids, ranking, item_type_map))
+                    for od, item_ids in partials
+                ]
+                # Prefer the option the fill completes, then the one it changes least.
+                od, _, item_ids = min(
+                    filled,
+                    key=lambda f: (
+                        len(missing_regions(f[2], item_type_map)),
+                        len(f[2]) - len(f[1]),
+                    ),
+                )
+                chosen = [(od, item_ids)]
             if not chosen:
                 raise AIRecommendationError("AI did not select any valid items")
 

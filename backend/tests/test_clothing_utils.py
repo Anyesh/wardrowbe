@@ -7,9 +7,9 @@ from app.utils.clothing import (
     WardrobeComposition,
     canonical_item_order,
     count_composition,
-    covers_any_region,
     deduplicate_by_body_slot,
     fill_missing_regions,
+    has_wearable_piece,
     missing_regions,
     remove_legwear,
 )
@@ -469,19 +469,28 @@ def test_fill_uses_a_hoodie_but_never_a_coat_when_there_is_no_top():
 
 
 @pytest.mark.parametrize(
-    ("outfit", "expected"),
-    [(("bag",), False), (("tights", "hat"), False), (("coat",), False), (("hoodie",), True)],
+    ("outfit", "wardrobe", "expected"),
+    [
+        (("bag",), ("shirt",), False),
+        (("tights", "hat"), ("jeans",), False),
+        (("coat",), ("shirt",), False),
+        (("hoodie",), ("shirt",), True),
+        (("jacket",), ("cardigan",), True),
+        ((), ("cardigan",), False),
+    ],
+    ids=["bag", "tights-and-hat", "coat", "hoodie", "layers-only-wardrobe", "empty"],
 )
-def test_covers_any_region(outfit, expected):
+def test_has_wearable_piece(outfit, wardrobe, expected):
     ids, types = _typed(*outfit)
-    assert covers_any_region(ids, types) is expected
+    _, wardrobe_types = _typed(*wardrobe)
+    assert has_wearable_piece(ids, types | wardrobe_types) is expected
 
 
 def test_fill_adds_every_missing_region():
     (sneakers,), outfit_types = _typed("sneakers")
-    ranked, ranked_types = _typed("boots", "skirt", "dress", "blouse", "pants")
+    ranked, ranked_types = _typed("boots", "skirt", "blouse", "dress", "pants")
     filled = fill_missing_regions([sneakers], ranked, outfit_types | ranked_types)
-    assert filled == [sneakers, ranked[3], ranked[1]]
+    assert filled == [sneakers, ranked[2], ranked[1]]
 
 
 def test_fill_never_adds_a_dress_or_suit_to_existing_pieces():
@@ -495,3 +504,24 @@ def test_fill_leaves_a_complete_outfit_alone():
     outfit, types = _typed("shirt", "jeans", "sneakers")
     ranked, ranked_types = _typed("t-shirt", "pants", "boots")
     assert fill_missing_regions(outfit, ranked, types | ranked_types) == outfit
+
+
+def test_fill_prefers_a_top_to_a_better_ranked_hoodie():
+    (jeans, sneakers), outfit_types = _typed("jeans", "sneakers")
+    ranked, ranked_types = _typed("hoodie", "t-shirt")
+    filled = fill_missing_regions([jeans, sneakers], ranked, outfit_types | ranked_types)
+    assert filled == [jeans, sneakers, ranked[1]]
+
+
+def test_fill_never_puts_a_hoodie_under_a_coat():
+    (coat, jeans, boots), outfit_types = _typed("coat", "jeans", "boots")
+    ranked, ranked_types = _typed("hoodie", "blazer")
+    filled = fill_missing_regions([coat, jeans, boots], ranked, outfit_types | ranked_types)
+    assert filled == [coat, jeans, boots]
+
+
+def test_fill_uses_a_dress_when_top_and_bottom_are_both_missing():
+    (coat, sneakers), outfit_types = _typed("coat", "sneakers")
+    ranked, ranked_types = _typed("dress", "jumpsuit")
+    filled = fill_missing_regions([coat, sneakers], ranked, outfit_types | ranked_types)
+    assert filled == [coat, sneakers, ranked[0]]

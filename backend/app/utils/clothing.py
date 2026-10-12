@@ -112,7 +112,10 @@ def _covered(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str]:
     return set().union(*(_regions(item_type_map.get(iid, "")) for iid in item_ids))
 
 
-def covers_any_region(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> bool:
+def has_wearable_piece(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> bool:
+    # A wardrobe with nothing that dresses any region (only layers, say) still gets outfits.
+    if not _covered(list(item_type_map), item_type_map):
+        return bool(item_ids)
     return bool(_covered(item_ids, item_type_map))
 
 
@@ -128,20 +131,29 @@ def fill_missing_regions(
     item_ids: list[UUID], ranked_candidate_ids: list[UUID], item_type_map: dict[UUID, str]
 ) -> list[UUID]:
     filled = list(item_ids)
-    for region in missing_regions(item_ids, item_type_map):
-        # Only a piece covering just this region, because a dress or suit would clash
-        # with the pieces already chosen.
-        pick = next(
-            (
-                iid
-                for iid in ranked_candidate_ids
-                if iid not in filled and _regions(item_type_map.get(iid, "")) == {region}
-            ),
-            None,
-        )
+    still_missing = set(missing_regions(item_ids, item_type_map))
+    claimed = set().union(*(_slots_for_type(item_type_map.get(iid, "")) for iid in filled))
+    for region in REGION_ROLES:
+        if region not in still_missing:
+            continue
+        # A piece may only cover regions that are still missing and take free slots, so
+        # that a dress never lands on trousers and a hoodie never goes under a coat.
+        fits = [
+            iid
+            for iid in ranked_candidate_ids
+            if iid not in filled
+            and region in _regions(item_type_map.get(iid, ""))
+            and _regions(item_type_map.get(iid, "")) <= still_missing
+            and not _slots_for_type(item_type_map.get(iid, "")) & claimed
+        ]
+        # A real top goes before a layer worn alone, because the AI was asked for a top.
+        pick = next((iid for iid in fits if item_type_map[iid] not in WORN_ALONE_TYPES), None)
+        pick = pick or next(iter(fits), None)
         if pick is not None:
             logger.info(f"Adding {item_type_map[pick]} item {pick}: outfit had no {region} piece")
             filled.append(pick)
+            still_missing -= _regions(item_type_map[pick])
+            claimed |= _slots_for_type(item_type_map[pick])
     return filled
 
 
