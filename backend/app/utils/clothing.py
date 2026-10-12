@@ -110,11 +110,11 @@ def _roles(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str | No
     return {ITEM_ROLE.get(item_type_map.get(iid, "")) for iid in item_ids}
 
 
-def missing_regions(
-    item_ids: list[UUID], candidate_ids: list[UUID], item_type_map: dict[UUID, str]
-) -> list[str]:
+def missing_regions(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> list[str]:
+    """`item_type_map` must cover every candidate, because it decides which regions the
+    wardrobe can fill at all."""
     worn = _roles(item_ids, item_type_map)
-    available = _roles(candidate_ids, item_type_map)
+    available = _roles(list(item_type_map), item_type_map)
     return [
         region for region, roles in REGION_ROLES.items() if roles & available and not roles & worn
     ]
@@ -124,7 +124,7 @@ def fill_missing_regions(
     item_ids: list[UUID], ranked_candidate_ids: list[UUID], item_type_map: dict[UUID, str]
 ) -> list[UUID]:
     filled = list(item_ids)
-    for region in missing_regions(item_ids, ranked_candidate_ids, item_type_map):
+    for region in missing_regions(item_ids, item_type_map):
         pick = next(
             (
                 iid

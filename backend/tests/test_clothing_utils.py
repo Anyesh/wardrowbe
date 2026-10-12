@@ -445,9 +445,8 @@ def _typed(*types):
 )
 def test_missing_regions_only_counts_what_the_wardrobe_can_fill(outfit, wardrobe, expected):
     outfit_ids, outfit_types = _typed(*outfit)
-    wardrobe_ids, wardrobe_types = _typed(*wardrobe)
-    candidates = outfit_ids + wardrobe_ids
-    assert missing_regions(outfit_ids, candidates, outfit_types | wardrobe_types) == expected
+    _, wardrobe_types = _typed(*wardrobe)
+    assert missing_regions(outfit_ids, outfit_types | wardrobe_types) == expected
 
 
 def test_fill_adds_the_best_ranked_top_before_a_layer():

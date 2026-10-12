@@ -693,7 +693,24 @@ def test_rank_by_fit_puts_weather_fit_ahead_of_wardrobe_order():
     ]
 
 
-def test_rank_by_fit_ranks_below_the_scoring_minimum_too():
+def test_rank_by_fit_puts_the_occasion_ahead_of_wardrobe_order():
     items = [_item(type="t-shirt", formality="casual"), _item(type="shirt", formality="formal")]
-    assert len(items) < MIN_ITEMS_FOR_SCORING
     assert rank_by_fit(items, _weather(), "formal", None) == [items[1].id, items[0].id]
+
+
+def test_rank_by_fit_breaks_ties_by_least_recently_worn():
+    worn = _item(type="t-shirt", last_worn_at=date(2026, 3, 7))
+    older = _item(type="shirt", last_worn_at=date(2026, 1, 2))
+    never = _item(type="polo")
+    assert rank_by_fit([worn, older, never], _weather(), "casual", None) == [
+        never.id,
+        older.id,
+        worn.id,
+    ]
+
+
+def test_rank_by_fit_ranks_an_avoided_colour_last():
+    red = _item(type="t-shirt", primary_color="red")
+    blue = _item(type="shirt", primary_color="blue", last_worn_at=date(2026, 3, 7))
+    prefs = _prefs(color_avoid=["red"])
+    assert rank_by_fit([red, blue], _weather(), "casual", prefs) == [blue.id, red.id]

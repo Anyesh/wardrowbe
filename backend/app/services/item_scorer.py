@@ -271,15 +271,17 @@ def rank_by_fit(
     preferences: UserPreference | None,
 ) -> list[UUID]:
     # score_items leaves small wardrobes unscored, so filling a missing piece needs its own
-    # ranking or it would fall back to database order.
-    ranked = sorted(
-        items,
-        key=lambda item: (
-            _weather_score(item, weather, preferences) * _formality_score(item, occasion)
-        ),
-        reverse=True,
-    )
-    return [item.id for item in ranked]
+    # ranking or it would fall back to database order. Most items tie on fit in mild
+    # weather, so the least recently worn goes first to avoid adding the same piece every time.
+    def key(item: ClothingItem) -> tuple[float, date]:
+        fit = (
+            _weather_score(item, weather, preferences)
+            * _formality_score(item, occasion)
+            * _preference_score(item, preferences, None)
+        )
+        return -fit, item.last_worn_at or date.min
+
+    return [item.id for item in sorted(items, key=key)]
 
 
 def _season_score(

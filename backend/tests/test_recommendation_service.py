@@ -733,6 +733,13 @@ class TestHotDayLegwear:
         ids, kept = self._resolve(("shirt", "jeans"), [1, "two", 9, 1], False)
         assert kept == {ids[0]}
 
+    def test_a_pick_that_is_no_longer_a_candidate_is_dropped(self):
+        shirt, archived = uuid4(), uuid4()
+        resolved = resolve_outfit_items(
+            {"items": [1, 2]}, {1: shirt, 2: archived}, {shirt: "shirt"}, None, False
+        )
+        assert resolved == [shirt]
+
     async def _hot_day_outfits(
         self,
         db_session,
@@ -855,6 +862,7 @@ class TestHotDayLegwear:
         items, outfits = await self._hot_day_outfits(
             db_session, test_user, [[3, 2, 4]], cached={"items": [2, 3, 4]}
         )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
         assert self.reasonings == ["Cached"]
         self.ai.generate_text.assert_not_called()
         assert not {"_context", "_number_map"} & set(self.raw_responses[0])
@@ -957,13 +965,27 @@ class TestHotDayLegwear:
     async def test_a_single_outfit_with_nothing_valid_is_not_built_from_scratch(
         self, db_session, test_user
     ):
-        with pytest.raises(AIRecommendationError):
+        with pytest.raises(AIRecommendationError, match="did not select"):
             await self._hot_day_outfits(db_session, test_user, [[99]], single_outfit=True)
 
     @pytest.mark.asyncio
+    async def test_options_with_nothing_valid_are_not_built_from_scratch(
+        self, db_session, test_user
+    ):
+        with pytest.raises(AIRecommendationError, match="did not select"):
+            await self._hot_day_outfits(db_session, test_user, [[99], [1]])
+
+    @pytest.mark.asyncio
+    async def test_fewer_complete_options_than_asked_for_are_returned_as_they_are(
+        self, db_session, test_user
+    ):
+        await self._hot_day_outfits(db_session, test_user, [[3, 2], [3, 2, 4], [2, 4]], count=3)
+        assert self.reasonings == ["AI 2"]
+
+    @pytest.mark.asyncio
     async def test_a_requested_item_counts_toward_completeness(self, db_session, test_user):
-        items, outfits = await self._hot_day_outfits(db_session, test_user, [[4]], include=(2,))
-        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        await self._hot_day_outfits(db_session, test_user, [[3, 4], [3, 2, 4]], include=(2,))
+        assert self.reasonings == ["AI 1"]
 
     @pytest.mark.asyncio
     async def test_an_incomplete_cached_suggestion_falls_through_to_a_fresh_one(

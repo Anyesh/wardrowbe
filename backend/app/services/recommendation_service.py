@@ -132,14 +132,8 @@ def cached_suggestion_fits(
     )
 
 
-def resolve_outfit_items(
-    outfit_data: dict,
-    number_map: dict[int, UUID],
-    item_type_map: dict[UUID, str],
-    mandatory_item_ids: set[UUID] | None,
-    drop_legwear: bool,
-) -> list[UUID]:
-    valid_ids: list[UUID] = []
+def picked_item_ids(outfit_data: dict, number_map: dict[int, UUID]) -> list[UUID]:
+    picked: list[UUID] = []
     for num in outfit_data.get("items", []):
         try:
             num_int = int(num)
@@ -148,8 +142,26 @@ def resolve_outfit_items(
             continue
         if num_int not in number_map:
             logger.warning(f"AI selected invalid item number: {num}")
-        elif number_map[num_int] not in valid_ids:
-            valid_ids.append(number_map[num_int])
+        elif number_map[num_int] not in picked:
+            picked.append(number_map[num_int])
+    return picked
+
+
+def resolve_outfit_items(
+    outfit_data: dict,
+    number_map: dict[int, UUID],
+    item_type_map: dict[UUID, str],
+    mandatory_item_ids: set[UUID] | None,
+    drop_legwear: bool,
+) -> list[UUID]:
+    """`item_type_map` holds the current candidates; picks outside it are dropped, because a
+    numbered item may have been archived, washed or rejected since the prompt was built."""
+    valid_ids = []
+    for item_id in picked_item_ids(outfit_data, number_map):
+        if item_id in item_type_map:
+            valid_ids.append(item_id)
+        else:
+            logger.warning(f"AI selected item {item_id} that is no longer a candidate")
 
     numbered = set(number_map.values())
     for mid in mandatory_item_ids or ():
@@ -856,7 +868,6 @@ class RecommendationService:
 
         mandatory_ids = set(include_items) if include_items else None
         item_type_map = {item.id: (item.type or "").lower() for item in candidates}
-        candidate_ids = list(item_type_map)
 
         # Check cache for pre-generated suggestions (used when count is 1)
         if use_cache and count == 1:
@@ -872,24 +883,15 @@ class RecommendationService:
                 cached_number_map = cached.pop("_number_map", {})
                 number_map = {int(k): UUID(v) for k, v in cached_number_map.items()}
 
-                cached_item_ids = set()
-                for num in cached.get("items", []):
-                    try:
-                        str_num = str(int(num))
-                        if str_num in cached_number_map:
-                            cached_item_ids.add(UUID(cached_number_map[str_num]))
-                    except (ValueError, TypeError):
-                        pass
-
                 # Rejected items are covered too, because they were merged into exclude_items.
-                if not cached_item_ids <= item_type_map.keys():
+                if not set(picked_item_ids(cached, number_map)) <= item_type_map.keys():
                     logger.info("Cached suggestion uses items no longer available, skipping")
                     continue
 
                 item_ids = resolve_outfit_items(
                     cached, number_map, item_type_map, mandatory_ids, drop_legwear
                 )
-                if not item_ids or missing_regions(item_ids, candidate_ids, item_type_map):
+                if not item_ids or missing_regions(item_ids, item_type_map):
                     logger.info("Cached suggestion is empty or incomplete now, skipping")
                     continue
                 logger.info(f"Using cached suggestion for user {user.id}, occasion: {occasion}")
@@ -988,13 +990,16 @@ class RecommendationService:
                 item_ids = resolve_outfit_items(
                     outfit_data, number_map, item_type_map, mandatory_ids, drop_legwear
                 )
-                # Nothing usable is left to the worker's retry, which asks the AI again,
-                # rather than built from scratch under the AI's headline.
+                # An answer with nothing usable fails rather than being built from scratch
+                # under a headline the AI wrote for other pieces.
                 if not item_ids:
                     raise AIRecommendationError("AI did not select any valid items")
-                item_ids = fill_missing_regions(
-                    item_ids, rank_by_fit(candidates, weather, occasion, preferences), item_type_map
-                )
+                if missing_regions(item_ids, item_type_map):
+                    item_ids = fill_missing_regions(
+                        item_ids,
+                        rank_by_fit(candidates, weather, occasion, preferences),
+                        item_type_map,
+                    )
                 outfit = await self._save_outfit(
                     outfit_data,
                     item_ids,
@@ -1018,11 +1023,11 @@ class RecommendationService:
                 item_ids = resolve_outfit_items(
                     od, number_map, item_type_map, mandatory_ids, drop_legwear
                 )
-                missing = missing_regions(item_ids, candidate_ids, item_type_map)
+                missing = missing_regions(item_ids, item_type_map)
                 if not item_ids:
                     logger.warning("AI outfit option has nothing left to wear, skipping")
                 elif missing:
-                    logger.warning(f"AI outfit option has no {', '.join(missing)} piece, skipping")
+                    logger.warning(f"AI outfit option has no {', '.join(missing)} piece")
                     if first_partial is None:
                         first_partial = (od, item_ids)
                 else:
