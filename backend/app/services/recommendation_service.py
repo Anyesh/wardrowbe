@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 import re
@@ -97,7 +98,10 @@ def suggestion_context(
         "rain_likely": rain_likely(weather),
         "time_of_day": str(time_of_day),
         "preferences": str(preferences.updated_at) if preferences else None,
-        "body_measurements": body_measurements,
+        # A digest, so that personal measurements are not copied into Redis.
+        "body_measurements": hashlib.sha256(
+            json.dumps(body_measurements, sort_keys=True).encode()
+        ).hexdigest(),
     }
 
 

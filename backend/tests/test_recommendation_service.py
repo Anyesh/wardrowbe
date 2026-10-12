@@ -865,7 +865,7 @@ class TestHotDayLegwear:
             patch(
                 "app.services.recommendation_service.pop_suggestion",
                 AsyncMock(side_effect=[cached, None]),
-            ),
+            ) as pop,
             patch("app.services.recommendation_service.push_suggestions", AsyncMock()) as push,
             patch.object(service, "_format_items_for_prompt", return_value=("", number_map)),
             patch.object(service, "_get_today_rejected_item_ids", AsyncMock(return_value=rejected)),
@@ -879,6 +879,8 @@ class TestHotDayLegwear:
                 count=count,
             )
         self.ai = ai
+        self.pop = pop
+        self.raw_responses = [o.ai_raw_response for o in outfits]
         self.pushed_contexts = (
             [od["_context"] for od in push.call_args.args[2]] if push.call_args else []
         )
@@ -909,6 +911,7 @@ class TestHotDayLegwear:
         )
         assert outfits == [{items[1].id, items[3].id}]
         self.ai.generate_text.assert_not_called()
+        assert not {"_context", "_number_map"} & set(self.raw_responses[0])
 
     @pytest.mark.asyncio
     async def test_a_cached_suggestion_from_a_cold_day_is_not_served_on_a_hot_day(
@@ -932,9 +935,10 @@ class TestHotDayLegwear:
             db_session, test_user, [[3, 2]], cached={"items": [2, 4]}, unavailable=unavailable
         )
         assert outfits == [{items[1].id, items[2].id}]
+        assert self.pop.await_count == 2
 
     @pytest.mark.asyncio
-    async def test_a_cached_suggestion_with_a_requested_item_is_served_even_if_unworn(
+    async def test_a_cached_suggestion_with_a_requested_item_is_served_even_if_it_needs_a_wash(
         self, db_session, test_user
     ):
         items, outfits = await self._hot_day_outfits(
