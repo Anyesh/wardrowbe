@@ -106,7 +106,11 @@ def cached_suggestion_fits(
 ) -> bool:
     if not cached:
         return False
-    if any(cached.get(key) != value for key, value in current.items() if key != "temps"):
+    if any(
+        key not in cached or cached[key] != value
+        for key, value in current.items()
+        if key != "temps"
+    ):
         return False
     then, now = cached.get("temps") or [], current["temps"]
     return len(then) == len(now) and all(

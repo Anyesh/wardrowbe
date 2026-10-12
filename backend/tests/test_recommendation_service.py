@@ -279,8 +279,8 @@ def _ctx(weather=None, time="morning", prefs=_FIT_PREFS, measurements=None) -> d
         (_ctx(), _ctx(time="evening"), False),
         (_ctx(), _ctx(_weather(temp=20, window_min=8, window_max=22)), False),
         (
-            _ctx(_weather(temp=12, window_min=8, window_max=22)),
-            _ctx(_weather(temp=13, window_min=9, window_max=27)),
+            _ctx(_weather(temp=14, window_min=10.5, window_max=24)),
+            _ctx(_weather(temp=14, window_min=10.5, window_max=26)),
             False,
         ),
         (
@@ -306,7 +306,7 @@ def _ctx(weather=None, time="morning", prefs=_FIT_PREFS, measurements=None) -> d
         "rain-became-likely",
         "time-of-day-changed",
         "swing-appeared",
-        "window-top-drifted",
+        "window-top-crossed-hot",
         "window-small-drift",
         "preferences-created",
         "preferences-edited",
@@ -322,6 +322,8 @@ def test_cached_suggestion_fits_only_the_context_it_was_made_for(cached, now, ex
 def test_a_cached_suggestion_without_context_does_not_fit():
     assert cached_suggestion_fits(None, _ctx(), _FIT_PREFS) is False
     assert cached_suggestion_fits({}, _ctx(), _FIT_PREFS) is False
+    older = {k: v for k, v in _ctx().items() if k != "body_measurements"}
+    assert cached_suggestion_fits(older, _ctx(), _FIT_PREFS) is False
 
 
 class TestSuggestRequestTimeOfDay:
@@ -816,7 +818,8 @@ class TestHotDayLegwear:
         cached=None,
         count=1,
         cached_weather=None,
-        archived=(),
+        unavailable=None,
+        include=(),
     ):
         kinds = ("tights", "skirt", "t-shirt", "sneakers")
         items = [
@@ -829,8 +832,10 @@ class TestHotDayLegwear:
             )
             for kind in kinds
         ]
-        for n in archived:
-            items[n - 1].is_archived = True
+        if unavailable == "archived":
+            items[3].is_archived = True
+        elif unavailable == "needs_wash":
+            items[3].needs_wash = True
         db_session.add_all(items)
         await db_session.commit()
         number_map = {n: item.id for n, item in enumerate(items, start=1)}
@@ -852,6 +857,8 @@ class TestHotDayLegwear:
                     cached_weather or weather, TimeOfDay.afternoon, None, user.body_measurements
                 ),
             }
+            cached = json.loads(json.dumps(cached))
+        rejected = {items[3].id} if unavailable == "rejected" else set()
         service = RecommendationService(db_session)
         with (
             patch("app.services.recommendation_service.AIService", return_value=ai),
@@ -861,11 +868,13 @@ class TestHotDayLegwear:
             ),
             patch("app.services.recommendation_service.push_suggestions", AsyncMock()) as push,
             patch.object(service, "_format_items_for_prompt", return_value=("", number_map)),
+            patch.object(service, "_get_today_rejected_item_ids", AsyncMock(return_value=rejected)),
         ):
             outfits = await service.generate_recommendations(
                 user=user,
                 occasion="casual",
                 weather_override=weather,
+                include_items=[items[n - 1].id for n in include],
                 time_of_day=TimeOfDay.afternoon,
                 count=count,
             )
@@ -915,13 +924,29 @@ class TestHotDayLegwear:
         assert outfits == [{items[1].id, items[2].id, items[3].id}]
 
     @pytest.mark.asyncio
-    async def test_a_cached_suggestion_with_an_archived_item_is_not_served(
+    @pytest.mark.parametrize("unavailable", ["archived", "needs_wash", "rejected"])
+    async def test_a_cached_suggestion_with_an_unavailable_item_is_not_served(
+        self, db_session, test_user, unavailable
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[3, 2]], cached={"items": [2, 4]}, unavailable=unavailable
+        )
+        assert outfits == [{items[1].id, items[2].id}]
+
+    @pytest.mark.asyncio
+    async def test_a_cached_suggestion_with_a_requested_item_is_served_even_if_unworn(
         self, db_session, test_user
     ):
         items, outfits = await self._hot_day_outfits(
-            db_session, test_user, [[3, 2]], cached={"items": [2, 4]}, archived=(4,)
+            db_session,
+            test_user,
+            [[3, 2]],
+            cached={"items": [2, 4]},
+            unavailable="needs_wash",
+            include=(4,),
         )
-        assert outfits == [{items[1].id, items[2].id}]
+        assert outfits == [{items[1].id, items[3].id}]
+        self.ai.generate_text.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_cached_options_record_the_weather_they_were_made_for(
