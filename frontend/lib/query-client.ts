@@ -16,8 +16,8 @@ function handleError(error: unknown, toastText: (error: unknown) => string) {
   // Let other errors bubble up to error boundary
 }
 
-// A caller that shows its own translated toast (or handles the failure silently) sets
-// meta.toastsOwnErrors, so that the raw server message does not appear beside it.
+// A caller that shows its own translated message (or handles the failure silently) sets
+// meta.toastsOwnErrors, so that a second, generic toast does not appear beside it.
 export function createQueryClient(toastText: (error: unknown) => string): QueryClient {
   return new QueryClient({
     defaultOptions: {

@@ -2,7 +2,7 @@
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from 'next-auth/react';
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -14,9 +14,12 @@ import { useDescribeError } from '@/lib/errors';
 export function Providers({ children }: { children: React.ReactNode }) {
   const t = useTranslations('errors');
   const describeError = useDescribeError();
-  // The client outlives locale changes, so its toast reads the current translator through a ref.
+  // The client outlives locale changes, so its toast reads the current translator through a ref,
+  // updated after commit so that an abandoned render cannot leave another locale's text behind.
   const toastText = useRef((error: unknown) => describeError(error, t('default')));
-  toastText.current = (error: unknown) => describeError(error, t('default'));
+  useLayoutEffect(() => {
+    toastText.current = (error: unknown) => describeError(error, t('default'));
+  }, [describeError, t]);
   const [queryClient] = useState(() => createQueryClient((error) => toastText.current(error)));
 
   return (

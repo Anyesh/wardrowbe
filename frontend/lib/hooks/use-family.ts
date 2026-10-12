@@ -85,6 +85,8 @@ export function useJoinFamilyByToken() {
       applySessionToken(session);
       return api.post<JoinFamilyResponse>('/families/join-by-token', { token });
     },
+    // The invite page shows the failure in place.
+    meta: { toastsOwnErrors: true },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
