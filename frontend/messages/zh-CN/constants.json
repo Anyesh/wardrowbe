@@ -195,7 +195,9 @@
     "puffer": "面包服",
     "overcoat": "长款大衣",
     "peacoat": "海军大衣",
-    "duffle": "牛角扣"
+    "duffle": "牛角扣",
+    "waistcoat": "西装马甲",
+    "sweater-vest": "毛衣马甲"
   },
   "timezones": {
     "America/Chicago": "美国中部时间",

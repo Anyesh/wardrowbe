@@ -195,7 +195,9 @@
     "puffer": "Piumino",
     "overcoat": "Soprabito",
     "peacoat": "Caban",
-    "duffle": "Montgomery"
+    "duffle": "Montgomery",
+    "waistcoat": "Panciotto",
+    "sweater-vest": "Gilet in maglia"
   },
   "timezones": {
     "America/Chicago": "Ora centrale (USA)",

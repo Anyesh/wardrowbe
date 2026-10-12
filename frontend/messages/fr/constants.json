@@ -195,7 +195,9 @@
     "puffer": "Doudoune",
     "overcoat": "Pardessus",
     "peacoat": "Caban",
-    "duffle": "Duffle-coat"
+    "duffle": "Duffle-coat",
+    "waistcoat": "Gilet de costume",
+    "sweater-vest": "Pull sans manches"
   },
   "timezones": {
     "America/Chicago": "Heure centrale (É.-U.)",

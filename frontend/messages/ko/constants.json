@@ -195,7 +195,9 @@
     "puffer": "패딩",
     "overcoat": "오버코트",
     "peacoat": "피코트",
-    "duffle": "더플"
+    "duffle": "더플",
+    "waistcoat": "정장 조끼",
+    "sweater-vest": "니트 조끼"
   },
   "timezones": {
     "America/Chicago": "미국 중부 시간",

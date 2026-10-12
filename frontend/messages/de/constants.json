@@ -193,9 +193,11 @@
     "windbreaker": "Windjacke",
     "wrap": "Wickel",
     "puffer": "Puffer",
-    "overcoat": "Überzieher",
+    "overcoat": "Langmantel",
     "peacoat": "Caban",
-    "duffle": "Dufflecoat"
+    "duffle": "Dufflecoat",
+    "waistcoat": "Anzugweste",
+    "sweater-vest": "Pullunder"
   },
   "timezones": {
     "America/Chicago": "Central Time (USA)",

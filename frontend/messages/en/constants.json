@@ -195,7 +195,9 @@
     "puffer": "Puffer",
     "overcoat": "Overcoat",
     "peacoat": "Peacoat",
-    "duffle": "Duffle"
+    "duffle": "Duffle",
+    "waistcoat": "Waistcoat",
+    "sweater-vest": "Sweater vest"
   },
   "timezones": {
     "America/Chicago": "Central Time (US)",

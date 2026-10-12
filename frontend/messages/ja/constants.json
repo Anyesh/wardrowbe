@@ -195,7 +195,9 @@
     "puffer": "パファー",
     "overcoat": "オーバーコート",
     "peacoat": "ピーコート",
-    "duffle": "ダッフル"
+    "duffle": "ダッフル",
+    "waistcoat": "スーツベスト",
+    "sweater-vest": "ニットベスト"
   },
   "timezones": {
     "America/Chicago": "中部標準時（米国）",

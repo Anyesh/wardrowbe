@@ -50,7 +50,7 @@ export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
   jacket: ['denim-jacket', 'bomber', 'parka', 'puffer', 'windbreaker', 'trucker', 'anorak'],
   coat: ['overcoat', 'peacoat', 'duffle', 'puffer'],
   sweater: ['pullover', 'crewneck', 'turtleneck', 'v-neck'],
-  vest: ['puffer'],
+  vest: ['waistcoat', 'sweater-vest', 'puffer'],
   shoes: ['loafers', 'oxfords', 'mules', 'flats', 'heels', 'platforms'],
   sneakers: ['low-top', 'high-top', 'chunky', 'slip-on'],
   boots: ['ankle', 'chelsea', 'combat', 'knee-high', 'rain'],
