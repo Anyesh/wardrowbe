@@ -19,6 +19,8 @@ SUBTYPES: dict[str, tuple[str, ...]] = {
 # Matched whatever the item's type, so that a peacoat tagged as a jacket still counts as heavy.
 WARM_SUBTYPES: frozenset[str] = frozenset(_DATA["warm_subtypes"])
 MATERIALS: tuple[str, ...] = tuple(_DATA["materials"])
+WARM_MATERIALS: frozenset[str] = frozenset(_DATA["warm_materials"])
+HEAVY_LAYER_MATERIALS: frozenset[str] = frozenset(_DATA["heavy_layer_materials"])
 # Ordered from least to most formal; the scorer measures distance along this scale.
 FORMALITY: tuple[str, ...] = tuple(_DATA["formality"])
 OCCASIONS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["occasions"])

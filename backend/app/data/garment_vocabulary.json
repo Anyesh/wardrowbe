@@ -34,6 +34,8 @@
     {"value": "bag", "role": "accessory", "wash_interval": 20},
     {"value": "accessories", "role": "accessory", "wash_interval": 20}
   ],
+  "warm_materials": ["wool", "fleece", "knit"],
+  "heavy_layer_materials": ["wool", "fleece", "down", "shearling"],
   "warm_subtypes": ["thermal", "puffer", "parka", "overcoat", "peacoat", "duffle"],
   "materials": ["cotton", "denim", "leather", "wool", "polyester", "silk", "linen", "knit", "fleece", "suede", "velvet", "nylon", "canvas", "down", "shearling"],
   "formality": ["very-casual", "casual", "smart-casual", "business-casual", "formal", "very-formal"],

@@ -7,7 +7,13 @@ from app.models.item import ClothingItem
 from app.models.preference import UserPreference
 from app.services.weather_service import WeatherData
 from app.utils.clothing import ITEM_ROLE
-from app.utils.garment_vocabulary import FORMALITY, OCCASION_FORMALITY, WARM_SUBTYPES
+from app.utils.garment_vocabulary import (
+    FORMALITY,
+    HEAVY_LAYER_MATERIALS,
+    OCCASION_FORMALITY,
+    WARM_MATERIALS,
+    WARM_SUBTYPES,
+)
 from app.utils.preference_defaults import DEFAULT_PREFER_UNDERUSED_ITEMS
 from app.utils.scales import (
     DEFAULT_AVOID_REPEAT_DAYS,
@@ -74,12 +80,11 @@ MIN_CANDIDATES_PER_ESSENTIAL_ROLE = 4
 TEMP_RANGE_MIN_SWING = 8.0
 REMOVABLE_LAYER_HOT_FLOOR = 0.6
 
-REMOVABLE_LAYER_TYPES = {"jacket", "coat", "blazer", "hoodie", "cardigan", "vest"}
+REMOVABLE_LAYER_TYPES = {t for t, role in ITEM_ROLE.items() if role in ("outer_layer", "mid_layer")}
 RAIN_LAYER_TYPES = {"jacket", "coat", "hoodie"}
 RAIN_LIKELY_CHANCE = 50
 WARM_LAYER_TYPES = REMOVABLE_LAYER_TYPES | {"sweater"}
 HEAVY_LAYER_TYPES = {"coat"}
-HEAVY_LAYER_MATERIALS = {"wool", "fleece", "down", "shearling"}
 
 
 @dataclass
@@ -115,12 +120,10 @@ def _temp_bucket_score(
     # Sheer and thermal tights serve different weather needs, so the type alone
     # must not mark every pair as a warm layer. The materials match the cold-weather
     # rule below so the heat penalty hits the same pairs the cold reward favours.
-    warm_tights = item_type == "tights" and (
-        subtype in WARM_SUBTYPES or material in ("wool", "fleece", "knit")
-    )
+    warm_tights = item_type == "tights" and (subtype in WARM_SUBTYPES or material in WARM_MATERIALS)
     band = _temp_band(temp, cold_threshold, hot_threshold)
     if band == "cold":
-        if warm_tights or item_type in WARM_LAYER_TYPES or material in ("wool", "fleece", "knit"):
+        if warm_tights or item_type in WARM_LAYER_TYPES or material in WARM_MATERIALS:
             return 1.0
         elif "winter" in seasons:
             return 1.0

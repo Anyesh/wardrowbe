@@ -18,6 +18,7 @@ from app.services.item_scorer import (
     HEAVY_LAYER_TYPES,
     OCCASION_FORMALITY,
     RAIN_LAYER_TYPES,
+    REMOVABLE_LAYER_TYPES,
     WARM_LAYER_TYPES,
 )
 from app.services.pairing_service import PAIRING_OCCASION
@@ -31,6 +32,7 @@ from app.utils.garment_vocabulary import (
     ROLES,
     SUBTYPES,
     TYPES,
+    WARM_MATERIALS,
     WARM_SUBTYPES,
     canonical_color,
     canonical_colors,
@@ -144,8 +146,13 @@ def test_scorer_layer_types_are_real_types():
     assert scorer_types <= VALID_TYPES
 
 
-def test_scorer_heavy_materials_are_real_materials():
+def test_scorer_materials_are_real_materials():
     assert HEAVY_LAYER_MATERIALS <= VALID_MATERIALS
+    assert WARM_MATERIALS <= VALID_MATERIALS
+
+
+def test_removable_layers_are_every_outer_and_mid_layer_type():
+    assert REMOVABLE_LAYER_TYPES == {"jacket", "coat", "blazer", "hoodie", "cardigan", "vest"}
 
 
 # The union of the suggestion, studio, authoring and schedule validators before they shared one
