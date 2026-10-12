@@ -125,15 +125,21 @@ class TestWeatherScore:
         item = _item(type="shirt")
         assert _weather_score(item, _weather(temp=5), None) == 0.7
 
-    def test_thermal_tights_are_suitable_in_cold_and_penalized_in_heat(self):
-        item = _item(type="tights", subtype="Thermal")
-        assert _weather_score(item, _weather(temp=5), None) == 1.0
-        assert _weather_score(item, _weather(temp=30), None) == 0.05
-
-    def test_sheer_tights_are_not_treated_as_thermal(self):
-        item = _item(type="tights", subtype="sheer")
-        assert _weather_score(item, _weather(temp=5), None) == 0.7
-        assert _weather_score(item, _weather(temp=30), None) == 0.8
+    @pytest.mark.parametrize(
+        ("subtype", "material", "cold", "hot"),
+        [
+            ("Thermal", None, 1.0, 0.05),
+            ("opaque", "wool", 1.0, 0.05),
+            (None, "fleece", 1.0, 0.05),
+            ("sheer", None, 0.7, 0.8),
+            ("opaque", "polyester", 0.7, 0.8),
+        ],
+        ids=["thermal", "wool-opaque", "fleece-untyped", "sheer", "synthetic-opaque"],
+    )
+    def test_only_warm_tights_count_as_a_warm_layer(self, subtype, material, cold, hot):
+        item = _item(type="tights", subtype=subtype, material=material)
+        assert _weather_score(item, _weather(temp=5), None) == cold
+        assert _weather_score(item, _weather(temp=30), None) == hot
 
 
 class TestWeatherScoreRange:

@@ -114,14 +114,11 @@ def _temp_bucket_score(
     hot_threshold: float,
 ) -> float:
     # Sheer and thermal tights serve different weather needs, so the type alone
-    # must not mark every pair as a warm layer.
-    thermal_tights = item_type == "tights" and subtype == "thermal"
+    # must not mark every pair as a warm layer. The same test drives the cold reward
+    # and the heat penalty, so wool tights cannot be warm in winter yet fine at 30C.
+    warm_tights = item_type == "tights" and (subtype == "thermal" or material in ("wool", "fleece"))
     if temp < cold_threshold:
-        if (
-            thermal_tights
-            or item_type in WARM_LAYER_TYPES
-            or material in ("wool", "fleece", "knit")
-        ):
+        if warm_tights or item_type in WARM_LAYER_TYPES or material in ("wool", "fleece", "knit"):
             return 1.0
         elif "winter" in seasons:
             return 1.0
@@ -130,7 +127,7 @@ def _temp_bucket_score(
         else:
             return 0.7
     elif temp > hot_threshold:
-        if thermal_tights:
+        if warm_tights:
             return 0.05
         if material in ("cotton", "linen", "silk") or "summer" in seasons:
             return 1.0
