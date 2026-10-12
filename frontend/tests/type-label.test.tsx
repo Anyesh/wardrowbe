@@ -27,7 +27,7 @@ describe('clothing type labels', () => {
       readFileSync(resolve(__dirname, '..', 'messages', 'de', 'constants.json'), 'utf8'),
     )
     expect(result.current('pants')).toBe(constants.types.pants)
-    expect(result.current('tights')).toBe('Tights')
+    expect(result.current('poncho')).toBe('Poncho')
   })
 
   it('are used wherever an item type is rendered as text', () => {
