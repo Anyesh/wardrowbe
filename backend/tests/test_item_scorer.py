@@ -225,6 +225,10 @@ class TestWeatherScoreHeavyLayers:
     def test_parka_with_light_shell_material_is_heavy(self):
         assert self._swing(type="jacket", subtype="parka", material="nylon") == pytest.approx(0.525)
 
+    @pytest.mark.parametrize("material", ["down", "shearling", "wool", "fleece"])
+    def test_heavy_material_jacket_is_heavy(self, material):
+        assert self._swing(type="jacket", material=material) == pytest.approx(0.525)
+
     def test_coat_with_unknown_material_is_heavy(self):
         assert self._swing(type="coat") == pytest.approx(0.525)
 
