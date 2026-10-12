@@ -15,6 +15,7 @@ from app.services.recommendation_service import (
     AIRecommendationError,
     RecommendationService,
     cached_suggestion_fits,
+    fill_best_partial,
     format_temp_range_text,
     get_time_of_day,
     resolve_outfit_items,
@@ -325,6 +326,18 @@ def test_a_cached_suggestion_without_context_does_not_fit():
     assert cached_suggestion_fits({}, _ctx(), _FIT_PREFS) is False
     older = {k: v for k, v in _ctx().items() if k != "body_measurements"}
     assert cached_suggestion_fits(older, _ctx(), _FIT_PREFS) is False
+
+
+def test_fill_best_partial_prefers_an_option_the_fill_can_complete():
+    coat, jeans, boots, hoodie = uuid4(), uuid4(), uuid4(), uuid4()
+    types = {coat: "coat", jeans: "jeans", boots: "boots", hoodie: "hoodie"}
+    unfillable = ({"headline": "coat"}, [coat, jeans, boots])
+    fillable = ({"headline": "jeans"}, [jeans])
+    outfit_data, item_ids = fill_best_partial(
+        [unfillable, fillable], [hoodie, boots, coat, jeans], types
+    )
+    assert outfit_data["headline"] == "jeans"
+    assert set(item_ids) == {jeans, hoodie, boots}
 
 
 class TestSuggestRequestTimeOfDay:
@@ -943,7 +956,7 @@ class TestHotDayLegwear:
         assert self.pushed == [[2, 3, 4]]
 
     @pytest.mark.asyncio
-    async def test_when_no_option_is_complete_the_first_is_filled_with_the_best_fit(
+    async def test_when_no_option_is_complete_the_least_changed_one_is_filled_with_the_best_fit(
         self, db_session, test_user
     ):
         items, outfits = await self._hot_day_outfits(
@@ -985,7 +998,7 @@ class TestHotDayLegwear:
             )
 
     @pytest.mark.asyncio
-    async def test_the_fallback_fills_the_option_missing_the_fewest_pieces(
+    async def test_the_fallback_fills_the_option_needing_the_fewest_additions(
         self, db_session, test_user
     ):
         await self._hot_day_outfits(db_session, test_user, [[5], [4], [3, 4]], extras=("bag",))

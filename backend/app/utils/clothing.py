@@ -146,9 +146,19 @@ def fill_missing_regions(
             and _regions(item_type_map.get(iid, "")) <= still_missing
             and not _slots_for_type(item_type_map.get(iid, "")) & claimed
         ]
-        # A real top goes before a layer worn alone, because the AI was asked for a top.
-        pick = next((iid for iid in fits if item_type_map[iid] not in WORN_ALONE_TYPES), None)
-        pick = pick or next(iter(fits), None)
+        pick = next(iter(fits), None)
+        # A real top goes before a better-ranked layer worn alone, because the AI was asked
+        # for a top; anything else keeps its rank.
+        if pick is not None and item_type_map[pick] in WORN_ALONE_TYPES:
+            pick = next(
+                (
+                    iid
+                    for iid in fits
+                    if _regions(item_type_map[iid]) == {region}
+                    and item_type_map[iid] not in WORN_ALONE_TYPES
+                ),
+                pick,
+            )
         if pick is not None:
             logger.info(f"Adding {item_type_map[pick]} item {pick}: outfit had no {region} piece")
             filled.append(pick)

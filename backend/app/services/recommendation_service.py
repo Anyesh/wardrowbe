@@ -173,6 +173,24 @@ def resolve_outfit_items(
     return valid_ids
 
 
+def fill_best_partial(
+    partials: list[tuple[dict, list[UUID]]],
+    ranked_ids: list[UUID],
+    item_type_map: dict[UUID, str],
+) -> tuple[dict, list[UUID]]:
+    filled = [
+        (outfit_data, item_ids, fill_missing_regions(item_ids, ranked_ids, item_type_map))
+        for outfit_data, item_ids in partials
+    ]
+    # Prefer the option the fill completes, then the one it changes least, because the
+    # AI's own picks are better matched than anything added here.
+    outfit_data, _, item_ids = min(
+        filled,
+        key=lambda f: (len(missing_regions(f[2], item_type_map)), len(f[2]) - len(f[1])),
+    )
+    return outfit_data, item_ids
+
+
 @dataclass
 class RecommendationContext:
     user: User
@@ -1033,19 +1051,7 @@ class RecommendationService:
             # own complete options are better matched than anything added here.
             if not chosen and partials:
                 ranking = rank_by_fit(candidates, weather, occasion, preferences, learned_prefs)
-                filled = [
-                    (od, item_ids, fill_missing_regions(item_ids, ranking, item_type_map))
-                    for od, item_ids in partials
-                ]
-                # Prefer the option the fill completes, then the one it changes least.
-                od, _, item_ids = min(
-                    filled,
-                    key=lambda f: (
-                        len(missing_regions(f[2], item_type_map)),
-                        len(f[2]) - len(f[1]),
-                    ),
-                )
-                chosen = [(od, item_ids)]
+                chosen = [fill_best_partial(partials, ranking, item_type_map)]
             if not chosen:
                 raise AIRecommendationError("AI did not select any valid items")
 

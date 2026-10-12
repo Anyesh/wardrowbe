@@ -525,3 +525,18 @@ def test_fill_uses_a_dress_when_top_and_bottom_are_both_missing():
     ranked, ranked_types = _typed("dress", "jumpsuit")
     filled = fill_missing_regions([coat, sneakers], ranked, outfit_types | ranked_types)
     assert filled == [coat, sneakers, ranked[0]]
+
+
+def test_fill_keeps_a_hoodie_over_a_worse_ranked_suit():
+    (sneakers,), outfit_types = _typed("sneakers")
+    ranked, ranked_types = _typed("hoodie", "jeans", "suit")
+    filled = fill_missing_regions([sneakers], ranked, outfit_types | ranked_types)
+    assert filled == [sneakers, ranked[0], ranked[1]]
+
+
+@pytest.mark.parametrize("one_piece", ["dress", "suit"])
+def test_a_one_piece_that_outranks_the_separates_fills_top_and_bottom(one_piece):
+    (shoes,), outfit_types = _typed("shoes")
+    ranked, ranked_types = _typed(one_piece, "blouse", "skirt")
+    filled = fill_missing_regions([shoes], ranked, outfit_types | ranked_types)
+    assert filled == [shoes, ranked[0]]
