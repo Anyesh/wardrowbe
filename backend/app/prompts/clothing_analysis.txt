@@ -18,7 +18,7 @@ SUBTYPE (optional): A more specific name within the type. Examples:
 - socks → ankle, crew, knee-high, no-show, dress, athletic
 - tights → sheer, opaque, patterned, thermal
 - tie → necktie, bow-tie, bolo
-Treat pantyhose as tights. Use null if the type is specific enough (e.g. jeans, hoodie, blazer).
+Treat pantyhose and stockings as tights. Legwear that covers the feet is tights, footless legwear worn as trousers is pants (leggings), and legwear that ends at or below the knee is socks. Use null if the type is specific enough (e.g. jeans, hoodie, blazer).
 
 PRIMARY_COLOR (required, pick one):
 <<COLORS>>
