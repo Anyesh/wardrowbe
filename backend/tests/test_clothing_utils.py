@@ -542,10 +542,13 @@ def test_a_one_piece_that_outranks_the_separates_fills_top_and_bottom(one_piece)
     assert filled == [shoes, ranked[0]]
 
 
+# With a hoodie ahead of it, the shirt competes at the hoodie's rank and still outranks the
+# one-piece, so only the uncovered-region count keeps the one-piece winning.
 @pytest.mark.parametrize("one_piece", ["dress", "suit"])
-def test_fill_takes_a_one_piece_over_a_better_top_when_no_bottom_exists(one_piece):
+@pytest.mark.parametrize("before", [("shirt",), ("hoodie",)], ids=["shirt", "hoodie-then-shirt"])
+def test_fill_takes_a_one_piece_over_a_better_top_when_no_bottom_exists(before, one_piece):
     (sneakers,), outfit_types = _typed("sneakers")
-    ranked, ranked_types = _typed("shirt", one_piece)
+    ranked, ranked_types = _typed(*before, one_piece, "shirt")
     filled = fill_missing_regions([sneakers], ranked, outfit_types | ranked_types)
     assert filled == [sneakers, ranked[1]]
 
