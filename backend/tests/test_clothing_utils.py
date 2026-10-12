@@ -62,13 +62,27 @@ def test_allows_layering_base_top_plus_mid_layer():
 
 
 @pytest.mark.parametrize(
-    ("under", "over"), [("shirt", "jacket"), ("hoodie", "jacket"), ("hoodie", "coat")]
+    ("under", "over"),
+    [
+        ("shirt", "jacket"),
+        ("hoodie", "jacket"),
+        ("hoodie", "coat"),
+        ("hoodie", "vest"),
+        ("hoodie", "cardigan"),
+        ("t-shirt", "hoodie"),
+    ],
 )
-def test_allows_layering_under_an_outer_layer(under, over):
+def test_allows_layering_a_piece_under_another(under, over):
     under_id, over_id, pants_id = _ids(3)
     item_type_map = {under_id: under, over_id: over, pants_id: "pants"}
     result = deduplicate_by_body_slot([under_id, over_id, pants_id], item_type_map)
     assert len(result) == 3
+
+
+def test_two_hoodies_still_clash():
+    first, second, pants = _ids(3)
+    item_type_map = {first: "hoodie", second: "hoodie", pants: "jeans"}
+    assert deduplicate_by_body_slot([first, second, pants], item_type_map) == [first, pants]
 
 
 def test_keeps_first_item_per_slot():

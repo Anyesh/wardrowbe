@@ -329,15 +329,13 @@ def test_a_cached_suggestion_without_context_does_not_fit():
 
 
 def test_fill_best_partial_prefers_an_option_the_fill_can_complete():
-    cardigan, jeans, boots, hoodie = uuid4(), uuid4(), uuid4(), uuid4()
-    types = {cardigan: "cardigan", jeans: "jeans", boots: "boots", hoodie: "hoodie"}
-    unfillable = ({"headline": "cardigan"}, [cardigan, jeans, boots])
-    fillable = ({"headline": "jeans"}, [jeans])
-    outfit_data, item_ids = fill_best_partial(
-        [unfillable, fillable], [hoodie, boots, cardigan, jeans], types
-    )
-    assert outfit_data["headline"] == "jeans"
-    assert set(item_ids) == {jeans, hoodie, boots}
+    jeans, boots, dress = uuid4(), uuid4(), uuid4()
+    types = {jeans: "jeans", boots: "boots", dress: "dress"}
+    unfillable = ({"headline": "jeans"}, [jeans, boots])
+    fillable = ({"headline": "boots"}, [boots])
+    outfit_data, item_ids = fill_best_partial([unfillable, fillable], [dress, boots, jeans], types)
+    assert outfit_data["headline"] == "boots"
+    assert set(item_ids) == {boots, dress}
 
 
 class TestSuggestRequestTimeOfDay:

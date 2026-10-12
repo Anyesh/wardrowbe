@@ -44,6 +44,10 @@ def _slots_for_type(item_type: str) -> frozenset[str]:
     role = ITEM_ROLE.get(item_type)
     if not role or role == "accessory":
         return frozenset()
+    # A hoodie goes under a jacket and over a shirt, and a vest or cardigan can go over it,
+    # so a garment worn alone only clashes with another of its own type.
+    if item_type in WORN_ALONE_TYPES:
+        return frozenset({item_type})
     return ROLE_SLOTS.get(role, frozenset({role}))
 
 
@@ -126,7 +130,7 @@ def _fill_options(
     claimed: frozenset[str],
 ) -> list[tuple[UUID, int]]:
     # A piece may only cover regions that are still missing and take free slots, so that
-    # a dress never lands on trousers and a hoodie never goes under a coat.
+    # a dress never lands on trousers and a layer never doubles a slot already taken.
     fits = [
         iid
         for iid in rank

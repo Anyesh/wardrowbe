@@ -14,7 +14,7 @@ def test_every_wearable_type_lands_in_its_slot():
 
 
 def test_hoodie_and_tank_top_are_not_dropped():
-    assert slot_composition(["Hoodie", "tank-top"]) == {"outerwear": "hoodie", "top": "tank-top"}
+    assert slot_composition(["Hoodie", "tank-top"]) == {"mid_layer": "hoodie", "top": "tank-top"}
 
 
 def test_layers_dresses_and_suits_are_recorded_under_their_role():
