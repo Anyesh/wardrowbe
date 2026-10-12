@@ -3,6 +3,9 @@ from app.models.item import ProcessingKind
 TAGGING_QUEUE = "arq:tagging"
 IMAGE_QUEUE = "arq:images"
 
+# arq stops running a job after this many tries, on every queue this worker serves.
+WORKER_MAX_TRIES = 3
+
 # Kinds whose jobs live on IMAGE_QUEUE. Anything that looks up a job by
 # ai_job_id (cancel, abort, the stale sweep) has to pick the queue from the
 # item's processing_kind, because arq scopes job ids per queue and a lookup on
