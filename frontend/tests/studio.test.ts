@@ -180,7 +180,7 @@ describe('mergeAiAssist', () => {
     expect(merged).toHaveLength(2);
     expect(skipped).toHaveLength(1);
     expect(skipped[0].item.id).toBe('2');
-    expect(skipped[0].slot).toBe('base_top');
+    expect(skipped[0].conflict.id).toBe('1');
   });
 
   it('skips items already on canvas', () => {

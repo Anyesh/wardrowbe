@@ -81,7 +81,7 @@
     "required": "obbligatorio",
     "occasion": "Occasione",
     "pickOccasion": "Scegli un'occasione prima di salvare.",
-    "skippedItem": "{name} saltato: l’outfit ha già un capo nello spazio {slot}",
+    "skippedItem": "{name} saltato: {other} occupa già quel posto",
     "warnings": {
       "multipleBottoms": "Più bassi selezionati.",
       "noBottoms": "Nessun basso selezionato.",

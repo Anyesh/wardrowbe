@@ -81,7 +81,7 @@
     "required": "必填",
     "occasion": "場合",
     "pickOccasion": "儲存前請先選擇場合。",
-    "skippedItem": "已略過 {name}：搭配中已有{slot}單品",
+    "skippedItem": "已略過 {name}：該位置已有 {other}",
     "warnings": {
       "multipleBottoms": "選擇了多件下身單品。",
       "noBottoms": "未選擇下身單品。",
