@@ -19,7 +19,7 @@ export const ITEM_ROLE: Record<string, string> = {
   jacket: 'outer_layer',
   coat: 'outer_layer',
   sweater: 'base_top',
-  hoodie: 'outer_layer',
+  hoodie: 'mid_layer',
   blazer: 'outer_layer',
   suit: 'suit',
   vest: 'mid_layer',
