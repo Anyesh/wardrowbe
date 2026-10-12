@@ -752,7 +752,7 @@ class TestHotDayLegwear:
                 "app.services.recommendation_service.pop_suggestion",
                 AsyncMock(side_effect=[cached, None]),
             ),
-            patch("app.services.recommendation_service.push_suggestions", AsyncMock()),
+            patch("app.services.recommendation_service.push_suggestions", AsyncMock()) as push,
             patch.object(service, "_format_items_for_prompt", return_value=("", number_map)),
         ):
             outfits = await service.generate_recommendations(
@@ -773,6 +773,7 @@ class TestHotDayLegwear:
                 ),
                 count=count,
             )
+        self.pushed = [od["items"] for od in push.call_args.args[2]] if push.call_args else []
         return items, [{oi.item_id for oi in o.items} for o in outfits]
 
     @pytest.mark.asyncio
@@ -790,3 +791,13 @@ class TestHotDayLegwear:
             db_session, test_user, [[3, 2, 4]], cached={"items": [1]}
         )
         assert outfits == [{items[1].id, items[2].id, items[3].id}]
+
+    @pytest.mark.asyncio
+    async def test_a_tights_only_first_option_falls_through_to_the_next(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[1], [3, 2, 4], [2, 3]]
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.pushed == [[2, 3]]

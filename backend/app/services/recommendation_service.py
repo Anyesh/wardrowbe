@@ -954,7 +954,11 @@ class RecommendationService:
             outfit_list = self._parse_multi_outfit_response(result.content)
 
             outfits = []
-            for od in outfit_list[:count]:
+            consumed = 0
+            for od in outfit_list:
+                if len(outfits) == count:
+                    break
+                consumed += 1
                 od["_ai_model"] = result.model
                 od["_ai_endpoint"] = result.endpoint
                 try:
@@ -977,10 +981,10 @@ class RecommendationService:
                 raise AIRecommendationError("AI did not select any valid items")
 
             # Cache remaining outfits for "Try Another"
-            if use_cache and len(outfit_list) > count:
+            if use_cache and len(outfit_list) > consumed:
                 serializable_map = {str(k): str(v) for k, v in number_map.items()}
                 to_cache = []
-                for od in outfit_list[count:]:
+                for od in outfit_list[consumed:]:
                     od["_number_map"] = serializable_map
                     od["_ai_model"] = result.model
                     od["_ai_endpoint"] = result.endpoint
