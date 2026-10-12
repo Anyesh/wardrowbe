@@ -13,7 +13,7 @@ from app.api.auth import SYNC_RATE_LIMIT, create_access_token
 from app.config import Settings, get_settings
 from app.models import User, UserIdentity
 from app.schemas.auth import IDENTITY_TOKEN
-from app.services.user_service import UserService
+from app.services.user_service import UNVERIFIED_EMAIL_IN_USE, UserService
 from app.utils.auth import decode_token, get_current_session
 from tests.identity_helpers import (
     add_users_with_identities,
@@ -186,6 +186,30 @@ class TestAuthSync:
             ]
 
         assert statuses == [expected] * (SYNC_LIMIT + 1)
+
+    @pytest.mark.asyncio
+    async def test_unverified_email_conflict_carries_error_code(
+        self, client: AsyncClient, test_user
+    ):
+        with _sign_in_mode("oidc") as validate:
+            validate.return_value = {
+                "sub": "newcomer",
+                "email": test_user.email,
+                "email_verified": False,
+            }
+            response = await client.post(
+                "/api/v1/auth/sync",
+                json={
+                    "external_id": "newcomer",
+                    "email": test_user.email,
+                    "display_name": "N",
+                    "id_token": "t",
+                },
+            )
+
+        assert response.status_code == 409
+        assert response.json()["error_code"] == "UNVERIFIED_EMAIL_IN_USE"
+        assert response.json()["detail"] == UNVERIFIED_EMAIL_IN_USE
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

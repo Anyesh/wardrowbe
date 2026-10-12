@@ -58,7 +58,7 @@ from app.schemas.item import (
     TaggingProgressResponse,
     WashHistoryResponse,
 )
-from app.services.image_service import ImageService
+from app.services.image_service import ImageService, ImageTooLargeError
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
 from app.utils.errors import CodedHTTPException
@@ -127,6 +127,18 @@ async def _resolve_bulk_item_ids(
     next_cursor = item_ids[-1] if has_more and item_ids else None
     logger.info(f"Bulk {action} select_all: {len(item_ids)} items, has_more={has_more}")
     return item_ids, next_cursor, has_more
+
+
+def _too_many_pixels(error: ImageTooLargeError) -> CodedHTTPException:
+    return CodedHTTPException(
+        status.HTTP_400_BAD_REQUEST,
+        "IMAGE_TOO_MANY_PIXELS",
+        str(error),
+        {
+            "megapixels": round(error.pixels / 1_000_000, 1),
+            "limit": round(error.limit_pixels / 1_000_000, 1),
+        },
+    )
 
 
 async def _read_image_or_413(image: UploadFile) -> bytes:
@@ -244,6 +256,8 @@ async def create_item(
             image_data=content,
             original_filename=image.filename or "upload.jpg",
         )
+    except ImageTooLargeError as e:
+        raise _too_many_pixels(e) from None
     except ValueError as e:
         raise CodedHTTPException(
             status.HTTP_400_BAD_REQUEST, "INVALID_IMAGE_TYPE", str(e)
@@ -1921,6 +1935,8 @@ async def replace_item_image(
             image_data=content,
             original_filename=image.filename or "upload.jpg",
         )
+    except ImageTooLargeError as e:
+        raise _too_many_pixels(e) from None
     except ValueError as e:
         raise CodedHTTPException(
             status.HTTP_400_BAD_REQUEST, "INVALID_IMAGE_TYPE", str(e)
@@ -2005,6 +2021,8 @@ async def add_item_image(
             image_data=content,
             original_filename=image.filename or "upload.jpg",
         )
+    except ImageTooLargeError as e:
+        raise _too_many_pixels(e) from None
     except ValueError as e:
         raise CodedHTTPException(
             status.HTTP_400_BAD_REQUEST, "INVALID_IMAGE_TYPE", str(e)

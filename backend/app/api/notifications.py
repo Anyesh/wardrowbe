@@ -167,7 +167,7 @@ async def test_notification_setting(
         raise CodedHTTPException(400, "NOTIFICATION_CONFIG_INVALID", error)
     success, message = await service.test_setting(setting)
     if not success:
-        raise CodedHTTPException(400, "NOTIFICATION_TEST_FAILED", message)
+        raise CodedHTTPException(400, "NOTIFICATION_TEST_FAILED", message, {"reason": message})
     return TestNotificationResponse(success=True, message=message)
 
 

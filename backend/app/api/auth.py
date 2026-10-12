@@ -25,6 +25,7 @@ from app.schemas.user import (
 )
 from app.services.user_service import FORWARD_AUTH, UserEmailConflictError, UserService
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException
 from app.utils.forward_auth import (
     FORWARD_AUTH_SECRET_HEADER,
     forward_auth_secret_matches,
@@ -273,10 +274,7 @@ async def sync_user(
             sync_data, provider=provider, email_verified=email_verified
         )
     except UserEmailConflictError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
-        ) from None
+        raise CodedHTTPException(status.HTTP_409_CONFLICT, e.error_code, str(e)) from None
 
     return UserSyncResponse(
         id=user.id,

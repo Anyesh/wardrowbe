@@ -167,19 +167,24 @@ async def test_ai_endpoint(
                 return {
                     "status": "error",
                     "error": f"HTTP {response.status_code}",
+                    "error_code": "AI_ENDPOINT_HTTP_ERROR",
+                    "error_params": {"status": response.status_code},
                 }
     except httpx.ConnectError:
         return {
             "status": "error",
             "error": "Connection refused - is the server running?",
+            "error_code": "AI_ENDPOINT_UNREACHABLE",
         }
     except httpx.TimeoutException:
         return {
             "status": "error",
             "error": "Connection timed out",
+            "error_code": "AI_ENDPOINT_TIMEOUT",
         }
     except Exception as e:
         return {
             "status": "error",
             "error": str(e),
+            "error_code": "AI_ENDPOINT_TEST_FAILED",
         }

@@ -189,7 +189,7 @@ class UserService:
             except _RowChanged:
                 continue
             return signed_in
-        raise UserEmailConflictError(CONCURRENT_SIGN_IN)
+        raise UserEmailConflictError(CONCURRENT_SIGN_IN, "CONCURRENT_SIGN_IN")
 
     async def _sync_once(
         self, sync_data: UserSyncRequest, provider: str, email_verified: bool
@@ -238,7 +238,7 @@ class UserService:
             # identity lookup and this one: not an adoption.
             return await self._sign_in_existing(holder, sync_data, provider, email_verified)
         if not email_verified:
-            raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE)
+            raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE, "UNVERIFIED_EMAIL_IN_USE")
         # Commit order decides a reclaim racing the holder's own verifying sign-in. If the holder
         # verified first, this caller adopts it here. If the reclaim commits first, the holder
         # stays detached and its sync gets EMAIL_IN_USE, because two verified accounts are never
@@ -268,7 +268,7 @@ class UserService:
             if holder is not None and holder.email_verified:
                 raise UserEmailConflictError(EMAIL_IN_USE)
             if holder is not None and not email_verified:
-                raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE)
+                raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE, "UNVERIFIED_EMAIL_IN_USE")
 
         values = {"display_name": sync_data.display_name, "last_login_at": datetime.now(UTC)}
         if sync_data.avatar_url:
@@ -504,7 +504,9 @@ def _lost_sign_in_race(error: IntegrityError) -> bool:
 
 
 class UserEmailConflictError(Exception):
-    pass
+    def __init__(self, message: str, error_code: str = "EMAIL_IN_USE") -> None:
+        super().__init__(message)
+        self.error_code = error_code
 
 
 class _RowChanged(Exception):

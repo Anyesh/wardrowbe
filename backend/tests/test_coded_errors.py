@@ -1,8 +1,16 @@
+from io import BytesIO
+from unittest.mock import AsyncMock, patch
+
+import httpx
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from PIL import Image
 
 from app.main import coded_http_exception_handler
+from app.models.notification import NotificationSettings
+from app.services.image_service import ImageService, ImageTooLargeError
+from app.services.notification_service import NotificationService
 from app.services.recommendation_service import RecommendationInputError
 from app.utils.errors import CodedHTTPException
 
@@ -104,3 +112,72 @@ class TestCodedEndpoints:
         body = response.json()
         assert body["error_code"] == "LOCATION_NOT_SET"
         assert body["detail"] == "User location not set. Please set location in settings."
+
+
+class TestEndpointErrorCodes:
+    @pytest.mark.asyncio
+    async def test_too_many_pixels_upload(
+        self, client: AsyncClient, test_user, auth_headers, monkeypatch
+    ):
+        monkeypatch.setattr(
+            ImageService,
+            "process_and_store",
+            AsyncMock(side_effect=ImageTooLargeError(48_000_000, 40_000_000)),
+        )
+        buf = BytesIO()
+        Image.new("RGB", (50, 50)).save(buf, format="JPEG")
+
+        response = await client.post(
+            "/api/v1/items",
+            files={"image": ("shirt.jpg", buf.getvalue(), "image/jpeg")},
+            headers=auth_headers,
+        )
+
+        body = response.json()
+        assert response.status_code == 400
+        assert body["error_code"] == "IMAGE_TOO_MANY_PIXELS"
+        assert body["error_params"] == {"megapixels": 48.0, "limit": 40.0}
+
+    @pytest.mark.asyncio
+    async def test_notification_test_failure_carries_reason(
+        self, client: AsyncClient, db_session, test_user, auth_headers, monkeypatch
+    ):
+        setting = NotificationSettings(
+            user_id=test_user.id,
+            channel="ntfy",
+            priority=1,
+            config={"server": "https://ntfy.example.com", "topic": "outfits"},
+        )
+        db_session.add(setting)
+        await db_session.commit()
+        monkeypatch.setattr(
+            NotificationService,
+            "test_setting",
+            AsyncMock(return_value=(False, "HTTP 502 from ntfy")),
+        )
+
+        response = await client.post(
+            f"/api/v1/notifications/settings/{setting.id}/test", headers=auth_headers
+        )
+
+        body = response.json()
+        assert response.status_code == 400
+        assert body["error_code"] == "NOTIFICATION_TEST_FAILED"
+        assert body["error_params"] == {"reason": "HTTP 502 from ntfy"}
+
+    @pytest.mark.asyncio
+    async def test_ai_endpoint_refused_connection(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        with patch.object(
+            httpx.AsyncClient, "get", AsyncMock(side_effect=httpx.ConnectError("refused"))
+        ):
+            response = await client.post(
+                "/api/v1/users/me/preferences/test-ai-endpoint",
+                json={"url": "http://localhost:11434/v1"},
+                headers=auth_headers,
+            )
+
+        body = response.json()
+        assert body["status"] == "error"
+        assert body["error_code"] == "AI_ENDPOINT_UNREACHABLE"
