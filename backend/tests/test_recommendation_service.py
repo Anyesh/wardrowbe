@@ -153,12 +153,14 @@ def _weather(
     window_min=None,
     window_max=None,
     condition="clear",
+    feels_like=None,
+    precipitation=0,
 ) -> WeatherData:
     return WeatherData(
         temperature=temp,
-        feels_like=temp,
+        feels_like=temp if feels_like is None else feels_like,
         humidity=50,
-        precipitation_chance=0,
+        precipitation_chance=precipitation,
         precipitation_mm=0,
         wind_speed=10,
         condition=condition,
@@ -257,57 +259,39 @@ def _fit_prefs(updated_at=datetime(2026, 3, 8, 9, 0), **kwargs) -> UserPreferenc
 _FIT_PREFS = _fit_prefs()
 
 
+def _ctx(weather=None, time="morning", prefs=_FIT_PREFS, measurements=None) -> dict:
+    return suggestion_context(weather or _weather(), TimeOfDay(time), prefs, measurements)
+
+
 @pytest.mark.parametrize(
-    ("cached_weather", "cached_time", "cached_prefs", "now_weather", "now_time", "expected"),
+    ("cached", "now", "expected"),
     [
-        (_weather(temp=20), "morning", _FIT_PREFS, _weather(temp=20), "morning", True),
-        (_weather(temp=20), "morning", _FIT_PREFS, _weather(temp=22.5), "morning", True),
-        (_weather(temp=20), "morning", _FIT_PREFS, _weather(temp=23.5), "morning", False),
-        (_weather(temp=2), "morning", _FIT_PREFS, _weather(temp=28), "morning", False),
-        (_weather(temp=11), "morning", _FIT_PREFS, _weather(temp=9), "morning", False),
-        (_weather(temp=24), "morning", _FIT_PREFS, _weather(temp=26), "morning", False),
+        (_ctx(), _ctx(), True),
+        (_ctx(_weather(temp=20)), _ctx(_weather(temp=22.5)), True),
+        (_ctx(_weather(temp=20)), _ctx(_weather(temp=23.5)), False),
+        (_ctx(_weather(temp=2)), _ctx(_weather(temp=28)), False),
+        (_ctx(_weather(temp=11)), _ctx(_weather(temp=9)), False),
+        (_ctx(_weather(temp=24)), _ctx(_weather(temp=26)), False),
+        (_ctx(_weather(temp=20)), _ctx(_weather(temp=20, feels_like=14)), False),
+        (_ctx(), _ctx(_weather(condition="rainy")), False),
+        (_ctx(_weather(precipitation=10)), _ctx(_weather(precipitation=40)), True),
+        (_ctx(_weather(precipitation=10)), _ctx(_weather(precipitation=80)), False),
+        (_ctx(), _ctx(time="evening"), False),
+        (_ctx(), _ctx(_weather(temp=20, window_min=8, window_max=22)), False),
         (
-            _weather(temp=20),
-            "morning",
-            _FIT_PREFS,
-            _weather(temp=20, condition="rainy"),
-            "morning",
-            False,
-        ),
-        (_weather(temp=20), "morning", _FIT_PREFS, _weather(temp=20), "evening", False),
-        (
-            _weather(temp=20),
-            "morning",
-            _FIT_PREFS,
-            _weather(temp=20, window_min=8, window_max=22),
-            "morning",
+            _ctx(_weather(temp=12, window_min=8, window_max=22)),
+            _ctx(_weather(temp=13, window_min=9, window_max=27)),
             False,
         ),
         (
-            _weather(temp=12, window_min=8, window_max=22),
-            "morning",
-            _FIT_PREFS,
-            _weather(temp=13, window_min=9, window_max=27),
-            "morning",
-            False,
-        ),
-        (
-            _weather(temp=12, window_min=8, window_max=22),
-            "morning",
-            _FIT_PREFS,
-            _weather(temp=13, window_min=9, window_max=23),
-            "morning",
+            _ctx(_weather(temp=12, window_min=8, window_max=22)),
+            _ctx(_weather(temp=13, window_min=9, window_max=23)),
             True,
         ),
-        (_weather(temp=20), "morning", None, _weather(temp=20), "morning", False),
-        (
-            _weather(temp=20),
-            "morning",
-            _fit_prefs(updated_at=datetime(2026, 3, 8, 8, 0)),
-            _weather(temp=20),
-            "morning",
-            False,
-        ),
+        (_ctx(prefs=None), _ctx(), False),
+        (_ctx(prefs=_fit_prefs(updated_at=datetime(2026, 3, 8, 8, 0))), _ctx(), False),
+        (_ctx(measurements={"height": 170}), _ctx(measurements={"height": 170}), True),
+        (_ctx(measurements={"height": 170}), _ctx(measurements={"height": 180}), False),
     ],
     ids=[
         "same",
@@ -316,26 +300,28 @@ _FIT_PREFS = _fit_prefs()
         "cold-to-hot",
         "crosses-cold-threshold",
         "crosses-hot-threshold",
+        "feels-colder",
         "condition-changed",
+        "rain-chance-stays-low",
+        "rain-became-likely",
         "time-of-day-changed",
         "swing-appeared",
         "window-top-drifted",
         "window-small-drift",
         "preferences-created",
         "preferences-edited",
+        "same-measurements",
+        "measurements-edited",
     ],
 )
-def test_cached_suggestion_fits_only_the_context_it_was_made_for(
-    cached_weather, cached_time, cached_prefs, now_weather, now_time, expected
-):
-    context = suggestion_context(cached_weather, TimeOfDay(cached_time), cached_prefs)
-    fits = cached_suggestion_fits(context, now_weather, TimeOfDay(now_time), _FIT_PREFS)
-    assert fits is expected
+def test_cached_suggestion_fits_only_the_context_it_was_made_for(cached, now, expected):
+    stored = json.loads(json.dumps(cached))
+    assert cached_suggestion_fits(stored, now, _FIT_PREFS) is expected
 
 
 def test_a_cached_suggestion_without_context_does_not_fit():
-    assert cached_suggestion_fits(None, _weather(), TimeOfDay.morning, None) is False
-    assert cached_suggestion_fits({}, _weather(), TimeOfDay.morning, None) is False
+    assert cached_suggestion_fits(None, _ctx(), _FIT_PREFS) is False
+    assert cached_suggestion_fits({}, _ctx(), _FIT_PREFS) is False
 
 
 class TestSuggestRequestTimeOfDay:
@@ -823,7 +809,14 @@ class TestHotDayLegwear:
             await self._materialize(db_session, test_user, ("tights",), [1], True)
 
     async def _hot_day_outfits(
-        self, db_session, user, ai_outfits, cached=None, count=1, cached_weather=None
+        self,
+        db_session,
+        user,
+        ai_outfits,
+        cached=None,
+        count=1,
+        cached_weather=None,
+        archived=(),
     ):
         kinds = ("tights", "skirt", "t-shirt", "sneakers")
         items = [
@@ -836,6 +829,8 @@ class TestHotDayLegwear:
             )
             for kind in kinds
         ]
+        for n in archived:
+            items[n - 1].is_archived = True
         db_session.add_all(items)
         await db_session.commit()
         number_map = {n: item.id for n, item in enumerate(items, start=1)}
@@ -854,7 +849,7 @@ class TestHotDayLegwear:
                 **cached,
                 "_number_map": {str(k): str(v) for k, v in number_map.items()},
                 "_context": suggestion_context(
-                    cached_weather or weather, TimeOfDay.afternoon, None
+                    cached_weather or weather, TimeOfDay.afternoon, None, user.body_measurements
                 ),
             }
         service = RecommendationService(db_session)
@@ -920,12 +915,23 @@ class TestHotDayLegwear:
         assert outfits == [{items[1].id, items[2].id, items[3].id}]
 
     @pytest.mark.asyncio
+    async def test_a_cached_suggestion_with_an_archived_item_is_not_served(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[3, 2]], cached={"items": [2, 4]}, archived=(4,)
+        )
+        assert outfits == [{items[1].id, items[2].id}]
+
+    @pytest.mark.asyncio
     async def test_cached_options_record_the_weather_they_were_made_for(
         self, db_session, test_user
     ):
         await self._hot_day_outfits(db_session, test_user, [[3, 2, 4], [2, 4]])
         assert self.pushed_contexts == [
-            suggestion_context(_weather(temp=35), TimeOfDay.afternoon, None)
+            suggestion_context(
+                _weather(temp=35), TimeOfDay.afternoon, None, test_user.body_measurements
+            )
         ]
 
     @pytest.mark.asyncio

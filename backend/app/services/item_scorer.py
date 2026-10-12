@@ -76,6 +76,7 @@ REMOVABLE_LAYER_HOT_FLOOR = 0.6
 
 REMOVABLE_LAYER_TYPES = {"jacket", "coat", "blazer", "hoodie", "cardigan", "vest"}
 RAIN_LAYER_TYPES = {"jacket", "coat", "hoodie"}
+RAIN_LIKELY_CHANCE = 50
 WARM_LAYER_TYPES = REMOVABLE_LAYER_TYPES | {"sweater"}
 HEAVY_LAYER_TYPES = {"coat"}
 HEAVY_LAYER_MATERIALS = {"wool", "fleece", "down", "shearling"}
@@ -197,6 +198,10 @@ def temperature_band(temp: float, preferences: UserPreference | None) -> str:
     return _temp_band(temp, *_resolve_temp_thresholds(preferences))
 
 
+def rain_likely(weather: WeatherData) -> bool:
+    return weather.precipitation_chance > RAIN_LIKELY_CHANCE
+
+
 def _weather_score(
     item: ClothingItem,
     weather: WeatherData,
@@ -232,7 +237,7 @@ def _weather_score(
             hot_threshold,
         )
 
-    if weather.precipitation_chance > 50 and item_type in RAIN_LAYER_TYPES:
+    if rain_likely(weather) and item_type in RAIN_LAYER_TYPES:
         score = min(1.0, score + 0.1)
 
     return score

@@ -25,6 +25,7 @@ from app.models.user import User
 from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
 from app.services.item_scorer import (
     get_season,
+    rain_likely,
     score_items,
     scoring_temp_range,
     stays_above_hot_threshold,
@@ -85,28 +86,29 @@ def format_temp_range_text(weather: WeatherData) -> str:
 
 
 def suggestion_context(
-    weather: WeatherData, time_of_day: TimeOfDay, preferences: UserPreference | None
+    weather: WeatherData,
+    time_of_day: TimeOfDay,
+    preferences: UserPreference | None,
+    body_measurements: dict | None,
 ) -> dict:
     return {
-        "temps": [weather.temperature, *(scoring_temp_range(weather) or ())],
+        "temps": [weather.temperature, weather.feels_like, *(scoring_temp_range(weather) or ())],
         "condition": weather.condition,
+        "rain_likely": rain_likely(weather),
         "time_of_day": str(time_of_day),
         "preferences": str(preferences.updated_at) if preferences else None,
+        "body_measurements": body_measurements,
     }
 
 
 def cached_suggestion_fits(
-    context: dict | None,
-    weather: WeatherData,
-    time_of_day: TimeOfDay,
-    preferences: UserPreference | None,
+    cached: dict | None, current: dict, preferences: UserPreference | None
 ) -> bool:
-    if not context:
+    if not cached:
         return False
-    current = suggestion_context(weather, time_of_day, preferences)
-    if any(context.get(key) != current[key] for key in ("condition", "time_of_day", "preferences")):
+    if any(cached.get(key) != value for key, value in current.items() if key != "temps"):
         return False
-    then, now = context.get("temps") or [], current["temps"]
+    then, now = cached.get("temps") or [], current["temps"]
     return len(then) == len(now) and all(
         abs(a - b) <= CACHED_SUGGESTION_TEMP_TOLERANCE
         and temperature_band(a, preferences) == temperature_band(b, preferences)
@@ -799,6 +801,9 @@ class RecommendationService:
 
         preferences = user.preferences
         drop_legwear = stays_above_hot_threshold(weather, preferences)
+        context = suggestion_context(
+            weather, time_of_day, preferences, getattr(user, "body_measurements", None)
+        )
 
         ai_endpoints = None
         if preferences and preferences.ai_endpoints:
@@ -847,18 +852,17 @@ class RecommendationService:
 
         # Check cache for pre-generated suggestions (used when count is 1)
         if use_cache and count == 1:
+            candidate_ids = {item.id for item in candidates}
             while True:
                 cached = await pop_suggestion(user.id, occasion, include_items=include_items)
                 if not cached:
                     break
-                if not cached_suggestion_fits(
-                    cached.get("_context"), weather, time_of_day, preferences
-                ):
+                if not cached_suggestion_fits(cached.pop("_context", None), context, preferences):
                     logger.info(
                         "Cached suggestion was made for other weather or settings, skipping"
                     )
                     continue
-                cached_number_map = cached.get("_number_map", {})
+                cached_number_map = cached.pop("_number_map", {})
                 number_map = {int(k): UUID(v) for k, v in cached_number_map.items()}
 
                 cached_item_ids = set()
@@ -870,8 +874,9 @@ class RecommendationService:
                     except (ValueError, TypeError):
                         pass
 
-                if cached_item_ids & rejected_ids:
-                    logger.info("Cached suggestion contains rejected items, skipping")
+                # Rejected items are covered too, because they were merged into exclude_items.
+                if not cached_item_ids <= candidate_ids:
+                    logger.info("Cached suggestion uses items no longer available, skipping")
                     continue
 
                 logger.info(f"Using cached suggestion for user {user.id}, occasion: {occasion}")
@@ -1025,7 +1030,6 @@ class RecommendationService:
             # Cache remaining outfits for "Try Another"
             if use_cache and len(outfit_list) > consumed:
                 serializable_map = {str(k): str(v) for k, v in number_map.items()}
-                context = suggestion_context(weather, time_of_day, preferences)
                 to_cache = []
                 for od in outfit_list[consumed:]:
                     od["_number_map"] = serializable_map
