@@ -224,6 +224,7 @@ def test_canonical_role_order_is_the_vocabulary_role_order():
         "suit",
         "outer_layer",
         "bottom",
+        "legwear",
         "footwear",
         "socks",
         "neckwear",
