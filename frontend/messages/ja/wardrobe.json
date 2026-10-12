@@ -110,8 +110,8 @@
     "removeBackgroundPartialFailed": "{count, plural, one {# 件のキュー追加に失敗しました} other {# 件のキュー追加に失敗しました}}",
     "removeBackgroundQueued": "{count, plural, one {# 件を背景削除のキューに追加しました} other {# 件を背景削除のキューに追加しました}}",
     "removeBackgroundSkipped": "{count, plural, one {# 件はすでに処理中です} other {# 件はすでに処理中です}}",
-    "rotateError": "回転のキューイングに失敗しました",
-    "rotatePartialFailed": "{count, plural, one {# 件の回転のキューイングに失敗しました} other {# 件の回転のキューイングに失敗しました}}",
+    "rotateError": "回転のキュー追加に失敗しました",
+    "rotatePartialFailed": "{count, plural, one {# 件の回転のキュー追加に失敗しました} other {# 件の回転のキュー追加に失敗しました}}",
     "rotateQueued": "{count, plural, one {# 件を回転のキューに追加しました} other {# 件を回転のキューに追加しました}}",
     "rotateSkipped": "{count, plural, one {# 件はすでに処理中のためスキップしました} other {# 件はすでに処理中のためスキップしました}}"
   },

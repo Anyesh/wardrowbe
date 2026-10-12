@@ -110,7 +110,7 @@
     "removeBackgroundPartialFailed": "{count, plural, one {# 件單品排入佇列失敗} other {# 件單品排入佇列失敗}}",
     "removeBackgroundQueued": "{count, plural, one {已將 # 件單品排入佇列移除背景} other {已將 # 件單品排入佇列移除背景}}",
     "removeBackgroundSkipped": "{count, plural, one {# 件單品已在處理中} other {# 件單品已在處理中}}",
-    "rotateError": "排入旋轉失敗",
+    "rotateError": "排入旋轉佇列失敗",
     "rotatePartialFailed": "{count, plural, one {# 件單品排入旋轉佇列失敗} other {# 件單品排入旋轉佇列失敗}}",
     "rotateQueued": "{count, plural, one {已將 # 件單品排入佇列旋轉} other {已將 # 件單品排入佇列旋轉}}",
     "rotateSkipped": "{count, plural, one {已略過 # 件單品（已在處理中）} other {已略過 # 件單品（已在處理中）}}"
