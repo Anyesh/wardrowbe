@@ -99,13 +99,49 @@ for (const locale of locales) {
   for (const key of targetKeys) if (!sourceKeys.has(key)) problems.push(`${locale}: extra key '${key}' not in ${SOURCE_LOCALE}`);
 }
 
+const words = (value) => (typeof value === 'string' ? value.replace(/\{\w+\}/g, '') : '');
+
 const translations = locales.filter((l) => l !== SOURCE_LOCALE).map(loadLocale);
 for (const key of sourceKeys) {
   // Argument names are stripped first so that a format-only pattern like '{time} - {occasion}'
   // does not count as words.
-  if (SAME_IN_EVERY_LOCALE.has(key) || !/\p{L}/u.test(source[key].replace(/\{\w+\}/g, ''))) continue;
+  if (SAME_IN_EVERY_LOCALE.has(key) || !/\p{L}/u.test(words(source[key]))) continue;
   if (translations.length > 1 && new Set(translations.map((t) => t[key])).size === 1) {
     problems.push(`every locale: '${key}' is identical in every translation, so it is untranslated or stale`);
+  }
+}
+
+// Latin-script locales share too many cognates with English for a per-locale check, but a CJK
+// string with no CJK character at all was left in English, even when other locales were fixed.
+const NATIVE_SCRIPT = {
+  ja: /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u,
+  ko: /[\p{Script=Hangul}\p{Script=Han}]/u,
+  'zh-CN': /\p{Script=Han}/u,
+  'zh-TW': /\p{Script=Han}/u,
+};
+const LATIN_IN_CJK = new Set([
+  'auth.brandName',
+  'dashboard.nextScheduled.dayAtTime',
+  'family.feed.unknownMemberShort',
+  'family.inviteEmailPlaceholder',
+  'nav.brandAlt',
+  'nav.brandName',
+  'notifications.channels.fields.webhookUrl',
+  'notifications.channels.placeholders.emailAddress',
+  'onboarding.firstItem.formatHint',
+  'outfits.cards.ai',
+  'outfits.filters.ai',
+  'suggest.weather.windSpeed',
+  'wardrobe.addItem.formatHint',
+]);
+for (const [locale, script] of Object.entries(NATIVE_SCRIPT)) {
+  if (!locales.includes(locale)) continue;
+  const target = loadLocale(locale);
+  for (const key of sourceKeys) {
+    if (SAME_IN_EVERY_LOCALE.has(key) || LATIN_IN_CJK.has(key)) continue;
+    if (/\p{Script=Latin}/u.test(words(source[key])) && !script.test(words(target[key]))) {
+      problems.push(`${locale}: '${key}' has no ${locale} text, so it is untranslated or stale`);
+    }
   }
 }
 
