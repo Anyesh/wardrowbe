@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from app.database import DbSession
 from app.models.user import User
@@ -11,6 +11,7 @@ from app.schemas.outfit import stored_occasion_or_default
 from app.schemas.preference import PreferenceResponse, PreferenceUpdate, StyleProfile
 from app.services.preference_service import PreferenceService
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException
 from app.utils.preference_defaults import (
     DEFAULT_LAYERING_PREFERENCE,
     DEFAULT_PREFER_UNDERUSED_ITEMS,
@@ -125,16 +126,16 @@ async def test_ai_endpoint(
 ) -> dict:
     url = data.get("url", "").rstrip("/")
     if not url:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="URL is required",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "AI_ENDPOINT_URL_REQUIRED", "URL is required"
         )
 
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only HTTP and HTTPS URLs are allowed",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "AI_ENDPOINT_URL_INVALID",
+            "Only HTTP and HTTPS URLs are allowed",
         )
 
     try:

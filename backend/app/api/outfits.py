@@ -36,6 +36,7 @@ from app.services.outfit_service import OutfitListFilters, OutfitService
 from app.services.recommendation_service import (
     AIRecommendationError,
     InsufficientWardrobeError,
+    RecommendationInputError,
     RecommendationService,
 )
 from app.services.studio_service import (
@@ -47,6 +48,7 @@ from app.services.studio_service import (
 from app.services.suggestion_cache import clear_suggestions
 from app.services.weather_service import WeatherData
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException
 from app.utils.rate_limit import rate_limit_by_user
 from app.utils.scales import RATING_MAX, RATING_MIN
 from app.utils.signed_urls import sign_optional
@@ -439,21 +441,22 @@ async def suggest_outfit(
             time_of_day=request.time_of_day,
         )
     except InsufficientWardrobeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "INSUFFICIENT_WARDROBE", str(e)
         ) from None
     except AIDisabledError:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Internal AI is disabled; outfit suggestions are deferred to an external agent.",
+        raise CodedHTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "AI_DISABLED",
+            "Internal AI is disabled; outfit suggestions are deferred to an external agent.",
         ) from None
     except AIRecommendationError as e:
         logger.error(f"AI recommendation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(e),
+        raise CodedHTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "AI_UNAVAILABLE", str(e)
         ) from None
+    except RecommendationInputError as e:
+        raise CodedHTTPException(status.HTTP_400_BAD_REQUEST, e.error_code, str(e)) from None
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -507,21 +510,22 @@ async def suggest_outfit_options(
             count=3,
         )
     except InsufficientWardrobeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "INSUFFICIENT_WARDROBE", str(e)
         ) from None
     except AIDisabledError:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Internal AI is disabled; outfit suggestions are deferred to an external agent.",
+        raise CodedHTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "AI_DISABLED",
+            "Internal AI is disabled; outfit suggestions are deferred to an external agent.",
         ) from None
     except AIRecommendationError as e:
         logger.error(f"AI recommendation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(e),
+        raise CodedHTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "AI_UNAVAILABLE", str(e)
         ) from None
+    except RecommendationInputError as e:
+        raise CodedHTTPException(status.HTTP_400_BAD_REQUEST, e.error_code, str(e)) from None
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

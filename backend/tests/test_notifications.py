@@ -900,7 +900,10 @@ class TestNotificationSettingsList:
         ]
         assert single.status_code == 200
         assert (single.json()["config"], single.json()["config_error"]) == (shown, error)
-        assert (test_send.status_code, test_send.json()) == (400, {"detail": error})
+        assert (test_send.status_code, test_send.json()) == (
+            400,
+            {"detail": error, "error_code": "NOTIFICATION_CONFIG_INVALID"},
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

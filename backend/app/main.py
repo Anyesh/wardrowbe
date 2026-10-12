@@ -13,6 +13,7 @@ from app.api.router import api_router
 from app.config import Settings, get_settings
 from app.database import engine
 from app.logging_config import configure_logging
+from app.utils.errors import CodedHTTPException
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -94,6 +95,14 @@ async def pydantic_validation_handler(request: Request, exc: ValidationError) ->
             "errors": errors,
         },
     )
+
+
+@app.exception_handler(CodedHTTPException)
+async def coded_http_exception_handler(request: Request, exc: CodedHTTPException) -> JSONResponse:
+    content: dict[str, object] = {"detail": exc.detail, "error_code": exc.error_code}
+    if exc.params is not None:
+        content["error_params"] = exc.params
+    return JSONResponse(status_code=exc.status_code, content=content, headers=exc.headers)
 
 
 @app.exception_handler(Exception)

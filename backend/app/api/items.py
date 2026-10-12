@@ -61,6 +61,7 @@ from app.schemas.item import (
 from app.services.image_service import ImageService
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException
 from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
 from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
@@ -69,6 +70,8 @@ from app.workers.settings import get_redis_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+MAX_ADDITIONAL_IMAGES = 4
 
 router = APIRouter(prefix="/items", tags=["Items"])
 
@@ -130,9 +133,11 @@ async def _read_image_or_413(image: UploadFile) -> bytes:
     try:
         return await read_upload_within_limit(image, settings.max_upload_size_mb)
     except UploadTooLargeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=str(e),
+        raise CodedHTTPException(
+            status.HTTP_413_CONTENT_TOO_LARGE,
+            "UPLOAD_TOO_LARGE",
+            str(e),
+            {"limit_mb": e.max_size_mb},
         ) from None
 
 
@@ -209,9 +214,10 @@ async def create_item(
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service.validate_image(content, content_type):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "INVALID_IMAGE_TYPE",
+            "Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
         )
 
     # Compute hash and check for duplicates BEFORE storing
@@ -219,9 +225,11 @@ async def create_item(
         image_hash = image_service.compute_phash(content, image.filename or "upload.jpg")
         existing = await item_service.find_duplicate_by_hash(current_user.id, image_hash)
         if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Duplicate image detected. This item already exists in your wardrobe (ID: {existing.id})",
+            raise CodedHTTPException(
+                status.HTTP_409_CONFLICT,
+                "DUPLICATE_ITEM_IMAGE",
+                f"Duplicate image detected. This item already exists in your wardrobe (ID: {existing.id})",
+                {"item_id": str(existing.id)},
             )
     except HTTPException:
         raise
@@ -237,9 +245,8 @@ async def create_item(
             original_filename=image.filename or "upload.jpg",
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "INVALID_IMAGE_TYPE", str(e)
         ) from None
 
     # Parse colors from comma-separated string
@@ -308,9 +315,11 @@ async def bulk_create_items(
     ),
 ) -> BulkUploadResponse:
     if len(images) > settings.max_bulk_upload_count:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Maximum {settings.max_bulk_upload_count} images per bulk upload",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "BULK_UPLOAD_LIMIT",
+            f"Maximum {settings.max_bulk_upload_count} images per bulk upload",
+            {"limit": settings.max_bulk_upload_count},
         )
 
     if len(images) == 0:
@@ -1781,9 +1790,10 @@ async def remove_item_background(
         # A queued or running job (tagging or another background-removal run)
         # owns image_path/medium_path/thumbnail_path - racing it here would
         # stomp whichever write lands last.
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Item has a background job in progress",
+        raise CodedHTTPException(
+            status.HTTP_409_CONFLICT,
+            "ITEM_JOB_IN_PROGRESS",
+            "Item has a background job in progress",
         )
 
     recovering_from_error = (
@@ -1899,9 +1909,10 @@ async def replace_item_image(
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service.validate_image(content, content_type):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "INVALID_IMAGE_TYPE",
+            "Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
         )
 
     try:
@@ -1911,9 +1922,8 @@ async def replace_item_image(
             original_filename=image.filename or "upload.jpg",
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "INVALID_IMAGE_TYPE", str(e)
         ) from None
 
     old_paths = {
@@ -1969,10 +1979,12 @@ async def add_item_image(
     # Check max images limit
     count_result = await db.execute(select(func.count()).where(ItemImage.item_id == item_id))
     current_count = count_result.scalar() or 0
-    if current_count >= 4:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Maximum of 4 additional images per item",
+    if current_count >= MAX_ADDITIONAL_IMAGES:
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "ITEM_IMAGE_LIMIT",
+            f"Maximum of {MAX_ADDITIONAL_IMAGES} additional images per item",
+            {"limit": MAX_ADDITIONAL_IMAGES},
         )
 
     # Process image
@@ -1981,9 +1993,10 @@ async def add_item_image(
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service_inst.validate_image(content, content_type):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "INVALID_IMAGE_TYPE",
+            "Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
         )
 
     try:
@@ -1993,9 +2006,8 @@ async def add_item_image(
             original_filename=image.filename or "upload.jpg",
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "INVALID_IMAGE_TYPE", str(e)
         ) from None
 
     item_image = ItemImage(

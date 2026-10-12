@@ -22,6 +22,7 @@ from app.services.pairing_service import (
 )
 from app.services.studio_service import ItemOwnershipError
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException
 from app.utils.rate_limit import rate_limit_by_user
 from app.utils.signed_urls import sign_image_url, sign_optional
 
@@ -238,20 +239,19 @@ async def generate_pairings(
             num_pairings=request.num_pairings,
         )
     except InsufficientItemsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "INSUFFICIENT_WARDROBE", str(e)
         ) from None
     except AIDisabledError:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Internal AI is disabled; pairings are deferred to an external agent.",
+        raise CodedHTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "AI_DISABLED",
+            "Internal AI is disabled; pairings are deferred to an external agent.",
         ) from None
     except AIGenerationError as e:
         logger.error(f"AI pairing generation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(e),
+        raise CodedHTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "AI_UNAVAILABLE", str(e)
         ) from None
     except ValueError as e:
         raise HTTPException(

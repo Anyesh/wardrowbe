@@ -792,20 +792,24 @@ class RecommendationService:
                     geocoded = await self.weather_service.geocode_location_name(user.location_name)
                 except GeocodingServiceError as e:
                     logger.error(f"Geocoding failed for outfit generation: {e}")
-                    raise ValueError(
-                        "Could not resolve location. Please update your location in settings."
+                    raise RecommendationInputError(
+                        "LOCATION_UNRESOLVABLE",
+                        "Could not resolve location. Please update your location in settings.",
                     ) from e
                 if geocoded:
                     lat, lon, _ = geocoded
 
             if lat is None or lon is None:
-                raise ValueError("User location not set. Please set location in settings.")
+                raise RecommendationInputError(
+                    "LOCATION_NOT_SET", "User location not set. Please set location in settings."
+                )
             try:
                 weather = await self.weather_service.get_current_weather(lat, lon)
             except WeatherServiceError as e:
                 logger.error(f"Weather service failed: {e}")
-                raise ValueError(
-                    "Could not fetch weather data. Please try again or provide weather manually."
+                raise RecommendationInputError(
+                    "WEATHER_UNAVAILABLE",
+                    "Could not fetch weather data. Please try again or provide weather manually.",
                 ) from e
 
         preferences = user.preferences
@@ -851,7 +855,10 @@ class RecommendationService:
 
             unresolved = include_set - {item.id for item in candidates}
             if unresolved:
-                raise ValueError("One or more selected items could not be found or are not ready.")
+                raise RecommendationInputError(
+                    "ITEMS_NOT_READY",
+                    "One or more selected items could not be found or are not ready.",
+                )
 
         if len(candidates) < 2:
             raise InsufficientWardrobeError(
@@ -1090,6 +1097,12 @@ class RecommendationService:
             scheduled_date=scheduled_date,
         )
         return outfits[0]
+
+
+class RecommendationInputError(ValueError):
+    def __init__(self, error_code: str, message: str) -> None:
+        super().__init__(message)
+        self.error_code = error_code
 
 
 class InsufficientWardrobeError(Exception):

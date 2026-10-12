@@ -28,6 +28,7 @@ from app.schemas.notification import (
 from app.services.notification_providers import channel_config_error
 from app.services.notification_service import NotificationService
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ async def create_notification_setting(
     db: DbSession,
 ):
     if error := channel_config_error(data.channel, data.config):
-        raise HTTPException(status_code=400, detail=error)
+        raise CodedHTTPException(400, "NOTIFICATION_CONFIG_INVALID", error)
 
     service = NotificationService(db)
     try:
@@ -91,7 +92,7 @@ async def create_notification_setting(
         await db.commit()
         return setting
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
+        raise CodedHTTPException(400, "NOTIFICATION_CHANNEL_EXISTS", str(e)) from None
 
 
 @router.get("/settings/{setting_id}", response_model=NotificationSettingsResponse)
@@ -123,7 +124,7 @@ async def update_notification_setting(
             raise HTTPException(status_code=404, detail="Setting not found")
 
         if error := channel_config_error(existing.channel, data.config):
-            raise HTTPException(status_code=400, detail=error)
+            raise CodedHTTPException(400, "NOTIFICATION_CONFIG_INVALID", error)
 
     setting = await service.update_setting(
         setting_id=setting_id,
@@ -163,10 +164,10 @@ async def test_notification_setting(
     if not setting:
         raise HTTPException(status_code=404, detail="Setting not found")
     if error := channel_config_error(setting.channel, setting.config):
-        raise HTTPException(status_code=400, detail=error)
+        raise CodedHTTPException(400, "NOTIFICATION_CONFIG_INVALID", error)
     success, message = await service.test_setting(setting)
     if not success:
-        raise HTTPException(status_code=400, detail=message)
+        raise CodedHTTPException(400, "NOTIFICATION_TEST_FAILED", message)
     return TestNotificationResponse(success=True, message=message)
 
 
@@ -248,10 +249,7 @@ async def create_schedule(
             notify_day_before=data.notify_day_before,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=409,
-            detail=str(e),
-        ) from None
+        raise CodedHTTPException(409, "SCHEDULE_DUPLICATE", str(e)) from None
 
     await db.commit()
     return schedule

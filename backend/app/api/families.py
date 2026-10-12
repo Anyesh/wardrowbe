@@ -27,6 +27,7 @@ from app.schemas.notification import EmailConfig
 from app.services.family_service import FamilyService
 from app.services.notification_providers import EmailProvider, build_family_invite_email
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -108,9 +109,10 @@ async def create_family(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> FamilyCreateResponse:
     if current_user.family_id is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="You are already in a family. Leave your current family first.",
+        raise CodedHTTPException(
+            status.HTTP_409_CONFLICT,
+            "ALREADY_IN_FAMILY",
+            "You are already in a family. Leave your current family first.",
         )
 
     family_service = FamilyService(db)
@@ -205,19 +207,17 @@ async def join_family(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> JoinFamilyResponse:
     if current_user.family_id is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="You are already in a family. Leave your current family first.",
+        raise CodedHTTPException(
+            status.HTTP_409_CONFLICT,
+            "ALREADY_IN_FAMILY",
+            "You are already in a family. Leave your current family first.",
         )
 
     family_service = FamilyService(db)
     family = await family_service.join_family(current_user, request.invite_code)
 
     if family is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid invite code",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "INVITE_INVALID", "Invalid invite code")
 
     await db.commit()
 
@@ -235,24 +235,27 @@ async def join_family_by_token(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> JoinFamilyResponse:
     if current_user.family_id is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="You are already in a family. Leave your current family first.",
+        raise CodedHTTPException(
+            status.HTTP_409_CONFLICT,
+            "ALREADY_IN_FAMILY",
+            "You are already in a family. Leave your current family first.",
         )
 
     family_service = FamilyService(db)
     invite = await family_service.get_invite_by_token(request.token)
 
     if invite is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid or expired invite link",
+        raise CodedHTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "INVITE_INVALID_OR_EXPIRED",
+            "Invalid or expired invite link",
         )
 
     if invite.email.lower() != current_user.email.lower():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This invite was sent to a different email address",
+        raise CodedHTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "INVITE_EMAIL_MISMATCH",
+            "This invite was sent to a different email address",
         )
     if not current_user.email_verified:
         raise HTTPException(
@@ -295,9 +298,10 @@ async def leave_family(
     success = await family_service.leave_family(current_user)
 
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Cannot leave: you are the only admin. Transfer admin role first or remove all other members.",
+        raise CodedHTTPException(
+            status.HTTP_409_CONFLICT,
+            "LAST_ADMIN_CANNOT_LEAVE",
+            "Cannot leave: you are the only admin. Transfer admin role first or remove all other members.",
         )
 
     await db.commit()
