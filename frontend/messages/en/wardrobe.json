@@ -77,7 +77,7 @@
       "unknownError": "No reason was reported.",
       "unnamedItem": "Untitled item",
       "concurrency": "{count, plural, one {This instance analyzes # item at a time.} other {This instance analyzes # items at a time.}}",
-      "concurrencyLink": "Change this",
+      "concurrencyLink": "How to change this",
       "open": "View queue"
     },
     "queued": "Queued",
