@@ -463,10 +463,10 @@ class TestProcessScheduledNotification:
         assert schedule.last_triggered_at is not None
 
     @pytest.mark.asyncio
-    async def test_failure_on_the_last_try_reraises_and_resets_the_trigger(
+    async def test_failure_on_the_last_try_reraises(
         self, db_session: AsyncSession, schedule_user: User, ntfy_channel
     ):
-        schedule = _make_due_schedule(schedule_user, last_triggered_at=datetime.now(UTC))
+        schedule = _make_due_schedule(schedule_user)
         db_session.add(schedule)
         await db_session.commit()
         mock_rec_service = MagicMock()
@@ -482,22 +482,13 @@ class TestProcessScheduledNotification:
                 {"job_try": WorkerSettings.max_tries}, str(schedule.id)
             )
 
-        await db_session.refresh(schedule)
-        assert schedule.last_triggered_at is None
-
     @pytest.mark.asyncio
     @pytest.mark.parametrize("already_notified", [False, True], ids=["unsent", "notified"])
     async def test_retry_reuses_the_outfit_an_earlier_try_saved(
         self, db_session: AsyncSession, schedule_user: User, ntfy_channel, already_notified
     ):
         schedule = _make_due_schedule(schedule_user)
-        outfit = Outfit(
-            user_id=schedule_user.id,
-            occasion=schedule.occasion,
-            scheduled_for=datetime.now(UTC).date(),
-            status=OutfitStatus.pending,
-            source=OutfitSource.scheduled,
-        )
+        outfit = _scheduled_outfit(schedule_user, schedule.occasion)
         db_session.add_all([schedule, outfit])
         await db_session.flush()
         if already_notified:
@@ -514,16 +505,74 @@ class TestProcessScheduledNotification:
         mock_rec_service = MagicMock()
         mock_rec_service.generate_recommendation = AsyncMock()
         post = _fake_post()
+        ctx = {"job_try": 2, "enqueue_time": datetime.now(UTC) - timedelta(minutes=5)}
 
         with (
             _scheduled_job_patches(db_session, mock_rec_service),
             patch.object(httpx.AsyncClient, "post", post),
         ):
-            result = await process_scheduled_notification({"job_try": 2}, str(schedule.id))
+            result = await process_scheduled_notification(ctx, str(schedule.id))
 
         mock_rec_service.generate_recommendation.assert_not_called()
         assert result["outfit_id"] == str(outfit.id)
         assert post.call_count == (0 if already_notified else 1)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("change", "enqueued_after_outfit"),
+        [
+            ({"source": OutfitSource.manual}, False),
+            ({"occasion": "formal"}, False),
+            ({"scheduled_for": datetime.now(UTC).date() - timedelta(days=1)}, False),
+            ({}, True),
+        ],
+        ids=["manual", "other-occasion", "yesterday", "made-before-this-job"],
+    )
+    async def test_retry_generates_when_no_outfit_belongs_to_this_job(
+        self,
+        db_session: AsyncSession,
+        schedule_user: User,
+        ntfy_channel,
+        change,
+        enqueued_after_outfit,
+    ):
+        schedule = _make_due_schedule(schedule_user)
+        other = _scheduled_outfit(schedule_user, schedule.occasion)
+        for field, value in change.items():
+            setattr(other, field, value)
+        fresh = _scheduled_outfit(schedule_user, schedule.occasion)
+        db_session.add_all([schedule, other])
+        await db_session.commit()
+        await db_session.refresh(other)
+        offset = timedelta(minutes=1 if enqueued_after_outfit else -5)
+        ctx = {"job_try": 2, "enqueue_time": other.created_at + offset}
+
+        async def generate(**_):
+            db_session.add(fresh)
+            await db_session.commit()
+            return fresh
+
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock(side_effect=generate)
+
+        with (
+            _scheduled_job_patches(db_session, mock_rec_service),
+            patch.object(httpx.AsyncClient, "post", _fake_post()),
+        ):
+            result = await process_scheduled_notification(ctx, str(schedule.id))
+
+        mock_rec_service.generate_recommendation.assert_awaited_once()
+        assert result["outfit_id"] == str(fresh.id)
+
+
+def _scheduled_outfit(user: User, occasion: str) -> Outfit:
+    return Outfit(
+        user_id=user.id,
+        occasion=occasion,
+        scheduled_for=datetime.now(UTC).date(),
+        status=OutfitStatus.pending,
+        source=OutfitSource.scheduled,
+    )
 
 
 def _scheduled_job_patches(db_session: AsyncSession, rec_service: MagicMock) -> ExitStack:
