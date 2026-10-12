@@ -81,7 +81,7 @@
     "required": "required",
     "occasion": "Occasion",
     "pickOccasion": "Pick an occasion before saving.",
-    "skippedItem": "Skipped {name}: the outfit already has a piece in the {slot} slot",
+    "skippedItem": "Skipped {name}: {other} already fills that spot",
     "warnings": {
       "multipleBottoms": "Multiple bottoms selected.",
       "noBottoms": "No bottoms selected.",

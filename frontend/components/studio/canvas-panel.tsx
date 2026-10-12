@@ -20,7 +20,7 @@ export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
   const roleName = useRoleLabel();
   const roleLabel = (type: string) => {
     const role = ITEM_ROLE[type];
-    return role ? roleName(role) : type;
+    return role ? roleName(role) : typeLabel(type);
   };
   if (items.length === 0) {
     return (

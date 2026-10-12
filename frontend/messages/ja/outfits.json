@@ -81,7 +81,7 @@
     "required": "必須",
     "occasion": "シーン",
     "pickOccasion": "保存する前にシーンを選んでください。",
-    "skippedItem": "{name}をスキップ：コーデには既に{slot}のアイテムがあります",
+    "skippedItem": "{name}をスキップ：その位置には既に{other}があります",
     "warnings": {
       "multipleBottoms": "ボトムスが複数選択されています。",
       "noBottoms": "ボトムスが選択されていません。",
