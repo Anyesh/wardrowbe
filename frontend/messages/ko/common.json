@@ -11,9 +11,9 @@
     "clearSelection": "선택 해제",
     "noneSelected": "선택 없음",
     "reanalyze": "재분석",
-    "removeBackground": "Remove background",
-    "rotateCcw": "Rotate left",
-    "rotateCw": "Rotate right",
+    "removeBackground": "배경 제거",
+    "rotateCcw": "왼쪽 회전",
+    "rotateCw": "오른쪽 회전",
     "selectAllMatching": "일치하는 {count}개 전체 선택"
   },
   "cancel": "취소",
