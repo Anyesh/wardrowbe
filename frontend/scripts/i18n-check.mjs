@@ -45,20 +45,23 @@ function balanced(value) {
   return depth === 0;
 }
 
-// ICU literal text sits at even brace depths and argument syntax at odd ones, so a brace opened
-// at depth 1 starts a plural or select branch. Nested branches fold into their outer branch.
+// ICU literal text sits at even brace depths and argument syntax at odd ones, so every brace
+// opened at an odd depth starts a plural or select branch. A nested branch gets its own entry, so
+// that native text around it cannot hide an English inner branch.
 function branchTexts(value) {
   if (typeof value !== 'string') return [];
   const texts = [];
+  const open = [];
   let depth = 0;
   for (const ch of value) {
     if (ch === '{') {
       depth++;
-      if (depth === 2) texts.push('');
+      if (depth % 2 === 0) open.push(texts.push('') - 1);
     } else if (ch === '}') {
+      if (depth % 2 === 0) open.pop();
       depth--;
-    } else if (depth >= 2 && depth % 2 === 0) {
-      texts[texts.length - 1] += ch;
+    } else if (depth > 0 && depth % 2 === 0) {
+      texts[open[open.length - 1]] += ch;
     }
   }
   return texts;
