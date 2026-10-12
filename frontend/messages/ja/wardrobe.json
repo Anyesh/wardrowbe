@@ -77,10 +77,10 @@
       "unknownError": "理由は報告されませんでした。",
       "unnamedItem": "名称未設定のアイテム",
       "concurrency": "{count, plural, one {このインスタンスは同時に # 件のアイテムを分析します。} other {このインスタンスは同時に # 件のアイテムを分析します。}}",
-      "concurrencyLink": "設定を変更",
+      "concurrencyLink": "変更方法",
       "open": "キューを表示"
     },
-    "queued": "キュー追加済み",
+    "queued": "キュー待ち",
     "queuedCount": "{count} 件がキュー待ち",
     "removeBackgroundQueued": "背景削除のキューに追加しました",
     "removingBackground": "背景を削除中...",
@@ -110,8 +110,8 @@
     "removeBackgroundPartialFailed": "{count, plural, one {# 件のキュー追加に失敗しました} other {# 件のキュー追加に失敗しました}}",
     "removeBackgroundQueued": "{count, plural, one {# 件を背景削除のキューに追加しました} other {# 件を背景削除のキューに追加しました}}",
     "removeBackgroundSkipped": "{count, plural, one {# 件はすでに処理中です} other {# 件はすでに処理中です}}",
-    "rotateError": "Failed to rotate items",
-    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateError": "回転のキューイングに失敗しました",
+    "rotatePartialFailed": "{count, plural, one {# 件の回転のキューイングに失敗しました} other {# 件の回転のキューイングに失敗しました}}",
     "rotateQueued": "{count, plural, one {# 件を回転のキューに追加しました} other {# 件を回転のキューに追加しました}}",
     "rotateSkipped": "{count, plural, one {# 件はすでに処理中のためスキップしました} other {# 件はすでに処理中のためスキップしました}}"
   },
@@ -255,7 +255,7 @@
   "uploadQueue": {
     "remaining": "{count, plural, one {# 枚の写真をバックグラウンドでアップロード中} other {# 枚の写真をバックグラウンドでアップロード中}}",
     "keepTabOpen": "完了するまでこのタブを開いたままにしてください",
-    "cancel": "Cancel",
+    "cancel": "すべてキャンセル",
     "storageNotPersisted": "完了前にページを移動すると、待機中の写真がブラウザから消去される場合があります",
     "resuming": "前回のインポートから {count, plural, one {# 枚} other {# 枚}}の写真を再開しています",
     "failedCount": "{count, plural, one {# 枚の写真をアップロードできませんでした} other {# 枚の写真をアップロードできませんでした}}",

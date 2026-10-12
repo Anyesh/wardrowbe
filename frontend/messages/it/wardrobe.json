@@ -65,7 +65,7 @@
       "idle": "Nessun capo in attesa di analisi.",
       "batchProgress": "{done} di {total} analizzati",
       "percentDone": "{percent}% completato",
-      "batchFailed": "{count, plural, one {# capo fallito} other {# capi falliti}}",
+      "batchFailed": "{count, plural, one {Analisi non riuscita per # capo} other {Analisi non riuscita per # capi}}",
       "nowAnalyzing": "In analisi ora",
       "waitingToStart": "In attesa che il worker prenda in carico il prossimo capo.",
       "averageLabel": "Media per capo",
@@ -77,7 +77,7 @@
       "unknownError": "Nessun motivo segnalato.",
       "unnamedItem": "Capo senza nome",
       "concurrency": "{count, plural, one {Questa istanza analizza # capo alla volta.} other {Questa istanza analizza # capi alla volta.}}",
-      "concurrencyLink": "Modifica",
+      "concurrencyLink": "Come modificarlo",
       "open": "Vedi coda"
     },
     "queued": "In coda",
@@ -110,8 +110,8 @@
     "removeBackgroundPartialFailed": "{count, plural, one {Impossibile mettere in coda # capo} other {Impossibile mettere in coda # capi}}",
     "removeBackgroundQueued": "{count, plural, one {# capo messo in coda per la rimozione dello sfondo} other {# capi messi in coda per la rimozione dello sfondo}}",
     "removeBackgroundSkipped": "{count, plural, one {# capo già in elaborazione} other {# capi già in elaborazione}}",
-    "rotateError": "Failed to rotate items",
-    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateError": "Impossibile mettere in coda la rotazione",
+    "rotatePartialFailed": "{count, plural, one {Impossibile mettere in coda # capo per la rotazione} other {Impossibile mettere in coda # capi per la rotazione}}",
     "rotateQueued": "{count, plural, one {# capo messo in coda per la rotazione} other {# capi messi in coda per la rotazione}}",
     "rotateSkipped": "{count, plural, one {# capo saltato (già in elaborazione)} other {# capi saltati (già in elaborazione)}}"
   },
@@ -255,7 +255,7 @@
   "uploadQueue": {
     "remaining": "{count, plural, one {# foto in caricamento in background} other {# foto in caricamento in background}}",
     "keepTabOpen": "Tieni aperta questa scheda fino al termine",
-    "cancel": "Cancel",
+    "cancel": "Annulla tutto",
     "storageNotPersisted": "Il browser potrebbe eliminare le foto in coda se lasci la pagina prima del termine",
     "resuming": "Ripresa di {count, plural, one {# foto} other {# foto}} da un’importazione precedente",
     "failedCount": "{count, plural, one {# foto non caricata} other {# foto non caricate}}",

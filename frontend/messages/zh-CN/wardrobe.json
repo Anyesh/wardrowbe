@@ -77,7 +77,7 @@
       "unknownError": "未报告原因。",
       "unnamedItem": "未命名单品",
       "concurrency": "{count, plural, one {此实例同时分析 # 件单品。} other {此实例同时分析 # 件单品。}}",
-      "concurrencyLink": "更改设置",
+      "concurrencyLink": "如何更改",
       "open": "查看队列"
     },
     "queued": "已排队",
@@ -110,8 +110,8 @@
     "removeBackgroundPartialFailed": "{count, plural, one {# 件单品排队失败} other {# 件单品排队失败}}",
     "removeBackgroundQueued": "{count, plural, one {已将 # 件单品排队移除背景} other {已将 # 件单品排队移除背景}}",
     "removeBackgroundSkipped": "{count, plural, one {# 件单品已在处理中} other {# 件单品已在处理中}}",
-    "rotateError": "Failed to rotate items",
-    "rotatePartialFailed": "{count, plural, one {Failed to rotate # item} other {Failed to rotate # items}}",
+    "rotateError": "将单品加入旋转队列失败",
+    "rotatePartialFailed": "{count, plural, one {# 件单品加入旋转队列失败} other {# 件单品加入旋转队列失败}}",
     "rotateQueued": "{count, plural, one {已将 # 件单品排队旋转} other {已将 # 件单品排队旋转}}",
     "rotateSkipped": "{count, plural, one {已跳过 # 件单品（已在处理中）} other {已跳过 # 件单品（已在处理中）}}"
   },
@@ -255,7 +255,7 @@
   "uploadQueue": {
     "remaining": "{count, plural, one {# 张照片正在后台上传} other {# 张照片正在后台上传}}",
     "keepTabOpen": "完成前请保持此标签页打开",
-    "cancel": "Cancel",
+    "cancel": "全部取消",
     "storageNotPersisted": "如果在完成前离开此页面，浏览器可能会清除排队中的照片",
     "resuming": "正在恢复上次导入的{count, plural, one {# 张照片} other {# 张照片}}",
     "failedCount": "{count, plural, one {# 张照片上传失败} other {# 张照片上传失败}}",
