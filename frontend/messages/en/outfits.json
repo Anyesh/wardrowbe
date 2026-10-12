@@ -81,7 +81,7 @@
     "required": "required",
     "occasion": "Occasion",
     "pickOccasion": "Pick an occasion before saving.",
-    "skippedItem": "Skipped {name}: {other} already fills that spot",
+    "skippedItem": "Skipped {name}: that spot is already taken by {other}",
     "warnings": {
       "multipleBottoms": "Multiple bottoms selected.",
       "noBottoms": "No bottoms selected.",

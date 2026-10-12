@@ -74,8 +74,9 @@ describe('DetailsPanel AI assist', () => {
 
 describe('CanvasPanel', () => {
   it('labels a type without a role through the type catalog', () => {
-    render(<CanvasPanel items={[studioItem('1', 'kimono', 'Kimono')]} onRemove={vi.fn()} />)
-    expect(screen.getAllByText('constants.types.kimono').length).toBeGreaterThan(0)
+    const kimono = { ...studioItem('1', 'kimono', 'Kimono'), thumbnail_url: '/kimono.jpg' }
+    render(<CanvasPanel items={[kimono]} onRemove={vi.fn()} />)
+    expect(screen.getByText('constants.types.kimono')).toBeTruthy()
     expect(screen.queryByText('kimono')).toBeNull()
   })
 })

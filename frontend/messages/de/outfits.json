@@ -81,7 +81,7 @@
     "required": "erforderlich",
     "occasion": "Anlass",
     "pickOccasion": "Wähle vor dem Speichern einen Anlass.",
-    "skippedItem": "{name} übersprungen: {other} belegt diesen Platz bereits",
+    "skippedItem": "{name} übersprungen: Platz bereits belegt durch {other}",
     "warnings": {
       "multipleBottoms": "Mehrere Unterteile ausgewählt.",
       "noBottoms": "Kein Unterteil ausgewählt.",
