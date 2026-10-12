@@ -59,6 +59,18 @@ describe("ProfileLocaleSync", () => {
     expect(api.patch).toHaveBeenCalledTimes(1);
   });
 
+  it("saves the language just picked in the switcher", async () => {
+    document.cookie = "theme=dark; path=/";
+    document.cookie = "NEXT_LOCALE=de; path=/";
+    session.locale = "de";
+    vi.mocked(api.get).mockResolvedValue({ locale: "en" });
+    vi.mocked(api.patch).mockResolvedValue({ locale: "de" });
+
+    renderSync();
+
+    await waitFor(() => expect(api.patch).toHaveBeenCalledWith("/users/me", { locale: "de" }));
+  });
+
   it("leaves a profile that already matches alone", async () => {
     vi.mocked(api.get).mockResolvedValue({ locale: "fr" });
 
