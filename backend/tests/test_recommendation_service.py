@@ -960,10 +960,10 @@ class TestHotDayLegwear:
         self, db_session, test_user
     ):
         items, outfits = await self._hot_day_outfits(
-            db_session, test_user, [[2, 4], [3]], extras=("sweater",)
+            db_session, test_user, [[3], [2, 4]], extras=("sweater",)
         )
         assert outfits == [{items[1].id, items[2].id, items[3].id}]
-        assert self.reasonings == ["AI 1"]
+        assert self.reasonings == ["AI 2"]
 
     @pytest.mark.asyncio
     async def test_a_single_outfit_missing_a_top_is_filled_with_the_best_fit(

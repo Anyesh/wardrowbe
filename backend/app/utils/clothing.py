@@ -127,44 +127,91 @@ def missing_regions(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> lis
     return [region for region in REGION_ROLES if region in available and region not in worn]
 
 
+def _fill_options(
+    region: str,
+    remaining: frozenset[str],
+    ranked_ids: list[UUID],
+    item_type_map: dict[UUID, str],
+    taken: frozenset[UUID],
+    claimed: frozenset[str],
+) -> list[UUID]:
+    # A piece may only cover regions that are still missing and take free slots, so that
+    # a dress never lands on trousers and a hoodie never goes under a coat.
+    fits = [
+        iid
+        for iid in ranked_ids
+        if iid not in taken
+        and region in _regions(item_type_map.get(iid, ""))
+        and _regions(item_type_map.get(iid, "")) <= remaining
+        and not _slots_for_type(item_type_map.get(iid, "")) & claimed
+    ]
+    best: dict[frozenset[str], UUID] = {}
+    for iid in fits:
+        best.setdefault(frozenset(_regions(item_type_map[iid])), iid)
+    single = best.get(frozenset({region}))
+    # A real top goes before a better-ranked layer worn alone, because the AI was asked
+    # for a top.
+    if single is not None and item_type_map[single] in WORN_ALONE_TYPES:
+        best[frozenset({region})] = next(
+            (
+                iid
+                for iid in fits
+                if _regions(item_type_map[iid]) == {region}
+                and item_type_map[iid] not in WORN_ALONE_TYPES
+            ),
+            single,
+        )
+    return list(best.values())
+
+
+def _best_fill(
+    remaining: frozenset[str],
+    ranked_ids: list[UUID],
+    item_type_map: dict[UUID, str],
+    taken: frozenset[UUID],
+    claimed: frozenset[str],
+) -> list[UUID]:
+    if not remaining:
+        return []
+    region = next(r for r in REGION_ROLES if r in remaining)
+    plans = [_best_fill(remaining - {region}, ranked_ids, item_type_map, taken, claimed)]
+    for pick in _fill_options(region, remaining, ranked_ids, item_type_map, taken, claimed):
+        pick_type = item_type_map[pick]
+        plans.append(
+            [pick]
+            + _best_fill(
+                remaining - _regions(pick_type),
+                ranked_ids,
+                item_type_map,
+                taken | {pick},
+                claimed | _slots_for_type(pick_type),
+            )
+        )
+    rank = {iid: n for n, iid in enumerate(ranked_ids)}
+    # The plan that dresses the most regions wins, then the one whose picks rank best.
+    return min(
+        plans,
+        key=lambda plan: (
+            len(remaining - _covered(plan, item_type_map)),
+            [rank[iid] for iid in plan],
+        ),
+    )
+
+
 def fill_missing_regions(
     item_ids: list[UUID], ranked_candidate_ids: list[UUID], item_type_map: dict[UUID, str]
 ) -> list[UUID]:
-    filled = list(item_ids)
-    still_missing = set(missing_regions(item_ids, item_type_map))
-    claimed = set().union(*(_slots_for_type(item_type_map.get(iid, "")) for iid in filled))
-    for region in REGION_ROLES:
-        if region not in still_missing:
-            continue
-        # A piece may only cover regions that are still missing and take free slots, so
-        # that a dress never lands on trousers and a hoodie never goes under a coat.
-        fits = [
-            iid
-            for iid in ranked_candidate_ids
-            if iid not in filled
-            and region in _regions(item_type_map.get(iid, ""))
-            and _regions(item_type_map.get(iid, "")) <= still_missing
-            and not _slots_for_type(item_type_map.get(iid, "")) & claimed
-        ]
-        pick = next(iter(fits), None)
-        # A real top goes before a better-ranked layer worn alone, because the AI was asked
-        # for a top; anything else keeps its rank.
-        if pick is not None and item_type_map[pick] in WORN_ALONE_TYPES:
-            pick = next(
-                (
-                    iid
-                    for iid in fits
-                    if _regions(item_type_map[iid]) == {region}
-                    and item_type_map[iid] not in WORN_ALONE_TYPES
-                ),
-                pick,
-            )
-        if pick is not None:
-            logger.info(f"Adding {item_type_map[pick]} item {pick}: outfit had no {region} piece")
-            filled.append(pick)
-            still_missing -= _regions(item_type_map[pick])
-            claimed |= _slots_for_type(item_type_map[pick])
-    return filled
+    claimed = frozenset().union(*(_slots_for_type(item_type_map.get(iid, "")) for iid in item_ids))
+    added = _best_fill(
+        frozenset(missing_regions(item_ids, item_type_map)),
+        ranked_candidate_ids,
+        item_type_map,
+        frozenset(item_ids),
+        claimed,
+    )
+    for iid in added:
+        logger.info(f"Adding {item_type_map[iid]} item {iid} to fill a missing region")
+    return [*item_ids, *added]
 
 
 _ROLE_SORT_INDEX: dict[str, int] = {role: idx for idx, role in enumerate(ROLES)}
