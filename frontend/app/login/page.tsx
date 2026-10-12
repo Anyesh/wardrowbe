@@ -13,6 +13,7 @@ import {
   FORWARD_AUTH_USERNAME_CONFLICT,
 } from '@/lib/auth-errors';
 import { useAuthConfig } from '@/lib/hooks/use-auth-config';
+import { BACKEND_UNREACHABLE, SYNC_FAILED } from '@/lib/sync-errors';
 
 function OIDCLoginButton({ getCallbackUrl }: { getCallbackUrl: () => string }) {
   const t = useTranslations('auth');
@@ -215,6 +216,7 @@ function LoginContent() {
   );
   const [backendError, setBackendError] = useState<string | null>(null);
   const t = useTranslations('auth');
+  const te = useTranslations('errors');
 
   useEffect(() => {
     if (status === 'authenticated' && session?.accessToken) {
@@ -237,6 +239,13 @@ function LoginContent() {
   }, [t]);
 
   const syncError = syncErrorParam || session?.syncError;
+  // syncError is a code (from the backend or lib/auth.ts), so a crafted ?syncError= link can only
+  // pick one of these translated messages, never inject its own text.
+  const syncErrorMessage = (code: string): string => {
+    if (code === BACKEND_UNREACHABLE) return t('backendError.description');
+    if (code !== SYNC_FAILED && te.has(`codes.${code}`)) return te(`codes.${code}`);
+    return te('signIn.syncFailed');
+  };
 
   const [providerMode, setProviderMode] = useState<'loading' | 'oidc' | 'dev' | 'unconfigured'>('loading');
   const authConfig = useAuthConfig();
@@ -275,7 +284,7 @@ function LoginContent() {
     <>
       {backendError && <BackendError message={backendError} />}
 
-      {!backendError && syncError && <BackendError message={syncError} />}
+      {!backendError && syncError && <BackendError message={syncErrorMessage(syncError)} />}
 
       {error && authMode !== 'forward' && !backendError && !syncError && (
         <div className="rounded-md bg-destructive/15 p-4 text-sm text-destructive">

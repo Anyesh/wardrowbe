@@ -17,13 +17,20 @@
   },
   "codes": {
     "AI_DISABLED": "このサーバーではAI提案がオフになっています。",
+    "AI_ENDPOINT_HTTP_ERROR": "AIエンドポイントがHTTP {status}で応答しました。",
+    "AI_ENDPOINT_TEST_FAILED": "AIエンドポイントをテストできませんでした。",
+    "AI_ENDPOINT_TIMEOUT": "AIエンドポイントが時間内に応答しませんでした。",
+    "AI_ENDPOINT_UNREACHABLE": "AIエンドポイントに接続できませんでした。サーバーが起動しているか確認してください。",
     "AI_ENDPOINT_URL_INVALID": "AIエンドポイントには http または https のアドレスを入力してください。",
     "AI_ENDPOINT_URL_REQUIRED": "AIエンドポイントのアドレスを入力してください。",
     "AI_UNAVAILABLE": "AIサービスを利用できません。設定でAIエンドポイントを確認してください。",
     "ALREADY_IN_FAMILY": "すでにファミリーに参加しています。別のファミリーに参加するには、先に退出してください。",
     "BULK_UPLOAD_LIMIT": "一度にアップロードできる写真は最大{limit}枚です。",
+    "CONCURRENT_SIGN_IN": "同じメールアドレスの別のアカウントが同時にログインしています。しばらくしてからもう一度お試しください。",
     "DUPLICATE_ITEM_IMAGE": "この写真はすでにワードローブにあります。",
+    "EMAIL_IN_USE": "このメールアドレスは別のアカウントですでに使用されています。",
     "EMAIL_NOT_VERIFIED": "サインインプロバイダーでメールアドレスが確認されていません。",
+    "IMAGE_TOO_MANY_PIXELS": "この写真は{megapixels}メガピクセルで、上限の{limit}メガピクセルを超えています。より小さい写真を使用してください。",
     "INSUFFICIENT_WARDROBE": "先にワードローブにアイテムをもう少し追加してください。",
     "INVALID_IMAGE_TYPE": "このファイル形式はサポートされていません。JPEG、PNG、WebP、HEICを使用してください。",
     "INVITE_EMAIL_MISMATCH": "この招待は別のメールアドレス宛てに送信されています。",
@@ -38,7 +45,7 @@
     "LOCATION_UNRESOLVABLE": "保存した場所を特定できませんでした。設定で更新してください。",
     "NOTIFICATION_CHANNEL_EXISTS": "その通知チャンネルはすでに設定されています。",
     "NOTIFICATION_CONFIG_INVALID": "チャンネルの設定が正しくありません。確認してもう一度お試しください。",
-    "NOTIFICATION_TEST_FAILED": "テスト通知を送信できませんでした。チャンネルの設定を確認してください。",
+    "NOTIFICATION_TEST_FAILED": "テスト通知を送信できませんでした: {reason}",
     "NOT_IN_FAMILY": "この操作には同じファミリーへの参加が必要です。",
     "OUTFIT_IS_TEMPLATE": "ルックブックのコーデは評価できません。",
     "OUTFIT_ITEM_OWNERSHIP": "一部のアイテムはあなたのワードローブにありません。",
@@ -49,7 +56,11 @@
     "RATE_LIMITED": "リクエストが多すぎます。しばらくしてからもう一度お試しください。",
     "SCHEDULE_DUPLICATE": "同じスケジュールがすでにあります。",
     "STUDIO_UNAVAILABLE": "スタジオは一時的に利用できません。AI機能は引き続き使えます。",
+    "UNVERIFIED_EMAIL_IN_USE": "このメールアドレスは別のアカウントですでに使用されています。ここで使うには、メールアドレスを確認済みにできるプロバイダーでログインしてください。",
     "UPLOAD_TOO_LARGE": "そのファイルはアップロード上限の{limit_mb} MBを超えています。",
     "WEATHER_UNAVAILABLE": "現在、天気データを利用できません。しばらくしてからもう一度お試しください。"
+  },
+  "signIn": {
+    "syncFailed": "ログインを完了できませんでした。もう一度お試しください。"
   }
 }

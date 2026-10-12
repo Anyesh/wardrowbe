@@ -9,6 +9,7 @@ import {
   FORWARD_AUTH_USERNAME_CONFLICT,
 } from '@/lib/auth-errors';
 import { decodeProxyHeader, proxySecretMatches } from '@/lib/proxy-headers';
+import { BACKEND_UNREACHABLE, SYNC_FAILED } from '@/lib/sync-errors';
 
 interface OIDCProfile {
   sub: string;
@@ -296,8 +297,10 @@ export const authOptions: NextAuthOptions = {
           }
 
           const errorData = await response.json().catch(() => ({}));
-          const syncError = errorData.detail || `Backend sync failed (${response.status})`;
-          console.error('Failed to sync user to backend:', syncError);
+          // The login page translates this code, so the backend's English detail stays in the log.
+          const syncError =
+            typeof errorData.error_code === 'string' ? errorData.error_code : SYNC_FAILED;
+          console.error('Failed to sync user to backend:', errorData.detail || response.status);
           return {
             ...token,
             sub: user.id,
@@ -310,7 +313,7 @@ export const authOptions: NextAuthOptions = {
         return {
           ...token,
           sub: user.id,
-          syncError: 'Unable to connect to backend server',
+          syncError: BACKEND_UNREACHABLE,
         };
       }
       return token;

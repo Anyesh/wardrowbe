@@ -17,13 +17,20 @@
   },
   "codes": {
     "AI_DISABLED": "이 서버에서는 AI 추천이 꺼져 있어요.",
+    "AI_ENDPOINT_HTTP_ERROR": "AI 엔드포인트가 HTTP {status}(으)로 응답했어요.",
+    "AI_ENDPOINT_TEST_FAILED": "AI 엔드포인트를 테스트하지 못했어요.",
+    "AI_ENDPOINT_TIMEOUT": "AI 엔드포인트가 제때 응답하지 않았어요.",
+    "AI_ENDPOINT_UNREACHABLE": "AI 엔드포인트에 연결하지 못했어요. 서버가 실행 중인지 확인해 주세요.",
     "AI_ENDPOINT_URL_INVALID": "AI 엔드포인트에는 http 또는 https 주소를 입력해 주세요.",
     "AI_ENDPOINT_URL_REQUIRED": "AI 엔드포인트 주소를 입력해 주세요.",
     "AI_UNAVAILABLE": "AI 서비스를 사용할 수 없어요. 설정에서 AI 엔드포인트를 확인해 주세요.",
     "ALREADY_IN_FAMILY": "이미 가족에 속해 있어요. 다른 가족에 참여하려면 먼저 탈퇴해 주세요.",
     "BULK_UPLOAD_LIMIT": "사진은 한 번에 최대 {limit}장까지 업로드할 수 있어요.",
+    "CONCURRENT_SIGN_IN": "같은 이메일의 다른 계정이 동시에 로그인하고 있어요. 잠시 후 다시 시도해 주세요.",
     "DUPLICATE_ITEM_IMAGE": "이 사진은 이미 옷장에 있어요.",
+    "EMAIL_IN_USE": "이 이메일 주소는 이미 다른 계정에서 사용 중이에요.",
     "EMAIL_NOT_VERIFIED": "로그인 제공자에서 이메일 주소가 인증되지 않았어요.",
+    "IMAGE_TOO_MANY_PIXELS": "이 사진은 {megapixels}메가픽셀로, {limit}메가픽셀 제한을 넘었어요. 더 작은 사진을 사용해 주세요.",
     "INSUFFICIENT_WARDROBE": "먼저 옷장에 아이템을 조금 더 추가해 주세요.",
     "INVALID_IMAGE_TYPE": "지원하지 않는 파일 형식이에요. JPEG, PNG, WebP 또는 HEIC를 사용해 주세요.",
     "INVITE_EMAIL_MISMATCH": "이 초대는 다른 이메일 주소로 발송되었어요.",
@@ -38,7 +45,7 @@
     "LOCATION_UNRESOLVABLE": "저장된 위치를 확인하지 못했어요. 설정에서 위치를 업데이트해 주세요.",
     "NOTIFICATION_CHANNEL_EXISTS": "이미 설정된 알림 채널이에요.",
     "NOTIFICATION_CONFIG_INVALID": "채널 설정이 올바르지 않아요. 확인하고 다시 시도해 주세요.",
-    "NOTIFICATION_TEST_FAILED": "테스트 알림을 보내지 못했어요. 채널 설정을 확인해 주세요.",
+    "NOTIFICATION_TEST_FAILED": "테스트 알림을 보내지 못했어요: {reason}",
     "NOT_IN_FAMILY": "같은 가족에 속해 있어야 해요.",
     "OUTFIT_IS_TEMPLATE": "룩북 코디는 평가할 수 없어요.",
     "OUTFIT_ITEM_OWNERSHIP": "일부 아이템이 내 옷장에 없어요.",
@@ -49,7 +56,11 @@
     "RATE_LIMITED": "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.",
     "SCHEDULE_DUPLICATE": "똑같은 일정이 이미 있어요.",
     "STUDIO_UNAVAILABLE": "스튜디오를 일시적으로 사용할 수 없어요. AI 기능은 계속 사용할 수 있어요.",
+    "UNVERIFIED_EMAIL_IN_USE": "이 이메일 주소는 이미 다른 계정에서 사용 중이에요. 여기서 사용하려면 이메일을 인증해 주는 제공업체로 로그인해 주세요.",
     "UPLOAD_TOO_LARGE": "파일이 업로드 한도인 {limit_mb}MB보다 커요.",
     "WEATHER_UNAVAILABLE": "지금은 날씨 데이터를 사용할 수 없어요. 잠시 후 다시 시도해 주세요."
+  },
+  "signIn": {
+    "syncFailed": "로그인을 완료하지 못했어요. 다시 시도해 주세요."
   }
 }

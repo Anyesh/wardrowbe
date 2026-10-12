@@ -173,6 +173,7 @@ export default function SettingsPage() {
   const t = useTranslations('settings');
   const tc = useTranslations('common');
   const tConst = useTranslations('constants');
+  const tErrors = useTranslations('errors');
   const { data: session } = useSession();
   const { data: preferences, isLoading } = usePreferences();
   const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
@@ -461,7 +462,10 @@ export default function SettingsPage() {
           models: result.available_models,
           visionModels: result.vision_models,
           textModels: result.text_models,
-          error: result.error,
+          error:
+            result.error_code && tErrors.has(`codes.${result.error_code}`)
+              ? tErrors(`codes.${result.error_code}`, result.error_params)
+              : t('aiEndpoints.testFailed'),
         },
       }));
     } catch (error) {

@@ -17,13 +17,20 @@
   },
   "codes": {
     "AI_DISABLED": "Les suggestions IA sont désactivées sur ce serveur.",
+    "AI_ENDPOINT_HTTP_ERROR": "Le point d'accès IA a répondu avec le code HTTP {status}.",
+    "AI_ENDPOINT_TEST_FAILED": "Impossible de tester le point d'accès IA.",
+    "AI_ENDPOINT_TIMEOUT": "Le point d'accès IA n'a pas répondu à temps.",
+    "AI_ENDPOINT_UNREACHABLE": "Impossible de se connecter au point d'accès IA. Le serveur est-il démarré ?",
     "AI_ENDPOINT_URL_INVALID": "Saisissez une adresse http ou https pour le point d'accès IA.",
     "AI_ENDPOINT_URL_REQUIRED": "Saisissez l'adresse du point d'accès IA.",
     "AI_UNAVAILABLE": "Le service IA n'est pas disponible. Vérifiez le point d'accès IA dans les Paramètres.",
     "ALREADY_IN_FAMILY": "Vous êtes déjà dans une famille. Quittez-la avant d'en rejoindre une autre.",
     "BULK_UPLOAD_LIMIT": "Vous pouvez importer jusqu'à {limit} photos à la fois.",
+    "CONCURRENT_SIGN_IN": "Un autre compte utilisant cette adresse e-mail est en cours de connexion. Réessayez dans un instant.",
     "DUPLICATE_ITEM_IMAGE": "Cette photo est déjà dans votre garde-robe.",
+    "EMAIL_IN_USE": "Cette adresse e-mail est déjà utilisée par un autre compte.",
     "EMAIL_NOT_VERIFIED": "Votre fournisseur de connexion n'a pas vérifié votre adresse e-mail.",
+    "IMAGE_TOO_MANY_PIXELS": "Cette photo fait {megapixels} mégapixels, soit plus que la limite de {limit} mégapixels. Utilisez une photo plus petite.",
     "INSUFFICIENT_WARDROBE": "Ajoutez d'abord quelques articles à votre garde-robe.",
     "INVALID_IMAGE_TYPE": "Ce type de fichier n'est pas pris en charge. Utilisez JPEG, PNG, WebP ou HEIC.",
     "INVITE_EMAIL_MISMATCH": "Cette invitation a été envoyée à une adresse e-mail différente.",
@@ -38,7 +45,7 @@
     "LOCATION_UNRESOLVABLE": "Impossible de déterminer l'emplacement de votre position enregistrée. Modifiez-la dans les Paramètres.",
     "NOTIFICATION_CHANNEL_EXISTS": "Ce canal de notification est déjà configuré.",
     "NOTIFICATION_CONFIG_INVALID": "Ces paramètres de canal ne sont pas valides. Vérifiez-les et réessayez.",
-    "NOTIFICATION_TEST_FAILED": "La notification de test n'a pas pu être envoyée. Vérifiez les paramètres du canal.",
+    "NOTIFICATION_TEST_FAILED": "La notification de test n'a pas pu être envoyée : {reason}",
     "NOT_IN_FAMILY": "Vous devez faire partie de la même famille pour cela.",
     "OUTFIT_IS_TEMPLATE": "Les tenues du lookbook ne peuvent pas être notées.",
     "OUTFIT_ITEM_OWNERSHIP": "Certains de ces articles ne sont pas dans votre garde-robe.",
@@ -49,7 +56,11 @@
     "RATE_LIMITED": "Trop de requêtes. Patientez un instant et réessayez.",
     "SCHEDULE_DUPLICATE": "Vous avez déjà une planification identique.",
     "STUDIO_UNAVAILABLE": "Studio est temporairement indisponible. Les fonctions IA continuent de fonctionner.",
+    "UNVERIFIED_EMAIL_IN_USE": "Cette adresse e-mail est déjà utilisée par un autre compte. Connectez-vous avec un fournisseur qui la vérifie pour l'utiliser ici.",
     "UPLOAD_TOO_LARGE": "Ce fichier dépasse la limite d'import de {limit_mb} Mo.",
     "WEATHER_UNAVAILABLE": "Les données météo ne sont pas disponibles pour le moment. Réessayez dans un instant."
+  },
+  "signIn": {
+    "syncFailed": "La connexion n'a pas pu être finalisée. Veuillez réessayer."
   }
 }

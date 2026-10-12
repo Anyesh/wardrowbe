@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { Account, User } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
 import { SYNC_TIMEOUT_MS, authOptions, authorizeForwardAuth } from '@/lib/auth'
+import { BACKEND_UNREACHABLE, SYNC_FAILED } from '@/lib/sync-errors'
 import {
   FORWARD_AUTH_ACCOUNT_CONFLICT,
   FORWARD_AUTH_SERVER_ERROR,
@@ -281,6 +282,24 @@ describe('jwt callback', () => {
     expect(token.proxyUser).toBeUndefined()
   })
 
+  it.each([
+    [{ detail: 'Email already in use by another account.', error_code: 'UNVERIFIED_EMAIL_IN_USE' }, 'UNVERIFIED_EMAIL_IN_USE'],
+    [{ detail: 'Backend exploded' }, SYNC_FAILED],
+  ])('keeps the error code of a failed sign-in sync, never its English detail', async (body, code) => {
+    mockFetch(new Response(JSON.stringify(body), { status: 409 }))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const account = { provider: 'dev-credentials', type: 'credentials', providerAccountId: 'dev' } as Account
+
+    const token = (await jwt({
+      token: { sub: 'dev' } as JWT,
+      user: { id: 'dev', email: 'dev@example.com', name: 'Dev' } as User,
+      account,
+      trigger: 'signIn',
+    })) as JWT
+
+    expect(token.syncError).toBe(code)
+  })
+
   it('reports an unreachable backend when the sign-in sync never answers', async () => {
     const { expire } = mockHangingFetch()
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -294,7 +313,7 @@ describe('jwt callback', () => {
     })
     expire()
 
-    expect(((await result) as JWT).syncError).toBe('Unable to connect to backend server')
+    expect(((await result) as JWT).syncError).toBe(BACKEND_UNREACHABLE)
     expect(AbortSignal.timeout).toHaveBeenCalledWith(SYNC_TIMEOUT_MS)
   })
 })

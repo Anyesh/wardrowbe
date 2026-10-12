@@ -17,13 +17,20 @@
   },
   "codes": {
     "AI_DISABLED": "AI suggestions are turned off on this server.",
+    "AI_ENDPOINT_HTTP_ERROR": "The AI endpoint answered with HTTP {status}.",
+    "AI_ENDPOINT_TEST_FAILED": "Couldn't test the AI endpoint.",
+    "AI_ENDPOINT_TIMEOUT": "The AI endpoint didn't answer in time.",
+    "AI_ENDPOINT_UNREACHABLE": "Couldn't connect to the AI endpoint. Is the server running?",
     "AI_ENDPOINT_URL_INVALID": "Enter an http or https address for the AI endpoint.",
     "AI_ENDPOINT_URL_REQUIRED": "Enter the AI endpoint's address.",
     "AI_UNAVAILABLE": "The AI service isn't available. Check the AI endpoint in Settings.",
     "ALREADY_IN_FAMILY": "You're already in a family. Leave it before joining another.",
     "BULK_UPLOAD_LIMIT": "You can upload up to {limit} photos at a time.",
+    "CONCURRENT_SIGN_IN": "Another account with this email is signing in at the same time. Try again in a moment.",
     "DUPLICATE_ITEM_IMAGE": "This photo is already in your wardrobe.",
+    "EMAIL_IN_USE": "This email address is already used by another account.",
     "EMAIL_NOT_VERIFIED": "Your sign-in provider hasn't verified your email address.",
+    "IMAGE_TOO_MANY_PIXELS": "This photo is {megapixels} megapixels, above the {limit} megapixel limit. Use a smaller photo.",
     "INSUFFICIENT_WARDROBE": "Add a few more items to your wardrobe first.",
     "INVALID_IMAGE_TYPE": "That file type isn't supported. Use JPEG, PNG, WebP or HEIC.",
     "INVITE_EMAIL_MISMATCH": "This invite was sent to a different email address.",
@@ -38,7 +45,7 @@
     "LOCATION_UNRESOLVABLE": "Couldn't work out where your saved location is. Update it in Settings.",
     "NOTIFICATION_CHANNEL_EXISTS": "That notification channel is already set up.",
     "NOTIFICATION_CONFIG_INVALID": "Those channel settings aren't valid. Check them and try again.",
-    "NOTIFICATION_TEST_FAILED": "The test notification couldn't be sent. Check the channel settings.",
+    "NOTIFICATION_TEST_FAILED": "The test notification couldn't be sent: {reason}",
     "NOT_IN_FAMILY": "You need to be in the same family for this.",
     "OUTFIT_IS_TEMPLATE": "Lookbook outfits can't be rated.",
     "OUTFIT_ITEM_OWNERSHIP": "Some of those items aren't in your wardrobe.",
@@ -49,7 +56,11 @@
     "RATE_LIMITED": "Too many requests. Wait a moment and try again.",
     "SCHEDULE_DUPLICATE": "You already have an identical schedule.",
     "STUDIO_UNAVAILABLE": "Studio is temporarily unavailable. AI features still work.",
+    "UNVERIFIED_EMAIL_IN_USE": "This email address is already used by another account. Sign in with a provider that verifies it to use it here.",
     "UPLOAD_TOO_LARGE": "That file is larger than the {limit_mb} MB upload limit.",
     "WEATHER_UNAVAILABLE": "Weather data isn't available right now. Try again shortly."
+  },
+  "signIn": {
+    "syncFailed": "Signing in couldn't be completed. Please try again."
   }
 }

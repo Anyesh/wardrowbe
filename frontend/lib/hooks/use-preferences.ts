@@ -54,6 +54,8 @@ interface AITestResult {
   vision_models?: string[];
   text_models?: string[];
   error?: string;
+  error_code?: string;
+  error_params?: Record<string, string | number>;
 }
 
 export function useTestAIEndpoint() {

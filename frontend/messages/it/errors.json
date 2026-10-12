@@ -17,13 +17,20 @@
   },
   "codes": {
     "AI_DISABLED": "I suggerimenti IA sono disattivati su questo server.",
+    "AI_ENDPOINT_HTTP_ERROR": "L'endpoint IA ha risposto con HTTP {status}.",
+    "AI_ENDPOINT_TEST_FAILED": "Non è stato possibile testare l'endpoint IA.",
+    "AI_ENDPOINT_TIMEOUT": "L'endpoint IA non ha risposto in tempo.",
+    "AI_ENDPOINT_UNREACHABLE": "Impossibile connettersi all'endpoint IA. Il server è in esecuzione?",
     "AI_ENDPOINT_URL_INVALID": "Inserisci un indirizzo http o https per l'endpoint IA.",
     "AI_ENDPOINT_URL_REQUIRED": "Inserisci l'indirizzo dell'endpoint IA.",
     "AI_UNAVAILABLE": "Il servizio IA non è disponibile. Controlla l'endpoint IA nelle Impostazioni.",
     "ALREADY_IN_FAMILY": "Sei già in una famiglia. Lasciala prima di unirti a un'altra.",
     "BULK_UPLOAD_LIMIT": "Puoi caricare fino a {limit} foto alla volta.",
+    "CONCURRENT_SIGN_IN": "Un altro account con questa email sta accedendo nello stesso momento. Riprova tra un attimo.",
     "DUPLICATE_ITEM_IMAGE": "Questa foto è già nel tuo guardaroba.",
+    "EMAIL_IN_USE": "Questo indirizzo email è già usato da un altro account.",
     "EMAIL_NOT_VERIFIED": "Il tuo provider di accesso non ha verificato il tuo indirizzo email.",
+    "IMAGE_TOO_MANY_PIXELS": "Questa foto è di {megapixels} megapixel, oltre il limite di {limit} megapixel. Usa una foto più piccola.",
     "INSUFFICIENT_WARDROBE": "Aggiungi prima qualche altro capo al tuo guardaroba.",
     "INVALID_IMAGE_TYPE": "Questo tipo di file non è supportato. Usa JPEG, PNG, WebP o HEIC.",
     "INVITE_EMAIL_MISMATCH": "Questo invito è stato inviato a un indirizzo email diverso.",
@@ -38,7 +45,7 @@
     "LOCATION_UNRESOLVABLE": "Impossibile determinare dove si trova la posizione salvata. Aggiornala nelle Impostazioni.",
     "NOTIFICATION_CHANNEL_EXISTS": "Questo canale di notifica è già configurato.",
     "NOTIFICATION_CONFIG_INVALID": "Le impostazioni di questo canale non sono valide. Controllale e riprova.",
-    "NOTIFICATION_TEST_FAILED": "Non è stato possibile inviare la notifica di prova. Controlla le impostazioni del canale.",
+    "NOTIFICATION_TEST_FAILED": "Non è stato possibile inviare la notifica di prova: {reason}",
     "NOT_IN_FAMILY": "Per questo devi far parte della stessa famiglia.",
     "OUTFIT_IS_TEMPLATE": "Gli outfit del lookbook non possono essere valutati.",
     "OUTFIT_ITEM_OWNERSHIP": "Alcuni di questi capi non sono nel tuo guardaroba.",
@@ -49,7 +56,11 @@
     "RATE_LIMITED": "Troppe richieste. Attendi un momento e riprova.",
     "SCHEDULE_DUPLICATE": "Hai già una pianificazione identica.",
     "STUDIO_UNAVAILABLE": "Studio è temporaneamente non disponibile. Le funzioni IA continuano a funzionare.",
+    "UNVERIFIED_EMAIL_IN_USE": "Questo indirizzo email è già usato da un altro account. Accedi con un provider che lo verifica per usarlo qui.",
     "UPLOAD_TOO_LARGE": "Questo file supera il limite di caricamento di {limit_mb} MB.",
     "WEATHER_UNAVAILABLE": "I dati meteo non sono disponibili al momento. Riprova a breve."
+  },
+  "signIn": {
+    "syncFailed": "Non è stato possibile completare l'accesso. Riprova."
   }
 }

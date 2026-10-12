@@ -17,13 +17,20 @@
   },
   "codes": {
     "AI_DISABLED": "KI-Vorschläge sind auf diesem Server deaktiviert.",
+    "AI_ENDPOINT_HTTP_ERROR": "Der KI-Endpunkt hat mit HTTP {status} geantwortet.",
+    "AI_ENDPOINT_TEST_FAILED": "Der KI-Endpunkt konnte nicht getestet werden.",
+    "AI_ENDPOINT_TIMEOUT": "Der KI-Endpunkt hat nicht rechtzeitig geantwortet.",
+    "AI_ENDPOINT_UNREACHABLE": "Verbindung zum KI-Endpunkt fehlgeschlagen. Läuft der Server?",
     "AI_ENDPOINT_URL_INVALID": "Gib eine http- oder https-Adresse für den KI-Endpunkt ein.",
     "AI_ENDPOINT_URL_REQUIRED": "Gib die Adresse des KI-Endpunkts ein.",
     "AI_UNAVAILABLE": "Der KI-Dienst ist nicht verfügbar. Prüfe den KI-Endpunkt in den Einstellungen.",
     "ALREADY_IN_FAMILY": "Du bist bereits in einer Familie. Verlasse sie, bevor du einer anderen beitrittst.",
     "BULK_UPLOAD_LIMIT": "Du kannst bis zu {limit} Fotos auf einmal hochladen.",
+    "CONCURRENT_SIGN_IN": "Gerade meldet sich ein anderes Konto mit dieser E-Mail-Adresse an. Versuche es gleich noch einmal.",
     "DUPLICATE_ITEM_IMAGE": "Dieses Foto ist bereits in deiner Garderobe.",
+    "EMAIL_IN_USE": "Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet.",
     "EMAIL_NOT_VERIFIED": "Dein Anmeldeanbieter hat deine E-Mail-Adresse nicht bestätigt.",
+    "IMAGE_TOO_MANY_PIXELS": "Dieses Foto hat {megapixels} Megapixel und überschreitet das Limit von {limit} Megapixeln. Verwende ein kleineres Foto.",
     "INSUFFICIENT_WARDROBE": "Füge zuerst noch ein paar Stücke zu deiner Garderobe hinzu.",
     "INVALID_IMAGE_TYPE": "Dieser Dateityp wird nicht unterstützt. Verwende JPEG, PNG, WebP oder HEIC.",
     "INVITE_EMAIL_MISMATCH": "Diese Einladung wurde an eine andere E-Mail-Adresse gesendet.",
@@ -38,7 +45,7 @@
     "LOCATION_UNRESOLVABLE": "Dein gespeicherter Standort konnte nicht ermittelt werden. Aktualisiere ihn in den Einstellungen.",
     "NOTIFICATION_CHANNEL_EXISTS": "Dieser Benachrichtigungskanal ist bereits eingerichtet.",
     "NOTIFICATION_CONFIG_INVALID": "Diese Kanaleinstellungen sind ungültig. Prüfe sie und versuche es erneut.",
-    "NOTIFICATION_TEST_FAILED": "Die Testbenachrichtigung konnte nicht gesendet werden. Prüfe die Kanaleinstellungen.",
+    "NOTIFICATION_TEST_FAILED": "Die Testbenachrichtigung konnte nicht gesendet werden: {reason}",
     "NOT_IN_FAMILY": "Dafür musst du in derselben Familie sein.",
     "OUTFIT_IS_TEMPLATE": "Lookbook-Outfits können nicht bewertet werden.",
     "OUTFIT_ITEM_OWNERSHIP": "Einige dieser Stücke sind nicht in deiner Garderobe.",
@@ -49,7 +56,11 @@
     "RATE_LIMITED": "Zu viele Anfragen. Warte einen Moment und versuche es erneut.",
     "SCHEDULE_DUPLICATE": "Du hast bereits einen identischen Zeitplan.",
     "STUDIO_UNAVAILABLE": "Studio ist vorübergehend nicht verfügbar. KI-Funktionen funktionieren weiterhin.",
+    "UNVERIFIED_EMAIL_IN_USE": "Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet. Melde dich über einen Anbieter an, der sie verifiziert, um sie hier zu nutzen.",
     "UPLOAD_TOO_LARGE": "Diese Datei ist größer als das Upload-Limit von {limit_mb} MB.",
     "WEATHER_UNAVAILABLE": "Wetterdaten sind gerade nicht verfügbar. Versuche es in Kürze erneut."
+  },
+  "signIn": {
+    "syncFailed": "Die Anmeldung konnte nicht abgeschlossen werden. Bitte versuche es erneut."
   }
 }
