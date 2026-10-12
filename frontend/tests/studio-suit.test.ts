@@ -47,7 +47,7 @@ describe('mergeAiAssist with multi-slot items', () => {
   it('skips a shirt when a dress is already on the canvas', () => {
     const { merged, skipped } = mergeAiAssist([makeItem('1', 'dress')], [makeItem('2', 'shirt')]);
     expect(merged).toHaveLength(1);
-    expect(skipped[0].reason).toContain('base top');
+    expect(skipped[0].slot).toBe('base_top');
   });
 });
 

@@ -81,7 +81,7 @@
     "required": "필수",
     "occasion": "상황",
     "pickOccasion": "저장하기 전에 상황을 선택하세요.",
-    "skippedItem": "{name} 건너뜀: {reason}",
+    "skippedItem": "{name} 건너뜀: 코디에 이미 {slot} 아이템이 있습니다",
     "warnings": {
       "multipleBottoms": "하의가 여러 개 선택되었어요.",
       "noBottoms": "하의가 선택되지 않았어요.",
