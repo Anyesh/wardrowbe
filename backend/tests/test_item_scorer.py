@@ -16,6 +16,7 @@ from app.services.item_scorer import (
     get_season,
     score_items,
     scoring_temp_range,
+    stays_above_hot_threshold,
 )
 from app.services.weather_service import WeatherData
 
@@ -648,3 +649,28 @@ class TestRoleDiversity:
         result_ids = {s.item.id for s in result}
         assert mandatory.id in result_ids
         assert {s.id for s in shoes} <= result_ids
+
+
+@pytest.mark.parametrize(
+    ("weather", "prefs", "expected"),
+    [
+        (_weather(temp=28), _prefs(), True),
+        (_weather(temp=24), _prefs(), False),
+        (_weather(temp=28, window_min=15, window_max=29), _prefs(), False),
+        (_weather(temp=28, window_min=26, window_max=35), _prefs(), True),
+        (_weather(temp=22), _prefs(temperature_sensitivity="high"), True),
+        (_weather(temp=28), _prefs(temperature_sensitivity="low"), False),
+        (_weather(temp=45), None, True),
+    ],
+    ids=[
+        "hot",
+        "mild",
+        "cool-morning",
+        "hot-all-window",
+        "runs-hot",
+        "runs-cold",
+        "no-preferences",
+    ],
+)
+def test_stays_above_hot_threshold_needs_the_coolest_part_to_be_hot(weather, prefs, expected):
+    assert stays_above_hot_threshold(weather, prefs) is expected

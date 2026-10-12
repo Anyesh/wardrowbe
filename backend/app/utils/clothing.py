@@ -82,6 +82,16 @@ def deduplicate_by_body_slot(
 _ROLE_SORT_INDEX: dict[str, int] = {role: idx for idx, role in enumerate(ROLES)}
 
 
+def remove_legwear(
+    item_ids: list[UUID], item_type_map: dict[UUID, str], keep: set[UUID]
+) -> list[UUID]:
+    return [
+        iid
+        for iid in item_ids
+        if iid in keep or ITEM_ROLE.get(item_type_map.get(iid, "")) != "legwear"
+    ]
+
+
 def canonical_item_order(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> list[UUID]:
     original_positions = {iid: idx for idx, iid in enumerate(item_ids)}
 

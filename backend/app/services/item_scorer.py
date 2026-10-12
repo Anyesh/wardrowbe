@@ -174,6 +174,13 @@ def _resolve_temp_thresholds(preferences: UserPreference | None) -> tuple[float,
     return cold_threshold, hot_threshold
 
 
+def stays_above_hot_threshold(weather: WeatherData, preferences: UserPreference | None) -> bool:
+    _, hot_threshold = _resolve_temp_thresholds(preferences)
+    temp_range = scoring_temp_range(weather)
+    coolest = temp_range[0] if temp_range else weather.temperature
+    return coolest > hot_threshold
+
+
 def _weather_score(
     item: ClothingItem,
     weather: WeatherData,

@@ -6,6 +6,7 @@ from app.utils.clothing import (
     canonical_item_order,
     count_composition,
     deduplicate_by_body_slot,
+    remove_legwear,
 )
 from app.utils.garment_vocabulary import ROLES
 
@@ -385,3 +386,18 @@ def test_count_composition_covers_every_role_in_item_role():
     assert c.layers == roles.count("mid_layer")
     assert c.bottoms == roles.count("bottom")
     assert c.full_body == roles.count("full_body")
+
+
+def test_remove_legwear_keeps_requested_tights_and_everything_else():
+    skirt, top, tights, requested_tights, shoes = _ids(5)
+    item_type_map = {
+        skirt: "skirt",
+        top: "t-shirt",
+        tights: "tights",
+        requested_tights: "tights",
+        shoes: "shoes",
+    }
+    kept = remove_legwear(
+        [top, skirt, tights, requested_tights, shoes], item_type_map, {requested_tights}
+    )
+    assert kept == [top, skirt, requested_tights, shoes]
