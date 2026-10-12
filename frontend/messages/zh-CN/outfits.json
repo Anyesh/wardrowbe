@@ -81,7 +81,7 @@
     "required": "必填",
     "occasion": "场合",
     "pickOccasion": "保存前请选择一个场合。",
-    "skippedItem": "已跳过 {name}：{reason}",
+    "skippedItem": "已跳过 {name}：搭配中已有{slot}单品",
     "warnings": {
       "multipleBottoms": "选择了多件下装。",
       "noBottoms": "未选择下装。",

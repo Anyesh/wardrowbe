@@ -2,7 +2,7 @@ import { canonicalItemOrder, slotsForType } from '@/lib/studio/canonical-order';
 
 export interface MergeResult<T extends { id: string; type: string }> {
   merged: T[];
-  skipped: Array<{ item: T; reason: string }>;
+  skipped: Array<{ item: T; slot: string }>;
 }
 
 export function mergeAiAssist<T extends { id: string; type: string }>(
@@ -13,14 +13,14 @@ export function mergeAiAssist<T extends { id: string; type: string }>(
 
   const canvasIds = new Set(canvas.map((c) => c.id));
   const merged: T[] = [...canvas];
-  const skipped: Array<{ item: T; reason: string }> = [];
+  const skipped: Array<{ item: T; slot: string }> = [];
 
   for (const item of aiItems) {
     if (canvasIds.has(item.id)) continue;
     const slots = slotsForType(item.type);
     const taken = slots.find((slot) => existingSlots.has(slot));
     if (taken) {
-      skipped.push({ item, reason: `already have a ${taken.replace('_', ' ')}` });
+      skipped.push({ item, slot: taken });
       continue;
     }
     merged.push(item);

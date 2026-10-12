@@ -15,7 +15,7 @@ import { computeWarnings } from '@/lib/studio/warnings';
 import type { StudioItem } from '@/lib/studio/editor-state';
 import type { Outfit, OutfitItem } from '@/lib/hooks/use-outfits';
 import { useTranslations } from 'next-intl';
-import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useRoleLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
 interface DetailsPanelProps {
   items: StudioItem[];
@@ -46,6 +46,7 @@ export function DetailsPanel({
   onAiMerge,
 }: DetailsPanelProps) {
   const typeLabel = useTypeLabel();
+  const roleLabel = useRoleLabel();
   const t = useTranslations('outfits.details');
   const [aiLoading, setAiLoading] = useState(false);
   const warnings = computeWarnings(items, t);
@@ -68,9 +69,9 @@ export function DetailsPanel({
       onAiMerge(merged);
 
       if (skipped.length > 0) {
-        for (const { item, reason } of skipped) {
+        for (const { item, slot } of skipped) {
           toast.info(
-            t('skippedItem', { name: item.name || typeLabel(item.type), reason })
+            t('skippedItem', { name: item.name || typeLabel(item.type), slot: roleLabel(slot) })
           );
         }
       } else if (merged.length > items.length) {
