@@ -68,6 +68,21 @@ class WeatherOverrideRequest(BaseModel):
     precipitation_chance: int = Field(default=0, ge=0, le=100)
     humidity: int = Field(default=50, ge=0, le=100)
 
+    def to_weather(self) -> WeatherData:
+        return WeatherData(
+            temperature=self.temperature,
+            feels_like=self.temperature if self.feels_like is None else self.feels_like,
+            humidity=self.humidity,
+            precipitation_chance=self.precipitation_chance,
+            precipitation_mm=0,
+            wind_speed=0,
+            condition=self.condition,
+            condition_code=0,
+            is_day=True,
+            uv_index=0,
+            timestamp=datetime.utcnow(),
+        )
+
 
 def _default_occasion(user: User) -> str:
     return stored_occasion_or_default(
@@ -408,22 +423,7 @@ async def suggest_outfit(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> OutfitResponse:
     await rate_limit_by_user(str(current_user.id), "suggest", max_requests=10, window_seconds=60)
-    weather_override = None
-    if request.weather_override:
-        w = request.weather_override
-        weather_override = WeatherData(
-            temperature=w.temperature,
-            feels_like=w.feels_like or w.temperature,
-            humidity=w.humidity,
-            precipitation_chance=w.precipitation_chance,
-            precipitation_mm=0,
-            wind_speed=0,
-            condition=w.condition,
-            condition_code=0,
-            is_day=True,
-            uv_index=0,
-            timestamp=datetime.utcnow(),
-        )
+    weather_override = request.weather_override.to_weather() if request.weather_override else None
 
     service = RecommendationService(db)
 
@@ -475,22 +475,7 @@ async def suggest_outfit_options(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[OutfitResponse]:
     await rate_limit_by_user(str(current_user.id), "suggest", max_requests=10, window_seconds=60)
-    weather_override = None
-    if request.weather_override:
-        w = request.weather_override
-        weather_override = WeatherData(
-            temperature=w.temperature,
-            feels_like=w.feels_like or w.temperature,
-            humidity=w.humidity,
-            precipitation_chance=w.precipitation_chance,
-            precipitation_mm=0,
-            wind_speed=0,
-            condition=w.condition,
-            condition_code=0,
-            is_day=True,
-            uv_index=0,
-            timestamp=datetime.utcnow(),
-        )
+    weather_override = request.weather_override.to_weather() if request.weather_override else None
 
     service = RecommendationService(db)
 
