@@ -17,6 +17,7 @@ from app.services.recommendation_service import (
     cached_suggestion_fits,
     format_temp_range_text,
     get_time_of_day,
+    resolve_outfit_items,
     suggestion_context,
 )
 from app.services.weather_service import WeatherData
@@ -577,58 +578,16 @@ class TestIncludeItems:
         assert "MANDATORY ITEMS" in section
         assert "MUST appear in all outfit suggestions" in section
 
-    @pytest.mark.asyncio
-    async def test_materialize_outfit_enforces_mandatory_item_even_if_omitted_by_ai(
-        self, db_session, test_user
-    ):
-        mand_item = ClothingItem(
-            user_id=test_user.id,
-            type="shirt",
-            image_path=f"test/{uuid4()}.jpg",
-            status=ItemStatus.ready,
-            primary_color="blue",
+    def test_resolve_outfit_items_enforces_mandatory_item_even_if_omitted_by_ai(self):
+        shirt, pants = uuid4(), uuid4()
+        resolved = resolve_outfit_items(
+            {"items": [2], "headline": "Casual day"},
+            {1: shirt, 2: pants},
+            {shirt: "shirt", pants: "pants"},
+            {shirt},
+            drop_legwear=False,
         )
-        ai_item = ClothingItem(
-            user_id=test_user.id,
-            type="pants",
-            image_path=f"test/{uuid4()}.jpg",
-            status=ItemStatus.ready,
-            primary_color="black",
-        )
-        db_session.add_all([mand_item, ai_item])
-        await db_session.commit()
-
-        service = RecommendationService(db_session)
-        weather = WeatherData(
-            temperature=20,
-            feels_like=20,
-            humidity=50,
-            precipitation_chance=0,
-            precipitation_mm=0,
-            wind_speed=0,
-            condition="clear",
-            condition_code=0,
-            is_day=True,
-            uv_index=0,
-            timestamp=datetime.utcnow(),
-        )
-        number_map = {1: mand_item.id, 2: ai_item.id}
-        # AI returned only item 2, omitting item 1
-        outfit_data = {"items": [2], "headline": "Casual day"}
-
-        outfit = await service._materialize_outfit(
-            outfit_data,
-            test_user,
-            weather,
-            occasion="casual",
-            source=OutfitSource.on_demand,
-            number_map=number_map,
-            mandatory_item_ids={mand_item.id},
-        )
-
-        outfit_item_ids = {oi.item_id for oi in outfit.items}
-        assert mand_item.id in outfit_item_ids
-        assert ai_item.id in outfit_item_ids
+        assert set(resolved) == {shirt, pants}
 
     @pytest.mark.asyncio
     async def test_suggest_accepts_include_items(self, client, test_user, auth_headers, db_session):
@@ -744,71 +703,35 @@ class TestIncludeItems:
 
 
 class TestHotDayLegwear:
-    async def _materialize(self, db_session, user, kinds, picked, drop_legwear, mandatory=()):
-        items = [
-            ClothingItem(
-                user_id=user.id,
-                type=kind,
-                image_path=f"test/{uuid4()}.jpg",
-                status=ItemStatus.ready,
-                primary_color="black",
-            )
-            for kind in kinds
-        ]
-        db_session.add_all(items)
-        await db_session.commit()
-        weather = WeatherData(
-            temperature=30,
-            feels_like=30,
-            humidity=50,
-            precipitation_chance=0,
-            precipitation_mm=0,
-            wind_speed=0,
-            condition="clear",
-            condition_code=0,
-            is_day=True,
-            uv_index=0,
-            timestamp=datetime.utcnow(),
-        )
-        number_map = {n: item.id for n, item in enumerate(items, start=1)}
-        outfit = await RecommendationService(db_session)._materialize_outfit(
-            {"items": picked, "headline": "Hot day"},
-            user,
-            weather,
-            occasion="casual",
-            source=OutfitSource.on_demand,
-            number_map=number_map,
-            mandatory_item_ids={items[n - 1].id for n in mandatory} or None,
+    def _resolve(self, kinds, picked, drop_legwear, mandatory=()):
+        ids = [uuid4() for _ in kinds]
+        resolved = resolve_outfit_items(
+            {"items": picked},
+            dict(enumerate(ids, start=1)),
+            dict(zip(ids, kinds, strict=True)),
+            {ids[n - 1] for n in mandatory} or None,
             drop_legwear=drop_legwear,
         )
-        return items, {oi.item_id for oi in outfit.items}
+        return ids, set(resolved)
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         ("drop_legwear", "mandatory", "tights_kept"),
         [(True, (), False), (False, (), True), (True, (3,), True)],
         ids=["hot", "not-hot", "hot-but-requested"],
     )
-    async def test_drops_only_unrequested_tights_on_a_hot_day(
-        self, db_session, test_user, drop_legwear, mandatory, tights_kept
-    ):
-        items, kept = await self._materialize(
-            db_session,
-            test_user,
-            ("t-shirt", "skirt", "tights", "sneakers"),
-            [1, 2, 3, 4],
-            drop_legwear,
-            mandatory,
+    def test_drops_only_unrequested_tights_on_a_hot_day(self, drop_legwear, mandatory, tights_kept):
+        ids, kept = self._resolve(
+            ("t-shirt", "skirt", "tights", "sneakers"), [1, 2, 3, 4], drop_legwear, mandatory
         )
-        assert (items[2].id in kept) is tights_kept
-        assert {items[0].id, items[1].id, items[3].id} <= kept
+        assert (ids[2] in kept) is tights_kept
+        assert {ids[0], ids[1], ids[3]} <= kept
 
-    @pytest.mark.asyncio
-    async def test_an_answer_of_only_tights_is_not_saved_as_an_empty_outfit(
-        self, db_session, test_user
-    ):
-        with pytest.raises(AIRecommendationError):
-            await self._materialize(db_session, test_user, ("tights",), [1], True)
+    def test_an_answer_of_only_tights_resolves_to_nothing(self):
+        assert self._resolve(("tights",), [1], True)[1] == set()
+
+    def test_unknown_and_non_numeric_picks_are_ignored(self):
+        ids, kept = self._resolve(("shirt", "jeans"), [1, "two", 9, 1], False)
+        assert kept == {ids[0]}
 
     async def _hot_day_outfits(
         self,
@@ -820,8 +743,24 @@ class TestHotDayLegwear:
         cached_weather=None,
         unavailable=None,
         include=(),
+        extras=(),
+        single_outfit=False,
     ):
         kinds = ("tights", "skirt", "t-shirt", "sneakers")
+        # Extras are stored first and numbered last, so that neither database order nor
+        # prompt order can stand in for the fill ranking.
+        extra_items = [
+            ClothingItem(
+                user_id=user.id,
+                type=kind,
+                image_path=f"test/{uuid4()}.jpg",
+                status=ItemStatus.ready,
+                primary_color="black",
+            )
+            for kind in extras
+        ]
+        db_session.add_all(extra_items)
+        await db_session.commit()
         items = [
             ClothingItem(
                 user_id=user.id,
@@ -838,12 +777,14 @@ class TestHotDayLegwear:
             items[3].needs_wash = True
         db_session.add_all(items)
         await db_session.commit()
+        items += extra_items
         number_map = {n: item.id for n, item in enumerate(items, start=1)}
         user.preferences = None
+        options = [{"items": o, "headline": f"AI {n}"} for n, o in enumerate(ai_outfits, start=1)]
         ai = MagicMock()
         ai.generate_text = AsyncMock(
             return_value=MagicMock(
-                content=json.dumps({"outfits": [{"items": o} for o in ai_outfits]}),
+                content=json.dumps(options[0] if single_outfit else {"outfits": options}),
                 model="m",
                 endpoint="e",
             )
@@ -851,6 +792,7 @@ class TestHotDayLegwear:
         weather = _weather(temp=35)
         if cached is not None:
             cached = {
+                "headline": "Cached",
                 **cached,
                 "_number_map": {str(k): str(v) for k, v in number_map.items()},
                 "_context": suggestion_context(
@@ -877,8 +819,10 @@ class TestHotDayLegwear:
                 include_items=[items[n - 1].id for n in include],
                 time_of_day=TimeOfDay.afternoon,
                 count=count,
+                single_outfit=single_outfit,
             )
         self.ai = ai
+        self.reasonings = [o.reasoning for o in outfits]
         self.pop = pop
         self.raw_responses = [o.ai_raw_response for o in outfits]
         self.pushed_contexts = (
@@ -890,10 +834,11 @@ class TestHotDayLegwear:
     @pytest.mark.asyncio
     async def test_a_tights_only_option_is_skipped_not_fatal(self, db_session, test_user):
         items, outfits = await self._hot_day_outfits(
-            db_session, test_user, [[3, 2], [1], [2, 4], [3]], count=2
+            db_session, test_user, [[3, 2, 4], [1], [2, 3, 4], [3, 2, 4]], count=2
         )
-        assert outfits == [{items[2].id, items[1].id}, {items[1].id, items[3].id}]
-        assert self.pushed == [[3]]
+        assert outfits == [{items[1].id, items[2].id, items[3].id}] * 2
+        assert self.reasonings == ["AI 1", "AI 3"]
+        assert self.pushed == [[3, 2, 4]]
 
     @pytest.mark.asyncio
     async def test_a_tights_only_cached_suggestion_falls_through_to_a_fresh_one(
@@ -903,13 +848,14 @@ class TestHotDayLegwear:
             db_session, test_user, [[3, 2, 4]], cached={"items": [1]}
         )
         assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.reasonings == ["AI 1"]
 
     @pytest.mark.asyncio
     async def test_a_cached_suggestion_for_the_same_weather_is_served(self, db_session, test_user):
         items, outfits = await self._hot_day_outfits(
-            db_session, test_user, [[3, 2, 4]], cached={"items": [2, 4]}
+            db_session, test_user, [[3, 2, 4]], cached={"items": [2, 3, 4]}
         )
-        assert outfits == [{items[1].id, items[3].id}]
+        assert self.reasonings == ["Cached"]
         self.ai.generate_text.assert_not_called()
         assert not {"_context", "_number_map"} & set(self.raw_responses[0])
 
@@ -921,10 +867,10 @@ class TestHotDayLegwear:
             db_session,
             test_user,
             [[3, 2, 4]],
-            cached={"items": [2, 4]},
+            cached={"items": [2, 3, 4]},
             cached_weather=_weather(temp=2),
         )
-        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.reasonings == ["AI 1"]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("unavailable", ["archived", "needs_wash", "rejected"])
@@ -932,9 +878,10 @@ class TestHotDayLegwear:
         self, db_session, test_user, unavailable
     ):
         items, outfits = await self._hot_day_outfits(
-            db_session, test_user, [[3, 2]], cached={"items": [2, 4]}, unavailable=unavailable
+            db_session, test_user, [[3, 2]], cached={"items": [2, 3, 4]}, unavailable=unavailable
         )
         assert outfits == [{items[1].id, items[2].id}]
+        assert self.reasonings == ["AI 1"]
         assert self.pop.await_count == 2
 
     @pytest.mark.asyncio
@@ -945,18 +892,19 @@ class TestHotDayLegwear:
             db_session,
             test_user,
             [[3, 2]],
-            cached={"items": [2, 4]},
+            cached={"items": [2, 3, 4]},
             unavailable="needs_wash",
             include=(4,),
         )
-        assert outfits == [{items[1].id, items[3].id}]
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.reasonings == ["Cached"]
         self.ai.generate_text.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_cached_options_record_the_weather_they_were_made_for(
         self, db_session, test_user
     ):
-        await self._hot_day_outfits(db_session, test_user, [[3, 2, 4], [2, 4]])
+        await self._hot_day_outfits(db_session, test_user, [[3, 2, 4], [2, 3, 4]])
         assert self.pushed_contexts == [
             suggestion_context(
                 _weather(temp=35), TimeOfDay.afternoon, None, test_user.body_measurements
@@ -968,7 +916,59 @@ class TestHotDayLegwear:
         self, db_session, test_user
     ):
         items, outfits = await self._hot_day_outfits(
-            db_session, test_user, [[1], [3, 2, 4], [2, 3]]
+            db_session, test_user, [[1], [3, 2, 4], [2, 3, 4]]
         )
         assert outfits == [{items[1].id, items[2].id, items[3].id}]
-        assert self.pushed == [[2, 3]]
+        assert self.reasonings == ["AI 2"]
+        assert self.pushed == [[2, 3, 4]]
+
+    @pytest.mark.asyncio
+    async def test_an_option_without_shoes_is_skipped_for_a_complete_one(
+        self, db_session, test_user
+    ):
+        await self._hot_day_outfits(db_session, test_user, [[3, 2], [3, 2, 4]])
+        assert self.reasonings == ["AI 2"]
+
+    @pytest.mark.asyncio
+    async def test_incomplete_leftovers_are_not_cached(self, db_session, test_user):
+        await self._hot_day_outfits(db_session, test_user, [[3, 2, 4], [3, 2], [2, 3, 4]])
+        assert self.pushed == [[2, 3, 4]]
+
+    @pytest.mark.asyncio
+    async def test_when_no_option_is_complete_the_first_is_filled_with_the_best_fit(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[2, 4], [3]], extras=("sweater",)
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.reasonings == ["AI 1"]
+
+    @pytest.mark.asyncio
+    async def test_a_single_outfit_missing_a_top_is_filled_with_the_best_fit(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[2, 4]], extras=("sweater",), single_outfit=True
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+
+    @pytest.mark.asyncio
+    async def test_a_single_outfit_with_nothing_valid_is_not_built_from_scratch(
+        self, db_session, test_user
+    ):
+        with pytest.raises(AIRecommendationError):
+            await self._hot_day_outfits(db_session, test_user, [[99]], single_outfit=True)
+
+    @pytest.mark.asyncio
+    async def test_a_requested_item_counts_toward_completeness(self, db_session, test_user):
+        items, outfits = await self._hot_day_outfits(db_session, test_user, [[4]], include=(2,))
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+
+    @pytest.mark.asyncio
+    async def test_an_incomplete_cached_suggestion_falls_through_to_a_fresh_one(
+        self, db_session, test_user
+    ):
+        await self._hot_day_outfits(db_session, test_user, [[3, 2, 4]], cached={"items": [2, 4]})
+        assert self.reasonings == ["AI 1"]
+        self.ai.generate_text.assert_awaited_once()

@@ -91,6 +91,55 @@ def deduplicate_by_body_slot(
     return [iid for iid in item_ids if iid in kept]
 
 
+# A hoodie or jacket over nothing still dresses the upper body, so any upper role counts.
+REGION_ROLES: dict[str, frozenset[str]] = {
+    "upper": frozenset({"base_top", "mid_layer", "outer_layer", "suit", "full_body"}),
+    "lower": frozenset({"bottom", "suit", "full_body"}),
+    "feet": frozenset({"footwear"}),
+}
+
+# Separates only, because a dress or suit would clash with the pieces already chosen.
+REGION_FILL_ROLES: dict[str, tuple[str, ...]] = {
+    "upper": ("base_top", "mid_layer", "outer_layer"),
+    "lower": ("bottom",),
+    "feet": ("footwear",),
+}
+
+
+def _roles(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str | None]:
+    return {ITEM_ROLE.get(item_type_map.get(iid, "")) for iid in item_ids}
+
+
+def missing_regions(
+    item_ids: list[UUID], candidate_ids: list[UUID], item_type_map: dict[UUID, str]
+) -> list[str]:
+    worn = _roles(item_ids, item_type_map)
+    available = _roles(candidate_ids, item_type_map)
+    return [
+        region for region, roles in REGION_ROLES.items() if roles & available and not roles & worn
+    ]
+
+
+def fill_missing_regions(
+    item_ids: list[UUID], ranked_candidate_ids: list[UUID], item_type_map: dict[UUID, str]
+) -> list[UUID]:
+    filled = list(item_ids)
+    for region in missing_regions(item_ids, ranked_candidate_ids, item_type_map):
+        pick = next(
+            (
+                iid
+                for role in REGION_FILL_ROLES[region]
+                for iid in ranked_candidate_ids
+                if iid not in filled and ITEM_ROLE.get(item_type_map.get(iid, "")) == role
+            ),
+            None,
+        )
+        if pick is not None:
+            logger.info(f"Adding {item_type_map[pick]} item {pick}: outfit had no {region} piece")
+            filled.append(pick)
+    return filled
+
+
 _ROLE_SORT_INDEX: dict[str, int] = {role: idx for idx, role in enumerate(ROLES)}
 
 

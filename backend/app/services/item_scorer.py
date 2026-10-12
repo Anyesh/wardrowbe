@@ -264,6 +264,24 @@ def _formality_score(item: ClothingItem, occasion: str) -> float:
     return 0.15
 
 
+def rank_by_fit(
+    items: list[ClothingItem],
+    weather: WeatherData,
+    occasion: str,
+    preferences: UserPreference | None,
+) -> list[UUID]:
+    # score_items leaves small wardrobes unscored, so filling a missing piece needs its own
+    # ranking or it would fall back to database order.
+    ranked = sorted(
+        items,
+        key=lambda item: (
+            _weather_score(item, weather, preferences) * _formality_score(item, occasion)
+        ),
+        reverse=True,
+    )
+    return [item.id for item in ranked]
+
+
 def _season_score(
     item: ClothingItem,
     current_season: str,

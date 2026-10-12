@@ -1,11 +1,15 @@
 from uuid import uuid4
 
+import pytest
+
 from app.utils.clothing import (
     ITEM_ROLE,
     WardrobeComposition,
     canonical_item_order,
     count_composition,
     deduplicate_by_body_slot,
+    fill_missing_regions,
+    missing_regions,
     remove_legwear,
 )
 from app.utils.garment_vocabulary import ROLES
@@ -401,3 +405,80 @@ def test_remove_legwear_keeps_requested_tights_and_everything_else():
         [top, skirt, tights, requested_tights, shoes], item_type_map, {requested_tights}
     )
     assert kept == [top, skirt, requested_tights, shoes]
+
+
+def _typed(*types):
+    ids = _ids(len(types))
+    return ids, dict(zip(ids, types, strict=True))
+
+
+@pytest.mark.parametrize(
+    ("outfit", "wardrobe", "expected"),
+    [
+        (("jeans", "sneakers"), ("shirt",), ["upper"]),
+        (("shirt", "sneakers"), ("jeans",), ["lower"]),
+        (("shirt", "jeans"), ("boots",), ["feet"]),
+        (("shirt", "jeans", "sneakers"), ("dress", "sandals"), []),
+        (("dress", "sandals"), ("shirt", "jeans"), []),
+        (("suit", "shoes"), ("shirt", "pants"), []),
+        (("hoodie", "jeans", "sneakers"), ("shirt",), []),
+        (("cardigan", "skirt", "tights", "boots"), ("blouse",), []),
+        (("shirt", "sneakers"), ("sweater",), []),
+        (("jeans", "sneakers"), ("dress",), ["upper"]),
+        (("bag",), ("shirt", "jeans", "shoes"), ["upper", "lower", "feet"]),
+        (("tights", "skirt", "blouse"), ("hat",), []),
+    ],
+    ids=[
+        "no-top",
+        "no-bottom",
+        "no-shoes",
+        "complete-separates",
+        "dress",
+        "suit",
+        "hoodie-as-top",
+        "cardigan-as-top",
+        "wardrobe-has-no-bottoms",
+        "only-a-dress-could-cover-the-top",
+        "accessory-only",
+        "wardrobe-has-no-shoes",
+    ],
+)
+def test_missing_regions_only_counts_what_the_wardrobe_can_fill(outfit, wardrobe, expected):
+    outfit_ids, outfit_types = _typed(*outfit)
+    wardrobe_ids, wardrobe_types = _typed(*wardrobe)
+    candidates = outfit_ids + wardrobe_ids
+    assert missing_regions(outfit_ids, candidates, outfit_types | wardrobe_types) == expected
+
+
+def test_fill_adds_the_best_ranked_top_before_a_layer():
+    (jeans, sneakers), outfit_types = _typed("jeans", "sneakers")
+    ranked, ranked_types = _typed("jacket", "t-shirt", "shirt")
+    filled = fill_missing_regions([jeans, sneakers], ranked, outfit_types | ranked_types)
+    assert filled == [jeans, sneakers, ranked[1]]
+
+
+def test_fill_falls_back_to_a_layer_when_there_is_no_top():
+    (jeans, sneakers), outfit_types = _typed("jeans", "sneakers")
+    ranked, ranked_types = _typed("coat", "hoodie")
+    filled = fill_missing_regions([jeans, sneakers], ranked, outfit_types | ranked_types)
+    assert filled == [jeans, sneakers, ranked[0]]
+
+
+def test_fill_adds_every_missing_region():
+    (sneakers,), outfit_types = _typed("sneakers")
+    ranked, ranked_types = _typed("boots", "skirt", "dress", "blouse", "pants")
+    filled = fill_missing_regions([sneakers], ranked, outfit_types | ranked_types)
+    assert filled == [sneakers, ranked[3], ranked[1]]
+
+
+def test_fill_never_adds_a_dress_or_suit_to_existing_pieces():
+    (jeans, sneakers), outfit_types = _typed("jeans", "sneakers")
+    ranked, ranked_types = _typed("dress", "suit")
+    filled = fill_missing_regions([jeans, sneakers], ranked, outfit_types | ranked_types)
+    assert filled == [jeans, sneakers]
+
+
+def test_fill_leaves_a_complete_outfit_alone():
+    outfit, types = _typed("shirt", "jeans", "sneakers")
+    ranked, ranked_types = _typed("t-shirt", "pants", "boots")
+    assert fill_missing_regions(outfit, ranked, types | ranked_types) == outfit

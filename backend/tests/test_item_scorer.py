@@ -14,6 +14,7 @@ from app.services.item_scorer import (
     _season_score,
     _weather_score,
     get_season,
+    rank_by_fit,
     score_items,
     scoring_temp_range,
     stays_above_hot_threshold,
@@ -677,3 +678,22 @@ class TestRoleDiversity:
 )
 def test_stays_above_hot_threshold_needs_the_coolest_part_to_be_hot(weather, prefs, expected):
     assert stays_above_hot_threshold(weather, prefs) is expected
+
+
+def test_rank_by_fit_puts_weather_fit_ahead_of_wardrobe_order():
+    sweater = _item(type="sweater", material="wool")
+    linen = _item(type="shirt", material="linen")
+    assert rank_by_fit([sweater, linen], _weather(temp=35), "casual", None) == [
+        linen.id,
+        sweater.id,
+    ]
+    assert rank_by_fit([linen, sweater], _weather(temp=2), "casual", None) == [
+        sweater.id,
+        linen.id,
+    ]
+
+
+def test_rank_by_fit_ranks_below_the_scoring_minimum_too():
+    items = [_item(type="t-shirt", formality="casual"), _item(type="shirt", formality="formal")]
+    assert len(items) < MIN_ITEMS_FOR_SCORING
+    assert rank_by_fit(items, _weather(), "formal", None) == [items[1].id, items[0].id]
