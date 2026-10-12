@@ -183,6 +183,14 @@ describe('mergeAiAssist', () => {
     expect(skipped[0].conflict.id).toBe('1');
   });
 
+  it('names an AI item merged earlier in the same call as the conflict', () => {
+    const canvas = [makeItem('1', 'sneakers')];
+    const aiItems = [makeItem('2', 'dress'), makeItem('3', 'shirt')];
+    const { merged, skipped } = mergeAiAssist(canvas, aiItems);
+    expect(merged.map((item) => item.id)).toEqual(['2', '1']);
+    expect(skipped.map((s) => [s.item.id, s.conflict.id])).toEqual([['3', '2']]);
+  });
+
   it('skips items already on canvas', () => {
     const canvas = [makeItem('1', 'shirt')];
     const aiItems = [makeItem('1', 'shirt')];

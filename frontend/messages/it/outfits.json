@@ -81,7 +81,7 @@
     "required": "obbligatorio",
     "occasion": "Occasione",
     "pickOccasion": "Scegli un'occasione prima di salvare.",
-    "skippedItem": "{name} saltato: {other} occupa già quel posto",
+    "skippedItem": "Impossibile aggiungere {name}: il posto è già occupato da {other}",
     "warnings": {
       "multipleBottoms": "Più bassi selezionati.",
       "noBottoms": "Nessun basso selezionato.",
