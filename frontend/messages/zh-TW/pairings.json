@@ -16,6 +16,7 @@
     "title": "尚無配對"
   },
   "generate": {
+    "colorAndType": "{color}{type}",
     "description": "AI 將以此單品為基礎建立完整穿搭",
     "failed": "產生配對失敗",
     "generate": "產生穿搭",

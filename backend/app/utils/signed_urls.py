@@ -23,6 +23,11 @@ def sign_image_url(path: str, expiry_seconds: int = DEFAULT_EXPIRY_SECONDS) -> s
     return f"/api/v1/images/{path}?expires={expires}&sig={signature}"
 
 
+def sign_optional(path: str | None, fallback: str | None = None) -> str | None:
+    target = path or fallback
+    return sign_image_url(target) if target else None
+
+
 def verify_signature(path: str, expires: str, signature: str) -> bool:
     try:
         expiry_time = int(expires)

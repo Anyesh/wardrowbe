@@ -29,13 +29,6 @@
     },
     "rateOutfit": "为 {member} 的穿搭评分",
     "ratingCount": "（{count, plural, one {{count} 条评分} other {{count} 条评分}}）",
-    "sourceBadges": {
-      "external": "外部",
-      "manual": "手动",
-      "onDemand": "即时获取",
-      "pairing": "搭配",
-      "scheduled": "定时推送"
-    },
     "subtitle": "浏览和评价家人的穿搭",
     "title": "家庭动态",
     "unknownMember": "这位成员",
@@ -95,6 +88,7 @@
     "createFailed": "创建家庭失败，请重试。",
     "created": "家庭创建成功！",
     "inviteFailed": "发送邀请失败",
+    "inviteNotEmailed": "邀请已保存，但邮件未能发送。请改为分享邀请码。",
     "inviteSent": "邀请已发送！",
     "joined": "成功加入家庭！",
     "nameUpdateFailed": "更新家庭名称失败",

@@ -38,9 +38,11 @@
     "pairing": "搭配",
     "replacement": "替換",
     "studio": "工作室",
+    "woreInsteadFallback": "{occasion}(改穿)",
     "worn": "已穿過"
   },
   "cloneToLookbook": {
+    "defaultName": "{occasion} · {date}",
     "description": "為這套造型命名，方便日後尋找並再次穿著。",
     "errorEmpty": "請輸入名稱",
     "name": "名稱",
@@ -76,6 +78,7 @@
     "name": "名稱",
     "namePlaceholder": "週五早午餐",
     "nameRequired": "（造型冊必填）",
+    "required": "必填",
     "occasion": "場合",
     "pickOccasion": "儲存前請先選擇場合。",
     "skippedItem": "已略過 {name}：{reason}",

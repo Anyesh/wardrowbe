@@ -1,13 +1,19 @@
 from collections import Counter
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
-from app.models.item import ClothingItem, ItemHistory, ItemStatus, TaggingStatus, WashHistory
+from app.models.item import (
+    TAG_COLUMNS,
+    ClothingItem,
+    ItemHistory,
+    ItemStatus,
+    TaggingStatus,
+    WashHistory,
+)
 from app.schemas.item import DEFAULT_WASH_INTERVALS, ItemCreate, ItemFilter, ItemUpdate
 
 
@@ -234,30 +240,38 @@ class ItemService:
     async def update(self, item: ClothingItem, item_data: ItemUpdate) -> ClothingItem:
         update_data = item_data.model_dump(exclude_unset=True)
 
-        if "tags" in update_data and update_data["tags"]:
-            tags = update_data["tags"]
-            if isinstance(tags, dict):
-                update_data["tags"] = {k: v for k, v in tags.items() if v is not None}
-            else:
-                update_data["tags"] = tags.model_dump(exclude_none=True)
+        incoming: dict = {}
+        if "tags" in update_data and update_data["tags"] is not None:
+            incoming = update_data["tags"]
+            if not isinstance(incoming, dict):
+                incoming = incoming.model_dump(exclude_unset=True)
+            # Merge rather than replace: the tags JSONB also holds user-owned
+            # keys (size, care_instructions, source_url) that a partial update
+            # does not mention. An explicit null clears that one key.
+            # Re-read under a row lock: two concurrent writers must not each merge
+            # into a stale snapshot and then overwrite the other. Selecting one
+            # column still locks the row until the caller commits.
+            locked = await self.db.execute(
+                select(ClothingItem.tags).where(ClothingItem.id == item.id).with_for_update()
+            )
+            merged = dict(locked.scalar_one_or_none() or {})
+            for key, val in incoming.items():
+                if val is None:
+                    merged.pop(key, None)
+                else:
+                    merged[key] = val
+            update_data["tags"] = merged
 
         for field, value in update_data.items():
             setattr(item, field, value)
 
         if "tags" in update_data:
             attributes.flag_modified(item, "tags")
-            tag_data = update_data["tags"] or {}
-            for column in (
-                "colors",
-                "primary_color",
-                "pattern",
-                "material",
-                "style",
-                "season",
-                "formality",
-            ):
-                if column in tag_data:
-                    setattr(item, column, tag_data[column])
+            # Mirror from what the caller sent, not from the merged result, so
+            # clearing a tag also clears its column instead of leaving it stale.
+            for column in TAG_COLUMNS:
+                if column in incoming:
+                    setattr(item, column, incoming[column])
 
         await self.db.flush()
         # Re-fetch with eager loading to ensure relationships are properly loaded
@@ -432,32 +446,61 @@ class ItemService:
         notes: str | None = None,
         outfit_id: UUID | None = None,
     ) -> ItemHistory:
-        # Create history entry
-        history = ItemHistory(
-            item_id=item.id,
-            outfit_id=outfit_id,
-            worn_at=worn_at,
-            occasion=occasion,
-            notes=notes,
+        [history] = await self.record_wears(
+            item.user_id, [item.id], worn_at, occasion=occasion, notes=notes, outfit_id=outfit_id
         )
-        self.db.add(history)
-
-        # Update item stats
-        item.wear_count += 1
-        item.last_worn_at = worn_at
-
-        # Update wash tracking
-        item.wears_since_wash += 1
-        effective_interval = (
-            item.wash_interval
-            if item.wash_interval is not None
-            else DEFAULT_WASH_INTERVALS.get(item.type, 3)
-        )
-        item.needs_wash = item.wears_since_wash >= effective_interval
-
-        await self.db.flush()
-        await self.db.refresh(history)
         return history
+
+    # Every wear, logged on an item or by wearing an outfit, goes through here so that the
+    # counters, wash tracking and the item's wear history cannot disagree.
+    async def record_wears(
+        self,
+        user_id: UUID,
+        item_ids: list[UUID],
+        worn_at: date,
+        *,
+        occasion: str | None = None,
+        notes: str | None = None,
+        outfit_id: UUID | None = None,
+    ) -> list[ItemHistory]:
+        result = await self.db.execute(
+            select(ClothingItem).where(
+                ClothingItem.id.in_(item_ids), ClothingItem.user_id == user_id
+            )
+        )
+        histories = []
+        for item in result.scalars().all():
+            effective_interval = (
+                item.wash_interval
+                if item.wash_interval is not None
+                else DEFAULT_WASH_INTERVALS.get(item.type, 3)
+            )
+            # Updated in SQL so that concurrent wears both count, and last_worn_at only moves
+            # forward when an older wear is logged late.
+            await self.db.execute(
+                update(ClothingItem)
+                .where(ClothingItem.id == item.id)
+                .values(
+                    wear_count=ClothingItem.wear_count + 1,
+                    last_worn_at=func.greatest(
+                        func.coalesce(ClothingItem.last_worn_at, worn_at), worn_at
+                    ),
+                    wears_since_wash=ClothingItem.wears_since_wash + 1,
+                    needs_wash=ClothingItem.wears_since_wash + 1 >= effective_interval,
+                )
+            )
+            history = ItemHistory(
+                item_id=item.id,
+                outfit_id=outfit_id,
+                worn_at=worn_at,
+                occasion=occasion,
+                notes=notes,
+            )
+            self.db.add(history)
+            histories.append(history)
+            self.db.expire(item)
+        await self.db.flush()
+        return histories
 
     async def log_wash(
         self,
@@ -509,14 +552,7 @@ class ItemService:
         )
         return list(result.scalars().all())
 
-    async def get_wear_stats(self, item: ClothingItem, user_timezone: str = "UTC") -> dict:
-        # Calculate today's date in user's timezone
-        try:
-            user_tz = ZoneInfo(user_timezone)
-        except Exception:
-            user_tz = ZoneInfo("UTC")
-        user_today = datetime.now(UTC).astimezone(user_tz).date()
-
+    async def get_wear_stats(self, item: ClothingItem, user_today: date) -> dict:
         # Days since last worn
         days_since_last_worn = None
         if item.last_worn_at:

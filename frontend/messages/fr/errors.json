@@ -2,6 +2,7 @@
   "default": "Un problème est survenu. Veuillez réessayer.",
   "invite": {
     "alreadyInFamily": "Vous êtes déjà dans une famille.",
+    "emailNotVerified": "Votre fournisseur de connexion n'a pas vérifié votre adresse e-mail. Vérifiez-la, puis reconnectez-vous pour accepter cette invitation.",
     "invalidLink": "Ce lien d'invitation est invalide ou a expiré.",
     "wrongEmail": "Cette invitation a été envoyée à une adresse e-mail différente."
   },

@@ -18,9 +18,9 @@
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#quick-start">Quick Start</a> •
-  <a href="#languages">Languages</a> •
+  <a href="#ai-configuration">AI</a> •
   <a href="#deployment">Deployment</a> •
-  <a href="#architecture">Architecture</a> •
+  <a href="#configuration">Configuration</a> •
   <a href="#contributing">Contributing</a>
 </p>
 
@@ -50,24 +50,7 @@ Self-hosted wardrobe management with AI-powered outfit recommendations. Take pho
 - **Analytics** - See what you wear, what you don't, color distribution
 - **Fully self-hosted** - Your data stays on your hardware
 - **Works with any AI** - OpenAI, Ollama, LocalAI, or any OpenAI-compatible API
-- **8 languages** - English, Chinese (Simplified & Traditional), Korean, Japanese, French, German, Italian
-
-## Languages
-
-Wardrowbe's UI is fully translated into 8 languages via `next-intl`. Pick a language from Settings, or let it follow your browser automatically.
-
-| Language | Locale code |
-|----------|-------------|
-| English | `en` |
-| 中文简体 (Chinese, Simplified) | `zh-CN` |
-| 中文繁體 (Chinese, Traditional) | `zh-TW` |
-| 한국어 (Korean) | `ko` |
-| 日本語 (Japanese) | `ja` |
-| Français (French) | `fr` |
-| Deutsch (German) | `de` |
-| Italiano (Italian) | `it` |
-
-Want to add a language or improve a translation? See [Internationalization](CONTRIBUTING.md#internationalization) in the contributing guide.
+- **8 languages** - English, Chinese (Simplified & Traditional), Korean, Japanese, French, German, Italian. Pick one in Settings or let it follow your browser; to add or improve a translation, see [Internationalization](CONTRIBUTING.md#internationalization)
 
 ## Screenshots
 
@@ -93,99 +76,26 @@ Want to add a language or improve a translation? See [Internationalization](CONT
 
 ## Quick Start
 
-### Prerequisites
-
-- Docker and Docker Compose installed
-- At least 4GB of RAM available
-- An AI service (Ollama recommended for free local AI, or OpenAI API key)
-
-### Setup
-
-#### Step 1: Install Ollama (if using local AI)
-
-**Option A: Using Ollama (Recommended - Free, runs locally)**
+You need Docker with Docker Compose, about 4GB of RAM (with local Ollama models), and an AI service: [Ollama](#using-ollama-recommended-for-self-hosting) for free local AI, or an OpenAI API key. The published images are multi-arch (`linux/amd64` and `linux/arm64`), so it runs on a Raspberry Pi 5 too.
 
 ```bash
-# Install Ollama from https://ollama.ai
-# Then pull required models:
-ollama pull gemma3        # Multimodel LLM (for image analysis and outfit recommendations)
-
-# Verify it's running:
-curl http://localhost:11434/api/tags
-```
-
-**Option B: Using OpenAI (Paid API)**
-
-Get your API key from https://platform.openai.com/api-keys
-
-#### Step 2: Clone and Configure
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/wardrowbe.git
+git clone https://github.com/Anyesh/wardrowbe.git
 cd wardrowbe
+cp .env.example .env    # then set the AI_* values, see AI Configuration below
 
-# Copy environment template
-cp .env.example .env
-
-# IMPORTANT: Edit .env and configure AI settings
-# For Ollama (default in .env.example):
-#   AI_BASE_URL=http://host.docker.internal:11434/v1
-#   AI_VISION_MODEL=gemma3:latest
-#   AI_TEXT_MODEL=gemma3:latest
-#
-# For OpenAI, uncomment and set:
-#   AI_BASE_URL=https://api.openai.com/v1
-#   AI_API_KEY=sk-your-api-key-here
-#   AI_VISION_MODEL=gpt-4o
-#   AI_TEXT_MODEL=gpt-4o
-
-# Optional: Generate secure secrets for production
-# SECRET_KEY=$(openssl rand -hex 32)
-# NEXTAUTH_SECRET=$(openssl rand -hex 32)
-```
-
-#### Step 3: Start Services
-
-`docker-compose.yml` pulls pre-built multi-arch images (`linux/amd64` and `linux/arm64`, so Raspberry Pi and other ARM hosts work) from GitHub Container Registry. No local build tooling is required on the host.
-
-```bash
-# Pull the latest published images, then start all containers
 docker compose pull
 docker compose up -d
-
-# Wait for services to be healthy (30 seconds)
-docker compose ps
-
-# Run database migrations (REQUIRED)
 docker compose exec backend alembic upgrade head
 
-# Verify everything is working
-curl http://localhost:8000/api/v1/health
-# Should return: {"status":"healthy"}
+curl http://localhost:8000/api/v1/health    # {"status":"healthy"}
 ```
 
-To build the images from source instead of pulling them, use the development stack below (`docker-compose.dev.yml`), which builds locally and enables hot reload.
+Open http://localhost:3000 and click "Login". The default development login needs no password. Before exposing the app beyond your own machine, set `SECRET_KEY` and `NEXTAUTH_SECRET` in `.env` (`openssl rand -hex 32`) and set up [authentication](#authentication).
 
-#### Step 4: Access the App
-
-- **Frontend:** http://localhost:3000
-- **API Docs:** http://localhost:8000/docs
-- **Login:** Click "Login" - uses dev credentials by default (no password needed)
-
-### Development Mode
-
-For hot reloading during development (auto-rebuilds on code changes):
+To build the images from source with hot reload, use the development stack instead (see [CONTRIBUTING.md](CONTRIBUTING.md#local-development)):
 
 ```bash
-# Start in dev mode
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-
-# Run migrations (first time only)
-docker compose exec backend alembic upgrade head
-
-# View logs
-docker compose logs -f frontend backend
 ```
 
 ## AI Configuration
@@ -194,58 +104,38 @@ Wardrowbe works with any OpenAI-compatible API. You need two types of models:
 - **Vision model**: Analyzes clothing images to extract colors, patterns, styles
 - **Text model**: Generates outfit recommendations and descriptions
 
-### Running without internal AI
-
-Internal AI is optional. Set `AI_INTERNAL_ENABLED=false` to run the backend with
-no internal AI provider at all — it boots and serves without `AI_BASE_URL`,
-`AI_API_KEY`, or model names configured, and defers tagging/suggestions/pairings
-to an external agent. You can also disable a single capability with
-`AI_VISION_ENABLED=false` (auto-tagging) or `AI_TEXT_ENABLED=false`
-(suggestions/pairings); unset switches inherit the master. The effective state is
-reported at `GET /api/v1/capabilities`. Defaults keep internal AI **on**, so
-existing deployments are unaffected.
-
 ### Using Ollama (Recommended for Self-Hosting)
 
-**Free, runs locally, no API key needed, works offline**
+Free, runs locally, no API key needed, works offline. Install [Ollama](https://ollama.ai), pull a multimodal model that handles both images and recommendations, and point `.env` at it:
 
-1. Install [Ollama](https://ollama.ai)
-2. Pull models:
-   ```bash
-   ollama pull gemma3:latest  # multimodel LLM (3.4GB) - analyze images and generates recommendations
+```bash
+ollama pull gemma3:latest    # 3.4GB
+```
 
-   # Alternative text models you can use:
-   # ollama pull llama3:latest     # Good all-around model
-   # ollama pull qwen2.5:latest    # Fast and efficient
-   # ollama pull mistral:latest    # Great for creative text
-   ```
+```env
+AI_BASE_URL=http://host.docker.internal:11434/v1
+AI_API_KEY=not-needed
+AI_VISION_MODEL=gemma3:latest
+AI_TEXT_MODEL=gemma3:latest
+```
 
-3. Configure in `.env`:
-   ```env
-   AI_BASE_URL=http://host.docker.internal:11434/v1
-   AI_API_KEY=not-needed
-   AI_VISION_MODEL=gemma3:latest
-   AI_TEXT_MODEL=gemma3:latest
-   ```
-
-**Note:** Use `host.docker.internal` instead of `localhost` so Docker containers can reach your host's Ollama.
+Use `host.docker.internal` instead of `localhost` so Docker containers can reach your host's Ollama.
 
 ### Using OpenAI
 
-**Paid API, requires internet connection**
+Get an API key from https://platform.openai.com/api-keys, then:
 
-1. Get API key from https://platform.openai.com/api-keys
-2. Configure in `.env`:
-   ```env
-   AI_BASE_URL=https://api.openai.com/v1
-   AI_API_KEY=sk-your-api-key-here
-   AI_VISION_MODEL=gpt-4o
-   AI_TEXT_MODEL=gpt-4o
-   ```
+```env
+AI_BASE_URL=https://api.openai.com/v1
+AI_API_KEY=sk-your-api-key-here
+AI_VISION_MODEL=gpt-4o
+AI_TEXT_MODEL=gpt-4o
+```
 
-### Using LocalAI
+<details>
+<summary>Other providers and models (LocalAI, other Ollama models)</summary>
 
-**Self-hosted OpenAI alternative**
+**LocalAI**, a self-hosted OpenAI alternative:
 
 ```env
 AI_BASE_URL=http://localai:8080/v1
@@ -254,14 +144,30 @@ AI_VISION_MODEL=gpt-4-vision-preview
 AI_TEXT_MODEL=gpt-3.5-turbo
 ```
 
-### Using Multimodal Models
-
-Some models can handle both vision and text (like qwen2-vl, llama3.2-vision):
+Some models handle both vision and text (like qwen2-vl, llama3.2-vision), so one model can serve both:
 
 ```env
 AI_VISION_MODEL=llama3.2-vision:11b
-AI_TEXT_MODEL=llama3.2-vision:11b  # Same model for both tasks
+AI_TEXT_MODEL=llama3.2-vision:11b
 ```
+
+Other Ollama text models that work: `llama3:latest` (good all-around), `qwen2.5:latest` (fast), `mistral:latest` (creative text).
+
+</details>
+
+<details>
+<summary>Running without internal AI</summary>
+
+Internal AI is optional. Set `AI_INTERNAL_ENABLED=false` to run the backend with
+no internal AI provider at all: it boots and serves without `AI_BASE_URL`,
+`AI_API_KEY`, or model names configured, and defers tagging/suggestions/pairings
+to an external agent. You can also disable a single capability with
+`AI_VISION_ENABLED=false` (auto-tagging) or `AI_TEXT_ENABLED=false`
+(suggestions/pairings); unset switches inherit the master. The effective state is
+reported at `GET /api/v1/capabilities`. Defaults keep internal AI **on**, so
+existing deployments are unaffected.
+
+</details>
 
 ## Architecture
 
@@ -287,8 +193,6 @@ AI_TEXT_MODEL=llama3.2-vision:11b  # Same model for both tasks
                └─────────────────────┘
 ```
 
-### Tech Stack
-
 | Layer | Technology |
 |-------|------------|
 | Frontend | Next.js 14, TypeScript, TanStack Query, Tailwind CSS, shadcn/ui |
@@ -296,7 +200,7 @@ AI_TEXT_MODEL=llama3.2-vision:11b  # Same model for both tasks
 | Database | PostgreSQL 15 |
 | Cache/Queue | Redis 7 |
 | Background Jobs | arq |
-| Authentication | NextAuth.js (supports OIDC, dev credentials) |
+| Authentication | NextAuth.js (supports OIDC, forward-auth, dev credentials) |
 | AI | Any OpenAI-compatible API |
 
 ## Deployment
@@ -308,22 +212,56 @@ See [docker-compose.prod.yml](docker-compose.prod.yml) for production configurat
 ```bash
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
-docker compose exec backend alembic upgrade head
+docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
 ```
 
-Images are tagged `backend-latest` / `frontend-latest`, and each release also
-publishes `backend-<version>` / `frontend-<version>` (e.g. `backend-1.3.0`). To
-pin a deployment to a specific release, replace the `-latest` tags in the
-compose file with the version, e.g. `ghcr.io/anyesh/wardrowbe:backend-1.3.0`.
+Images are tagged `backend-latest` / `frontend-latest`, and each release also publishes `backend-<version>` / `frontend-<version>`. To pin a release, replace the `-latest` tags in the compose file, e.g. `ghcr.io/anyesh/wardrowbe:backend-1.3.0`.
 
 ### Kubernetes
 
-See the [k8s/](k8s/) directory for Kubernetes manifests including:
-- PostgreSQL and Redis with persistent storage
-- Backend API and worker deployments
-- Next.js frontend
-- Ingress with TLS
-- Network policies
+See [k8s/](k8s/) for manifests (PostgreSQL and Redis with persistent storage, backend API and worker, frontend, ingress with TLS, network policies). The [k8s README](k8s/README.md#upgrading) has the upgrade steps for a cluster.
+
+### Client IPs behind a reverse proxy
+
+If a reverse proxy sits in front of Wardrowbe, set `TRUSTED_PROXY_COUNT` so sign-in rate limits see each client's address instead of the proxy's.
+
+<details>
+<summary>Which value to use, and why</summary>
+
+Sign-in rate limits key on the client's IP. Every proxy that forwards a request appends the address it received it from to `X-Forwarded-For`, and everything to the left of those entries is whatever the client sent, so the backend reads the entry `TRUSTED_PROXY_COUNT` places from the right. The Next.js frontend adds the header only when a request arrives without one, with the address of the connection, and otherwise relays it unchanged, so it does not count.
+
+| Deployment | Proxies that append | `TRUSTED_PROXY_COUNT` |
+|------------|--------------------|-----------------------|
+| `docker-compose.yml`, browsers on `:3000` | none | `0` (default) |
+| `docker-compose.yml` behind Caddy or Traefik, with `:3000` and `:8000` bound to `127.0.0.1` | the proxy | `1` |
+| `docker-compose.prod.yml`, nginx reached directly | nginx | `1` (default) |
+| `docker-compose.prod.yml` behind Caddy, Traefik or another proxy on `:8080` | that proxy and nginx | `2` |
+| Kubernetes with the bundled Traefik ingress | the ingress controller | `1` (configmap) |
+
+Count a CDN or load balancer in front of these only when it appends to the header too. Too low a count is safe, since clients only end up sharing a proxy's address and its limit; too high a count lets anyone choose the IP they are limited under by sending their own header. Clients that can reach the backend without passing through every counted proxy can do the same, and when a request carries fewer entries than the count, the backend falls back to the address of the connection itself.
+
+An entry may carry a port (`203.0.113.7:4711`, `[2001:db8::1]:4711`), and an IPv4-mapped IPv6 address counts as the IPv4 address. A public IPv6 client is limited by its /64, because one host usually holds a whole /64 and could otherwise rotate addresses inside it; private, unique-local and link-local addresses are limited one by one, so containers on a Docker network stay apart.
+
+</details>
+
+### Upgrading
+
+Replace the code first, then migrate inside the new container, so that old code never runs against the migrated database. Until the migration runs, the new backend answers errors without writing anything.
+
+1. Back up the database, and keep the file: a downgrade loses data, and the [identity repair SQL](docs/sign-in-identities.md#repairing-accounts-if-the-migration-ran-while-the-old-backend-was-still-serving) needs the UTC time in its name.
+
+   ```bash
+   docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+     > backup-$(date -u +%Y%m%dT%H%M%SZ).sql
+   ```
+
+2. `docker compose pull`
+3. `docker compose up -d`, which replaces the backend, the worker and the image worker.
+4. `docker compose exec backend alembic upgrade head`
+
+`docker-compose.prod.yml` is a standalone file, so with the production stack every one of these commands takes `-f docker-compose.prod.yml`. Sign-in tokens issued before the upgrade keep working until they expire (7 days).
+
+Upgrading from a release before sign-in identities (the `user_identities` table)? [Sign-in identities](docs/sign-in-identities.md#upgrading-to-sign-in-identities) covers what the migration changes, how to repair accounts if it ran while the old backend was still serving, and how to downgrade.
 
 ## Configuration
 
@@ -332,45 +270,144 @@ See the [k8s/](k8s/) directory for Kubernetes manifests including:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `SECRET_KEY` | Backend secret for JWT | Yes |
-| `PUID` | Uid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
-| `PGID` | Gid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
-| `NEXTAUTH_SECRET` | NextAuth session encryption | Yes |
+| `REDIS_URL` | Redis URL for the API and workers (default: `redis://localhost:6379/0`; the bundled Compose files set it themselves) | No |
+| `SECRET_KEY` | Backend secret for JWT. The backend refuses to start with the default `change-me-in-production` unless `DEBUG=true` and neither OIDC nor forward-auth is configured | Yes |
+| `NEXTAUTH_SECRET` | NextAuth session encryption. The frontend refuses to start with a value beginning `change-me-in-production` when `OIDC_ISSUER_URL` or `FORWARD_AUTH_SECRET` is set | Yes |
 | `AI_BASE_URL` | AI service URL | Yes |
 | `AI_API_KEY` | AI API key (if required) | Depends |
+| `APP_URL` | Public app URL used in notification and invite links (default: `http://localhost:3000`) | No |
+| `LOG_LEVEL` | Log level for the API and workers (default: INFO) | No |
+
+<details>
+<summary>Sign-in and reverse proxy</summary>
+
+| Variable | Description | Required |
+|----------|-------------|----------|
 | `OIDC_ISSUER_URL` | OIDC provider URL (enables SSO login) | No |
 | `OIDC_CLIENT_ID` | OIDC client ID | If OIDC |
 | `OIDC_CLIENT_SECRET` | OIDC client secret | If OIDC |
-| `OIDC_SKIP_SSL_VERIFY` | Skip TLS verification for OIDC provider (self-signed certs) | No |
+| `OIDC_CA_BUNDLE` | Path inside the backend container to a PEM CA certificate the backend trusts for the OIDC provider (private CA or self-signed certs) | No |
+| `NODE_EXTRA_CA_CERTS` | Path inside the frontend container to a PEM CA certificate Node trusts on top of the system store, for the OIDC provider and an `https` `BACKEND_URL` | No |
 | `LOCAL_DNS` | Custom DNS server for container name resolution (e.g. local OIDC host) | No |
+| `FORWARD_AUTH_SECRET` | Shared secret the forward-auth proxy sends as `X-Forward-Auth-Secret` (at least 32 characters; enables forward-auth). Set the same value for the backend and the frontend | No |
+| `TINYAUTH_URL` | TinyAuth base URL, where logout sends the browser in forward-auth mode | No |
+| `FORWARD_AUTH_LOGOUT_URL` | Proxy logout URL for Authelia and others in forward-auth mode | No |
+| `TRUSTED_PROXY_COUNT` | Reverse proxies in front of the API that append to `X-Forwarded-For` (default: 0; `docker-compose.prod.yml` and k8s set 1). See [Client IPs behind a reverse proxy](#client-ips-behind-a-reverse-proxy) | No |
+
+</details>
+
+<details>
+<summary>Notifications</summary>
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NTFY_SERVER` | Default ntfy server offered when a user adds an ntfy channel | No |
+| `NTFY_TOKEN` | Access token for `NTFY_SERVER`, used for any ntfy channel on that server that has no token of its own | No |
 | `SMTP_HOST` | SMTP server for email notifications | No |
 | `SMTP_PORT` | SMTP port (default: 587) | No |
 | `SMTP_USER` | SMTP username | No |
 | `SMTP_PASSWORD` | SMTP password | No |
+| `SMTP_USE_TLS` | Use STARTTLS for SMTP (default: true) | No |
+| `SMTP_FROM_NAME` | Sender name on notification emails (default: Wardrowbe) | No |
+| `SMTP_FROM_EMAIL` | Sender address (default: `SMTP_USER`) | No |
+
+</details>
+
+<details>
+<summary>Background removal, location and container user</summary>
+
+| Variable | Description | Required |
+|----------|-------------|----------|
 | `BG_REMOVAL_PROVIDER` | Background removal backend: `rembg` or `http` (default: `rembg`) | No |
 | `BG_REMOVAL_MODEL` | rembg model name (default: `u2net`) | No |
 | `BG_REMOVAL_URL` | URL for HTTP bg removal provider | If http |
 | `BG_REMOVAL_API_KEY` | API key for HTTP bg removal provider | No |
 | `NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK` | Enable IP-based approximate location when browser geolocation is denied/unavailable. Off by default (sends the user's IP to a third party). Set to `true` to enable | No |
 | `NEXT_PUBLIC_NETWORK_LOCATION_URL` | Override the IP geolocation provider (default: `https://ipapi.co/json/`). Only used when the fallback above is enabled | No |
+| `PUID` | Uid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
+| `PGID` | Gid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
+
+</details>
+
+<details>
+<summary>Using your own Redis (password, TLS, unix socket)</summary>
+
+Set the same `REDIS_URL` on the API and both workers. The bundled Compose files point every service at their own Redis container, so a `REDIS_URL` in `.env` has no effect there.
+
+- Password: `redis://:password@redis:6379/2` (or `user:password@`)
+- TLS: `rediss://:password@redis:6380/2`
+- Unix socket: `unix://:password@/run/redis/redis.sock?db=2`
+
+`db` is the only supported query parameter. Percent-encode reserved characters in passwords and socket paths (`@` as `%40`, `/` as `%2F`, `#` as `%23`).
+
+</details>
 
 See [.env.example](.env.example) for all options.
 
-### Location Detection (Privacy Note)
+### Authentication
 
-The Settings page can fill in your coordinates from the browser's Geolocation API. If that is denied or unavailable, an optional fallback can approximate your location from your IP address via a third-party service (`ipapi.co` by default). This fallback is **disabled by default** because it sends the user's IP to an external provider; enable it with `NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK=true` and optionally point `NEXT_PUBLIC_NETWORK_LOCATION_URL` at a provider you trust. These are build-time frontend variables, so set them before building the frontend image. Geocoding a location name you type yourself still uses OpenStreetMap Nominatim regardless of this setting.
+- **Development Mode** (default): Simple email/name login, no setup required
+- **OIDC Mode**: Any OIDC provider (PocketID, Authentik, Keycloak, Auth0, etc.)
+- **Forward-auth Mode**: An authenticating reverse proxy such as TinyAuth or Authelia signs people in. Setup, proxy snippets and the security notes are in [docs/forward-auth.md](docs/forward-auth.md)
 
-### Background Removal (Optional)
+To enable OIDC, set `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET` in your `.env`, and register `{NEXTAUTH_URL}/api/auth/callback/oidc` as the callback/redirect URI in your provider (e.g. `http://localhost:8080/api/auth/callback/oidc`).
 
-Remove image backgrounds from wardrobe items. Two backends supported:
+<details>
+<summary>OIDC provider with a self-signed certificate or private CA</summary>
 
-**rembg (local, default):**
-```bash
-pip install rembg[cpu]  # add to your image, or install manually
+Mount that CA certificate (PEM) into the backend container and set `OIDC_CA_BUNDLE` to its path inside the container, e.g. `/certs/internal-ca.pem`. The backend then verifies the provider's discovery and JWKS requests against that CA; TLS verification itself is never turned off. The frontend talks to the provider too (NextAuth fetches the discovery document and JWKS, exchanges the code at the token endpoint and reads the userinfo endpoint), so mount the same PEM into the frontend container and set `NODE_EXTRA_CA_CERTS` to its path there; it also covers a `BACKEND_URL` served over `https` by the same CA. The certificate has to be readable by the uid and gid the containers run as (`PUID`/`PGID`), for example:
+
+```yaml
+services:
+  backend:
+    environment:
+      OIDC_CA_BUNDLE: /certs/internal-ca.pem
+    volumes:
+      - ./certs:/certs:ro
+  frontend:
+    environment:
+      NODE_EXTRA_CA_CERTS: /certs/internal-ca.pem
+    volumes:
+      - ./certs:/certs:ro
 ```
-No config needed — works out of the box. Change model with `BG_REMOVAL_MODEL` (default: `u2net`, options: `isnet-general-use`, `silueta`, `u2netp`).
 
-**HTTP provider (e.g. [withoutbg](https://github.com/nicholasgasior/withoutbg)):**
+</details>
+
+<details>
+<summary>OIDC provider on a hostname containers can't resolve</summary>
+
+If your OIDC provider runs on a hostname that Docker containers can't resolve (e.g. a local DNS name), set `LOCAL_DNS` to your DNS server IP, or set `OIDC_HOST` and `OIDC_HOST_IP` to inject the hostname directly into the container's `/etc/hosts`.
+
+</details>
+
+An account can sign in through more than one provider. To block a person or unlink one of their sign-ins, see [Sign-in identities](docs/sign-in-identities.md#accounts-and-sign-in-identities).
+
+### Notifications
+
+Users add their own channels in the app: **ntfy** push notifications, **Mattermost** webhooks, or **email** (set `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` in `.env`).
+
+### Weather and location
+
+Weather comes from [Open-Meteo](https://open-meteo.com/), free with no API key. The Settings page fills in your coordinates from the browser's Geolocation API, and a location name you type is geocoded with OpenStreetMap Nominatim.
+
+<details>
+<summary>Approximate location from the IP address (off by default)</summary>
+
+If browser geolocation is denied or unavailable, an optional fallback can approximate your location from your IP address via a third-party service (`ipapi.co` by default). It is disabled by default because it sends the user's IP to an external provider; enable it with `NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK=true` and optionally point `NEXT_PUBLIC_NETWORK_LOCATION_URL` at a provider you trust. These are build-time frontend variables, so set them before building the frontend image.
+
+</details>
+
+### Background Removal
+
+Works out of the box: the backend image ships rembg with the default `u2net` model already downloaded.
+
+<details>
+<summary>Other rembg models, or an HTTP provider</summary>
+
+Change the rembg model with `BG_REMOVAL_MODEL` (options: `isnet-general-use`, `silueta`, `u2netp`). A non-default model is downloaded the first time background removal runs, so that first run needs internet access; the compose files keep it in the `rembg_models` volume so later runs work offline. On Kubernetes, mount a PersistentVolume at `/opt/rembg/models` on the image-worker if you change the model, or it is downloaded again on every pod start. The volume must be writable by uid 1000: the manifests' `fsGroup` covers a PersistentVolumeClaim, but a `hostPath` volume needs its directory owned by that uid. The worker links the baked `u2net` into the volume on start, so switching back needs no download.
+
+To use an HTTP provider (e.g. [withoutbg](https://github.com/nicholasgasior/withoutbg)) instead:
+
 ```env
 BG_REMOVAL_PROVIDER=http
 BG_REMOVAL_URL=http://withoutbg:5000
@@ -379,86 +416,14 @@ BG_REMOVAL_API_KEY=          # optional
 
 If neither is configured, the remove-background button returns a 501 with setup instructions.
 
-### Authentication
-
-- **Development Mode** (default): Simple email/name login, no setup required
-- **OIDC Mode**: Any OIDC provider (PocketID, Authentik, Keycloak, Auth0, etc.)
-
-To enable OIDC, set `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET` in your `.env`. If your OIDC provider uses a self-signed certificate, set `OIDC_SKIP_SSL_VERIFY=true`. If your OIDC provider runs on a hostname that Docker containers can't resolve (e.g. a local DNS name), set `LOCAL_DNS` to your DNS server IP, or set `OIDC_HOST` and `OIDC_HOST_IP` to inject the hostname directly into the container's `/etc/hosts`.
-
-When registering the app in your OIDC provider, use this as the callback/redirect URI:
-
-```
-{NEXTAUTH_URL}/api/auth/callback/oidc
-```
-
-For example, if `NEXTAUTH_URL=http://localhost:8080`, the callback URL is:
-
-```
-http://localhost:8080/api/auth/callback/oidc
-```
-
-### Notifications
-
-- **ntfy.sh**: Free push notifications
-- **Email**: SMTP-based (set `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` in `.env`)
-
-### Weather
-
-Uses [Open-Meteo](https://open-meteo.com/) - free, no API key needed.
-
-## Development
-
-### Backend
-
-```bash
-# Run tests (requires running containers)
-docker compose exec backend python -m pytest tests/ -v --tb=short
-
-# Run a specific test file
-docker compose exec backend python -m pytest tests/test_notification_workers.py -v
-
-# Lint
-pip install ruff
-ruff check --fix backend/app/ && ruff format backend/app/
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-
-# Run dev server
-npm run dev
-
-# Run tests
-npm test
-
-# Build
-npm run build
-```
-
-### API Documentation
-
-Available when running:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+</details>
 
 ## Troubleshooting
 
-### Build Fails with TypeScript Errors
+Start with `docker compose ps` and `docker compose logs backend worker frontend --tail=50`; most problems show up there.
 
-```bash
-# Check for type errors
-cd frontend
-npm install
-npx tsc --noEmit
-
-# If you see errors, please report them as a bug
-```
-
-### Frontend Shows "500 Internal Server Error" or Won't Load
+<details>
+<summary>Frontend shows "500 Internal Server Error" or won't load</summary>
 
 ```bash
 # 1. Check all services are healthy
@@ -477,7 +442,10 @@ docker compose logs backend frontend --tail=50
 docker compose exec backend alembic upgrade head
 ```
 
-### AI Features Not Working / Images Not Being Analyzed
+</details>
+
+<details>
+<summary>AI features not working / images not being analyzed</summary>
 
 ```bash
 # For Ollama users:
@@ -502,25 +470,10 @@ curl https://api.openai.com/v1/models \
 # 2. Check you have credits remaining in your account
 ```
 
-### Development Mode Fails to Start
+</details>
 
-```bash
-# 1. Ensure you're using the dev compose file
-docker compose -f docker-compose.yml -f docker-compose.dev.yml down
-docker compose -f docker-compose.yml -f docker-compose.dev.yml build frontend
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-
-# 2. Check frontend logs
-docker compose logs frontend -f
-
-# Alternative: Run frontend locally for development
-cd frontend
-npm install
-npm run dev
-# Then access at http://localhost:3000
-```
-
-### Port Already in Use
+<details>
+<summary>Port already in use</summary>
 
 ```bash
 # Check what's using the ports
@@ -532,7 +485,10 @@ sudo lsof -i :6379  # Redis
 # Stop conflicting services or change ports in .env
 ```
 
-### Database Migration Errors
+</details>
+
+<details>
+<summary>Database migration errors</summary>
 
 ```bash
 # Check current migration version
@@ -548,7 +504,10 @@ sleep 10
 docker compose exec backend alembic upgrade head
 ```
 
-### Container Keeps Restarting
+</details>
+
+<details>
+<summary>Container keeps restarting, or the app is slow</summary>
 
 ```bash
 # Check container logs
@@ -558,40 +517,22 @@ docker compose logs <service-name> --tail=100
 # - Database not ready: Wait 30 seconds and retry
 # - Out of memory: Increase Docker memory limit
 # - Permission errors: Check file permissions on volumes
-```
 
-### Performance Issues / Slow Response
-
-```bash
 # Check resource usage
 docker stats
-
-# If backend is slow:
-# 1. Check PostgreSQL performance
-docker compose exec postgres psql -U wardrobe -c "SELECT * FROM pg_stat_activity;"
-
-# 2. Check Redis connection
-docker compose exec redis redis-cli ping
 
 # If AI analysis is slow:
 # - For Ollama: Use smaller quantized models
 # - For OpenAI: Check your rate limits
 ```
 
-### Getting Help
+</details>
 
-If you're still stuck:
-1. Check existing [GitHub Issues](https://github.com/yourusername/wardrowbe/issues)
-2. Search [Discussions](https://github.com/yourusername/wardrowbe/discussions)
-3. Create a new issue with:
-   - Output of `docker compose ps`
-   - Relevant logs from `docker compose logs`
-   - Your .env configuration (redact secrets!)
-   - Steps to reproduce the problem
+Still stuck? Check the [issues](https://github.com/Anyesh/wardrowbe/issues) and [discussions](https://github.com/Anyesh/wardrowbe/discussions), or open a new issue with the output of `docker compose ps`, the relevant logs, your `.env` with secrets redacted, and the steps to reproduce.
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, the development setup and how to run the tests. The API docs are served at http://localhost:8000/docs and http://localhost:8000/redoc in dev mode (`DEBUG=true` with neither OIDC nor forward-auth configured).
 
 ## Support
 
@@ -607,11 +548,3 @@ Thanks to our supporters:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Requirements
-
-- Docker & Docker Compose
-- ~4GB RAM (with local Ollama models)
-- Storage for clothing photos
-
-Works great on a Raspberry Pi 5!

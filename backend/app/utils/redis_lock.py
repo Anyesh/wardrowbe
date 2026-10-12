@@ -15,7 +15,7 @@ async def get_redis() -> aioredis.Redis:
     if _redis_pool is None:
         settings = get_settings()
         _redis_pool = aioredis.from_url(
-            str(settings.redis_url),
+            settings.redis_url,
             decode_responses=True,
         )
     return _redis_pool

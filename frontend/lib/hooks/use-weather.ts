@@ -2,38 +2,21 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
-
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
-
-export interface Weather {
-  temperature: number;
-  feels_like: number;
-  humidity: number;
-  precipitation_chance: number;
-  precipitation_mm: number;
-  wind_speed: number;
-  condition: string;
-  condition_code: number;
-  is_day: boolean;
-  uv_index: number;
-  timestamp: string;
-}
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
+import type { CurrentWeather } from '@/lib/types';
+import { queryKeys } from '@/lib/hooks/query-keys';
+import { WEATHER_STALE_TIME } from '@/lib/hooks/query-timing';
 
 export function useWeather() {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['weather'],
-    queryFn: () => api.get<Weather>('/weather/current'),
+    queryKey: queryKeys.weather,
+    queryFn: () => api.get<CurrentWeather>('/weather/current'),
     enabled: status !== 'loading',
-    staleTime: 1000 * 60 * 15, // 15 minutes - weather doesn't change that fast
+    staleTime: WEATHER_STALE_TIME,
     retry: false, // Don't retry if location not set
   });
 }

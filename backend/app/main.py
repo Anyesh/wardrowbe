@@ -10,8 +10,9 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from app.api.router import api_router
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.database import engine
+from app.logging_config import configure_logging
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    configure_logging(settings)
     warning = settings.validate_security()
     if warning:
         logger.error("Configuration: %s", warning)
@@ -27,14 +29,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await engine.dispose()
 
 
+def docs_urls(settings: Settings) -> dict[str, str | None]:
+    enabled = settings.dev_mode
+    return {
+        "docs_url": "/docs" if enabled else None,
+        "redoc_url": "/redoc" if enabled else None,
+        "openapi_url": "/openapi.json" if enabled else None,
+    }
+
+
 app = FastAPI(
     title=settings.app_name,
     description="AI-powered wardrobe management and outfit recommendations",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/docs" if settings.debug else None,
-    redoc_url="/redoc" if settings.debug else None,
-    openapi_url="/openapi.json" if settings.debug else None,
+    **docs_urls(settings),
 )
 
 # Configure CORS

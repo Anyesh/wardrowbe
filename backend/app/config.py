@@ -1,12 +1,20 @@
 import logging
 from functools import lru_cache
+from typing import Literal
 
-from pydantic import Field, PostgresDsn, RedisDsn, field_validator
+from pydantic import Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.utils.redis_url import parse_redis_url
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_SECRET_KEY = "change-me-in-production"
+FORWARD_AUTH_SECRET_MIN_LENGTH = 32
+NO_AUTH_CONFIGURED_MESSAGE = (
+    "No authentication method configured. "
+    "Set OIDC_ISSUER_URL + OIDC_CLIENT_ID, set FORWARD_AUTH_SECRET, or enable DEBUG mode."
+)
 
 
 class Settings(BaseSettings):
@@ -16,6 +24,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
         env_ignore_empty=True,
+        hide_input_in_errors=True,
     )
 
     # Application
@@ -23,6 +32,25 @@ class Settings(BaseSettings):
     debug: bool = False
     secret_key: str = Field(default=DEFAULT_SECRET_KEY)
     studio_disabled: bool = False
+    app_url: str = Field(default="http://localhost:3000")
+
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def uppercase_log_level(cls, v: object) -> object:
+        return v.upper() if isinstance(v, str) else v
+
+    @field_validator("app_url")
+    @classmethod
+    def strip_app_url_trailing_slash(cls, v: str) -> str:
+        return v.rstrip("/")
+
+    # How many reverse proxies in front of the API append to X-Forwarded-For. The client IP that
+    # rate limits key on is that many entries from the right, because everything further left is
+    # whatever the client sent. 0 ignores the header and uses the socket peer. Counting too few
+    # only merges clients into one bucket; counting too many lets a client pick its own key.
+    trusted_proxy_count: int = Field(default=0, ge=0)
 
     # CORS
     cors_origins: list[str] = Field(default=["http://localhost:3000", "http://localhost:8081"])
@@ -34,7 +62,14 @@ class Settings(BaseSettings):
     database_echo: bool = False
 
     # Redis
-    redis_url: RedisDsn = Field(default="redis://localhost:6379/0")
+    redis_url: str = Field(default="redis://localhost:6379/0")
+
+    @field_validator("redis_url")
+    @classmethod
+    def validate_redis_url(cls, value: str) -> str:
+        value = value.strip()
+        parse_redis_url(value)
+        return value
 
     # Authentication - OIDC
     oidc_issuer_url: str | None = Field(default=None)
@@ -42,6 +77,10 @@ class Settings(BaseSettings):
     oidc_client_secret: str | None = None
     oidc_mobile_client_id: str | None = None
     oidc_ca_bundle: str | None = Field(default=None)
+
+    # Shared secret the authenticating reverse proxy adds as X-Forward-Auth-Secret,
+    # so that Remote-* identity headers are only trusted when the proxy sent them.
+    forward_auth_secret: str | None = Field(default=None)
 
     # AI capability switches.
     # ai_internal_enabled is the master switch; ai_vision_enabled / ai_text_enabled
@@ -94,17 +133,17 @@ class Settings(BaseSettings):
 
     # Notifications - default ntfy channel (used when user has none configured)
     ntfy_server: str | None = None
-    ntfy_topic: str | None = None
     ntfy_token: str | None = None
-    # Legacy/other providers
-    mattermost_webhook_url: str | None = None
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_user: str | None = None
     smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_from_name: str = "Wardrowbe"
+    smtp_from_email: str | None = None
     # Storage
     storage_path: str = Field(default="/data/wardrobe")
-    max_upload_size_mb: int = Field(default=10)
+    max_upload_size_mb: int = Field(default=50, ge=1)
     max_bulk_upload_count: int = Field(default=20)
     # Byte size is a poor proxy for decode cost: a 3.8MB JPEG can be 108MP,
     # which needs ~324MB per full-resolution RGB buffer and several exist at
@@ -131,12 +170,6 @@ class Settings(BaseSettings):
     bg_removal_model: str = Field(default="u2net")  # rembg model name
     bg_removal_url: str | None = Field(default=None)  # URL for http provider (e.g. withoutbg)
     bg_removal_api_key: str | None = Field(default=None)  # API key for http provider
-
-    # Image processing
-    thumbnail_size: int = 400
-    medium_size: int = 800
-    original_max_size: int = 2400
-    image_quality: int = 90
 
     @property
     def effective_ai_vision_enabled(self) -> bool:
@@ -165,36 +198,62 @@ class Settings(BaseSettings):
         """True if any internal AI capability is active."""
         return self.effective_ai_vision_enabled or self.effective_ai_text_enabled
 
+    @property
+    def oidc_configured(self) -> bool:
+        return bool(self.oidc_issuer_url and self.oidc_client_id)
+
+    @property
+    def forward_auth_configured(self) -> bool:
+        return bool(self.forward_auth_secret)
+
+    @property
+    def dev_mode(self) -> bool:
+        return self.debug and not self.oidc_configured and not self.forward_auth_configured
+
     def validate_security(self) -> str | None:
-        if self.secret_key == DEFAULT_SECRET_KEY and not self.debug:
+        if self.secret_key == DEFAULT_SECRET_KEY and not self.dev_mode:
             raise RuntimeError(
-                "SECRET_KEY is still the default value. "
-                "Set a secure SECRET_KEY or enable DEBUG mode for development."
+                "SECRET_KEY is still the default value. Set a secure SECRET_KEY; the default "
+                "is accepted only in DEBUG mode with neither OIDC nor forward-auth configured."
             )
 
-        oidc_issuer = bool(self.oidc_issuer_url)
-        oidc_client = bool(self.oidc_client_id)
-        if oidc_issuer != oidc_client:
+        if bool(self.oidc_issuer_url) != bool(self.oidc_client_id):
             raise RuntimeError(
                 "OIDC is partially configured: both OIDC_ISSUER_URL and OIDC_CLIENT_ID must be set together."
             )
 
-        oidc_configured = oidc_issuer and oidc_client
-        is_dev = self.debug and not oidc_configured
-        if not oidc_configured and not is_dev:
-            return (
-                "No authentication method configured. "
-                "Set OIDC_ISSUER_URL + OIDC_CLIENT_ID, or enable DEBUG mode."
+        if (
+            self.forward_auth_configured
+            and len(self.forward_auth_secret) < FORWARD_AUTH_SECRET_MIN_LENGTH
+        ):
+            raise RuntimeError(
+                f"FORWARD_AUTH_SECRET must be at least {FORWARD_AUTH_SECRET_MIN_LENGTH} characters."
             )
+        # Proxies trim header whitespace and the frontend can only relay Latin-1 header values,
+        # so any other character would make every forward-auth sign-in fail the comparison.
+        if self.forward_auth_configured and not all(
+            "!" <= char <= "~" for char in self.forward_auth_secret
+        ):
+            raise RuntimeError(
+                "FORWARD_AUTH_SECRET must contain only visible ASCII characters and no spaces."
+            )
+
+        if not (self.oidc_configured or self.forward_auth_configured or self.dev_mode):
+            return NO_AUTH_CONFIGURED_MESSAGE
 
         return None
 
     def get_auth_mode(self) -> str:
-        if self.oidc_issuer_url and self.oidc_client_id:
+        if self.forward_auth_configured:
+            return "forward-auth+oidc" if self.oidc_configured else "forward-auth"
+        if self.oidc_configured:
             return "oidc"
-        if self.debug:
+        if self.dev_mode:
             return "dev"
         return "unknown"
+
+    def app_link(self, path: str = "") -> str:
+        return f"{self.app_url}/{path.lstrip('/')}"
 
     def get_geocoding_user_agent(self) -> str:
         return self.geocoding_user_agent or "Wardrowbe/1.0"

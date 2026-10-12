@@ -11,7 +11,6 @@ Or in production:
 
 import asyncio
 import sys
-from io import BytesIO
 from pathlib import Path
 
 # Add parent to path for imports
@@ -24,46 +23,23 @@ from sqlalchemy.orm import sessionmaker
 
 from app.config import get_settings
 from app.models.item import ClothingItem
-
-# New sizes (must match image_service.py)
-SIZES = {
-    "thumbnail": (400, 400),
-    "medium": (800, 800),
-}
-
-QUALITY = {
-    "thumbnail": 88,
-    "medium": 90,
-}
+from app.services.image_service import VARIANTS, ImageService
 
 
-def resize_image(image: Image.Image, max_size: tuple[int, int], quality: int) -> bytes:
-    """Resize image maintaining aspect ratio."""
-    img = image.copy()
-
-    # Convert to RGB if necessary
-    if img.mode in ("RGBA", "P", "LA"):
-        background = Image.new("RGB", img.size, (255, 255, 255))
-        if img.mode == "P":
-            img = img.convert("RGBA")
-        background.paste(img, mask=img.split()[-1] if img.mode == "RGBA" else None)
-        img = background
-    elif img.mode != "RGB":
-        img = img.convert("RGB")
-
-    # Resize maintaining aspect ratio
-    img.thumbnail(max_size, Image.Resampling.LANCZOS)
-
-    # Save to bytes
-    output = BytesIO()
-    img.save(output, format="JPEG", quality=quality, optimize=True)
-    return output.getvalue()
+def regenerate_variants(service: ImageService, original_path: Path) -> None:
+    base_name = original_path.stem.replace("_medium", "").replace("_thumb", "")
+    with Image.open(original_path) as image:
+        image.load()
+        for variant in VARIANTS[1:]:
+            target = original_path.parent / f"{base_name}{variant.suffix}.jpg"
+            target.write_bytes(service.encode_variant(image, variant))
 
 
 async def regenerate_all():
     """Regenerate thumbnails for all items."""
     settings = get_settings()
     storage_path = Path(settings.storage_path)
+    service = ImageService(settings.storage_path)
 
     # Create async engine
     engine = create_async_engine(str(settings.database_url))
@@ -90,22 +66,7 @@ async def regenerate_all():
                     skipped += 1
                     continue
 
-                # Load original image
-                image = Image.open(original_path)
-
-                # Get base path for derived images
-                base_path = original_path.parent
-                base_name = original_path.stem.replace("_medium", "").replace("_thumb", "")
-
-                # Regenerate thumbnail
-                thumb_path = base_path / f"{base_name}_thumb.jpg"
-                thumb_data = resize_image(image, SIZES["thumbnail"], QUALITY["thumbnail"])
-                thumb_path.write_bytes(thumb_data)
-
-                # Regenerate medium
-                medium_path = base_path / f"{base_name}_medium.jpg"
-                medium_data = resize_image(image, SIZES["medium"], QUALITY["medium"])
-                medium_path.write_bytes(medium_data)
+                regenerate_variants(service, original_path)
 
                 print(f"  [{item.id}] Regenerated: {item.name or 'unnamed'}")
                 success += 1
@@ -121,8 +82,8 @@ async def regenerate_all():
 
 if __name__ == "__main__":
     print("Regenerating thumbnails with new sizes...")
-    print(f"  Thumbnail: {SIZES['thumbnail']} @ q{QUALITY['thumbnail']}")
-    print(f"  Medium: {SIZES['medium']} @ q{QUALITY['medium']}")
+    for variant in VARIANTS[1:]:
+        print(f"  {variant.path_field}: {variant.box} @ q{variant.quality}")
     print()
 
     asyncio.run(regenerate_all())

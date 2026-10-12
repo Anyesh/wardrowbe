@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Star, Check, X, ChevronLeft, Search, Loader2 } from 'lucide-react';
+import { Check, X, ChevronLeft, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,64 +13,30 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { useSubmitFeedback, type Outfit } from '@/lib/hooks/use-outfits';
-import { useItems } from '@/lib/hooks/use-items';
+import { useSubmitFeedback, type FeedbackSummary, type Outfit } from '@/lib/hooks/use-outfits';
+import { useItemPages } from '@/lib/hooks/use-items';
 import { cn } from '@/lib/utils';
+import { GRID_PAGE_SIZE } from '@/lib/pagination';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { StarRatingInput } from '@/components/shared/star-rating';
+import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
-function StarRating({
-  rating,
-  onRate,
-  size = 'sm',
-}: {
-  rating: number;
-  onRate?: (rating: number) => void;
-  size?: 'sm' | 'lg';
-}) {
-  const sizeClass = size === 'lg' ? 'h-6 w-6' : 'h-4 w-4';
-
-  return (
-    <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          type="button"
-          onClick={() => onRate?.(star)}
-          disabled={!onRate}
-          className={onRate ? 'cursor-pointer hover:scale-110 transition-transform' : 'cursor-default'}
-        >
-          <Star
-            className={`${sizeClass} ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
-          />
-        </button>
-      ))}
-    </div>
-  );
-}
+export type FeedbackTarget = Pick<Outfit, 'id' | 'items'> & {
+  feedback: Pick<FeedbackSummary, 'rating' | 'comment'> | null;
+};
 
 interface FeedbackDialogProps {
-  outfit: Outfit;
+  outfit: FeedbackTarget;
   open: boolean;
   onClose: () => void;
 }
 
 type FeedbackStep = 'wear-question' | 'rating' | 'wore-instead';
 
-const PAGE_SIZE = 24;
-
-interface AccumulatedItem {
-  id: string;
-  name?: string;
-  type: string;
-  thumbnail_path?: string;
-  thumbnail_url?: string;
-  image_path: string;
-  image_url?: string;
-  is_archived: boolean;
-}
 
 export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('suggest.feedback');
   const tc = useTranslations('common');
   const [step, setStep] = useState<FeedbackStep>('wear-question');
@@ -80,8 +46,7 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [accumulatedItems, setAccumulatedItems] = useState<AccumulatedItem[]>([]);
+  const [pageCount, setPageCount] = useState(1);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const submitFeedback = useSubmitFeedback();
 
@@ -89,38 +54,22 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setPage(1); // Reset to first page on search
-      setAccumulatedItems([]); // Clear accumulated items on new search
+      setPageCount(1);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch wardrobe items with search and pagination
-  const { data: itemsData, isLoading, isFetching } = useItems(
+  const {
+    items: wardrobeItems,
+    total: totalItems,
+    hasMore,
+    isLoading,
+    isFetching,
+  } = useItemPages(
     { search: debouncedSearch || undefined, is_archived: false },
-    page,
-    PAGE_SIZE
+    pageCount,
+    GRID_PAGE_SIZE
   );
-  const hasMore = itemsData?.has_more ?? false;
-  const totalItems = itemsData?.total ?? 0;
-
-  // Accumulate items as pages load
-  useEffect(() => {
-    if (itemsData?.items) {
-      if (page === 1) {
-        setAccumulatedItems(itemsData.items);
-      } else {
-        setAccumulatedItems((prev) => {
-          const existingIds = new Set(prev.map((i) => i.id));
-          const newItems = itemsData.items.filter((i) => !existingIds.has(i.id));
-          return [...prev, ...newItems];
-        });
-      }
-    }
-  }, [itemsData?.items, page]);
-
-  // Use accumulated items for display
-  const wardrobeItems = accumulatedItems;
 
   // Reset state when dialog opens for a different outfit
   useEffect(() => {
@@ -143,15 +92,14 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
       setSelectedItems([]);
       setSearchQuery('');
       setDebouncedSearch('');
-      setPage(1);
-      setAccumulatedItems([]);
+      setPageCount(1);
     }
   }, [open, outfit.id, outfit.feedback]);
 
   // Load more items for infinite scroll
   const loadMore = useCallback(() => {
     if (hasMore && !isFetching) {
-      setPage((p) => p + 1);
+      setPageCount((count) => count + 1);
     }
   }, [hasMore, isFetching]);
 
@@ -271,7 +219,7 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
             <div className="space-y-4 py-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">{t('overallRating')}</label>
-                <StarRating rating={rating} onRate={setRating} size="lg" />
+                <StarRatingInput value={rating} onChange={setRating} />
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">{t('commentsOptional')}</label>
@@ -352,7 +300,7 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
                     >
                       <Image
                         src={item.thumbnail_url || item.image_url || item.image_path}
-                        alt={item.name || item.type}
+                        alt={item.name || typeLabel(item.type)}
                         fill
                         className="object-cover"
                         sizes="(max-width: 640px) 33vw, 25vw"
@@ -367,7 +315,7 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
                       )}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
                         <span className="text-[10px] sm:text-xs text-white font-medium truncate block">
-                          {item.name || item.type}
+                          {item.name || typeLabel(item.type)}
                         </span>
                       </div>
                     </button>

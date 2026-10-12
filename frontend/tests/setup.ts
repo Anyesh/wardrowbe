@@ -23,6 +23,11 @@ vi.mock('next-auth/react', () => ({
 }))
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
+  useFormatter: () => ({
+    number: (value: number) => String(value),
+    list: (items: string[]) => items.join(', '),
+  }),
   useTranslations: () => {
     const t = (key: string) => key;
     t.raw = (key: string) => key;
@@ -63,15 +68,19 @@ if (typeof window !== 'undefined') {
     })),
   })
 
-  global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-  }))
+  global.IntersectionObserver = vi.fn().mockImplementation(function () {
+    return {
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+    }
+  })
 
-  global.ResizeObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-  }))
+  global.ResizeObserver = vi.fn().mockImplementation(function () {
+    return {
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+    }
+  })
 }

@@ -29,13 +29,6 @@
     },
     "rateOutfit": "Outfit von {member} bewerten",
     "ratingCount": "({count, plural, one {{count} Bewertung} other {{count} Bewertungen}})",
-    "sourceBadges": {
-      "external": "Extern",
-      "manual": "Manuell",
-      "onDemand": "Auf Anfrage",
-      "pairing": "Kombination",
-      "scheduled": "Geplant"
-    },
     "subtitle": "Durchstöbere und bewerte die Outfits deiner Familienmitglieder",
     "title": "Familien-Feed",
     "unknownMember": "Dieses Mitglied",
@@ -95,6 +88,7 @@
     "createFailed": "Familie konnte nicht erstellt werden. Bitte versuche es erneut.",
     "created": "Familie erstellt!",
     "inviteFailed": "Einladung konnte nicht gesendet werden",
+    "inviteNotEmailed": "Einladung gespeichert, aber die E-Mail konnte nicht gesendet werden. Teile stattdessen den Einladungscode.",
     "inviteSent": "Einladung gesendet!",
     "joined": "Familie beigetreten!",
     "nameUpdateFailed": "Familienname konnte nicht aktualisiert werden",

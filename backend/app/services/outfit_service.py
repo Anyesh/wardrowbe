@@ -3,7 +3,7 @@ from datetime import date, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import Select, and_, func, select
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -32,7 +32,12 @@ class OutfitListFilters:
     item_type: str | None = None
     family_member_view: bool = False
     search: str | None = None
+    occasions: list[str] | None = None
     cloned_from_outfit_id: UUID | None = None
+
+
+def _escape_like(term: str) -> str:
+    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 class OutfitService:
@@ -123,8 +128,17 @@ class OutfitService:
         if filters.item_type:
             clauses.append(Outfit.source_item.has(ClothingItem.type == filters.item_type))
 
+        # Occasions match too because unnamed outfits are titled by their translated occasion;
+        # the client sends the occasion keys whose label contains the search term.
+        search_matches = []
         if filters.search:
-            clauses.append(Outfit.name.ilike(f"%{filters.search}%"))
+            search_matches.append(
+                Outfit.name.ilike(f"%{_escape_like(filters.search)}%", escape="\\")
+            )
+        if filters.occasions:
+            search_matches.append(Outfit.occasion.in_(filters.occasions))
+        if search_matches:
+            clauses.append(or_(*search_matches))
 
         if filters.cloned_from_outfit_id is not None:
             clauses.append(Outfit.cloned_from_outfit_id == filters.cloned_from_outfit_id)
@@ -169,7 +183,7 @@ class OutfitService:
                 selectinload(Outfit.feedback),
                 selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
             )
-            .order_by(Outfit.created_at.desc())
+            .order_by(Outfit.created_at.desc(), Outfit.id.asc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )

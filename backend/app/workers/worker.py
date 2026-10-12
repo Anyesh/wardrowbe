@@ -6,6 +6,7 @@ from arq.jobs import Job, JobStatus
 from sqlalchemy import and_, or_, select, update
 
 from app.config import get_settings
+from app.logging_config import configure_logging
 from app.models.item import ClothingItem, ItemStatus
 from app.services.ai_service import AIService
 from app.workers.db import close_db, get_db_session, init_db
@@ -14,7 +15,6 @@ from app.workers.notifications import (
     check_wash_reminders,
     process_scheduled_notification,
     retry_failed_notifications,
-    send_notification,
     update_learning_profiles,
 )
 from app.workers.queues import IMAGE_PROCESSING_KINDS, TAGGING_QUEUE, queue_for_kind
@@ -100,6 +100,7 @@ async def recover_stale_processing_items(ctx: dict) -> None:
 
 
 async def startup(ctx: dict) -> None:
+    configure_logging(get_settings())
     logger.info("Worker starting up...")
     await init_db(ctx)
     if get_settings().ai_enabled:
@@ -120,7 +121,6 @@ async def shutdown(ctx: dict) -> None:
 class WorkerSettings:
     functions = [
         tag_item_image,
-        send_notification,
         retry_failed_notifications,
         check_scheduled_notifications,
         process_scheduled_notification,

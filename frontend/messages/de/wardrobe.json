@@ -170,6 +170,9 @@
       "originalRestoreError": "Originalbild konnte nicht wiederhergestellt werden",
       "originalRestored": "Originalbild wiederhergestellt",
       "washError": "Konnte nicht als gewaschen markiert werden",
+      "logWear": "Tragen erfassen",
+      "wearLogged": "Tragen erfasst",
+      "wearLogError": "Tragen konnte nicht erfasst werden",
       "washed": "Stück als gewaschen markiert"
     },
     "brand": "Marke",
@@ -260,7 +263,14 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
+    "failure": {
+      "tooLarge": "{name} ist größer als {limit} MB",
+      "tooLargeForServer": "{name} ist zu groß, um vom Server angenommen zu werden",
+      "unsupportedFormat": "{name} hat kein unterstütztes Format (JPEG, PNG, WebP oder HEIC)",
+      "duplicate": "{name} ist bereits in deiner Garderobe",
+      "generic": "{name} konnte nicht hochgeladen werden"
+    }
   },
   "wearCount": "{count, plural, one {# Mal getragen} other {# Mal getragen}}",
   "wornAgo": {

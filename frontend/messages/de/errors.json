@@ -2,6 +2,7 @@
   "default": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
   "invite": {
     "alreadyInFamily": "Du bist bereits in einer Familie.",
+    "emailNotVerified": "Dein Anmeldeanbieter hat deine E-Mail-Adresse nicht bestätigt. Bestätige sie dort und melde dich erneut an, um diese Einladung anzunehmen.",
     "invalidLink": "Dieser Einladungslink ist ungültig oder abgelaufen.",
     "wrongEmail": "Diese Einladung wurde an eine andere E-Mail-Adresse gesendet."
   },

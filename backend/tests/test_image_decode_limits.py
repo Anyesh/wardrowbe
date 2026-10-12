@@ -1,3 +1,4 @@
+from dataclasses import replace
 from io import BytesIO
 
 import imagehash
@@ -86,7 +87,9 @@ class TestPixelCeiling:
         # A JPEG that is over the ceiling at native resolution but under it once
         # the draft decode has scaled it down must still be accepted, because the
         # oversized buffer is never allocated.
-        monkeypatch.setattr(image_service_module, "SIZES", {"original": (100, 100)})
+        monkeypatch.setattr(
+            image_service_module, "ORIGINAL", replace(image_service_module.ORIGINAL, max_px=100)
+        )
         monkeypatch.setattr(image_service_module.settings, "max_image_megapixels", 0.2)
         svc = ImageService()
 
@@ -97,7 +100,9 @@ class TestPixelCeiling:
 
 class TestDraftDecode:
     def test_jpeg_is_drafted_down_before_decode(self, monkeypatch):
-        monkeypatch.setattr(image_service_module, "SIZES", {"original": (300, 300)})
+        monkeypatch.setattr(
+            image_service_module, "ORIGINAL", replace(image_service_module.ORIGINAL, max_px=300)
+        )
         svc = ImageService()
 
         image = svc._open_bounded(_jpeg((1200, 1200)), ".jpg")
@@ -105,7 +110,9 @@ class TestDraftDecode:
         assert image.size == (300, 300)
 
     def test_draft_never_undershoots_the_target_size(self, monkeypatch):
-        monkeypatch.setattr(image_service_module, "SIZES", {"original": (300, 300)})
+        monkeypatch.setattr(
+            image_service_module, "ORIGINAL", replace(image_service_module.ORIGINAL, max_px=300)
+        )
         svc = ImageService()
 
         image = svc._open_bounded(_jpeg((1000, 700)), ".jpg")
@@ -114,7 +121,9 @@ class TestDraftDecode:
         assert image.size[1] >= 300
 
     def test_png_is_not_drafted(self, monkeypatch):
-        monkeypatch.setattr(image_service_module, "SIZES", {"original": (300, 300)})
+        monkeypatch.setattr(
+            image_service_module, "ORIGINAL", replace(image_service_module.ORIGINAL, max_px=300)
+        )
         svc = ImageService()
 
         image = svc._open_bounded(_png((1200, 1200)), ".png")

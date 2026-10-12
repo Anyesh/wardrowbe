@@ -5,13 +5,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
-  Briefcase,
   Shirt,
-  Heart,
-  Dumbbell,
-  TreePine,
   Sparkles,
   RefreshCw,
   ThumbsUp,
@@ -26,7 +22,6 @@ import {
   ChevronDown,
   MapPin,
   Wind,
-  GlassWater,
   Cloudy,
   CloudSun,
   Snowflake,
@@ -54,13 +49,15 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ItemPicker } from '@/components/shared/item-picker';
+import { OccasionChips } from '@/components/shared/occasion-chips';
+import { useOccasionLabel, useWeatherConditionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { useItem } from '@/lib/hooks/use-items';
-import { api, ApiError, setAccessToken } from '@/lib/api';
-import { ClothingTypeValue, Item, Outfit, SuggestRequest } from '@/lib/types';
-import { useOccasions } from '@/lib/hooks/use-translated-constants';
-import { useWeather, Weather } from '@/lib/hooks/use-weather';
+import { api, ApiError } from '@/lib/api';
+import { applySessionToken } from '@/lib/hooks/use-session-token';
+import { ClothingTypeValue, CurrentWeather, Item, Outfit, SuggestRequest } from '@/lib/types';
+import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
-import { cn } from '@/lib/utils';
+import { cn, formatShortDate } from '@/lib/utils';
 import { TempUnit, formatTemp, displayValue, toF, toCelsius } from '@/lib/temperature';
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
@@ -69,16 +66,6 @@ const OVERRIDE_CONDITION_KEYS: Record<string, string> = {
   sunny: 'clear',
   cloudy: 'cloudy',
   rainy: 'rain',
-};
-
-// Map occasion values to icons and colors
-const OCCASION_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
-  casual: { icon: <Shirt className="h-4 w-4" />, color: 'hover:border-blue-400 hover:bg-blue-50 data-[selected=true]:border-blue-500 data-[selected=true]:bg-blue-50 data-[selected=true]:text-blue-700' },
-  office: { icon: <Briefcase className="h-4 w-4" />, color: 'hover:border-slate-400 hover:bg-slate-50 data-[selected=true]:border-slate-500 data-[selected=true]:bg-slate-50 data-[selected=true]:text-slate-700' },
-  formal: { icon: <GlassWater className="h-4 w-4" />, color: 'hover:border-purple-400 hover:bg-purple-50 data-[selected=true]:border-purple-500 data-[selected=true]:bg-purple-50 data-[selected=true]:text-purple-700' },
-  date: { icon: <Heart className="h-4 w-4" />, color: 'hover:border-rose-400 hover:bg-rose-50 data-[selected=true]:border-rose-500 data-[selected=true]:bg-rose-50 data-[selected=true]:text-rose-700' },
-  sporty: { icon: <Dumbbell className="h-4 w-4" />, color: 'hover:border-orange-400 hover:bg-orange-50 data-[selected=true]:border-orange-500 data-[selected=true]:bg-orange-50 data-[selected=true]:text-orange-700' },
-  outdoor: { icon: <TreePine className="h-4 w-4" />, color: 'hover:border-green-400 hover:bg-green-50 data-[selected=true]:border-green-500 data-[selected=true]:bg-green-50 data-[selected=true]:text-green-700' },
 };
 
 // Weather condition to icon mapping
@@ -101,7 +88,7 @@ function getGreetingKey(): string {
 }
 
 // Get weather-based outfit hint key
-function getWeatherHintKey(weather: Weather): string {
+function getWeatherHintKey(weather: CurrentWeather): string {
   const temp = weather.temperature;
   const condition = weather.condition.toLowerCase();
 
@@ -118,7 +105,8 @@ interface WeatherOverride {
   condition: 'sunny' | 'cloudy' | 'rainy';
 }
 
-function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: Weather; isLoading: boolean; temperatureUnit: TempUnit; t: Translator }) {
+function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: CurrentWeather; isLoading: boolean; temperatureUnit: TempUnit; t: Translator }) {
+  const conditionLabel = useWeatherConditionLabel();
   if (isLoading) {
     return (
       <Card className="border-muted">
@@ -168,7 +156,7 @@ function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: Wea
                 <span className="text-4xl font-semibold tracking-tight">{displayValue(weather.temperature, temperatureUnit)}</span>
                 <span className="text-lg text-muted-foreground">{temperatureUnit === 'fahrenheit' ? '°F' : '°C'}</span>
               </div>
-              <p className="text-sm text-muted-foreground capitalize">{weather.condition}</p>
+              <p className="text-sm text-muted-foreground">{conditionLabel(weather.condition)}</p>
             </div>
           </div>
           <div className="text-right text-sm text-muted-foreground space-y-1">
@@ -193,39 +181,6 @@ function WeatherCard({ weather, isLoading, temperatureUnit, t }: { weather?: Wea
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function OccasionChips({
-  selected,
-  onSelect,
-}: {
-  selected: string | null;
-  onSelect: (occasion: string) => void;
-}) {
-  const occasions = useOccasions();
-  return (
-    <div className="flex flex-wrap gap-2">
-      {occasions.map((occasion) => {
-        const config = OCCASION_CONFIG[occasion.value];
-        return (
-          <button
-            key={occasion.value}
-            onClick={() => onSelect(occasion.value)}
-            data-selected={selected === occasion.value}
-            className={cn(
-              'inline-flex items-center gap-2 px-4 py-2.5 rounded-full border-2 transition-all',
-              'border-muted bg-background',
-              config?.color || 'hover:border-primary hover:bg-primary/5',
-              'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50'
-            )}
-          >
-            {config?.icon}
-            <span className="text-sm font-medium">{occasion.label}</span>
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -335,6 +290,7 @@ function OutfitCard({
   showActions?: boolean;
   badgeLabel?: string;
 }) {
+  const typeLabel = useTypeLabel();
   return (
     <Card className="overflow-hidden flex flex-col h-full">
       <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 border-b">
@@ -385,7 +341,7 @@ function OutfitCard({
                   {item.thumbnail_url ? (
                     <Image
                       src={item.thumbnail_url}
-                      alt={item.name || item.type}
+                      alt={item.name || typeLabel(item.type)}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform"
                       sizes="(max-width: 640px) 50vw, 33vw"
@@ -398,7 +354,7 @@ function OutfitCard({
                 </div>
                 <div className="p-2">
                   <p className="text-xs sm:text-sm font-medium truncate">
-                    {item.name || item.type}
+                    {item.name || typeLabel(item.type)}
                   </p>
                   {item.layer_type && (
                     <Badge variant="secondary" className="text-[10px] capitalize mt-0.5">
@@ -472,6 +428,9 @@ function OutfitResultsView({
   onNewRequest: () => void;
   t: Translator;
 }) {
+  const locale = useLocale();
+  const conditionLabel = useWeatherConditionLabel();
+  const occasionLabel = useOccasionLabel();
   const currentOutfit = outfits[activeOptionIndex] || outfits[0];
 
   return (
@@ -479,13 +438,13 @@ function OutfitResultsView({
       {/* Header with occasion and start over */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="capitalize text-sm px-3 py-1">
-            {occasion}
+          <Badge variant="secondary" className="text-sm px-3 py-1">
+            {occasionLabel(occasion)}
           </Badge>
           {currentOutfit?.scheduled_for && (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarDays className="h-3 w-3" />
-              {new Date(currentOutfit.scheduled_for + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+              {formatShortDate(currentOutfit.scheduled_for, locale)}
             </span>
           )}
         </div>
@@ -506,8 +465,8 @@ function OutfitResultsView({
             <Droplets className="h-4 w-4" />
             <span>{t('weather.rainChance', { chance: currentOutfit.weather.precipitation_chance })}</span>
           </div>
-          <Badge variant="outline" className="capitalize">
-            {currentOutfit.weather.condition}
+          <Badge variant="outline">
+            {conditionLabel(currentOutfit.weather.condition)}
           </Badge>
         </div>
       )}
@@ -622,6 +581,7 @@ const BASE_ITEM_FILTER_TYPES = [
 ] as const satisfies readonly ClothingTypeValue[];
 
 function SuggestContent() {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('suggest');
   const tCommon = useTranslations('common');
   const tTypes = useTranslations('constants.types');
@@ -660,9 +620,7 @@ function SuggestContent() {
   const handleGenerate = async () => {
     if (!selectedOccasion) return;
 
-    if (session?.accessToken) {
-      setAccessToken(session.accessToken as string);
-    }
+    applySessionToken(session);
 
     setIsGenerating(true);
     setError(null);
@@ -702,9 +660,7 @@ function SuggestContent() {
     const outfitToAccept = targetOutfit || outfits[activeOptionIndex];
     if (!outfitToAccept) return;
 
-    if (session?.accessToken) {
-      setAccessToken(session.accessToken as string);
-    }
+    applySessionToken(session);
 
     try {
       await api.post(`/outfits/${outfitToAccept.id}/accept`);
@@ -729,9 +685,7 @@ function SuggestContent() {
     const outfitToReject = targetOutfit || outfits[activeOptionIndex];
     if (!outfitToReject) return;
 
-    if (session?.accessToken) {
-      setAccessToken(session.accessToken as string);
-    }
+    applySessionToken(session);
 
     try {
       await api.post(`/outfits/${outfitToReject.id}/reject`);
@@ -794,6 +748,7 @@ function SuggestContent() {
                 <OccasionChips
                   selected={selectedOccasion}
                   onSelect={setSelectedOccasion}
+                  extraOccasions={[prefs?.default_occasion]}
                 />
               </div>
 
@@ -835,7 +790,7 @@ function SuggestContent() {
                         {selectedItem.thumbnail_url || selectedItem.image_url ? (
                           <Image
                             src={(selectedItem.thumbnail_url || selectedItem.image_url)!}
-                            alt={selectedItem.name || selectedItem.type}
+                            alt={selectedItem.name || typeLabel(selectedItem.type)}
                             fill
                             className="object-cover"
                             sizes="56px"
@@ -852,11 +807,11 @@ function SuggestContent() {
                             {t('baseItem.mustInclude')}
                           </Badge>
                           <Badge variant="secondary" className="text-[10px] capitalize px-1.5 py-0">
-                            {selectedItem.type}
+                            {typeLabel(selectedItem.type)}
                           </Badge>
                         </div>
                         <p className="text-sm font-medium truncate">
-                          {selectedItem.name || selectedItem.type}
+                          {selectedItem.name || typeLabel(selectedItem.type)}
                         </p>
                         {selectedItem.primary_color && (
                           <p className="text-xs text-muted-foreground capitalize truncate">

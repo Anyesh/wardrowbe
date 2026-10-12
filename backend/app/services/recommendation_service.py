@@ -4,7 +4,6 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +17,7 @@ from app.models.outfit import (
     OutfitItem,
     OutfitSource,
     OutfitStatus,
+    TimeOfDay,
     UserFeedback,
 )
 from app.models.preference import UserPreference
@@ -32,8 +32,12 @@ from app.services.weather_service import (
     WeatherServiceError,
 )
 from app.utils.clothing import canonical_item_order, deduplicate_by_body_slot
+from app.utils.preference_defaults import (
+    DEFAULT_LAYERING_PREFERENCE,
+    DEFAULT_TEMPERATURE_SENSITIVITY,
+)
 from app.utils.prompts import load_prompt
-from app.utils.timezone import get_user_today
+from app.utils.timezone import get_user_now, get_user_today
 
 logger = logging.getLogger(__name__)
 
@@ -47,20 +51,16 @@ SINGLE_OUTFIT_FORMAT = (
 )
 
 
-def get_time_of_day(user: User) -> str:
-    try:
-        user_tz = ZoneInfo(user.timezone or "UTC")
-    except Exception:
-        user_tz = ZoneInfo("UTC")
-    hour = datetime.now(UTC).astimezone(user_tz).hour
+def get_time_of_day(user: User) -> TimeOfDay:
+    hour = get_user_now(user).hour
     if 6 <= hour < 12:
-        return "morning"
+        return TimeOfDay.morning
     elif 12 <= hour < 17:
-        return "afternoon"
+        return TimeOfDay.afternoon
     elif 17 <= hour < 21:
-        return "evening"
+        return TimeOfDay.evening
     else:
-        return "night"
+        return TimeOfDay.night
 
 
 def format_temp_range_text(weather: WeatherData) -> str:
@@ -381,11 +381,14 @@ class RecommendationService:
                     lines.append(f"- Less preferred styles: {', '.join(weak)}")
             if preferences.variety_level:
                 lines.append(f"- Variety preference: {preferences.variety_level}")
-            if preferences.layering_preference and preferences.layering_preference != "moderate":
+            if (
+                preferences.layering_preference
+                and preferences.layering_preference != DEFAULT_LAYERING_PREFERENCE
+            ):
                 lines.append(f"- Layering preference: {preferences.layering_preference}")
             if (
                 preferences.temperature_sensitivity
-                and preferences.temperature_sensitivity != "normal"
+                and preferences.temperature_sensitivity != DEFAULT_TEMPERATURE_SENSITIVITY
             ):
                 lines.append(
                     f"- Temperature sensitivity: {preferences.temperature_sensitivity} "
@@ -442,14 +445,14 @@ class RecommendationService:
 
         preferences = {}
 
-        if profile.learned_color_scores:
+        if profile.color_scores:
             liked_colors = sorted(
-                [(c, s) for c, s in profile.learned_color_scores.items() if s > 0.2],
+                [(c, s) for c, s in profile.color_scores.items() if s > 0.2],
                 key=lambda x: x[1],
                 reverse=True,
             )[:5]
             disliked_colors = sorted(
-                [(c, s) for c, s in profile.learned_color_scores.items() if s < -0.2],
+                [(c, s) for c, s in profile.color_scores.items() if s < -0.2],
                 key=lambda x: x[1],
             )[:3]
 
@@ -458,17 +461,17 @@ class RecommendationService:
             if disliked_colors:
                 preferences["learned_avoid_colors"] = [c for c, _ in disliked_colors]
 
-        if profile.learned_style_scores:
+        if profile.style_scores:
             liked_styles = sorted(
-                [(s, score) for s, score in profile.learned_style_scores.items() if score > 0.2],
+                [(s, score) for s, score in profile.style_scores.items() if score > 0.2],
                 key=lambda x: x[1],
                 reverse=True,
             )[:3]
             if liked_styles:
                 preferences["learned_preferred_styles"] = [s for s, _ in liked_styles]
 
-        if occasion and profile.learned_occasion_patterns:
-            occ_data = profile.learned_occasion_patterns.get(occasion)
+        if occasion:
+            occ_data = profile.occasion_patterns.get(occasion)
             if occ_data:
                 preferences["occasion_insights"] = {occasion: occ_data}
 
@@ -700,7 +703,7 @@ class RecommendationService:
         exclude_items: list[UUID] | None = None,
         include_items: list[UUID] | None = None,
         source: OutfitSource = OutfitSource.on_demand,
-        time_of_day: str | None = None,
+        time_of_day: TimeOfDay | None = None,
         count: int = 1,
         single_outfit: bool = False,
         scheduled_date: date | None = None,
@@ -986,7 +989,7 @@ class RecommendationService:
         exclude_items: list[UUID] | None = None,
         include_items: list[UUID] | None = None,
         source: OutfitSource = OutfitSource.on_demand,
-        time_of_day: str | None = None,
+        time_of_day: TimeOfDay | None = None,
         single_outfit: bool = False,
         scheduled_date: date | None = None,
     ) -> Outfit:

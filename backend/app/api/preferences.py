@@ -4,25 +4,30 @@ from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import DbSession
 from app.models.user import User
-from app.schemas.preference import PreferenceResponse, PreferenceUpdate
+from app.schemas.outfit import stored_occasion_or_default
+from app.schemas.preference import PreferenceResponse, PreferenceUpdate, StyleProfile
 from app.services.preference_service import PreferenceService
 from app.utils.auth import get_current_user
+from app.utils.preference_defaults import (
+    DEFAULT_LAYERING_PREFERENCE,
+    DEFAULT_PREFER_UNDERUSED_ITEMS,
+    DEFAULT_TEMPERATURE_SENSITIVITY,
+    DEFAULT_TEMPERATURE_UNIT,
+    DEFAULT_VARIETY_LEVEL,
+)
+from app.utils.scales import (
+    DEFAULT_AVOID_REPEAT_DAYS,
+    DEFAULT_COLD_THRESHOLD,
+    DEFAULT_HOT_THRESHOLD,
+)
 
 router = APIRouter(prefix="/users/me/preferences", tags=["Preferences"])
 
 
 def _build_preference_response(preferences) -> PreferenceResponse:
-    default_style = {
-        "casual": 50,
-        "formal": 50,
-        "sporty": 50,
-        "minimalist": 50,
-        "bold": 50,
-    }
     return PreferenceResponse(
         color_favorites=preferences.color_favorites
         if preferences.color_favorites is not None
@@ -30,37 +35,39 @@ def _build_preference_response(preferences) -> PreferenceResponse:
         color_avoid=preferences.color_avoid if preferences.color_avoid is not None else [],
         style_profile=preferences.style_profile
         if preferences.style_profile is not None
-        else default_style,
-        default_occasion=preferences.default_occasion
-        if preferences.default_occasion is not None
-        else "casual",
+        else StyleProfile().model_dump(),
+        default_occasion=stored_occasion_or_default(preferences.default_occasion),
         temperature_unit=preferences.temperature_unit
         if preferences.temperature_unit is not None
-        else "celsius",
+        else DEFAULT_TEMPERATURE_UNIT,
         temperature_sensitivity=preferences.temperature_sensitivity
         if preferences.temperature_sensitivity is not None
-        else "normal",
-        cold_threshold=preferences.cold_threshold if preferences.cold_threshold is not None else 10,
-        hot_threshold=preferences.hot_threshold if preferences.hot_threshold is not None else 25,
+        else DEFAULT_TEMPERATURE_SENSITIVITY,
+        cold_threshold=preferences.cold_threshold
+        if preferences.cold_threshold is not None
+        else DEFAULT_COLD_THRESHOLD,
+        hot_threshold=preferences.hot_threshold
+        if preferences.hot_threshold is not None
+        else DEFAULT_HOT_THRESHOLD,
         layering_preference=preferences.layering_preference
         if preferences.layering_preference is not None
-        else "moderate",
+        else DEFAULT_LAYERING_PREFERENCE,
         avoid_repeat_days=preferences.avoid_repeat_days
         if preferences.avoid_repeat_days is not None
-        else 7,
+        else DEFAULT_AVOID_REPEAT_DAYS,
         prefer_underused_items=preferences.prefer_underused_items
         if preferences.prefer_underused_items is not None
-        else True,
+        else DEFAULT_PREFER_UNDERUSED_ITEMS,
         variety_level=preferences.variety_level
         if preferences.variety_level is not None
-        else "moderate",
+        else DEFAULT_VARIETY_LEVEL,
         ai_endpoints=preferences.ai_endpoints if preferences.ai_endpoints is not None else [],
     )
 
 
 @router.get("", response_model=PreferenceResponse)
 async def get_preferences(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> PreferenceResponse:
     service = PreferenceService(db)
@@ -71,7 +78,7 @@ async def get_preferences(
 @router.patch("", response_model=PreferenceResponse)
 async def update_preferences(
     data: PreferenceUpdate,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> PreferenceResponse:
     service = PreferenceService(db)
@@ -81,7 +88,7 @@ async def update_preferences(
 
 @router.post("/reset", response_model=PreferenceResponse)
 async def reset_preferences(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> PreferenceResponse:
     service = PreferenceService(db)
@@ -92,7 +99,7 @@ async def reset_preferences(
 @router.post("/excluded-items/{item_id}", response_model=dict)
 async def add_excluded_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     service = PreferenceService(db)
@@ -103,7 +110,7 @@ async def add_excluded_item(
 @router.delete("/excluded-items/{item_id}", response_model=dict)
 async def remove_excluded_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     service = PreferenceService(db)

@@ -5,15 +5,42 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useFeatures } from '@/lib/hooks/use-features';
 import * as uploadManager from '@/lib/upload-manager';
 import { getPendingUploads } from '@/lib/upload-queue';
-import type { DrainState } from '@/lib/upload-manager';
+import type { DrainState, TerminalRecord } from '@/lib/upload-manager';
+
+const BYTES_PER_MB = 1024 * 1024;
+
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+function failureMessage(
+  t: Translator,
+  record: TerminalRecord,
+  limitMb: number | undefined
+): string {
+  const name = record.filename;
+  switch (record.errorCode) {
+    case 'too_large':
+      // A proxy can reject a file below the app's own limit with a 413, and
+      // quoting that limit would then contradict the file's actual size.
+      return limitMb !== undefined && record.size > limitMb * BYTES_PER_MB
+        ? t('failure.tooLarge', { name, limit: limitMb })
+        : t('failure.tooLargeForServer', { name });
+    case 'unsupported_format':
+      return t('failure.unsupportedFormat', { name });
+    case 'duplicate':
+      return t('failure.duplicate', { name });
+    default:
+      return t('failure.generic', { name });
+  }
+}
 
 export function UploadQueueIndicator() {
   const queryClient = useQueryClient();
   const t = useTranslations('wardrobe.uploadQueue');
+  const { data: features } = useFeatures();
   const [state, setState] = useState<DrainState | null>(null);
-  const [expanded, setExpanded] = useState(false);
   // True only for records that already existed before this component
   // mounted (a real resume, e.g. the tab was closed mid-import) - lets the
   // copy say "resuming an earlier import" instead of implying this is a
@@ -46,6 +73,8 @@ export function UploadQueueIndicator() {
     return null;
   }
 
+  const anyRetryable = state.terminalRecords.some((record) => record.retryable);
+
   return (
     <div className="fixed bottom-20 right-4 lg:bottom-4 z-50 w-full max-w-xs">
       <div className="rounded-lg border bg-card p-3 shadow-lg space-y-2">
@@ -73,23 +102,19 @@ export function UploadQueueIndicator() {
 
         {state.terminalRecords.length > 0 && (
           <div className="space-y-2 border-t pt-2">
-            <button
-              type="button"
-              className="flex items-center gap-2 text-left"
-              onClick={() => setExpanded((e) => !e)}
-            >
+            <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
               <span className="text-sm">{t('failedCount', { count: state.terminalRecords.length })}</span>
-            </button>
+            </div>
 
-            {expanded && (
-              <div className="max-h-40 space-y-1 overflow-y-auto">
-                {state.terminalRecords.map((record) => (
-                  <div key={record.id} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="truncate" title={record.lastError ?? undefined}>
-                      {record.filename}
-                    </span>
-                    <div className="flex shrink-0 items-center gap-2">
+            <ul className="max-h-40 space-y-1 overflow-y-auto">
+              {state.terminalRecords.map((record) => (
+                <li key={record.id} className="flex items-start justify-between gap-2 text-xs">
+                  <span className="min-w-0 break-words">
+                    {failureMessage(t, record, features?.max_upload_size_mb)}
+                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {record.retryable && (
                       <button
                         type="button"
                         className="text-primary hover:underline"
@@ -97,23 +122,25 @@ export function UploadQueueIndicator() {
                       >
                         {t('retry')}
                       </button>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:underline"
-                        onClick={() => uploadManager.dismiss(record.id)}
-                      >
-                        {t('dismiss')}
-                      </button>
-                    </div>
+                    )}
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:underline"
+                      onClick={() => uploadManager.dismiss(record.id)}
+                    >
+                      {t('dismiss')}
+                    </button>
                   </div>
-                ))}
-              </div>
-            )}
+                </li>
+              ))}
+            </ul>
 
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => uploadManager.retryAll()}>
-                {t('retryAll')}
-              </Button>
+              {anyRetryable && (
+                <Button size="sm" variant="outline" onClick={() => uploadManager.retryAll()}>
+                  {t('retryAll')}
+                </Button>
+              )}
               <Button size="sm" variant="ghost" onClick={() => uploadManager.dismissAll()}>
                 {t('dismissAll')}
               </Button>

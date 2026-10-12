@@ -1,74 +1,28 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
-import { FamilyRating } from '@/lib/types';
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
+import type { FamilyRating, Outfit, OutfitStatus } from '@/lib/types';
+import { formatDateKey } from '@/lib/utils';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/pagination';
+import { queryKeys } from '@/lib/hooks/query-keys';
+import { invalidateEveryItemWearCache, invalidateOutfitCaches } from '@/lib/hooks/cache-invalidation';
 
-// Helper to set token if available (for NextAuth mode)
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
-
-export interface OutfitItem {
-  id: string;
-  type: string;
-  subtype: string | null;
-  name: string | null;
-  primary_color: string | null;
-  colors: string[];
-  image_path: string;
-  thumbnail_path: string | null;
-  thumbnail_url?: string;
-  image_url?: string;
-  layer_type: string | null;
-  position: number;
-}
-
-export interface WoreInsteadItem {
-  id: string;
-  type: string;
-  name: string | null;
-  thumbnail_path: string | null;
-  thumbnail_url?: string;
-}
-
-export interface FeedbackSummary {
-  rating: number | null;
-  comment: string | null;
-  worn_at: string | null;
-  actually_worn: boolean | null;
-  wore_instead_items: WoreInsteadItem[] | null;
-}
-
-export type OutfitSource = 'scheduled' | 'on_demand' | 'manual' | 'pairing' | 'external';
-
-export interface Outfit {
-  id: string;
-  occasion: string;
-  scheduled_for: string | null;
-  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'skipped' | 'expired';
-  source: OutfitSource;
-  name: string | null;
-  replaces_outfit_id: string | null;
-  cloned_from_outfit_id: string | null;
-  reasoning: string | null;
-  style_notes: string | null;
-  season: string | null;
-  formality: string | null;
-  palette: string[] | null;
-  notes: string | null;
-  highlights: string[] | null;
-  weather: Record<string, unknown> | null;
-  items: OutfitItem[];
-  feedback: FeedbackSummary | null;
-  family_ratings: FamilyRating[] | null;
-  family_rating_average: number | null;
-  family_rating_count: number | null;
-  is_starter_suggestion?: boolean;
-  created_at: string;
-}
+export type {
+  FeedbackSummary,
+  Outfit,
+  OutfitItem,
+  OutfitSource,
+  OutfitStatus,
+  WeatherData,
+  WoreInsteadItem,
+} from '@/lib/types';
 
 export interface OutfitListResponse {
   outfits: Outfit[];
@@ -79,7 +33,7 @@ export interface OutfitListResponse {
 }
 
 export interface OutfitFilters {
-  status?: string;
+  status?: OutfitStatus;
   occasion?: string;
   date_from?: string;
   date_to?: string;
@@ -88,6 +42,7 @@ export interface OutfitFilters {
   is_replacement?: boolean;
   has_source_item?: boolean;
   search?: string;
+  occasions?: string[];
   cloned_from_outfit_id?: string;
 }
 
@@ -120,10 +75,7 @@ export interface FeedbackResponse {
   created_at: string;
 }
 
-export function useOutfits(filters: OutfitFilters = {}, page = 1, pageSize = 20) {
-  const { status } = useSession();
-  useSetTokenIfAvailable();
-
+function outfitListParams(filters: OutfitFilters, page: number, pageSize: number) {
   const params: Record<string, string> = {
     page: String(page),
     page_size: String(pageSize),
@@ -140,14 +92,54 @@ export function useOutfits(filters: OutfitFilters = {}, page = 1, pageSize = 20)
   if (filters.has_source_item !== undefined)
     params.has_source_item = String(filters.has_source_item);
   if (filters.search) params.search = filters.search;
+  if (filters.occasions?.length) params.occasions = filters.occasions.join(',');
   if (filters.cloned_from_outfit_id)
     params.cloned_from_outfit_id = filters.cloned_from_outfit_id;
 
+  return params;
+}
+
+export function useOutfits(filters: OutfitFilters = {}, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
   return useQuery({
-    queryKey: ['outfits', filters, page, pageSize],
-    queryFn: () => api.get<OutfitListResponse>('/outfits', { params }),
+    queryKey: queryKeys.outfits.list(filters, page, pageSize),
+    queryFn: () =>
+      api.get<OutfitListResponse>('/outfits', {
+        params: outfitListParams(filters, page, pageSize),
+      }),
     enabled: status !== 'loading',
   });
+}
+
+export function useInfiniteOutfits(filters: OutfitFilters = {}, pageSize = DEFAULT_PAGE_SIZE) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
+  return useInfiniteQuery({
+    queryKey: queryKeys.outfits.infinite(filters, pageSize),
+    queryFn: ({ pageParam }) =>
+      api.get<OutfitListResponse>('/outfits', {
+        params: outfitListParams(filters, pageParam, pageSize),
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => (lastPage.has_more ? lastPage.page + 1 : undefined),
+    enabled: status !== 'loading',
+  });
+}
+
+type CachedOutfitList = OutfitListResponse | InfiniteData<OutfitListResponse, number>;
+
+// Every entry under queryKeys.outfits.all is either a single page or the infinite list's pages,
+// so the optimistic updaters must rewrite both shapes.
+function mapCachedOutfitPages(
+  cached: CachedOutfitList | undefined,
+  update: (page: OutfitListResponse) => OutfitListResponse,
+): CachedOutfitList | undefined {
+  if (!cached) return cached;
+  if ('pages' in cached) return { ...cached, pages: cached.pages.map(update) };
+  return update(cached);
 }
 
 export function useOutfit(outfitId: string | undefined) {
@@ -155,7 +147,7 @@ export function useOutfit(outfitId: string | undefined) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['outfit', outfitId],
+    queryKey: queryKeys.outfit(outfitId ?? ''),
     queryFn: () => api.get<Outfit>(`/outfits/${outfitId}`),
     enabled: !!outfitId && status !== 'loading',
   });
@@ -167,11 +159,7 @@ export function useAcceptOutfit() {
   return useMutation({
     mutationFn: (outfitId: string) => api.post<Outfit>(`/outfits/${outfitId}/accept`),
     onSuccess: (_, outfitId) => {
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['outfit', outfitId] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      invalidateOutfitCaches(queryClient, outfitId);
     },
   });
 }
@@ -182,11 +170,7 @@ export function useRejectOutfit() {
   return useMutation({
     mutationFn: (outfitId: string) => api.post<Outfit>(`/outfits/${outfitId}/reject`),
     onSuccess: (_, outfitId) => {
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['outfit', outfitId] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      invalidateOutfitCaches(queryClient, outfitId);
     },
   });
 }
@@ -197,12 +181,9 @@ export function useSubmitFeedback() {
   return useMutation({
     mutationFn: ({ outfitId, feedback }: { outfitId: string; feedback: FeedbackData }) =>
       api.post<FeedbackResponse>(`/outfits/${outfitId}/feedback`, feedback),
-    onSuccess: (_, { outfitId }) => {
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['outfit', outfitId] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    onSuccess: (_, { outfitId, feedback }) => {
+      invalidateOutfitCaches(queryClient, outfitId);
+      if (feedback.worn) invalidateEveryItemWearCache(queryClient);
     },
   });
 }
@@ -213,10 +194,7 @@ export function useDeleteOutfit() {
   return useMutation({
     mutationFn: (outfitId: string) => api.delete<void>(`/outfits/${outfitId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      invalidateOutfitCaches(queryClient);
     },
   });
 }
@@ -242,36 +220,32 @@ export function useBulkDeleteOutfits() {
 
   return useMutation({
     mutationFn: async (params: BulkOutfitOperationParams) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<BulkDeleteOutfitsResponse>('/outfits/bulk/delete', params);
     },
     onMutate: async (params) => {
-      await queryClient.cancelQueries({ queryKey: ['outfits'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.outfits.all });
 
-      const previousData = queryClient.getQueriesData({ queryKey: ['outfits'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.outfits.all });
 
       if (params.select_all) {
         const excludedSet = new Set(params.excluded_ids || []);
-        queryClient.setQueriesData({ queryKey: ['outfits'] }, (old: OutfitListResponse | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            outfits: old.outfits.filter((outfit) => excludedSet.has(outfit.id)),
+        queryClient.setQueriesData<CachedOutfitList>({ queryKey: queryKeys.outfits.all }, (old) =>
+          mapCachedOutfitPages(old, (page) => ({
+            ...page,
+            outfits: page.outfits.filter((outfit) => excludedSet.has(outfit.id)),
             total: excludedSet.size,
-          };
-        });
+          })),
+        );
       } else if (params.outfit_ids) {
         const deletedSet = new Set(params.outfit_ids);
-        queryClient.setQueriesData({ queryKey: ['outfits'] }, (old: OutfitListResponse | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            outfits: old.outfits.filter((outfit) => !deletedSet.has(outfit.id)),
-            total: old.total - params.outfit_ids!.length,
-          };
-        });
+        queryClient.setQueriesData<CachedOutfitList>({ queryKey: queryKeys.outfits.all }, (old) =>
+          mapCachedOutfitPages(old, (page) => ({
+            ...page,
+            outfits: page.outfits.filter((outfit) => !deletedSet.has(outfit.id)),
+            total: page.total - deletedSet.size,
+          })),
+        );
       }
 
       return { previousData };
@@ -284,10 +258,7 @@ export function useBulkDeleteOutfits() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      invalidateOutfitCaches(queryClient);
     },
   });
 }
@@ -296,14 +267,12 @@ export function useCalendarOutfits(year: number, month: number, filters: OutfitF
   const { status } = useSession();
   useSetTokenIfAvailable();
 
-  // Calculate date range for the month
-  const date_from = `${year}-${String(month).padStart(2, '0')}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const date_to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  const date_from = formatDateKey(new Date(year, month - 1, 1));
+  const date_to = formatDateKey(new Date(year, month, 0));
 
   const params: Record<string, string> = {
     page: '1',
-    page_size: '100', // Get all outfits for the month
+    page_size: String(MAX_PAGE_SIZE),
     date_from,
     date_to,
   };
@@ -312,7 +281,7 @@ export function useCalendarOutfits(year: number, month: number, filters: OutfitF
   if (filters.occasion) params.occasion = filters.occasion;
 
   return useQuery({
-    queryKey: ['calendarOutfits', year, month, filters],
+    queryKey: queryKeys.calendarOutfits.month(year, month, filters),
     queryFn: () => api.get<OutfitListResponse>('/outfits', { params }),
     enabled: status !== 'loading',
   });
@@ -329,7 +298,7 @@ export function usePendingOutfits(limit = 3) {
   };
 
   return useQuery({
-    queryKey: ['pendingOutfits', limit],
+    queryKey: queryKeys.pendingOutfits.list(limit),
     queryFn: () => api.get<OutfitListResponse>('/outfits', { params }),
     enabled: status !== 'loading',
   });
@@ -344,11 +313,11 @@ export function useSubmitFamilyRating() {
     mutationFn: ({ outfitId, rating, comment }: { outfitId: string; rating: number; comment?: string }) =>
       api.post<FamilyRating>(`/outfits/${outfitId}/family-rating`, { rating, comment }),
     onSuccess: (_, { outfitId }) => {
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['outfit', outfitId] });
-      queryClient.invalidateQueries({ queryKey: ['familyRatings', outfitId] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
-      queryClient.invalidateQueries({ queryKey: ['familyOutfits'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.outfits.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.outfit(outfitId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.familyRatings(outfitId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.calendarOutfits.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.familyOutfits.all });
     },
   });
 }
@@ -358,7 +327,7 @@ export function useFamilyRatings(outfitId: string | undefined) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['familyRatings', outfitId],
+    queryKey: queryKeys.familyRatings(outfitId ?? ''),
     queryFn: () => api.get<FamilyRating[]>(`/outfits/${outfitId}/family-ratings`),
     enabled: !!outfitId && status !== 'loading',
   });
@@ -370,15 +339,19 @@ export function useDeleteFamilyRating() {
   return useMutation({
     mutationFn: (outfitId: string) => api.delete<void>(`/outfits/${outfitId}/family-rating`),
     onSuccess: (_, outfitId) => {
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['outfit', outfitId] });
-      queryClient.invalidateQueries({ queryKey: ['familyRatings', outfitId] });
-      queryClient.invalidateQueries({ queryKey: ['familyOutfits'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.outfits.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.outfit(outfitId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.familyRatings(outfitId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.familyOutfits.all });
     },
   });
 }
 
-export function useFamilyOutfits(memberId: string | undefined, page = 1, pageSize = 20) {
+export function useFamilyOutfits(
+  memberId: string | undefined,
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE
+) {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
@@ -389,7 +362,7 @@ export function useFamilyOutfits(memberId: string | undefined, page = 1, pageSiz
   };
 
   return useQuery({
-    queryKey: ['familyOutfits', memberId, page, pageSize],
+    queryKey: queryKeys.familyOutfits.list(memberId, page, pageSize),
     queryFn: () => api.get<OutfitListResponse>('/outfits', { params }),
     enabled: !!memberId && status !== 'loading',
   });

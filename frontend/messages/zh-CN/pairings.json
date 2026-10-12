@@ -16,6 +16,7 @@
     "title": "还没有搭配"
   },
   "generate": {
+    "colorAndType": "{color}{type}",
     "description": "AI 将为这件单品创建完整的穿搭",
     "failed": "生成搭配失败",
     "generate": "生成穿搭",

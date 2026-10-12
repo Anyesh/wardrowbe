@@ -1,32 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, getAccessToken, setAccessToken, ApiError, NetworkError } from '@/lib/api';
+import { api, API_BASE_PATH, getAccessToken, ApiError, NetworkError } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
 import { chunkArray } from '@/lib/utils';
 import { enqueueFiles } from '@/lib/upload-queue';
 import { startDrain } from '@/lib/upload-manager';
+import { queryKeys } from '@/lib/hooks/query-keys';
+import {
+  invalidateItemCaches,
+  invalidateItemWearCaches,
+  invalidatePrimaryImageQueries,
+} from '@/lib/hooks/cache-invalidation';
+import { processingPollInterval } from '@/lib/hooks/query-timing';
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
+import { fetchBulkUploadLimit } from '@/lib/hooks/use-features';
 
-// Must not exceed the backend's MAX_BULK_UPLOAD_COUNT setting, or every chunk
-// larger than the server's limit fails with a 400.
+// Capped at the server's max_bulk_upload_count from /health/features, because a
+// chunk over that limit fails as a whole with a 400.
 const BULK_UPLOAD_CHUNK_SIZE = 20;
 
-// Helper to set token if available (for NextAuth mode)
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
-
-export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
-  const { data: session, status } = useSession();
-  useSetTokenIfAvailable();
-
-  return useQuery({
-    queryKey: ['items', filters, page, pageSize],
+function itemListQuery(filters: ItemFilter, page: number, pageSize: number) {
+  return {
+    queryKey: queryKeys.items.list(filters, page, pageSize),
     queryFn: async () => {
       const params: Record<string, string> = {
         page: String(page),
@@ -44,17 +43,55 @@ export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
 
       return api.get<ItemListResponse>('/items', { params });
     },
-    enabled: status !== 'loading',
-    // Poll more frequently when items are processing (every 5 seconds), otherwise every 30 seconds
-    refetchInterval: (query) => {
-      const data = query.state.data as ItemListResponse | undefined;
-      const hasProcessing = data?.items?.some((item) => item.status === 'processing');
-      return hasProcessing ? 5000 : 30000;
-    },
+    refetchInterval: (query: { state: { data: ItemListResponse | undefined } }) =>
+      processingPollInterval(!!query.state.data?.items?.some((item) => item.status === 'processing')),
     // Tagging runs server-side in the worker, so it keeps going while the tab is
     // hidden. Without this the polling stops and the UI looks frozen, which reads
     // as "analysis stopped when I switched tabs".
     refetchIntervalInBackground: true,
+  };
+}
+
+export function useItems(filters: ItemFilter = {}, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
+  return useQuery({
+    ...itemListQuery(filters, page, pageSize),
+    enabled: status !== 'loading',
+  });
+}
+
+// Each page stays its own queryKeys.items.list entry, so the optimistic list updaters keep
+// working and a cached page shows at once instead of being copied into component state.
+export function useItemPages(filters: ItemFilter, pageCount: number, pageSize = DEFAULT_PAGE_SIZE) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
+  return useQueries({
+    queries: Array.from({ length: pageCount }, (_, index) => ({
+      ...itemListQuery(filters, index + 1, pageSize),
+      enabled: status !== 'loading',
+    })),
+    combine: (results) => {
+      const seen = new Set<string>();
+      const items: Item[] = [];
+      for (const result of results) {
+        for (const item of result.data?.items ?? []) {
+          if (seen.has(item.id)) continue;
+          seen.add(item.id);
+          items.push(item);
+        }
+      }
+      const loaded = results.filter((result) => result.data);
+      return {
+        items,
+        total: results[0]?.data?.total ?? 0,
+        hasMore: loaded[loaded.length - 1]?.data?.has_more ?? false,
+        isLoading: results[0]?.isLoading ?? false,
+        isFetching: results.some((result) => result.isFetching),
+      };
+    },
   });
 }
 
@@ -63,12 +100,12 @@ export function useTaggingProgress() {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['tagging-progress'],
+    queryKey: queryKeys.taggingProgress,
     queryFn: () => api.get<TaggingProgress>('/items/tagging-progress'),
     enabled: status !== 'loading',
     refetchInterval: (query) => {
       const data = query.state.data as TaggingProgress | undefined;
-      return data && data.processing > 0 ? 5000 : 30000;
+      return processingPollInterval(!!data && data.processing > 0);
     },
     refetchIntervalInBackground: true,
   });
@@ -79,7 +116,7 @@ export function useItem(itemId: string) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['item', itemId],
+    queryKey: queryKeys.item(itemId),
     queryFn: () => api.get<Item>(`/items/${itemId}`),
     enabled: !!itemId && status !== 'loading',
   });
@@ -100,7 +137,7 @@ export function useCreateItem() {
       let response: Response;
       try {
         // Use the Next.js proxy path for client-side requests
-        response = await fetch('/api/v1/items', {
+        response = await fetch(`${API_BASE_PATH}/items`, {
           method: 'POST',
           body: formData,
           credentials: 'include',
@@ -125,7 +162,7 @@ export function useCreateItem() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -136,19 +173,17 @@ export function useUpdateItem() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Item> }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<Item>(`/items/${id}`, data);
     },
     onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['items'] });
-      await queryClient.cancelQueries({ queryKey: ['item', id] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
+      await queryClient.cancelQueries({ queryKey: queryKeys.item(id) });
 
-      const previousListData = queryClient.getQueriesData({ queryKey: ['items'] });
-      const previousItemData = queryClient.getQueryData<Item>(['item', id]);
+      const previousListData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
+      const previousItemData = queryClient.getQueryData<Item>(queryKeys.item(id));
 
-      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
         if (!old) return old;
         return {
           ...old,
@@ -157,7 +192,7 @@ export function useUpdateItem() {
       });
 
       if (previousItemData) {
-        queryClient.setQueryData<Item>(['item', id], { ...previousItemData, ...data });
+        queryClient.setQueryData<Item>(queryKeys.item(id), { ...previousItemData, ...data });
       }
 
       return { previousListData, previousItemData };
@@ -169,14 +204,14 @@ export function useUpdateItem() {
         });
       }
       if (context?.previousItemData) {
-        queryClient.setQueryData(['item', variables.id], context.previousItemData);
+        queryClient.setQueryData(queryKeys.item(variables.id), context.previousItemData);
       }
     },
     onSuccess: (updatedItem, variables) => {
       // Use the server's authoritative copy (server-derived fields like updated_at)
       // rather than the optimistic merge, since the response is already in hand.
-      queryClient.setQueryData(['item', variables.id], updatedItem);
-      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+      queryClient.setQueryData(queryKeys.item(variables.id), updatedItem);
+      queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
         if (!old) return old;
         return {
           ...old,
@@ -185,8 +220,7 @@ export function useUpdateItem() {
       });
     },
     onSettled: (_data, _error, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
+      invalidateItemCaches(queryClient, variables.id);
     },
   });
 }
@@ -197,16 +231,11 @@ export function useRemoveBackground() {
 
   return useMutation({
     mutationFn: async ({ id, bg_color }: { id: string; bg_color?: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/remove-background`, { bg_color: bg_color ?? '#FFFFFF' });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+      invalidatePrimaryImageQueries(queryClient, variables.id);
     },
   });
 }
@@ -217,16 +246,11 @@ export function useRestoreOriginal() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/restore-original`);
     },
     onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', id] });
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+      invalidatePrimaryImageQueries(queryClient, id);
     },
   });
 }
@@ -246,7 +270,7 @@ export function useReplaceItemImage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/v1/items/${itemId}/image`, {
+      const response = await fetch(`${API_BASE_PATH}/items/${itemId}/image`, {
         method: 'PUT',
         body: formData,
         credentials: 'include',
@@ -261,10 +285,7 @@ export function useReplaceItemImage() {
       return response.json() as Promise<Item>;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.itemId] });
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+      invalidatePrimaryImageQueries(queryClient, variables.itemId);
     },
   });
 }
@@ -275,20 +296,18 @@ export function useDeleteItem() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/items/${id}`);
     },
     onMutate: async (deletedId) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
 
       // Optimistically remove from all item queries
-      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
         if (!old) return old;
         return {
           ...old,
@@ -309,8 +328,8 @@ export function useDeleteItem() {
     },
     onSettled: () => {
       // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item-types'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.itemTypes });
     },
   });
 }
@@ -321,13 +340,11 @@ export function useArchiveItem() {
 
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/archive`, { reason });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -346,14 +363,11 @@ export function useLogWear() {
       worn_at?: string;
       occasion?: string;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/wear`, { worn_at, occasion });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
+      invalidateItemWearCaches(queryClient, variables.id);
     },
   });
 }
@@ -374,15 +388,13 @@ export function useLogWash() {
       method?: string;
       notes?: string;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/wash`, { washed_at, method, notes });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['wash-history', variables.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.item(variables.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.washHistory(variables.id) });
     },
   });
 }
@@ -392,7 +404,7 @@ export function useWashHistory(itemId: string) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['wash-history', itemId],
+    queryKey: queryKeys.washHistory(itemId),
     queryFn: () => api.get<WashHistoryEntry[]>(`/items/${itemId}/wash-history`),
     enabled: !!itemId && status !== 'loading',
   });
@@ -412,7 +424,7 @@ export function useItemWearStats(itemId: string) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['wear-stats', itemId],
+    queryKey: queryKeys.wearStats.item(itemId),
     queryFn: () => api.get<WearStats>(`/items/${itemId}/wear-stats`),
     enabled: !!itemId && status !== 'loading',
   });
@@ -440,7 +452,7 @@ export function useItemWearHistory(itemId: string, limit = 10) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['wear-history', itemId],
+    queryKey: queryKeys.wearHistory.list(itemId, limit),
     queryFn: () => api.get<WearHistoryEntry[]>(`/items/${itemId}/history?limit=${limit}`),
     enabled: !!itemId && status !== 'loading',
   });
@@ -461,7 +473,7 @@ export function useAddItemImage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/v1/items/${itemId}/images`, {
+      const response = await fetch(`${API_BASE_PATH}/items/${itemId}/images`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -476,8 +488,7 @@ export function useAddItemImage() {
       return response.json() as Promise<ItemImage>;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.itemId] });
+      invalidateItemCaches(queryClient, variables.itemId);
     },
   });
 }
@@ -488,14 +499,11 @@ export function useDeleteItemImage() {
 
   return useMutation({
     mutationFn: async ({ itemId, imageId }: { itemId: string; imageId: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/items/${itemId}/images/${imageId}`);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.itemId] });
+      invalidateItemCaches(queryClient, variables.itemId);
     },
   });
 }
@@ -506,14 +514,11 @@ export function useSetPrimaryImage() {
 
   return useMutation({
     mutationFn: async ({ itemId, imageId }: { itemId: string; imageId: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${itemId}/images/${imageId}/set-primary`);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.itemId] });
+      invalidatePrimaryImageQueries(queryClient, variables.itemId);
     },
   });
 }
@@ -530,16 +535,11 @@ export function useRotateImage() {
       id: string;
       direction: 'cw' | 'ccw';
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/rotate?direction=${direction}`);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['outfits'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarOutfits'] });
+      invalidatePrimaryImageQueries(queryClient, variables.id);
     },
   });
 }
@@ -549,7 +549,7 @@ export function useItemTypes() {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['item-types'],
+    queryKey: queryKeys.itemTypes,
     queryFn: () => api.get<Array<{ type: string; count: number }>>('/items/types'),
     enabled: status !== 'loading',
   });
@@ -560,7 +560,7 @@ export function useColorDistribution() {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['color-distribution'],
+    queryKey: queryKeys.colorDistribution,
     queryFn: () => api.get<Array<{ color: string; count: number }>>('/items/colors'),
     enabled: status !== 'loading',
   });
@@ -572,15 +572,13 @@ export function useReanalyzeItem() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<{ job_id?: string; status: string; retry_after_seconds?: number }>(
         `/items/${id}/analyze`
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -591,22 +589,28 @@ export function useCancelAnalysis() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Item>(`/items/${id}/cancel-analysis`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
+
+export type BulkUploadErrorCode =
+  | 'too_large'
+  | 'unsupported_format'
+  | 'duplicate'
+  | 'invalid_image'
+  | 'processing_failed';
 
 export interface BulkUploadResult {
   filename: string;
   success: boolean;
   item?: Item;
   error?: string;
+  error_code?: BulkUploadErrorCode | null;
   duplicate?: boolean;
   existing_item_id?: string;
 }
@@ -731,9 +735,7 @@ export function useBulkDeleteItems() {
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return drainBulkAction<BulkDeleteResponse>('/items/bulk/delete', params, [
         'deleted',
         'failed',
@@ -741,16 +743,16 @@ export function useBulkDeleteItems() {
     },
     onMutate: async (params) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
 
       // Optimistically update UI
       if (params.select_all) {
         // If select_all, remove all items except excluded ones
         const excludedSet = new Set(params.excluded_ids || []);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -761,7 +763,7 @@ export function useBulkDeleteItems() {
       } else if (params.item_ids) {
         // Remove specific items
         const deletedSet = new Set(params.item_ids);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -783,8 +785,8 @@ export function useBulkDeleteItems() {
     },
     onSettled: () => {
       // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['item-types'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.itemTypes });
     },
   });
 }
@@ -803,9 +805,7 @@ export function useBulkReanalyzeItems() {
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       const result = await drainBulkAction<BulkAnalyzeResponse>('/items/bulk/analyze', params, [
         'queued',
         'failed',
@@ -818,15 +818,15 @@ export function useBulkReanalyzeItems() {
     },
     onMutate: async (params) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
 
       // Optimistically set items to processing status
       if (params.select_all) {
         const excludedSet = new Set(params.excluded_ids || []);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -839,7 +839,7 @@ export function useBulkReanalyzeItems() {
         });
       } else if (params.item_ids) {
         const itemIdSet = new Set(params.item_ids);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -864,7 +864,7 @@ export function useBulkReanalyzeItems() {
     },
     onSettled: () => {
       // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -880,9 +880,7 @@ export function useBulkCancelAnalysis() {
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return drainBulkAction<BulkCancelAnalysisResponse>(
         '/items/bulk/cancel-analysis',
         params,
@@ -890,8 +888,8 @@ export function useBulkCancelAnalysis() {
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['tagging-progress'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.taggingProgress });
     },
   });
 }
@@ -908,9 +906,7 @@ export function useBulkRotateItems() {
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams & { direction: 'cw' | 'ccw' }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return drainBulkAction<BulkRotateResponse>('/items/bulk/rotate', params, [
         'queued',
         'failed',
@@ -918,14 +914,14 @@ export function useBulkRotateItems() {
       ]);
     },
     onMutate: async (params) => {
-      await queryClient.cancelQueries({ queryKey: ['items'] });
-      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
 
       const shouldMark = params.select_all
         ? (id: string) => !new Set(params.excluded_ids || []).has(id)
         : (id: string) => new Set(params.item_ids || []).has(id);
 
-      queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+      queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
         if (!old) return old;
         return {
           ...old,
@@ -952,7 +948,7 @@ export function useBulkRotateItems() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -970,9 +966,7 @@ export function useBulkRemoveBackgroundItems() {
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams & { bg_color?: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return drainBulkAction<BulkRemoveBackgroundResponse>(
         '/items/bulk/remove-background',
         params,
@@ -981,15 +975,15 @@ export function useBulkRemoveBackgroundItems() {
     },
     onMutate: async (params) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['items'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.items.all });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueriesData({ queryKey: ['items'] });
+      const previousData = queryClient.getQueriesData({ queryKey: queryKeys.items.all });
 
       // Optimistically set items to processing status, mirroring useBulkReanalyzeItems
       if (params.select_all) {
         const excludedSet = new Set(params.excluded_ids || []);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -1006,7 +1000,7 @@ export function useBulkRemoveBackgroundItems() {
         });
       } else if (params.item_ids) {
         const itemIdSet = new Set(params.item_ids);
-        queryClient.setQueriesData({ queryKey: ['items'] }, (old: ItemListResponse | undefined) => {
+        queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) => {
           if (!old) return old;
           return {
             ...old,
@@ -1035,7 +1029,7 @@ export function useBulkRemoveBackgroundItems() {
     },
     onSettled: () => {
       // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
@@ -1093,7 +1087,7 @@ function uploadBulkItemsChunk(
       reject(new NetworkError('Upload was cancelled.'));
     });
 
-    xhr.open('POST', '/api/v1/items/bulk');
+    xhr.open('POST', `${API_BASE_PATH}/items/bulk`);
     xhr.withCredentials = true;
     if (token) {
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
@@ -1102,7 +1096,15 @@ function uploadBulkItemsChunk(
   });
 }
 
+// The backend's wording is matched verbatim; it is the fallback when
+// /health/features does not report the limit.
 const BULK_LIMIT_ERROR = /^Maximum (\d+) images per bulk upload$/;
+
+export function bulkUploadLimitFromDetail(detail: unknown): number | null {
+  if (typeof detail !== 'string') return null;
+  const match = detail.match(BULK_LIMIT_ERROR);
+  return match ? Number(match[1]) : null;
+}
 
 // Same server-side cap upload-manager.ts's durable path works around: a
 // chunk sized for the default 20 gets the whole request rejected (not just
@@ -1118,11 +1120,10 @@ export async function uploadFilesWithinServerLimit(
   try {
     return await uploadBulkItemsChunk(files, skipAi, token, onProgress);
   } catch (error) {
-    const match =
+    const limit =
       error instanceof ApiError && error.status === 400
-        ? error.message.match(BULK_LIMIT_ERROR)
+        ? bulkUploadLimitFromDetail(error.message)
         : null;
-    const limit = match ? Number(match[1]) : null;
     if (limit && limit > 0 && limit < files.length) {
       const responses: BulkUploadResponse[] = [];
       for (let i = 0; i < files.length; i += limit) {
@@ -1254,7 +1255,9 @@ export function useBulkCreateItems() {
       let unprotected: BulkUploadResponse | null = null;
       if (unprotectedFiles.length > 0) {
         const token = session?.accessToken || getAccessToken();
-        const chunks = chunkArray(unprotectedFiles, BULK_UPLOAD_CHUNK_SIZE);
+        const serverLimit = await fetchBulkUploadLimit(queryClient);
+        const chunkSize = Math.min(BULK_UPLOAD_CHUNK_SIZE, serverLimit ?? BULK_UPLOAD_CHUNK_SIZE);
+        const chunks = chunkArray(unprotectedFiles, chunkSize);
         const responses: BulkUploadResponse[] = [];
 
         for (let i = 0; i < chunks.length; i++) {
@@ -1280,7 +1283,7 @@ export function useBulkCreateItems() {
       setUploadProgress(0);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
     onSettled: () => {
       setUploadProgress(0);

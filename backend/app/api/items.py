@@ -3,7 +3,6 @@ import logging
 from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from arq import create_pool
 from arq.jobs import Job
@@ -11,12 +10,24 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from sqlalchemy import case, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from app.api.pagination import PaginationParams
 from app.config import get_settings
-from app.database import get_db
-from app.models.item import ClothingItem, ItemStatus, TaggedBy, TaggingStatus
+from app.database import DbSession
+from app.models.item import (
+    ClothingItem,
+    ItemHistory,
+    ItemImage,
+    ItemStatus,
+    ProcessingKind,
+    TaggedBy,
+    TaggingStatus,
+)
+from app.models.outfit import Outfit, OutfitItem
 from app.models.user import User
 from app.schemas.item import (
+    USER_TAG_KEYS,
     AnalysisCompletion,
     AnalysisFailure,
     AnalysisInProgress,
@@ -50,7 +61,9 @@ from app.schemas.item import (
 from app.services.image_service import ImageService
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
-from app.utils.signed_urls import sign_image_url
+from app.utils.signed_urls import sign_optional
+from app.utils.timezone import get_user_today
+from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
 from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
 from app.workers.settings import get_redis_settings
 
@@ -67,7 +80,7 @@ _EMPTY_TAG_VALUES = (None, "", [], {})
 
 def _has_tag_content(field: str, value: Any) -> bool:
     if field == "tags" and isinstance(value, dict):
-        return any(v not in _EMPTY_TAG_VALUES for v in value.values())
+        return any(v not in _EMPTY_TAG_VALUES for k, v in value.items() if k not in USER_TAG_KEYS)
     return value not in _EMPTY_TAG_VALUES
 
 
@@ -113,12 +126,21 @@ async def _resolve_bulk_item_ids(
     return item_ids, next_cursor, has_more
 
 
+async def _read_image_or_413(image: UploadFile) -> bytes:
+    try:
+        return await read_upload_within_limit(image, settings.max_upload_size_mb)
+    except UploadTooLargeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=str(e),
+        ) from None
+
+
 @router.get("", response_model=ItemListResponse)
 async def list_items(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pagination: Annotated[PaginationParams, Depends()],
     type: str | None = None,
     subtype: str | None = None,
     colors: str | None = None,
@@ -151,22 +173,22 @@ async def list_items(
     items, total = await item_service.get_list(
         user_id=current_user.id,
         filters=filters,
-        page=page,
-        page_size=page_size,
+        page=pagination.page,
+        page_size=pagination.page_size,
     )
 
     return ItemListResponse(
         items=[ItemResponse.model_validate(item) for item in items],
         total=total,
-        page=page,
-        page_size=page_size,
-        has_more=(page * page_size) < total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        has_more=pagination.has_more(total),
     )
 
 
 @router.post("", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_item(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     image: UploadFile = File(...),
     type: str | None = Form(None),  # Optional - AI will detect if not provided
@@ -183,7 +205,7 @@ async def create_item(
     image_service = ImageService()
     item_service = ItemService(db)
 
-    content = await image.read()
+    content = await _read_image_or_413(image)
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service.validate_image(content, content_type):
@@ -251,7 +273,7 @@ async def create_item(
         try:
             redis = await create_pool(get_redis_settings())
             try:
-                full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
+                full_image_path = str(image_service.get_image_path(image_paths["image_path"]))
                 job = await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
@@ -274,7 +296,7 @@ async def create_item(
 
 @router.post("/bulk", response_model=BulkUploadResponse, status_code=status.HTTP_201_CREATED)
 async def bulk_create_items(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     images: list[UploadFile] = File(..., description="Multiple image files to upload"),
     skip_ai: bool = Form(False),
@@ -350,7 +372,18 @@ async def bulk_create_items(
                         continue
 
                 # Read and validate image
-                content = await upload_file.read()
+                try:
+                    content = await read_upload_within_limit(
+                        upload_file, settings.max_upload_size_mb
+                    )
+                except UploadTooLargeError as e:
+                    results.append(
+                        BulkUploadResult(
+                            filename=filename, success=False, error=str(e), error_code="too_large"
+                        )
+                    )
+                    failed += 1
+                    continue
                 content_type = upload_file.content_type or "application/octet-stream"
 
                 if not image_service.validate_image(content, content_type):
@@ -359,6 +392,7 @@ async def bulk_create_items(
                             filename=filename,
                             success=False,
                             error="Invalid image format. Supported: JPEG, PNG, WebP, HEIC",
+                            error_code="unsupported_format",
                         )
                     )
                     failed += 1
@@ -374,6 +408,7 @@ async def bulk_create_items(
                                 filename=filename,
                                 success=False,
                                 error="Duplicate image - already exists in wardrobe",
+                                error_code="duplicate",
                             )
                         )
                         failed += 1
@@ -407,7 +442,9 @@ async def bulk_create_items(
                     # `processing` whenever the AI is fast enough to win the race.
                     await db.commit()
                     try:
-                        full_image_path = f"{settings.storage_path}/{image_paths['image_path']}"
+                        full_image_path = str(
+                            image_service.get_image_path(image_paths["image_path"])
+                        )
                         job = await redis.enqueue_job(
                             "tag_item_image",
                             str(item.id),
@@ -436,6 +473,7 @@ async def bulk_create_items(
                         filename=filename,
                         success=False,
                         error=str(e),
+                        error_code="invalid_image",
                     )
                 )
                 failed += 1
@@ -473,6 +511,7 @@ async def bulk_create_items(
                         filename=filename,
                         success=False,
                         error="Failed to process image",
+                        error_code="processing_failed",
                     )
                 )
                 failed += 1
@@ -491,7 +530,7 @@ async def bulk_create_items(
 @router.post("/bulk/delete", response_model=BulkDeleteResponse)
 async def bulk_delete_items(
     request: BulkDeleteRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkDeleteResponse:
     item_service = ItemService(db)
@@ -541,7 +580,7 @@ async def bulk_delete_items(
 @router.post("/bulk/analyze", response_model=BulkAnalyzeResponse)
 async def bulk_analyze_items(
     request: BulkAnalyzeRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkAnalyzeResponse:
     item_service = ItemService(db)
@@ -659,10 +698,11 @@ async def bulk_analyze_items(
             detail="Failed to connect to job queue",
         ) from None
 
+    image_service = ImageService()
     try:
         for item, job_id in to_enqueue:
             try:
-                full_image_path = f"{settings.storage_path}/{item.image_path}"
+                full_image_path = str(image_service.get_image_path(item.image_path))
                 job = await redis.enqueue_job(
                     "tag_item_image",
                     str(item.id),
@@ -705,7 +745,7 @@ async def bulk_analyze_items(
 @router.post("/bulk/cancel-analysis", response_model=BulkCancelAnalysisResponse)
 async def bulk_cancel_analysis(
     request: BulkCancelAnalysisRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkCancelAnalysisResponse:
     item_service = ItemService(db)
@@ -793,7 +833,7 @@ async def bulk_cancel_analysis(
 @router.post("/bulk/rotate", response_model=BulkRotateResponse)
 async def bulk_rotate_items(
     request: BulkRotateRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkRotateResponse:
     item_service = ItemService(db)
@@ -828,7 +868,7 @@ async def bulk_rotate_items(
 
     for item in to_queue:
         item.status = ItemStatus.processing
-        item.processing_kind = "rotate"
+        item.processing_kind = ProcessingKind.rotate
         # Clear any stale ai_started_at from a prior tagging run, otherwise the
         # frontend reads it as this job's elapsed time and shows a wildly wrong
         # duration for what is a sub-second rotation.
@@ -885,7 +925,7 @@ async def bulk_rotate_items(
 @router.post("/bulk/remove-background", response_model=BulkRemoveBackgroundResponse)
 async def bulk_remove_background_items(
     request: BulkRemoveBackgroundRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkRemoveBackgroundResponse:
     item_service = ItemService(db)
@@ -936,7 +976,7 @@ async def bulk_remove_background_items(
 
     for item in to_queue:
         item.status = ItemStatus.processing
-        item.processing_kind = "background_removal"
+        item.processing_kind = ProcessingKind.background_removal
         # Clear any stale ai_started_at left over from a prior tagging run -
         # otherwise the frontend reads it as this job's elapsed "analyzing"
         # time, showing a wildly wrong duration for what is actually a
@@ -995,7 +1035,7 @@ async def bulk_remove_background_items(
 
 @router.get("/types")
 async def get_item_types(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[dict]:
     item_service = ItemService(db)
@@ -1004,7 +1044,7 @@ async def get_item_types(
 
 @router.get("/colors")
 async def get_color_distribution(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[dict]:
     item_service = ItemService(db)
@@ -1019,8 +1059,8 @@ def _tagging_scope(user_id: UUID) -> tuple:
         # aren't AI tagging - exclude them so they don't pollute this banner's
         # counts. is_distinct_from (not not_in) so a NULL processing_kind,
         # which every ordinary tagging item has, stays included.
-        ClothingItem.processing_kind.is_distinct_from("background_removal"),
-        ClothingItem.processing_kind.is_distinct_from("rotate"),
+        ClothingItem.processing_kind.is_distinct_from(ProcessingKind.background_removal),
+        ClothingItem.processing_kind.is_distinct_from(ProcessingKind.rotate),
     )
 
 
@@ -1072,7 +1112,7 @@ async def _items_being_analyzed(
             item_id=row.id,
             name=row.name,
             type=row.type,
-            image_url=sign_image_url(row.thumbnail_path or row.image_path),
+            image_url=sign_optional(row.thumbnail_path, fallback=row.image_path),
             started_at=row.ai_started_at,
         )
         for row in result
@@ -1142,7 +1182,7 @@ async def _recent_failures(db: AsyncSession, user_id: UUID) -> list[AnalysisFail
 
 @router.get("/tagging-progress", response_model=TaggingProgressResponse)
 async def get_tagging_progress(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> TaggingProgressResponse:
     # Wardrobe-wide, not page-scoped: the client can only see the page it asked
@@ -1217,7 +1257,7 @@ async def get_tagging_progress(
 @router.get("/{item_id}", response_model=ItemResponse)
 async def get_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1236,7 +1276,7 @@ async def get_item(
 async def update_item(
     item_id: UUID,
     item_data: ItemUpdate,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1261,7 +1301,7 @@ async def update_item(
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     item_service = ItemService(db)
@@ -1290,7 +1330,7 @@ async def delete_item(
 async def archive_item(
     item_id: UUID,
     request: ArchiveRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1309,7 +1349,7 @@ async def archive_item(
 @router.post("/{item_id}/restore", response_model=ItemResponse)
 async def restore_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1329,7 +1369,7 @@ async def restore_item(
 async def log_item_wear(
     item_id: UUID,
     request: LogWearRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1343,11 +1383,7 @@ async def log_item_wear(
 
     # Use user's timezone to determine today if worn_at not provided
     if request.worn_at is None:
-        try:
-            user_tz = ZoneInfo(current_user.timezone or "UTC")
-        except Exception:
-            user_tz = ZoneInfo("UTC")
-        worn_at = datetime.now(UTC).astimezone(user_tz).date()
+        worn_at = get_user_today(current_user)
     else:
         worn_at = request.worn_at
 
@@ -1366,16 +1402,10 @@ async def log_item_wear(
 @router.get("/{item_id}/history")
 async def get_item_history(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(10, ge=1, le=100),
 ) -> list[dict]:
-    from sqlalchemy import select as sa_select
-    from sqlalchemy.orm import selectinload
-
-    from app.models.item import ItemHistory
-    from app.models.outfit import Outfit, OutfitItem
-
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 
@@ -1387,7 +1417,7 @@ async def get_item_history(
 
     # Eagerly load outfit and its items for context
     result = await db.execute(
-        sa_select(ItemHistory)
+        select(ItemHistory)
         .where(ItemHistory.item_id == item_id)
         .options(
             selectinload(ItemHistory.outfit)
@@ -1416,9 +1446,7 @@ async def get_item_history(
                         "id": str(oi.item.id),
                         "type": oi.item.type,
                         "name": oi.item.name,
-                        "thumbnail_url": sign_image_url(oi.item.thumbnail_path)
-                        if oi.item.thumbnail_path
-                        else None,
+                        "thumbnail_url": sign_optional(oi.item.thumbnail_path),
                     }
                     for oi in sorted(h.outfit.items, key=lambda x: x.position)
                 ],
@@ -1431,7 +1459,7 @@ async def get_item_history(
 @router.get("/{item_id}/wear-stats")
 async def get_item_wear_stats(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     item_service = ItemService(db)
@@ -1443,14 +1471,14 @@ async def get_item_wear_stats(
             detail="Item not found",
         )
 
-    return await item_service.get_wear_stats(item, current_user.timezone or "UTC")
+    return await item_service.get_wear_stats(item, get_user_today(current_user))
 
 
 @router.post("/{item_id}/wash", response_model=ItemResponse)
 async def log_item_wash(
     item_id: UUID,
     request: LogWashRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1470,11 +1498,7 @@ async def log_item_wash(
 
     # Use user's timezone to determine today if washed_at not provided
     if request.washed_at is None:
-        try:
-            user_tz = ZoneInfo(current_user.timezone or "UTC")
-        except Exception:
-            user_tz = ZoneInfo("UTC")
-        washed_at = datetime.now(UTC).astimezone(user_tz).date()
+        washed_at = get_user_today(current_user)
     else:
         washed_at = request.washed_at
 
@@ -1492,7 +1516,7 @@ async def log_item_wash(
 @router.get("/{item_id}/wash-history", response_model=list[WashHistoryResponse])
 async def get_item_wash_history(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(10, ge=1, le=100),
 ) -> list[WashHistoryResponse]:
@@ -1512,7 +1536,7 @@ async def get_item_wash_history(
 @router.post("/{item_id}/analyze", response_model=dict)
 async def trigger_ai_analysis(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     item_service = ItemService(db)
@@ -1528,6 +1552,8 @@ async def trigger_ai_analysis(
         await item_service.mark_pending(item, set_ready=True)
         await db.commit()
         return {"status": "deferred", "reason": "vision disabled"}
+
+    image_service = ImageService()
 
     if item.status == ItemStatus.processing and item.ai_job_id:
         # Dedup: a live job already owns this item. If ai_job_id is None instead,
@@ -1560,7 +1586,7 @@ async def trigger_ai_analysis(
         try:
             redis = await create_pool(get_redis_settings())
             try:
-                full_image_path = f"{settings.storage_path}/{image_path}"
+                full_image_path = str(image_service.get_image_path(image_path))
                 enqueued = await redis.enqueue_job(
                     "tag_item_image",
                     str(item_id),
@@ -1591,7 +1617,7 @@ async def trigger_ai_analysis(
 
         redis = await create_pool(get_redis_settings())
         try:
-            full_image_path = f"{settings.storage_path}/{item.image_path}"
+            full_image_path = str(image_service.get_image_path(item.image_path))
             job = await redis.enqueue_job(
                 "tag_item_image",
                 str(item.id),
@@ -1615,7 +1641,7 @@ async def trigger_ai_analysis(
 @router.post("/{item_id}/retag", response_model=ItemResponse)
 async def retag_item(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1634,7 +1660,7 @@ async def retag_item(
 @router.post("/{item_id}/cancel-analysis", response_model=ItemResponse)
 async def cancel_item_analysis(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1684,7 +1710,7 @@ async def cancel_item_analysis(
 @router.post("/{item_id}/rotate", response_model=ItemResponse)
 async def rotate_item_image(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     direction: str = Query(
         "cw",
@@ -1733,7 +1759,7 @@ async def rotate_item_image(
 async def remove_item_background(
     item_id: UUID,
     request: RemoveBackgroundRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1761,7 +1787,8 @@ async def remove_item_background(
         )
 
     recovering_from_error = (
-        item.status == ItemStatus.error and item.processing_kind == "background_removal"
+        item.status == ItemStatus.error
+        and item.processing_kind == ProcessingKind.background_removal
     )
 
     hex_color = request.bg_color.lstrip("#")
@@ -1810,7 +1837,7 @@ async def remove_item_background(
 @router.post("/{item_id}/restore-original", response_model=ItemResponse)
 async def restore_item_original(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
     item_service = ItemService(db)
@@ -1854,7 +1881,7 @@ async def restore_item_original(
 @router.put("/{item_id}/image", response_model=ItemResponse)
 async def replace_item_image(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     image: UploadFile = File(...),
 ) -> ItemResponse:
@@ -1868,7 +1895,7 @@ async def replace_item_image(
         )
 
     image_service = ImageService()
-    content = await image.read()
+    content = await _read_image_or_413(image)
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service.validate_image(content, content_type):
@@ -1926,12 +1953,10 @@ async def replace_item_image(
 )
 async def add_item_image(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     image: UploadFile = File(...),
 ) -> ItemImageResponse:
-    from app.models.item import ItemImage
-
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 
@@ -1942,8 +1967,6 @@ async def add_item_image(
         )
 
     # Check max images limit
-    from sqlalchemy import func, select
-
     count_result = await db.execute(select(func.count()).where(ItemImage.item_id == item_id))
     current_count = count_result.scalar() or 0
     if current_count >= 4:
@@ -1954,7 +1977,7 @@ async def add_item_image(
 
     # Process image
     image_service_inst = ImageService()
-    content = await image.read()
+    content = await _read_image_or_413(image)
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service_inst.validate_image(content, content_type):
@@ -1993,13 +2016,9 @@ async def add_item_image(
 async def delete_item_image(
     item_id: UUID,
     image_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
-    from sqlalchemy import select
-
-    from app.models.item import ItemImage
-
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 
@@ -2038,13 +2057,9 @@ async def delete_item_image(
 async def reorder_item_images(
     item_id: UUID,
     request: ReorderImagesRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[ItemImageResponse]:
-    from sqlalchemy import select
-
-    from app.models.item import ItemImage
-
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 
@@ -2072,13 +2087,9 @@ async def reorder_item_images(
 async def set_primary_image(
     item_id: UUID,
     image_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ItemResponse:
-    from sqlalchemy import select
-
-    from app.models.item import ItemImage
-
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 

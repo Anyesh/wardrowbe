@@ -170,6 +170,9 @@
       "originalRestoreError": "元の画像の復元に失敗しました",
       "originalRestored": "元の画像を復元しました",
       "washError": "洗濯済みマークに失敗しました",
+      "logWear": "着用を記録",
+      "wearLogged": "着用を記録しました",
+      "wearLogError": "着用の記録に失敗しました",
       "washed": "洗濯済みにしました"
     },
     "brand": "ブランド",
@@ -260,7 +263,14 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
+    "failure": {
+      "tooLarge": "{name} は {limit} MB を超えています",
+      "tooLargeForServer": "{name} はサーバーが受け付けるには大きすぎます",
+      "unsupportedFormat": "{name} はサポートされていない形式です（JPEG、PNG、WebP、HEIC に対応）",
+      "duplicate": "{name} はすでにワードローブにあります",
+      "generic": "{name} をアップロードできませんでした"
+    }
   },
   "wearCount": "{count, plural, one {# 回着用} other {# 回着用}}",
   "wornAgo": {

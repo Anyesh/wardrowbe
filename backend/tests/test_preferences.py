@@ -1,5 +1,27 @@
+from types import SimpleNamespace
+
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.preferences import _build_preference_response
+from app.models import User, UserPreference
+
+DEFAULT_PREFERENCES_RESPONSE = {
+    "color_favorites": [],
+    "color_avoid": [],
+    "style_profile": {"casual": 50, "formal": 50, "sporty": 50, "minimalist": 50, "bold": 50},
+    "default_occasion": "casual",
+    "temperature_unit": "celsius",
+    "temperature_sensitivity": "normal",
+    "cold_threshold": 10,
+    "hot_threshold": 25,
+    "layering_preference": "moderate",
+    "avoid_repeat_days": 7,
+    "prefer_underused_items": True,
+    "variety_level": "moderate",
+    "ai_endpoints": [],
+}
 
 
 class TestPreferencesEndpoints:
@@ -43,6 +65,41 @@ class TestPreferencesEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert "orange" in data["color_avoid"]
+
+    @pytest.mark.asyncio
+    async def test_update_preferences_stores_canonical_colours(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/users/me/preferences",
+            json={"color_favorites": ["Khaki", "tan", "navy"], "color_avoid": ["Charcoal"]},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["color_favorites"] == ["tan", "navy"]
+        assert data["color_avoid"] == ["gray"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("stored", "read"), [("banana", "casual"), (" Wedding ", "wedding"), ("", "casual")]
+    )
+    async def test_stored_default_occasion_reads_as_a_listed_occasion(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        test_user: User,
+        auth_headers,
+        stored,
+        read,
+    ):
+        db_session.add(UserPreference(user_id=test_user.id, default_occasion=stored))
+        await db_session.commit()
+
+        response = await client.get("/api/v1/users/me/preferences", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json()["default_occasion"] == read
 
 
 class TestAIEndpointPreferences:
@@ -111,3 +168,32 @@ class TestPreferenceValidation:
             headers=auth_headers,
         )
         assert response.status_code == 200
+
+
+class TestPreferenceDefaults:
+    @pytest.mark.asyncio
+    async def test_user_without_stored_preferences_gets_defaults(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        response = await client.get("/api/v1/users/me/preferences", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json() == DEFAULT_PREFERENCES_RESPONSE
+
+    @pytest.mark.asyncio
+    async def test_row_with_only_column_defaults_gets_defaults(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        db_session.add(UserPreference(user_id=test_user.id))
+        await db_session.commit()
+
+        response = await client.get("/api/v1/users/me/preferences", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json() == DEFAULT_PREFERENCES_RESPONSE
+
+    def test_null_columns_fall_back_to_defaults(self):
+        fields = DEFAULT_PREFERENCES_RESPONSE.keys()
+        response = _build_preference_response(SimpleNamespace(**dict.fromkeys(fields)))
+
+        assert response.model_dump() == DEFAULT_PREFERENCES_RESPONSE

@@ -22,25 +22,18 @@
   },
   "filters": {
     "allOccasions": "所有场合",
-    "allStatus": "所有状态",
-    "workout": "运动"
+    "allStatus": "所有状态"
   },
   "loadError": "加载历史记录失败，请重试。",
   "noOutfitsForDate": "{date}没有穿搭",
   "outfitCount": "{count, plural, one {# 套穿搭} other {# 套穿搭}}",
-  "sourceBadges": {
-    "external": "外部",
-    "manual": "手动",
-    "onDemand": "即时获取",
-    "pairing": "搭配",
-    "scheduled": "定时推送"
-  },
   "status": {
     "accepted": "已采纳",
     "expired": "已过期",
     "pending": "待处理",
     "rejected": "已拒绝",
     "sent": "已发送",
+    "skipped": "已跳过",
     "viewed": "已查看"
   },
   "subtitle": "查看过去的穿搭推荐",

@@ -29,10 +29,16 @@ import {
   type StyleInsight,
   type LearnedColorScore,
 } from '@/lib/hooks/use-learning';
+import { useColorLabel, useOccasionLabel, useStyleLabel } from '@/lib/hooks/use-translated-constants';
+import { useInsightCategoryLabel, useLearningInsightText } from '@/lib/hooks/use-insight-text';
+import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDate } from '@/lib/utils';
+import { useUserTimezone } from '@/lib/hooks/use-user';
+import { RATING_MAX } from '@/lib/generated/scales';
 
 function StatCard({
   title,
@@ -111,48 +117,53 @@ function LoadingSkeleton() {
   );
 }
 
-const colorMap: Record<string, string> = {
-  black: 'bg-gray-900',
-  white: 'bg-gray-100 border',
-  gray: 'bg-gray-500',
-  grey: 'bg-gray-500',
-  navy: 'bg-blue-900',
-  blue: 'bg-blue-500',
-  red: 'bg-red-500',
-  green: 'bg-green-500',
-  yellow: 'bg-yellow-400',
-  orange: 'bg-orange-500',
-  purple: 'bg-purple-500',
-  pink: 'bg-pink-500',
-  brown: 'bg-amber-700',
-  beige: 'bg-amber-200',
-  cream: 'bg-amber-100',
-  khaki: 'bg-yellow-700',
-  olive: 'bg-lime-700',
-  teal: 'bg-teal-500',
-  burgundy: 'bg-red-900',
-  maroon: 'bg-red-800',
+const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric',
+};
+
+const INTERPRETATION_KEYS: Record<string, string> = {
+  stronglyLiked: 'interpretationStronglyLiked',
+  liked: 'interpretationLiked',
+  neutral: 'interpretationNeutral',
+  disliked: 'interpretationDisliked',
+  stronglyDisliked: 'interpretationStronglyDisliked',
+};
+
+const WEATHER_TYPE_KEYS: Record<string, string> = {
+  cold: 'weatherTypeCold',
+  cool: 'weatherTypeCool',
+  mild: 'weatherTypeMild',
+  hot: 'weatherTypeHot',
 };
 
 function ColorPreferenceBar({ colorScore }: { colorScore: LearnedColorScore }) {
-  const bgColor = colorMap[colorScore.color.toLowerCase()] || 'bg-muted';
+  const t = useTranslations('learning');
+  const colorLabel = useColorLabel();
+  const interpretationKey = colorScore.interpretation_key
+    ? INTERPRETATION_KEYS[colorScore.interpretation_key]
+    : undefined;
   const score = colorScore.score;
   const percentage = Math.abs(score) * 100;
   const isPositive = score >= 0;
 
   return (
     <div className="flex items-center gap-3">
-      <div className={`w-4 h-4 rounded ${bgColor}`} />
+      <div className="w-4 h-4 rounded border" style={{ backgroundColor: colorSwatch(colorScore.color) }} />
       <div className="flex-1">
         <div className="flex justify-between text-sm mb-1">
-          <span className="capitalize">{colorScore.color}</span>
+          <span>{colorLabel(colorScore.color)}</span>
           <span className="text-muted-foreground flex items-center gap-1">
             {isPositive ? (
               <ThumbsUp className="h-3 w-3 text-green-500" />
             ) : (
               <ThumbsDown className="h-3 w-3 text-red-500" />
             )}
-            {colorScore.interpretation}
+            {interpretationKey ? t(interpretationKey) : colorScore.interpretation}
           </span>
         </div>
         <div className="h-2 bg-muted rounded overflow-hidden">
@@ -240,6 +251,12 @@ function InsightCard({
   onAcknowledge: (id: string) => void;
 }) {
   const t = useTranslations('learning');
+  const insightText = useLearningInsightText();
+  const categoryLabel = useInsightCategoryLabel();
+  // Insights stored before message keys existed have none; their English text shows.
+  const message = insight.message_key
+    ? insightText({ key: insight.message_key, params: insight.message_params ?? {} })
+    : null;
   const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
     color: Sparkles,
     style: Heart,
@@ -270,11 +287,11 @@ function InsightCard({
       <div className="flex items-start gap-3 pr-6">
         <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
         <div>
-          <h4 className="font-medium">{insight.title}</h4>
-          <p className="text-sm text-muted-foreground mt-1">{insight.description}</p>
+          <h4 className="font-medium">{message?.title ?? insight.title}</h4>
+          <p className="text-sm text-muted-foreground mt-1">{message?.description ?? insight.description}</p>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="outline" className="text-xs">
-              {insight.category}
+              {categoryLabel(insight.category)}
             </Badge>
             <span className="text-xs text-muted-foreground">
               {t('confidence', { percent: Math.round(insight.confidence * 100) })}
@@ -323,6 +340,11 @@ function NoLearningData({ onRecompute, isRefreshing }: { onRecompute: () => void
 
 export default function LearningPage() {
   const t = useTranslations('learning');
+  const colorLabel = useColorLabel();
+  const occasionLabel = useOccasionLabel();
+  const styleLabel = useStyleLabel();
+  const locale = useLocale();
+  const timezone = useUserTimezone();
   const { data, isLoading, isError } = useLearning();
   const recompute = useRecomputeLearning();
   const generateInsights = useGenerateInsights();
@@ -407,25 +429,27 @@ export default function LearningPage() {
             />
             <StatCard
               title={t('stats.acceptanceRate')}
-              value={profile.overall_acceptance_rate
+              value={profile.overall_acceptance_rate != null
                 ? t('percent', { value: Math.round(profile.overall_acceptance_rate * 100) })
                 : '-'}
-              description={profile.overall_acceptance_rate
+              description={profile.overall_acceptance_rate != null
                 ? t('stats.suggestionsAccepted')
                 : t('stats.notEnoughData')}
               icon={TrendingUp}
-              trend={profile.overall_acceptance_rate && profile.overall_acceptance_rate > 0.5 ? 'up' : undefined}
+              trend={profile.overall_acceptance_rate != null && profile.overall_acceptance_rate > 0.5 ? 'up' : undefined}
             />
             <StatCard
               title={t('stats.averageRating')}
-              value={profile.average_rating ? profile.average_rating.toFixed(1) : '-'}
-              description={profile.average_rating ? t('stats.outOf5Stars') : t('stats.rateMoreOutfits')}
+              value={profile.average_rating != null ? profile.average_rating.toFixed(1) : '-'}
+              description={profile.average_rating != null
+                ? t('stats.outOfStars', { max: RATING_MAX })
+                : t('stats.rateMoreOutfits')}
               icon={Sparkles}
             />
             <StatCard
               title={t('stats.styleRating')}
-              value={profile.average_style_rating ? profile.average_style_rating.toFixed(1) : '-'}
-              description={profile.average_style_rating ? t('stats.styleSatisfaction') : t('stats.rateOutfitStyles')}
+              value={profile.average_style_rating != null ? profile.average_style_rating.toFixed(1) : '-'}
+              description={profile.average_style_rating != null ? t('stats.styleSatisfaction') : t('stats.rateOutfitStyles')}
               icon={Heart}
             />
           </div>
@@ -506,7 +530,7 @@ export default function LearningPage() {
                       const percentage = Math.abs(styleScore.score) * 100;
                       return (
                         <div key={styleScore.style} className="flex items-center justify-between">
-                          <span className="capitalize">{styleScore.style}</span>
+                          <span>{styleLabel(styleScore.style)}</span>
                           <div className="flex items-center gap-2">
                             <Progress
                               value={percentage}
@@ -562,7 +586,7 @@ export default function LearningPage() {
                   {profile.occasion_patterns.map((pattern) => (
                     <div key={pattern.occasion} className="p-4 rounded-lg bg-muted/50">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium capitalize">{pattern.occasion}</h4>
+                        <h4 className="font-medium">{occasionLabel(pattern.occasion)}</h4>
                         <Badge variant="outline">
                           {t('successRate', { percent: Math.round(pattern.success_rate * 100) })}
                         </Badge>
@@ -574,8 +598,9 @@ export default function LearningPage() {
                             {pattern.preferred_colors.map((color) => (
                               <div
                                 key={color}
-                                className={`w-4 h-4 rounded ${colorMap[color.toLowerCase()] || 'bg-muted'}`}
-                                title={color}
+                                className="w-4 h-4 rounded border"
+                                style={{ backgroundColor: colorSwatch(color) }}
+                                title={colorLabel(color)}
                               />
                             ))}
                           </div>
@@ -608,7 +633,11 @@ export default function LearningPage() {
                         {pref.weather_type === 'mild' && '🌤️'}
                         {pref.weather_type === 'hot' && '☀️'}
                       </div>
-                      <h4 className="font-medium capitalize">{pref.weather_type}</h4>
+                      {WEATHER_TYPE_KEYS[pref.weather_type] ? (
+                        <h4 className="font-medium">{t(WEATHER_TYPE_KEYS[pref.weather_type])}</h4>
+                      ) : (
+                        <h4 className="font-medium capitalize">{pref.weather_type}</h4>
+                      )}
                       <p className="text-sm text-muted-foreground mt-1">
                         {t('weatherPreferences.layers', { count: pref.preferred_layers.toFixed(1) })}
                       </p>
@@ -641,9 +670,9 @@ export default function LearningPage() {
                       <span className="text-sm">{t('suggestedUpdates.addToFavorites')}</span>
                       <div className="flex gap-2">
                         {preference_suggestions.suggestions.suggested_favorite_colors.map((color) => (
-                          <Badge key={color} variant="secondary" className="capitalize">
-                            <div className={`w-3 h-3 rounded mr-1 ${colorMap[color.toLowerCase()] || 'bg-muted'}`} />
-                            {color}
+                          <Badge key={color} variant="secondary">
+                            <div className="w-3 h-3 rounded mr-1 border" style={{ backgroundColor: colorSwatch(color) }} />
+                            {colorLabel(color)}
                           </Badge>
                         ))}
                       </div>
@@ -654,9 +683,9 @@ export default function LearningPage() {
                       <span className="text-sm">{t('suggestedUpdates.addToAvoid')}</span>
                       <div className="flex gap-2">
                         {preference_suggestions.suggestions.suggested_avoid_colors.map((color) => (
-                          <Badge key={color} variant="destructive" className="capitalize">
-                            <div className={`w-3 h-3 rounded mr-1 ${colorMap[color.toLowerCase()] || 'bg-muted'}`} />
-                            {color}
+                          <Badge key={color} variant="destructive">
+                            <div className="w-3 h-3 rounded mr-1 border" style={{ backgroundColor: colorSwatch(color) }} />
+                            {colorLabel(color)}
                           </Badge>
                         ))}
                       </div>
@@ -677,7 +706,12 @@ export default function LearningPage() {
           {/* Last Updated */}
           {profile.last_computed_at && (
             <p className="text-xs text-muted-foreground text-center">
-              {t('lastUpdated', { date: new Date(profile.last_computed_at).toLocaleString() })}
+              {t('lastUpdated', {
+                date: formatDate(profile.last_computed_at, locale, {
+                  ...DATE_TIME_OPTIONS,
+                  timeZone: timezone,
+                }),
+              })}
             </p>
           )}
         </>

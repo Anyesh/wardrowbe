@@ -54,6 +54,8 @@
   "previous": "Previous",
   "previousPage": "Previous page",
   "privacyMatters": "Your privacy matters",
+  "rateStars": "Rate {count, plural, one {# star} other {# stars}}",
+  "ratedStars": "Rated {rating, plural, one {# star} other {# stars}} out of {max}",
   "remove": "Remove",
   "retry": "Retry",
   "save": "Save",

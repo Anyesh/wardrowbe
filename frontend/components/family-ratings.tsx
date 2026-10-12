@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,32 +9,7 @@ import { toast } from 'sonner';
 import { useSubmitFamilyRating, useDeleteFamilyRating } from '@/lib/hooks/use-outfits';
 import { FamilyRating } from '@/lib/types';
 import { useTranslations } from 'next-intl';
-
-function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [hovered, setHovered] = useState(0);
-
-  return (
-    <div className="flex gap-1" onMouseLeave={() => setHovered(0)}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          type="button"
-          onMouseEnter={() => setHovered(star)}
-          onClick={() => onChange(star)}
-          className="focus:outline-none"
-        >
-          <Star
-            className={`h-6 w-6 transition-colors ${
-              star <= (hovered || value)
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'text-muted-foreground/30 hover:text-muted-foreground/50'
-            }`}
-          />
-        </button>
-      ))}
-    </div>
-  );
-}
+import { StarRatingDisplay, StarRatingInput } from '@/components/shared/star-rating';
 
 interface FamilyRatingFormProps {
   outfitId: string;
@@ -70,7 +45,7 @@ export function FamilyRatingForm({ outfitId, existingRating, onSuccess }: Family
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium">{t('yourRating')}</span>
-        <StarPicker value={rating} onChange={setRating} />
+        <StarRatingInput value={rating} onChange={setRating} />
       </div>
       <Textarea
         placeholder={t('addComment')}
@@ -127,7 +102,7 @@ export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: Famil
       {ratings.map((r) => (
         <div key={r.id} className="flex items-start gap-3 p-2 rounded-lg bg-muted/50">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={r.user_avatar_url} />
+            <AvatarImage src={r.user_avatar_url ?? undefined} />
             <AvatarFallback className="text-xs">
               {getInitials(r.user_display_name)}
             </AvatarFallback>
@@ -135,18 +110,7 @@ export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: Famil
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium truncate">{r.user_display_name}</span>
-              <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`h-3.5 w-3.5 ${
-                      star <= r.rating
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-muted-foreground/30'
-                    }`}
-                  />
-                ))}
-              </div>
+              <StarRatingDisplay value={r.rating} />
             </div>
             {r.comment && (
               <p className="text-xs text-muted-foreground mt-0.5">&ldquo;{r.comment}&rdquo;</p>

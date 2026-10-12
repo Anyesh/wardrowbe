@@ -72,6 +72,12 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}-${{ matrix.platform }}
 
+      # Runs on the pushed digest before merge tags it, so an arm64 image whose baked model
+      # or numba cache fails to load offline never reaches users.
+      - name: Check baked rembg model loads offline
+        if: matrix.service == 'backend'
+        run: backend/scripts/check_rembg_image.sh "${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}"
+
       - name: Export digest
         run: |
           mkdir -p /tmp/digests

@@ -5,11 +5,12 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, false, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.family import FamilyRole
 from app.utils.locale import DEFAULT_LOCALE
 
 if TYPE_CHECKING:
@@ -31,11 +32,17 @@ class User(Base):
     family_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("families.id", ondelete="SET NULL")
     )
-    external_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    # Frozen: user_identities, backfilled from it as legacy rows, holds sign-in identities. Only
+    # tokens minted before that table existed are checked against it, so it is never written
+    # and new users get NULL; it is dropped in the next release.
+    external_id: Mapped[str | None] = mapped_column(String(255), unique=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    # Whether the identity source vouched for the current email; only such rows may gain an
+    # identity by email, so that a squatted, unverified email cannot be taken over.
+    email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
-    role: Mapped[str] = mapped_column(String(20), default="member")
+    role: Mapped[str] = mapped_column(String(20), default=FamilyRole.member)
     timezone: Mapped[str] = mapped_column(String(50), default="UTC")
     locale: Mapped[str] = mapped_column(
         String(10), default=DEFAULT_LOCALE, server_default=DEFAULT_LOCALE, nullable=False

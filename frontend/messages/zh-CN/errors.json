@@ -2,6 +2,7 @@
   "default": "出了点问题，请重试。",
   "invite": {
     "alreadyInFamily": "您已在一个家庭中。",
+    "emailNotVerified": "你的登录服务商尚未验证你的电子邮箱。请先完成验证并重新登录，再接受此邀请。",
     "invalidLink": "此邀请链接无效或已过期。",
     "wrongEmail": "此邀请发送到了不同的电子邮箱。"
   },
