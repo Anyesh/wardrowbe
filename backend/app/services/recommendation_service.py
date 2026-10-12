@@ -650,7 +650,7 @@ class RecommendationService:
         if drop_legwear:
             valid_ids = remove_legwear(valid_ids, item_type_map, mandatory_item_ids or set())
         if not valid_ids:
-            raise AIRecommendationError("AI did not select any valid items")
+            raise EmptyOutfitError("AI did not select any valid items")
         valid_ids = canonical_item_order(valid_ids, item_type_map)
 
         reasoning = outfit_data.get("headline") or outfit_data.get("reasoning")
@@ -833,17 +833,21 @@ class RecommendationService:
                     continue
 
                 logger.info(f"Using cached suggestion for user {user.id}, occasion: {occasion}")
-                outfit = await self._materialize_outfit(
-                    cached,
-                    user,
-                    weather,
-                    occasion,
-                    source,
-                    number_map,
-                    scheduled_date=scheduled_date,
-                    mandatory_item_ids=set(include_items) if include_items else None,
-                    drop_legwear=drop_legwear,
-                )
+                try:
+                    outfit = await self._materialize_outfit(
+                        cached,
+                        user,
+                        weather,
+                        occasion,
+                        source,
+                        number_map,
+                        scheduled_date=scheduled_date,
+                        mandatory_item_ids=set(include_items) if include_items else None,
+                        drop_legwear=drop_legwear,
+                    )
+                except EmptyOutfitError:
+                    logger.info("Cached suggestion has nothing left to wear, skipping")
+                    continue
                 return [outfit]
 
         # Fetch scoring context
@@ -953,18 +957,24 @@ class RecommendationService:
             for od in outfit_list[:count]:
                 od["_ai_model"] = result.model
                 od["_ai_endpoint"] = result.endpoint
-                outfit = await self._materialize_outfit(
-                    od,
-                    user,
-                    weather,
-                    occasion,
-                    source,
-                    number_map,
-                    scheduled_date=scheduled_date,
-                    mandatory_item_ids=set(include_items) if include_items else None,
-                    drop_legwear=drop_legwear,
-                )
+                try:
+                    outfit = await self._materialize_outfit(
+                        od,
+                        user,
+                        weather,
+                        occasion,
+                        source,
+                        number_map,
+                        scheduled_date=scheduled_date,
+                        mandatory_item_ids=set(include_items) if include_items else None,
+                        drop_legwear=drop_legwear,
+                    )
+                except EmptyOutfitError:
+                    logger.warning("AI outfit option has nothing left to wear, skipping")
+                    continue
                 outfits.append(outfit)
+            if not outfits:
+                raise AIRecommendationError("AI did not select any valid items")
 
             # Cache remaining outfits for "Try Another"
             if use_cache and len(outfit_list) > count:
@@ -1026,4 +1036,10 @@ class InsufficientWardrobeError(Exception):
 
 
 class AIRecommendationError(Exception):
+    pass
+
+
+# An outfit with nothing left to wear after cleanup; one bad option among several, or a
+# stale cached one, is skipped rather than failing the whole request.
+class EmptyOutfitError(AIRecommendationError):
     pass

@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
@@ -717,3 +718,75 @@ class TestHotDayLegwear:
     ):
         with pytest.raises(AIRecommendationError):
             await self._materialize(db_session, test_user, ("tights",), [1], True)
+
+    async def _hot_day_outfits(self, db_session, user, ai_outfits, cached=None, count=1):
+        kinds = ("tights", "skirt", "t-shirt", "sneakers")
+        items = [
+            ClothingItem(
+                user_id=user.id,
+                type=kind,
+                image_path=f"test/{uuid4()}.jpg",
+                status=ItemStatus.ready,
+                primary_color="black",
+            )
+            for kind in kinds
+        ]
+        db_session.add_all(items)
+        await db_session.commit()
+        number_map = {n: item.id for n, item in enumerate(items, start=1)}
+        user.preferences = None
+        ai = MagicMock()
+        ai.generate_text = AsyncMock(
+            return_value=MagicMock(
+                content=json.dumps({"outfits": [{"items": o} for o in ai_outfits]}),
+                model="m",
+                endpoint="e",
+            )
+        )
+        if cached is not None:
+            cached = {**cached, "_number_map": {str(k): str(v) for k, v in number_map.items()}}
+        service = RecommendationService(db_session)
+        with (
+            patch("app.services.recommendation_service.AIService", return_value=ai),
+            patch(
+                "app.services.recommendation_service.pop_suggestion",
+                AsyncMock(side_effect=[cached, None]),
+            ),
+            patch("app.services.recommendation_service.push_suggestions", AsyncMock()),
+            patch.object(service, "_format_items_for_prompt", return_value=("", number_map)),
+        ):
+            outfits = await service.generate_recommendations(
+                user=user,
+                occasion="casual",
+                weather_override=WeatherData(
+                    temperature=35,
+                    feels_like=35,
+                    humidity=50,
+                    precipitation_chance=0,
+                    precipitation_mm=0,
+                    wind_speed=0,
+                    condition="clear",
+                    condition_code=0,
+                    is_day=True,
+                    uv_index=0,
+                    timestamp=datetime.utcnow(),
+                ),
+                count=count,
+            )
+        return items, [{oi.item_id for oi in o.items} for o in outfits]
+
+    @pytest.mark.asyncio
+    async def test_a_tights_only_option_is_skipped_not_fatal(self, db_session, test_user):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[1], [3, 2, 4]], count=2
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+
+    @pytest.mark.asyncio
+    async def test_a_tights_only_cached_suggestion_falls_through_to_a_fresh_one(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[3, 2, 4]], cached={"items": [1]}
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
