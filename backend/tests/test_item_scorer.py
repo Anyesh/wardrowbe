@@ -215,8 +215,8 @@ class TestWeatherScoreHeavyLayers:
         weather = _weather(temp=12, window_min=5, window_max=30)
         return _weather_score(_item(**kwargs), weather, None)
 
-    def test_puffer_with_unknown_material_is_heavy(self):
-        assert self._swing(type="jacket", subtype="puffer") == pytest.approx(0.525)
+    def test_puffer_vest_with_unknown_material_is_heavy(self):
+        assert self._swing(type="vest", subtype="puffer") == pytest.approx(0.525)
 
     @pytest.mark.parametrize("subtype", sorted(WARM_SUBTYPES))
     def test_warm_subtype_with_unknown_material_is_heavy(self, subtype):
@@ -228,8 +228,12 @@ class TestWeatherScoreHeavyLayers:
     def test_coat_with_unknown_material_is_heavy(self):
         assert self._swing(type="coat") == pytest.approx(0.525)
 
-    def test_anorak_with_unknown_material_gets_removable_floor(self):
-        assert self._swing(type="jacket", subtype="anorak") == pytest.approx(0.80)
+    @pytest.mark.parametrize(
+        ("item_type", "subtype"),
+        [("jacket", "anorak"), ("vest", "waistcoat"), ("vest", "sweater-vest")],
+    )
+    def test_light_subtype_with_unknown_material_gets_removable_floor(self, item_type, subtype):
+        assert self._swing(type=item_type, subtype=subtype) == pytest.approx(0.80)
 
     def test_jacket_with_unknown_material_and_subtype_gets_removable_floor(self):
         assert self._swing(type="jacket") == pytest.approx(0.80)
