@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { getTodayDateStringInTimezone, resolveTimezone } from '@/lib/utils';
 import { queryKeys } from '@/lib/hooks/query-keys';
+import { readLocaleCookie } from '@/lib/i18n/locales';
 
 export interface UserProfile {
   id: string;
@@ -76,7 +77,8 @@ export function useUpdateUserProfile({ toastsOwnErrors = false } = {}) {
 // The UI language comes from the NEXT_LOCALE cookie or Accept-Language, never from the profile,
 // so the profile follows the UI: the tagging worker writes AI descriptions in profile.locale.
 // One attempt per locale because a failed save must not repeat on every profile refetch; the
-// next page load tries again.
+// next page load tries again. A tab whose locale no longer matches the cookie was switched away
+// from in another tab, so it must not write its stale language back.
 export function useSyncProfileLocale(uiLocale: string) {
   const { data: profile } = useUserProfile();
   const { mutate } = useUpdateUserProfile({ toastsOwnErrors: true });
@@ -84,6 +86,8 @@ export function useSyncProfileLocale(uiLocale: string) {
 
   useEffect(() => {
     if (!profile || profile.locale === uiLocale || attempted.current === uiLocale) return;
+    const cookieLocale = readLocaleCookie();
+    if (cookieLocale && cookieLocale !== uiLocale) return;
     attempted.current = uiLocale;
     mutate({ locale: uiLocale });
   }, [profile, uiLocale, mutate]);

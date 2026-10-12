@@ -9,8 +9,9 @@ function SyncLocale() {
   return null;
 }
 
-// Mounted only once signed in, so the login page never requests a profile it cannot read.
+// Gated on the backend token, not the NextAuth status, because a session whose backend sync
+// failed is still "authenticated" and has no profile to read.
 export function ProfileLocaleSync() {
-  const { status } = useSession();
-  return status === 'authenticated' ? <SyncLocale /> : null;
+  const { data: session } = useSession();
+  return session?.accessToken ? <SyncLocale /> : null;
 }

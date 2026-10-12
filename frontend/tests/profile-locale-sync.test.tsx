@@ -5,11 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "@/lib/api";
 import { ProfileLocaleSync } from "@/components/profile-locale-sync";
 
-const session = vi.hoisted(() => ({ status: "authenticated", locale: "fr" }));
+const session = vi.hoisted(() => ({ status: "authenticated", locale: "fr", token: "jwt" as string | null }));
 
 vi.mock("next-auth/react", () => ({
   useSession: () => ({
-    data: session.status === "authenticated" ? { accessToken: "jwt" } : null,
+    data:
+      session.status === "authenticated"
+        ? { accessToken: session.token ?? undefined, syncError: session.token ? undefined : "down" }
+        : null,
     status: session.status,
   }),
 }));
@@ -42,6 +45,8 @@ describe("ProfileLocaleSync", () => {
     vi.mocked(api.patch).mockReset();
     session.status = "authenticated";
     session.locale = "fr";
+    session.token = "jwt";
+    document.cookie = "NEXT_LOCALE=; path=/; max-age=0";
   });
 
   it("saves the language the UI renders in when the profile differs", async () => {
@@ -70,6 +75,27 @@ describe("ProfileLocaleSync", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(api.get).not.toHaveBeenCalled();
+    expect(api.patch).not.toHaveBeenCalled();
+  });
+
+  it("does not ask for a profile when the backend sync failed", async () => {
+    session.token = null;
+
+    renderSync();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(api.get).not.toHaveBeenCalled();
+  });
+
+  it("does not write back the language of a tab another tab has since switched away from", async () => {
+    document.cookie = "NEXT_LOCALE=de; path=/";
+    session.locale = "en";
+    vi.mocked(api.get).mockResolvedValue({ locale: "de" });
+
+    renderSync();
+
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/users/me"));
+    await new Promise((resolve) => setTimeout(resolve, 20));
     expect(api.patch).not.toHaveBeenCalled();
   });
 
