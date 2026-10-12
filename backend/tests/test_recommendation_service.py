@@ -779,9 +779,10 @@ class TestHotDayLegwear:
     @pytest.mark.asyncio
     async def test_a_tights_only_option_is_skipped_not_fatal(self, db_session, test_user):
         items, outfits = await self._hot_day_outfits(
-            db_session, test_user, [[1], [3, 2, 4]], count=2
+            db_session, test_user, [[3, 2], [1], [2, 4], [3]], count=2
         )
-        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert outfits == [{items[2].id, items[1].id}, {items[1].id, items[3].id}]
+        assert self.pushed == [[3]]
 
     @pytest.mark.asyncio
     async def test_a_tights_only_cached_suggestion_falls_through_to_a_fresh_one(
