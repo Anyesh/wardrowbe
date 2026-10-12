@@ -263,7 +263,6 @@
     "dismissAll": "Ignora tutto",
     "retry": "Riprova",
     "dismiss": "Ignora",
-    "unprotectedWarning": "{count, plural, one {# file non può essere protetto dalle interruzioni (spazio esaurito)} other {# file non possono essere protetti dalle interruzioni (spazio esaurito)}} - tieni aperta questa scheda fino al termine del caricamento",
     "failure": {
       "tooLarge": "{name} supera {limit} MB",
       "tooLargeForServer": "{name} è troppo grande perché il server lo accetti",

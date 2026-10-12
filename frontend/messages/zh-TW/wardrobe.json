@@ -263,7 +263,6 @@
     "dismissAll": "全部關閉",
     "retry": "重試",
     "dismiss": "關閉",
-    "unprotectedWarning": "{count, plural, one {# 個檔案無法防止中斷遺失（儲存空間已滿）} other {# 個檔案無法防止中斷遺失（儲存空間已滿）}}，完成上傳前請保持此分頁開啟",
     "failure": {
       "tooLarge": "{name} 超過 {limit} MB",
       "tooLargeForServer": "{name} 太大，伺服器無法接收",

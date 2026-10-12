@@ -263,7 +263,6 @@
     "dismissAll": "すべて閉じる",
     "retry": "再試行",
     "dismiss": "閉じる",
-    "unprotectedWarning": "{count, plural, one {# 件のファイルを中断から保護できませんでした（ストレージ容量不足）} other {# 件のファイルを中断から保護できませんでした（ストレージ容量不足）}} - アップロードが完了するまでこのタブを開いたままにしてください",
     "failure": {
       "tooLarge": "{name} は {limit} MB を超えています",
       "tooLargeForServer": "{name} はサーバーが受け付けるには大きすぎます",

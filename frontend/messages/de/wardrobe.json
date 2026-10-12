@@ -263,7 +263,6 @@
     "dismissAll": "Alle schließen",
     "retry": "Erneut versuchen",
     "dismiss": "Schließen",
-    "unprotectedWarning": "{count, plural, one {# Datei konnte nicht gegen Unterbrechung gesichert werden (Speicher voll)} other {# Dateien konnten nicht gegen Unterbrechung gesichert werden (Speicher voll)}} - lass diesen Tab geöffnet, bis der Upload abgeschlossen ist",
     "failure": {
       "tooLarge": "{name} ist größer als {limit} MB",
       "tooLargeForServer": "{name} ist zu groß, um vom Server angenommen zu werden",

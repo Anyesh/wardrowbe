@@ -263,7 +263,6 @@
     "dismissAll": "모두 닫기",
     "retry": "재시도",
     "dismiss": "닫기",
-    "unprotectedWarning": "{count, plural, other {파일 #개}}를 중단으로부터 보호하지 못했어요 (저장 공간 부족) - 업로드가 끝날 때까지 이 탭을 열어 두세요",
     "failure": {
       "tooLarge": "{name}의 크기가 {limit}MB를 초과합니다",
       "tooLargeForServer": "{name}은(는) 서버에서 받기에 너무 큽니다",

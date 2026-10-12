@@ -263,7 +263,6 @@
     "dismissAll": "Tout fermer",
     "retry": "Réessayer",
     "dismiss": "Fermer",
-    "unprotectedWarning": "{count, plural, one {# fichier n’a pas pu être protégé contre l’interruption (stockage plein)} other {# fichiers n’ont pas pu être protégés contre l’interruption (stockage plein)}} - gardez cet onglet ouvert jusqu’à la fin de l’import",
     "failure": {
       "tooLarge": "{name} dépasse {limit} Mo",
       "tooLargeForServer": "{name} est trop volumineux pour être accepté par le serveur",
