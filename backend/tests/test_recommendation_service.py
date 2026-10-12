@@ -11,6 +11,7 @@ from app.models.user import User
 from app.services.item_scorer import ScoredItem
 from app.services.recommendation_service import (
     RECOMMENDATION_PROMPT,
+    AIRecommendationError,
     RecommendationService,
     format_temp_range_text,
     get_time_of_day,
@@ -538,52 +539,6 @@ class TestIncludeItems:
         assert ai_item.id in outfit_item_ids
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize(("drop_legwear", "tights_kept"), [(True, False), (False, True)])
-    async def test_materialize_outfit_drops_unrequested_tights_only_when_asked(
-        self, db_session, test_user, drop_legwear, tights_kept
-    ):
-        items = {
-            kind: ClothingItem(
-                user_id=test_user.id,
-                type=kind,
-                image_path=f"test/{uuid4()}.jpg",
-                status=ItemStatus.ready,
-                primary_color="black",
-            )
-            for kind in ("t-shirt", "skirt", "tights", "sneakers")
-        }
-        db_session.add_all(items.values())
-        await db_session.commit()
-        weather = WeatherData(
-            temperature=30,
-            feels_like=30,
-            humidity=50,
-            precipitation_chance=0,
-            precipitation_mm=0,
-            wind_speed=0,
-            condition="clear",
-            condition_code=0,
-            is_day=True,
-            uv_index=0,
-            timestamp=datetime.utcnow(),
-        )
-        number_map = {n: item.id for n, item in enumerate(items.values(), start=1)}
-
-        outfit = await RecommendationService(db_session)._materialize_outfit(
-            {"items": [1, 2, 3, 4], "headline": "Hot day"},
-            test_user,
-            weather,
-            occasion="casual",
-            source=OutfitSource.on_demand,
-            number_map=number_map,
-            drop_legwear=drop_legwear,
-        )
-
-        outfit_item_ids = {oi.item_id for oi in outfit.items}
-        assert (items["tights"].id in outfit_item_ids) is tights_kept
-        assert items["skirt"].id in outfit_item_ids
-
-    @pytest.mark.asyncio
     async def test_suggest_accepts_include_items(self, client, test_user, auth_headers, db_session):
         item = ClothingItem(
             user_id=test_user.id,
@@ -694,3 +649,71 @@ class TestIncludeItems:
             assert isinstance(data, list)
             assert len(data) == 3
             assert mock_generate.call_args.kwargs["count"] == 3
+
+
+class TestHotDayLegwear:
+    async def _materialize(self, db_session, user, kinds, picked, drop_legwear, mandatory=()):
+        items = [
+            ClothingItem(
+                user_id=user.id,
+                type=kind,
+                image_path=f"test/{uuid4()}.jpg",
+                status=ItemStatus.ready,
+                primary_color="black",
+            )
+            for kind in kinds
+        ]
+        db_session.add_all(items)
+        await db_session.commit()
+        weather = WeatherData(
+            temperature=30,
+            feels_like=30,
+            humidity=50,
+            precipitation_chance=0,
+            precipitation_mm=0,
+            wind_speed=0,
+            condition="clear",
+            condition_code=0,
+            is_day=True,
+            uv_index=0,
+            timestamp=datetime.utcnow(),
+        )
+        number_map = {n: item.id for n, item in enumerate(items, start=1)}
+        outfit = await RecommendationService(db_session)._materialize_outfit(
+            {"items": picked, "headline": "Hot day"},
+            user,
+            weather,
+            occasion="casual",
+            source=OutfitSource.on_demand,
+            number_map=number_map,
+            mandatory_item_ids={items[n - 1].id for n in mandatory} or None,
+            drop_legwear=drop_legwear,
+        )
+        return items, {oi.item_id for oi in outfit.items}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("drop_legwear", "mandatory", "tights_kept"),
+        [(True, (), False), (False, (), True), (True, (3,), True)],
+        ids=["hot", "not-hot", "hot-but-requested"],
+    )
+    async def test_drops_only_unrequested_tights_on_a_hot_day(
+        self, db_session, test_user, drop_legwear, mandatory, tights_kept
+    ):
+        items, kept = await self._materialize(
+            db_session,
+            test_user,
+            ("t-shirt", "skirt", "tights", "sneakers"),
+            [1, 2, 3, 4],
+            drop_legwear,
+            mandatory,
+        )
+        assert (items[2].id in kept) is tights_kept
+        assert {items[0].id, items[1].id, items[3].id} <= kept
+
+    @pytest.mark.asyncio
+    async def test_an_answer_of_only_tights_is_not_saved_as_an_empty_outfit(
+        self, db_session, test_user
+    ):
+        with pytest.raises(AIRecommendationError):
+            await self._materialize(db_session, test_user, ("tights",), [1], True)

@@ -114,9 +114,11 @@ def _temp_bucket_score(
     hot_threshold: float,
 ) -> float:
     # Sheer and thermal tights serve different weather needs, so the type alone
-    # must not mark every pair as a warm layer. The same test drives the cold reward
-    # and the heat penalty, so wool tights cannot be warm in winter yet fine at 30C.
-    warm_tights = item_type == "tights" and (subtype == "thermal" or material in ("wool", "fleece"))
+    # must not mark every pair as a warm layer. The materials match the cold-weather
+    # rule below so the heat penalty hits the same pairs the cold reward favours.
+    warm_tights = item_type == "tights" and (
+        subtype == "thermal" or material in ("wool", "fleece", "knit")
+    )
     if temp < cold_threshold:
         if warm_tights or item_type in WARM_LAYER_TYPES or material in ("wool", "fleece", "knit"):
             return 1.0
@@ -175,9 +177,10 @@ def _resolve_temp_thresholds(preferences: UserPreference | None) -> tuple[float,
 
 
 def stays_above_hot_threshold(weather: WeatherData, preferences: UserPreference | None) -> bool:
+    # The raw window, not scoring_temp_range: that hides swings under 8C, which would
+    # let a hot midday reading stand in for a cool evening.
     _, hot_threshold = _resolve_temp_thresholds(preferences)
-    temp_range = scoring_temp_range(weather)
-    coolest = temp_range[0] if temp_range else weather.temperature
+    coolest = weather.window_min if weather.window_min is not None else weather.temperature
     return coolest > hot_threshold
 
 

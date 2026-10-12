@@ -637,9 +637,6 @@ class RecommendationService:
                     logger.info(f"Adding missing mandatory item {mid} to outfit")
                     valid_ids.insert(0, mid)
 
-        if not valid_ids:
-            raise AIRecommendationError("AI did not select any valid items")
-
         # Deduplicate by body slot (e.g. prevent shorts + pants)
         items_result = await self.db.execute(
             select(ClothingItem.id, ClothingItem.type).where(ClothingItem.id.in_(valid_ids))
@@ -652,6 +649,8 @@ class RecommendationService:
         # day; tights the user asked for stay.
         if drop_legwear:
             valid_ids = remove_legwear(valid_ids, item_type_map, mandatory_item_ids or set())
+        if not valid_ids:
+            raise AIRecommendationError("AI did not select any valid items")
         valid_ids = canonical_item_order(valid_ids, item_type_map)
 
         reasoning = outfit_data.get("headline") or outfit_data.get("reasoning")

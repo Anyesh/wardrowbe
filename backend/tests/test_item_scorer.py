@@ -134,8 +134,9 @@ class TestWeatherScore:
             (None, "fleece", 1.0, 0.05),
             ("sheer", None, 0.7, 0.8),
             ("opaque", "polyester", 0.7, 0.8),
+            ("opaque", "knit", 1.0, 0.05),
         ],
-        ids=["thermal", "wool-opaque", "fleece-untyped", "sheer", "synthetic-opaque"],
+        ids=["thermal", "wool-opaque", "fleece-untyped", "sheer", "synthetic-opaque", "knit"],
     )
     def test_only_warm_tights_count_as_a_warm_layer(self, subtype, material, cold, hot):
         item = _item(type="tights", subtype=subtype, material=material)
@@ -658,6 +659,7 @@ class TestRoleDiversity:
         (_weather(temp=24), _prefs(), False),
         (_weather(temp=28, window_min=15, window_max=29), _prefs(), False),
         (_weather(temp=28, window_min=26, window_max=35), _prefs(), True),
+        (_weather(temp=30, window_min=23, window_max=30), _prefs(), False),
         (_weather(temp=22), _prefs(temperature_sensitivity="high"), True),
         (_weather(temp=28), _prefs(temperature_sensitivity="low"), False),
         (_weather(temp=45), None, True),
@@ -667,6 +669,7 @@ class TestRoleDiversity:
         "mild",
         "cool-morning",
         "hot-all-window",
+        "narrow-swing-cool-evening",
         "runs-hot",
         "runs-cold",
         "no-preferences",
