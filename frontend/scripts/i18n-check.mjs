@@ -52,14 +52,13 @@ if (!locales.includes(SOURCE_LOCALE)) {
   process.exit(1);
 }
 
-// Strings that read the same in every language (brand names, units, format-only patterns).
-// Anything else left identical to English in every locale was never translated, which the
-// presence and placeholder checks cannot see.
+// Strings that read the same in every language (brand names, units, sample values). Anything
+// else left identical across every translation was never translated, or was copied from an older
+// English text, which the presence and placeholder checks cannot see.
 const SAME_IN_EVERY_LOCALE = new Set([
   'constants.timezones.UTC',
   'notifications.channels.placeholders.accessToken',
   'notifications.channels.types.mattermost',
-  'notifications.schedule.summary',
   'settings.aiEndpoints.fields.url',
 ]);
 
@@ -102,9 +101,11 @@ for (const locale of locales) {
 
 const translations = locales.filter((l) => l !== SOURCE_LOCALE).map(loadLocale);
 for (const key of sourceKeys) {
-  if (SAME_IN_EVERY_LOCALE.has(key) || !/\p{L}/u.test(source[key])) continue;
-  if (translations.length && translations.every((t) => t[key] === source[key])) {
-    problems.push(`every locale: '${key}' is still the English text`);
+  // Argument names are stripped first so that a format-only pattern like '{time} - {occasion}'
+  // does not count as words.
+  if (SAME_IN_EVERY_LOCALE.has(key) || !/\p{L}/u.test(source[key].replace(/\{\w+\}/g, ''))) continue;
+  if (translations.length > 1 && new Set(translations.map((t) => t[key])).size === 1) {
+    problems.push(`every locale: '${key}' is identical in every translation, so it is untranslated or stale`);
   }
 }
 
