@@ -79,7 +79,6 @@
     "detected": "Posizione rilevata. Verificala, poi salva.",
     "errors": {
       "geolocationDenied": "Accesso alla posizione negato.",
-      "geolocationFailed": "Impossibile ottenere la posizione esatta: {message}",
       "geolocationFailedGeneric": "Impossibile ottenere la posizione esatta.",
       "geolocationTimeout": "Richiesta di posizione scaduta.",
       "geolocationUnavailable": "Posizione attualmente non disponibile.",

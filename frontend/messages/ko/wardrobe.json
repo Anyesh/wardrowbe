@@ -26,7 +26,14 @@
       "uploadButton": "{count, plural, other {아이템 #개 업로드}}",
       "uploadError": "아이템 업로드에 실패했어요. 다시 시도해 주세요.",
       "uploadMore": "추가 업로드",
-      "uploadingCount": "{count, plural, other {아이템 #개 업로드 중...}}"
+      "uploadingCount": "{count, plural, other {아이템 #개 업로드 중...}}",
+      "failure": {
+        "tooLarge": "업로드 한도를 초과해요",
+        "unsupportedFormat": "지원하지 않는 형식이에요 (JPEG, PNG, WebP, HEIC 지원)",
+        "duplicate": "이미 옷장에 있어요",
+        "invalidImage": "읽을 수 없는 이미지예요",
+        "generic": "업로드하지 못했어요"
+      }
     },
     "bulkUpload": "일괄 업로드",
     "dropzone": "이미지를 끌어다 놓거나 탭하여 선택하세요",

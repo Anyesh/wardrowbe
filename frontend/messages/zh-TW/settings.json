@@ -79,7 +79,6 @@
     "detected": "已偵測到位置。請確認後儲存。",
     "errors": {
       "geolocationDenied": "位置存取被拒絕。",
-      "geolocationFailed": "取得精確位置失敗：{message}",
       "geolocationFailedGeneric": "取得精確位置失敗。",
       "geolocationTimeout": "位置請求逾時。",
       "geolocationUnavailable": "目前無法取得位置。",

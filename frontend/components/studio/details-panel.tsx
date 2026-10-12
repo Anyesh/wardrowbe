@@ -9,13 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { OccasionChips } from '@/components/shared/occasion-chips';
-import { api, getErrorMessage } from '@/lib/api';
+import { api } from '@/lib/api';
 import { mergeAiAssist } from '@/lib/studio/ai-assist-merge';
 import { computeWarnings } from '@/lib/studio/warnings';
 import type { StudioItem } from '@/lib/studio/editor-state';
 import type { Outfit, OutfitItem } from '@/lib/hooks/use-outfits';
 import { useTranslations } from 'next-intl';
 import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useDescribeError } from '@/lib/errors';
 
 interface DetailsPanelProps {
   items: StudioItem[];
@@ -47,6 +48,7 @@ export function DetailsPanel({
 }: DetailsPanelProps) {
   const typeLabel = useTypeLabel();
   const t = useTranslations('outfits.details');
+  const describeError = useDescribeError();
   const [aiLoading, setAiLoading] = useState(false);
   const warnings = computeWarnings(items, t);
 
@@ -81,7 +83,7 @@ export function DetailsPanel({
         toast.info(t('aiNoSuggestions'));
       }
     } catch (error) {
-      toast.error(getErrorMessage(error, t('aiFailed')));
+      toast.error(describeError(error, t('aiFailed')));
     } finally {
       setAiLoading(false);
     }

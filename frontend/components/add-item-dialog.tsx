@@ -35,7 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateItem, useBulkCreateItems, BulkUploadResponse } from '@/lib/hooks/use-items';
+import { useCreateItem, useBulkCreateItems, BulkUploadResponse, type BulkUploadErrorCode } from '@/lib/hooks/use-items';
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
 import { ACCEPTED_IMAGE_TYPES } from '@/lib/image-types';
 import { useTranslations } from 'next-intl';
@@ -54,6 +54,21 @@ interface FileWithPreview {
 export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const t = useTranslations('wardrobe.addItem');
   const tc = useTranslations('common');
+
+  const bulkFailureReason = (code: BulkUploadErrorCode | null | undefined): string => {
+    switch (code) {
+      case 'too_large':
+        return t('bulk.failure.tooLarge');
+      case 'unsupported_format':
+        return t('bulk.failure.unsupportedFormat');
+      case 'duplicate':
+        return t('bulk.failure.duplicate');
+      case 'invalid_image':
+        return t('bulk.failure.invalidImage');
+      default:
+        return t('bulk.failure.generic');
+    }
+  };
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
   // Single upload state
@@ -555,8 +570,8 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{result.filename}</p>
-                          {result.error && (
-                            <p className="text-xs text-destructive">{result.error}</p>
+                          {!result.success && (
+                            <p className="text-xs text-destructive">{bulkFailureReason(result.error_code)}</p>
                           )}
                         </div>
                         {result.item && (

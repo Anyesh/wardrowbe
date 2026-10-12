@@ -29,13 +29,14 @@ import { useWearToday } from '@/lib/hooks/use-studio';
 import { useUserToday } from '@/lib/hooks/use-user';
 import { useOutfitTitle } from '@/lib/hooks/use-outfit-title';
 import { useOccasionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
-import { getErrorMessage } from '@/lib/api';
 import { formatDate, formatRelativeDate } from '@/lib/utils';
+import { useDescribeError } from '@/lib/errors';
 
 export default function OutfitDetailPage() {
   const typeLabel = useTypeLabel();
   const t = useTranslations('outfits');
   const tc = useTranslations('common');
+  const describeError = useDescribeError();
   const occasionLabel = useOccasionLabel();
   const getTitle = useOutfitTitle();
   const locale = useLocale();
@@ -75,7 +76,7 @@ export default function OutfitDetailPage() {
       toast.success(t('detail.addedToToday'));
       router.push(`/dashboard/outfits/${result.id}`);
     } catch (error) {
-      toast.error(getErrorMessage(error, t('detail.wearTodayError')));
+      toast.error(describeError(error, t('detail.wearTodayError')));
     }
   };
 
@@ -86,7 +87,7 @@ export default function OutfitDetailPage() {
       toast.success(t('detail.deleted'));
       router.push('/dashboard/outfits');
     } catch (error) {
-      toast.error(getErrorMessage(error, t('detail.deleteError')));
+      toast.error(describeError(error, t('detail.deleteError')));
     }
   };
 

@@ -52,13 +52,14 @@ import { ItemPicker } from '@/components/shared/item-picker';
 import { OccasionChips } from '@/components/shared/occasion-chips';
 import { useOccasionLabel, useWeatherConditionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { useItem } from '@/lib/hooks/use-items';
-import { api, ApiError } from '@/lib/api';
+import { api } from '@/lib/api';
 import { applySessionToken } from '@/lib/hooks/use-session-token';
 import { ClothingTypeValue, CurrentWeather, Item, Outfit, SuggestRequest } from '@/lib/types';
 import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
 import { cn, formatShortDate } from '@/lib/utils';
 import { TempUnit, formatTemp, displayValue, toF, toCelsius } from '@/lib/temperature';
+import { useDescribeError } from '@/lib/errors';
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
 
@@ -584,6 +585,7 @@ function SuggestContent() {
   const typeLabel = useTypeLabel();
   const t = useTranslations('suggest');
   const tCommon = useTranslations('common');
+  const describeError = useDescribeError();
   const tTypes = useTranslations('constants.types');
   const searchParams = useSearchParams();
   const preselectedItemId = searchParams.get('item');
@@ -645,11 +647,7 @@ function SuggestContent() {
       setOutfits(result);
       setActiveOptionIndex(0);
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError(t('error'));
-      }
+      setError(describeError(err, t('error')));
       console.error('Suggestion error:', err);
     } finally {
       setIsGenerating(false);

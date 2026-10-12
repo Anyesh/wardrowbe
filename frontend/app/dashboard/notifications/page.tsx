@@ -60,6 +60,7 @@ import { useUserProfile } from '@/lib/hooks/use-user';
 import { useOccasionLabel, useOccasions } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
 import { AddChannelDialog, ChannelFormData } from '@/components/notifications/add-channel-dialog';
+import { useDescribeError } from '@/lib/errors';
 
 const DAY_KEYS = [
   { value: 0, key: 'monday' as const },
@@ -296,6 +297,7 @@ function AddScheduleDialog({
 export default function NotificationsPage() {
   const t = useTranslations('notifications');
   const tc = useTranslations('common');
+  const describeError = useDescribeError();
   const { data: settings, isLoading: loadingSettings } = useNotificationSettings();
   const { data: schedules, isLoading: loadingSchedules } = useSchedules();
   const { data: userProfile } = useUserProfile();
@@ -317,7 +319,7 @@ export default function NotificationsPage() {
       await createSetting.mutateAsync(data);
       toast.success(t('channels.channelAdded'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('channels.addFailed');
+      const message = describeError(error, t('channels.addFailed'));
       toast.error(message);
       throw error; // Re-throw so dialog knows it failed
     }
@@ -328,7 +330,7 @@ export default function NotificationsPage() {
       await createSchedule.mutateAsync(data);
       toast.success(t('schedule.scheduleAdded'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('schedule.addFailed');
+      const message = describeError(error, t('schedule.addFailed'));
       toast.error(message);
       throw error; // Re-throw so dialog knows it failed
     }
@@ -338,9 +340,9 @@ export default function NotificationsPage() {
     setTestingId(id);
     try {
       const result = await testSetting.mutateAsync(id);
-      toast.success(result.message || t('channels.testSent'));
+      toast.success(t('channels.testSent'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('channels.testFailed');
+      const message = describeError(error, t('channels.testFailed'));
       toast.error(message);
     } finally {
       setTestingId(null);
@@ -352,7 +354,7 @@ export default function NotificationsPage() {
       await updateSetting.mutateAsync({ id, data: { enabled } });
       toast.success(enabled ? t('channels.channelEnabled') : t('channels.channelDisabled'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('updateFailed');
+      const message = describeError(error, t('updateFailed'));
       toast.error(message);
     }
   };
@@ -362,7 +364,7 @@ export default function NotificationsPage() {
       await updateSchedule.mutateAsync({ id, data: { enabled } });
       toast.success(enabled ? t('schedule.scheduleEnabled') : t('schedule.scheduleDisabled'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('updateFailed');
+      const message = describeError(error, t('updateFailed'));
       toast.error(message);
     }
   };
@@ -372,7 +374,7 @@ export default function NotificationsPage() {
       await updateSchedule.mutateAsync({ id, data: { notify_day_before } });
       toast.success(notify_day_before ? t('schedule.willNotifyDayBefore') : t('schedule.willNotifySameDay'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('updateFailed');
+      const message = describeError(error, t('updateFailed'));
       toast.error(message);
     }
   };
@@ -389,7 +391,7 @@ export default function NotificationsPage() {
         toast.success(t('schedule.scheduleDeleted'));
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('deleteFailed');
+      const message = describeError(error, t('deleteFailed'));
       toast.error(message);
     } finally {
       setDeleteConfirm(null);

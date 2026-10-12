@@ -145,9 +145,9 @@ export function useCreateItem() {
         });
       } catch {
         if (!navigator.onLine) {
-          throw new NetworkError('You appear to be offline. Please check your connection.');
+          throw new NetworkError('offline');
         }
-        throw new NetworkError('Unable to connect to server. Please try again.');
+        throw new NetworkError('unreachable');
       }
 
       if (!response.ok) {
@@ -1077,14 +1077,14 @@ function uploadBulkItemsChunk(
 
     xhr.addEventListener('error', () => {
       if (!navigator.onLine) {
-        reject(new NetworkError('You appear to be offline. Please check your connection.'));
+        reject(new NetworkError('offline'));
       } else {
-        reject(new NetworkError('Unable to connect to server. Please try again.'));
+        reject(new NetworkError('unreachable'));
       }
     });
 
     xhr.addEventListener('abort', () => {
-      reject(new NetworkError('Upload was cancelled.'));
+      reject(new NetworkError('cancelled'));
     });
 
     xhr.open('POST', `${API_BASE_PATH}/items/bulk`);

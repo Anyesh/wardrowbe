@@ -189,7 +189,8 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
           img.src = blobUrl;
         })
         .catch(err => {
-          setError(err.message || t('errors.imageLoadFailed'));
+          console.error('Eyedropper image failed to load:', err);
+          setError(t('errors.imageLoadFailed'));
           setIsLoading(false);
         });
     }, 100); // Small delay to ensure DOM is ready

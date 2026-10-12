@@ -26,7 +26,14 @@
       "uploadButton": "Upload {count, plural, one {# Item} other {# Items}}",
       "uploadError": "Failed to upload items. Please try again.",
       "uploadMore": "Upload More",
-      "uploadingCount": "{count, plural, one {Uploading # item...} other {Uploading # items...}}"
+      "uploadingCount": "{count, plural, one {Uploading # item...} other {Uploading # items...}}",
+      "failure": {
+        "tooLarge": "Larger than the upload limit",
+        "unsupportedFormat": "Not a supported format (JPEG, PNG, WebP or HEIC)",
+        "duplicate": "Already in your wardrobe",
+        "invalidImage": "Not a readable image",
+        "generic": "Could not be uploaded"
+      }
     },
     "bulkUpload": "Bulk Upload",
     "dropzone": "Drag & drop an image, or tap to select",

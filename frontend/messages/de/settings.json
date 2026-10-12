@@ -79,7 +79,6 @@
     "detected": "Standort erkannt. Überprüfe ihn und speichere dann.",
     "errors": {
       "geolocationDenied": "Der Zugriff auf den Standort wurde verweigert.",
-      "geolocationFailed": "Genauer Standort konnte nicht ermittelt werden: {message}",
       "geolocationFailedGeneric": "Genauer Standort konnte nicht ermittelt werden.",
       "geolocationTimeout": "Zeitüberschreitung bei der Standortabfrage.",
       "geolocationUnavailable": "Der Standort ist derzeit nicht verfügbar.",

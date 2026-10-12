@@ -26,7 +26,14 @@
       "uploadButton": "{count, plural, one {Télécharger # article} other {Télécharger # articles}}",
       "uploadError": "Échec de l'import des articles. Veuillez réessayer.",
       "uploadMore": "Importer plus",
-      "uploadingCount": "{count, plural, one {Import de # article...} other {Import de # articles...}}"
+      "uploadingCount": "{count, plural, one {Import de # article...} other {Import de # articles...}}",
+      "failure": {
+        "tooLarge": "Dépasse la limite d'import",
+        "unsupportedFormat": "Format non pris en charge (JPEG, PNG, WebP ou HEIC)",
+        "duplicate": "Déjà dans votre garde-robe",
+        "invalidImage": "Image illisible",
+        "generic": "N'a pas pu être importé"
+      }
     },
     "bulkUpload": "Téléchargement groupé",
     "dropzone": "Glissez-déposez une image, ou appuyez pour sélectionner",

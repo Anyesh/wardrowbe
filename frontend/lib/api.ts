@@ -4,6 +4,12 @@ interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
 }
 
+type ErrorBody = {
+  error_code?: unknown;
+  error_params?: unknown;
+  detail?: { error_code?: unknown } | string;
+} | null;
+
 class ApiError extends Error {
   status: number;
   data: unknown;
@@ -14,11 +20,29 @@ class ApiError extends Error {
     this.data = data;
     this.name = 'ApiError';
   }
+
+  // Older endpoints nest the code in detail; newer ones put it beside a plain-string detail.
+  get code(): string | undefined {
+    const body = this.data as ErrorBody;
+    const nested = typeof body?.detail === 'object' ? body.detail?.error_code : undefined;
+    const code = body?.error_code ?? nested;
+    return typeof code === 'string' ? code : undefined;
+  }
+
+  get params(): Record<string, string | number> | undefined {
+    const params = (this.data as ErrorBody)?.error_params;
+    return params && typeof params === 'object' ? (params as Record<string, string | number>) : undefined;
+  }
 }
 
+export type NetworkErrorKind = 'offline' | 'unreachable' | 'cancelled';
+
 class NetworkError extends Error {
-  constructor(message: string = 'Network error. Please check your connection.') {
-    super(message);
+  kind: NetworkErrorKind;
+
+  constructor(kind: NetworkErrorKind = 'unreachable') {
+    super(`Network request failed (${kind})`);
+    this.kind = kind;
     this.name = 'NetworkError';
   }
 }
@@ -60,9 +84,9 @@ async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promis
     });
   } catch (err) {
     if (!navigator.onLine) {
-      throw new NetworkError('You appear to be offline. Please check your connection.');
+      throw new NetworkError('offline');
     }
-    throw new NetworkError('Unable to connect to server. Please try again.');
+    throw new NetworkError('unreachable');
   }
 
   if (!response.ok) {
@@ -101,17 +125,5 @@ export const api = {
   delete: <T>(endpoint: string, options?: FetchOptions) =>
     fetchApi<T>(endpoint, { ...options, method: 'DELETE' }),
 };
-
-const handledErrors = new WeakSet<object>();
-
-export function getErrorMessage(error: unknown, fallback: string): string {
-  if (error && typeof error === 'object') handledErrors.add(error);
-  if (error instanceof ApiError && error.status < 500) return error.message;
-  return fallback;
-}
-
-export function isErrorHandled(error: unknown): boolean {
-  return error !== null && typeof error === 'object' && handledErrors.has(error);
-}
 
 export { ApiError, NetworkError };

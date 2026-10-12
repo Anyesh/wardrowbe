@@ -26,7 +26,14 @@
       "uploadButton": "{count, plural, one {Carica # capo} other {Carica # capi}}",
       "uploadError": "Caricamento dei capi fallito. Riprova.",
       "uploadMore": "Carica altro",
-      "uploadingCount": "{count, plural, one {Caricamento di # capo...} other {Caricamento di # capi...}}"
+      "uploadingCount": "{count, plural, one {Caricamento di # capo...} other {Caricamento di # capi...}}",
+      "failure": {
+        "tooLarge": "Supera il limite di caricamento",
+        "unsupportedFormat": "Formato non supportato (JPEG, PNG, WebP o HEIC)",
+        "duplicate": "Già nel tuo guardaroba",
+        "invalidImage": "Immagine non leggibile",
+        "generic": "Non è stato possibile caricarlo"
+      }
     },
     "bulkUpload": "Caricamento multiplo",
     "dropzone": "Trascina e rilascia un'immagine, o tocca per selezionare",

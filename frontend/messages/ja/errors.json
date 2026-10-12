@@ -9,5 +9,47 @@
   "pageLoad": {
     "description": "このコンテンツの読み込み中にエラーが発生しました。一時的な問題の可能性があります。",
     "title": "ページの読み込みに失敗しました"
+  },
+  "network": {
+    "offline": "オフラインのようです。接続を確認して、もう一度お試しください。",
+    "unreachable": "サーバーに接続できませんでした。もう一度お試しください。",
+    "cancelled": "アップロードをキャンセルしました。"
+  },
+  "codes": {
+    "AI_DISABLED": "このサーバーではAI提案がオフになっています。",
+    "AI_ENDPOINT_URL_INVALID": "AIエンドポイントには http または https のアドレスを入力してください。",
+    "AI_ENDPOINT_URL_REQUIRED": "AIエンドポイントのアドレスを入力してください。",
+    "AI_UNAVAILABLE": "AIサービスを利用できません。設定でAIエンドポイントを確認してください。",
+    "ALREADY_IN_FAMILY": "すでにファミリーに参加しています。別のファミリーに参加するには、先に退出してください。",
+    "BULK_UPLOAD_LIMIT": "一度にアップロードできる写真は最大{limit}枚です。",
+    "DUPLICATE_ITEM_IMAGE": "この写真はすでにワードローブにあります。",
+    "EMAIL_NOT_VERIFIED": "サインインプロバイダーでメールアドレスが確認されていません。",
+    "INSUFFICIENT_WARDROBE": "先にワードローブにアイテムをもう少し追加してください。",
+    "INVALID_IMAGE_TYPE": "このファイル形式はサポートされていません。JPEG、PNG、WebP、HEICを使用してください。",
+    "INVITE_EMAIL_MISMATCH": "この招待は別のメールアドレス宛てに送信されています。",
+    "INVITE_INVALID": "その招待コードは無効です。",
+    "INVITE_INVALID_OR_EXPIRED": "この招待リンクは無効か、有効期限が切れています。",
+    "ITEMS_NOT_READY": "選択したアイテムの一部が見つからないか、まだ処理中です。",
+    "ITEM_IMAGE_LIMIT": "1つのアイテムに追加できる写真は最大{limit}枚です。",
+    "ITEM_JOB_IN_PROGRESS": "このアイテムはまだ処理中です。しばらくしてからもう一度お試しください。",
+    "LAST_ADMIN_CANNOT_LEAVE": "管理者があなただけです。退出する前に、ほかのメンバーを管理者にするか、ほかのメンバーを削除してください。",
+    "LOCATION_GEOCODING_FAILED": "保存した場所が見つかりませんでした。しばらくしてからもう一度お試しいただくか、設定で更新してください。",
+    "LOCATION_NOT_SET": "天気に合わせた提案を受けるには、設定で場所を設定してください。",
+    "LOCATION_UNRESOLVABLE": "保存した場所を特定できませんでした。設定で更新してください。",
+    "NOTIFICATION_CHANNEL_EXISTS": "その通知チャンネルはすでに設定されています。",
+    "NOTIFICATION_CONFIG_INVALID": "チャンネルの設定が正しくありません。確認してもう一度お試しください。",
+    "NOTIFICATION_TEST_FAILED": "テスト通知を送信できませんでした。チャンネルの設定を確認してください。",
+    "NOT_IN_FAMILY": "この操作には同じファミリーへの参加が必要です。",
+    "OUTFIT_IS_TEMPLATE": "ルックブックのコーデは評価できません。",
+    "OUTFIT_ITEM_OWNERSHIP": "一部のアイテムはあなたのワードローブにありません。",
+    "OUTFIT_NOT_FOUND": "そのコーデは存在しません。",
+    "OUTFIT_NOT_TEMPLATE": "今日着用として記録できるのはルックブックのコーデだけです。",
+    "OUTFIT_WORN_IMMUTABLE": "着用済みのコーデは変更できません。代わりに新しいルックブックとして保存してください。",
+    "PATCH_EMPTY": "保存する変更がありません。",
+    "RATE_LIMITED": "リクエストが多すぎます。しばらくしてからもう一度お試しください。",
+    "SCHEDULE_DUPLICATE": "同じスケジュールがすでにあります。",
+    "STUDIO_UNAVAILABLE": "スタジオは一時的に利用できません。AI機能は引き続き使えます。",
+    "UPLOAD_TOO_LARGE": "そのファイルはアップロード上限の{limit_mb} MBを超えています。",
+    "WEATHER_UNAVAILABLE": "現在、天気データを利用できません。しばらくしてからもう一度お試しください。"
   }
 }

@@ -9,5 +9,47 @@
   "pageLoad": {
     "description": "We encountered an error loading this content. This might be a temporary issue.",
     "title": "Failed to load this page"
+  },
+  "network": {
+    "offline": "You appear to be offline. Check your connection and try again.",
+    "unreachable": "Couldn't reach the server. Please try again.",
+    "cancelled": "The upload was cancelled."
+  },
+  "codes": {
+    "AI_DISABLED": "AI suggestions are turned off on this server.",
+    "AI_ENDPOINT_URL_INVALID": "Enter an http or https address for the AI endpoint.",
+    "AI_ENDPOINT_URL_REQUIRED": "Enter the AI endpoint's address.",
+    "AI_UNAVAILABLE": "The AI service isn't available. Check the AI endpoint in Settings.",
+    "ALREADY_IN_FAMILY": "You're already in a family. Leave it before joining another.",
+    "BULK_UPLOAD_LIMIT": "You can upload up to {limit} photos at a time.",
+    "DUPLICATE_ITEM_IMAGE": "This photo is already in your wardrobe.",
+    "EMAIL_NOT_VERIFIED": "Your sign-in provider hasn't verified your email address.",
+    "INSUFFICIENT_WARDROBE": "Add a few more items to your wardrobe first.",
+    "INVALID_IMAGE_TYPE": "That file type isn't supported. Use JPEG, PNG, WebP or HEIC.",
+    "INVITE_EMAIL_MISMATCH": "This invite was sent to a different email address.",
+    "INVITE_INVALID": "That invite code isn't valid.",
+    "INVITE_INVALID_OR_EXPIRED": "This invite link is invalid or has expired.",
+    "ITEMS_NOT_READY": "Some of the selected items are missing or still being processed.",
+    "ITEM_IMAGE_LIMIT": "An item can have up to {limit} extra photos.",
+    "ITEM_JOB_IN_PROGRESS": "This item is still being processed. Try again in a moment.",
+    "LAST_ADMIN_CANNOT_LEAVE": "You're the only admin. Make someone else an admin, or remove the other members, before leaving.",
+    "LOCATION_GEOCODING_FAILED": "Couldn't find your saved location. Try again later or update it in Settings.",
+    "LOCATION_NOT_SET": "Set your location in Settings to get weather-aware suggestions.",
+    "LOCATION_UNRESOLVABLE": "Couldn't work out where your saved location is. Update it in Settings.",
+    "NOTIFICATION_CHANNEL_EXISTS": "That notification channel is already set up.",
+    "NOTIFICATION_CONFIG_INVALID": "Those channel settings aren't valid. Check them and try again.",
+    "NOTIFICATION_TEST_FAILED": "The test notification couldn't be sent. Check the channel settings.",
+    "NOT_IN_FAMILY": "You need to be in the same family for this.",
+    "OUTFIT_IS_TEMPLATE": "Lookbook outfits can't be rated.",
+    "OUTFIT_ITEM_OWNERSHIP": "Some of those items aren't in your wardrobe.",
+    "OUTFIT_NOT_FOUND": "That outfit no longer exists.",
+    "OUTFIT_NOT_TEMPLATE": "Only a lookbook outfit can be marked as worn today.",
+    "OUTFIT_WORN_IMMUTABLE": "A worn outfit can't be changed. Save it as a new lookbook entry instead.",
+    "PATCH_EMPTY": "There's nothing to save.",
+    "RATE_LIMITED": "Too many requests. Wait a moment and try again.",
+    "SCHEDULE_DUPLICATE": "You already have an identical schedule.",
+    "STUDIO_UNAVAILABLE": "Studio is temporarily unavailable. AI features still work.",
+    "UPLOAD_TOO_LARGE": "That file is larger than the {limit_mb} MB upload limit.",
+    "WEATHER_UNAVAILABLE": "Weather data isn't available right now. Try again shortly."
   }
 }

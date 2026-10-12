@@ -9,5 +9,47 @@
   "pageLoad": {
     "description": "Si è verificato un errore durante il caricamento di questo contenuto. Potrebbe essere un problema temporaneo.",
     "title": "Caricamento della pagina fallito"
+  },
+  "network": {
+    "offline": "Sembra che tu sia offline. Controlla la connessione e riprova.",
+    "unreachable": "Impossibile raggiungere il server. Riprova.",
+    "cancelled": "Il caricamento è stato annullato."
+  },
+  "codes": {
+    "AI_DISABLED": "I suggerimenti IA sono disattivati su questo server.",
+    "AI_ENDPOINT_URL_INVALID": "Inserisci un indirizzo http o https per l'endpoint IA.",
+    "AI_ENDPOINT_URL_REQUIRED": "Inserisci l'indirizzo dell'endpoint IA.",
+    "AI_UNAVAILABLE": "Il servizio IA non è disponibile. Controlla l'endpoint IA nelle Impostazioni.",
+    "ALREADY_IN_FAMILY": "Sei già in una famiglia. Lasciala prima di unirti a un'altra.",
+    "BULK_UPLOAD_LIMIT": "Puoi caricare fino a {limit} foto alla volta.",
+    "DUPLICATE_ITEM_IMAGE": "Questa foto è già nel tuo guardaroba.",
+    "EMAIL_NOT_VERIFIED": "Il tuo provider di accesso non ha verificato il tuo indirizzo email.",
+    "INSUFFICIENT_WARDROBE": "Aggiungi prima qualche altro capo al tuo guardaroba.",
+    "INVALID_IMAGE_TYPE": "Questo tipo di file non è supportato. Usa JPEG, PNG, WebP o HEIC.",
+    "INVITE_EMAIL_MISMATCH": "Questo invito è stato inviato a un indirizzo email diverso.",
+    "INVITE_INVALID": "Questo codice di invito non è valido.",
+    "INVITE_INVALID_OR_EXPIRED": "Questo link di invito non è valido o è scaduto.",
+    "ITEMS_NOT_READY": "Alcuni dei capi selezionati non sono presenti o sono ancora in elaborazione.",
+    "ITEM_IMAGE_LIMIT": "Un capo può avere fino a {limit} foto aggiuntive.",
+    "ITEM_JOB_IN_PROGRESS": "Questo capo è ancora in elaborazione. Riprova tra un momento.",
+    "LAST_ADMIN_CANNOT_LEAVE": "Sei l'unico amministratore. Nomina un altro amministratore, o rimuovi gli altri membri, prima di uscire.",
+    "LOCATION_GEOCODING_FAILED": "Impossibile trovare la posizione salvata. Riprova più tardi o aggiornala nelle Impostazioni.",
+    "LOCATION_NOT_SET": "Imposta la tua posizione nelle Impostazioni per ricevere suggerimenti basati sul meteo.",
+    "LOCATION_UNRESOLVABLE": "Impossibile determinare dove si trova la posizione salvata. Aggiornala nelle Impostazioni.",
+    "NOTIFICATION_CHANNEL_EXISTS": "Questo canale di notifica è già configurato.",
+    "NOTIFICATION_CONFIG_INVALID": "Le impostazioni di questo canale non sono valide. Controllale e riprova.",
+    "NOTIFICATION_TEST_FAILED": "Non è stato possibile inviare la notifica di prova. Controlla le impostazioni del canale.",
+    "NOT_IN_FAMILY": "Per questo devi far parte della stessa famiglia.",
+    "OUTFIT_IS_TEMPLATE": "Gli outfit del lookbook non possono essere valutati.",
+    "OUTFIT_ITEM_OWNERSHIP": "Alcuni di questi capi non sono nel tuo guardaroba.",
+    "OUTFIT_NOT_FOUND": "Questo outfit non esiste più.",
+    "OUTFIT_NOT_TEMPLATE": "Solo un outfit del lookbook può essere segnato come indossato oggi.",
+    "OUTFIT_WORN_IMMUTABLE": "Un outfit già indossato non può essere modificato. Salvalo invece come nuova voce del lookbook.",
+    "PATCH_EMPTY": "Non c'è nulla da salvare.",
+    "RATE_LIMITED": "Troppe richieste. Attendi un momento e riprova.",
+    "SCHEDULE_DUPLICATE": "Hai già una pianificazione identica.",
+    "STUDIO_UNAVAILABLE": "Studio è temporaneamente non disponibile. Le funzioni IA continuano a funzionare.",
+    "UPLOAD_TOO_LARGE": "Questo file supera il limite di caricamento di {limit_mb} MB.",
+    "WEATHER_UNAVAILABLE": "I dati meteo non sono disponibili al momento. Riprova a breve."
   }
 }

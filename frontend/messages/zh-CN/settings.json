@@ -79,7 +79,6 @@
     "detected": "位置已检测到。请确认后保存。",
     "errors": {
       "geolocationDenied": "位置访问被拒绝。",
-      "geolocationFailed": "获取精确位置失败：{message}",
       "geolocationFailedGeneric": "获取精确位置失败。",
       "geolocationTimeout": "位置请求超时。",
       "geolocationUnavailable": "位置当前不可用。",

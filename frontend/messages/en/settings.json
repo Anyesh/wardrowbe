@@ -79,7 +79,6 @@
     "detected": "Location detected. Review it, then save.",
     "errors": {
       "geolocationDenied": "Location access was denied.",
-      "geolocationFailed": "Failed to get exact location: {message}",
       "geolocationFailedGeneric": "Failed to get exact location.",
       "geolocationTimeout": "Location request timed out.",
       "geolocationUnavailable": "Location is currently unavailable.",

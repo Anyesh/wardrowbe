@@ -22,7 +22,7 @@ import { CanvasPanel } from '@/components/studio/canvas-panel';
 import { DetailsPanel } from '@/components/studio/details-panel';
 import { ItemPicker } from '@/components/shared/item-picker';
 import { CloneToLookbookDialog } from '@/components/shared/clone-to-lookbook-dialog';
-import { ApiError, getErrorMessage } from '@/lib/api';
+import { ApiError } from '@/lib/api';
 import { useItems } from '@/lib/hooks/use-items';
 import { useOutfit } from '@/lib/hooks/use-outfits';
 import { useCreateStudioOutfit, usePatchOutfit } from '@/lib/hooks/use-studio';
@@ -41,10 +41,12 @@ import {
 import type { Item } from '@/lib/types';
 import { isWornImmutableError } from '@/lib/studio/errors';
 import { computeEditLoadPhase } from '@/lib/studio/edit-load';
+import { useDescribeError } from '@/lib/errors';
 
 export default function StudioEditorPage() {
   const t = useTranslations('outfits');
   const tc = useTranslations('common');
+  const describeError = useDescribeError();
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit') || undefined;
@@ -207,7 +209,7 @@ export default function StudioEditorPage() {
           setWornConflictOpen(true);
           return;
         }
-        toast.error(getErrorMessage(error, t('new.saveError')));
+        toast.error(describeError(error, t('new.saveError')));
       }
       return;
     }
@@ -233,7 +235,7 @@ export default function StudioEditorPage() {
           : '/dashboard/outfits?filter=my-looks'
       );
     } catch (error) {
-      toast.error(getErrorMessage(error, t('new.saveError')));
+      toast.error(describeError(error, t('new.saveError')));
     }
   };
 

@@ -267,9 +267,7 @@ export default function SettingsPage() {
       case error.TIMEOUT:
         return t('location.errors.geolocationTimeout');
       default:
-        return error.message
-          ? t('location.errors.geolocationFailed', { message: error.message })
-          : t('location.errors.geolocationFailedGeneric');
+        return t('location.errors.geolocationFailedGeneric');
     }
   };
 
@@ -311,10 +309,8 @@ export default function SettingsPage() {
             : t('location.approximateDetected')
         );
       } catch (fallbackError) {
-        const fallbackMessage = fallbackError instanceof Error
-          ? fallbackError.message
-          : t('location.errors.unableToDetect');
-        toast.error(fallbackMessage);
+        console.error('Network location failed:', fallbackError);
+        toast.error(t('location.errors.unableToDetect'));
       } finally {
         setIsGettingLocation(false);
       }

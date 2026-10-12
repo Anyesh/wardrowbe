@@ -9,5 +9,47 @@
   "pageLoad": {
     "description": "Beim Laden dieses Inhalts ist ein Fehler aufgetreten. Möglicherweise ist es nur ein vorübergehendes Problem.",
     "title": "Seite konnte nicht geladen werden"
+  },
+  "network": {
+    "offline": "Du scheinst offline zu sein. Prüfe deine Verbindung und versuche es erneut.",
+    "unreachable": "Der Server ist nicht erreichbar. Bitte versuche es erneut.",
+    "cancelled": "Das Hochladen wurde abgebrochen."
+  },
+  "codes": {
+    "AI_DISABLED": "KI-Vorschläge sind auf diesem Server deaktiviert.",
+    "AI_ENDPOINT_URL_INVALID": "Gib eine http- oder https-Adresse für den KI-Endpunkt ein.",
+    "AI_ENDPOINT_URL_REQUIRED": "Gib die Adresse des KI-Endpunkts ein.",
+    "AI_UNAVAILABLE": "Der KI-Dienst ist nicht verfügbar. Prüfe den KI-Endpunkt in den Einstellungen.",
+    "ALREADY_IN_FAMILY": "Du bist bereits in einer Familie. Verlasse sie, bevor du einer anderen beitrittst.",
+    "BULK_UPLOAD_LIMIT": "Du kannst bis zu {limit} Fotos auf einmal hochladen.",
+    "DUPLICATE_ITEM_IMAGE": "Dieses Foto ist bereits in deiner Garderobe.",
+    "EMAIL_NOT_VERIFIED": "Dein Anmeldeanbieter hat deine E-Mail-Adresse nicht bestätigt.",
+    "INSUFFICIENT_WARDROBE": "Füge zuerst noch ein paar Stücke zu deiner Garderobe hinzu.",
+    "INVALID_IMAGE_TYPE": "Dieser Dateityp wird nicht unterstützt. Verwende JPEG, PNG, WebP oder HEIC.",
+    "INVITE_EMAIL_MISMATCH": "Diese Einladung wurde an eine andere E-Mail-Adresse gesendet.",
+    "INVITE_INVALID": "Dieser Einladungscode ist ungültig.",
+    "INVITE_INVALID_OR_EXPIRED": "Dieser Einladungslink ist ungültig oder abgelaufen.",
+    "ITEMS_NOT_READY": "Einige der ausgewählten Stücke fehlen oder werden noch verarbeitet.",
+    "ITEM_IMAGE_LIMIT": "Ein Stück kann bis zu {limit} zusätzliche Fotos haben.",
+    "ITEM_JOB_IN_PROGRESS": "Dieses Stück wird noch verarbeitet. Versuche es gleich noch einmal.",
+    "LAST_ADMIN_CANNOT_LEAVE": "Du bist der einzige Admin. Ernenne jemand anderen zum Admin oder entferne die anderen Mitglieder, bevor du gehst.",
+    "LOCATION_GEOCODING_FAILED": "Dein gespeicherter Standort wurde nicht gefunden. Versuche es später erneut oder aktualisiere ihn in den Einstellungen.",
+    "LOCATION_NOT_SET": "Lege deinen Standort in den Einstellungen fest, um wetterbasierte Vorschläge zu erhalten.",
+    "LOCATION_UNRESOLVABLE": "Dein gespeicherter Standort konnte nicht ermittelt werden. Aktualisiere ihn in den Einstellungen.",
+    "NOTIFICATION_CHANNEL_EXISTS": "Dieser Benachrichtigungskanal ist bereits eingerichtet.",
+    "NOTIFICATION_CONFIG_INVALID": "Diese Kanaleinstellungen sind ungültig. Prüfe sie und versuche es erneut.",
+    "NOTIFICATION_TEST_FAILED": "Die Testbenachrichtigung konnte nicht gesendet werden. Prüfe die Kanaleinstellungen.",
+    "NOT_IN_FAMILY": "Dafür musst du in derselben Familie sein.",
+    "OUTFIT_IS_TEMPLATE": "Lookbook-Outfits können nicht bewertet werden.",
+    "OUTFIT_ITEM_OWNERSHIP": "Einige dieser Stücke sind nicht in deiner Garderobe.",
+    "OUTFIT_NOT_FOUND": "Dieses Outfit existiert nicht mehr.",
+    "OUTFIT_NOT_TEMPLATE": "Nur ein Lookbook-Outfit kann als heute getragen markiert werden.",
+    "OUTFIT_WORN_IMMUTABLE": "Ein getragenes Outfit kann nicht geändert werden. Speichere es stattdessen als neuen Lookbook-Eintrag.",
+    "PATCH_EMPTY": "Es gibt nichts zu speichern.",
+    "RATE_LIMITED": "Zu viele Anfragen. Warte einen Moment und versuche es erneut.",
+    "SCHEDULE_DUPLICATE": "Du hast bereits einen identischen Zeitplan.",
+    "STUDIO_UNAVAILABLE": "Studio ist vorübergehend nicht verfügbar. KI-Funktionen funktionieren weiterhin.",
+    "UPLOAD_TOO_LARGE": "Diese Datei ist größer als das Upload-Limit von {limit_mb} MB.",
+    "WEATHER_UNAVAILABLE": "Wetterdaten sind gerade nicht verfügbar. Versuche es in Kürze erneut."
   }
 }

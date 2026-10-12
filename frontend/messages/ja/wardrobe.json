@@ -26,7 +26,14 @@
       "uploadButton": "{count, plural, one {# 件} other {# 件}}をアップロード",
       "uploadError": "アイテムのアップロードに失敗しました。もう一度お試しください。",
       "uploadMore": "もっとアップロード",
-      "uploadingCount": "{count, plural, one {# 件のアイテムをアップロード中...} other {# 件のアイテムをアップロード中...}}"
+      "uploadingCount": "{count, plural, one {# 件のアイテムをアップロード中...} other {# 件のアイテムをアップロード中...}}",
+      "failure": {
+        "tooLarge": "アップロード上限を超えています",
+        "unsupportedFormat": "対応していない形式です（JPEG、PNG、WebP、HEIC に対応）",
+        "duplicate": "すでにワードローブにあります",
+        "invalidImage": "読み取れない画像です",
+        "generic": "アップロードできませんでした"
+      }
     },
     "bulkUpload": "一括アップロード",
     "dropzone": "画像をドラッグ＆ドロップ、またはタップして選択",

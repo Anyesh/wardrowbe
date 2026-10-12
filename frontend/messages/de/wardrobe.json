@@ -26,7 +26,14 @@
       "uploadButton": "{count, plural, one {# Stück hochladen} other {# Stücke hochladen}}",
       "uploadError": "Stücke konnten nicht hochgeladen werden. Bitte versuche es erneut.",
       "uploadMore": "Mehr hochladen",
-      "uploadingCount": "{count, plural, one {# Stück wird hochgeladen...} other {# Stücke werden hochgeladen...}}"
+      "uploadingCount": "{count, plural, one {# Stück wird hochgeladen...} other {# Stücke werden hochgeladen...}}",
+      "failure": {
+        "tooLarge": "Größer als das Upload-Limit",
+        "unsupportedFormat": "Kein unterstütztes Format (JPEG, PNG, WebP oder HEIC)",
+        "duplicate": "Bereits in deiner Garderobe",
+        "invalidImage": "Kein lesbares Bild",
+        "generic": "Konnte nicht hochgeladen werden"
+      }
     },
     "bulkUpload": "Mehrere Stücke",
     "dropzone": "Bild hierher ziehen oder tippen zum Auswählen",

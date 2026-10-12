@@ -4,7 +4,6 @@ import {
   DEFAULT_NETWORK_LOCATION_URL,
   formatReverseGeocodedLocation,
   getNetworkLocationUrl,
-  getGeolocationFailureMessage,
   isNetworkLocationFallbackEnabled,
   resolveNetworkLocation,
 } from '@/lib/location'
@@ -118,12 +117,4 @@ describe('location helpers', () => {
     })).toBe('Paris, Ile-de-France')
   })
 
-  it('maps geolocation failure reasons to user-facing messages', () => {
-    expect(getGeolocationFailureMessage({ code: 1 })).toBe('Location access was denied.')
-    expect(getGeolocationFailureMessage({ code: 2 })).toBe('Location is currently unavailable.')
-    expect(getGeolocationFailureMessage({ code: 3 })).toBe('Location request timed out.')
-    expect(getGeolocationFailureMessage({ message: 'Permission prompt dismissed' })).toBe(
-      'Failed to get exact location: Permission prompt dismissed'
-    )
-  })
 })

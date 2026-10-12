@@ -201,7 +201,7 @@ describe('fetchBulkUploadLimit', () => {
     ])('returns null without a global toast when it %s', async (_label, respond) => {
       vi.mocked(fetch).mockImplementationOnce(respond)
 
-      const limit = fetchBulkUploadLimit(createQueryClient())
+      const limit = fetchBulkUploadLimit(createQueryClient(() => 'toast'))
       await vi.advanceTimersByTimeAsync(30_000)
 
       expect(await limit).toBeNull()

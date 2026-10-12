@@ -9,5 +9,47 @@
   "pageLoad": {
     "description": "載入此內容時發生錯誤，這可能是暫時性的問題。",
     "title": "載入此頁面失敗"
+  },
+  "network": {
+    "offline": "你似乎已離線。請檢查網路連線後再試一次。",
+    "unreachable": "無法連線到伺服器，請再試一次。",
+    "cancelled": "上傳已取消。"
+  },
+  "codes": {
+    "AI_DISABLED": "此伺服器已關閉 AI 建議。",
+    "AI_ENDPOINT_URL_INVALID": "請輸入以 http 或 https 開頭的 AI 端點位址。",
+    "AI_ENDPOINT_URL_REQUIRED": "請輸入 AI 端點的位址。",
+    "AI_UNAVAILABLE": "AI 服務無法使用。請在設定中檢查 AI 端點。",
+    "ALREADY_IN_FAMILY": "你已經在一個家庭中。加入其他家庭前請先退出目前的家庭。",
+    "BULK_UPLOAD_LIMIT": "一次最多可上傳 {limit} 張照片。",
+    "DUPLICATE_ITEM_IMAGE": "這張照片已在你的衣櫥中。",
+    "EMAIL_NOT_VERIFIED": "你的登入服務提供者尚未驗證你的電子郵件地址。",
+    "INSUFFICIENT_WARDROBE": "請先在衣櫥中多新增幾件單品。",
+    "INVALID_IMAGE_TYPE": "不支援此檔案類型。請使用 JPEG、PNG、WebP 或 HEIC。",
+    "INVITE_EMAIL_MISMATCH": "此邀請是寄給另一個電子郵件地址的。",
+    "INVITE_INVALID": "此邀請碼無效。",
+    "INVITE_INVALID_OR_EXPIRED": "此邀請連結無效或已過期。",
+    "ITEMS_NOT_READY": "所選單品中有些不存在，或仍在處理中。",
+    "ITEM_IMAGE_LIMIT": "每件單品最多可再新增 {limit} 張照片。",
+    "ITEM_JOB_IN_PROGRESS": "此單品仍在處理中，請稍後再試。",
+    "LAST_ADMIN_CANNOT_LEAVE": "你是唯一的管理員。退出前，請先指定其他成員為管理員，或移除其他成員。",
+    "LOCATION_GEOCODING_FAILED": "找不到你儲存的位置。請稍後再試，或在設定中更新位置。",
+    "LOCATION_NOT_SET": "請在設定中設定你的位置，以取得結合天氣的建議。",
+    "LOCATION_UNRESOLVABLE": "無法確定你儲存的位置。請在設定中更新。",
+    "NOTIFICATION_CHANNEL_EXISTS": "此通知管道已設定。",
+    "NOTIFICATION_CONFIG_INVALID": "這些管道設定無效。請檢查後再試一次。",
+    "NOTIFICATION_TEST_FAILED": "無法傳送測試通知。請檢查管道設定。",
+    "NOT_IN_FAMILY": "你需要在同一個家庭中才能這麼做。",
+    "OUTFIT_IS_TEMPLATE": "造型冊中的穿搭無法評分。",
+    "OUTFIT_ITEM_OWNERSHIP": "其中一些單品不在你的衣櫥中。",
+    "OUTFIT_NOT_FOUND": "此穿搭已不存在。",
+    "OUTFIT_NOT_TEMPLATE": "只有造型冊中的穿搭可以標記為今天穿著。",
+    "OUTFIT_WORN_IMMUTABLE": "已穿過的穿搭無法修改。請改為另存成新的穿搭紀錄。",
+    "PATCH_EMPTY": "沒有需要儲存的內容。",
+    "RATE_LIMITED": "請求過多，請稍後再試。",
+    "SCHEDULE_DUPLICATE": "你已經有一個相同的排程。",
+    "STUDIO_UNAVAILABLE": "工作室暫時無法使用，AI 功能仍可使用。",
+    "UPLOAD_TOO_LARGE": "此檔案超過 {limit_mb} MB 的上傳限制。",
+    "WEATHER_UNAVAILABLE": "目前無法取得天氣資料，請稍後再試。"
   }
 }

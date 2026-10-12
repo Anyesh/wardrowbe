@@ -20,6 +20,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useColorLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useDescribeError } from '@/lib/errors';
 
 interface GeneratePairingsDialogProps {
   item: Item | null;
@@ -42,6 +43,7 @@ export function GeneratePairingsDialog({
   const router = useRouter();
   const t = useTranslations('pairings.generate');
   const tc = useTranslations('common');
+  const describeError = useDescribeError();
 
   const handleGenerate = async () => {
     if (!item) return;
@@ -54,7 +56,7 @@ export function GeneratePairingsDialog({
       setGeneratedPairings(result.pairings);
       toast.success(t('success', { count: result.generated }));
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('failed');
+      const message = describeError(error, t('failed'));
       toast.error(message);
     }
   };

@@ -79,7 +79,6 @@
     "detected": "위치를 감지했어요. 확인 후 저장하세요.",
     "errors": {
       "geolocationDenied": "위치 접근이 거부되었어요.",
-      "geolocationFailed": "정확한 위치를 가져오지 못했어요: {message}",
       "geolocationFailedGeneric": "정확한 위치를 가져오지 못했어요.",
       "geolocationTimeout": "위치 요청 시간이 초과되었어요.",
       "geolocationUnavailable": "현재 위치를 사용할 수 없어요.",

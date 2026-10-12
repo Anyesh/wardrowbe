@@ -26,7 +26,14 @@
       "uploadButton": "{count, plural, one {上傳 # 件單品} other {上傳 # 件單品}}",
       "uploadError": "上傳單品失敗，請重試。",
       "uploadMore": "上傳更多",
-      "uploadingCount": "{count, plural, one {正在上傳 # 件單品...} other {正在上傳 # 件單品...}}"
+      "uploadingCount": "{count, plural, one {正在上傳 # 件單品...} other {正在上傳 # 件單品...}}",
+      "failure": {
+        "tooLarge": "超過上傳限制",
+        "unsupportedFormat": "不支援的格式（支援 JPEG、PNG、WebP、HEIC）",
+        "duplicate": "已在你的衣櫥中",
+        "invalidImage": "無法讀取的圖片",
+        "generic": "無法上傳"
+      }
     },
     "bulkUpload": "批次上傳",
     "dropzone": "拖放圖片，或點擊選擇",

@@ -79,7 +79,6 @@
     "detected": "位置情報を検出しました。確認して保存してください。",
     "errors": {
       "geolocationDenied": "位置情報へのアクセスが拒否されました。",
-      "geolocationFailed": "正確な位置情報の取得に失敗しました：{message}",
       "geolocationFailedGeneric": "正確な位置情報の取得に失敗しました。",
       "geolocationTimeout": "位置情報のリクエストがタイムアウトしました。",
       "geolocationUnavailable": "現在、位置情報を利用できません。",

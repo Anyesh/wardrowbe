@@ -79,7 +79,6 @@
     "detected": "Localisation détectée. Vérifiez-la puis enregistrez.",
     "errors": {
       "geolocationDenied": "L'accès à la localisation a été refusé.",
-      "geolocationFailed": "Échec de l'obtention de la localisation exacte : {message}",
       "geolocationFailedGeneric": "Échec de l'obtention de la localisation exacte.",
       "geolocationTimeout": "La demande de localisation a expiré.",
       "geolocationUnavailable": "La localisation est actuellement indisponible.",
