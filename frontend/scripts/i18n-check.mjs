@@ -45,6 +45,25 @@ function balanced(value) {
   return depth === 0;
 }
 
+// ICU literal text sits at even brace depths and argument syntax at odd ones, so a brace opened
+// at depth 1 starts a plural or select branch. Nested branches fold into their outer branch.
+function branchTexts(value) {
+  if (typeof value !== 'string') return [];
+  const texts = [];
+  let depth = 0;
+  for (const ch of value) {
+    if (ch === '{') {
+      depth++;
+      if (depth === 2) texts.push('');
+    } else if (ch === '}') {
+      depth--;
+    } else if (depth >= 2 && depth % 2 === 0) {
+      texts[texts.length - 1] += ch;
+    }
+  }
+  return texts;
+}
+
 const locales = readdirSync(MESSAGES_DIR).filter((d) => statSync(join(MESSAGES_DIR, d)).isDirectory()).sort();
 
 if (!locales.includes(SOURCE_LOCALE)) {
@@ -139,8 +158,11 @@ for (const [locale, script] of Object.entries(NATIVE_SCRIPT)) {
   const target = loadLocale(locale);
   for (const key of sourceKeys) {
     if (SAME_IN_EVERY_LOCALE.has(key) || LATIN_IN_CJK.has(key)) continue;
-    if (/\p{Script=Latin}/u.test(words(source[key])) && !script.test(words(target[key]))) {
+    if (!/\p{Script=Latin}/u.test(words(source[key]))) continue;
+    if (!script.test(words(target[key]))) {
       problems.push(`${locale}: '${key}' has no ${locale} text, so it is untranslated or stale`);
+    } else if (branchTexts(target[key]).some((t) => /\p{Script=Latin}/u.test(t) && !script.test(t))) {
+      problems.push(`${locale}: '${key}' has a plural or select branch with no ${locale} text`);
     }
   }
 }
