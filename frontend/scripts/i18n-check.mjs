@@ -52,6 +52,17 @@ if (!locales.includes(SOURCE_LOCALE)) {
   process.exit(1);
 }
 
+// Strings that read the same in every language (brand names, units, format-only patterns).
+// Anything else left identical to English in every locale was never translated, which the
+// presence and placeholder checks cannot see.
+const SAME_IN_EVERY_LOCALE = new Set([
+  'constants.timezones.UTC',
+  'notifications.channels.placeholders.accessToken',
+  'notifications.channels.types.mattermost',
+  'notifications.schedule.summary',
+  'settings.aiEndpoints.fields.url',
+]);
+
 const source = loadLocale(SOURCE_LOCALE);
 const sourceKeys = new Set(Object.keys(source));
 const problems = [];
@@ -87,6 +98,14 @@ for (const locale of locales) {
   }
 
   for (const key of targetKeys) if (!sourceKeys.has(key)) problems.push(`${locale}: extra key '${key}' not in ${SOURCE_LOCALE}`);
+}
+
+const translations = locales.filter((l) => l !== SOURCE_LOCALE).map(loadLocale);
+for (const key of sourceKeys) {
+  if (SAME_IN_EVERY_LOCALE.has(key) || !/\p{L}/u.test(source[key])) continue;
+  if (translations.length && translations.every((t) => t[key] === source[key])) {
+    problems.push(`every locale: '${key}' is still the English text`);
+  }
 }
 
 console.log(`i18n-check: ${locales.length} locales [${locales.join(', ')}], ${sourceKeys.size} keys in ${SOURCE_LOCALE}`);
