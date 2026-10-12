@@ -643,7 +643,11 @@ class AIService:
             description = description.strip()
             for opening, closing in DESCRIPTION_QUOTES:
                 if description.startswith(opening) and description.endswith(closing):
-                    description = description[len(opening) : -len(closing)].strip()
+                    inner = description[len(opening) : -len(closing)]
+                    # A mark inside means the outer two belong to separate quoted spans
+                    # (a quoted brand at the start, a quoted colour at the end).
+                    if opening not in inner and closing not in inner:
+                        description = inner.strip()
                     break
             tags.description = description
 

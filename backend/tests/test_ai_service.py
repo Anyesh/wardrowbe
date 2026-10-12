@@ -91,8 +91,19 @@ class TestLocalizedDescription:
             ("『藍色襯衫』", "藍色襯衫"),
             ("« Chemise bleue »", "Chemise bleue"),
             ('Un "trench" beige', 'Un "trench" beige'),
+            ('"Levi\'s" jeans in "indigo"', '"Levi\'s" jeans in "indigo"'),
+            ("「ユニクロ」のシャツ、色は「紺」", "「ユニクロ」のシャツ、色は「紺」"),
         ],
-        ids=["ascii", "curly", "kagikakko", "double-kagikakko", "guillemets", "inner-quotes"],
+        ids=[
+            "ascii",
+            "curly",
+            "kagikakko",
+            "double-kagikakko",
+            "guillemets",
+            "inner-quotes",
+            "two-quoted-spans",
+            "two-kagikakko-spans",
+        ],
     )
     @pytest.mark.asyncio
     async def test_description_loses_wrapping_quotes_of_any_script(self, reply, expected):
