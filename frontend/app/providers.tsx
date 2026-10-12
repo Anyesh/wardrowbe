@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/components/auth-provider';
+import { ProfileLocaleSync } from '@/components/profile-locale-sync';
 import { createQueryClient } from '@/lib/query-client';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
+          <ProfileLocaleSync />
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

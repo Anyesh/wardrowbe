@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
@@ -71,4 +71,20 @@ export function useUpdateUserProfile({ toastsOwnErrors = false } = {}) {
       queryClient.invalidateQueries({ queryKey: queryKeys.userProfile });
     },
   });
+}
+
+// The UI language comes from the NEXT_LOCALE cookie or Accept-Language, never from the profile,
+// so the profile follows the UI: the tagging worker writes AI descriptions in profile.locale.
+// One attempt per locale because a failed save must not repeat on every profile refetch; the
+// next page load tries again.
+export function useSyncProfileLocale(uiLocale: string) {
+  const { data: profile } = useUserProfile();
+  const { mutate } = useUpdateUserProfile({ toastsOwnErrors: true });
+  const attempted = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!profile || profile.locale === uiLocale || attempted.current === uiLocale) return;
+    attempted.current = uiLocale;
+    mutate({ locale: uiLocale });
+  }, [profile, uiLocale, mutate]);
 }

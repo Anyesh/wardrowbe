@@ -3,7 +3,6 @@
 import { useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import { Check, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useUpdateUserProfile } from '@/lib/hooks/use-user';
 import {
   LOCALE_COOKIE,
   LOCALE_COOKIE_MAX_AGE,
@@ -25,21 +23,14 @@ export function LocaleSwitcher() {
   const t = useTranslations('nav');
   const currentLocale = useLocale();
   const router = useRouter();
-  const { status } = useSession();
-  const updateProfile = useUpdateUserProfile();
   const [isPending, startTransition] = useTransition();
 
   const handleChange = (nextLocale: SupportedLocale) => {
     if (nextLocale === currentLocale) return;
 
     // The cookie is what the server reads on the next render, so it must be set before the
-    // refresh. Persisting to the profile is best-effort, so the choice follows the user to
-    // another browser, but a failure there must not block the language from actually changing.
+    // refresh. ProfileLocaleSync saves the new language to the profile once it renders.
     document.cookie = `${LOCALE_COOKIE}=${nextLocale};path=/;max-age=${LOCALE_COOKIE_MAX_AGE};SameSite=Lax`;
-
-    if (status === 'authenticated') {
-      updateProfile.mutate({ locale: nextLocale });
-    }
 
     startTransition(() => {
       router.refresh();
