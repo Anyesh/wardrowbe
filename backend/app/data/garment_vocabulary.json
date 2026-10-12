@@ -13,7 +13,7 @@
     {"value": "jacket", "role": "outer_layer", "wash_interval": 8},
     {"value": "coat", "role": "outer_layer", "wash_interval": 10},
     {"value": "sweater", "role": "base_top", "wash_interval": 5},
-    {"value": "hoodie", "role": "outer_layer", "wash_interval": 4},
+    {"value": "hoodie", "role": "outer_layer", "wash_interval": 4, "worn_alone": true},
     {"value": "blazer", "role": "outer_layer", "wash_interval": 5},
     {"value": "suit", "role": "suit", "wash_interval": 5},
     {"value": "vest", "role": "mid_layer", "wash_interval": 5},

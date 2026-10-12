@@ -269,6 +269,7 @@ def rank_by_fit(
     weather: WeatherData,
     occasion: str,
     preferences: UserPreference | None,
+    learned_prefs: dict | None,
 ) -> list[UUID]:
     # score_items leaves small wardrobes unscored, so filling a missing piece needs its own
     # ranking or it would fall back to database order. Most items tie on fit in mild
@@ -277,7 +278,7 @@ def rank_by_fit(
         fit = (
             _weather_score(item, weather, preferences)
             * _formality_score(item, occasion)
-            * _preference_score(item, preferences, None)
+            * _preference_score(item, preferences, learned_prefs)
         )
         return -fit, item.last_worn_at or date.min
 

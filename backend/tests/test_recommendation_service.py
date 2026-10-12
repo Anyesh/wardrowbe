@@ -733,13 +733,6 @@ class TestHotDayLegwear:
         ids, kept = self._resolve(("shirt", "jeans"), [1, "two", 9, 1], False)
         assert kept == {ids[0]}
 
-    def test_a_pick_that_is_no_longer_a_candidate_is_dropped(self):
-        shirt, archived = uuid4(), uuid4()
-        resolved = resolve_outfit_items(
-            {"items": [1, 2]}, {1: shirt, 2: archived}, {shirt: "shirt"}, None, False
-        )
-        assert resolved == [shirt]
-
     async def _hot_day_outfits(
         self,
         db_session,
@@ -754,8 +747,8 @@ class TestHotDayLegwear:
         single_outfit=False,
     ):
         kinds = ("tights", "skirt", "t-shirt", "sneakers")
-        # Extras are stored first and numbered last, so that neither database order nor
-        # prompt order can stand in for the fill ranking.
+        # Extras come first among the candidates and are numbered last, so that neither
+        # candidate order nor prompt order can stand in for the fill ranking.
         extra_items = [
             ClothingItem(
                 user_id=user.id,
@@ -809,6 +802,12 @@ class TestHotDayLegwear:
             cached = json.loads(json.dumps(cached))
         rejected = {items[3].id} if unavailable == "rejected" else set()
         service = RecommendationService(db_session)
+        unpatched = service.get_candidate_items
+        extra_ids = {item.id for item in extra_items}
+
+        async def extras_first(**kwargs):
+            return sorted(await unpatched(**kwargs), key=lambda item: item.id not in extra_ids)
+
         with (
             patch("app.services.recommendation_service.AIService", return_value=ai),
             patch(
@@ -818,6 +817,7 @@ class TestHotDayLegwear:
             patch("app.services.recommendation_service.push_suggestions", AsyncMock()) as push,
             patch.object(service, "_format_items_for_prompt", return_value=("", number_map)),
             patch.object(service, "_get_today_rejected_item_ids", AsyncMock(return_value=rejected)),
+            patch.object(service, "get_candidate_items", extras_first),
         ):
             outfits = await service.generate_recommendations(
                 user=user,
@@ -974,6 +974,22 @@ class TestHotDayLegwear:
     ):
         with pytest.raises(AIRecommendationError, match="did not select"):
             await self._hot_day_outfits(db_session, test_user, [[99], [1]])
+
+    @pytest.mark.asyncio
+    async def test_an_accessory_only_single_outfit_is_not_built_from_scratch(
+        self, db_session, test_user
+    ):
+        with pytest.raises(AIRecommendationError, match="did not select"):
+            await self._hot_day_outfits(
+                db_session, test_user, [[5]], extras=("bag",), single_outfit=True
+            )
+
+    @pytest.mark.asyncio
+    async def test_the_fallback_fills_the_option_missing_the_fewest_pieces(
+        self, db_session, test_user
+    ):
+        await self._hot_day_outfits(db_session, test_user, [[5], [4], [3, 4]], extras=("bag",))
+        assert self.reasonings == ["AI 3"]
 
     @pytest.mark.asyncio
     async def test_fewer_complete_options_than_asked_for_are_returned_as_they_are(

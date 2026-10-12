@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.utils.garment_vocabulary import ITEM_ROLE, ROLES
+from app.utils.garment_vocabulary import ITEM_ROLE, ROLES, WORN_ALONE_TYPES
 
 logger = logging.getLogger(__name__)
 
@@ -91,33 +91,37 @@ def deduplicate_by_body_slot(
     return [iid for iid in item_ids if iid in kept]
 
 
-# A hoodie or jacket over nothing still dresses the upper body, so any upper role counts.
+# A coat or blazer over nothing does not dress the upper body; only the types the
+# vocabulary marks worn_alone (a hoodie) stand in for a top.
 REGION_ROLES: dict[str, frozenset[str]] = {
-    "upper": frozenset({"base_top", "mid_layer", "outer_layer", "suit", "full_body"}),
+    "upper": frozenset({"base_top", "suit", "full_body"}),
     "lower": frozenset({"bottom", "suit", "full_body"}),
     "feet": frozenset({"footwear"}),
 }
 
-# Separates only, because a dress or suit would clash with the pieces already chosen.
-REGION_FILL_ROLES: dict[str, tuple[str, ...]] = {
-    "upper": ("base_top", "mid_layer", "outer_layer"),
-    "lower": ("bottom",),
-    "feet": ("footwear",),
-}
+
+def _regions(item_type: str) -> set[str]:
+    role = ITEM_ROLE.get(item_type)
+    covered = {region for region, roles in REGION_ROLES.items() if role in roles}
+    if item_type in WORN_ALONE_TYPES:
+        covered.add("upper")
+    return covered
 
 
-def _roles(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str | None]:
-    return {ITEM_ROLE.get(item_type_map.get(iid, "")) for iid in item_ids}
+def _covered(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str]:
+    return set().union(*(_regions(item_type_map.get(iid, "")) for iid in item_ids))
+
+
+def covers_any_region(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> bool:
+    return bool(_covered(item_ids, item_type_map))
 
 
 def missing_regions(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> list[str]:
     """`item_type_map` must cover every candidate, because it decides which regions the
     wardrobe can fill at all."""
-    worn = _roles(item_ids, item_type_map)
-    available = _roles(list(item_type_map), item_type_map)
-    return [
-        region for region, roles in REGION_ROLES.items() if roles & available and not roles & worn
-    ]
+    worn = _covered(item_ids, item_type_map)
+    available = _covered(list(item_type_map), item_type_map)
+    return [region for region in REGION_ROLES if region in available and region not in worn]
 
 
 def fill_missing_regions(
@@ -125,12 +129,13 @@ def fill_missing_regions(
 ) -> list[UUID]:
     filled = list(item_ids)
     for region in missing_regions(item_ids, item_type_map):
+        # Only a piece covering just this region, because a dress or suit would clash
+        # with the pieces already chosen.
         pick = next(
             (
                 iid
-                for role in REGION_FILL_ROLES[region]
                 for iid in ranked_candidate_ids
-                if iid not in filled and ITEM_ROLE.get(item_type_map.get(iid, "")) == role
+                if iid not in filled and _regions(item_type_map.get(iid, "")) == {region}
             ),
             None,
         )

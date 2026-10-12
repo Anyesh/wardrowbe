@@ -42,6 +42,7 @@ from app.services.weather_service import (
 )
 from app.utils.clothing import (
     canonical_item_order,
+    covers_any_region,
     deduplicate_by_body_slot,
     fill_missing_regions,
     missing_regions,
@@ -154,14 +155,7 @@ def resolve_outfit_items(
     mandatory_item_ids: set[UUID] | None,
     drop_legwear: bool,
 ) -> list[UUID]:
-    """`item_type_map` holds the current candidates; picks outside it are dropped, because a
-    numbered item may have been archived, washed or rejected since the prompt was built."""
-    valid_ids = []
-    for item_id in picked_item_ids(outfit_data, number_map):
-        if item_id in item_type_map:
-            valid_ids.append(item_id)
-        else:
-            logger.warning(f"AI selected item {item_id} that is no longer a candidate")
+    valid_ids = picked_item_ids(outfit_data, number_map)
 
     numbered = set(number_map.values())
     for mid in mandatory_item_ids or ():
@@ -992,12 +986,12 @@ class RecommendationService:
                 )
                 # An answer with nothing usable fails rather than being built from scratch
                 # under a headline the AI wrote for other pieces.
-                if not item_ids:
+                if not covers_any_region(item_ids, item_type_map):
                     raise AIRecommendationError("AI did not select any valid items")
                 if missing_regions(item_ids, item_type_map):
                     item_ids = fill_missing_regions(
                         item_ids,
-                        rank_by_fit(candidates, weather, occasion, preferences),
+                        rank_by_fit(candidates, weather, occasion, preferences, learned_prefs),
                         item_type_map,
                     )
                 outfit = await self._save_outfit(
@@ -1016,7 +1010,7 @@ class RecommendationService:
             outfit_list = self._parse_multi_outfit_response(result.content)
 
             complete = []
-            first_partial = None
+            partials = []
             for od in outfit_list:
                 od["_ai_model"] = result.model
                 od["_ai_endpoint"] = result.endpoint
@@ -1024,21 +1018,20 @@ class RecommendationService:
                     od, number_map, item_type_map, mandatory_ids, drop_legwear
                 )
                 missing = missing_regions(item_ids, item_type_map)
-                if not item_ids:
+                if not covers_any_region(item_ids, item_type_map):
                     logger.warning("AI outfit option has nothing left to wear, skipping")
                 elif missing:
                     logger.warning(f"AI outfit option has no {', '.join(missing)} piece")
-                    if first_partial is None:
-                        first_partial = (od, item_ids)
+                    partials.append((len(missing), od, item_ids))
                 else:
                     complete.append((od, item_ids))
 
             chosen = complete[:count]
             # Filling in a piece the AI did not choose is a last resort, because the AI's
             # own complete options are better matched than anything added here.
-            if not chosen and first_partial is not None:
-                od, item_ids = first_partial
-                ranking = rank_by_fit(candidates, weather, occasion, preferences)
+            if not chosen and partials:
+                _, od, item_ids = min(partials, key=lambda partial: partial[0])
+                ranking = rank_by_fit(candidates, weather, occasion, preferences, learned_prefs)
                 chosen = [(od, fill_missing_regions(item_ids, ranking, item_type_map))]
             if not chosen:
                 raise AIRecommendationError("AI did not select any valid items")

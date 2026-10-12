@@ -7,6 +7,7 @@ from app.utils.clothing import (
     WardrobeComposition,
     canonical_item_order,
     count_composition,
+    covers_any_region,
     deduplicate_by_body_slot,
     fill_missing_regions,
     missing_regions,
@@ -422,7 +423,9 @@ def _typed(*types):
         (("dress", "sandals"), ("shirt", "jeans"), []),
         (("suit", "shoes"), ("shirt", "pants"), []),
         (("hoodie", "jeans", "sneakers"), ("shirt",), []),
-        (("cardigan", "skirt", "tights", "boots"), ("blouse",), []),
+        (("cardigan", "skirt", "tights", "boots"), ("blouse",), ["upper"]),
+        (("coat", "jeans", "boots"), ("shirt",), ["upper"]),
+        (("coat", "jeans", "boots"), ("blazer",), []),
         (("shirt", "sneakers"), ("sweater",), []),
         (("jeans", "sneakers"), ("dress",), ["upper"]),
         (("bag",), ("shirt", "jeans", "shoes"), ["upper", "lower", "feet"]),
@@ -436,7 +439,9 @@ def _typed(*types):
         "dress",
         "suit",
         "hoodie-as-top",
-        "cardigan-as-top",
+        "cardigan-alone-is-not-a-top",
+        "coat-alone-is-not-a-top",
+        "wardrobe-has-only-layers-for-the-top",
         "wardrobe-has-no-bottoms",
         "only-a-dress-could-cover-the-top",
         "accessory-only",
@@ -456,11 +461,20 @@ def test_fill_adds_the_best_ranked_top_before_a_layer():
     assert filled == [jeans, sneakers, ranked[1]]
 
 
-def test_fill_falls_back_to_a_layer_when_there_is_no_top():
+def test_fill_uses_a_hoodie_but_never_a_coat_when_there_is_no_top():
     (jeans, sneakers), outfit_types = _typed("jeans", "sneakers")
     ranked, ranked_types = _typed("coat", "hoodie")
     filled = fill_missing_regions([jeans, sneakers], ranked, outfit_types | ranked_types)
-    assert filled == [jeans, sneakers, ranked[0]]
+    assert filled == [jeans, sneakers, ranked[1]]
+
+
+@pytest.mark.parametrize(
+    ("outfit", "expected"),
+    [(("bag",), False), (("tights", "hat"), False), (("coat",), False), (("hoodie",), True)],
+)
+def test_covers_any_region(outfit, expected):
+    ids, types = _typed(*outfit)
+    assert covers_any_region(ids, types) is expected
 
 
 def test_fill_adds_every_missing_region():
