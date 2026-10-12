@@ -191,7 +191,11 @@
     "turtleneck": "Dolcevita",
     "v-neck": "Scollo a V",
     "windbreaker": "Giacca a vento",
-    "wrap": "Portafoglio"
+    "wrap": "Portafoglio",
+    "puffer": "Piumino",
+    "overcoat": "Soprabito",
+    "peacoat": "Caban",
+    "duffle": "Montgomery"
   },
   "timezones": {
     "America/Chicago": "Ora centrale (USA)",

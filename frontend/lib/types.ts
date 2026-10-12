@@ -166,31 +166,13 @@ export interface Preferences {
   ai_endpoints: AIEndpoint[];
 }
 
-export { CLOTHING_COLORS } from '@/lib/generated/garment-vocabulary';
+export { CLOTHING_COLORS, CLOTHING_SUBTYPES } from '@/lib/generated/garment-vocabulary';
 
 // Picker order is alphabetical by value. The values come from the generated vocabulary, so the
 // labels are not stored here: they are translated from constants.types at render time.
 export const CLOTHING_TYPES = [...CLOTHING_TYPE_VALUES].sort().map((value) => ({ value }));
 
 export type ClothingTypeValue = (typeof CLOTHING_TYPE_VALUES)[number];
-
-// Suggested subtypes per type. Mirrors the SUBTYPE examples in clothing_analysis.txt.
-// Subtype is free text on the backend (and the model may answer outside this list),
-// so these are suggestions, not a closed set.
-export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
-  shirt: ['henley', 'button-down', 'oxford', 'flannel', 'hawaiian', 'camp-collar'],
-  pants: ['chinos', 'joggers', 'cargo', 'trousers', 'leggings', 'sweatpants'],
-  dress: ['sundress', 'slip-dress', 'maxi', 'midi', 'wrap', 'shirt-dress', 'a-line'],
-  jacket: ['denim-jacket', 'bomber', 'parka', 'windbreaker', 'trucker', 'anorak'],
-  shoes: ['loafers', 'oxfords', 'mules', 'flats', 'heels', 'platforms'],
-  sneakers: ['low-top', 'high-top', 'chunky', 'slip-on'],
-  boots: ['ankle', 'chelsea', 'combat', 'knee-high', 'rain'],
-  skirt: ['mini', 'midi', 'maxi', 'pleated', 'wrap', 'pencil'],
-  sweater: ['pullover', 'crewneck', 'turtleneck', 'v-neck'],
-  socks: ['ankle', 'crew', 'knee-high', 'no-show', 'dress', 'athletic'],
-  tights: ['sheer', 'opaque', 'patterned', 'thermal'],
-  tie: ['necktie', 'bow-tie', 'bolo'],
-};
 
 export type Occasion = (typeof OCCASION_VALUES)[number];
 

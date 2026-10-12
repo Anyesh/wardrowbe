@@ -7,7 +7,7 @@ from app.models.item import ClothingItem
 from app.models.preference import UserPreference
 from app.services.weather_service import WeatherData
 from app.utils.clothing import ITEM_ROLE
-from app.utils.garment_vocabulary import FORMALITY, OCCASION_FORMALITY
+from app.utils.garment_vocabulary import FORMALITY, OCCASION_FORMALITY, WARM_SUBTYPES
 from app.utils.preference_defaults import DEFAULT_PREFER_UNDERUSED_ITEMS
 from app.utils.scales import (
     DEFAULT_AVOID_REPEAT_DAYS,
@@ -80,16 +80,6 @@ RAIN_LIKELY_CHANCE = 50
 WARM_LAYER_TYPES = REMOVABLE_LAYER_TYPES | {"sweater"}
 HEAVY_LAYER_TYPES = {"coat"}
 HEAVY_LAYER_MATERIALS = {"wool", "fleece", "down", "shearling"}
-HEAVY_LAYER_SUBTYPES = {
-    "puffer",
-    "parka",
-    "peacoat",
-    "overcoat",
-    "duffle",
-    "fur",
-    "shearling",
-    "down",
-}
 
 
 @dataclass
@@ -126,7 +116,7 @@ def _temp_bucket_score(
     # must not mark every pair as a warm layer. The materials match the cold-weather
     # rule below so the heat penalty hits the same pairs the cold reward favours.
     warm_tights = item_type == "tights" and (
-        subtype == "thermal" or material in ("wool", "fleece", "knit")
+        subtype in WARM_SUBTYPES or material in ("wool", "fleece", "knit")
     )
     band = _temp_band(temp, cold_threshold, hot_threshold)
     if band == "cold":
@@ -155,7 +145,7 @@ def _is_heavy_layer(item_type: str, material: str, subtype: str) -> bool:
     return (
         item_type in HEAVY_LAYER_TYPES
         or material in HEAVY_LAYER_MATERIALS
-        or subtype in HEAVY_LAYER_SUBTYPES
+        or subtype in WARM_SUBTYPES
     )
 
 

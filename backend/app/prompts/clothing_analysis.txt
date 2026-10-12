@@ -6,18 +6,7 @@ TYPE (required, pick one):
 <<TYPES>>
 
 SUBTYPE (optional): A more specific name within the type. Examples:
-- shirt → henley, button-down, oxford, flannel, hawaiian, camp-collar
-- pants → chinos, joggers, cargo, trousers, leggings, sweatpants
-- dress → sundress, slip-dress, maxi, midi, wrap, shirt-dress, a-line
-- jacket → denim-jacket, bomber, parka, windbreaker, trucker, anorak
-- shoes → loafers, oxfords, mules, flats, heels, platforms
-- sneakers → low-top, high-top, chunky, slip-on
-- boots → ankle, chelsea, combat, knee-high, rain
-- skirt → mini, midi, maxi, pleated, wrap, pencil
-- sweater → pullover, crewneck, turtleneck, v-neck
-- socks → ankle, crew, knee-high, no-show, dress, athletic
-- tights → sheer, opaque, patterned, thermal
-- tie → necktie, bow-tie, bolo
+<<SUBTYPES>>
 Treat pantyhose and sheer stockings that reach the thigh or waist as tights. Otherwise, legwear that reaches the waist and covers the feet is tights, even when it is thick, ribbed or knitted; waist-high legwear that stops at the ankle is pants (leggings); and legwear that stops below the waist, including knee-high and over-the-knee socks, is socks. Use null if the type is specific enough (e.g. jeans, hoodie, blazer).
 
 PRIMARY_COLOR (required, pick one):

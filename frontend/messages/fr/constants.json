@@ -191,7 +191,11 @@
     "turtleneck": "Col roulé",
     "v-neck": "Col V",
     "windbreaker": "Coupe-vent",
-    "wrap": "Portefeuille"
+    "wrap": "Portefeuille",
+    "puffer": "Doudoune",
+    "overcoat": "Pardessus",
+    "peacoat": "Caban",
+    "duffle": "Duffle-coat"
   },
   "timezones": {
     "America/Chicago": "Heure centrale (É.-U.)",

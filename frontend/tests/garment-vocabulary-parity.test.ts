@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import constants from '@/messages/en/constants.json';
 import {
   CLOTHING_COLORS,
+  CLOTHING_SUBTYPES,
   COLOR_ALIASES,
   FORMALITY_VALUES,
   ITEM_ROLE,
@@ -17,7 +18,7 @@ import { FEATURED_OCCASIONS, CLOTHING_TYPES } from '@/lib/types';
 const VOCABULARY_PATH = resolve(__dirname, '..', '..', 'backend', 'app', 'data', 'garment_vocabulary.json');
 const vocabulary = JSON.parse(readFileSync(VOCABULARY_PATH, 'utf8')) as {
   roles: string[];
-  types: Array<{ value: string; role: string }>;
+  types: Array<{ value: string; role: string; subtypes?: string[] }>;
   materials: string[];
   formality: string[];
   occasions: Array<{ value: string; formality?: string[] }>;
@@ -26,7 +27,7 @@ const vocabulary = JSON.parse(readFileSync(VOCABULARY_PATH, 'utf8')) as {
 };
 
 const MESSAGES_PATH = resolve(__dirname, '..', 'messages');
-const constantLabels = (locale: string, group: 'occasions' | 'colors'): Record<string, string> =>
+const constantLabels = (locale: string, group: 'occasions' | 'colors' | 'subtypes'): Record<string, string> =>
   JSON.parse(readFileSync(resolve(MESSAGES_PATH, locale, 'constants.json'), 'utf8'))[group] ?? {};
 
 const sorted = (values: Iterable<string>) => Array.from(values).sort();
@@ -41,6 +42,15 @@ describe('garment vocabulary', () => {
     expect(CLOTHING_COLORS).toEqual(vocabulary.colors);
     expect(COLOR_ALIASES).toEqual(vocabulary.color_aliases);
     expect([...ROLE_VALUES]).toEqual(vocabulary.roles);
+    expect(CLOTHING_SUBTYPES).toEqual(
+      Object.fromEntries(vocabulary.types.filter((t) => t.subtypes).map((t) => [t.value, t.subtypes])),
+    );
+  });
+
+  it.each(SUPPORTED_LOCALES)('labels exactly the vocabulary subtypes in %s', (locale) => {
+    expect(sorted(Object.keys(constantLabels(locale, 'subtypes')))).toEqual(
+      sorted(new Set(Object.values(CLOTHING_SUBTYPES).flat())),
+    );
   });
 
   it('gives every stored colour a six-digit hex swatch', () => {

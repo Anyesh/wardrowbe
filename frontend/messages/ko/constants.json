@@ -191,7 +191,11 @@
     "turtleneck": "터틀넥",
     "v-neck": "브이넥",
     "windbreaker": "윈드브레이커",
-    "wrap": "랩"
+    "wrap": "랩",
+    "puffer": "패딩",
+    "overcoat": "오버코트",
+    "peacoat": "피코트",
+    "duffle": "더플"
   },
   "timezones": {
     "America/Chicago": "미국 중부 시간",

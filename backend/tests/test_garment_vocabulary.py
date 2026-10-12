@@ -29,7 +29,9 @@ from app.utils.garment_vocabulary import (
     MATERIALS,
     OCCASIONS,
     ROLES,
+    SUBTYPES,
     TYPES,
+    WARM_SUBTYPES,
     canonical_color,
     canonical_colors,
     normalize_color,
@@ -64,9 +66,27 @@ def test_every_type_has_a_known_role_and_a_positive_wash_interval():
 
 def test_prompt_template_tokens_are_all_rendered():
     template = load_prompt("clothing_analysis")
-    for token in ("<<TYPES>>", "<<MATERIALS>>", "<<FORMALITY>>", "<<COLORS>>"):
+    for token in ("<<TYPES>>", "<<SUBTYPES>>", "<<MATERIALS>>", "<<FORMALITY>>", "<<COLORS>>"):
         assert token in template
     assert "<<" not in render_tagging_prompt(template)
+
+
+def test_prompt_suggests_exactly_the_vocabulary_subtypes():
+    match = re.search(r"^SUBTYPE \([^)]*\):[^\n]*\n((?:- .+\n)+)", TAGGING_PROMPT, re.MULTILINE)
+    assert match, "SUBTYPE examples not found in clothing_analysis prompt"
+    rendered = {}
+    for line in match.group(1).splitlines():
+        type_, subtypes = line.removeprefix("- ").split(" → ")
+        rendered[type_] = tuple(s.strip() for s in subtypes.split(","))
+    assert rendered == SUBTYPES
+
+
+def test_subtypes_belong_to_real_types_and_warm_subtypes_are_offered():
+    assert set(SUBTYPES) <= set(TYPES)
+    for type_, subtypes in SUBTYPES.items():
+        assert subtypes, type_
+        assert len(set(subtypes)) == len(subtypes), type_
+    assert WARM_SUBTYPES <= {s for subtypes in SUBTYPES.values() for s in subtypes}
 
 
 def test_type_lists_agree():

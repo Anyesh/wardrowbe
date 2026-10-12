@@ -19,6 +19,7 @@ from app.services.item_scorer import (
     stays_above_hot_threshold,
 )
 from app.services.weather_service import WeatherData
+from app.utils.garment_vocabulary import WARM_SUBTYPES
 
 
 def _item(**kwargs) -> ClothingItem:
@@ -214,8 +215,9 @@ class TestWeatherScoreHeavyLayers:
         weather = _weather(temp=12, window_min=5, window_max=30)
         return _weather_score(_item(**kwargs), weather, None)
 
-    def test_puffer_with_unknown_material_is_heavy(self):
-        assert self._swing(type="jacket", subtype="puffer") == pytest.approx(0.525)
+    @pytest.mark.parametrize("subtype", sorted(WARM_SUBTYPES))
+    def test_warm_subtype_with_unknown_material_is_heavy(self, subtype):
+        assert self._swing(type="jacket", subtype=subtype) == pytest.approx(0.525)
 
     def test_parka_with_light_shell_material_is_heavy(self):
         assert self._swing(type="jacket", subtype="parka", material="nylon") == pytest.approx(0.525)

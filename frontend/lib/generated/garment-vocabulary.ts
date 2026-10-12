@@ -41,6 +41,24 @@ export const ITEM_ROLE: Record<string, string> = {
   accessories: 'accessory',
 };
 
+// Suggestions rather than a closed set: subtype is free text, and the model may answer outside it.
+export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
+  shirt: ['henley', 'button-down', 'oxford', 'flannel', 'hawaiian', 'camp-collar'],
+  pants: ['chinos', 'joggers', 'cargo', 'trousers', 'leggings', 'sweatpants'],
+  dress: ['sundress', 'slip-dress', 'maxi', 'midi', 'wrap', 'shirt-dress', 'a-line'],
+  skirt: ['mini', 'midi', 'maxi', 'pleated', 'wrap', 'pencil'],
+  jacket: ['denim-jacket', 'bomber', 'parka', 'puffer', 'windbreaker', 'trucker', 'anorak'],
+  coat: ['overcoat', 'peacoat', 'duffle', 'puffer'],
+  sweater: ['pullover', 'crewneck', 'turtleneck', 'v-neck'],
+  vest: ['puffer'],
+  shoes: ['loafers', 'oxfords', 'mules', 'flats', 'heels', 'platforms'],
+  sneakers: ['low-top', 'high-top', 'chunky', 'slip-on'],
+  boots: ['ankle', 'chelsea', 'combat', 'knee-high', 'rain'],
+  socks: ['ankle', 'crew', 'knee-high', 'no-show', 'dress', 'athletic'],
+  tights: ['sheer', 'opaque', 'patterned', 'thermal'],
+  tie: ['necktie', 'bow-tie', 'bolo'],
+};
+
 export const CLOTHING_COLORS = [
   { value: 'black', hex: '#1a1a1a' },
   { value: 'white', hex: '#FAFAFA' },

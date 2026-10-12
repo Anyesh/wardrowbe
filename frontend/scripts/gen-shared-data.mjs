@@ -23,6 +23,10 @@ const header = (source) => [
 function renderVocabulary({ roles: roleOrder, types, materials, formality, occasions, colors, color_aliases: colorAliases }) {
   const roles = types.map(({ value, role }) => `  ${key(value)}: ${quote(role)},`).join('\n');
   const swatches = colors.map(({ value, hex }) => `  { value: ${quote(value)}, hex: ${quote(hex)} },`).join('\n');
+  const subtypes = types
+    .filter((type) => type.subtypes)
+    .map(({ value, subtypes: values }) => `  ${key(value)}: [${values.map(quote).join(', ')}],`)
+    .join('\n');
   const aliases = Object.entries(colorAliases)
     .map(([alias, color]) => `  ${key(alias)}: ${quote(color)},`)
     .join('\n');
@@ -35,6 +39,11 @@ function renderVocabulary({ roles: roleOrder, types, materials, formality, occas
     '',
     'export const ITEM_ROLE: Record<string, string> = {',
     roles,
+    '};',
+    '',
+    '// Suggestions rather than a closed set: subtype is free text, and the model may answer outside it.',
+    'export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {',
+    subtypes,
     '};',
     '',
     'export const CLOTHING_COLORS = [',
