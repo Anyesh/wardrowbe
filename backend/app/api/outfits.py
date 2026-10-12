@@ -1,14 +1,15 @@
 import logging
 from datetime import date, datetime
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from sqlalchemy import and_, select, update
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.pagination import PaginationParams
 from app.config import get_settings
 from app.database import DbSession
 from app.models.item import ClothingItem
@@ -17,10 +18,10 @@ from app.models.outfit import (
     Outfit,
     OutfitItem,
     OutfitStatus,
+    TimeOfDay,
     UserFeedback,
 )
 from app.models.user import User
-from app.schemas.item import DEFAULT_WASH_INTERVALS
 from app.schemas.outfit import (
     MAX_AUTHORING_TEXT_LENGTH,
     Occasion,
@@ -47,10 +48,14 @@ from app.services.suggestion_cache import clear_suggestions
 from app.services.weather_service import WeatherData
 from app.utils.auth import get_current_user
 from app.utils.rate_limit import rate_limit_by_user
-from app.utils.signed_urls import sign_image_url
+from app.utils.scales import RATING_MAX, RATING_MIN
+from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
+
+_RATING_RANGE = f"{RATING_MIN}-{RATING_MAX}"
+MAX_SEARCH_OCCASIONS = 50
 
 
 router = APIRouter(prefix="/outfits", tags=["Outfits"])
@@ -72,7 +77,7 @@ def _default_occasion(user: User) -> str:
 
 class SuggestRequest(BaseModel):
     occasion: Occasion | None = None
-    time_of_day: Literal["morning", "afternoon", "evening", "night", "full day"] | None = None
+    time_of_day: TimeOfDay | None = None
     weather_override: WeatherOverrideRequest | None = None
     exclude_items: list[UUID] = Field(default_factory=list, description="Items to exclude")
     include_items: list[UUID] = Field(default_factory=list, description="Items to include")
@@ -93,16 +98,12 @@ class OutfitItemResponse(BaseModel):
     @computed_field
     @property
     def image_url(self) -> str | None:
-        if self.image_path:
-            return sign_image_url(self.image_path)
-        return None
+        return sign_optional(self.image_path)
 
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
-        if self.thumbnail_path:
-            return sign_image_url(self.thumbnail_path)
-        return None
+        return sign_optional(self.thumbnail_path)
 
 
 class WoreInsteadItem(BaseModel):
@@ -114,9 +115,7 @@ class WoreInsteadItem(BaseModel):
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
-        if self.thumbnail_path:
-            return sign_image_url(self.thumbnail_path)
-        return None
+        return sign_optional(self.thumbnail_path)
 
 
 class FeedbackSummary(BaseModel):
@@ -128,7 +127,7 @@ class FeedbackSummary(BaseModel):
 
 
 class FamilyRatingRequest(BaseModel):
-    rating: int = Field(ge=1, le=5, description="Rating 1-5")
+    rating: int = Field(ge=RATING_MIN, le=RATING_MAX, description=f"Rating {_RATING_RANGE}")
     comment: str | None = Field(None, max_length=500)
 
 
@@ -187,6 +186,7 @@ class BulkOutfitFilters(BaseModel):
     has_source_item: bool | None = None
     item_type: str | None = None
     search: str | None = None
+    occasions: Annotated[list[str] | None, Field(max_length=MAX_SEARCH_OCCASIONS)] = None
     cloned_from_outfit_id: UUID | None = None
 
 
@@ -220,9 +220,15 @@ class BulkDeleteOutfitsResponse(BaseModel):
 
 class FeedbackRequest(BaseModel):
     accepted: bool | None = Field(None, description="Whether outfit was accepted")
-    rating: int | None = Field(None, ge=1, le=5, description="Overall rating 1-5")
-    comfort_rating: int | None = Field(None, ge=1, le=5, description="Comfort rating 1-5")
-    style_rating: int | None = Field(None, ge=1, le=5, description="Style rating 1-5")
+    rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Overall rating {_RATING_RANGE}"
+    )
+    comfort_rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Comfort rating {_RATING_RANGE}"
+    )
+    style_rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Style rating {_RATING_RANGE}"
+    )
     comment: str | None = Field(None, max_length=1000, description="Optional comment")
     worn: bool | None = Field(None, description="Whether the outfit was worn")
     worn_with_modifications: bool | None = Field(
@@ -595,8 +601,7 @@ async def create_external_suggestion(
 async def list_outfits(
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pagination: Annotated[PaginationParams, Depends()],
     status_filter: str | None = Query(None, alias="status"),
     occasion: str | None = None,
     date_from: date | None = None,
@@ -611,6 +616,9 @@ async def list_outfits(
         None, description="Legacy alias for item_type used by /pairings"
     ),
     search: str | None = Query(None, max_length=50),
+    occasions: str | None = Query(
+        None, max_length=500, description="Comma-separated occasion keys the search also matches"
+    ),
     cloned_from_outfit_id: UUID | None = Query(
         None, description="Filter to wear instances of a specific template"
     ),
@@ -634,10 +642,13 @@ async def list_outfits(
         item_type=item_type or source_type,
         family_member_view=family_member_id is not None,
         search=search,
+        occasions=[key.strip() for key in occasions.split(",") if key.strip()]
+        if occasions
+        else None,
         cloned_from_outfit_id=cloned_from_outfit_id,
     )
 
-    outfits, total = await service.list_with_filters(filters, page, page_size)
+    outfits, total = await service.list_with_filters(filters, pagination.page, pagination.page_size)
 
     wore_instead_map = await fetch_wore_instead_items_map(db, outfits, user_id=current_user.id)
 
@@ -646,9 +657,9 @@ async def list_outfits(
     return OutfitListResponse(
         outfits=outfit_responses,
         total=total,
-        page=page,
-        page_size=page_size,
-        has_more=(page * page_size) < total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        has_more=pagination.has_more(total),
     )
 
 
@@ -679,6 +690,7 @@ async def bulk_delete_outfits(
             has_source_item=request.filters.has_source_item if request.filters else None,
             item_type=request.filters.item_type if request.filters else None,
             search=request.filters.search if request.filters else None,
+            occasions=request.filters.occasions if request.filters else None,
             cloned_from_outfit_id=request.filters.cloned_from_outfit_id
             if request.filters
             else None,
@@ -916,35 +928,26 @@ async def submit_feedback(
     if request.worn and not feedback.worn_at:
         user_today = get_user_today(current_user)
         feedback.worn_at = user_today
-        for outfit_item in outfit.items:
-            item = outfit_item.item
-            effective_interval = (
-                item.wash_interval
-                if item.wash_interval is not None
-                else DEFAULT_WASH_INTERVALS.get(item.type, 3)
-            )
-            await db.execute(
-                update(ClothingItem)
-                .where(ClothingItem.id == item.id)
-                .values(
-                    wear_count=ClothingItem.wear_count + 1,
-                    last_worn_at=user_today,
-                    wears_since_wash=ClothingItem.wears_since_wash + 1,
-                    needs_wash=ClothingItem.wears_since_wash + 1 >= effective_interval,
-                )
-            )
+        await ItemService(db).record_wears(
+            current_user.id,
+            [outfit_item.item_id for outfit_item in outfit.items],
+            user_today,
+            occasion=outfit.occasion,
+            outfit_id=outfit.id,
+        )
     if request.worn_with_modifications is not None:
         feedback.worn_with_modifications = request.worn_with_modifications
     if request.modification_notes is not None:
         feedback.modification_notes = request.modification_notes
     if request.actually_worn is not None:
         feedback.actually_worn = request.actually_worn
+    replacement: Outfit | None = None
     if request.wore_instead_items is not None:
         feedback.wore_instead_items = [str(item_id) for item_id in request.wore_instead_items]
         if request.wore_instead_items:
             studio_service = StudioService(db)
             try:
-                await studio_service.create_wore_instead(
+                replacement = await studio_service.create_wore_instead(
                     user=current_user,
                     original_outfit_id=outfit_id,
                     item_ids=list(request.wore_instead_items),
@@ -964,12 +967,9 @@ async def submit_feedback(
     await db.commit()
     await db.refresh(feedback)
 
-    try:
-        learning_service = LearningService(db)
-        await learning_service.process_feedback(outfit_id, current_user.id)
-        logger.info(f"Learning processed for outfit {outfit_id}")
-    except Exception as e:
-        logger.exception(f"Learning processing failed for outfit {outfit_id}: {e}")
+    await _run_learning_safely(db, outfit_id, current_user.id)
+    if replacement is not None:
+        await _run_learning_safely(db, replacement.id, current_user.id)
 
     return FeedbackResponse(
         id=feedback.id,
@@ -1189,7 +1189,7 @@ class WoreInsteadRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[UUID] = Field(min_length=1, max_length=20)
-    rating: Annotated[int | None, Field(ge=1, le=5)] = None
+    rating: Annotated[int | None, Field(ge=RATING_MIN, le=RATING_MAX)] = None
     comment: Annotated[str | None, Field(max_length=1000)] = None
     scheduled_for: date | None = None
 

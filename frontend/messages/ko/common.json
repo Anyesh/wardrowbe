@@ -54,6 +54,8 @@
   "previous": "이전",
   "previousPage": "이전 페이지",
   "privacyMatters": "개인정보를 소중히 여겨요",
+  "rateStars": "{count, plural, other {별 #개로 평가}}",
+  "ratedStars": "평점 {rating}/{max}",
   "remove": "제거",
   "retry": "재시도",
   "save": "저장",

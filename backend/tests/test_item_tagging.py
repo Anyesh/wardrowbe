@@ -289,8 +289,13 @@ class TestWriteBack:
         assert data["tagged_by"] is None
 
     @pytest.mark.asyncio
-    async def test_empty_nested_tags_dict_stays_pending(
-        self, client: AsyncClient, auth_headers, test_user, db_session: AsyncSession
+    @pytest.mark.parametrize(
+        "tags",
+        [{"colors": []}, {"size": "M", "care_instructions": "Hand wash"}],
+        ids=["empty", "user-owned-keys-only"],
+    )
+    async def test_nested_tags_without_tag_content_stay_pending(
+        self, client: AsyncClient, auth_headers, test_user, db_session: AsyncSession, tags
     ):
         item = ClothingItem(
             user_id=test_user.id,
@@ -303,7 +308,7 @@ class TestWriteBack:
 
         response = await client.patch(
             f"/api/v1/items/{item.id}",
-            json={"tags": {"colors": []}},
+            json={"tags": tags},
             headers=auth_headers,
         )
 

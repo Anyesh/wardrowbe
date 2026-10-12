@@ -27,9 +27,7 @@ x-backend-env: &backend-env
   MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-}
   MAX_BULK_ACTION_COUNT: ${MAX_BULK_ACTION_COUNT:-}
   NTFY_SERVER: ${NTFY_SERVER:-}
-  NTFY_TOPIC: ${NTFY_TOPIC:-}
   NTFY_TOKEN: ${NTFY_TOKEN:-}
-  MATTERMOST_WEBHOOK_URL: ${MATTERMOST_WEBHOOK_URL:-}
   SMTP_HOST: ${SMTP_HOST:-}
   SMTP_PORT: ${SMTP_PORT:-}
   SMTP_USER: ${SMTP_USER:-}
@@ -86,7 +84,10 @@ services:
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       OIDC_CA_BUNDLE: ${OIDC_CA_BUNDLE:-}
-      AUTH_TRUST_HEADER: ${AUTH_TRUST_HEADER:-false}
+      FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
+      # 0 because clients reach the frontend and API directly here, so any X-Forwarded-For is
+      # theirs; set 1 once a proxy is the only way in (README: Client IPs behind a reverse proxy)
+      TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-0}
     volumes:
       - wardrobe_data:/data/wardrobe
     ports:
@@ -113,6 +114,14 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
       DEV_MODE: ${DEBUG:-false}
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_END_SESSION_URL: ${OIDC_END_SESSION_URL:-}
+      FORWARD_AUTH_LOGOUT_URL: ${FORWARD_AUTH_LOGOUT_URL:-}
+      TINYAUTH_URL: ${TINYAUTH_URL:-}
+      FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
+      NODE_EXTRA_CA_CERTS: ${NODE_EXTRA_CA_CERTS:-}
       PUID: ${PUID:-1001}
       PGID: ${PGID:-1001}
     ports:
@@ -154,6 +163,7 @@ services:
       BG_REMOVAL_API_KEY: ${BG_REMOVAL_API_KEY:-}
     volumes:
       - wardrobe_data:/data/wardrobe
+      - rembg_models:/opt/rembg/models
     depends_on:
       postgres:
         condition: service_healthy
@@ -165,3 +175,4 @@ volumes:
   postgres_data:
   redis_data:
   wardrobe_data:
+  rembg_models:

@@ -11,11 +11,11 @@ export interface ItemTags {
   season: string[];
   formality?: string;
   fit?: string;
-  occasion?: string[];
-  brand?: string;
-  condition?: string;
-  features?: string[];
   logprobs_confidence?: number;
+  // User-owned keys. The AI never emits these.
+  size?: string;
+  care_instructions?: string;
+  source_url?: string;
 }
 
 export interface Item {

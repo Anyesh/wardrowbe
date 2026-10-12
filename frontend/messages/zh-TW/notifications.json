@@ -25,6 +25,7 @@
     },
     "helpers": {
       "accessTokenOptional": "如果你的 ntfy 伺服器需要認證則為必填",
+      "accessTokenServerDefault": "留空則使用此伺服器上設定的存取權杖",
       "mattermostWebhook": "在 Mattermost 設定中建立傳入 Webhook",
       "topicSubscribe": "在你的 ntfy 應用程式中訂閱此主題"
     },

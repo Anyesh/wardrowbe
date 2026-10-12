@@ -44,6 +44,11 @@ def do_run_migrations(connection: Connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
+        # Every revision runs in this one transaction, so this covers each LOCK and ALTER on the
+        # path and alembic_version. Without it a migration blocked by an idle-in-transaction
+        # session (or a killed client's backend, since client_connection_check_interval is 0)
+        # waits forever while holding the locks it already took.
+        context.execute("SET LOCAL lock_timeout = '10s'")
         context.run_migrations()
 
 

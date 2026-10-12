@@ -17,6 +17,7 @@ from app.models.outfit import (
     OutfitItem,
     OutfitSource,
     OutfitStatus,
+    TimeOfDay,
     UserFeedback,
 )
 from app.models.preference import UserPreference
@@ -31,6 +32,10 @@ from app.services.weather_service import (
     WeatherServiceError,
 )
 from app.utils.clothing import canonical_item_order, deduplicate_by_body_slot
+from app.utils.preference_defaults import (
+    DEFAULT_LAYERING_PREFERENCE,
+    DEFAULT_TEMPERATURE_SENSITIVITY,
+)
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_now, get_user_today
 
@@ -46,16 +51,16 @@ SINGLE_OUTFIT_FORMAT = (
 )
 
 
-def get_time_of_day(user: User) -> str:
+def get_time_of_day(user: User) -> TimeOfDay:
     hour = get_user_now(user).hour
     if 6 <= hour < 12:
-        return "morning"
+        return TimeOfDay.morning
     elif 12 <= hour < 17:
-        return "afternoon"
+        return TimeOfDay.afternoon
     elif 17 <= hour < 21:
-        return "evening"
+        return TimeOfDay.evening
     else:
-        return "night"
+        return TimeOfDay.night
 
 
 def format_temp_range_text(weather: WeatherData) -> str:
@@ -376,11 +381,14 @@ class RecommendationService:
                     lines.append(f"- Less preferred styles: {', '.join(weak)}")
             if preferences.variety_level:
                 lines.append(f"- Variety preference: {preferences.variety_level}")
-            if preferences.layering_preference and preferences.layering_preference != "moderate":
+            if (
+                preferences.layering_preference
+                and preferences.layering_preference != DEFAULT_LAYERING_PREFERENCE
+            ):
                 lines.append(f"- Layering preference: {preferences.layering_preference}")
             if (
                 preferences.temperature_sensitivity
-                and preferences.temperature_sensitivity != "normal"
+                and preferences.temperature_sensitivity != DEFAULT_TEMPERATURE_SENSITIVITY
             ):
                 lines.append(
                     f"- Temperature sensitivity: {preferences.temperature_sensitivity} "
@@ -695,7 +703,7 @@ class RecommendationService:
         exclude_items: list[UUID] | None = None,
         include_items: list[UUID] | None = None,
         source: OutfitSource = OutfitSource.on_demand,
-        time_of_day: str | None = None,
+        time_of_day: TimeOfDay | None = None,
         count: int = 1,
         single_outfit: bool = False,
         scheduled_date: date | None = None,
@@ -981,7 +989,7 @@ class RecommendationService:
         exclude_items: list[UUID] | None = None,
         include_items: list[UUID] | None = None,
         source: OutfitSource = OutfitSource.on_demand,
-        time_of_day: str | None = None,
+        time_of_day: TimeOfDay | None = None,
         single_outfit: bool = False,
         scheduled_date: date | None = None,
     ) -> Outfit:

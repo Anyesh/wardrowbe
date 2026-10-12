@@ -99,6 +99,7 @@ kubectl -n wardrobe get pods -w
 ```bash
 kubectl apply -f backend.yaml
 kubectl apply -f worker.yaml
+kubectl apply -f image-worker.yaml
 kubectl apply -f frontend.yaml
 ```
 
@@ -131,6 +132,36 @@ kubectl -n wardrobe exec deployment/backend -- alembic upgrade head
 
 ```bash
 kubectl apply -f network-policy.yaml
+```
+
+## Upgrading
+
+The manifests use `:latest` images with `imagePullPolicy: IfNotPresent`, so a node keeps running the image it already has until the new one is loaded and the pods restart. Back up the database first; keep the file, since a downgrade loses data and the [identity repair SQL](../docs/sign-in-identities.md#repairing-accounts-if-the-migration-ran-while-the-old-backend-was-still-serving) needs the UTC time in the name:
+
+```bash
+kubectl -n wardrobe exec deployment/postgres -- sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+  > backup-$(date -u +%Y%m%dT%H%M%SZ).sql
+```
+
+Then:
+
+```bash
+# 1. Make the new images reach the nodes. With images loaded onto each node, load the new ones
+#    on every node. With a registry, a re-pushed :latest is not pulled again under IfNotPresent;
+#    push a new tag and point the deployments at it with `kubectl -n wardrobe set image`.
+# 2. Restart the pods on the new images.
+kubectl -n wardrobe rollout restart deployment/backend deployment/worker deployment/frontend
+kubectl -n wardrobe rollout status deployment/backend
+kubectl -n wardrobe rollout status deployment/worker
+kubectl -n wardrobe rollout status deployment/frontend
+# Only if image-worker is deployed (kubectl -n wardrobe get deployment image-worker):
+kubectl -n wardrobe rollout restart deployment/image-worker
+kubectl -n wardrobe rollout status deployment/image-worker
+# 3. Check the backend pod runs the new image (compare the digest with the one you built or pushed),
+#    because migrating inside an old pod finds nothing to do and still reports success.
+kubectl -n wardrobe get pods -l app=backend -o jsonpath='{.items[*].status.containerStatuses[*].imageID}'
+# 4. Migrate inside the new backend.
+kubectl -n wardrobe exec deployment/backend -- alembic upgrade head
 ```
 
 ## Files
@@ -174,6 +205,7 @@ Wardrobe supports multiple auth providers via NextAuth:
 
 1. **Development Mode** (default): Simple email/name login
 2. **OIDC Provider**: Authentik, Keycloak, Auth0, etc.
+3. **Forward-auth**: an authenticating proxy such as TinyAuth or Authelia in front of the ingress. Set `forward-auth-secret` in `secrets.yaml` and `TINYAUTH_URL` or `FORWARD_AUTH_LOGOUT_URL` in `configmap.yaml`; the proxy setup is in [docs/forward-auth.md](../docs/forward-auth.md).
 
 Configure OIDC in `configmap.yaml` and `secrets.yaml`:
 
@@ -184,6 +216,31 @@ OIDC_ISSUER_URL: "https://auth.example.com"
 # secrets.yaml
 oidc-client-id: "your-client-id"
 oidc-client-secret: "your-client-secret"
+```
+
+#### Private CA
+
+If the OIDC provider's certificate comes from a private CA or is self-signed, both the backend (discovery and JWKS) and the frontend (NextAuth discovery, JWKS, token exchange and userinfo) have to trust it. TLS verification stays on; you add the CA as a trust anchor. Put the PEM in a ConfigMap, mount it into `backend.yaml` and `frontend.yaml`, and set both paths in `configmap.yaml`:
+
+```bash
+kubectl -n wardrobe create configmap wardrobe-ca --from-file=internal-ca.pem
+```
+
+```yaml
+# backend.yaml and frontend.yaml, in the container
+volumeMounts:
+  - name: wardrobe-ca
+    mountPath: /certs
+    readOnly: true
+# and in the pod spec
+volumes:
+  - name: wardrobe-ca
+    configMap:
+      name: wardrobe-ca
+
+# configmap.yaml
+OIDC_CA_BUNDLE: "/certs/internal-ca.pem"
+NODE_EXTRA_CA_CERTS: "/certs/internal-ca.pem"
 ```
 
 ### Storage

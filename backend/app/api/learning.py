@@ -10,9 +10,13 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.database import DbSession
-from app.models.learning import UserLearningProfile
+from app.models.learning import StyleInsight, UserLearningProfile
 from app.models.user import User
-from app.services.learning_service import LearningService
+from app.services.learning_service import (
+    LearningService,
+    insight_message,
+    score_interpretation,
+)
 from app.utils.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -26,7 +30,9 @@ class LearnedColorScore(BaseModel):
 
     color: str
     score: float
-    interpretation: str  # "strongly liked", "liked", "neutral", "disliked", "strongly disliked"
+    # English label kept for older clients; interpretation_key picks the translated one.
+    interpretation: str
+    interpretation_key: str | None = None
 
 
 class LearnedStyleScore(BaseModel):
@@ -89,6 +95,24 @@ class InsightResponse(BaseModel):
     description: str
     confidence: float
     created_at: datetime
+    # title and description are English; newer clients render message_key instead.
+    message_key: str | None = None
+    message_params: dict = {}
+
+
+def _insight_response(insight: StyleInsight) -> InsightResponse:
+    message_key, message_params = insight_message(insight)
+    return InsightResponse(
+        id=insight.id,
+        category=insight.category,
+        insight_type=insight.insight_type,
+        title=insight.title,
+        description=insight.description,
+        confidence=float(insight.confidence),
+        created_at=insight.created_at,
+        message_key=message_key,
+        message_params=message_params,
+    )
 
 
 class LearningInsightsResponse(BaseModel):
@@ -100,18 +124,20 @@ class LearningInsightsResponse(BaseModel):
     preference_suggestions: dict
 
 
-def _interpret_score(score: float) -> str:
-    """Convert numeric score to human-readable interpretation."""
-    if score >= 0.5:
-        return "strongly liked"
-    elif score >= 0.2:
-        return "liked"
-    elif score >= -0.2:
-        return "neutral"
-    elif score >= -0.5:
-        return "disliked"
-    else:
-        return "strongly disliked"
+_INTERPRETATION_EN = {
+    "stronglyLiked": "strongly liked",
+    "liked": "liked",
+    "neutral": "neutral",
+    "disliked": "disliked",
+    "stronglyDisliked": "strongly disliked",
+}
+
+
+def _color_score(color: str, score: float) -> LearnedColorScore:
+    key = score_interpretation(score)
+    return LearnedColorScore(
+        color=color, score=score, interpretation=_INTERPRETATION_EN[key], interpretation_key=key
+    )
 
 
 def _profile_response(profile: UserLearningProfile | None) -> LearningProfileResponse:
@@ -149,7 +175,7 @@ def _profile_response(profile: UserLearningProfile | None) -> LearningProfileRes
         if profile.average_style_rating is not None
         else None,
         color_preferences=[
-            LearnedColorScore(color=color, score=score, interpretation=_interpret_score(score))
+            _color_score(color, score)
             for color, score in sorted(color_scores.items(), key=lambda x: x[1], reverse=True)
         ],
         style_preferences=[
@@ -212,18 +238,7 @@ async def get_learning_insights(
 
     # Get active insights
     active_insights = await learning_service.get_active_insights(current_user.id)
-    insights = [
-        InsightResponse(
-            id=insight.id,
-            category=insight.category,
-            insight_type=insight.insight_type,
-            title=insight.title,
-            description=insight.description,
-            confidence=float(insight.confidence),
-            created_at=insight.created_at,
-        )
-        for insight in active_insights
-    ]
+    insights = [_insight_response(insight) for insight in active_insights]
 
     # Get preference suggestions
     suggestions = await learning_service.apply_learning_to_preferences(current_user.id)
@@ -268,18 +283,7 @@ async def generate_insights(
 
     insights = await learning_service.generate_insights(current_user.id)
 
-    return [
-        InsightResponse(
-            id=insight.id,
-            category=insight.category,
-            insight_type=insight.insight_type,
-            title=insight.title,
-            description=insight.description,
-            confidence=float(insight.confidence),
-            created_at=insight.created_at,
-        )
-        for insight in insights
-    ]
+    return [_insight_response(insight) for insight in insights]
 
 
 @router.post("/insights/{insight_id}/acknowledge")

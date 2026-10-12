@@ -1,5 +1,5 @@
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
@@ -10,7 +10,8 @@ from PIL import Image
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.models.item import ClothingItem, ItemStatus
+from app.models.item import ClothingItem, ItemHistory, ItemStatus
+from app.models.user import User
 from app.schemas.item import ItemCreate, ItemFilter
 from app.services.item_service import ItemService
 from app.workers.tagging import update_item_status_to_error
@@ -364,6 +365,46 @@ class TestItemService:
         second_ids = [item.id for item in (await service.get_list(test_user.id, filters))[0]]
 
         assert first_ids == second_ids == sorted(first_ids)
+
+    @pytest.mark.asyncio
+    async def test_record_wears_skips_items_owned_by_someone_else(
+        self, db_session: AsyncSession, test_user
+    ):
+        other_id = uuid4()
+        db_session.add(
+            User(
+                id=other_id,
+                external_id=f"other-{other_id}",
+                email=f"{other_id}@example.com",
+                display_name="Other",
+            )
+        )
+        own, foreign = (
+            ClothingItem(
+                user_id=owner_id,
+                type="shirt",
+                image_path=f"test/{uuid4()}.jpg",
+                status=ItemStatus.ready,
+            )
+            for owner_id in (test_user.id, other_id)
+        )
+        db_session.add_all([own, foreign])
+        await db_session.commit()
+
+        own_id, foreign_id = own.id, foreign.id
+
+        histories = await ItemService(db_session).record_wears(
+            test_user.id, [own_id, foreign_id], date(2026, 10, 1)
+        )
+        await db_session.commit()
+
+        assert [history.item_id for history in histories] == [own_id]
+        await db_session.refresh(foreign)
+        assert (foreign.wear_count, foreign.last_worn_at) == (0, None)
+        foreign_history = await db_session.scalar(
+            select(func.count()).select_from(ItemHistory).where(ItemHistory.item_id == foreign_id)
+        )
+        assert foreign_history == 0
 
 
 class TestBulkCreateUploadKeyIdempotency:

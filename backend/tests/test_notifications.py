@@ -800,6 +800,39 @@ class TestNtfyHeaders:
         encoded = base64.b64encode("Today's Casual - 20\u00b0C".encode()).decode()
         assert title == f"=?UTF-8?B?{encoded}?="
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("server", "channel_token", "expected"),
+        [
+            ("https://ntfy.example.com", None, "Bearer operator-token"),
+            ("https://ntfy.example.com/", None, "Bearer operator-token"),
+            ("https://ntfy.example.com", "own", "Bearer own"),
+            ("https://other.example.com", None, None),
+        ],
+        ids=["configured-server", "trailing-slash", "own-token-wins", "foreign-server"],
+    )
+    async def test_operator_token_applies_only_to_the_configured_server(
+        self, monkeypatch, server, channel_token, expected
+    ):
+        monkeypatch.setattr(
+            notification_providers,
+            "get_settings",
+            lambda: SimpleNamespace(
+                ntfy_server="https://ntfy.example.com/", ntfy_token="operator-token"
+            ),
+        )
+        post = AsyncMock(
+            return_value=httpx.Response(
+                200, json={"id": "m"}, request=httpx.Request("POST", "https://x/t")
+            )
+        )
+        provider = NtfyProvider(NtfyConfig(server=server, topic="topic-1", token=channel_token))
+
+        with patch.object(httpx.AsyncClient, "post", post):
+            await provider.send(NtfyNotification(topic="t", title="T", message="m"))
+
+        assert post.call_args.kwargs["headers"].get("Authorization") == expected
+
 
 class TestNotificationSettingsList:
     @pytest.mark.asyncio

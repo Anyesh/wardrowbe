@@ -1,19 +1,12 @@
-import os
-import subprocess
-
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User
 from app.models.learning import UserLearningProfile
+from tests.migration_helpers import migration_downgrade
 
 REVISION = "6c1e8f2a9d47"
 PREVIOUS = "952169051179"
-
-
-def _alembic(*args: str) -> None:
-    env = {**os.environ, "DATABASE_URL": os.environ["TEST_DATABASE_URL"]}
-    subprocess.run(["python", "-m", "alembic", *args], env=env, check=True, capture_output=True)
 
 
 REMAPPED = (
@@ -37,9 +30,7 @@ async def test_remaps_learned_profile_colours_idempotently(
     db_session: AsyncSession, test_user: User
 ):
     user_id = test_user.id
-    await db_session.commit()
-    _alembic("downgrade", PREVIOUS)
-    try:
+    async with migration_downgrade(db_session, PREVIOUS):
         db_session.add(
             UserLearningProfile(
                 user_id=user_id,
@@ -78,30 +69,23 @@ async def test_remaps_learned_profile_colours_idempotently(
             )
         )
         await db_session.commit()
-    finally:
-        _alembic("upgrade", "head")
 
     assert await _stored_profile(db_session, user_id) == REMAPPED
-    await db_session.commit()
-    _alembic("downgrade", PREVIOUS)
-    _alembic("upgrade", "head")
+    async with migration_downgrade(db_session, PREVIOUS):
+        pass
     assert await _stored_profile(db_session, user_id) == REMAPPED
 
 
 @pytest.mark.asyncio
 async def test_leaves_empty_profiles_alone(db_session: AsyncSession, test_user: User):
     user_id = test_user.id
-    await db_session.commit()
-    _alembic("downgrade", PREVIOUS)
-    try:
+    async with migration_downgrade(db_session, PREVIOUS):
         db_session.add(
             UserLearningProfile(
                 user_id=user_id, learned_color_scores={}, learned_occasion_patterns={}
             )
         )
         await db_session.commit()
-    finally:
-        _alembic("upgrade", "head")
 
     db_session.expire_all()
     stored = await db_session.get(UserLearningProfile, user_id)

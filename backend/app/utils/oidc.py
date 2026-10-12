@@ -17,8 +17,7 @@ JWKS_CACHE_TTL = 3600
 
 
 def _build_ssl_context(ca_bundle: str | None) -> ssl.SSLContext:
-    ctx = ssl.create_default_context(cafile=ca_bundle)
-    return ctx
+    return ssl.create_default_context(cafile=ca_bundle)
 
 
 def _get_jwk_client(jwks_uri: str, ca_bundle: str | None) -> PyJWKClient:
@@ -50,8 +49,9 @@ async def validate_oidc_id_token(
 
     try:
         discovery_url = f"{issuer_url.rstrip('/')}/.well-known/openid-configuration"
-        ssl_ctx = _build_ssl_context(ca_bundle) if ca_bundle else (not settings.debug)
-        async with httpx.AsyncClient(timeout=10, verify=ssl_ctx, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=10, verify=_build_ssl_context(ca_bundle), follow_redirects=True
+        ) as client:
             disc_resp = await client.get(discovery_url)
             disc_resp.raise_for_status()
             discovery = disc_resp.json()

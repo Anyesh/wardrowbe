@@ -6,6 +6,7 @@ from sqlalchemy import text
 from app.config import get_settings
 from app.database import DbSession
 from app.services.ai_service import get_ai_service
+from app.services.background_removal import get_provider
 
 router = APIRouter()
 
@@ -62,10 +63,11 @@ async def readiness_check(db: DbSession) -> dict[str, Any]:
 
 @router.get("/health/features")
 async def feature_check() -> dict[str, Any]:
-    features: dict[str, Any] = {"max_upload_size_mb": get_settings().max_upload_size_mb}
+    features: dict[str, Any] = {
+        "max_upload_size_mb": get_settings().max_upload_size_mb,
+        "max_bulk_upload_count": get_settings().max_bulk_upload_count,
+    }
     try:
-        from app.services.background_removal import get_provider
-
         get_provider()
         features["background_removal"] = True
     except Exception:

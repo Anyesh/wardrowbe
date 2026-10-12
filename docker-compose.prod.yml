@@ -31,9 +31,7 @@ x-backend-env: &backend-env
   MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-}
   MAX_BULK_ACTION_COUNT: ${MAX_BULK_ACTION_COUNT:-}
   NTFY_SERVER: ${NTFY_SERVER:-}
-  NTFY_TOPIC: ${NTFY_TOPIC:-}
   NTFY_TOKEN: ${NTFY_TOKEN:-}
-  MATTERMOST_WEBHOOK_URL: ${MATTERMOST_WEBHOOK_URL:-}
   SMTP_HOST: ${SMTP_HOST:-}
   SMTP_PORT: ${SMTP_PORT:-}
   SMTP_USER: ${SMTP_USER:-}
@@ -87,14 +85,15 @@ services:
       - "${OIDC_HOST:-localhost}:${OIDC_HOST_IP:-127.0.0.1}"
     environment:
       <<: *backend-env
-      # OIDC (set these if using OIDC instead of forward auth)
+      # OIDC can be set alongside forward-auth; the mobile app signs in only through OIDC
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       OIDC_CA_BUNDLE: ${OIDC_CA_BUNDLE:-}
-      # Auth header from TinyAuth
-      AUTH_TRUST_HEADER: ${AUTH_TRUST_HEADER:-true}
-      AUTH_HEADER_NAME: "Remote-User"
+      # The authenticating proxy must send this as X-Forward-Auth-Secret (docs/forward-auth.md)
+      FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
+      # nginx appends X-Forwarded-For; add one for each proxy in front of it that appends too
+      TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-1}
     volumes:
       - uploads_data:/data/uploads
     dns:
@@ -154,6 +153,7 @@ services:
       BG_REMOVAL_API_KEY: ${BG_REMOVAL_API_KEY:-}
     volumes:
       - uploads_data:/data/uploads
+      - rembg_models:/opt/rembg/models
     dns:
       - ${LOCAL_DNS:-8.8.8.8}
       - 8.8.8.8
@@ -188,8 +188,12 @@ services:
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       OIDC_END_SESSION_URL: ${OIDC_END_SESSION_URL:-}
-      # Trust self-signed certs for internal OIDC provider
-      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      # Forward-auth logout target: TINYAUTH_URL for TinyAuth, FORWARD_AUTH_LOGOUT_URL for others
+      FORWARD_AUTH_LOGOUT_URL: ${FORWARD_AUTH_LOGOUT_URL:-}
+      TINYAUTH_URL: ${TINYAUTH_URL:-}
+      FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
+      # PEM path inside the container for a private CA (OIDC provider, https BACKEND_URL)
+      NODE_EXTRA_CA_CERTS: ${NODE_EXTRA_CA_CERTS:-}
     depends_on:
       - backend
     healthcheck:
@@ -227,6 +231,7 @@ volumes:
   postgres_data:
   redis_data:
   uploads_data:
+  rembg_models:
 
 networks:
   wardrobe_net:

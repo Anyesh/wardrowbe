@@ -29,13 +29,6 @@
     },
     "rateOutfit": "Noter la tenue de {member}",
     "ratingCount": "({count, plural, one {{count} note} other {{count} notes}})",
-    "sourceBadges": {
-      "external": "Externe",
-      "manual": "Manuel",
-      "onDemand": "À la demande",
-      "pairing": "Combinaison",
-      "scheduled": "Planifié"
-    },
     "subtitle": "Parcourez et notez les tenues des membres de votre famille",
     "title": "Fil familial",
     "unknownMember": "Ce membre",

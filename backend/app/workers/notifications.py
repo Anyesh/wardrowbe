@@ -10,7 +10,7 @@ from app.config import get_settings
 from app.models.item import ClothingItem
 from app.models.learning import UserLearningProfile
 from app.models.notification import Notification, NotificationStatus
-from app.models.outfit import Outfit, OutfitSource, OutfitStatus
+from app.models.outfit import Outfit, OutfitSource, OutfitStatus, TimeOfDay
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.services.ai_service import AIDisabledError
@@ -42,34 +42,6 @@ async def reset_schedule_trigger(ctx: dict, schedule_id: str) -> None:
             await db.close()
     except (OSError, ConnectionError) as e:
         logger.warning(f"Best-effort recovery failed for schedule {schedule_id}: {e}")
-
-
-async def send_notification(ctx: dict, user_id: str, outfit_id: str):
-    logger.info(f"Sending notification for outfit {outfit_id} to user {user_id}")
-
-    db = get_db_session(ctx)
-    try:
-        dispatcher = NotificationDispatcher(db)
-
-        results = await dispatcher.send_outfit_notification(user_id=user_id, outfit_id=outfit_id)
-
-        await db.commit()
-
-        # Log results
-        for result in results:
-            logger.info(
-                f"Notification result: channel={result.channel}, status={result.status.value}, "
-                f"error={result.error}"
-            )
-
-        return {"success": any(r.status == NotificationStatus.sent for r in results)}
-
-    except Exception:
-        logger.exception(f"Failed to send notification for outfit {outfit_id}")
-        await db.rollback()
-        raise
-    finally:
-        await db.close()
 
 
 async def _retry_notification(
@@ -226,7 +198,7 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             occasion=schedule.occasion,
             source=OutfitSource.scheduled,
             weather_override=weather_override,
-            time_of_day="full day" if is_for_tomorrow else None,
+            time_of_day=TimeOfDay.full_day if is_for_tomorrow else None,
             single_outfit=True,
             scheduled_date=target_date,
         )

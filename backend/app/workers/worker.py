@@ -15,7 +15,6 @@ from app.workers.notifications import (
     check_wash_reminders,
     process_scheduled_notification,
     retry_failed_notifications,
-    send_notification,
     update_learning_profiles,
 )
 from app.workers.queues import IMAGE_PROCESSING_KINDS, TAGGING_QUEUE, queue_for_kind
@@ -122,7 +121,6 @@ async def shutdown(ctx: dict) -> None:
 class WorkerSettings:
     functions = [
         tag_item_image,
-        send_notification,
         retry_failed_notifications,
         check_scheduled_notifications,
         process_scheduled_notification,
