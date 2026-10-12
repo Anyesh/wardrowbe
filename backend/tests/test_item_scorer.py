@@ -215,6 +215,9 @@ class TestWeatherScoreHeavyLayers:
         weather = _weather(temp=12, window_min=5, window_max=30)
         return _weather_score(_item(**kwargs), weather, None)
 
+    def test_puffer_with_unknown_material_is_heavy(self):
+        assert self._swing(type="jacket", subtype="puffer") == pytest.approx(0.525)
+
     @pytest.mark.parametrize("subtype", sorted(WARM_SUBTYPES))
     def test_warm_subtype_with_unknown_material_is_heavy(self, subtype):
         assert self._swing(type="jacket", subtype=subtype) == pytest.approx(0.525)
