@@ -3,7 +3,12 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from app.services.ai_service import AIResponseTruncatedError, AIService, ClothingTags
+from app.services.ai_service import (
+    DESCRIPTION_LANGUAGES,
+    AIResponseTruncatedError,
+    AIService,
+    ClothingTags,
+)
 from app.utils.locale import SUPPORTED_LOCALES
 
 FAKE_REQUEST = httpx.Request("POST", "http://ai-endpoint.test/chat/completions")
@@ -63,8 +68,6 @@ class TestLocalizedDescription:
         assert tags.description == "A shirt"
 
     def test_every_supported_locale_has_a_description_language(self):
-        from app.services.ai_service import DESCRIPTION_LANGUAGES
-
         assert set(DESCRIPTION_LANGUAGES) == set(SUPPORTED_LOCALES)
 
     @pytest.mark.asyncio
@@ -78,6 +81,30 @@ class TestLocalizedDescription:
             await service.analyze_image("unused.jpg", locale="unexpected")
 
         assert "in English" in call.call_args_list[1].args[0][0]["content"]
+
+    @pytest.mark.parametrize(
+        ("reply", "expected"),
+        [
+            ('"A navy shirt"', "A navy shirt"),
+            ("“Eine blaue Bluse”", "Eine blaue Bluse"),
+            ("「紺色のシャツ」", "紺色のシャツ"),
+            ("『藍色襯衫』", "藍色襯衫"),
+            ("« Chemise bleue »", "Chemise bleue"),
+            ('Un "trench" beige', 'Un "trench" beige'),
+        ],
+        ids=["ascii", "curly", "kagikakko", "double-kagikakko", "guillemets", "inner-quotes"],
+    )
+    @pytest.mark.asyncio
+    async def test_description_loses_wrapping_quotes_of_any_script(self, reply, expected):
+        service = AIService()
+        call = AsyncMock(side_effect=[(None, None, None), (reply, None, None)])
+        with (
+            patch.object(service, "_preprocess_image", return_value="image-data"),
+            patch.object(service, "_call_with_fallback", call),
+        ):
+            tags = await service.analyze_image("unused.jpg", locale="en")
+
+        assert tags.description == expected
 
 
 class TestTagParsing:
@@ -542,7 +569,7 @@ class TestEmptyCompletion:
             patch.object(AIService, "_preprocess_image", return_value="base64data"),
         ):
             with pytest.raises(expected_error, match=message) as exc_info:
-                await service.analyze_image("/fake/image.jpg")
+                await service.analyze_image("/fake/image.jpg", locale="en")
 
         assert type(exc_info.value) is expected_error
         assert getattr(exc_info.value, "retryable", True) is retryable
@@ -568,7 +595,7 @@ class TestEmptyCompletion:
             ),
             patch.object(AIService, "_preprocess_image", return_value="base64data"),
         ):
-            tags = await service.analyze_image("/fake/image.jpg")
+            tags = await service.analyze_image("/fake/image.jpg", locale="en")
 
         assert tags.type == "unknown"
         for field, value in expected.items():

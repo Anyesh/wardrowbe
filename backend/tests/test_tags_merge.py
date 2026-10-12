@@ -76,7 +76,7 @@ class _StubAI:
     def __init__(self, *args, **kwargs):
         pass
 
-    async def analyze_image(self, path):
+    async def analyze_image(self, path, *, locale):
         return type(self).returns
 
 

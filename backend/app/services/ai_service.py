@@ -87,6 +87,9 @@ DESCRIPTION_LANGUAGES = {
     "de": "German",
     "it": "Italian",
 }
+# Localized replies wrap the sentence in their own script's quotes, which would otherwise
+# show inside the quotes the item dialog already draws around the description.
+DESCRIPTION_QUOTES = (('"', '"'), ("“", "”"), ("「", "」"), ("『", "』"), ("«", "»"))
 
 # Valid values for validation
 VALID_TYPES = set(TYPES)
@@ -581,10 +584,7 @@ class AIService:
             last_error.retryable = True
         return None, last_error, None
 
-    async def analyze_image(
-        self, image_path: str | Path, locale: str = DEFAULT_LOCALE
-    ) -> ClothingTags:
-        """Classify an image and describe it in the owner's saved language."""
+    async def analyze_image(self, image_path: str | Path, *, locale: str) -> ClothingTags:
         # PIL preprocessing is CPU-bound and synchronous; run off the event loop so
         # concurrent tagging jobs don't stall each other's in-flight HTTP reads.
         image_base64 = await asyncio.to_thread(self._preprocess_image, image_path)
@@ -641,8 +641,10 @@ class AIService:
         )
         if description:
             description = description.strip()
-            if description.startswith('"') and description.endswith('"'):
-                description = description[1:-1]
+            for opening, closing in DESCRIPTION_QUOTES:
+                if description.startswith(opening) and description.endswith(closing):
+                    description = description[len(opening) : -len(closing)].strip()
+                    break
             tags.description = description
 
         # A partial answer (an unsupported type with its colours, or only a description) is
