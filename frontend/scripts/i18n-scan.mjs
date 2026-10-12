@@ -40,6 +40,12 @@ const NOT_COPY = [
 // only log or parse it and must show describeError's translated text instead.
 const ERROR_NAME = /^(e|err|error|\w*Error)$/;
 
+// error, err, e, fetchError, and a React Query result's .error all hold an Error.
+function isErrorLike(expr) {
+  if (ts.isIdentifier(expr)) return ERROR_NAME.test(expr.text);
+  return ts.isPropertyAccessExpression(expr) && ERROR_NAME.test(expr.name.text);
+}
+
 function isLogged(node) {
   for (let p = node.parent; p; p = p.parent) {
     if (ts.isCallExpression(p) && /^console\./.test(p.expression.getText())) return true;
@@ -129,12 +135,19 @@ export function scanSource(text, fileName) {
       if (ts.isStringLiteral(init) && isCopy(init.text)) report(node, `prop:${node.name.getText(sf)}`, init.text);
     }
 
+    const readsErrorMessage =
+      (ts.isPropertyAccessExpression(node) &&
+        node.name.text === 'message' &&
+        isErrorLike(node.expression) &&
+        !(ts.isPropertyAccessExpression(node.parent) && node.parent.expression === node)) ||
+      (ts.isBindingElement(node) &&
+        (node.propertyName ?? node.name).getText(sf) === 'message' &&
+        ts.isObjectBindingPattern(node.parent) &&
+        ts.isVariableDeclaration(node.parent.parent) &&
+        node.parent.parent.initializer !== undefined &&
+        isErrorLike(node.parent.parent.initializer));
     if (
-      ts.isPropertyAccessExpression(node) &&
-      node.name.text === 'message' &&
-      ts.isIdentifier(node.expression) &&
-      ERROR_NAME.test(node.expression.text) &&
-      !(ts.isPropertyAccessExpression(node.parent) && node.parent.expression === node) &&
+      readsErrorMessage &&
       !isLogged(node) &&
       !isDevelopmentOnly(node) &&
       // lib/ also carries error text as data (queue records, limit parsing), so only a toast

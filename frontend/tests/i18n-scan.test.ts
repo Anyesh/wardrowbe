@@ -53,6 +53,8 @@ describe('i18n scan', () => {
     ['a fallback chain', "const m = err instanceof Error ? err.message : t('failed')", 'err.message'],
     ['JSX', 'const A = () => <p>{fallbackError.message}</p>', 'fallbackError.message'],
     ['a state setter', 'setError(e.message)', 'e.message'],
+    ['a query error', 'const A = () => <p>{query.error?.message}</p>', 'query.error?.message'],
+    ['destructuring', 'const { message } = error', 'message'],
   ])('flags an error message reaching the user through %s', (_, source, value) => {
     expect(kinds(source)).toEqual([['error-message', value]])
   })
