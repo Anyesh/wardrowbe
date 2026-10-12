@@ -25,7 +25,11 @@ def count_composition(type_counts: list[tuple[str | None, int]]) -> WardrobeComp
     """Bucket item counts by body role. Outer layers, footwear and accessories are ignored."""
     buckets = {"base_top": 0, "mid_layer": 0, "bottom": 0, "full_body": 0}
     for item_type, count in type_counts:
-        role = ITEM_ROLE.get((item_type or "").lower())
+        normalized = (item_type or "").lower()
+        role = ITEM_ROLE.get(normalized)
+        # A hoodie is a mid layer only so that it fits under a jacket; it needs nothing under it.
+        if role == "mid_layer" and normalized in WORN_ALONE_TYPES:
+            continue
         if role in buckets:
             buckets[role] += count
     return WardrobeComposition(
