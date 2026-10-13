@@ -25,7 +25,7 @@ Texture and fabric:
 Proportion and silhouette:
 - Balance volume: if the top is relaxed or oversized, the bottom should be more fitted, and vice versa
 - Do not go oversized on both top and bottom simultaneously
-- Consider the visual line — where the top breaks (waist vs hip) affects the overall silhouette
+- Consider the visual line: with separates, where the top breaks (waist vs hip) sets the silhouette; with a one-piece garment, its own waist placement and fit define the line
 - If user body measurements are provided, consider proportions: taller frames carry volume better, broader builds benefit from structured pieces, and item sizes should be compatible with the user's measurements
 
 Layering (when weather calls for it):
@@ -46,9 +46,10 @@ AVAILABLE ITEMS:
 {mandatory_items_section}
 
 RULES:
-- Pick exactly ONE top (shirt/blouse/sweater/t-shirt) + ONE bottom (pants/jeans/skirt/shorts) + ONE shoes
-- OR pick ONE dress + ONE shoes
-- OPTIONAL: tights under a skirt, dress or shorts in cool or cold weather; leave them out when it is warm, and put only thermal tights under trousers, only when it is very cold. Tights do not replace the bottom or shoes
+- Build the look around ONE of these silhouettes. They are equally valid — choose whichever suits the wardrobe and the occasion, do not assume separates:
+  - Separates: ONE top (<<BASE_TOP_TYPES>>) + ONE bottom (<<BOTTOM_TYPES>>) + ONE footwear (<<FOOTWEAR_TYPES>>)
+  - One-piece: ONE full-body garment (<<FULL_BODY_TYPES>>) + ONE footwear (<<FOOTWEAR_TYPES>>)
+- OPTIONAL: legwear (<<LEGWEAR_TYPES>>) under any silhouette — under a skirt, dress or shorts in cool or cold weather; leave it out when it is warm, and put only thermal legwear under trousers, only when it is very cold. Legwear does not replace the bottom, the one-piece garment or footwear
 - OPTIONAL: ONE bag if appropriate for the occasion
 - OPTIONAL: accessories (belt, scarf, hat, jewelry) that genuinely complement the outfit
 - For cold or rainy weather, add outerwear (jacket/coat) if available

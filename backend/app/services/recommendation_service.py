@@ -40,6 +40,7 @@ from app.services.weather_service import (
     WeatherServiceError,
 )
 from app.utils.clothing import canonical_item_order, deduplicate_by_body_slot, remove_legwear
+from app.utils.garment_vocabulary import render_outfit_prompt
 from app.utils.preference_defaults import (
     DEFAULT_LAYERING_PREFERENCE,
     DEFAULT_TEMPERATURE_SENSITIVITY,
@@ -134,7 +135,7 @@ class RecommendationContext:
     include_items: list[UUID]
 
 
-RECOMMENDATION_PROMPT = load_prompt("recommendation")
+RECOMMENDATION_PROMPT = render_outfit_prompt(load_prompt("recommendation"))
 
 
 class RecommendationService:

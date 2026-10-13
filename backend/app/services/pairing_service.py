@@ -12,12 +12,13 @@ from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, OutfitSour
 from app.models.user import User
 from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
 from app.utils.clothing import deduplicate_by_body_slot
+from app.utils.garment_vocabulary import render_outfit_prompt
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
 
-PAIRING_PROMPT_TEMPLATE = load_prompt("item_pairing")
+PAIRING_PROMPT_TEMPLATE = render_outfit_prompt(load_prompt("item_pairing"))
 
 # A pairing is an internally-generated row, or an externally-authored one carrying the
 # server-set "pairing" occasion (external rows with any other occasion are suggestions).

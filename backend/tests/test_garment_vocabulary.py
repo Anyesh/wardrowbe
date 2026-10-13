@@ -33,7 +33,9 @@ from app.utils.garment_vocabulary import (
     canonical_color,
     canonical_colors,
     normalize_color,
+    render_outfit_prompt,
     render_tagging_prompt,
+    types_for_role,
 )
 from app.utils.prompts import load_prompt
 
@@ -72,6 +74,30 @@ def test_type_lists_agree():
     assert prompt_types == VALID_TYPES
     assert prompt_types == set(ITEM_ROLE)
     assert prompt_types == set(DEFAULT_WASH_INTERVALS)
+
+
+def test_types_for_role_is_derived_from_the_vocabulary():
+    assert types_for_role("base_top") == [
+        "shirt", "t-shirt", "top", "sweater", "polo", "blouse", "tank-top",
+    ]  # fmt: skip
+    assert types_for_role("full_body") == ["dress", "jumpsuit"]
+    assert set(types_for_role("bottom")) == {"pants", "jeans", "shorts", "skirt"}
+    assert set(types_for_role("footwear")) == {"shoes", "sneakers", "boots", "sandals"}
+    assert types_for_role("legwear") == ["tights"]
+    assert all(ITEM_ROLE[garment] == "base_top" for garment in types_for_role("base_top"))
+
+
+def test_outfit_prompt_template_tokens_are_all_rendered():
+    for name in ("recommendation", "item_pairing"):
+        assert "<<" not in render_outfit_prompt(load_prompt(name))
+
+
+@pytest.mark.parametrize("prompt_name", ["recommendation", "item_pairing"])
+def test_outfit_prompts_list_the_vocabulary_for_each_silhouette_role(prompt_name):
+    prompt = render_outfit_prompt(load_prompt(prompt_name))
+    for role in ("base_top", "bottom", "full_body", "footwear", "legwear"):
+        for garment in types_for_role(role):
+            assert garment in prompt, f"{garment} ({role}) missing from {prompt_name}"
 
 
 @pytest.mark.parametrize(

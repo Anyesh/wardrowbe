@@ -65,6 +65,13 @@ def canonical_colors(names: list[str]) -> list[str]:
     return list(dict.fromkeys(c for c in map(canonical_color, names) if c))
 
 
+def types_for_role(role: str) -> list[str]:
+    # Derived from the vocabulary rather than restated, so an outfit prompt cannot drift from the
+    # taxonomy the tagger validates against. For example, base_top is everything a separates top
+    # may be (shirt, sweater, tank-top, ...), not a hand-kept subset.
+    return [entry["value"] for entry in _DATA["types"] if entry["role"] == role]
+
+
 def render_tagging_prompt(template: str) -> str:
     return (
         template.replace("<<TYPES>>", ", ".join(TYPES))
@@ -72,3 +79,11 @@ def render_tagging_prompt(template: str) -> str:
         .replace("<<FORMALITY>>", ", ".join(FORMALITY))
         .replace("<<COLORS>>", ", ".join(COLORS))
     )
+
+
+def render_outfit_prompt(template: str) -> str:
+    # Outfit prompts name the garments that fill each role; <<ROLE_TYPES>> tokens are filled from
+    # ITEM_ROLE so separates, one-piece and legwear lists stay in step with the vocabulary.
+    for role in ROLES:
+        template = template.replace(f"<<{role.upper()}_TYPES>>", ", ".join(types_for_role(role)))
+    return template
