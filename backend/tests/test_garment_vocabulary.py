@@ -77,14 +77,14 @@ def test_type_lists_agree():
 
 
 def test_types_for_role_is_derived_from_the_vocabulary():
-    assert types_for_role("base_top") == [
-        "shirt", "t-shirt", "top", "sweater", "polo", "blouse", "tank-top",
-    ]  # fmt: skip
-    assert types_for_role("full_body") == ["dress", "jumpsuit"]
-    assert set(types_for_role("bottom")) == {"pants", "jeans", "shorts", "skirt"}
-    assert set(types_for_role("footwear")) == {"shoes", "sneakers", "boots", "sandals"}
-    assert types_for_role("legwear") == ["tights"]
-    assert all(ITEM_ROLE[garment] == "base_top" for garment in types_for_role("base_top"))
+    # Compared against ITEM_ROLE rather than fixed lists, so adding a garment to a role fails this
+    # test unless types_for_role picks it up.
+    for role in ROLES:
+        assert types_for_role(role) == [t for t in TYPES if ITEM_ROLE[t] == role]
+
+    # Every type belongs to exactly one role, so the per-role lists together cover the taxonomy.
+    covered = [t for role in ROLES for t in types_for_role(role)]
+    assert sorted(covered) == sorted(TYPES)
 
 
 def test_outfit_prompt_template_tokens_are_all_rendered():
