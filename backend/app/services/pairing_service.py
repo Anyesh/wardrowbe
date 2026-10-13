@@ -266,8 +266,13 @@ class PairingService:
             if source_item.id not in valid_ids:
                 valid_ids.insert(0, source_item.id)
 
-            # Deduplicate by body slot (e.g. prevent shorts + pants)
-            valid_ids = deduplicate_by_body_slot(valid_ids, item_type_map)
+            # Deduplicate by body slot (e.g. prevent shorts + pants). The source item is
+            # mandatory: a full-body garment claims both the top and bottom slots first, so
+            # without this the source would be dropped and the pairing persisted without the
+            # item it is supposed to feature.
+            valid_ids = deduplicate_by_body_slot(
+                valid_ids, item_type_map, mandatory_item_ids={source_item.id}
+            )
 
             if len(valid_ids) < 2:
                 logger.warning("Pairing has too few valid items, skipping")

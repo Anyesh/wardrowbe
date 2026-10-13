@@ -1,4 +1,6 @@
+import json
 from datetime import date
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -394,3 +396,52 @@ class TestDeletePairing:
 
         response = await client.delete(f"/api/v1/pairings/{pairing.id}", headers=auth_headers)
         assert response.status_code == 404
+
+
+class TestGeneratePairingsPreservesSource:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("source_type", ["shirt", "pants"])
+    async def test_source_survives_a_full_body_garment(
+        self, db_session: AsyncSession, test_user, source_type
+    ):
+        from app.services.pairing_service import PairingService
+
+        source = _make_item(test_user.id, source_type)
+        other_bottom = _make_item(test_user.id, "pants" if source_type == "shirt" else "jeans")
+        dress = _make_item(test_user.id, "dress")
+        shoes = _make_item(test_user.id, "sneakers")
+        db_session.add_all([source, other_bottom, dress, shoes])
+        await db_session.commit()
+
+        # The model answers with only the one-piece silhouette, omitting the source.
+        number_map = {1: source.id, 2: other_bottom.id, 3: dress.id, 4: shoes.id}
+        ai = MagicMock()
+        ai.generate_text = AsyncMock(
+            return_value=MagicMock(
+                content=json.dumps(
+                    [{"items": [3, 4], "headline": "Dress", "highlights": [], "styling_tip": ""}]
+                ),
+                model="m",
+                endpoint="e",
+            )
+        )
+
+        service = PairingService(db_session)
+        test_user.preferences = None
+        with (
+            patch("app.services.pairing_service.AIService", return_value=ai),
+            patch.object(
+                service,
+                "_format_items_for_prompt",
+                return_value=("source", "", 1, number_map),
+            ),
+        ):
+            outfits = await service.generate_pairings(
+                user=test_user, source_item_id=source.id, num_pairings=1
+            )
+
+        assert outfits
+        for outfit in outfits:
+            item_ids = {oi.item_id for oi in outfit.items}
+            assert source.id in item_ids
+            assert dress.id not in item_ids
