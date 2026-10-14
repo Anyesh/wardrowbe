@@ -78,7 +78,7 @@ services:
   # WARDROWBE_IMAGE picks the published images; `docker compose up -d --build` builds them
   # from this checkout instead.
   backend:
-    image: ${WARDROWBE_IMAGE:-ghcr.io/theblackside243/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
     build: ./backend
     container_name: wardrobe-backend
     extra_hosts:
@@ -118,7 +118,7 @@ services:
 
   # Next.js Frontend
   frontend:
-    image: ${WARDROWBE_IMAGE:-ghcr.io/theblackside243/wardrowbe}:frontend-${WARDROWBE_TAG:-latest}
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:frontend-${WARDROWBE_TAG:-latest}
     build: ./frontend
     container_name: wardrobe-frontend
     environment:
@@ -152,7 +152,7 @@ services:
 
 # Background Worker for AI Tagging
   worker:
-    image: ${WARDROWBE_IMAGE:-ghcr.io/theblackside243/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
     container_name: wardrobe-worker
     command: arq app.workers.worker.WorkerSettings
     extra_hosts:
@@ -171,7 +171,7 @@ services:
 # Local image work (rotation, background removal) on its own queue, so a bulk
 # batch of it cannot block AI tagging behind it.
   image-worker:
-    image: ${WARDROWBE_IMAGE:-ghcr.io/theblackside243/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
     container_name: wardrobe-image-worker
     command: arq app.workers.image_worker.ImageWorkerSettings
     environment:

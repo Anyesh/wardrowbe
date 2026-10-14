@@ -80,7 +80,7 @@ services:
 
   # FastAPI Backend
   backend:
-    image: ${WARDROWBE_IMAGE:-ghcr.io/theblackside243/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
     container_name: wardrobe_backend
     restart: unless-stopped
     extra_hosts:
@@ -123,7 +123,7 @@ services:
 
   # arq Worker for background jobs
   worker:
-    image: ${WARDROWBE_IMAGE:-ghcr.io/theblackside243/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
     container_name: wardrobe_worker
     restart: unless-stopped
     command: arq app.workers.worker.WorkerSettings
@@ -148,7 +148,7 @@ services:
   # Local image work (rotation, background removal) on its own queue, so a bulk
   # batch of it cannot block AI tagging behind it.
   image-worker:
-    image: ${WARDROWBE_IMAGE:-ghcr.io/theblackside243/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
     container_name: wardrobe_image_worker
     restart: unless-stopped
     command: arq app.workers.image_worker.ImageWorkerSettings
@@ -176,7 +176,7 @@ services:
 
   # Next.js Frontend
   frontend:
-    image: ${WARDROWBE_IMAGE:-ghcr.io/theblackside243/wardrowbe}:frontend-${WARDROWBE_TAG:-latest}
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:frontend-${WARDROWBE_TAG:-latest}
     container_name: wardrobe_frontend
     restart: unless-stopped
     extra_hosts:

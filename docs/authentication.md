@@ -124,7 +124,7 @@ in with your password and add them again).
 | `WEBAUTHN_RP_NAME` | `Wardrowbe` | Name the browser shows in the passkey prompt. |
 | `WEBAUTHN_ORIGIN` | origin of `APP_URL` | Exact origin(s) the browser shows, comma-separated: `https://wardrobe.example.com` or `https://wardrobe.example.com:8443`. |
 | `RUN_MIGRATIONS` | `true` (backend service) | Apply database migrations when the backend starts. |
-| `WARDROWBE_IMAGE` / `WARDROWBE_TAG` | `ghcr.io/theblackside243/wardrowbe` / `latest` | Images the compose files pull. |
+| `WARDROWBE_IMAGE` / `WARDROWBE_TAG` | `ghcr.io/anyesh/wardrowbe` / `latest` | Images the compose files pull. |
 
 At start-up the backend logs a `Passkeys:` warning when these settings cannot work, for example
 an `http://` address that is not localhost, or an RP ID that does not match the origin.
