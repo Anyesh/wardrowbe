@@ -7,6 +7,7 @@ describe("nextauthSecretProblem", () => {
   it.each([
     ["oidc", { OIDC_ISSUER_URL: "https://auth.example.com" }],
     ["forward auth", { FORWARD_AUTH_SECRET: "p".repeat(32) }],
+    ["built-in sign-in", { LOCAL_AUTH_ENABLED: "true" }],
     [
       "both",
       {

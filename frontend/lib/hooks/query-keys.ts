@@ -20,6 +20,8 @@ const WEAR_HISTORY = ['wear-history'] as const;
 export const queryKeys = {
   authConfig: ['auth-config'] as const,
   authUser: ['auth-user'] as const,
+  security: ['auth-security'] as const,
+  localAccounts: ['auth-local-accounts'] as const,
   userProfile: ['user-profile'] as const,
   features: ['features'] as const,
   weather: ['weather'] as const,

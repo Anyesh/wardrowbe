@@ -1,6 +1,6 @@
 from uuid import UUID, uuid4
 
-from sqlalchemy import select, text
+from sqlalchemy import insert, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User, UserIdentity
@@ -54,7 +54,20 @@ async def test_backfills_every_user_as_a_legacy_identity(db_session: AsyncSessio
     run = uuid4().hex
     users = [_user(f"backfill-{run}-{n}") for n in range(3)]
     async with migration_downgrade(db_session, PREVIOUS):
-        db_session.add_all(users)
+        # Core rather than the ORM, which would also write columns added after PREVIOUS.
+        await db_session.execute(
+            insert(User.__table__),
+            [
+                {
+                    "id": user.id,
+                    "external_id": user.external_id,
+                    "email": user.email,
+                    "display_name": user.display_name,
+                    "email_verified": user.email_verified,
+                }
+                for user in users
+            ],
+        )
         await db_session.commit()
 
     ids = [user.id for user in users]

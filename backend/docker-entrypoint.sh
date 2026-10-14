@@ -28,6 +28,16 @@ link_baked_models() {
     done
 }
 
+# RUN_MIGRATIONS=true brings the database schema up to date before the API starts, so an
+# upgrade needs no separate `alembic upgrade head`. Set on the API service only: the workers
+# start alongside it and must not race it.
+run_migrations() {
+    if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
+        echo "Applying database migrations..."
+        "$@" alembic upgrade head
+    fi
+}
+
 if [ "$(id -u)" = "0" ]; then
     PUID="${PUID:-1000}"
     PGID="${PGID:-1000}"
@@ -57,8 +67,10 @@ if [ "$(id -u)" = "0" ]; then
             echo "warning: cannot hand $models to PUID $PUID" >&2
     fi
 
+    run_migrations gosu appuser
     exec gosu appuser "$@"
 fi
 
 link_baked_models
+run_migrations
 exec "$@"

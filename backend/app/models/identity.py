@@ -8,7 +8,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 
 # legacy rows are the external_id every user had before identities existed, and oidc and dev
-# claim them on sign-in. forward_auth subjects are proxy usernames.
+# claim them on sign-in. forward_auth subjects are proxy usernames. local is the built-in
+# password and passkey sign-in, whose subject is the user's own id: replacing that row ends every
+# session it minted, which is how a password change signs other devices out.
 
 
 class UserIdentity(Base):
@@ -17,7 +19,7 @@ class UserIdentity(Base):
         UniqueConstraint("provider", "subject", name="uq_user_identities_provider_subject"),
         UniqueConstraint("user_id", "provider", name="uq_user_identities_user_provider"),
         CheckConstraint(
-            "provider IN ('legacy', 'dev', 'oidc', 'forward_auth')",
+            "provider IN ('legacy', 'dev', 'oidc', 'forward_auth', 'local')",
             name="ck_user_identities_provider",
         ),
     )

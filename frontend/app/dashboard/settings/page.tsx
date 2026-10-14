@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { AccountSecurity } from '@/components/account-security';
 import { usePreferences, useUpdatePreferences, useResetPreferences, useTestAIEndpoint } from '@/lib/hooks/use-preferences';
 import { useUserProfile, useUpdateUserProfile } from '@/lib/hooks/use-user';
 import {
@@ -583,6 +584,8 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <AccountSecurity />
 
         {/* Location Section */}
         <Card>
