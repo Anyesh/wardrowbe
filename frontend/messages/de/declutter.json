@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "donate": "Spenden",
+    "keep": "Behalten",
+    "sell": "Verkaufen"
+  },
+  "empty": "Du hast alles in letzter Zeit getragen. Sehr gut!",
+  "hint": "Gib bei deinen Teilen den Kaufpreis an, um zu sehen, wie viel ungetragen im Schrank liegt.",
+  "idleValue": "Kleidung im Wert von {value} wird nicht getragen.",
+  "reason": {
+    "neverWorn": "Nie getragen · vor {days} Tagen hinzugefügt",
+    "notWorn": "Zuletzt vor {days} Tagen getragen"
+  },
+  "subtitle": "Kleidung, die du länger nicht getragen hast: behalten, verschenken oder verkaufen.",
+  "summary": "{count, plural, =0 {Nichts zu prüfen} one {# Teil zu prüfen} other {# Teile zu prüfen}} von {total}",
+  "title": "Ausmisten",
+  "toast": {
+    "donated": "{name} wurde als gespendet archiviert.",
+    "error": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+    "kept": "{name} bleibt; es erscheint {months, plural, one {# Monat} other {# Monate}} lang nicht hier.",
+    "sold": "{name} wurde als verkauft archiviert."
+  },
+  "window": "Nicht getragen seit",
+  "windowOption": "{months, plural, one {Seit # Monat nicht getragen} other {Seit # Monaten nicht getragen}}"
+}

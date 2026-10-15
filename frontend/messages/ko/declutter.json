@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "donate": "기부",
+    "keep": "남기기",
+    "sell": "판매"
+  },
+  "empty": "최근에 모두 입었어요. 잘하셨어요!",
+  "hint": "구매 가격을 입력하면 입지 않는 옷의 금액을 볼 수 있어요.",
+  "idleValue": "{value}어치 옷을 입지 않고 있어요.",
+  "reason": {
+    "neverWorn": "한 번도 안 입음 · {days}일 전에 추가",
+    "notWorn": "마지막 착용 {days}일 전"
+  },
+  "subtitle": "한동안 입지 않은 옷: 남기거나, 기부하거나, 판매하세요.",
+  "summary": "{total}개 중 {count, plural, =0 {정리할 옷 없음} other {#개 정리 대상}}",
+  "title": "옷장 정리",
+  "toast": {
+    "donated": "{name}을(를) 기부함으로 보관했어요.",
+    "error": "문제가 발생했어요. 다시 시도해 주세요.",
+    "kept": "{name}을(를) 남겨요. {months, plural, other {#개월}} 동안 여기에 표시되지 않아요.",
+    "sold": "{name}을(를) 판매함으로 보관했어요."
+  },
+  "window": "입지 않은 기간",
+  "windowOption": "{months, plural, other {#개월 이상 안 입음}}"
+}
