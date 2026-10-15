@@ -1,0 +1,32 @@
+{
+  "addItems": "Aggiungi capi",
+  "error": "Impossibile preparare la valigia. Riprova.",
+  "form": {
+    "destination": "Destinazione",
+    "destinationPlaceholder": "es. Lisbona, Portogallo",
+    "end": "Al",
+    "laundry": "Posso fare il bucato",
+    "laundryHelp": "Porta capi per pochi giorni e lava durante il viaggio",
+    "occasion": "Occasione",
+    "start": "Dal",
+    "submit": "Prepara la valigia"
+  },
+  "groupCount": "{found}/{needed}",
+  "invalidDates": "Controlla le date: il viaggio deve finire oggi o dopo e durare al massimo 30 giorni.",
+  "missing": "Nel tuo guardaroba mancano: {roles}.",
+  "noneSuitable": "Nel tuo guardaroba non c'è niente adatto a questo meteo.",
+  "notFound": "Destinazione non trovata. Prova ad aggiungere il paese.",
+  "packedLabel": "In valigia",
+  "subtitle": "La lista dei capi da mettere in valigia, presi dal tuo guardaroba e scelti in base al meteo della destinazione.",
+  "summary": {
+    "dates": "{start} – {end} · {days, plural, one {# giorno} other {# giorni}}",
+    "dayRange": "{min}° / {max}°",
+    "estimated": "Stima stagionale",
+    "estimatedHelp": "Le previsioni non arrivano ancora a queste date, quindi la lista usa le temperature tipiche della stagione. Ricontrolla vicino alla partenza.",
+    "progress": "{packed} su {total} in valigia",
+    "rainDays": "{count, plural, =0 {Niente pioggia prevista} one {# giorno di pioggia} other {# giorni di pioggia}}",
+    "temperature": "da {min}° a {max}°",
+    "underwear": "porta {count} cambi di intimo e calze"
+  },
+  "title": "Valigia"
+}

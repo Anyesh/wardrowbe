@@ -1,0 +1,32 @@
+{
+  "addItems": "Add items",
+  "error": "Couldn't plan the trip. Please try again.",
+  "form": {
+    "destination": "Destination",
+    "destinationPlaceholder": "e.g. Lisbon, Portugal",
+    "end": "To",
+    "laundry": "I can do laundry",
+    "laundryHelp": "Pack for a few days and wash on the way",
+    "occasion": "Occasion",
+    "start": "From",
+    "submit": "Plan my suitcase"
+  },
+  "groupCount": "{found}/{needed}",
+  "invalidDates": "Check the dates: the trip must end today or later and last at most 30 days.",
+  "missing": "Your wardrobe is short of: {roles}.",
+  "noneSuitable": "Nothing in your wardrobe suits this weather.",
+  "notFound": "Destination not found. Try adding the country.",
+  "packedLabel": "Packed",
+  "subtitle": "A packing list from your own wardrobe, matched to the weather where you're going.",
+  "summary": {
+    "dates": "{start} – {end} · {days, plural, one {# day} other {# days}}",
+    "dayRange": "{min}° / {max}°",
+    "estimated": "Seasonal estimate",
+    "estimatedHelp": "The forecast doesn't reach these dates yet, so the list uses typical temperatures for the season. Check again closer to departure.",
+    "progress": "{packed} of {total} packed",
+    "rainDays": "{count, plural, =0 {No rain expected} one {# rainy day} other {# rainy days}}",
+    "temperature": "{min}° to {max}°",
+    "underwear": "bring {count} changes of underwear and socks"
+  },
+  "title": "Packing"
+}

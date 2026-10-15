@@ -1,0 +1,32 @@
+{
+  "addItems": "Ajouter des vêtements",
+  "error": "Impossible de préparer le voyage. Réessaie.",
+  "form": {
+    "destination": "Destination",
+    "destinationPlaceholder": "ex. Lisbonne, Portugal",
+    "end": "Au",
+    "laundry": "Je peux faire une lessive",
+    "laundryHelp": "Prévoir pour quelques jours et laver en route",
+    "occasion": "Occasion",
+    "start": "Du",
+    "submit": "Préparer ma valise"
+  },
+  "groupCount": "{found}/{needed}",
+  "invalidDates": "Vérifie les dates : le voyage doit se terminer aujourd'hui ou plus tard et durer 30 jours au maximum.",
+  "missing": "Il manque dans ta garde-robe : {roles}.",
+  "noneSuitable": "Rien dans ta garde-robe ne convient à cette météo.",
+  "notFound": "Destination introuvable. Essaie d'ajouter le pays.",
+  "packedLabel": "Dans la valise",
+  "subtitle": "Une liste de bagages tirée de ta garde-robe, adaptée à la météo de ta destination.",
+  "summary": {
+    "dates": "{start} – {end} · {days, plural, one {# jour} other {# jours}}",
+    "dayRange": "{min}° / {max}°",
+    "estimated": "Estimation saisonnière",
+    "estimatedHelp": "Les prévisions ne couvrent pas encore ces dates : la liste utilise les températures habituelles de la saison. Vérifie à nouveau avant le départ.",
+    "progress": "{packed} sur {total} dans la valise",
+    "rainDays": "{count, plural, =0 {Pas de pluie prévue} one {# jour de pluie} other {# jours de pluie}}",
+    "temperature": "de {min}° à {max}°",
+    "underwear": "prévois {count} rechanges de sous-vêtements et chaussettes"
+  },
+  "title": "Valise"
+}
