@@ -51,6 +51,50 @@ interface FileWithPreview {
   id: string;
 }
 
+const REMOVE_BACKGROUND_KEY = 'wardrowbe.removeBackground';
+
+// Remembered per browser; on by default so new photos come out clean.
+function readRemoveBackground(): boolean {
+  try {
+    return window.localStorage.getItem(REMOVE_BACKGROUND_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function storeRemoveBackground(value: boolean): void {
+  try {
+    window.localStorage.setItem(REMOVE_BACKGROUND_KEY, String(value));
+  } catch {
+    // Private mode or blocked storage: the choice just isn't remembered.
+  }
+}
+
+function RemoveBackgroundOption({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const t = useTranslations('wardrobe.addItem');
+  return (
+    <div className="flex items-start gap-2">
+      <Checkbox
+        id="remove-background"
+        checked={checked}
+        onCheckedChange={(value) => onChange(value === true)}
+      />
+      <div className="space-y-0.5">
+        <Label htmlFor="remove-background" className="text-xs font-normal">
+          {t('removeBackground')}
+        </Label>
+        <p className="text-[11px] text-muted-foreground">{t('removeBackgroundHint')}</p>
+      </div>
+    </div>
+  );
+}
+
 export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const t = useTranslations('wardrobe.addItem');
   const tc = useTranslations('common');
@@ -69,6 +113,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const [bulkFiles, setBulkFiles] = useState<FileWithPreview[]>([]);
   const [bulkResult, setBulkResult] = useState<BulkUploadResponse | null>(null);
   const [skipAi, setSkipAi] = useState(false);
+  const [removeBackground, setRemoveBackground] = useState(readRemoveBackground);
   const [activeTab, setActiveTab] = useState('single');
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
@@ -139,6 +184,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     if (brand) formData.append('brand', brand);
     if (primaryColor) formData.append('primary_color', primaryColor);
     if (notes) formData.append('notes', notes);
+    formData.append('remove_background', String(removeBackground));
 
     try {
       await createItem.mutateAsync(formData);
@@ -155,6 +201,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
       const result = await bulkCreateItems.mutateAsync({
         files: bulkFiles.map((f) => f.file),
         skipAi,
+        removeBackground,
       });
 
       if (result.staged > 0) {
@@ -378,6 +425,14 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                 </div>
               </div>
 
+              <RemoveBackgroundOption
+                checked={removeBackground}
+                onChange={(value) => {
+                  setRemoveBackground(value);
+                  storeRemoveBackground(value);
+                }}
+              />
+
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={handleCloseRequest}>
                   {tc('cancel')}
@@ -477,6 +532,13 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                         {t('bulk.hint')}
                       </p>
                     )}
+                    <RemoveBackgroundOption
+                      checked={removeBackground}
+                      onChange={(value) => {
+                        setRemoveBackground(value);
+                        storeRemoveBackground(value);
+                      }}
+                    />
                   </div>
                 )}
 

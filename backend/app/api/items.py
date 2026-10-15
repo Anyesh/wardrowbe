@@ -186,6 +186,31 @@ async def list_items(
     )
 
 
+UPLOAD_BACKGROUND = "#FFFFFF"
+
+
+async def _queue_upload_processing(
+    redis, item: ClothingItem, full_image_path: str, remove_background: bool
+):
+    """Tagging for a new upload, preceded by background removal when the upload asked for it:
+    the image worker cleans the photo first and then queues the tagging itself."""
+    if remove_background:
+        item.processing_kind = ProcessingKind.background_removal
+        return await redis.enqueue_job(
+            "remove_item_background_job",
+            str(item.id),
+            UPLOAD_BACKGROUND,
+            full_image_path,
+            _queue_name=IMAGE_QUEUE,
+        )
+    return await redis.enqueue_job(
+        "tag_item_image",
+        str(item.id),
+        full_image_path,
+        _queue_name=TAGGING_QUEUE,
+    )
+
+
 @router.post("", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_item(
     db: DbSession,
@@ -200,6 +225,7 @@ async def create_item(
     primary_color: str | None = Form(None),
     favorite: bool = Form(False),
     skip_ai: bool = Form(False),
+    remove_background: bool = Form(False),
 ) -> ItemResponse:
     # Validate and process image
     image_service = ImageService()
@@ -274,11 +300,8 @@ async def create_item(
             redis = await create_pool(get_redis_settings())
             try:
                 full_image_path = str(image_service.get_image_path(image_paths["image_path"]))
-                job = await redis.enqueue_job(
-                    "tag_item_image",
-                    str(item.id),
-                    full_image_path,
-                    _queue_name=TAGGING_QUEUE,
+                job = await _queue_upload_processing(
+                    redis, item, full_image_path, remove_background
                 )
                 item.ai_job_id = job.job_id
                 await db.commit()
@@ -300,6 +323,9 @@ async def bulk_create_items(
     current_user: Annotated[User, Depends(get_current_user)],
     images: list[UploadFile] = File(..., description="Multiple image files to upload"),
     skip_ai: bool = Form(False),
+    remove_background: bool = Form(
+        False, description="Remove each photo's background before the AI tags it"
+    ),
     upload_keys: list[str] | None = Form(
         None,
         description="Optional per-file idempotency keys, same order/length as images. "
@@ -445,11 +471,8 @@ async def bulk_create_items(
                         full_image_path = str(
                             image_service.get_image_path(image_paths["image_path"])
                         )
-                        job = await redis.enqueue_job(
-                            "tag_item_image",
-                            str(item.id),
-                            full_image_path,
-                            _queue_name=TAGGING_QUEUE,
+                        job = await _queue_upload_processing(
+                            redis, item, full_image_path, remove_background
                         )
                         item.ai_job_id = job.job_id
                         await db.commit()

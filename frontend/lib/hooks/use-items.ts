@@ -1038,13 +1038,15 @@ function uploadBulkItemsChunk(
   files: File[],
   skipAi: boolean,
   token: string | null | undefined,
-  onProgress: (percent: number) => void
+  onProgress: (percent: number) => void,
+  removeBackground = false
 ): Promise<BulkUploadResponse> {
   const formData = new FormData();
   files.forEach((file) => {
     formData.append('images', file);
   });
   formData.append('skip_ai', String(skipAi));
+  formData.append('remove_background', String(removeBackground));
 
   return new Promise<BulkUploadResponse>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -1115,10 +1117,11 @@ export async function uploadFilesWithinServerLimit(
   files: File[],
   skipAi: boolean,
   token: string | null | undefined,
-  onProgress: (percent: number) => void
+  onProgress: (percent: number) => void,
+  removeBackground = false
 ): Promise<BulkUploadResponse> {
   try {
-    return await uploadBulkItemsChunk(files, skipAi, token, onProgress);
+    return await uploadBulkItemsChunk(files, skipAi, token, onProgress, removeBackground);
   } catch (error) {
     const limit =
       error instanceof ApiError && error.status === 400
@@ -1128,7 +1131,13 @@ export async function uploadFilesWithinServerLimit(
       const responses: BulkUploadResponse[] = [];
       for (let i = 0; i < files.length; i += limit) {
         responses.push(
-          await uploadFilesWithinServerLimit(files.slice(i, i + limit), skipAi, token, onProgress)
+          await uploadFilesWithinServerLimit(
+            files.slice(i, i + limit),
+            skipAi,
+            token,
+            onProgress,
+            removeBackground
+          )
         );
       }
       return mergeBulkUploadResponses(responses);
@@ -1243,11 +1252,17 @@ export function useBulkCreateItems() {
     mutationFn: async ({
       files,
       skipAi = false,
+      removeBackground = false,
     }: {
       files: File[];
       skipAi?: boolean;
+      removeBackground?: boolean;
     }): Promise<BulkStageResult> => {
-      const { staged, unprotected: unprotectedFiles } = await enqueueFiles(files, skipAi);
+      const { staged, unprotected: unprotectedFiles } = await enqueueFiles(
+        files,
+        skipAi,
+        removeBackground
+      );
       if (staged.length > 0) {
         void startDrain();
       }
@@ -1263,10 +1278,16 @@ export function useBulkCreateItems() {
         for (let i = 0; i < chunks.length; i++) {
           const chunkFiles = chunks[i];
           try {
-            const response = await uploadFilesWithinServerLimit(chunkFiles, skipAi, token, (chunkPercent) => {
-              const overall = ((i + chunkPercent / 100) / chunks.length) * 100;
-              setUploadProgress(Math.round(overall));
-            });
+            const response = await uploadFilesWithinServerLimit(
+              chunkFiles,
+              skipAi,
+              token,
+              (chunkPercent) => {
+                const overall = ((i + chunkPercent / 100) / chunks.length) * 100;
+                setUploadProgress(Math.round(overall));
+              },
+              removeBackground
+            );
             responses.push(response);
           } catch (error) {
             responses.push(failedChunkResponse(chunkFiles, error));
