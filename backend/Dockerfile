@@ -21,7 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt -r requirements-extras.txt
 # Importing rembg JIT-compiles pymatting through numba for over a minute, so the bake also fills
 # the numba cache. A generic CPU target keeps those entries valid on hosts other than the builder,
 # and the cache stays writable by every uid because numba refuses a cache dir it cannot write to.
-ARG BG_REMOVAL_MODEL=u2net
+ARG BG_REMOVAL_MODEL=birefnet-general-lite
 ENV REMBG_HOME=/opt/rembg \
     NUMBA_CACHE_DIR=/opt/numba_cache \
     NUMBA_CPU_NAME=generic

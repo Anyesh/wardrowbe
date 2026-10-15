@@ -319,7 +319,7 @@ Upgrading from a release before sign-in identities (the `user_identities` table)
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `BG_REMOVAL_PROVIDER` | Background removal backend: `rembg` or `http` (default: `rembg`) | No |
-| `BG_REMOVAL_MODEL` | rembg model name (default: `u2net`) | No |
+| `BG_REMOVAL_MODEL` | rembg model name (default: `birefnet-general-lite`) | No |
 | `BG_REMOVAL_URL` | URL for HTTP bg removal provider | If http |
 | `BG_REMOVAL_API_KEY` | API key for HTTP bg removal provider | No |
 | `NEXT_PUBLIC_ENABLE_IP_LOCATION_FALLBACK` | Enable IP-based approximate location when browser geolocation is denied/unavailable. Off by default (sends the user's IP to a third party). Set to `true` to enable | No |
@@ -399,12 +399,12 @@ If browser geolocation is denied or unavailable, an optional fallback can approx
 
 ### Background Removal
 
-Works out of the box: the backend image ships rembg with the default `u2net` model already downloaded.
+Works out of the box: the backend image ships rembg with the default `birefnet-general-lite` model already downloaded. It is more accurate on clothes than `u2net`, and the cut-out is cleaned afterwards: small holes the model punched into a print are filled back in, loose bits of background are dropped, and a result that lost the garment entirely keeps the original photo.
 
 <details>
 <summary>Other rembg models, or an HTTP provider</summary>
 
-Change the rembg model with `BG_REMOVAL_MODEL` (options: `isnet-general-use`, `silueta`, `u2netp`). A non-default model is downloaded the first time background removal runs, so that first run needs internet access; the compose files keep it in the `rembg_models` volume so later runs work offline. On Kubernetes, mount a PersistentVolume at `/opt/rembg/models` on the image-worker if you change the model, or it is downloaded again on every pod start. The volume must be writable by uid 1000: the manifests' `fsGroup` covers a PersistentVolumeClaim, but a `hostPath` volume needs its directory owned by that uid. The worker links the baked `u2net` into the volume on start, so switching back needs no download.
+Change the rembg model with `BG_REMOVAL_MODEL` (options: `u2net`, `isnet-general-use`, `silueta`, `u2netp`). A non-default model is downloaded the first time background removal runs, so that first run needs internet access; the compose files keep it in the `rembg_models` volume so later runs work offline. On Kubernetes, mount a PersistentVolume at `/opt/rembg/models` on the image-worker if you change the model, or it is downloaded again on every pod start. The volume must be writable by uid 1000: the manifests' `fsGroup` covers a PersistentVolumeClaim, but a `hostPath` volume needs its directory owned by that uid. The worker links the baked `birefnet-general-lite` into the volume on start, so switching back needs no download.
 
 To use an HTTP provider (e.g. [withoutbg](https://github.com/nicholasgasior/withoutbg)) instead:
 
