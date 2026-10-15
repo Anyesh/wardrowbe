@@ -1,0 +1,18 @@
+{
+  "bringOut": {
+    "description": "Kleidung für die kommende Jahreszeit.",
+    "title": "Hervorholen"
+  },
+  "error": "Der Saisonwechsel konnte nicht geladen werden.",
+  "hint": "Tippe ein Teil an, wenn es erledigt ist. Die Liste folgt den Jahreszeiten der Teile: Trag sie im Kleiderschrank ein für einen genaueren Wechsel.",
+  "lastYear": "Letztes Jahr um diese Zeit getragen",
+  "nothing": "Diesmal gibt es hier nichts.",
+  "putAway": {
+    "description": "Kleidung einer Jahreszeit, die zu Ende geht.",
+    "title": "Wegräumen"
+  },
+  "sameSeason": "Die nächsten zwei Monate bleibt es bei derselben Jahreszeit: noch nichts zu wechseln.",
+  "stays": "{count, plural, one {# Teil bleibt das ganze Jahr draußen} other {# Teile bleiben das ganze Jahr draußen}}",
+  "subtitle": "Was du für die kommenden Monate wegräumen und hervorholen solltest.",
+  "title": "Saisonwechsel"
+}

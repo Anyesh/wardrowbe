@@ -1,0 +1,18 @@
+{
+  "bringOut": {
+    "description": "Vêtements pour la saison qui arrive.",
+    "title": "À ressortir"
+  },
+  "error": "Impossible de charger le changement de saison.",
+  "hint": "Touche un vêtement une fois rangé. La liste suit les saisons de chaque vêtement : ajoute-les dans la garde-robe pour un changement plus précis.",
+  "lastYear": "Porté à cette période l'an dernier",
+  "nothing": "Rien ici pour cette fois.",
+  "putAway": {
+    "description": "Vêtements d'une saison qui se termine.",
+    "title": "À ranger"
+  },
+  "sameSeason": "Même saison pour les deux prochains mois : rien à changer pour l'instant.",
+  "stays": "{count, plural, one {# vêtement reste sorti toute l'année} other {# vêtements restent sortis toute l'année}}",
+  "subtitle": "Ce qu'il faut ranger et ressortir pour les mois à venir.",
+  "title": "Changement de saison"
+}
