@@ -1,5 +1,15 @@
 {
   "aiLearning": "AI 学习",
+  "aiStatus": {
+    "disabled": "AI 已关闭",
+    "missingDetail": "AI 服务器缺少：{models}",
+    "modelDetail": "模型：{model}",
+    "model_missing": "未找到 AI 模型",
+    "offline": "AI 离线",
+    "online": "AI 在线",
+    "unknown": "AI 状态未知",
+    "unknownDetail": "正在检查 AI 服务器"
+  },
   "analytics": "数据分析",
   "brandAlt": "wardrowbe",
   "brandName": "wardrowbe",
