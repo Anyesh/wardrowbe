@@ -1,0 +1,16 @@
+{
+  "aiError": "L'IA non è riuscita a rispondere. Riprova tra poco.",
+  "aiOff": "L'IA è disattivata su questo server.",
+  "clear": "Nuova chat",
+  "examples": {
+    "event": "Cosa posso mettere a un matrimonio a giugno?",
+    "match": "Cosa abbino ai miei jeans?",
+    "today": "Cosa mi metto oggi?"
+  },
+  "intro": "Chiedi qualsiasi cosa su cosa indossare: lo stilista conosce il tuo guardaroba e ti mostra i capi che suggerisce.",
+  "placeholder": "Scrivi una domanda…",
+  "send": "Invia",
+  "subtitle": "Chiedi consiglio all'IA sui tuoi vestiti.",
+  "thinking": "Lo stilista ci sta pensando… può volerci fino a un minuto.",
+  "title": "Stilista"
+}
