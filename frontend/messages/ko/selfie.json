@@ -1,0 +1,17 @@
+{
+  "aiError": "AI가 사진을 읽지 못했어요. 잠시 후 다시 시도하세요.",
+  "aiOff": "이 서버에서는 AI가 꺼져 있어요.",
+  "checkHint": "AI가 잘못 고른 옷은 눌러서 빼세요.",
+  "confirm": "{count, plural, =0 {오늘 입은 옷으로 표시} other {#개를 오늘 입은 옷으로 표시}}",
+  "found": "{count, plural, other {내 옷 #개를 찾았어요}}",
+  "noneFound": "옷장에 있는 옷을 찾지 못했어요.",
+  "photoAlt": "코디 사진",
+  "pick": "사진 찍기 또는 선택",
+  "pickHint": "거울에 비친 전신 사진이 가장 잘 돼요.",
+  "saveError": "저장하지 못했어요. 다시 시도해 주세요.",
+  "saved": "{count, plural, other {#개를 입은 옷으로 표시했어요}}",
+  "savedButton": "입은 옷으로 표시됨",
+  "subtitle": "거울 사진을 찍으면 AI가 옷을 알아보고 입은 옷으로 표시할 수 있어요.",
+  "title": "코디 셀카",
+  "working": "AI가 코디를 살펴보는 중… 최대 1분 걸릴 수 있어요."
+}

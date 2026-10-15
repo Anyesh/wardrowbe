@@ -1,0 +1,17 @@
+{
+  "aiError": "The AI could not read the photo. Try again in a moment.",
+  "aiOff": "The AI is turned off on this server.",
+  "checkHint": "Tap to deselect anything the AI got wrong.",
+  "confirm": "{count, plural, =0 {Mark as worn today} one {Mark # item as worn today} other {Mark # items as worn today}}",
+  "found": "{count, plural, one {Found # item of yours} other {Found # items of yours}}",
+  "noneFound": "No clothes from your wardrobe were recognised.",
+  "photoAlt": "Your outfit photo",
+  "pick": "Take or choose a photo",
+  "pickHint": "A full-length mirror photo works best.",
+  "saveError": "Could not save. Please try again.",
+  "saved": "{count, plural, one {# item marked as worn} other {# items marked as worn}}",
+  "savedButton": "Marked as worn",
+  "subtitle": "Take a mirror photo: the AI recognises your clothes and you mark them as worn.",
+  "title": "Outfit selfie",
+  "working": "The AI is looking at your outfit… this can take up to a minute."
+}
