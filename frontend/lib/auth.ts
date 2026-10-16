@@ -7,6 +7,10 @@ import {
   FORWARD_AUTH_ACCOUNT_CONFLICT,
   FORWARD_AUTH_SERVER_ERROR,
   FORWARD_AUTH_USERNAME_CONFLICT,
+  LOCAL_INVALID_CREDENTIALS,
+  LOCAL_SERVER_ERROR,
+  LOCAL_TOO_MANY_ATTEMPTS,
+  PASSKEY_REJECTED,
 } from '@/lib/auth-errors';
 import { decodeProxyHeader, proxySecretMatches } from '@/lib/proxy-headers';
 
@@ -119,6 +123,13 @@ const LEGACY_IDENTITY_CONFLICT = 'legacy_identity_conflict';
 // answers would leave the login page on "Signing in" for five minutes without this bound.
 export const SYNC_TIMEOUT_MS = 15_000;
 
+// Matches the backend's SESSION_LIFETIME_HOURS default; a backend token that expires first signs
+// the browser out on its next request anyway.
+const DEFAULT_SESSION_HOURS = 168;
+const sessionHours = Number(process.env.SESSION_LIFETIME_HOURS);
+const SESSION_MAX_AGE_SECONDS =
+  (Number.isFinite(sessionHours) && sessionHours > 0 ? sessionHours : DEFAULT_SESSION_HOURS) * 3600;
+
 export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<User | null> {
   const remoteUser = headerValue(headers, 'remote-user');
   const remoteEmail = headerValue(headers, 'remote-email');
@@ -203,6 +214,114 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
   };
 }
 
+// The backend rate-limits sign-in by client IP, and these requests reach it from the frontend
+// container, so the client's forwarding headers are relayed (the backend trusts them only as far
+// as TRUSTED_PROXY_COUNT allows).
+const CLIENT_IP_HEADERS = ['x-forwarded-for', 'x-real-ip'] as const;
+
+interface LocalSignInResponse {
+  id: string;
+  email: string;
+  display_name: string;
+  is_new_user: boolean;
+  onboarding_completed: boolean;
+  access_token: string;
+}
+
+async function localSignIn(
+  path: string,
+  body: unknown,
+  headers: IncomingHeaders,
+  rejected: string
+): Promise<User> {
+  const forwarded: Record<string, string> = { 'Content-Type': 'application/json' };
+  for (const name of CLIENT_IP_HEADERS) {
+    const value = headerValue(headers, name);
+    if (value) forwarded[name] = value;
+  }
+  const response = await fetch(`${backendUrl()}${API_BASE_PATH}${path}`, {
+    method: 'POST',
+    headers: forwarded,
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(SYNC_TIMEOUT_MS),
+  }).catch((error: unknown) => {
+    console.error(`Sign-in request to ${path} failed:`, error);
+    throw new Error(LOCAL_SERVER_ERROR);
+  });
+  if (response.status === 429) throw new Error(LOCAL_TOO_MANY_ATTEMPTS);
+  if (response.status === 400 || response.status === 401 || response.status === 422) {
+    throw new Error(rejected);
+  }
+  if (!response.ok) {
+    console.error(`Sign-in request to ${path} answered ${response.status}`);
+    throw new Error(LOCAL_SERVER_ERROR);
+  }
+  const data = (await response.json().catch(() => null)) as LocalSignInResponse | null;
+  if (!data?.access_token) throw new Error(LOCAL_SERVER_ERROR);
+  return {
+    id: data.id,
+    email: data.email,
+    name: data.display_name,
+    accessToken: data.access_token,
+    backendUserId: data.id,
+    isNewUser: data.is_new_user,
+    onboardingCompleted: data.onboarding_completed,
+  };
+}
+
+export async function authorizePassword(
+  credentials: Record<string, string> | undefined,
+  headers: IncomingHeaders
+): Promise<User | null> {
+  const email = credentials?.email?.trim();
+  const password = credentials?.password;
+  if (!email || !password) return null;
+  return localSignIn('/auth/login', { email, password }, headers, LOCAL_INVALID_CREDENTIALS);
+}
+
+export async function authorizePasskey(
+  credentials: Record<string, string> | undefined,
+  headers: IncomingHeaders
+): Promise<User | null> {
+  const flowId = credentials?.flowId;
+  const raw = credentials?.credential;
+  if (!flowId || !raw) return null;
+  let credential: unknown;
+  try {
+    credential = JSON.parse(raw);
+  } catch {
+    throw new Error(PASSKEY_REJECTED);
+  }
+  return localSignIn(
+    '/auth/passkeys/login/verify',
+    { flow_id: flowId, credential },
+    headers,
+    PASSKEY_REJECTED
+  );
+}
+
+const PasswordProvider = CredentialsProvider({
+  id: 'password',
+  name: 'Email and password',
+  credentials: {
+    email: { label: 'Email', type: 'email' },
+    password: { label: 'Password', type: 'password' },
+  },
+  authorize: (credentials, req) => authorizePassword(credentials, req.headers ?? {}),
+});
+
+// The browser runs the WebAuthn ceremony against options from the backend; this provider hands
+// the signed assertion to the backend, which verifies it and mints the session's token.
+const PasskeyProvider = CredentialsProvider({
+  id: 'passkey',
+  name: 'Passkey',
+  credentials: {
+    flowId: { label: 'Flow', type: 'text' },
+    credential: { label: 'Credential', type: 'text' },
+  },
+  authorize: (credentials, req) => authorizePasskey(credentials, req.headers ?? {}),
+});
+
 const ForwardAuthProvider = CredentialsProvider({
   id: 'forward-auth',
   name: 'Forward Auth',
@@ -211,7 +330,9 @@ const ForwardAuthProvider = CredentialsProvider({
 });
 
 function getProviders() {
-  const providers: Provider[] = [ForwardAuthProvider];
+  // The backend refuses password and passkey sign-in when LOCAL_AUTH_ENABLED=false, so these are
+  // always registered and the login page asks the backend whether to offer them.
+  const providers: Provider[] = [ForwardAuthProvider, PasswordProvider, PasskeyProvider];
 
   if (process.env.OIDC_ISSUER_URL) {
     providers.push(OIDCProvider);
@@ -226,15 +347,21 @@ function getProviders() {
 export const authOptions: NextAuthOptions = {
   providers: getProviders(),
   callbacks: {
-    async jwt({ token, user, account, trigger }) {
+    async jwt({ token, user, account, trigger, session }) {
       const apiUrl = backendUrl();
 
       // Session update triggered - refresh user data from backend
       if (trigger === 'update' && token.accessToken) {
+        // A password change ends the session's backend token and hands the browser a new one.
+        // A client can only put a token into its own session this way, and it is kept only once
+        // the backend accepts it below.
+        const replacement = (session as { accessToken?: unknown } | undefined)?.accessToken;
+        const accessToken =
+          typeof replacement === 'string' && replacement ? replacement : token.accessToken;
         try {
           const response = await fetch(`${apiUrl}${API_BASE_PATH}/users/me`, {
             headers: {
-              'Authorization': `Bearer ${token.accessToken}`,
+              'Authorization': `Bearer ${accessToken}`,
             },
           });
 
@@ -242,6 +369,7 @@ export const authOptions: NextAuthOptions = {
             const userData = await response.json();
             return {
               ...token,
+              accessToken,
               onboardingCompleted: userData.onboarding_completed,
             };
           }
@@ -249,6 +377,18 @@ export const authOptions: NextAuthOptions = {
           console.error('Failed to refresh user data:', error);
         }
         return token;
+      }
+
+      // Password and passkey sign-in got their backend token from authorize() directly.
+      if (user && (account?.provider === 'password' || account?.provider === 'passkey')) {
+        return {
+          ...token,
+          sub: user.id,
+          accessToken: user.accessToken,
+          backendUserId: user.backendUserId,
+          isNewUser: user.isNewUser,
+          onboardingCompleted: user.onboardingCompleted,
+        };
       }
 
       // authorize() already synced with the proxy headers; a second sync from here would carry no
@@ -335,6 +475,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: SESSION_MAX_AGE_SECONDS,
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

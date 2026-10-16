@@ -10,8 +10,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_SERVICES = ("backend", "worker", "image-worker")
 SETTINGS_KEYS = {name.upper() for name in Settings.model_fields}
 
-# Read by docker-entrypoint.sh to remap appuser before the app starts, never by Settings.
-ENTRYPOINT_KEYS = {"PUID", "PGID"}
+# Read by docker-entrypoint.sh before the app starts (remapping appuser, applying migrations),
+# never by Settings.
+ENTRYPOINT_KEYS = {"PUID", "PGID", "RUN_MIGRATIONS"}
 
 # wardrobe-config is shared with the postgres and frontend Deployments, which read these.
 K8S_NON_BACKEND_KEYS = {

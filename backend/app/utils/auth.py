@@ -114,6 +114,20 @@ async def get_current_user(
     return user
 
 
+async def get_current_token(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> TokenPayload:
+    # Only for routes that also depend on get_current_user, which has already refused a token
+    # that does not name a live user; this hands them its claims, such as when it was issued.
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return decode_token(credentials.credentials)
+
+
 async def get_current_session(
     user: Annotated[User, Depends(get_current_user)],
 ) -> AuthSession:
@@ -130,4 +144,5 @@ async def get_current_session(
 CurrentUser = Annotated[User, Depends(get_current_user)]
 CurrentUserOptional = Annotated[User | None, Depends(get_current_user_optional)]
 CurrentSession = Annotated[AuthSession, Depends(get_current_session)]
+CurrentToken = Annotated[TokenPayload, Depends(get_current_token)]
 WriteUser = CurrentUser

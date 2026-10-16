@@ -12,6 +12,7 @@ from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, UserFeedba
 from app.models.preference import UserPreference
 from app.models.schedule import Schedule
 from app.models.user import User
+from app.models.webauthn import WebAuthnCredential
 
 __all__ = [
     "Family",
@@ -34,4 +35,5 @@ __all__ = [
     "OutfitItem",
     "UserFeedback",
     "Notification",
+    "WebAuthnCredential",
 ]

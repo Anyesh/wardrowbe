@@ -7,6 +7,9 @@ import subprocess
 os.environ["DEBUG"] = "true"
 os.environ["SECRET_KEY"] = "change-me-in-production"
 os.environ["STORAGE_PATH"] = "/tmp/wardrobe_test"
+# Most tests exercise the dev, OIDC and forward-auth paths, which built-in sign-in switches off;
+# the built-in sign-in tests switch it on themselves.
+os.environ["LOCAL_AUTH_ENABLED"] = "false"
 os.environ.pop("OIDC_ISSUER_URL", None)
 os.environ.pop("OIDC_CLIENT_ID", None)
 os.environ.pop("OIDC_CLIENT_SECRET", None)

@@ -108,7 +108,8 @@ describe('forward-auth user-switch middleware', () => {
   it('treats a bearer header it cannot decode as no session', async () => {
     const response = await middleware(request('/dashboard', { remoteUser: 'alice', authorization: 'Bearer %' }))
 
-    expect(response.headers.get('x-middleware-next')).toBe('1')
+    expect(response.status).toBe(307)
+    expect(new URL(response.headers.get('location')!).pathname).toBe('/login')
   })
 
   it('lets the request through when the proxy user matches the session', async () => {
@@ -130,11 +131,28 @@ describe('forward-auth user-switch middleware', () => {
     expect(clearedCookies(response)).toEqual([])
   })
 
-  it('lets the request through when nobody is signed in yet', async () => {
-    const response = await middleware(request('/dashboard', { remoteUser: 'alice', secret: PROXY_SECRET }))
+  // Pages are protected server-side: without a session nothing of them renders, and the login
+  // page brings the visitor back to where they were going.
+  it.each(['/', '/dashboard', '/dashboard/settings?tab=1', '/onboarding'])(
+    'sends a visitor without a session from %s to login',
+    async (path) => {
+      const response = await middleware(request(path, { remoteUser: 'alice', secret: PROXY_SECRET }))
 
-    expect(response.headers.get('x-middleware-next')).toBe('1')
-  })
+      expect(response.status).toBe(307)
+      const location = new URL(response.headers.get('location')!)
+      expect(location.pathname).toBe('/login')
+      expect(location.searchParams.get('callbackUrl')).toBe(path)
+    }
+  )
+
+  it.each(['/api/auth/session', '/api/auth/csrf', '/api/auth/callback/password'])(
+    'leaves NextAuth route %s alone without a session',
+    async (path) => {
+      const response = await middleware(request(path))
+
+      expect(response.headers.get('x-middleware-next')).toBe('1')
+    }
+  )
 
   // A session request that was in flight in another tab when the user logged out answers with a
   // fresh session cookie; landing on the logged-out page must not sign the browser back in.
@@ -247,6 +265,8 @@ describe('middleware matcher', () => {
     '/api/v1/auth/config',
     '/login',
     '/login?callbackUrl=%2Fdashboard',
+    '/setup',
+    '/health',
     '/auth/logout',
     '/_next/static/chunks/main.js',
     '/_next/image',

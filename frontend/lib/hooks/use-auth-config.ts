@@ -10,6 +10,7 @@ export interface AuthConfig {
     issuer_url: string | null;
     client_id: string | null;
   };
+  local_auth: boolean;
   dev_mode: boolean;
   forward_auth: boolean;
   mobile_notice: string | null;

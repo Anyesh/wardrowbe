@@ -83,14 +83,13 @@ git clone https://github.com/Anyesh/wardrowbe.git
 cd wardrowbe
 cp .env.example .env    # then set the AI_* values, see AI Configuration below
 
-docker compose pull
-docker compose up -d
-docker compose exec backend alembic upgrade head
+docker compose pull         # or: docker compose up -d --build
+docker compose up -d        # the backend applies database migrations on start
 
-curl http://localhost:8000/api/v1/health    # {"status":"healthy"}
+curl http://localhost:8000/health    # {"status":"healthy"}
 ```
 
-Open http://localhost:3000 and click "Login". The default development login needs no password. Before exposing the app beyond your own machine, set `SECRET_KEY` and `NEXTAUTH_SECRET` in `.env` (`openssl rand -hex 32`) and set up [authentication](#authentication).
+Set `SECRET_KEY` and `NEXTAUTH_SECRET` in `.env` first (`openssl rand -hex 32`): the app refuses to start with the defaults. Then open http://localhost:3000. On the first visit `/setup` creates the administrator account (email + password); after that everyone signs in with a password or a passkey, and the administrator adds the other accounts. See [docs/authentication.md](docs/authentication.md) for passkeys, HTTPS, reverse proxies, TrueNAS SCALE and backups.
 
 To build the images from source with hot reload, use the development stack instead (see [CONTRIBUTING.md](CONTRIBUTING.md#local-development)):
 
@@ -346,7 +345,8 @@ See [.env.example](.env.example) for all options.
 
 ### Authentication
 
-- **Development Mode** (default): Simple email/name login, no setup required
+- **Built-in sign-in** (default): email + password (Argon2id) and passkeys (WebAuthn), with a first-run `/setup` page and no public registration. Setup, HTTPS, reverse proxies, TrueNAS SCALE and backups are in [docs/authentication.md](docs/authentication.md). `LOCAL_AUTH_ENABLED=false` turns it off.
+- **Development Mode**: Simple email/name login without a password, only with `DEBUG=true` and built-in sign-in turned off
 - **OIDC Mode**: Any OIDC provider (PocketID, Authentik, Keycloak, Auth0, etc.)
 - **Forward-auth Mode**: An authenticating reverse proxy such as TinyAuth or Authelia signs people in. Setup, proxy snippets and the security notes are in [docs/forward-auth.md](docs/forward-auth.md)
 

@@ -3,16 +3,23 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { signIn, getProviders, getSession, useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Fingerprint, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { API_BASE_PATH } from '@/lib/api';
 import { safeCallbackUrl } from '@/lib/callback-url';
 import {
   FORWARD_AUTH_ACCOUNT_CONFLICT,
   FORWARD_AUTH_SERVER_ERROR,
   FORWARD_AUTH_USERNAME_CONFLICT,
+  LOCAL_INVALID_CREDENTIALS,
+  LOCAL_TOO_MANY_ATTEMPTS,
+  PASSKEY_REJECTED,
 } from '@/lib/auth-errors';
 import { useAuthConfig } from '@/lib/hooks/use-auth-config';
+import { PasskeyCeremonyError, getPasskeyAssertion, passkeySupport } from '@/lib/passkeys';
 
 function OIDCLoginButton({ getCallbackUrl }: { getCallbackUrl: () => string }) {
   const t = useTranslations('auth');
@@ -93,6 +100,188 @@ function DevLogin({ getCallbackUrl }: { getCallbackUrl: () => string }) {
         )}
       </button>
     </form>
+  );
+}
+
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+$/;
+
+type LocalErrorKey =
+  | 'local.invalidCredentials'
+  | 'local.tooManyAttempts'
+  | 'local.serverError'
+  | 'local.emailRequired'
+  | 'local.emailInvalid'
+  | 'local.passwordRequired'
+  | 'passkey.cancelled'
+  | 'passkey.unsupported'
+  | 'passkey.insecure'
+  | 'passkey.rejected'
+  | 'passkey.failed';
+
+function localErrorFor(code: string | null | undefined): LocalErrorKey {
+  if (code === LOCAL_INVALID_CREDENTIALS || code === 'CredentialsSignin') return 'local.invalidCredentials';
+  if (code === LOCAL_TOO_MANY_ATTEMPTS) return 'local.tooManyAttempts';
+  if (code === PASSKEY_REJECTED) return 'passkey.rejected';
+  return 'local.serverError';
+}
+
+function passkeyErrorFor(error: unknown): LocalErrorKey {
+  if (!(error instanceof PasskeyCeremonyError)) return 'passkey.failed';
+  if (error.reason === 'cancelled') return 'passkey.cancelled';
+  if (error.reason === 'unsupported') return 'passkey.unsupported';
+  if (error.reason === 'insecure') return 'passkey.insecure';
+  return 'passkey.failed';
+}
+
+function LocalLogin({ showOidc, getCallbackUrl }: { showOidc: boolean; getCallbackUrl: () => string }) {
+  const t = useTranslations('auth');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [pending, setPending] = useState<'password' | 'passkey' | null>(null);
+  const [error, setError] = useState<LocalErrorKey | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: LocalErrorKey; password?: LocalErrorKey }>({});
+  const [support, setSupport] = useState<ReturnType<typeof passkeySupport> | null>(null);
+
+  // Read after mount: the server render has no window to ask.
+  useEffect(() => setSupport(passkeySupport()), []);
+
+  const finish = useCallback(async (result: Awaited<ReturnType<typeof signIn>>) => {
+    if (!result?.ok || result.error) {
+      setError(localErrorFor(result?.error));
+      setPending(null);
+      return;
+    }
+    // The page's redirect effect takes over once the new session arrives; if another tab ended it
+    // first, the form must not stay disabled.
+    const session = await getSession();
+    if (!session?.accessToken) setPending(null);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    const errors: typeof fieldErrors = {};
+    if (!trimmed) errors.email = 'local.emailRequired';
+    else if (!EMAIL_PATTERN.test(trimmed)) errors.email = 'local.emailInvalid';
+    if (!password) errors.password = 'local.passwordRequired';
+    setFieldErrors(errors);
+    setError(null);
+    if (errors.email || errors.password) return;
+    setPending('password');
+    const result = await signIn('password', { email: trimmed, password, redirect: false });
+    if (!result?.ok || result.error) setPassword('');
+    await finish(result);
+  };
+
+  const handlePasskey = async () => {
+    setError(null);
+    setFieldErrors({});
+    setPending('passkey');
+    let assertion;
+    try {
+      assertion = await getPasskeyAssertion();
+    } catch (err) {
+      setError(passkeyErrorFor(err));
+      setPending(null);
+      return;
+    }
+    const result = await signIn('passkey', { ...assertion, redirect: false });
+    await finish(result);
+  };
+
+  const busy = pending !== null;
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div role="alert" className="rounded-md bg-destructive/15 p-4 text-sm text-destructive">
+          {t(error)}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-4" aria-busy={pending === 'password'}>
+        <div className="space-y-2">
+          <Label htmlFor="login-email">{t('email')}</Label>
+          <Input
+            id="login-email"
+            type="email"
+            autoComplete="username webauthn"
+            inputMode="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={busy}
+            aria-invalid={!!fieldErrors.email}
+            aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
+            placeholder={t('local.emailPlaceholder')}
+          />
+          {fieldErrors.email && (
+            <p id="login-email-error" className="text-sm text-destructive">
+              {t(fieldErrors.email)}
+            </p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="login-password">{t('local.password')}</Label>
+          <Input
+            id="login-password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={busy}
+            aria-invalid={!!fieldErrors.password}
+            aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
+          />
+          {fieldErrors.password && (
+            <p id="login-password-error" className="text-sm text-destructive">
+              {t(fieldErrors.password)}
+            </p>
+          )}
+        </div>
+        <Button type="submit" className="w-full" size="lg" disabled={busy}>
+          {pending === 'password' ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t('signingIn')}
+            </>
+          ) : (
+            t('local.submit')
+          )}
+        </Button>
+      </form>
+
+      <div className="flex items-center gap-3" aria-hidden="true">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs uppercase text-muted-foreground">{t('local.or')}</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="w-full"
+          onClick={handlePasskey}
+          disabled={busy || (support !== null && support !== 'supported')}
+          aria-describedby={support && support !== 'supported' ? 'passkey-unavailable' : undefined}
+        >
+          {pending === 'passkey' ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Fingerprint className="mr-2 h-4 w-4" />
+          )}
+          {pending === 'passkey' ? t('passkey.waiting') : t('passkey.signIn')}
+        </Button>
+        {support && support !== 'supported' && (
+          <p id="passkey-unavailable" className="text-center text-xs text-muted-foreground">
+            {t(support === 'insecure' ? 'passkey.insecure' : 'passkey.unsupported')}
+          </p>
+        )}
+      </div>
+
+      {showOidc && <OIDCLoginButton getCallbackUrl={getCallbackUrl} />}
+    </div>
   );
 }
 
@@ -257,7 +446,26 @@ function LoginContent() {
     ? 'loading'
     : authConfig.data?.forward_auth
       ? 'forward'
-      : providerMode;
+      : authConfig.data?.local_auth
+        ? providerMode === 'loading'
+          ? 'loading'
+          : 'local'
+        : providerMode;
+
+  // A fresh install has no account to sign in to, so the first visit goes to /setup.
+  useEffect(() => {
+    if (authMode !== 'local') return;
+    let cancelled = false;
+    fetch(`${API_BASE_PATH}/auth/setup`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { required?: boolean } | null) => {
+        if (!cancelled && data?.required) router.replace('/setup');
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [authMode, router]);
 
   const forward = useForwardSignIn(
     authMode === 'forward' && status === 'unauthenticated' && !error && !loggedOut
@@ -300,6 +508,9 @@ function LoginContent() {
             loggedOut={loggedOut}
             onSignIn={forward.signInThroughProxy}
           />
+        )}
+        {authMode === 'local' && (
+          <LocalLogin showOidc={providerMode === 'oidc'} getCallbackUrl={getCallbackUrl} />
         )}
         {authMode === 'oidc' && <OIDCLoginButton getCallbackUrl={getCallbackUrl} />}
         {authMode === 'dev' && <DevLogin getCallbackUrl={getCallbackUrl} />}
