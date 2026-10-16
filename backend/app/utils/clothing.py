@@ -43,6 +43,10 @@ def _slots_for_type(item_type: str) -> frozenset[str]:
     return ROLE_SLOTS.get(role, frozenset({role}))
 
 
+def covered_slots(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str]:
+    return {slot for iid in item_ids for slot in _slots_for_type(item_type_map.get(iid, ""))}
+
+
 def deduplicate_by_body_slot(
     item_ids: list[UUID],
     item_type_map: dict[UUID, str],

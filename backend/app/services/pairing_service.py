@@ -11,7 +11,7 @@ from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
 from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
-from app.utils.clothing import deduplicate_by_body_slot
+from app.utils.clothing import covered_slots, deduplicate_by_body_slot
 from app.utils.garment_vocabulary import render_outfit_prompt
 from app.utils.prompts import load_prompt
 from app.utils.timezone import get_user_today
@@ -270,9 +270,15 @@ class PairingService:
             # mandatory: a full-body garment claims both the top and bottom slots first, so
             # without this the source would be dropped and the pairing persisted without the
             # item it is supposed to feature.
+            picked_slots = covered_slots(valid_ids, item_type_map)
             valid_ids = deduplicate_by_body_slot(
                 valid_ids, item_type_map, mandatory_item_ids={source_item.id}
             )
+            # Keeping the source must not open a hole the model had filled: a dress dropped
+            # for a shirt source would leave the outfit with no bottom.
+            if covered_slots(valid_ids, item_type_map) != picked_slots:
+                logger.warning("Pairing silhouette does not fit the source item, skipping")
+                continue
 
             if len(valid_ids) < 2:
                 logger.warning("Pairing has too few valid items, skipping")

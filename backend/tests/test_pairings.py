@@ -18,6 +18,7 @@ from app.models.outfit import (
     OutfitStatus,
 )
 from app.models.user import User
+from app.services.pairing_service import PairingService
 from tests.identity_helpers import add_users_with_identities
 
 
@@ -400,26 +401,41 @@ class TestDeletePairing:
 
 class TestGeneratePairingsPreservesSource:
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("source_type", ["shirt", "pants"])
-    async def test_source_survives_a_full_body_garment(
-        self, db_session: AsyncSession, test_user, source_type
+    @pytest.mark.parametrize(
+        ("source_type", "answer", "expected"),
+        [
+            # The model swaps the source for a one-piece look: dropping the dress keeps the
+            # source but would leave no bottom, so the answer is skipped instead.
+            ("shirt", ["dress", "sneakers"], None),
+            ("pants", ["dress", "sneakers"], None),
+            ("shirt", ["source", "pants", "dress", "sneakers"], ["source", "pants", "sneakers"]),
+            ("shirt", ["pants", "sneakers"], ["source", "pants", "sneakers"]),
+            ("dress", ["shirt", "pants", "sneakers"], ["source", "sneakers"]),
+        ],
+    )
+    async def test_source_survives_a_conflicting_answer(
+        self, db_session: AsyncSession, test_user, source_type, answer, expected
     ):
-        from app.services.pairing_service import PairingService
-
         source = _make_item(test_user.id, source_type)
-        other_bottom = _make_item(test_user.id, "pants" if source_type == "shirt" else "jeans")
-        dress = _make_item(test_user.id, "dress")
-        shoes = _make_item(test_user.id, "sneakers")
-        db_session.add_all([source, other_bottom, dress, shoes])
+        others = {t: _make_item(test_user.id, t) for t in ("shirt", "pants", "dress", "sneakers")}
+        items = {"source": source, **others}
+        db_session.add_all(items.values())
         await db_session.commit()
 
-        # The model answers with only the one-piece silhouette, omitting the source.
-        number_map = {1: source.id, 2: other_bottom.id, 3: dress.id, 4: shoes.id}
+        number_map = {n: item.id for n, item in enumerate(items.values(), start=1)}
+        number_of = {item_id: n for n, item_id in number_map.items()}
         ai = MagicMock()
         ai.generate_text = AsyncMock(
             return_value=MagicMock(
                 content=json.dumps(
-                    [{"items": [3, 4], "headline": "Dress", "highlights": [], "styling_tip": ""}]
+                    [
+                        {
+                            "items": [number_of[items[name].id] for name in answer],
+                            "headline": "Look",
+                            "highlights": [],
+                            "styling_tip": "",
+                        }
+                    ]
                 ),
                 model="m",
                 endpoint="e",
@@ -433,15 +449,17 @@ class TestGeneratePairingsPreservesSource:
             patch.object(
                 service,
                 "_format_items_for_prompt",
-                return_value=("source", "", 1, number_map),
+                return_value=("source", "", number_of[source.id], number_map),
             ),
         ):
             outfits = await service.generate_pairings(
                 user=test_user, source_item_id=source.id, num_pairings=1
             )
 
-        assert outfits
-        for outfit in outfits:
-            item_ids = {oi.item_id for oi in outfit.items}
-            assert source.id in item_ids
-            assert dress.id not in item_ids
+        if expected is None:
+            assert outfits == []
+        else:
+            assert len(outfits) == 1
+            assert [oi.item_id for oi in sorted(outfits[0].items, key=lambda oi: oi.position)] == [
+                items[name].id for name in expected
+            ]
