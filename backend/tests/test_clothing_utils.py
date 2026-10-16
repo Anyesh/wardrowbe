@@ -493,7 +493,7 @@ def test_fill_adds_every_missing_region():
     assert filled == [sneakers, ranked[2], ranked[1]]
 
 
-def test_fill_never_adds_a_dress_or_suit_to_existing_pieces():
+def test_fill_never_uses_a_dress_or_suit_as_the_missing_top():
     (jeans, sneakers), outfit_types = _typed("jeans", "sneakers")
     ranked, ranked_types = _typed("dress", "suit")
     filled = fill_missing_regions([jeans, sneakers], ranked, outfit_types | ranked_types)
@@ -534,7 +534,7 @@ def test_a_suit_fills_only_the_bottom_and_still_takes_a_top():
     assert filled == [shoes, ranked[1], ranked[0]]
 
 
-def test_fill_keeps_a_hoodie_over_a_worse_ranked_suit():
+def test_fill_takes_better_ranked_jeans_over_a_suit_for_the_bottom():
     (sneakers,), outfit_types = _typed("sneakers")
     ranked, ranked_types = _typed("hoodie", "jeans", "suit")
     filled = fill_missing_regions([sneakers], ranked, outfit_types | ranked_types)

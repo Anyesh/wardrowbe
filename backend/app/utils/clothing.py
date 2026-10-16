@@ -137,7 +137,7 @@ def _fill_options(
     single = best.get(frozenset({region}))
     # A real top goes before a better-ranked layer worn alone, because the AI was asked
     # for a top. It competes at the layer's rank, so that swapping in a weaker top never
-    # hands the win to a dress or suit the layer would have beaten.
+    # hands the win to a one-piece the layer would have beaten.
     if single is not None and item_type_map[single[0]] in WORN_ALONE_TYPES:
         top = next(
             (
