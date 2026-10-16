@@ -421,7 +421,7 @@ def _typed(*types):
         (("shirt", "jeans"), ("boots",), ["feet"]),
         (("shirt", "jeans", "sneakers"), ("dress", "sandals"), []),
         (("dress", "sandals"), ("shirt", "jeans"), []),
-        (("suit", "shoes"), ("shirt", "pants"), []),
+        (("suit", "shoes"), ("shirt", "pants"), ["upper"]),
         (("hoodie", "jeans", "sneakers"), ("shirt",), []),
         (("cardigan", "skirt", "tights", "boots"), ("blouse",), ["upper"]),
         (("coat", "jeans", "boots"), ("shirt",), ["upper"]),
@@ -527,6 +527,13 @@ def test_fill_uses_a_dress_when_top_and_bottom_are_both_missing():
     assert filled == [coat, sneakers, ranked[0]]
 
 
+def test_a_suit_fills_only_the_bottom_and_still_takes_a_top():
+    (shoes,), outfit_types = _typed("shoes")
+    ranked, ranked_types = _typed("suit", "shirt", "jeans")
+    filled = fill_missing_regions([shoes], ranked, outfit_types | ranked_types)
+    assert filled == [shoes, ranked[1], ranked[0]]
+
+
 def test_fill_keeps_a_hoodie_over_a_worse_ranked_suit():
     (sneakers,), outfit_types = _typed("sneakers")
     ranked, ranked_types = _typed("hoodie", "jeans", "suit")
@@ -534,7 +541,7 @@ def test_fill_keeps_a_hoodie_over_a_worse_ranked_suit():
     assert filled == [sneakers, ranked[0], ranked[1]]
 
 
-@pytest.mark.parametrize("one_piece", ["dress", "suit"])
+@pytest.mark.parametrize("one_piece", ["dress", "jumpsuit"])
 def test_a_one_piece_that_outranks_the_separates_fills_top_and_bottom(one_piece):
     (shoes,), outfit_types = _typed("shoes")
     ranked, ranked_types = _typed(one_piece, "blouse", "skirt")
@@ -544,7 +551,7 @@ def test_a_one_piece_that_outranks_the_separates_fills_top_and_bottom(one_piece)
 
 # With a hoodie ahead of it, the shirt competes at the hoodie's rank and still outranks the
 # one-piece, so only the uncovered-region count keeps the one-piece winning.
-@pytest.mark.parametrize("one_piece", ["dress", "suit"])
+@pytest.mark.parametrize("one_piece", ["dress", "jumpsuit"])
 @pytest.mark.parametrize("before", [("shirt",), ("hoodie",)], ids=["shirt", "hoodie-then-shirt"])
 def test_fill_takes_a_one_piece_over_a_better_top_when_no_bottom_exists(before, one_piece):
     (sneakers,), outfit_types = _typed("sneakers")
@@ -553,7 +560,7 @@ def test_fill_takes_a_one_piece_over_a_better_top_when_no_bottom_exists(before, 
     assert filled == [sneakers, ranked[1]]
 
 
-@pytest.mark.parametrize("one_piece", ["dress", "suit"])
+@pytest.mark.parametrize("one_piece", ["dress", "jumpsuit"])
 def test_a_weaker_top_swapped_for_a_hoodie_still_beats_a_one_piece(one_piece):
     (sneakers,), outfit_types = _typed("sneakers")
     ranked, ranked_types = _typed("hoodie", one_piece, "jeans", "shirt")

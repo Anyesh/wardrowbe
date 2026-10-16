@@ -12,9 +12,6 @@ ROLE_SLOTS: dict[str, frozenset[str]] = {
     "suit": frozenset({"bottom", "suit"}),
 }
 
-# The slots an outfit must cover; a suit's own slot is optional like an outer layer.
-BODY_SLOTS = frozenset({"base_top", "bottom"})
-
 
 @dataclass(frozen=True)
 class WardrobeComposition:
@@ -44,15 +41,6 @@ def _slots_for_type(item_type: str) -> frozenset[str]:
     if not role or role == "accessory":
         return frozenset()
     return ROLE_SLOTS.get(role, frozenset({role}))
-
-
-def covered_body_slots(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str]:
-    return {
-        slot
-        for iid in item_ids
-        for slot in _slots_for_type(item_type_map.get(iid, ""))
-        if slot in BODY_SLOTS
-    }
 
 
 def deduplicate_by_body_slot(
@@ -91,40 +79,38 @@ def deduplicate_by_body_slot(
     return [iid for iid in item_ids if iid in kept]
 
 
-# A coat or blazer over nothing does not dress the upper body; only the types the
-# vocabulary marks worn_alone (a hoodie) stand in for a top.
-REGION_ROLES: dict[str, frozenset[str]] = {
-    "upper": frozenset({"base_top", "suit", "full_body"}),
-    "lower": frozenset({"bottom", "suit", "full_body"}),
-    "feet": frozenset({"footwear"}),
-}
+# Each region is dressed by whatever takes its slot, so a one-piece covers upper and lower
+# while a suit covers only lower and still needs a top. A coat or blazer over nothing does
+# not dress the upper body; only the types the vocabulary marks worn_alone (a hoodie) stand
+# in for a top.
+REGION_SLOTS: dict[str, str] = {"upper": "base_top", "lower": "bottom", "feet": "footwear"}
 
 
 def _regions(item_type: str) -> set[str]:
-    role = ITEM_ROLE.get(item_type)
-    covered = {region for region, roles in REGION_ROLES.items() if role in roles}
+    slots = _slots_for_type(item_type)
+    covered = {region for region, slot in REGION_SLOTS.items() if slot in slots}
     if item_type in WORN_ALONE_TYPES:
         covered.add("upper")
     return covered
 
 
-def _covered(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str]:
+def covered_regions(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str]:
     return set().union(*(_regions(item_type_map.get(iid, "")) for iid in item_ids))
 
 
 def has_wearable_piece(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> bool:
     # A wardrobe with nothing that dresses any region (only layers, say) still gets outfits.
-    if not _covered(list(item_type_map), item_type_map):
+    if not covered_regions(list(item_type_map), item_type_map):
         return bool(item_ids)
-    return bool(_covered(item_ids, item_type_map))
+    return bool(covered_regions(item_ids, item_type_map))
 
 
 def missing_regions(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> list[str]:
     """`item_type_map` must cover every candidate, because it decides which regions the
     wardrobe can fill at all."""
-    worn = _covered(item_ids, item_type_map)
-    available = _covered(list(item_type_map), item_type_map)
-    return [region for region in REGION_ROLES if region in available and region not in worn]
+    worn = covered_regions(item_ids, item_type_map)
+    available = covered_regions(list(item_type_map), item_type_map)
+    return [region for region in REGION_SLOTS if region in available and region not in worn]
 
 
 def _fill_options(
@@ -176,7 +162,7 @@ def _best_fill(
 ) -> list[tuple[UUID, int]]:
     if not remaining:
         return []
-    region = next(r for r in REGION_ROLES if r in remaining)
+    region = next(r for r in REGION_SLOTS if r in remaining)
     plans = [_best_fill(remaining - {region}, rank, item_type_map, taken, claimed)]
     for pick, pick_rank in _fill_options(region, remaining, rank, item_type_map, taken, claimed):
         pick_type = item_type_map[pick]
@@ -193,7 +179,7 @@ def _best_fill(
     return min(
         plans,
         key=lambda plan: (
-            len(remaining - _covered([iid for iid, _ in plan], item_type_map)),
+            len(remaining - covered_regions([iid for iid, _ in plan], item_type_map)),
             [pick_rank for _, pick_rank in plan],
         ),
     )
@@ -213,7 +199,7 @@ def fill_missing_regions(
     added = [iid for iid, _ in plan]
     for iid in added:
         covered = _regions(item_type_map[iid])
-        regions = ", ".join(r for r in REGION_ROLES if r in covered)
+        regions = ", ".join(r for r in REGION_SLOTS if r in covered)
         logger.info(f"Adding {item_type_map[iid]} item {iid}: outfit had no {regions} piece")
     return [*item_ids, *added]
 
