@@ -95,9 +95,10 @@ def test_outfit_prompt_template_tokens_are_all_rendered():
 @pytest.mark.parametrize("prompt_name", ["recommendation", "item_pairing"])
 def test_outfit_prompts_list_the_vocabulary_for_each_silhouette_role(prompt_name):
     prompt = render_outfit_prompt(load_prompt(prompt_name))
-    for role in ("base_top", "bottom", "full_body", "footwear", "legwear"):
-        for garment in types_for_role(role):
-            assert garment in prompt, f"{garment} ({role}) missing from {prompt_name}"
+    for role in ("base_top", "bottom", "full_body", "suit", "footwear", "legwear"):
+        assert f"({', '.join(types_for_role(role))})" in prompt, (
+            f"{role} missing from {prompt_name}"
+        )
 
 
 @pytest.mark.parametrize(
