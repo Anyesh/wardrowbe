@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.11.0...wardrowbe-v1.12.0) (2026-10-16)
+
+
+### ✨ Features
+
+* add tights as optional legwear ([#222](https://github.com/Anyesh/wardrowbe/issues/222)) ([06242db](https://github.com/Anyesh/wardrowbe/commit/06242db0571587f2323067483814360f99d6cdbe))
+* localize AI clothing descriptions by owner locale ([#224](https://github.com/Anyesh/wardrowbe/issues/224)) ([8c0aeb0](https://github.com/Anyesh/wardrowbe/commit/8c0aeb0fdf50e6fe091582402e4cc07e58010cbf))
+* Rework outfit recommendation slot rules to treat full body items better ([#264](https://github.com/Anyesh/wardrowbe/issues/264)) ([cfbb5a9](https://github.com/Anyesh/wardrowbe/commit/cfbb5a93da84550a065402d4a07ab8c908df42e2))
+
+
+### 🐛 Bug Fixes
+
+* parse Redis URLs consistently for background workers ([27768a2](https://github.com/Anyesh/wardrowbe/commit/27768a2b564fd016614a59dac6f434fa02e8bbfe))
+* **redis:** build worker settings from redis-py's parse of REDIS_URL ([1026d99](https://github.com/Anyesh/wardrowbe/commit/1026d99e031a24fb76505903fda20a296b079d0a))
+
+
+### 📝 Documentation
+
+* collapse the own-Redis URL notes into a details block ([85ce73b](https://github.com/Anyesh/wardrowbe/commit/85ce73bcb8d2daff7bf8bcbe76ee216352c9676b))
+
 ## [1.11.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.10.3...wardrowbe-v1.11.0) (2026-10-11)
 
 
