@@ -411,13 +411,17 @@ class TestGeneratePairingsPreservesSource:
             ("shirt", ["source", "pants", "dress", "sneakers"], ["source", "pants", "sneakers"]),
             ("shirt", ["pants", "sneakers"], ["source", "pants", "sneakers"]),
             ("dress", ["shirt", "pants", "sneakers"], ["source", "sneakers"]),
+            ("pants", ["shirt", "suit", "sneakers"], ["source", "shirt", "sneakers"]),
+            ("sneakers", ["dress", "suit"], ["source", "dress"]),
         ],
     )
     async def test_source_survives_a_conflicting_answer(
         self, db_session: AsyncSession, test_user, source_type, answer, expected
     ):
         source = _make_item(test_user.id, source_type)
-        others = {t: _make_item(test_user.id, t) for t in ("shirt", "pants", "dress", "sneakers")}
+        others = {
+            t: _make_item(test_user.id, t) for t in ("shirt", "pants", "dress", "suit", "sneakers")
+        }
         items = {"source": source, **others}
         db_session.add_all(items.values())
         await db_session.commit()

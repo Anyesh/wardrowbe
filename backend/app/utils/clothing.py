@@ -12,6 +12,9 @@ ROLE_SLOTS: dict[str, frozenset[str]] = {
     "suit": frozenset({"bottom", "suit"}),
 }
 
+# The slots an outfit must cover; a suit's own slot is optional like an outer layer.
+BODY_SLOTS = frozenset({"base_top", "bottom"})
+
 
 @dataclass(frozen=True)
 class WardrobeComposition:
@@ -43,8 +46,13 @@ def _slots_for_type(item_type: str) -> frozenset[str]:
     return ROLE_SLOTS.get(role, frozenset({role}))
 
 
-def covered_slots(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str]:
-    return {slot for iid in item_ids for slot in _slots_for_type(item_type_map.get(iid, ""))}
+def covered_body_slots(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set[str]:
+    return {
+        slot
+        for iid in item_ids
+        for slot in _slots_for_type(item_type_map.get(iid, ""))
+        if slot in BODY_SLOTS
+    }
 
 
 def deduplicate_by_body_slot(
