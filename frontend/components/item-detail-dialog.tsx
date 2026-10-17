@@ -547,7 +547,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   }}
                 />
                 <Button
-                  variant="ghost"
+                  variant={isEditing ? 'default' : 'ghost'}
                   size="icon"
                   onClick={() => {
                     // Re-read the item on entering edit mode: tagging can finish while the
@@ -559,14 +559,11 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     }
                     setIsEditing(!isEditing);
                   }}
-                  title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
-                  aria-label={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
+                  title={t('actions.editItem')}
+                  aria-label={t('actions.editItem')}
+                  aria-pressed={isEditing}
                 >
-                  {isEditing ? (
-                    <X className="h-5 w-5" />
-                  ) : (
-                    <Pencil className="h-5 w-5" />
-                  )}
+                  <Pencil className="h-5 w-5" />
                 </Button>
               </div>
             </div>

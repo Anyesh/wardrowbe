@@ -154,7 +154,6 @@
     "actions": {
       "backgroundRemoveError": "移除背景失敗",
       "backgroundRemoved": "背景已移除",
-      "cancelEditing": "取消編輯",
       "deleteConfirm": "刪除此單品？",
       "deleteDescription": "這將永久刪除衣櫥中的「{name}」。此操作無法復原。",
       "deleteError": "刪除單品失敗",

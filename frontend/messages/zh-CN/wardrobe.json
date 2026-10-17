@@ -154,7 +154,6 @@
     "actions": {
       "backgroundRemoveError": "去除背景失败",
       "backgroundRemoved": "背景已去除",
-      "cancelEditing": "取消编辑",
       "deleteConfirm": "确定删除此单品？",
       "deleteDescription": "这将从你的衣柜中永久删除「{name}」。此操作无法撤销。",
       "deleteError": "删除单品失败",
