@@ -61,6 +61,7 @@ logger = logging.getLogger(__name__)
 # How far the temperature may drift before a cached option, picked by the AI for the old
 # reading, is regenerated rather than served.
 CACHED_SUGGESTION_TEMP_TOLERANCE = 3.0
+INCOMPLETE_OUTFIT_ERROR = "AI suggested an outfit that cannot be completed from your wardrobe"
 
 SINGLE_OUTFIT_FORMAT = (
     "Respond with valid JSON:\n"
@@ -177,17 +178,17 @@ def fill_best_partial(
     partials: list[tuple[dict, list[UUID]]],
     ranked_ids: list[UUID],
     item_type_map: dict[UUID, str],
-) -> tuple[dict, list[UUID]]:
+) -> tuple[dict, list[UUID]] | None:
     filled = [
         (outfit_data, item_ids, fill_missing_regions(item_ids, ranked_ids, item_type_map))
         for outfit_data, item_ids in partials
     ]
-    # Prefer the option the fill completes, then the one it changes least, because the
-    # AI's own picks are better matched than anything added here.
-    outfit_data, _, item_ids = min(
-        filled,
-        key=lambda f: (len(missing_regions(f[2], item_type_map)), len(f[2]) - len(f[1])),
-    )
+    completed = [f for f in filled if not missing_regions(f[2], item_type_map)]
+    if not completed:
+        return None
+    # Prefer the option the fill changes least, because the AI's own picks are better
+    # matched than anything added here.
+    outfit_data, _, item_ids = min(completed, key=lambda f: len(f[2]) - len(f[1]))
     return outfit_data, item_ids
 
 
@@ -1009,18 +1010,13 @@ class RecommendationService:
                 if not has_wearable_piece(item_ids, item_type_map):
                     raise AIRecommendationError("AI did not select any valid items")
                 if missing_regions(item_ids, item_type_map):
-                    item_ids = fill_missing_regions(
-                        item_ids,
-                        rank_by_fit(
-                            candidates,
-                            weather,
-                            occasion,
-                            current_season,
-                            preferences,
-                            learned_prefs,
-                        ),
-                        item_type_map,
+                    ranking = rank_by_fit(
+                        candidates, weather, occasion, current_season, preferences, learned_prefs
                     )
+                    completed = fill_best_partial([(outfit_data, item_ids)], ranking, item_type_map)
+                    if completed is None:
+                        raise AIRecommendationError(INCOMPLETE_OUTFIT_ERROR)
+                    outfit_data, item_ids = completed
                 outfit = await self._save_outfit(
                     outfit_data,
                     item_ids,
@@ -1060,7 +1056,10 @@ class RecommendationService:
                 ranking = rank_by_fit(
                     candidates, weather, occasion, current_season, preferences, learned_prefs
                 )
-                chosen = [fill_best_partial(partials, ranking, item_type_map)]
+                completed = fill_best_partial(partials, ranking, item_type_map)
+                if completed is None:
+                    raise AIRecommendationError(INCOMPLETE_OUTFIT_ERROR)
+                chosen = [completed]
             if not chosen:
                 raise AIRecommendationError("AI did not select any valid items")
 

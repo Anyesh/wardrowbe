@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import func, select
 
 from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus, TimeOfDay
@@ -338,6 +339,13 @@ def test_fill_best_partial_prefers_an_option_the_fill_can_complete():
     )
     assert outfit_data["headline"] == "jeans"
     assert set(item_ids) == {jeans, hoodie, boots}
+
+
+def test_fill_best_partial_gives_up_when_no_option_can_be_completed():
+    coat, jeans, boots, hoodie = uuid4(), uuid4(), uuid4(), uuid4()
+    types = {coat: "coat", jeans: "jeans", boots: "boots", hoodie: "hoodie"}
+    outfit_data = {"headline": "coat"}
+    assert fill_best_partial([(outfit_data, [coat, jeans, boots])], [hoodie], types) is None
 
 
 class TestSuggestRequestTimeOfDay:
@@ -758,8 +766,8 @@ class TestHotDayLegwear:
         include=(),
         extras=(),
         single_outfit=False,
+        kinds=("tights", "skirt", "t-shirt", "sneakers"),
     ):
-        kinds = ("tights", "skirt", "t-shirt", "sneakers")
         # Extras come first among the candidates and are numbered last, so that neither
         # candidate order nor prompt order can stand in for the fill ranking.
         extra_items = [
@@ -974,12 +982,24 @@ class TestHotDayLegwear:
         )
         assert outfits == [{items[1].id, items[2].id, items[3].id}]
 
+    # The only piece for the top is a dress, which cannot go over the skirt the AI chose.
     @pytest.mark.asyncio
-    async def test_a_single_outfit_with_nothing_valid_is_not_built_from_scratch(
-        self, db_session, test_user
+    @pytest.mark.parametrize("single_outfit", [True, False], ids=["single", "options"])
+    async def test_an_outfit_the_wardrobe_cannot_complete_is_not_saved(
+        self, db_session, test_user, single_outfit
     ):
-        with pytest.raises(AIRecommendationError, match="did not select"):
-            await self._hot_day_outfits(db_session, test_user, [[99]], single_outfit=True)
+        with pytest.raises(AIRecommendationError, match="cannot be completed"):
+            await self._hot_day_outfits(
+                db_session,
+                test_user,
+                [[2, 4]],
+                single_outfit=single_outfit,
+                kinds=("tights", "skirt", "dress", "sneakers"),
+            )
+        saved = await db_session.scalar(
+            select(func.count()).select_from(Outfit).where(Outfit.user_id == test_user.id)
+        )
+        assert saved == 0
 
     @pytest.mark.asyncio
     async def test_options_with_nothing_valid_are_not_built_from_scratch(
