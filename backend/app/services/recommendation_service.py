@@ -1011,7 +1011,14 @@ class RecommendationService:
                 if missing_regions(item_ids, item_type_map):
                     item_ids = fill_missing_regions(
                         item_ids,
-                        rank_by_fit(candidates, weather, occasion, preferences, learned_prefs),
+                        rank_by_fit(
+                            candidates,
+                            weather,
+                            occasion,
+                            current_season,
+                            preferences,
+                            learned_prefs,
+                        ),
                         item_type_map,
                     )
                 outfit = await self._save_outfit(
@@ -1050,7 +1057,9 @@ class RecommendationService:
             # Filling in a piece the AI did not choose is a last resort, because the AI's
             # own complete options are better matched than anything added here.
             if not chosen and partials:
-                ranking = rank_by_fit(candidates, weather, occasion, preferences, learned_prefs)
+                ranking = rank_by_fit(
+                    candidates, weather, occasion, current_season, preferences, learned_prefs
+                )
                 chosen = [fill_best_partial(partials, ranking, item_type_map)]
             if not chosen:
                 raise AIRecommendationError("AI did not select any valid items")
