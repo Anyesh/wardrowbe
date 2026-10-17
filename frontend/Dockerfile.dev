@@ -17,4 +17,4 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Install deps again at startup in case package.json changed
-CMD npm install && npm run dev
+CMD ["sh", "-c", "npm install && exec npm run dev"]

@@ -2,6 +2,9 @@ FROM node:24-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
+# The floating Alpine base receives current package fixes at each rebuild;
+# exact apk versions can disappear when its repository changes.
+# hadolint ignore=DL3018
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -26,6 +29,8 @@ ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
 # shadow provides usermod/groupmod for PUID/PGID remapping in the entrypoint
+# Keep packages in sync with the floating Alpine base image.
+# hadolint ignore=DL3018
 RUN apk add --no-cache su-exec shadow
 
 RUN addgroup --system --gid 1001 nodejs

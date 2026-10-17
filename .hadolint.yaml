@@ -1,0 +1,2 @@
+# Report informational suggestions, but fail builds on warnings and errors.
+failure-threshold: warning

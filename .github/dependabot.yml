@@ -42,6 +42,11 @@ updates:
     schedule:
       interval: "weekly"
 
+  - package-ecosystem: "docker"
+    directory: "/.github/hadolint"
+    schedule:
+      interval: "weekly"
+
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"

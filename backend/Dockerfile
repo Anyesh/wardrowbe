@@ -3,6 +3,9 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
+# The floating Debian base receives current package fixes at each rebuild;
+# exact apt versions can disappear from its repositories.
+# hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
