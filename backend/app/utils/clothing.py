@@ -189,6 +189,26 @@ def _best_fill(
     )
 
 
+def can_complete_outfit(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> bool:
+    # Looser than the fill, because an AI answer may add a piece that also covers a region
+    # already dressed (a hoodie over a dress); only free slots limit it. Items of one type
+    # share slots and regions, so searching types keeps this cheap on a large wardrobe.
+    others = {t for iid, t in item_type_map.items() if iid not in item_ids}
+
+    def reachable(remaining: frozenset[str], claimed: frozenset[str]) -> bool:
+        if not remaining:
+            return True
+        region = next(r for r in REGION_SLOTS if r in remaining)
+        return any(
+            reachable(remaining - _regions(t), claimed | _slots_for_type(t))
+            for t in others
+            if region in _regions(t) and not _slots_for_type(t) & claimed
+        )
+
+    claimed = frozenset().union(*(_slots_for_type(item_type_map.get(iid, "")) for iid in item_ids))
+    return reachable(frozenset(missing_regions(item_ids, item_type_map)), claimed)
+
+
 def fill_missing_regions(
     item_ids: list[UUID], ranked_candidate_ids: list[UUID], item_type_map: dict[UUID, str]
 ) -> list[UUID]:

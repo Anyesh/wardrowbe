@@ -5,6 +5,7 @@ import pytest
 from app.utils.clothing import (
     ITEM_ROLE,
     WardrobeComposition,
+    can_complete_outfit,
     canonical_item_order,
     count_composition,
     deduplicate_by_body_slot,
@@ -495,6 +496,35 @@ def test_has_wearable_piece(outfit, wardrobe, expected):
     ids, types = _typed(*outfit)
     _, wardrobe_types = _typed(*wardrobe)
     assert has_wearable_piece(ids, types | wardrobe_types) is expected
+
+
+@pytest.mark.parametrize(
+    ("requested", "wardrobe", "expected"),
+    [
+        (("skirt",), ("t-shirt", "sneakers"), True),
+        (("skirt",), ("dress", "sneakers"), False),
+        (("coat",), ("hoodie", "jeans", "boots"), False),
+        (("suit",), ("dress", "shoes"), False),
+        (("bag",), ("dress", "shoes"), True),
+        (("hoodie",), ("dress", "sneakers"), True),
+        (("sneakers",), ("shirt", "dress"), True),
+        ((), ("jeans",), True),
+    ],
+    ids=[
+        "top-available",
+        "only-a-dress",
+        "hoodie-under-coat",
+        "suit-only-a-dress",
+        "bag",
+        "hoodie-over-a-dress",
+        "shirt-would-block-the-dress",
+        "none",
+    ],
+)
+def test_can_complete_outfit(requested, wardrobe, expected):
+    ids, types = _typed(*requested)
+    _, wardrobe_types = _typed(*wardrobe)
+    assert can_complete_outfit(ids, types | wardrobe_types) is expected
 
 
 def test_fill_adds_every_missing_region():

@@ -41,6 +41,7 @@ from app.services.weather_service import (
     WeatherServiceError,
 )
 from app.utils.clothing import (
+    can_complete_outfit,
     canonical_item_order,
     deduplicate_by_body_slot,
     fill_missing_regions,
@@ -884,6 +885,15 @@ class RecommendationService:
 
         mandatory_ids = set(include_items) if include_items else None
         item_type_map = {item.id: (item.type or "").lower() for item in candidates}
+        if include_items:
+            requested = deduplicate_by_body_slot(
+                list(include_items), item_type_map, mandatory_item_ids=mandatory_ids
+            )
+            if not can_complete_outfit(requested, item_type_map):
+                raise ValueError(
+                    "The selected items cannot make a complete outfit with the rest of your "
+                    "wardrobe."
+                )
 
         # Check cache for pre-generated suggestions (used when count is 1)
         if use_cache and count == 1:

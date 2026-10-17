@@ -813,6 +813,7 @@ class TestHotDayLegwear:
                 endpoint="e",
             )
         )
+        self.ai = ai
         weather = _weather(temp=35)
         if cached is not None:
             cached = {
@@ -852,7 +853,6 @@ class TestHotDayLegwear:
                 count=count,
                 single_outfit=single_outfit,
             )
-        self.ai = ai
         self.reasonings = [o.reasoning for o in outfits]
         self.pop = pop
         self.raw_responses = [o.ai_raw_response for o in outfits]
@@ -1006,6 +1006,27 @@ class TestHotDayLegwear:
             select(func.count()).select_from(Outfit).where(Outfit.user_id == test_user.id)
         )
         assert saved == 0
+
+    @pytest.mark.asyncio
+    async def test_a_requested_item_the_wardrobe_cannot_complete_is_refused_before_the_ai(
+        self, db_session, test_user
+    ):
+        with pytest.raises(ValueError, match="selected items cannot make a complete outfit"):
+            await self._hot_day_outfits(
+                db_session,
+                test_user,
+                [[2, 4]],
+                include=(2,),
+                kinds=("tights", "skirt", "dress", "sneakers"),
+            )
+        self.ai.generate_text.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_a_single_outfit_with_nothing_valid_is_not_built_from_scratch(
+        self, db_session, test_user
+    ):
+        with pytest.raises(AIRecommendationError, match="did not select"):
+            await self._hot_day_outfits(db_session, test_user, [[99]], single_outfit=True)
 
     @pytest.mark.asyncio
     async def test_options_with_nothing_valid_are_not_built_from_scratch(
