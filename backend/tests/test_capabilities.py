@@ -103,8 +103,20 @@ async def test_capabilities_default_on(client: AsyncClient):
         "external_tagging": True,
         "external_suggestions": True,
         "external_pairings": True,
+        "builtin_mcp": False,
     }
     assert data["version"] == "1.0.0"
+
+
+@pytest.mark.asyncio
+async def test_capabilities_builtin_mcp_enabled(client: AsyncClient, monkeypatch):
+    monkeypatch.setattr(
+        "app.api.health.get_settings",
+        lambda: Settings(mcp_enabled=True),
+    )
+    response = await client.get("/api/v1/capabilities")
+    assert response.status_code == 200
+    assert response.json()["features"]["builtin_mcp"] is True
 
 
 @pytest.mark.asyncio

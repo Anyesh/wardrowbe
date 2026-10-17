@@ -13,9 +13,12 @@ from app.api.router import api_router
 from app.config import Settings, get_settings
 from app.database import engine
 from app.logging_config import configure_logging
+from app.mcp.server import MCPDispatchMiddleware, build_mcp_asgi, build_mcp_server
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
+
+mcp_server = build_mcp_server()
 
 
 @asynccontextmanager
@@ -25,7 +28,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if warning:
         logger.error("Configuration: %s", warning)
     logger.info("Auth mode: %s", settings.get_auth_mode())
-    yield
+    async with mcp_server.session_manager.run():
+        yield
     await engine.dispose()
 
 
@@ -57,6 +61,8 @@ app.add_middleware(
 
 # Enable GZip compression for responses > 500 bytes
 app.add_middleware(GZipMiddleware, minimum_size=500)
+# Dispatched unconditionally; MCPAuthMiddleware 404s when MCP_ENABLED is off
+app.add_middleware(MCPDispatchMiddleware, mcp_app=build_mcp_asgi(mcp_server))
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
 

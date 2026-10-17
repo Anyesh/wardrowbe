@@ -24,6 +24,7 @@ from app.models.outfit import (
 from app.models.user import User
 from app.schemas.outfit import (
     MAX_AUTHORING_TEXT_LENGTH,
+    FeedbackRequest,
     Occasion,
     OutfitAttributeFields,
     stored_occasion_or_default,
@@ -50,7 +51,6 @@ from app.utils.auth import get_current_user
 from app.utils.rate_limit import rate_limit_by_user
 from app.utils.scales import RATING_MAX, RATING_MIN
 from app.utils.signed_urls import sign_optional
-from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
 
@@ -218,31 +218,6 @@ class BulkDeleteOutfitsResponse(BaseModel):
     has_more: bool = False
 
 
-class FeedbackRequest(BaseModel):
-    accepted: bool | None = Field(None, description="Whether outfit was accepted")
-    rating: int | None = Field(
-        None, ge=RATING_MIN, le=RATING_MAX, description=f"Overall rating {_RATING_RANGE}"
-    )
-    comfort_rating: int | None = Field(
-        None, ge=RATING_MIN, le=RATING_MAX, description=f"Comfort rating {_RATING_RANGE}"
-    )
-    style_rating: int | None = Field(
-        None, ge=RATING_MIN, le=RATING_MAX, description=f"Style rating {_RATING_RANGE}"
-    )
-    comment: str | None = Field(None, max_length=1000, description="Optional comment")
-    worn: bool | None = Field(None, description="Whether the outfit was worn")
-    worn_with_modifications: bool | None = Field(
-        None, description="If worn, whether modifications were made"
-    )
-    modification_notes: str | None = Field(None, max_length=500)
-    actually_worn: bool | None = Field(
-        None, description="Did user actually wear this recommendation?"
-    )
-    wore_instead_items: list[UUID] | None = Field(
-        None, description="Item IDs user wore instead of recommendation"
-    )
-
-
 class FeedbackResponse(BaseModel):
     id: UUID
     outfit_id: UUID
@@ -257,6 +232,24 @@ class FeedbackResponse(BaseModel):
     actually_worn: bool | None = None
     wore_instead_items: list[UUID] | None = None
     created_at: datetime
+
+
+def feedback_to_response(feedback: UserFeedback) -> FeedbackResponse:
+    return FeedbackResponse(
+        id=feedback.id,
+        outfit_id=feedback.outfit_id,
+        accepted=feedback.accepted,
+        rating=feedback.rating,
+        comfort_rating=feedback.comfort_rating,
+        style_rating=feedback.style_rating,
+        comment=feedback.comment,
+        worn_at=feedback.worn_at,
+        worn_with_modifications=feedback.worn_with_modifications,
+        modification_notes=feedback.modification_notes,
+        actually_worn=feedback.actually_worn,
+        wore_instead_items=[UUID(item_id) for item_id in (feedback.wore_instead_items or [])],
+        created_at=feedback.created_at,
+    )
 
 
 async def fetch_wore_instead_items_map(
@@ -905,64 +898,18 @@ async def submit_feedback(
             detail={"message": "Outfit not found", "error_code": "OUTFIT_NOT_FOUND"},
         )
 
-    if outfit.feedback:
-        feedback = outfit.feedback
-    else:
-        feedback = UserFeedback(outfit_id=outfit.id)
-        outfit.feedback = feedback
-        db.add(feedback)
-
-    if request.accepted is not None:
-        feedback.accepted = request.accepted
-        outfit.status = OutfitStatus.accepted if request.accepted else OutfitStatus.rejected
-        outfit.responded_at = datetime.utcnow()
-
-    if request.rating is not None:
-        feedback.rating = request.rating
-    if request.comfort_rating is not None:
-        feedback.comfort_rating = request.comfort_rating
-    if request.style_rating is not None:
-        feedback.style_rating = request.style_rating
-    if request.comment is not None:
-        feedback.comment = request.comment
-    if request.worn and not feedback.worn_at:
-        user_today = get_user_today(current_user)
-        feedback.worn_at = user_today
-        await ItemService(db).record_wears(
-            current_user.id,
-            [outfit_item.item_id for outfit_item in outfit.items],
-            user_today,
-            occasion=outfit.occasion,
-            outfit_id=outfit.id,
+    try:
+        feedback, replacement = await OutfitService(db).apply_feedback(
+            current_user, outfit, request
         )
-    if request.worn_with_modifications is not None:
-        feedback.worn_with_modifications = request.worn_with_modifications
-    if request.modification_notes is not None:
-        feedback.modification_notes = request.modification_notes
-    if request.actually_worn is not None:
-        feedback.actually_worn = request.actually_worn
-    replacement: Outfit | None = None
-    if request.wore_instead_items is not None:
-        feedback.wore_instead_items = [str(item_id) for item_id in request.wore_instead_items]
-        if request.wore_instead_items:
-            studio_service = StudioService(db)
-            try:
-                replacement = await studio_service.create_wore_instead(
-                    user=current_user,
-                    original_outfit_id=outfit_id,
-                    item_ids=list(request.wore_instead_items),
-                    rating=request.rating,
-                    comment=request.comment,
-                    scheduled_for=None,
-                )
-            except ItemOwnershipError:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail={
-                        "error_code": "OUTFIT_ITEM_OWNERSHIP",
-                        "message": "One or more items do not belong to you",
-                    },
-                ) from None
+    except ItemOwnershipError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error_code": "OUTFIT_ITEM_OWNERSHIP",
+                "message": "One or more items do not belong to you",
+            },
+        ) from None
 
     await db.commit()
     await db.refresh(feedback)
@@ -971,21 +918,7 @@ async def submit_feedback(
     if replacement is not None:
         await _run_learning_safely(db, replacement.id, current_user.id)
 
-    return FeedbackResponse(
-        id=feedback.id,
-        outfit_id=feedback.outfit_id,
-        accepted=feedback.accepted,
-        rating=feedback.rating,
-        comfort_rating=feedback.comfort_rating,
-        style_rating=feedback.style_rating,
-        comment=feedback.comment,
-        worn_at=feedback.worn_at,
-        worn_with_modifications=feedback.worn_with_modifications,
-        modification_notes=feedback.modification_notes,
-        actually_worn=feedback.actually_worn,
-        wore_instead_items=[UUID(item_id) for item_id in (feedback.wore_instead_items or [])],
-        created_at=feedback.created_at,
-    )
+    return feedback_to_response(feedback)
 
 
 @router.get("/{outfit_id}/feedback", response_model=FeedbackResponse)
