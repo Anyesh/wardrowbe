@@ -188,7 +188,10 @@ def fill_best_partial(
         return None
     # Prefer the option the fill changes least, because the AI's own picks are better
     # matched than anything added here.
-    outfit_data, _, item_ids = min(completed, key=lambda f: len(f[2]) - len(f[1]))
+    outfit_data, picked, item_ids = min(completed, key=lambda f: len(f[2]) - len(f[1]))
+    # The headline and styling tip were written for the AI's picks alone, so the saved
+    # response says which pieces it never chose.
+    outfit_data["_filled_item_ids"] = [str(iid) for iid in item_ids if iid not in picked]
     return outfit_data, item_ids
 
 

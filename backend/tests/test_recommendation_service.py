@@ -339,6 +339,8 @@ def test_fill_best_partial_prefers_an_option_the_fill_can_complete():
     )
     assert outfit_data["headline"] == "jeans"
     assert set(item_ids) == {jeans, hoodie, boots}
+    assert outfit_data["_filled_item_ids"] == [str(hoodie), str(boots)]
+    assert "_filled_item_ids" not in unfillable[0]
 
 
 def test_fill_best_partial_gives_up_when_no_option_can_be_completed():
@@ -346,6 +348,7 @@ def test_fill_best_partial_gives_up_when_no_option_can_be_completed():
     types = {coat: "coat", jeans: "jeans", boots: "boots", hoodie: "hoodie"}
     outfit_data = {"headline": "coat"}
     assert fill_best_partial([(outfit_data, [coat, jeans, boots])], [hoodie], types) is None
+    assert "_filled_item_ids" not in outfit_data
 
 
 class TestSuggestRequestTimeOfDay:
@@ -957,6 +960,7 @@ class TestHotDayLegwear:
     ):
         await self._hot_day_outfits(db_session, test_user, [[3, 2], [3, 2, 4]])
         assert self.reasonings == ["AI 2"]
+        assert "_filled_item_ids" not in self.raw_responses[0]
 
     @pytest.mark.asyncio
     async def test_incomplete_leftovers_are_not_cached(self, db_session, test_user):
@@ -972,6 +976,7 @@ class TestHotDayLegwear:
         )
         assert outfits == [{items[1].id, items[2].id, items[3].id}]
         assert self.reasonings == ["AI 2"]
+        assert self.raw_responses[0]["_filled_item_ids"] == [str(items[2].id)]
 
     @pytest.mark.asyncio
     async def test_a_single_outfit_missing_a_top_is_filled_with_the_best_fit(
@@ -981,6 +986,7 @@ class TestHotDayLegwear:
             db_session, test_user, [[2, 4]], extras=("sweater",), single_outfit=True
         )
         assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.raw_responses[0]["_filled_item_ids"] == [str(items[2].id)]
 
     # The only piece for the top is a dress, which cannot go over the skirt the AI chose.
     @pytest.mark.asyncio
