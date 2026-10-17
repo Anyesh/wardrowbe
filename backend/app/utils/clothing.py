@@ -98,10 +98,14 @@ def covered_regions(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> set
     return set().union(*(_regions(item_type_map.get(iid, "")) for iid in item_ids))
 
 
+LAYER_ROLES = frozenset({"mid_layer", "outer_layer"})
+
+
 def has_wearable_piece(item_ids: list[UUID], item_type_map: dict[UUID, str]) -> bool:
-    # A wardrobe with nothing that dresses any region (only layers, say) still gets outfits.
+    # A wardrobe with nothing that dresses any region still gets outfits from its layers,
+    # but a bag or tights alone is never an outfit.
     if not covered_regions(list(item_type_map), item_type_map):
-        return bool(item_ids)
+        return any(ITEM_ROLE.get(item_type_map.get(iid, "")) in LAYER_ROLES for iid in item_ids)
     return bool(covered_regions(item_ids, item_type_map))
 
 

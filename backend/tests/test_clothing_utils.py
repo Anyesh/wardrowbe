@@ -477,8 +477,19 @@ def test_fill_uses_a_hoodie_but_never_a_coat_when_there_is_no_top():
         (("hoodie",), ("shirt",), True),
         (("jacket",), ("cardigan",), True),
         ((), ("cardigan",), False),
+        (("bag",), ("hat",), False),
+        (("tights", "hat"), ("cardigan",), False),
     ],
-    ids=["bag", "tights-and-hat", "coat", "hoodie", "layers-only-wardrobe", "empty"],
+    ids=[
+        "bag",
+        "tights-and-hat",
+        "coat",
+        "hoodie",
+        "layers-only-wardrobe",
+        "empty",
+        "accessories-only-wardrobe",
+        "no-layer-in-a-layers-only-wardrobe",
+    ],
 )
 def test_has_wearable_piece(outfit, wardrobe, expected):
     ids, types = _typed(*outfit)
