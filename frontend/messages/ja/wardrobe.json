@@ -154,7 +154,6 @@
     "actions": {
       "backgroundRemoveError": "背景の削除に失敗しました",
       "backgroundRemoved": "背景を削除しました",
-      "cancelEditing": "編集をキャンセル",
       "deleteConfirm": "このアイテムを削除しますか？",
       "deleteDescription": "「{name}」がワードローブから完全に削除されます。この操作は取り消せません。",
       "deleteError": "アイテムの削除に失敗しました",

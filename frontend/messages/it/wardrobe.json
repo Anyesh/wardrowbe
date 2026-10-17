@@ -154,7 +154,6 @@
     "actions": {
       "backgroundRemoveError": "Rimozione sfondo fallita",
       "backgroundRemoved": "Sfondo rimosso",
-      "cancelEditing": "Annulla modifica",
       "deleteConfirm": "Eliminare questo capo?",
       "deleteDescription": "Questo eliminerà definitivamente \"{name}\" dal tuo guardaroba. Questa azione non può essere annullata.",
       "deleteError": "Eliminazione capo fallita",

@@ -154,7 +154,6 @@
     "actions": {
       "backgroundRemoveError": "Hintergrund konnte nicht entfernt werden",
       "backgroundRemoved": "Hintergrund entfernt",
-      "cancelEditing": "Bearbeitung abbrechen",
       "deleteConfirm": "Dieses Stück löschen?",
       "deleteDescription": "„{name}“ wird endgültig aus deinem Kleiderschrank gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
       "deleteError": "Stück konnte nicht gelöscht werden",

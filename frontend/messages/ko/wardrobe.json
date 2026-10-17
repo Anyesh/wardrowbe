@@ -154,7 +154,6 @@
     "actions": {
       "backgroundRemoveError": "배경 제거 실패",
       "backgroundRemoved": "배경이 제거되었어요",
-      "cancelEditing": "편집 취소",
       "deleteConfirm": "이 아이템을 삭제하시겠어요?",
       "deleteDescription": "\"{name}\"이(가) 옷장에서 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
       "deleteError": "아이템 삭제 실패",

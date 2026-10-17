@@ -154,7 +154,6 @@
     "actions": {
       "backgroundRemoveError": "Failed to remove background",
       "backgroundRemoved": "Background removed",
-      "cancelEditing": "Cancel editing",
       "deleteConfirm": "Delete this item?",
       "deleteDescription": "This will permanently delete \"{name}\" from your wardrobe. This action cannot be undone.",
       "deleteError": "Failed to delete item",

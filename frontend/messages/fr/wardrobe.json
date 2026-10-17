@@ -154,7 +154,6 @@
     "actions": {
       "backgroundRemoveError": "Échec de la suppression de l'arrière-plan",
       "backgroundRemoved": "Arrière-plan supprimé",
-      "cancelEditing": "Annuler la modification",
       "deleteConfirm": "Supprimer cet article ?",
       "deleteDescription": "Cela supprimera définitivement « {name} » de votre garde-robe. Cette action est irréversible.",
       "deleteError": "Échec de la suppression de l'article",
