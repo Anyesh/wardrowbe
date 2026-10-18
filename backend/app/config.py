@@ -90,6 +90,9 @@ class Settings(BaseSettings):
     ai_internal_enabled: bool = Field(default=True)
     ai_vision_enabled: bool | None = Field(default=None)
     ai_text_enabled: bool | None = Field(default=None)
+    # Independent of the capability switches above, because an external agent can
+    # still author suggestions and pairings while internal AI is off.
+    ai_ui_enabled: bool = Field(default=True)
 
     # AI Service (OpenAI-compatible API - supports Ollama, OpenAI, etc.)
     ai_base_url: str = Field(default="")
