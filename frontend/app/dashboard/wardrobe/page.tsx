@@ -663,7 +663,12 @@ export default function WardrobePage() {
         <div className="min-w-0">
           <div className="flex items-center justify-between sm:justify-start gap-3">
             <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-            <Button onClick={() => setAddDialogOpen(true)} className="sm:hidden" size="sm">
+            <Button
+              onClick={() => setAddDialogOpen(true)}
+              className="sm:hidden"
+              size="sm"
+              aria-label={t('actions.addItem')}
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
