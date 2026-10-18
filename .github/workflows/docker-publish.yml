@@ -150,7 +150,8 @@ jobs:
       # An older release whose run finishes last (concurrent releases, or a re-run)
       # must not move the <major>.<minor> tags back, so they are only pushed when no
       # newer patch in the series has a release tag. The newer release's tag exists
-      # before its own images are built, which closes the race.
+      # before its own images are built, so only the seconds between this check and
+      # the push remain open.
       - name: Check minor tags stay on the newest patch
         if: env.RELEASE_VERSION != ''
         env:
@@ -179,25 +180,27 @@ jobs:
 
       # metadata-action lowercases the image because GHCR rejects capitalized
       # owners (e.g. "Anyesh") and derives the full tag set from the event.
-      # The version-first tags (1.3.1-backend) exist because Renovate's default
-      # docker versioning cannot parse backend-1.3.1; an empty per-tag prefix
-      # replaces the flavor prefix. They must stay after the backend-<version>
-      # rule so that steps.meta.outputs.version, which Inspect image uses,
-      # still resolves to that tag.
+      # Each rule names its own service prefix or suffix instead of using a flavor
+      # prefix, because the version-first tags (1.3.1-backend) must carry none.
+      # They exist because Renovate's default docker versioning cannot parse
+      # backend-1.3.1, and they must stay after the backend-<version> rule so that
+      # steps.meta.outputs.version, which Inspect image uses, still resolves to it.
+      # The low priority on <service>-latest keeps a run without a version
+      # inspecting sha-<sha>, as before.
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.image.outputs.name }}
           flavor: |
-            latest=true
-            prefix=${{ matrix.service }}-,onlatest=true
+            latest=false
           tags: |
             type=sha,format=long
-            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' && env.MINOR_ALIAS == 'true' }}
-            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},prefix=,suffix=-${{ matrix.service }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' && env.MINOR_ALIAS == 'true' }},prefix=,suffix=-${{ matrix.service }}
+            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},prefix=${{ matrix.service }}-
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' && env.MINOR_ALIAS == 'true' }},prefix=${{ matrix.service }}-
+            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},suffix=-${{ matrix.service }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' && env.MINOR_ALIAS == 'true' }},suffix=-${{ matrix.service }}
+            type=raw,value=${{ matrix.service }}-latest,priority=50
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
