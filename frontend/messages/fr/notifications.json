@@ -7,6 +7,7 @@
     "channelDisabled": "Canal désactivé",
     "channelEnabled": "Canal activé",
     "channelType": "Type de canal",
+    "deleteChannel": "Supprimer le canal",
     "deleteConfirm": {
       "description": "Cela supprimera ce canal de notification et arrêtera toutes les notifications envoyées via celui-ci.",
       "title": "Supprimer le canal de notification ?"
@@ -74,6 +75,7 @@
       "description": "Cela supprimera ce programme de livraison.",
       "title": "Supprimer l'horaire ?"
     },
+    "deleteSchedule": "Supprimer l'horaire",
     "description": "Définissez quand vous souhaitez recevoir des recommandations de tenues chaque jour",
     "dialogDescription": "Configurez quand vous souhaitez recevoir des recommandations.",
     "noSchedules": "Aucun horaire configuré",

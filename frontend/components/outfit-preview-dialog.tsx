@@ -100,7 +100,13 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
               </span>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full -mr-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="rounded-full -mr-2"
+            aria-label={tc('close')}
+          >
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -138,6 +144,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                   size="icon"
                   className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 rounded-full"
                   onClick={goToPrev}
+                  aria-label={t('previousItem')}
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </Button>
@@ -146,6 +153,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                   size="icon"
                   className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 rounded-full"
                   onClick={goToNext}
+                  aria-label={t('nextItem')}
                 >
                   <ChevronRight className="h-6 w-6" />
                 </Button>

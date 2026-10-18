@@ -12,6 +12,7 @@
     "description": "Konfiguriere KI-Endpunkte für die Bildanalyse. Die Endpunkte werden der Reihe nach von oben nach unten ausprobiert.",
     "disabled": "Deaktiviert",
     "error": "Fehler",
+    "fallbackName": "Endpunkt {number}",
     "fields": {
       "name": "Name",
       "textModel": "Textmodell",
@@ -19,10 +20,13 @@
       "visionModel": "Vision-Modell"
     },
     "modelsAvailable": "{count, plural, one {{count} Modell verfügbar} other {{count} Modelle verfügbar}}",
+    "moveDown": "{name} nach unten verschieben",
+    "moveUp": "{name} nach oben verschieben",
     "noEndpoints": "Keine eigenen Endpunkte konfiguriert. Es werden die Standard-Servereinstellungen verwendet.",
     "placeholders": {
       "name": "z. B. Lokales Ollama"
     },
+    "removeEndpoint": "{name} entfernen",
     "testConnection": "Verbindung testen",
     "testFailed": "Endpunkt konnte nicht getestet werden",
     "textModels": "Text: {models}",

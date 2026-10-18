@@ -7,6 +7,7 @@
     "channelDisabled": "Channel disabled",
     "channelEnabled": "Channel enabled",
     "channelType": "Channel Type",
+    "deleteChannel": "Delete channel",
     "deleteConfirm": {
       "description": "This will remove this notification channel and stop all notifications sent through it.",
       "title": "Delete Notification Channel?"
@@ -74,6 +75,7 @@
       "description": "This will remove this delivery schedule.",
       "title": "Delete Schedule?"
     },
+    "deleteSchedule": "Delete schedule",
     "description": "Set when you want to receive outfit recommendations each day",
     "dialogDescription": "Set up when you want to receive outfit recommendations.",
     "noSchedules": "No schedules configured",

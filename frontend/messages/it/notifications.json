@@ -7,6 +7,7 @@
     "channelDisabled": "Canale disabilitato",
     "channelEnabled": "Canale abilitato",
     "channelType": "Tipo di canale",
+    "deleteChannel": "Elimina canale",
     "deleteConfirm": {
       "description": "Questo rimuoverà il canale di notifica e fermerà tutte le notifiche inviate tramite esso.",
       "title": "Eliminare il canale di notifica?"
@@ -74,6 +75,7 @@
       "description": "Questo rimuoverà la programmazione di consegna.",
       "title": "Eliminare la programmazione?"
     },
+    "deleteSchedule": "Elimina programmazione",
     "description": "Imposta a che ora vuoi ricevere i suggerimenti di outfit ogni giorno",
     "dialogDescription": "Imposta quando vuoi ricevere i consigli di abbigliamento.",
     "noSchedules": "Nessuna programmazione configurata",

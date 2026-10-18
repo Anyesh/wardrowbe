@@ -14,8 +14,10 @@
     "legendOnDemand": "按需",
     "legendScheduled": "已计划",
     "monthlyCount": "本月 {count, plural, one {# 套穿搭} other {# 套穿搭}}",
+    "nextMonth": "下个月",
     "noOutfitsOnDay": "这天没有穿搭",
     "outfitCount": "{count, plural, one {# 套穿搭} other {# 套穿搭}}",
+    "previousMonth": "上个月",
     "weekDays": {
       "fri": "五",
       "mon": "一",

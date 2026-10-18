@@ -38,7 +38,9 @@
   "inviteCode": "Codice invito",
   "inviteCodeExample": "es., ABC123XY",
   "inviteCodeSection": {
+    "copyCode": "Copia codice invito",
     "description": "Condividi questo codice con i membri della famiglia per farli unire",
+    "regenerateCode": "Genera un nuovo codice invito",
     "title": "Codice invito"
   },
   "inviteEmailPlaceholder": "email@example.com",
@@ -55,9 +57,11 @@
       "description": "Sei sicuro di voler rimuovere {name} dalla famiglia?",
       "title": "Rimuovere il membro?"
     },
+    "removeMember": "Rimuovi {name}",
     "title": "Membri"
   },
   "pendingInvites": {
+    "cancelInvite": "Annulla invito per {email}",
     "description": "Inviti che non sono ancora stati accettati",
     "expires": "Scade {date}",
     "title": "Inviti in attesa"
@@ -68,6 +72,7 @@
     "ratingSubmitted": "Valutazione inviata!",
     "ratingUpdated": "Valutazione aggiornata!",
     "removeError": "Rimozione valutazione fallita",
+    "removeRating": "Rimuovi la tua valutazione",
     "selectRating": "Seleziona una valutazione",
     "submitError": "Invio valutazione fallito",
     "submitRating": "Invia valutazione",

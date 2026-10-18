@@ -12,6 +12,7 @@
     "description": "配置用于图像分析的 AI 端点。端点按从上到下的顺序依次尝试。",
     "disabled": "已禁用",
     "error": "错误",
+    "fallbackName": "端点 {number}",
     "fields": {
       "name": "名称",
       "textModel": "文本模型",
@@ -19,10 +20,13 @@
       "visionModel": "视觉模型"
     },
     "modelsAvailable": "{count, plural, one {{count} 个可用模型} other {{count} 个可用模型}}",
+    "moveDown": "下移 {name}",
+    "moveUp": "上移 {name}",
     "noEndpoints": "未配置自定义端点。使用默认服务器设置。",
     "placeholders": {
       "name": "例如：本地 Ollama"
     },
+    "removeEndpoint": "移除 {name}",
     "testConnection": "测试连接",
     "testFailed": "测试端点失败",
     "textModels": "文本：{models}",

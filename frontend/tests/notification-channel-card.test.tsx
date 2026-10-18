@@ -53,6 +53,7 @@ describe('ChannelCard', () => {
     expect(screen.getByText('Mobile App Push')).toBeInTheDocument()
     expect(screen.getByText('Registered from the mobile app')).toBeInTheDocument()
     expect(screen.queryByText('ExponentPushToken[abc]')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete channel' })).toBeInTheDocument()
   })
 
   it.each([
@@ -69,6 +70,9 @@ describe('ChannelCard', () => {
     (locale, setting) => {
       const { container } = renderCard(locale, setting)
       expect(container.textContent).not.toMatch(/notifications\.channels/)
+      expect(screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'))).not.toContainEqual(
+        expect.stringMatching(/channels\./),
+      )
     },
   )
 })

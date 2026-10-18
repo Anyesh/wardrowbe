@@ -70,7 +70,9 @@
       "title": "Notes de la famille"
     },
     "imageRotated": "Image pivotée",
+    "nextItem": "Article suivant",
     "noImage": "Pas d'image",
+    "previousItem": "Article précédent",
     "rotateFailed": "Échec de la rotation de l'image",
     "rotateLeft": "Rotation à gauche",
     "rotateRight": "Rotation à droite",

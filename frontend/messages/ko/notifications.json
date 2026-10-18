@@ -7,6 +7,7 @@
     "channelDisabled": "채널 비활성화됨",
     "channelEnabled": "채널 활성화됨",
     "channelType": "채널 유형",
+    "deleteChannel": "알림 채널 삭제",
     "deleteConfirm": {
       "description": "이 알림 채널이 삭제되고 이 채널로 보내던 알림이 모두 중지돼요.",
       "title": "알림 채널을 삭제하시겠어요?"
@@ -74,6 +75,7 @@
       "description": "이 전송 일정이 삭제돼요.",
       "title": "일정을 삭제하시겠어요?"
     },
+    "deleteSchedule": "일정 삭제",
     "description": "매일 코디 추천을 받을 시간을 설정하세요",
     "dialogDescription": "코디 추천을 받을 시간을 설정하세요.",
     "noSchedules": "설정된 일정이 없어요",

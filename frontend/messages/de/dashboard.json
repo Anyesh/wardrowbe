@@ -31,6 +31,7 @@
   },
   "pendingOutfits": {
     "acceptFailed": "Outfit konnte nicht angenommen werden",
+    "acceptLabel": "Outfit annehmen",
     "accepted": "Outfit angenommen",
     "allCaughtUp": "Alles erledigt",
     "dismissFailed": "Outfit konnte nicht verworfen werden",

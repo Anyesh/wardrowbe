@@ -31,6 +31,7 @@
   },
   "pendingOutfits": {
     "acceptFailed": "Accettazione outfit fallita",
+    "acceptLabel": "Accetta outfit",
     "accepted": "Outfit accettato",
     "allCaughtUp": "Tutto aggiornato",
     "dismissFailed": "Impossibile ignorare l’outfit",

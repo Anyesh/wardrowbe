@@ -14,8 +14,10 @@
     "legendOnDemand": "On-demand",
     "legendScheduled": "Scheduled",
     "monthlyCount": "{count, plural, one {# outfit} other {# outfits}} this month",
+    "nextMonth": "Next month",
     "noOutfitsOnDay": "No outfits on this day",
     "outfitCount": "{count, plural, one {# outfit} other {# outfits}}",
+    "previousMonth": "Previous month",
     "weekDays": {
       "fri": "Fr",
       "mon": "Mo",

@@ -38,7 +38,9 @@
   "inviteCode": "초대 코드",
   "inviteCodeExample": "예: ABC123XY",
   "inviteCodeSection": {
+    "copyCode": "초대 코드 복사",
     "description": "가족 구성원에게 이 코드를 공유하여 참여하게 하세요",
+    "regenerateCode": "새 초대 코드 생성",
     "title": "초대 코드"
   },
   "inviteEmailPlaceholder": "email@example.com",
@@ -55,9 +57,11 @@
       "description": "{name}님을 가족에서 제거하시겠어요?",
       "title": "구성원을 제거하시겠어요?"
     },
+    "removeMember": "{name} 제거",
     "title": "구성원"
   },
   "pendingInvites": {
+    "cancelInvite": "{email} 초대 취소",
     "description": "아직 수락되지 않은 초대",
     "expires": "{date} 만료",
     "title": "대기 중인 초대"
@@ -68,6 +72,7 @@
     "ratingSubmitted": "평점이 제출되었어요!",
     "ratingUpdated": "평점이 업데이트되었어요!",
     "removeError": "평점 삭제 실패",
+    "removeRating": "내 평점 삭제",
     "selectRating": "평점을 선택해 주세요",
     "submitError": "평점 제출 실패",
     "submitRating": "평점 제출",
