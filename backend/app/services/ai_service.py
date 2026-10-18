@@ -79,6 +79,7 @@ TAGGING_PROMPT = render_tagging_prompt(load_prompt("clothing_analysis"))
 DESCRIPTION_PROMPT = load_prompt("clothing_description")
 DESCRIPTION_LANGUAGES = {
     "en": "English",
+    "en-GB": "British English",
     "zh-CN": "Simplified Chinese",
     "zh-TW": "Traditional Chinese",
     "ko": "Korean",
