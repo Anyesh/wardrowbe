@@ -25,6 +25,7 @@
     "estimatedHelp": "まだこの日程の予報がないため、季節の平均的な気温で作成しています。出発が近づいたら再確認してください。",
     "progress": "{total}点中{packed}点を詰めました",
     "rainDays": "{count, plural, =0 {雨の予報なし} other {雨の日 #日}}",
+    "rainUnknown": "雨は不明のため、雨具を入れています",
     "temperature": "{min}°〜{max}°",
     "underwear": "下着と靴下を{count}組持っていきましょう"
   },

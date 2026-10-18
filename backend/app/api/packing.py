@@ -80,7 +80,8 @@ class PackingResponse(BaseModel):
     estimated: bool
     temp_min: float
     temp_max: float
-    rain_days: int
+    # null when part of the trip lies beyond the forecast and rain is unknown.
+    rain_days: int | None
     forecast: list[PackingDayResponse]
     groups: list[PackingGroupResponse]
     missing_roles: list[str]
@@ -117,8 +118,9 @@ async def plan_packing(
         span = min(FORECAST_HORIZON_DAYS, (request.end_date - today).days + 1)
         try:
             forecast = await weather_service.get_daily_forecast(latitude, longitude, max(1, span))
-        except WeatherServiceError as e:
+        except (WeatherServiceError, ValueError, KeyError, TypeError) as e:
             # A seasonal estimate still gives a usable list; the response says it is estimated.
+            # The other errors are out-of-range coordinates or a malformed provider response.
             logger.warning(f"Forecast unavailable for packing: {e}")
 
     weather, season, groups = await PackingService(db).plan(

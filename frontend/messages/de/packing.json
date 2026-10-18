@@ -25,6 +25,7 @@
     "estimatedHelp": "Die Vorhersage reicht noch nicht bis zu diesen Tagen, daher nutzt die Liste typische Temperaturen der Jahreszeit. Kurz vor der Abreise erneut prüfen.",
     "progress": "{packed} von {total} gepackt",
     "rainDays": "{count, plural, =0 {Kein Regen erwartet} one {# Regentag} other {# Regentage}}",
+    "rainUnknown": "Regen unbekannt, eine Regenschicht ist dabei",
     "temperature": "{min}° bis {max}°",
     "underwear": "nimm {count} Garnituren Unterwäsche und Socken mit"
   },

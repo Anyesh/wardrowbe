@@ -25,6 +25,7 @@
     "estimatedHelp": "Les prévisions ne couvrent pas encore ces dates : la liste utilise les températures habituelles de la saison. Vérifie à nouveau avant le départ.",
     "progress": "{packed} sur {total} dans la valise",
     "rainDays": "{count, plural, =0 {Pas de pluie prévue} one {# jour de pluie} other {# jours de pluie}}",
+    "rainUnknown": "Pluie inconnue, une couche de pluie est prévue",
     "temperature": "de {min}° à {max}°",
     "underwear": "prévois {count} rechanges de sous-vêtements et chaussettes"
   },

@@ -70,7 +70,9 @@ function PlanView({ plan, laundry }: { plan: PackingPlan; laundry: boolean }) {
             </Badge>
             <Badge variant="secondary" className="gap-1">
               <CloudRain className="h-3 w-3" />
-              {t('summary.rainDays', { count: plan.rain_days })}
+              {plan.rain_days === null
+                ? t('summary.rainUnknown')
+                : t('summary.rainDays', { count: plan.rain_days })}
             </Badge>
             <Badge variant="outline">{seasonLabel(plan.season)}</Badge>
             {plan.estimated && <Badge variant="outline">{t('summary.estimated')}</Badge>}

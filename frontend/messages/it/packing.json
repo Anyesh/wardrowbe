@@ -25,6 +25,7 @@
     "estimatedHelp": "Le previsioni non arrivano ancora a queste date, quindi la lista usa le temperature tipiche della stagione. Ricontrolla vicino alla partenza.",
     "progress": "{packed} su {total} in valigia",
     "rainDays": "{count, plural, =0 {Niente pioggia prevista} one {# giorno di pioggia} other {# giorni di pioggia}}",
+    "rainUnknown": "Pioggia non prevedibile, c'è uno strato antipioggia",
     "temperature": "da {min}° a {max}°",
     "underwear": "porta {count} cambi di intimo e calze"
   },

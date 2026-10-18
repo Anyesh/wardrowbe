@@ -46,13 +46,19 @@ ROLE_ORDER = (
     "mid_layer",
     "base_top",
     "full_body",
+    "suit",
     "bottom",
+    "legwear",
     "footwear",
+    "socks",
+    "neckwear",
     "accessory",
 )
 COLD_ACCESSORY_TYPES = {"scarf", "hat"}
+# Occasions where a suit and a tie belong in the suitcase.
+FORMAL_OCCASIONS = {"formal", "office", "work", "business-casual", "interview", "wedding"}
 # Nice to have, not a gap: a wardrobe without dresses or scarves is not missing anything.
-OPTIONAL_ROLES = {"mid_layer", "full_body", "accessory"}
+OPTIONAL_ROLES = {"mid_layer", "full_body", "suit", "legwear", "socks", "neckwear", "accessory"}
 # WMO codes for drizzle, rain, showers and thunderstorms: a day forecast as rain counts as rainy
 # even when the reported chance is at or under RAIN_DAY_CHANCE.
 WET_CODES = set(range(51, 68)) | {80, 81, 82, 95, 96, 99}
@@ -62,7 +68,8 @@ WET_CODES = set(range(51, 68)) | {80, 81, 82, 95, 96, 99}
 class TripWeather:
     temp_min: float
     temp_max: float
-    rain_days: int
+    # None when some of the trip lies beyond the forecast: rain is unknown, not zero.
+    rain_days: int | None
     estimated: bool
     days: list[DailyForecast] = field(default_factory=list)
 
@@ -82,26 +89,44 @@ def is_wet(day: DailyForecast) -> bool:
     return day.precipitation_chance > RAIN_DAY_CHANCE or day.condition_code in WET_CODES
 
 
+def rain_possible(weather: TripWeather) -> bool:
+    """Rain in the forecast, or no forecast for part of the trip: pack for it."""
+    return weather.rain_days is None or weather.rain_days > 0
+
+
 def summarize_forecast(
     forecast: list[DailyForecast], start: date, end: date, season: str
 ) -> TripWeather:
     """Trip-wide extremes from the forecast days inside the trip, or a seasonal estimate when
-    the trip lies beyond the forecast horizon."""
+    the trip lies beyond the forecast horizon. A trip only partly covered by the forecast is an
+    estimate too: the seasonal range widens the extremes and, unless a forecast day is already
+    wet, rain stays unknown."""
     in_trip = [d for d in forecast if start.isoformat() <= d.date <= end.isoformat()]
+    low, high = SEASON_TEMPERATURES[season]
     if not in_trip:
-        low, high = SEASON_TEMPERATURES[season]
-        return TripWeather(temp_min=low, temp_max=high, rain_days=0, estimated=True)
+        return TripWeather(temp_min=low, temp_max=high, rain_days=None, estimated=True)
+    covered = len({d.date for d in in_trip}) >= trip_length(start, end)
+    temp_min = min(d.temp_min for d in in_trip)
+    temp_max = max(d.temp_max for d in in_trip)
+    rain_days: int | None = sum(1 for d in in_trip if is_wet(d))
+    if not covered:
+        temp_min, temp_max = min(temp_min, low), max(temp_max, high)
+        rain_days = rain_days or None
     return TripWeather(
-        temp_min=min(d.temp_min for d in in_trip),
-        temp_max=max(d.temp_max for d in in_trip),
-        rain_days=sum(1 for d in in_trip if is_wet(d)),
-        estimated=False,
+        temp_min=temp_min,
+        temp_max=temp_max,
+        rain_days=rain_days,
+        estimated=not covered,
         days=in_trip,
     )
 
 
 def plan_quantities(
-    days: int, weather: TripWeather, laundry: bool, preferences: UserPreference | None
+    days: int,
+    weather: TripWeather,
+    laundry: bool,
+    preferences: UserPreference | None,
+    occasion: str = "travel",
 ) -> dict[str, int]:
     """Pieces per role. With laundry available a few days' worth is enough."""
     cold_threshold, hot_threshold = _resolve_temp_thresholds(preferences)
@@ -110,14 +135,21 @@ def plan_quantities(
     cold = weather.temp_min < cold_threshold
     cool_evenings = weather.temp_min < cold_threshold + 6
     hot = weather.temp_min > hot_threshold - 4
+    wet = rain_possible(weather)
+    formal = occasion in FORMAL_OCCASIONS
 
     plan = {
         "base_top": tops,
         "bottom": max(1, math.ceil(tops / 3)),
         "full_body": 1 if days >= 3 else 0,
-        "footwear": 2 if days > 3 or weather.rain_days > 0 else 1,
+        "suit": 1 if formal else 0,
+        "footwear": 2 if days > 3 or wet else 1,
+        "socks": tops,
+        "legwear": 1 if cold else 0,
+        "neckwear": 1 if formal else 0,
         "mid_layer": 1 if cool_evenings else 0,
-        "outer_layer": 1 if (cool_evenings or weather.rain_days > 0) and not hot else 0,
+        # Rain calls for a layer even on a hot trip (a light rain jacket).
+        "outer_layer": 1 if (cool_evenings and not hot) or wet else 0,
         "accessory": 2 if cold else 0,
     }
     return plan
@@ -165,12 +197,13 @@ def packing_score(
         )
         if weather.temp_min < cold_threshold:
             score *= 1.3 if heavy or item_type in HEAVY_LAYER_TYPES else 0.8
-        elif weather.rain_days and item_type in RAIN_LAYER_TYPES:
+        elif rain_possible(weather) and item_type in RAIN_LAYER_TYPES:
             score *= 1.15
-    if ITEM_ROLE.get(item_type) == "accessory" and item_type not in COLD_ACCESSORY_TYPES:
-        score *= 0.3
     if item.favorite:
         score *= 1.1
+    # Still packable (it can be washed before leaving), but a clean piece comes first.
+    if item.needs_wash:
+        score *= 0.6
     return score
 
 
@@ -184,8 +217,12 @@ def choose_items(
 ) -> list[PackingGroup]:
     by_role: dict[str, list[tuple[float, ClothingItem]]] = {role: [] for role in ROLE_ORDER}
     for item in items:
-        role = ITEM_ROLE.get((item.type or "").lower())
+        item_type = (item.type or "").lower()
+        role = ITEM_ROLE.get(item_type)
         if role not in by_role:
+            continue
+        # Accessories are only planned for the cold: a belt or a bag cannot stand in for a hat.
+        if role == "accessory" and item_type not in COLD_ACCESSORY_TYPES:
             continue
         score = packing_score(item, weather, season, occasion, preferences)
         if score >= MIN_PACKING_SCORE:
@@ -237,8 +274,11 @@ class PackingService:
         season = get_season(start.month, latitude)
         weather = summarize_forecast(forecast, start, end, season)
         preferences = await self.preferences(user)
-        quantities = plan_quantities(trip_length(start, end), weather, laundry, preferences)
-        groups = choose_items(
-            await self.wardrobe(user), quantities, weather, season, occasion, preferences
+        quantities = plan_quantities(
+            trip_length(start, end), weather, laundry, preferences, occasion
         )
+        # Pieces the user excluded from recommendations stay out of the suitcase too.
+        excluded = {str(i) for i in (preferences.excluded_item_ids or [])} if preferences else set()
+        items = [i for i in await self.wardrobe(user) if str(i.id) not in excluded]
+        groups = choose_items(items, quantities, weather, season, occasion, preferences)
         return weather, season, groups

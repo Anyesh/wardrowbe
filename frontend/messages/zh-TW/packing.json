@@ -25,6 +25,7 @@
     "estimatedHelp": "天氣預報尚未涵蓋這些日期，清單依該季節的常見氣溫產生。臨近出發時請再檢查一次。",
     "progress": "已打包 {packed}/{total}",
     "rainDays": "{count, plural, =0 {預計無雨} other {# 個雨天}}",
+    "rainUnknown": "降雨未知，已備防雨外層",
     "temperature": "{min}° 至 {max}°",
     "underwear": "帶上 {count} 套內衣和襪子"
   },

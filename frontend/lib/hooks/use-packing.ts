@@ -39,7 +39,8 @@ export interface PackingPlan {
   estimated: boolean;
   temp_min: number;
   temp_max: number;
-  rain_days: number;
+  // null when part of the trip lies beyond the forecast: rain is unknown.
+  rain_days: number | null;
   forecast: PackingDay[];
   groups: PackingGroup[];
   missing_roles: string[];

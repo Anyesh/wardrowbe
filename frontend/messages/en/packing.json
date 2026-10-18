@@ -25,6 +25,7 @@
     "estimatedHelp": "The forecast doesn't reach these dates yet, so the list uses typical temperatures for the season. Check again closer to departure.",
     "progress": "{packed} of {total} packed",
     "rainDays": "{count, plural, =0 {No rain expected} one {# rainy day} other {# rainy days}}",
+    "rainUnknown": "Rain unknown, a rain layer is packed",
     "temperature": "{min}° to {max}°",
     "underwear": "bring {count} changes of underwear and socks"
   },
