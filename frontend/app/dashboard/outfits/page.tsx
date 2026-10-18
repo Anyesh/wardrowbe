@@ -27,6 +27,7 @@ import {
 import { cn, formatDateKey, formatShortDate, parseDateString } from '@/lib/utils';
 import { useOccasionsMatching } from '@/lib/hooks/use-translated-constants';
 import { useUserToday } from '@/lib/hooks/use-user';
+import { useAiUiEnabled } from '@/lib/hooks/use-features';
 import { GRID_PAGE_SIZE } from '@/lib/pagination';
 
 interface MonthRef {
@@ -141,9 +142,14 @@ function OutfitsPageContent() {
   const searchParams = useSearchParams();
   const rawFilter = (searchParams.get('filter') as FilterChip) || 'all';
   const urlView: ViewMode = searchParams.get('view') === 'calendar' ? 'calendar' : 'list';
+  const aiUiEnabled = useAiUiEnabled();
   const urlFilter: FilterChip =
-    urlView === 'calendar' && rawFilter === 'my-looks' ? 'all' : rawFilter;
+    (urlView === 'calendar' && rawFilter === 'my-looks') ||
+    (aiUiEnabled === false && rawFilter === 'pairings')
+      ? 'all'
+      : rawFilter;
   const chip: FilterChip = urlFilter;
+  const chips = CHIP_ORDER.filter((c) => aiUiEnabled || c !== 'pairings');
   const view: ViewMode = urlView;
   const urlMonth = parseMonthParam(searchParams.get('month'));
 
@@ -460,7 +466,7 @@ function OutfitsPageContent() {
       {view === 'list' && (
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex flex-wrap gap-2">
-          {CHIP_ORDER.map((c) => (
+          {chips.map((c) => (
             <button
               key={c}
               type="button"

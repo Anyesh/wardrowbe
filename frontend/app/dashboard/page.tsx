@@ -42,12 +42,14 @@ import { toast } from 'sonner';
 import { formatShortDate } from '@/lib/utils';
 import { findNextSchedule } from '@/lib/schedules';
 import { useUserTimezone } from '@/lib/hooks/use-user';
+import { useAiUiEnabled } from '@/lib/hooks/use-features';
 
 function WeatherCard() {
   const { data: weather, isLoading, isError } = useWeather();
   const { data: prefs } = usePreferences();
   const t = useTranslations('dashboard');
   const conditionLabel = useWeatherConditionLabel();
+  const aiUiEnabled = useAiUiEnabled();
   const unit: TempUnit = prefs?.temperature_unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
 
   if (isLoading) {
@@ -112,12 +114,14 @@ function WeatherCard() {
             {t('weather.rainChance', { percent: weather.precipitation_chance })}
           </p>
         )}
-        <Button size="sm" className="w-full mt-3" asChild>
-          <Link href="/dashboard/suggest">
-            <Sparkles className="h-4 w-4 mr-1" />
-            {t('weather.getOutfitSuggestion')}
-          </Link>
-        </Button>
+        {aiUiEnabled && (
+          <Button size="sm" className="w-full mt-3" asChild>
+            <Link href="/dashboard/suggest">
+              <Sparkles className="h-4 w-4 mr-1" />
+              {t('weather.getOutfitSuggestion')}
+            </Link>
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -584,6 +588,7 @@ function FamilyFeedCard() {
 
 function QuickActionsCard() {
   const t = useTranslations('dashboard');
+  const aiUiEnabled = useAiUiEnabled();
 
   return (
     <Card>
@@ -598,12 +603,14 @@ function QuickActionsCard() {
             {t('quickActions.addNewItem')}
           </Link>
         </Button>
-        <Button asChild variant="outline" className="w-full justify-start">
-          <Link href="/dashboard/suggest">
-            <Sparkles className="mr-2 h-4 w-4" />
-            {t('quickActions.getOutfitSuggestion')}
-          </Link>
-        </Button>
+        {aiUiEnabled && (
+          <Button asChild variant="outline" className="w-full justify-start">
+            <Link href="/dashboard/suggest">
+              <Sparkles className="mr-2 h-4 w-4" />
+              {t('quickActions.getOutfitSuggestion')}
+            </Link>
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
