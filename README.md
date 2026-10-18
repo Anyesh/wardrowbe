@@ -171,7 +171,8 @@ If nothing fills in suggestions or pairings for you (no internal AI and no exter
 agent), set `AI_UI_ENABLED=false` on the backend as well. The web app then hides
 Suggest, Pairings and AI Learning from the navigation, sends those pages back to the
 dashboard, and drops the AI buttons (suggest, generate pairings, re-analyze, the
-analysis queue and the AI endpoint settings), while adding, editing and wearing
+analysis queue, "Let AI finish" in the outfit builder and the AI endpoint
+settings), while adding, editing and wearing
 items and building outfits by hand all keep working. It is read at runtime, so no
 frontend rebuild is needed, and it is independent of `AI_INTERNAL_ENABLED`; it
 defaults to `true`.
