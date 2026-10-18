@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { X, Home, Shirt, Sparkles, Layers, LayoutGrid, History, BarChart3, Brain, Settings, Users, Bell, HeartHandshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isAiRoute } from '@/lib/ai-routes';
+import { useAiUiEnabled } from '@/lib/hooks/use-features';
 import { useTranslations } from 'next-intl';
 
 interface MobileSidebarProps {
@@ -15,6 +17,7 @@ interface MobileSidebarProps {
 export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
   const pathname = usePathname();
   const t = useTranslations('nav');
+  const aiUiEnabled = useAiUiEnabled();
 
   const navigation = [
     { name: t('dashboard'), href: '/dashboard', icon: Home },
@@ -26,7 +29,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
     { name: t('familyFeed'), href: '/dashboard/family/feed', icon: HeartHandshake },
     { name: t('analytics'), href: '/dashboard/analytics', icon: BarChart3 },
     { name: t('aiLearning'), href: '/dashboard/learning', icon: Brain },
-  ];
+  ].filter((item) => aiUiEnabled || !isAiRoute(item.href));
 
   const secondaryNavigation = [
     { name: t('family'), href: '/dashboard/family', icon: Users },

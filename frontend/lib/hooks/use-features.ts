@@ -11,6 +11,7 @@ interface Features {
   background_removal: boolean;
   max_upload_size_mb: number;
   max_bulk_upload_count?: number;
+  ai_ui_enabled?: boolean;
 }
 
 // An upload waits on this request before its first chunk, so a server that never answers
@@ -41,6 +42,16 @@ export function useFeatures() {
   applySessionToken(session);
 
   return useQuery({ ...featuresQuery, enabled: status !== 'loading' });
+}
+
+// undefined until the features call answers, so a disabled install never flashes AI UI.
+// A failed call or a backend too old to send the flag counts as on, so a default
+// install never loses AI UI to a features outage.
+export function useAiUiEnabled(): boolean | undefined {
+  const { data, isError } = useFeatures();
+  if (isError) return true;
+  if (!data) return undefined;
+  return data.ai_ui_enabled !== false;
 }
 
 // null means "unknown": callers fall back to learning the limit from the
