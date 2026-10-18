@@ -99,6 +99,11 @@ jobs:
     name: Publish ${{ matrix.service }}
     needs: build
     runs-on: ubuntu-latest
+    # queue: max keeps every waiting run, because the default cancels a pending
+    # one and a cancelled release run would never publish its version tags.
+    concurrency:
+      group: docker-publish-${{ matrix.service }}
+      queue: max
     permissions:
       contents: read
       packages: write
@@ -109,6 +114,10 @@ jobs:
         service: [backend, frontend]
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -143,9 +152,14 @@ jobs:
             version="$INPUT_VERSION"
           else
             version="${TAG#*-}"
-            version="${version#v}"
           fi
+          version="${version#v}"
           echo "RELEASE_VERSION=${version}" >> "$GITHUB_ENV"
+
+      - name: Decide which moving tags this run may move
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/moving_image_tags.sh "${{ steps.image.outputs.name }}" "${{ matrix.service }}"
 
       # metadata-action lowercases the image because GHCR rejects capitalized
       # owners (e.g. "Anyesh") and derives the full tag set from the event.
@@ -163,10 +177,10 @@ jobs:
           tags: |
             type=sha,format=long,prefix=${{ matrix.service }}-sha-
             type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},prefix=${{ matrix.service }}-
-            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},prefix=${{ matrix.service }}-
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.MOVE_MINOR == 'true' }},prefix=${{ matrix.service }}-
             type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},suffix=-${{ matrix.service }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},suffix=-${{ matrix.service }}
-            type=raw,value=${{ matrix.service }}-latest
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.MOVE_MINOR == 'true' }},suffix=-${{ matrix.service }}
+            type=raw,value=${{ matrix.service }}-latest,enable=${{ env.MOVE_LATEST == 'true' }}
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
@@ -175,6 +189,7 @@ jobs:
         run: |
           # shellcheck disable=SC2046 # word splitting is intentional: expands to multiple -t flags / digest args
           docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.revision=${GITHUB_SHA}" \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf "$IMAGE@sha256:%s " *)
 
