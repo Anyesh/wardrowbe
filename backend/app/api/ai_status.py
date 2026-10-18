@@ -24,9 +24,26 @@ class AIStatusResponse(BaseModel):
 
 
 def _matches(model: str, available: list[str]) -> bool:
-    # Ollama lists "name:tag"; a configured name without a tag means ":latest".
-    candidates = {model, model if ":" in model else f"{model}:latest"}
-    return any(name in candidates for name in available)
+    """A configured model setting is there when any of its models is: the setting can be a
+    comma-separated rotation, and Ollama lists "name:tag" (no tag means ":latest")."""
+    for choice in (part.strip() for part in model.split(",")):
+        if not choice:
+            continue
+        candidates = {choice, choice if ":" in choice else f"{choice}:latest"}
+        if any(name in candidates for name in available):
+            return True
+    return False
+
+
+def _wanted(vision_model: str | None, text_model: str | None) -> list[str]:
+    """The models in use: a capability that is switched off cannot be missing."""
+    settings = get_settings()
+    wanted = []
+    if vision_model and settings.effective_ai_vision_enabled:
+        wanted.append(vision_model)
+    if text_model and settings.effective_ai_text_enabled:
+        wanted.append(text_model)
+    return wanted
 
 
 def summarize(raw: dict) -> AIStatusResponse:
@@ -41,7 +58,7 @@ def summarize(raw: dict) -> AIStatusResponse:
         )
     endpoint = healthy[0]
     available = endpoint.get("available_models") or []
-    wanted = [m for m in (endpoint.get("vision_model"), endpoint.get("text_model")) if m]
+    wanted = _wanted(endpoint.get("vision_model"), endpoint.get("text_model"))
     missing = sorted({m for m in wanted if not _matches(m, available)})
     return AIStatusResponse(
         status="model_missing" if missing else "online",

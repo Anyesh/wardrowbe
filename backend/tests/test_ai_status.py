@@ -6,6 +6,7 @@ from httpx import AsyncClient
 from PIL import Image
 
 from app.api import ai_status
+from app.config import get_settings
 
 
 def _jpeg() -> bytes:
@@ -53,10 +54,46 @@ class TestAIStatus:
             "status": "unhealthy",
             "endpoints": [{"status": "unhealthy", "vision_model": "m", "text_model": "m"}],
         }
-        with patch(
-            "app.services.ai_service.AIService.check_health", AsyncMock(return_value=health)
+        check = AsyncMock(return_value=health)
+        with (
+            patch.object(type(get_settings()), "ai_enabled", property(lambda self: True)),
+            patch("app.services.ai_service.AIService.check_health", check),
         ):
             response = await client.get("/api/v1/ai/status", headers=auth_headers)
         ai_status._cache.clear()
         assert response.status_code == 200
-        assert response.json()["status"] in ("offline", "disabled")
+        assert response.json()["status"] == "offline"
+        check.assert_awaited_once()
+
+    def test_a_rotation_is_there_when_any_of_its_models_is(self):
+        health = {
+            "endpoints": [
+                {
+                    "status": "healthy",
+                    "vision_model": "llava:7b, gemma3",
+                    "text_model": "gemma3",
+                    "available_models": ["gemma3:latest"],
+                }
+            ]
+        }
+        assert ai_status.summarize(health).status == "online"
+
+    def test_a_switched_off_capability_cannot_be_missing(self):
+        health = {
+            "endpoints": [
+                {
+                    "status": "healthy",
+                    "vision_model": "not-installed",
+                    "text_model": "gemma3",
+                    "available_models": ["gemma3:latest"],
+                }
+            ]
+        }
+        settings = type(get_settings())
+        with (
+            patch.object(settings, "effective_ai_vision_enabled", property(lambda self: False)),
+            patch.object(settings, "effective_ai_text_enabled", property(lambda self: True)),
+        ):
+            result = ai_status.summarize(health)
+        assert result.status == "online"
+        assert result.missing_models == []
