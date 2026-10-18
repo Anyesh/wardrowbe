@@ -190,17 +190,18 @@ UPLOAD_BACKGROUND = "#FFFFFF"
 
 
 async def _queue_upload_processing(
-    redis, item: ClothingItem, full_image_path: str, remove_background: bool
+    redis, item: ClothingItem, full_image_path: str, remove_background: bool, tag: bool = True
 ):
     """Tagging for a new upload, preceded by background removal when the upload asked for it:
-    the image worker cleans the photo first and then queues the tagging itself."""
+    the image worker cleans the photo first and then queues the tagging itself. Without
+    tagging (AI off or skipped) the removal still runs, and the worker marks the item ready."""
     if remove_background:
         item.processing_kind = ProcessingKind.background_removal
         return await redis.enqueue_job(
             "remove_item_background_job",
             str(item.id),
             UPLOAD_BACKGROUND,
-            full_image_path,
+            full_image_path if tag else None,
             _queue_name=IMAGE_QUEUE,
         )
     return await redis.enqueue_job(
@@ -291,7 +292,8 @@ async def create_item(
 
     do_auto_tag = settings.effective_ai_vision_enabled and not skip_ai
 
-    if do_auto_tag:
+    # Background removal is not AI tagging: it runs when asked for even with tagging off.
+    if do_auto_tag or remove_background:
         # Commit before enqueuing: the worker runs in another process on its own
         # connection, so a job handed over while this transaction is still open
         # dequeues against a row it cannot see.
@@ -301,16 +303,19 @@ async def create_item(
             try:
                 full_image_path = str(image_service.get_image_path(image_paths["image_path"]))
                 job = await _queue_upload_processing(
-                    redis, item, full_image_path, remove_background
+                    redis, item, full_image_path, remove_background, tag=do_auto_tag
                 )
                 item.ai_job_id = job.job_id
                 await db.commit()
                 await db.refresh(item, attribute_names=["updated_at"])
-                logger.info(f"Queued AI tagging job for item {item.id}")
+                logger.info(f"Queued upload processing for item {item.id}")
             finally:
                 await redis.aclose()
         except Exception as e:
-            logger.error(f"Failed to queue AI tagging job: {e}")
+            logger.error(f"Failed to queue upload processing: {e}")
+            if not do_auto_tag:
+                # Nothing else would ever move it out of processing.
+                item = await item_service.mark_pending(item, set_ready=True)
     else:
         item = await item_service.mark_pending(item, set_ready=True)
 
@@ -364,9 +369,11 @@ async def bulk_create_items(
     user_id = current_user.id
 
     do_auto_tag = settings.effective_ai_vision_enabled and not skip_ai
+    # Background removal is not AI tagging: it runs when asked for even with tagging off.
+    queue_jobs = do_auto_tag or remove_background
 
     redis = None
-    if do_auto_tag:
+    if queue_jobs:
         try:
             redis = await create_pool(get_redis_settings())
         except Exception as e:
@@ -459,7 +466,7 @@ async def bulk_create_items(
                     upload_key=upload_key,
                 )
 
-                if not do_auto_tag:
+                if not queue_jobs or (redis is None and not do_auto_tag):
                     item = await item_service.mark_pending(item, set_ready=True)
                 elif redis:
                     # Commit per item before handing the job over. Batching the
@@ -472,14 +479,16 @@ async def bulk_create_items(
                             image_service.get_image_path(image_paths["image_path"])
                         )
                         job = await _queue_upload_processing(
-                            redis, item, full_image_path, remove_background
+                            redis, item, full_image_path, remove_background, tag=do_auto_tag
                         )
                         item.ai_job_id = job.job_id
                         await db.commit()
                         await db.refresh(item, attribute_names=["updated_at"])
-                        logger.info(f"Queued AI tagging for bulk item {item.id}")
+                        logger.info(f"Queued upload processing for bulk item {item.id}")
                     except Exception as e:
-                        logger.error(f"Failed to queue AI tagging for {item.id}: {e}")
+                        logger.error(f"Failed to queue upload processing for {item.id}: {e}")
+                        if not do_auto_tag:
+                            item = await item_service.mark_pending(item, set_ready=True)
 
                 results.append(
                     BulkUploadResult(
