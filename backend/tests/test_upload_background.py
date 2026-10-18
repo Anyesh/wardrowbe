@@ -77,7 +77,33 @@ class TestUploadQueuesRemovalFirst:
                 headers=auth_headers,
             )
         assert response.status_code == 201
-        assert redis.enqueue_job.call_args.args[0] == "tag_item_image"
+        redis.enqueue_job.assert_called_once()
+        name, _, path = redis.enqueue_job.call_args.args
+        assert name == "tag_item_image"
+        assert path.endswith(".jpg")
+        assert redis.enqueue_job.call_args.kwargs["_queue_name"] == "arq:tagging"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "endpoint,field", [("/api/v1/items", "image"), ("/api/v1/items/bulk", "images")]
+    )
+    async def test_removal_runs_without_tagging(
+        self, client: AsyncClient, auth_headers, endpoint, field
+    ):
+        # Tagging skipped: the background still goes, and the worker is told not to tag.
+        redis = _redis()
+        with patch("app.api.items.create_pool", AsyncMock(return_value=redis)):
+            response = await client.post(
+                endpoint,
+                files=[(field, ("shirt.jpg", _jpeg(), "image/jpeg"))],
+                data={"remove_background": "true", "skip_ai": "true"},
+                headers=auth_headers,
+            )
+        assert response.status_code == 201, response.json()
+        redis.enqueue_job.assert_called_once()
+        name, _, _, then_tag = redis.enqueue_job.call_args.args
+        assert name == "remove_item_background_job"
+        assert then_tag is None
 
 
 class TestWorkerChainsTagging:

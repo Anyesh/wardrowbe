@@ -10,11 +10,12 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage
 
-# Less opaque area than this and the model lost the garment altogether.
-MIN_COVERAGE = 0.02
+# Less opaque area than this and the model lost the garment altogether. Low enough for a
+# ring or an earring photographed from a distance (0.5% of a 12 MP photo is 60,000 pixels).
+MIN_COVERAGE = 0.005
 # Pieces smaller than this share of the biggest one are background specks. Generous
-# enough that the second shoe of a pair or a sock is always kept.
-KEEP_RATIO = 0.05
+# enough that the second shoe of a pair, a sock, a strap or a detached hood is kept.
+KEEP_RATIO = 0.02
 # Holes up to this share of the garment are fabric the model missed; bigger ones are
 # real openings, such as the space inside a bag handle.
 MAX_HOLE_RATIO = 0.10
