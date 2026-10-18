@@ -3,5 +3,6 @@
   "downloaded": "Bild gespeichert",
   "error": "Das Bild konnte nicht erstellt werden.",
   "footer": "Erstellt mit Wardrowbe",
+  "missingPhotos": "Einige Fotos konnten nicht geladen werden, daher wurde kein Bild erstellt.",
   "title": "Outfit: {occasion}"
 }

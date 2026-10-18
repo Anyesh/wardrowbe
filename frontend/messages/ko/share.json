@@ -3,5 +3,6 @@
   "downloaded": "이미지를 저장했어요",
   "error": "이미지를 만들지 못했어요.",
   "footer": "Wardrowbe로 만들었어요",
+  "missingPhotos": "일부 사진을 불러오지 못해 이미지를 만들지 않았어요.",
   "title": "{occasion} 코디"
 }

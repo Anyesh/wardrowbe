@@ -3,5 +3,6 @@
   "downloaded": "画像を保存しました",
   "error": "画像を作成できませんでした。",
   "footer": "Wardrowbeで作成",
+  "missingPhotos": "読み込めない写真があったため、画像を作成しませんでした。",
   "title": "{occasion}のコーデ"
 }

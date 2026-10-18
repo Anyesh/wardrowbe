@@ -7,6 +7,17 @@ const MARGIN = 48;
 const GAP = 24;
 const HEADER = 150;
 const FOOTER = 70;
+// Nine tiles at most; a longer outfit shows eight photos and a "+N" tile for the rest.
+const MAX_TILES = 9;
+
+/** Some photos could not be loaded (often an expired link): the picture would be missing
+ * pieces, so nothing is exported. */
+export class MissingPhotosError extends Error {
+  constructor(readonly missing: number) {
+    super(`${missing} photo(s) could not be loaded`);
+    this.name = 'MissingPhotosError';
+  }
+}
 
 export interface CollageText {
   title: string;
@@ -59,11 +70,16 @@ export async function renderOutfitCollage(imageUrls: string[], text: CollageText
     ctx.fillText(text.subtitle, MARGIN, MARGIN + 100, WIDTH - 2 * MARGIN);
   }
 
-  const images = (await Promise.all(imageUrls.slice(0, 9).map(loadImage))).filter(
-    (image): image is HTMLImageElement => image !== null
-  );
-  const columns = columnsFor(images.length);
-  const rows = Math.max(1, Math.ceil(images.length / columns));
+  if (imageUrls.length === 0) throw new MissingPhotosError(0);
+  const overflow = imageUrls.length > MAX_TILES ? imageUrls.length - (MAX_TILES - 1) : 0;
+  const shown = overflow ? imageUrls.slice(0, MAX_TILES - 1) : imageUrls;
+  const loaded = await Promise.all(shown.map(loadImage));
+  const missing = loaded.filter((image) => image === null).length;
+  if (missing) throw new MissingPhotosError(missing);
+  const images = loaded as HTMLImageElement[];
+  const tiles = images.length + (overflow ? 1 : 0);
+  const columns = columnsFor(tiles);
+  const rows = Math.max(1, Math.ceil(tiles / columns));
   const areaTop = MARGIN + HEADER;
   const areaHeight = HEIGHT - areaTop - FOOTER - MARGIN;
   const cellW = (WIDTH - 2 * MARGIN - (columns - 1) * GAP) / columns;
@@ -83,6 +99,22 @@ export async function renderOutfitCollage(imageUrls: string[], text: CollageText
     ctx.drawImage(image, x + (cellW - w) / 2, y + (cellH - h) / 2, w, h);
     ctx.restore();
   });
+
+  if (overflow) {
+    const index = images.length;
+    const x = MARGIN + (index % columns) * (cellW + GAP);
+    const y = areaTop + Math.floor(index / columns) * (cellH + GAP);
+    roundedRect(ctx, x, y, cellW, cellH, 28);
+    ctx.fillStyle = '#e7e4dd';
+    ctx.fill();
+    ctx.fillStyle = '#444444';
+    ctx.font = '600 72px system-ui, -apple-system, Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`+${overflow}`, x + cellW / 2, y + cellH / 2);
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
+  }
 
   ctx.fillStyle = '#9a9a9a';
   ctx.font = '500 28px system-ui, -apple-system, Segoe UI, sans-serif';

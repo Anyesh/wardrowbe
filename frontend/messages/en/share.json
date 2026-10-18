@@ -3,5 +3,6 @@
   "downloaded": "Picture saved",
   "error": "Could not create the picture.",
   "footer": "Made with Wardrowbe",
+  "missingPhotos": "Some photos could not be loaded, so the picture was not made.",
   "title": "{occasion} outfit"
 }
