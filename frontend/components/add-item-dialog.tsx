@@ -39,6 +39,7 @@ import { useCreateItem, useBulkCreateItems, BulkUploadResponse } from '@/lib/hoo
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
 import { ACCEPTED_IMAGE_TYPES } from '@/lib/image-types';
 import { useTranslations } from 'next-intl';
+import { useAiUiEnabled } from '@/lib/hooks/use-features';
 
 interface AddItemDialogProps {
   open: boolean;
@@ -56,6 +57,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
+  const aiUiEnabled = useAiUiEnabled();
   // Single upload state
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -311,7 +313,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                   <Label htmlFor="type">{t('typeLabel')}</Label>
                   <Select value={type} onValueChange={setType}>
                     <SelectTrigger>
-                      <SelectValue placeholder={t('letAiDetect')} />
+                      <SelectValue placeholder={aiUiEnabled ? t('letAiDetect') : t('selectPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {clothingTypes.map((ct) => (
@@ -462,20 +464,24 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                       </div>
                     </ScrollArea>
 
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="skip-ai"
-                        checked={skipAi}
-                        onCheckedChange={(checked) => setSkipAi(checked === true)}
-                      />
-                      <Label htmlFor="skip-ai" className="text-xs font-normal text-muted-foreground">
-                        {t('bulk.skipAi')}
-                      </Label>
-                    </div>
-                    {!skipAi && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('bulk.hint')}
-                      </p>
+                    {aiUiEnabled && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="skip-ai"
+                            checked={skipAi}
+                            onCheckedChange={(checked) => setSkipAi(checked === true)}
+                          />
+                          <Label htmlFor="skip-ai" className="text-xs font-normal text-muted-foreground">
+                            {t('bulk.skipAi')}
+                          </Label>
+                        </div>
+                        {!skipAi && (
+                          <p className="text-xs text-muted-foreground">
+                            {t('bulk.hint')}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 )}

@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import OutfitsPage from '@/app/dashboard/outfits/page'
+import { AddItemDialog } from '@/components/add-item-dialog'
 import { ItemDetailDialog } from '@/components/item-detail-dialog'
 import { DetailsPanel } from '@/components/studio/details-panel'
 import { api } from '@/lib/api'
@@ -64,6 +65,13 @@ describe.each([true, false])('AI controls with ai_ui_enabled=%s', (aiUiEnabled) 
     expectShown(screen.queryByTitle('titles.findMatchingOutfits'))
     expectShown(screen.queryByTitle('titles.reanalyzeWithAI'))
     expect(screen.getByRole('button', { name: 'actions.logWear' })).toBeInTheDocument()
+  })
+
+  it('add item type picker offers AI detection only when the switch is on', () => {
+    renderWithAiUi(<AddItemDialog open onOpenChange={() => {}} />, aiUiEnabled)
+
+    expectShown(screen.queryByText('letAiDetect'))
+    expect(screen.getAllByText('selectPlaceholder')).toHaveLength(aiUiEnabled ? 1 : 2)
   })
 
   it('outfit builder AI button follows the switch', () => {
