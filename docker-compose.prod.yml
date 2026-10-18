@@ -148,7 +148,7 @@ services:
       <<: *backend-env
       IMAGE_WORKER_CONCURRENCY: ${IMAGE_WORKER_CONCURRENCY:-1}
       BG_REMOVAL_PROVIDER: ${BG_REMOVAL_PROVIDER:-rembg}
-      BG_REMOVAL_MODEL: ${BG_REMOVAL_MODEL:-u2net}
+      BG_REMOVAL_MODEL: ${BG_REMOVAL_MODEL:-birefnet-general-lite}
       BG_REMOVAL_URL: ${BG_REMOVAL_URL:-}
       BG_REMOVAL_API_KEY: ${BG_REMOVAL_API_KEY:-}
     volumes:

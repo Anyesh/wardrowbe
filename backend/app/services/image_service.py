@@ -11,6 +11,7 @@ from pillow_heif import register_heif_opener
 
 from app.config import get_settings
 from app.services import background_removal
+from app.services.mask_cleanup import clean_cutout
 
 settings = get_settings()
 
@@ -260,14 +261,18 @@ class ImageService:
 
         backup_path = f"{base_path}_orig.jpg"
         backup_full = self.storage_path / backup_path
+        # A second removal starts again from the true original, so redoing a bad
+        # cut-out does not cut a cut-out.
+        source_full = backup_full if backup_full.exists() else original_full
+
+        image = Image.open(source_full).convert("RGB")
+        provider = background_removal.get_provider()
+        result = clean_cutout(image, provider.remove(image))
+
         # First removal wins: a second removal must not overwrite the true
         # original with an already-processed image
         if not backup_full.exists():
             shutil.copy2(original_full, backup_full)
-
-        image = Image.open(original_full).convert("RGB")
-        provider = background_removal.get_provider()
-        result = provider.remove(image)
 
         # Composite onto solid color background
         background = Image.new("RGBA", result.size, (*bg_color, 255))
@@ -309,5 +314,12 @@ class ImageService:
         image = _flatten_to_rgb(Image.open(original_full))
 
         rotated = image.rotate(angle, expand=True)
+
+        # The background-removal backup turns with the photo, so undoing or redoing
+        # the removal later keeps the rotation.
+        backup_full = self.storage_path / f"{image_path.rsplit('.', 1)[0]}_orig.jpg"
+        if backup_full.exists():
+            backup = _flatten_to_rgb(Image.open(backup_full)).rotate(angle, expand=True)
+            backup.save(backup_full, "JPEG", quality=95)
 
         return self._save_all_sizes(rotated, image_path)

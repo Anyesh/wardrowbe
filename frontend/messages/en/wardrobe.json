@@ -45,7 +45,9 @@
     "subtitle": "Upload photos of your clothing items",
     "title": "Add Items",
     "typeLabel": "Type (AI will detect if empty)",
-    "uploading": "Uploading..."
+    "uploading": "Uploading...",
+    "removeBackground": "Remove the background automatically",
+    "removeBackgroundHint": "The photo is cleaned up before the AI catalogues it."
   },
   "ai": {
     "analysisFailed": "Analysis Failed",
