@@ -56,6 +56,20 @@ def test_defaults_keep_internal_ai_on():
     assert settings.ai_enabled is True
 
 
+@pytest.mark.parametrize("internal", [True, False])
+def test_ai_ui_stays_on_whatever_the_capability_switches_say(monkeypatch, internal):
+    monkeypatch.delenv("AI_UI_ENABLED", raising=False)
+    settings = Settings(
+        ai_internal_enabled=internal, ai_vision_enabled=False, ai_text_enabled=False
+    )
+    assert settings.ai_ui_enabled is True
+
+
+def test_ai_ui_env_var_turns_the_ai_ui_off(monkeypatch):
+    monkeypatch.setenv("AI_UI_ENABLED", "false")
+    assert Settings().ai_ui_enabled is False
+
+
 def test_empty_string_env_var_inherits_master(monkeypatch):
     # env_ignore_empty=True: compose :-  default sends "" which must map to None,
     # so the sub-switch inherits the master rather than clamping to True.

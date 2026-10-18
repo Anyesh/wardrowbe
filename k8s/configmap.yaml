@@ -52,6 +52,10 @@ data:
   AI_INTERNAL_ENABLED: "true"
   # AI_VISION_ENABLED: "false"
   # AI_TEXT_ENABLED: "false"
+  # Set to "false" to hide AI pages, navigation and controls in the web app.
+  # Independent of the switches above, so an external agent's suggestions stay
+  # reachable when internal AI is off.
+  AI_UI_ENABLED: "true"
 
   # Logging
   LOG_LEVEL: "INFO"
