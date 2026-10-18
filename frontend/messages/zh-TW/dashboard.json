@@ -31,6 +31,7 @@
   },
   "pendingOutfits": {
     "acceptFailed": "接受穿搭失敗",
+    "acceptLabel": "接受穿搭",
     "accepted": "穿搭已接受",
     "allCaughtUp": "全部看完了",
     "dismissFailed": "關閉穿搭失敗",

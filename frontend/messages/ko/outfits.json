@@ -14,8 +14,10 @@
     "legendOnDemand": "즉시",
     "legendScheduled": "예약됨",
     "monthlyCount": "이번 달 {count, plural, other {코디 #개}}",
+    "nextMonth": "다음 달",
     "noOutfitsOnDay": "이 날에는 코디가 없어요",
     "outfitCount": "{count, plural, other {코디 #개}}",
+    "previousMonth": "이전 달",
     "weekDays": {
       "fri": "금",
       "mon": "월",

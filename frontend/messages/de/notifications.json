@@ -7,6 +7,7 @@
     "channelDisabled": "Kanal deaktiviert",
     "channelEnabled": "Kanal aktiviert",
     "channelType": "Kanaltyp",
+    "deleteChannel": "Kanal löschen",
     "deleteConfirm": {
       "description": "Dieser Benachrichtigungskanal wird entfernt und es werden keine Benachrichtigungen mehr darüber gesendet.",
       "title": "Benachrichtigungskanal löschen?"
@@ -74,6 +75,7 @@
       "description": "Dieser Zustellungszeitplan wird entfernt.",
       "title": "Zeitplan löschen?"
     },
+    "deleteSchedule": "Zeitplan löschen",
     "description": "Lege fest, wann du jeden Tag Outfit-Empfehlungen erhalten möchtest",
     "dialogDescription": "Lege fest, wann du Outfit-Empfehlungen erhalten möchtest.",
     "noSchedules": "Keine Zeitpläne konfiguriert",

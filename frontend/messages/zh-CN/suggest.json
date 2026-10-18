@@ -70,7 +70,9 @@
       "title": "家庭评分"
     },
     "imageRotated": "图片已旋转",
+    "nextItem": "下一件单品",
     "noImage": "无图片",
+    "previousItem": "上一件单品",
     "rotateFailed": "旋转图片失败",
     "rotateLeft": "向左旋转",
     "rotateRight": "向右旋转",

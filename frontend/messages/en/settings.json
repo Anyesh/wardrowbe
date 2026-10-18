@@ -12,6 +12,7 @@
     "description": "Configure AI endpoints for image analysis. Endpoints are tried in order from top to bottom.",
     "disabled": "Disabled",
     "error": "Error",
+    "fallbackName": "Endpoint {number}",
     "fields": {
       "name": "Name",
       "textModel": "Text Model",
@@ -19,10 +20,13 @@
       "visionModel": "Vision Model"
     },
     "modelsAvailable": "{count, plural, one {{count} model available} other {{count} models available}}",
+    "moveDown": "Move {name} down",
+    "moveUp": "Move {name} up",
     "noEndpoints": "No custom endpoints configured. Using default server settings.",
     "placeholders": {
       "name": "e.g., Local Ollama"
     },
+    "removeEndpoint": "Remove {name}",
     "testConnection": "Test Connection",
     "testFailed": "Failed to test endpoint",
     "textModels": "Text: {models}",

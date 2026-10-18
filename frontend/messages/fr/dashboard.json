@@ -31,6 +31,7 @@
   },
   "pendingOutfits": {
     "acceptFailed": "Échec de l'acceptation de la tenue",
+    "acceptLabel": "Accepter la tenue",
     "accepted": "Tenue acceptée",
     "allCaughtUp": "Tout est à jour",
     "dismissFailed": "Impossible d’ignorer la tenue",

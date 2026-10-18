@@ -12,6 +12,7 @@
     "description": "이미지 분석에 사용할 AI 엔드포인트를 설정하세요. 위에서 아래 순서로 시도해요.",
     "disabled": "비활성",
     "error": "오류",
+    "fallbackName": "엔드포인트 {number}",
     "fields": {
       "name": "이름",
       "textModel": "텍스트 모델",
@@ -19,10 +20,13 @@
       "visionModel": "비전 모델"
     },
     "modelsAvailable": "{count, plural, other {모델 {count}개 사용 가능}}",
+    "moveDown": "{name} 아래로 이동",
+    "moveUp": "{name} 위로 이동",
     "noEndpoints": "설정된 사용자 엔드포인트가 없어요. 기본 서버 설정을 사용해요.",
     "placeholders": {
       "name": "예: 로컬 Ollama"
     },
+    "removeEndpoint": "{name} 제거",
     "testConnection": "연결 테스트",
     "testFailed": "엔드포인트 테스트 실패",
     "textModels": "텍스트: {models}",

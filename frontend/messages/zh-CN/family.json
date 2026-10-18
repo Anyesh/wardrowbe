@@ -38,7 +38,9 @@
   "inviteCode": "邀请码",
   "inviteCodeExample": "例如：ABC123XY",
   "inviteCodeSection": {
+    "copyCode": "复制邀请码",
     "description": "将此邀请码分享给家人，让他们加入",
+    "regenerateCode": "生成新的邀请码",
     "title": "邀请码"
   },
   "inviteEmailPlaceholder": "email@example.com",
@@ -55,9 +57,11 @@
       "description": "确定要将 {name} 从家庭中移除吗？",
       "title": "移除成员？"
     },
+    "removeMember": "移除 {name}",
     "title": "成员"
   },
   "pendingInvites": {
+    "cancelInvite": "取消对 {email} 的邀请",
     "description": "尚未被接受的邀请",
     "expires": "{date}过期",
     "title": "待接受的邀请"
@@ -68,6 +72,7 @@
     "ratingSubmitted": "评分已提交！",
     "ratingUpdated": "评分已更新！",
     "removeError": "移除评分失败",
+    "removeRating": "移除你的评分",
     "selectRating": "请选择评分",
     "submitError": "提交评分失败",
     "submitRating": "提交评分",

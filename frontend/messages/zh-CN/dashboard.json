@@ -31,6 +31,7 @@
   },
   "pendingOutfits": {
     "acceptFailed": "接受搭配失败",
+    "acceptLabel": "接受搭配",
     "accepted": "搭配已接受",
     "allCaughtUp": "全部处理完毕",
     "dismissFailed": "关闭搭配失败",

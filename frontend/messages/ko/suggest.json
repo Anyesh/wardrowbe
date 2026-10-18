@@ -70,7 +70,9 @@
       "title": "가족 평가"
     },
     "imageRotated": "이미지가 회전되었어요",
+    "nextItem": "다음 아이템",
     "noImage": "이미지 없음",
+    "previousItem": "이전 아이템",
     "rotateFailed": "이미지 회전 실패",
     "rotateLeft": "왼쪽 회전",
     "rotateRight": "오른쪽 회전",

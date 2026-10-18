@@ -14,8 +14,10 @@
     "legendOnDemand": "À la demande",
     "legendScheduled": "Planifié",
     "monthlyCount": "{count, plural, one {# tenue} other {# tenues}} ce mois-ci",
+    "nextMonth": "Mois suivant",
     "noOutfitsOnDay": "Aucune tenue ce jour-là",
     "outfitCount": "{count, plural, one {# tenue} other {# tenues}}",
+    "previousMonth": "Mois précédent",
     "weekDays": {
       "fri": "Ve",
       "mon": "Lu",

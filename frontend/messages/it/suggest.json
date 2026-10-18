@@ -70,7 +70,9 @@
       "title": "Valutazioni famiglia"
     },
     "imageRotated": "Immagine ruotata",
+    "nextItem": "Capo successivo",
     "noImage": "Nessuna immagine",
+    "previousItem": "Capo precedente",
     "rotateFailed": "Rotazione immagine fallita",
     "rotateLeft": "Ruota a sinistra",
     "rotateRight": "Ruota a destra",

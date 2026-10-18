@@ -70,7 +70,9 @@
       "title": "Familienbewertungen"
     },
     "imageRotated": "Bild gedreht",
+    "nextItem": "Nächstes Teil",
     "noImage": "Kein Bild",
+    "previousItem": "Vorheriges Teil",
     "rotateFailed": "Bild konnte nicht gedreht werden",
     "rotateLeft": "Nach links drehen",
     "rotateRight": "Nach rechts drehen",

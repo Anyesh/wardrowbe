@@ -31,6 +31,7 @@
   },
   "pendingOutfits": {
     "acceptFailed": "コーディネートの承認に失敗しました",
+    "acceptLabel": "このコーデを採用",
     "accepted": "コーディネートを承認しました",
     "allCaughtUp": "すべて確認済み",
     "dismissFailed": "コーデの見送りに失敗しました",

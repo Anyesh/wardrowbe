@@ -12,6 +12,7 @@
     "description": "Configura gli endpoint IA per l'analisi delle immagini. Gli endpoint vengono provati in ordine dall'alto verso il basso.",
     "disabled": "Disattivato",
     "error": "Errore",
+    "fallbackName": "Endpoint {number}",
     "fields": {
       "name": "Nome",
       "textModel": "Modello di testo",
@@ -19,10 +20,13 @@
       "visionModel": "Modello di visione"
     },
     "modelsAvailable": "{count, plural, one {{count} modello disponibile} other {{count} modelli disponibili}}",
+    "moveDown": "Sposta {name} in basso",
+    "moveUp": "Sposta {name} in alto",
     "noEndpoints": "Nessun endpoint personalizzato configurato. Utilizzo delle impostazioni server predefinite.",
     "placeholders": {
       "name": "es., Ollama locale"
     },
+    "removeEndpoint": "Rimuovi {name}",
     "testConnection": "Testa connessione",
     "testFailed": "Test dell'endpoint fallito",
     "textModels": "Testo: {models}",

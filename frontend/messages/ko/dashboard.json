@@ -31,6 +31,7 @@
   },
   "pendingOutfits": {
     "acceptFailed": "코디 수락에 실패했어요",
+    "acceptLabel": "코디 수락",
     "accepted": "코디를 수락했어요",
     "allCaughtUp": "모두 확인 완료",
     "dismissFailed": "코디 닫기 실패",
