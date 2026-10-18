@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import {
   ArrowDownToLine,
@@ -16,15 +17,39 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSeasonSwap, type SwapEntry } from '@/lib/hooks/use-season-swap';
 import { useSeasonLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
-const DONE_KEY = 'wardrowbe.seasonSwapDone';
+// One record per account in this browser, for the current swap only (seasons and year).
+function doneKey(userId: string): string {
+  return `wardrowbe.seasonSwapDone.${userId}`;
+}
 
-function readDone(season: string): Set<string> {
+function readDone(userId: string, swap: string): Set<string> {
   try {
-    const saved = JSON.parse(window.localStorage.getItem(DONE_KEY) || '{}');
-    return new Set(saved.season === season ? saved.ids : []);
+    const saved = JSON.parse(window.localStorage.getItem(doneKey(userId)) || '{}');
+    return new Set(saved.season === swap ? saved.ids : []);
   } catch {
     return new Set();
   }
+}
+
+// The year a swap belongs to, taken two months back so a winter swap that runs past New Year
+// keeps its ticks.
+function swapYear(): number {
+  const shifted = new Date();
+  shifted.setMonth(shifted.getMonth() - 2);
+  return shifted.getFullYear();
+}
+
+// Read-modify-write on the stored ids, so a tick made in another tab is not overwritten.
+function storeToggle(userId: string, swap: string, id: string, checked: boolean): Set<string> {
+  const ids = readDone(userId, swap);
+  if (checked) ids.add(id);
+  else ids.delete(id);
+  try {
+    window.localStorage.setItem(doneKey(userId), JSON.stringify({ season: swap, ids: Array.from(ids) }));
+  } catch {
+    // Not remembered in private mode; the list still works for this visit.
+  }
+  return ids;
 }
 
 function Column({
@@ -104,26 +129,25 @@ function Column({
 export default function SeasonSwapPage() {
   const t = useTranslations('season');
   const seasonLabel = useSeasonLabel();
+  const { data: session } = useSession();
+  const userId = session?.user?.id ?? '';
   const { data, isLoading, isError } = useSeasonSwap();
-  const key = data ? `${data.current_season}-${data.upcoming_season}` : '';
+  // The year keeps next autumn's swap from opening with this autumn's ticks.
+  const key = data ? `${swapYear()}-${data.current_season}-${data.upcoming_season}` : '';
   const [done, setDone] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (key) setDone(readDone(key));
-  }, [key]);
+    if (!key) return;
+    setDone(readDone(userId, key));
+    // Ticks made in another tab show up here too.
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === doneKey(userId)) setDone(readDone(userId, key));
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [key, userId]);
 
-  const toggle = (id: string) =>
-    setDone((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      try {
-        window.localStorage.setItem(DONE_KEY, JSON.stringify({ season: key, ids: Array.from(next) }));
-      } catch {
-        // Not remembered in private mode; the list still works for this visit.
-      }
-      return next;
-    });
+  const toggle = (id: string) => setDone(storeToggle(userId, key, id, !done.has(id)));
 
   return (
     <div className="space-y-6">

@@ -17,7 +17,9 @@ from app.models.user import User
 from app.services.item_scorer import get_season
 
 LOOK_AHEAD_DAYS = 60
-# Last year's wears inside this window around the same date mark an untagged item as seasonal.
+# The coming season as it was a year ago: last year's wears from 15 to 105 days after today's
+# date (the months the swap prepares for) mark an untagged item as belonging to it. Wears in
+# the weeks just before today's date last year would point at the current season instead.
 HISTORY_WINDOW = (timedelta(days=15), timedelta(days=105))
 STILL_IN_USE_DAYS = 21
 ALL_SEASONS = {"all-season", "spring", "summer", "fall", "winter"}

@@ -21,11 +21,15 @@ export interface SeasonSwap {
 }
 
 export function useSeasonSwap() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   useSetTokenIfAvailable();
   return useQuery({
-    queryKey: queryKeys.seasonSwap,
+    // Per account: another sign-in in the same tab never sees this one's clothes.
+    queryKey: [...queryKeys.seasonSwap, session?.user?.id ?? ''],
     queryFn: () => api.get<SeasonSwap>('/season-swap'),
     enabled: status === 'authenticated',
+    // Wears and edits elsewhere move items between the lists: fetch again on every visit.
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }

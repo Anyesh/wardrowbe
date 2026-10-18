@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -42,7 +43,10 @@ class TestSeasonSwap:
 
     def test_recently_worn_items_stay_out(self):
         shorts = _item("shorts", ["summer"], last_worn_at=OCTOBER - timedelta(days=3))
-        assert plan_swap([shorts], OCTOBER, 45.7, set()).put_away == []
+        plan = plan_swap([shorts], OCTOBER, 45.7, set())
+        assert plan.put_away == []
+        assert plan.bring_out == []
+        assert plan.stays == 1
 
     def test_untagged_items_follow_last_year(self):
         scarf = _item("scarf")
@@ -63,7 +67,10 @@ class TestSeasonSwap:
             )
         )
         await db_session.commit()
-        response = await client.get("/api/v1/season-swap", headers=auth_headers)
+        with patch("app.api.season_swap.get_user_today", return_value=OCTOBER):
+            response = await client.get("/api/v1/season-swap", headers=auth_headers)
         assert response.status_code == 200, response.json()
         data = response.json()
-        assert {"current_season", "upcoming_season", "put_away", "bring_out", "stays"} <= set(data)
+        assert (data["current_season"], data["upcoming_season"]) == ("fall", "winter")
+        assert [e["item"]["type"] for e in data["put_away"]] == ["sandals"]
+        assert data["bring_out"] == []
