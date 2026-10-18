@@ -24,6 +24,7 @@ Wardrobe:
 {listing}"""
 
 CITATION = re.compile(r"\[#(\d+)\]")
+ITEM_TOKEN = re.compile(r"\[\[item:([0-9a-fA-F-]{36})\]\]")
 
 
 @dataclass
@@ -35,7 +36,9 @@ class StylistReply:
 def wardrobe_listing(items: list[ClothingItem]) -> str:
     lines = []
     for number, item in enumerate(items, start=1):
-        parts = [item.name, item.primary_color, item.pattern, item.material, item.type]
+        # The subtype tells jeans from chinos, which the type alone ("pants") does not.
+        subtype = item.subtype if item.subtype and item.subtype != item.type else None
+        parts = [item.name, item.primary_color, item.pattern, item.material, subtype, item.type]
         text = " ".join(p for p in parts if p)
         extras = []
         if item.season:
@@ -63,6 +66,19 @@ def resolve_citations(text: str, items: list[ClothingItem]) -> StylistReply:
     return StylistReply(CITATION.sub(replace, text).strip(), cited)
 
 
+def renumber_history(content: str, wardrobe: list[ClothingItem]) -> str:
+    """An earlier reply comes back with [[item:<id>]] tokens; the model only knows the list's
+    numbers, so each token turns back into [#n] for this request's listing. A piece that is no
+    longer in the listing becomes a plain mention the model cannot cite."""
+    numbers = {str(item.id): n for n, item in enumerate(wardrobe, start=1)}
+
+    def replace(match: re.Match) -> str:
+        number = numbers.get(match.group(1).lower())
+        return f"[#{number}]" if number else "(a piece no longer in the wardrobe)"
+
+    return ITEM_TOKEN.sub(replace, content)
+
+
 async def ask_stylist(
     ai: AIService,
     items: list[ClothingItem],
@@ -76,7 +92,13 @@ async def ask_stylist(
     )
     messages = [{"role": "system", "content": system}]
     messages += [
-        {"role": turn["role"], "content": turn["content"]} for turn in conversation[-MAX_TURNS:]
+        {
+            "role": turn["role"],
+            "content": renumber_history(turn["content"], wardrobe)
+            if turn["role"] == "assistant"
+            else turn["content"],
+        }
+        for turn in conversation[-MAX_TURNS:]
     ]
     content, error, _ = await ai._call_with_fallback(messages, "stylist", use_vision_model=False)
     if content is None:

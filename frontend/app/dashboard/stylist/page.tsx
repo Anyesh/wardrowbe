@@ -59,6 +59,13 @@ export default function StylistPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const bottom = useRef<HTMLDivElement>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -84,16 +91,25 @@ export default function StylistPage() {
     const next: ChatMessage[] = [...messages, { role: 'user', content }];
     setMessages(next);
     setDraft('');
-    stylist.mutate(
-      next.slice(-20).map(({ role, content: body }) => ({ role, content: body })),
-      {
-        onSuccess: (reply) =>
-          setMessages((current) => [
-            ...current,
-            { role: 'assistant', content: reply.reply, items: reply.items },
-          ]),
-      }
-    );
+    stylist
+      .mutateAsync(next.slice(-20).map(({ role, content: body }) => ({ role, content: body })))
+      .then((reply) => {
+        const answer: ChatMessage = { role: 'assistant', content: reply.reply, items: reply.items };
+        if (mounted.current) {
+          setMessages((current) => [...current, answer]);
+          return;
+        }
+        // The page was left while the stylist was answering: keep the reply for the next visit.
+        try {
+          const saved: ChatMessage[] = JSON.parse(window.sessionStorage.getItem(STORAGE_KEY) || '[]');
+          window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...saved, answer]));
+        } catch {
+          // Private mode: the reply is lost with the page, as the chat itself would be.
+        }
+      })
+      .catch(() => {
+        // Shown from stylist.error while the page is open.
+      });
   };
 
   const errorText =

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import and_, select
 from sqlalchemy.orm import selectinload
 
+from app.config import get_settings
 from app.database import DbSession
 from app.models.item import ClothingItem, ItemStatus
 from app.models.user import User
@@ -45,6 +46,11 @@ async def chat_with_stylist(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="The last message must come from the user",
         )
+    # The stylist uses the text model only: off when text AI is, whatever vision says.
+    if not get_settings().effective_ai_text_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="The AI is turned off"
+        )
     try:
         ai = get_ai_service()
     except AIDisabledError:
@@ -62,9 +68,12 @@ async def chat_with_stylist(
             )
         )
         .options(selectinload(ClothingItem.additional_images))
-        .order_by(ClothingItem.created_at, ClothingItem.id)
+        # Newest first: with more than MAX_ITEMS pieces, the recent ones are the ones shown.
+        .order_by(ClothingItem.created_at.desc(), ClothingItem.id)
     )
     items = [i for i in result.scalars().all() if i.type and i.type != "unknown"]
+    # Hand the connection back before waiting on the model.
+    await db.commit()
     context = f"today is {get_user_today(current_user).isoformat()}"
     if current_user.location_name:
         context += f", the user lives in {current_user.location_name}"
@@ -79,6 +88,20 @@ async def chat_with_stylist(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="The AI could not answer. Try again in a moment.",
         ) from None
+    # A piece archived or deleted while the model was answering is not offered any more.
+    still_there = set()
+    if reply.items:
+        still_there = set(
+            await db.scalars(
+                select(ClothingItem.id).where(
+                    ClothingItem.id.in_([i.id for i in reply.items]),
+                    ClothingItem.user_id == current_user.id,
+                    ClothingItem.status == ItemStatus.ready,
+                    ClothingItem.is_archived.is_(False),
+                )
+            )
+        )
     return StylistResponse(
-        reply=reply.text, items=[ItemResponse.model_validate(i) for i in reply.items]
+        reply=reply.text,
+        items=[ItemResponse.model_validate(i) for i in reply.items if i.id in still_there],
     )
