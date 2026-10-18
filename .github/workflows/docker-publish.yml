@@ -149,18 +149,24 @@ jobs:
 
       # metadata-action lowercases the image because GHCR rejects capitalized
       # owners (e.g. "Anyesh") and derives the full tag set from the event.
+      # Each rule sets its own service prefix or suffix because the version-first
+      # tags (1.3.1-backend, which Renovate can parse, unlike backend-1.3.1) must
+      # carry none. Keep them after the backend-<version> rule so that
+      # steps.meta.outputs.version, used by Inspect image, still resolves to it.
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.image.outputs.name }}
           flavor: |
-            latest=true
-            prefix=${{ matrix.service }}-,onlatest=true
+            latest=false
           tags: |
             type=sha,format=long
-            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }}
+            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},prefix=${{ matrix.service }}-
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},prefix=${{ matrix.service }}-
+            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},suffix=-${{ matrix.service }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},suffix=-${{ matrix.service }}
+            type=raw,value=${{ matrix.service }}-latest
 
       - name: Create manifest list and push
         working-directory: /tmp/digests

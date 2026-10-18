@@ -216,7 +216,7 @@ docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
 ```
 
-Images are tagged `backend-latest` / `frontend-latest`, and each release also publishes `backend-<version>` / `frontend-<version>`. To pin a release, replace the `-latest` tags in the compose file, e.g. `ghcr.io/anyesh/wardrowbe:backend-1.3.0`.
+Images are tagged `backend-latest` / `frontend-latest`, and each release also publishes `backend-<version>` / `frontend-<version>`. To pin a release, replace the `-latest` tags in the compose file, e.g. `ghcr.io/anyesh/wardrowbe:backend-1.11.0`. Releases after 1.11.0 also publish the same tags in version-first form, `<version>-backend` / `<version>-frontend`. If Renovate keeps your pins up to date, use that form (`ghcr.io/anyesh/wardrowbe:<version>-backend`): Renovate's default Docker versioning reads it as a version for the `backend` variant and proposes upgrades without a custom rule, while it cannot parse `backend-<version>`.
 
 ### Kubernetes
 
