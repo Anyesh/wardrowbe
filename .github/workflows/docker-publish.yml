@@ -149,6 +149,8 @@ jobs:
 
       # metadata-action lowercases the image because GHCR rejects capitalized
       # owners (e.g. "Anyesh") and derives the full tag set from the event.
+      # type=sha carries its own sha- prefix, which replaces the flavor prefix,
+      # so the service must be named in it or both services push the same tag.
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -158,7 +160,7 @@ jobs:
             latest=true
             prefix=${{ matrix.service }}-,onlatest=true
           tags: |
-            type=sha,format=long
+            type=sha,format=long,prefix=${{ matrix.service }}-sha-
             type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }}
             type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }}
 
