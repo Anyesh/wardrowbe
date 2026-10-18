@@ -4,9 +4,11 @@ from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.item import ClothingItem, ItemStatus
+from app.models.item import ClothingItem, DeclutterKeep, ItemStatus
+from app.models.user import User
 from app.services.declutter_service import find_candidates, idle_value
 from app.utils.timezone import get_user_today
 
@@ -105,11 +107,54 @@ class TestDeclutterApi:
         assert twice.json()["kept_until"] > keep.json()["kept_until"]
 
     @pytest.mark.asyncio
-    async def test_cannot_keep_someone_elses_item(self, client: AsyncClient, auth_headers):
+    async def test_unknown_item(self, client: AsyncClient, auth_headers):
         response = await client.post(
             f"/api/v1/declutter/{uuid4()}/keep", json={"months": 6}, headers=auth_headers
         )
         assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_cannot_keep_someone_elses_item(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession
+    ):
+        other = User(
+            external_id=f"other-{uuid4()}", email=f"{uuid4()}@example.com", display_name="Other"
+        )
+        db_session.add(other)
+        await db_session.flush()
+        theirs = ClothingItem(
+            user_id=other.id, type="shirt", image_path="o/s.jpg", status=ItemStatus.ready
+        )
+        db_session.add(theirs)
+        await db_session.commit()
+
+        response = await client.post(
+            f"/api/v1/declutter/{theirs.id}/keep", json={"months": 6}, headers=auth_headers
+        )
+        assert response.status_code == 404
+        kept = await db_session.scalar(
+            select(DeclutterKeep).where(DeclutterKeep.item_id == theirs.id)
+        )
+        assert kept is None
+
+    @pytest.mark.asyncio
+    async def test_archived_items_cannot_be_kept(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        archived = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path="a/s.jpg",
+            status=ItemStatus.ready,
+            is_archived=True,
+        )
+        db_session.add(archived)
+        await db_session.commit()
+
+        response = await client.post(
+            f"/api/v1/declutter/{archived.id}/keep", json={"months": 6}, headers=auth_headers
+        )
+        assert response.status_code == 409
 
     @pytest.mark.asyncio
     async def test_months_out_of_range(self, client: AsyncClient, auth_headers):

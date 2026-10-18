@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from app.database import DbSession
+from app.models.item import ItemStatus
 from app.models.user import User
 from app.schemas.item import ItemResponse
 from app.services.declutter_service import (
@@ -80,5 +81,11 @@ async def keep_item(
     item = await ItemService(db).get_by_id(item_id, current_user.id)
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    # Same eligibility as the review: a keep on an archived or still-processing item would
+    # hide it from the review long after it is restored.
+    if item.is_archived or item.status != ItemStatus.ready:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Only active items can be kept"
+        )
     until = await DeclutterService(db).keep(item, get_user_today(current_user), request.months)
     return KeepResponse(item_id=item.id, kept_until=until)

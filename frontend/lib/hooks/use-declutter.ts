@@ -28,6 +28,10 @@ export function useDeclutter(months: number) {
     queryKey: queryKeys.declutter(months),
     queryFn: () => api.get<DeclutterReview>(`/declutter?months=${months}`),
     enabled: status === 'authenticated',
+    // Wearing, editing, archiving or deleting an item elsewhere changes who qualifies, so the
+    // review is fetched again every time the page opens instead of served from the cache.
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }
 
