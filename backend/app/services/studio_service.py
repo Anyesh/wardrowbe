@@ -94,6 +94,17 @@ class StudioService:
         )
         return result.scalar_one()
 
+    # A worn outfit is already answered, so it is accepted: the Worn filter lists accepted outfits
+    # and History offers Accept and Dismiss only on pending ones.
+    async def _record_wear(
+        self, outfit: Outfit, user: User, item_ids: list[UUID], worn_on: date
+    ) -> None:
+        outfit.status = OutfitStatus.accepted
+        outfit.responded_at = datetime.utcnow()
+        await ItemService(self.db).record_wears(
+            user.id, item_ids, worn_on, occasion=outfit.occasion, outfit_id=outfit.id
+        )
+
     async def get_full_outfit(self, outfit_id: UUID) -> Outfit:
         return await load_full_outfit(self.db, outfit_id)
 
@@ -144,13 +155,7 @@ class StudioService:
         self.db.add(feedback)
 
         if mark_worn and effective_worn is not None:
-            await ItemService(self.db).record_wears(
-                user.id,
-                [i.id for i in ordered],
-                effective_worn,
-                occasion=occasion,
-                outfit_id=outfit.id,
-            )
+            await self._record_wear(outfit, user, [i.id for i in ordered], effective_worn)
 
         await self.db.flush()
         return await self._reload_outfit(outfit.id)
@@ -218,13 +223,7 @@ class StudioService:
         original.responded_at = datetime.utcnow()
 
         if effective_date is not None:
-            await ItemService(self.db).record_wears(
-                user.id,
-                [i.id for i in ordered],
-                effective_date,
-                occasion=replacement.occasion,
-                outfit_id=replacement.id,
-            )
+            await self._record_wear(replacement, user, [i.id for i in ordered], effective_date)
 
         await self.db.flush()
         return await self._reload_outfit(replacement.id)
@@ -338,13 +337,7 @@ class StudioService:
         )
         self.db.add(feedback)
 
-        await ItemService(self.db).record_wears(
-            user.id,
-            [oi.item_id for oi in template.items],
-            target_date,
-            occasion=wear.occasion,
-            outfit_id=wear.id,
-        )
+        await self._record_wear(wear, user, [oi.item_id for oi in template.items], target_date)
 
         await self.db.flush()
         return await self._reload_outfit(wear.id)

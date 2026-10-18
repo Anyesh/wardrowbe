@@ -106,3 +106,41 @@ async def test_worn_feedback_still_feeds_learning(
         select(func.count()).select_from(ItemPairScore).where(ItemPairScore.user_id == test_user.id)
     )
     assert pair_scores == 3
+
+
+async def _worn_list_ids(client, auth_headers):
+    response = await client.get(
+        "/api/v1/outfits",
+        params={"status": "accepted", "is_lookbook": "false"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    return {outfit["id"] for outfit in response.json()["outfits"]}
+
+
+@pytest.mark.asyncio
+async def test_outfits_worn_from_the_studio_and_the_lookbook_are_listed_as_worn(
+    client: AsyncClient, db_session, test_user, auth_headers
+):
+    item_ids = await _items(db_session, test_user.id)
+
+    worn = await client.post(
+        "/api/v1/outfits/studio",
+        json={"items": item_ids, "occasion": "casual", "mark_worn": True},
+        headers=auth_headers,
+    )
+    template = await client.post(
+        "/api/v1/outfits/studio",
+        json={"items": item_ids, "occasion": "work", "name": "Office"},
+        headers=auth_headers,
+    )
+    wear = await client.post(
+        f"/api/v1/outfits/{template.json()['id']}/wear-today", json={}, headers=auth_headers
+    )
+
+    assert worn.status_code == 201
+    assert wear.status_code == 200
+    assert worn.json()["status"] == "accepted"
+    assert wear.json()["status"] == "accepted"
+    assert template.json()["status"] == "pending"
+    assert await _worn_list_ids(client, auth_headers) == {worn.json()["id"], wear.json()["id"]}

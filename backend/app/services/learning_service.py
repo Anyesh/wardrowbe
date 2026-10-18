@@ -62,7 +62,8 @@ def _top_occasion_colors(counts: dict[str, int]) -> list[str]:
     return [color for color, _ in ranked[:3]]
 
 
-# Studio outfits stay pending with feedback.accepted set, so they must match on feedback too.
+# Studio outfits not yet worn stay pending with feedback.accepted set, so they must match on
+# feedback too.
 _HAS_PROFILE_SIGNAL = or_(
     Outfit.status.in_([OutfitStatus.accepted, OutfitStatus.rejected]),
     Outfit.feedback.has(UserFeedback.accepted.is_not(None)),
