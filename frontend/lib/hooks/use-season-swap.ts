@@ -24,8 +24,7 @@ export function useSeasonSwap() {
   const { data: session, status } = useSession();
   useSetTokenIfAvailable();
   return useQuery({
-    // Per account: another sign-in in the same tab never sees this one's clothes.
-    queryKey: [...queryKeys.seasonSwap, session?.user?.id ?? ''],
+    queryKey: queryKeys.seasonSwap(session?.user?.id ?? ''),
     queryFn: () => api.get<SeasonSwap>('/season-swap'),
     enabled: status === 'authenticated',
     // Wears and edits elsewhere move items between the lists: fetch again on every visit.

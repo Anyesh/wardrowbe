@@ -23,7 +23,8 @@ export const queryKeys = {
   userProfile: ['user-profile'] as const,
   features: ['features'] as const,
   weather: ['weather'] as const,
-  seasonSwap: ['season-swap'] as const,
+  // Per account: another sign-in in the same tab never sees this one's clothes.
+  seasonSwap: (userId: string) => ['season-swap', userId] as const,
   preferences: ['preferences'] as const,
   family: ['family'] as const,
 
