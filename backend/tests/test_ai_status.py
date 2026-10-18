@@ -97,3 +97,32 @@ class TestAIStatus:
             result = ai_status.summarize(health)
         assert result.status == "online"
         assert result.missing_models == []
+
+
+class TestLoadedModels:
+    def _online(self):
+        return ai_status.AIStatusResponse(
+            status="online",
+            vision_model="qwen2.5vl:7b",
+            text_model="qwen2.5vl:7b",
+            url="http://ollama:11434/v1",
+        )
+
+    @pytest.mark.asyncio
+    async def test_reports_whether_the_model_is_in_memory(self):
+        with patch("app.api.ai_status.loaded_models", AsyncMock(return_value=["qwen2.5vl:7b"])):
+            assert (await ai_status.with_loaded_models(self._online())).model_loaded is True
+        with patch("app.api.ai_status.loaded_models", AsyncMock(return_value=[])):
+            result = await ai_status.with_loaded_models(self._online())
+        # Reachable with the model installed but not loaded: still online, loads on first use.
+        assert result.status == "online"
+        assert result.model_loaded is False
+
+    @pytest.mark.asyncio
+    async def test_a_server_without_api_ps_leaves_it_unknown(self):
+        with patch("app.api.ai_status.loaded_models", AsyncMock(return_value=None)):
+            assert (await ai_status.with_loaded_models(self._online())).model_loaded is None
+
+    @pytest.mark.asyncio
+    async def test_an_unreachable_server_is_unknown_not_an_error(self):
+        assert await ai_status.loaded_models("http://127.0.0.1:9/v1") is None
