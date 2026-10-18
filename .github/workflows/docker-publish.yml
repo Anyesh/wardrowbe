@@ -161,7 +161,7 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=sha,format=long
+            type=sha,format=long,prefix=${{ matrix.service }}-sha-
             type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},prefix=${{ matrix.service }}-
             type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},prefix=${{ matrix.service }}-
             type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.RELEASE_VERSION != '' }},suffix=-${{ matrix.service }}
