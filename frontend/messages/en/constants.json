@@ -242,7 +242,12 @@
     "tie": "Tie",
     "tights": "Tights",
     "top": "Top",
-    "vest": "Vest"
+    "vest": "Vest",
+    "ring": "Ring",
+    "necklace": "Necklace",
+    "watch": "Watch",
+    "bracelet": "Bracelet",
+    "earrings": "Earrings"
   },
   "weatherConditions": {
     "clear": "Clear",
@@ -271,5 +276,10 @@
     "thunderstorm": "Thunderstorm",
     "thunderstorm-with-hail": "Thunderstorm with Hail",
     "unknown": "Unknown"
+  },
+  "categories": {
+    "clothing": "Clothing",
+    "footwear": "Footwear",
+    "accessories": "Accessories"
   }
 }

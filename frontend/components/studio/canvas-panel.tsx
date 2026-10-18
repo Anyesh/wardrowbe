@@ -55,7 +55,7 @@ export function CanvasPanel({ items, onRemove }: CanvasPanelProps) {
                   alt={item.name || typeLabel(item.type)}
                   width={96}
                   height={96}
-                  className="object-cover w-full h-full"
+                  className="garment-fit w-full h-full"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">

@@ -25,6 +25,16 @@ OCCASION_FORMALITY: dict[str, tuple[str, ...]] = {
 }
 COLORS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["colors"])
 COLOR_ALIASES: dict[str, str] = dict(_DATA["color_aliases"])
+# Wardrobe sections shown to the user (clothing, footwear, accessories), each a group of roles.
+CATEGORIES: tuple[str, ...] = tuple(_DATA["categories"])
+ROLE_CATEGORY: dict[str, str] = {
+    role: category for category, roles in _DATA["categories"].items() for role in roles
+}
+TYPE_CATEGORY: dict[str, str] = {value: ROLE_CATEGORY[role] for value, role in ITEM_ROLE.items()}
+TYPES_BY_CATEGORY: dict[str, tuple[str, ...]] = {
+    category: tuple(value for value in TYPES if TYPE_CATEGORY[value] == category)
+    for category in CATEGORIES
+}
 
 
 # Zero-width space, word joiner and BOM are dropped so that a name made only of them reads as blank

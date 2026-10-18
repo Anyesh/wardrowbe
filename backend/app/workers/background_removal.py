@@ -5,7 +5,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from app.models.item import ClothingItem, ItemStatus
+from app.models.item import ClothingItem, ItemImage, ItemStatus
 from app.services.image_service import ImageService
 from app.workers.db import get_db_session
 from app.workers.queues import TAGGING_QUEUE
@@ -94,3 +94,42 @@ async def _queue_tagging(ctx: dict, item: ClothingItem, image_path: str) -> None
         # Left processing without a job, which the stale-processing sweep recovers.
         logger.error(f"Failed to queue tagging after background removal for {item.id}: {e}")
         item.ai_job_id = None
+
+
+async def remove_photo_background_job(ctx: dict, image_id: str, bg_color_hex: str) -> dict:
+    """Remove the background of one of an item's additional photos.
+
+    The counterpart of remove_item_background_job for item_images rows: every photo gets its own
+    job, its own status and its own backup, so a failure here leaves the cover and the other
+    photos untouched.
+    """
+    hex_color = bg_color_hex.lstrip("#")
+    bg_color = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+
+    db = get_db_session(ctx)
+    try:
+        image = await db.get(ItemImage, UUID(image_id))
+        if image is None:
+            logger.warning(f"Photo {image_id} not found for background removal job")
+            return {"status": "error", "error": "Photo not found"}
+
+        try:
+            out = await asyncio.to_thread(
+                ImageService().remove_background, image.image_path, bg_color
+            )
+            image.original_image_path = out["original_backup_path"]
+            image.medium_path = out.get("medium_path", image.medium_path)
+            image.thumbnail_path = out.get("thumbnail_path", image.thumbnail_path)
+            image.status = "ready"
+            error = None
+        except Exception as e:
+            logger.error(f"Background removal failed for photo {image_id}: {e}")
+            image.status = "error"
+            error = str(e)
+        image.processing_started_at = None
+        await db.commit()
+        if error:
+            return {"status": "error", "error": error, "image_id": image_id}
+        return {"status": "success", "image_id": image_id}
+    finally:
+        await db.close()

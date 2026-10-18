@@ -169,7 +169,7 @@ export default function OutfitDetailPage() {
                       src={(item.thumbnail_url || item.image_url)!}
                       alt={item.name || typeLabel(item.type)}
                       fill
-                      className="object-cover transition-transform group-hover:scale-105"
+                      className="garment-fit transition-transform group-hover:scale-105"
                       sizes="(max-width: 640px) 33vw, 20vw"
                     />
                   ) : (

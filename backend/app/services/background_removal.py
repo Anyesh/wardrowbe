@@ -1,4 +1,5 @@
 import logging
+import threading
 from abc import ABC, abstractmethod
 from io import BytesIO
 
@@ -19,9 +20,16 @@ class BackgroundRemovalProvider(ABC):
 # rembg is imported lazily because it is an optional extra (requirements-extras.txt): a
 # module-level import would break every install that uses the http provider or none.
 class RembgProvider(BackgroundRemovalProvider):
-    def __init__(self, model: str = "birefnet-general-lite"):
+    """Background removal in the image worker, the only model Wardrowbe runs itself: a small
+    segmentation network on the CPU (no GPU, no LLM). The session is dropped after idle_seconds
+    without work, so the worker gives its memory back between uploads; 0 keeps it loaded."""
+
+    def __init__(self, model: str = "birefnet-general-lite", idle_seconds: int = 0):
         self.model = model
+        self.idle_seconds = idle_seconds
         self._session = None
+        self._lock = threading.Lock()
+        self._timer: threading.Timer | None = None
 
     def _get_session(self):
         if self._session is None:
@@ -30,10 +38,31 @@ class RembgProvider(BackgroundRemovalProvider):
             self._session = new_session(self.model)
         return self._session
 
+    def _unload(self) -> None:
+        with self._lock:
+            if self._session is not None:
+                logger.info(f"Unloading background-removal model {self.model} after idle time")
+            self._session = None
+            self._timer = None
+
+    def _schedule_unload(self) -> None:
+        if self.idle_seconds <= 0:
+            return
+        if self._timer is not None:
+            self._timer.cancel()
+        self._timer = threading.Timer(self.idle_seconds, self._unload)
+        self._timer.daemon = True
+        self._timer.start()
+
     def remove(self, image: Image.Image) -> Image.Image:
         from rembg import remove
 
-        return remove(image, session=self._get_session())
+        with self._lock:
+            session = self._get_session()
+            try:
+                return remove(image, session=session)
+            finally:
+                self._schedule_unload()
 
 
 class HttpProvider(BackgroundRemovalProvider):
@@ -73,7 +102,9 @@ def get_provider() -> BackgroundRemovalProvider:
     provider_type = settings.bg_removal_provider
 
     if provider_type == "rembg":
-        _provider = RembgProvider(model=settings.bg_removal_model)
+        _provider = RembgProvider(
+            model=settings.bg_removal_model, idle_seconds=settings.bg_removal_idle_seconds
+        )
     elif provider_type == "http":
         if not settings.bg_removal_url:
             raise ValueError("BG_REMOVAL_URL is required when BG_REMOVAL_PROVIDER=http")

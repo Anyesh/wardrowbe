@@ -65,5 +65,9 @@
   },
   "subtitle": "你的衣櫥洞察與統計",
   "title": "數據分析",
-  "wearCount": "{count} 次"
+  "wearCount": "{count} 次",
+  "categories": {
+    "title": "衣櫥分區",
+    "description": "你的衣物在服裝、鞋履和配飾之間的分布。"
+  }
 }

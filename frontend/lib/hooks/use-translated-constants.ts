@@ -7,6 +7,9 @@ import {
   CLOTHING_TYPES,
   CLOTHING_COLORS,
   FEATURED_OCCASIONS,
+  ITEM_CATEGORIES,
+  categoryOfType,
+  type ItemCategory,
 } from '@/lib/types';
 
 const STYLE_VALUES = ['bold', 'casual', 'formal', 'minimalist', 'sporty'] as const;
@@ -19,6 +22,39 @@ export function useClothingTypes() {
     ...ct,
     label: t(ct.value),
   })), [t]);
+}
+
+export interface TypeGroup {
+  category: ItemCategory;
+  label: string;
+  types: { value: string; label: string }[];
+}
+
+// The type picker split into wardrobe sections (clothing, footwear, accessories), each sorted by
+// its translated label.
+export function useGroupedClothingTypes(): TypeGroup[] {
+  const types = useClothingTypes();
+  const t = useTranslations('constants.categories');
+  const locale = useLocale();
+  return useMemo(() => {
+    const collator = new Intl.Collator(locale);
+    return ITEM_CATEGORIES.map((category) => ({
+      category,
+      label: t(category),
+      types: types
+        .filter((type) => categoryOfType(type.value) === category)
+        .sort((a, b) => collator.compare(a.label, b.label)),
+    }));
+  }, [types, t, locale]);
+}
+
+export function useCategoryLabel() {
+  return useCatalogLabel(useTranslations('constants.categories'));
+}
+
+export function usePhotoTypeLabel() {
+  const t = useTranslations('wardrobe.photos');
+  return useCallback((type: string) => t(type as 'front'), [t]);
 }
 
 export function useClothingColors() {

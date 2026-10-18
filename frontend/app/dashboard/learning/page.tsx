@@ -196,7 +196,7 @@ function ItemPairCard({ pair }: { pair: ItemPair }) {
               src={pair.item1.thumbnail_url}
               alt={pair.item1.name || pair.item1.type}
               fill
-              className="object-cover"
+              className="garment-fit"
               sizes="48px"
             />
           ) : (
@@ -219,7 +219,7 @@ function ItemPairCard({ pair }: { pair: ItemPair }) {
               src={pair.item2.thumbnail_url}
               alt={pair.item2.name || pair.item2.type}
               fill
-              className="object-cover"
+              className="garment-fit"
               sizes="48px"
             />
           ) : (

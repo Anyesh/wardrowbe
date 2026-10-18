@@ -13,6 +13,10 @@ SETTINGS_KEYS = {name.upper() for name in Settings.model_fields}
 # Read by docker-entrypoint.sh to remap appuser before the app starts, never by Settings.
 ENTRYPOINT_KEYS = {"PUID", "PGID"}
 
+# Read by native libraries inside the process rather than by Settings: OMP_NUM_THREADS caps the
+# CPU threads onnxruntime gives background removal in the image worker.
+RUNTIME_KEYS = {"OMP_NUM_THREADS"}
+
 # wardrobe-config is shared with the postgres and frontend Deployments, which read these.
 K8S_NON_BACKEND_KEYS = {
     "POSTGRES_USER",
@@ -62,7 +66,7 @@ def test_notification_settings_reach_the_worker(compose):
 def test_every_compose_key_is_a_setting(compose):
     for name in BACKEND_SERVICES:
         keys = set(compose["services"][name]["environment"])
-        unknown = keys - SETTINGS_KEYS - ENTRYPOINT_KEYS
+        unknown = keys - SETTINGS_KEYS - ENTRYPOINT_KEYS - RUNTIME_KEYS
         assert not unknown, f"{name} passes keys no Settings field reads: {sorted(unknown)}"
 
 

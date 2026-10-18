@@ -23,11 +23,6 @@ import {
   Layers,
   Droplets,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Star,
-  ImageIcon,
 } from 'lucide-react';
 import {
   Dialog,
@@ -60,8 +55,12 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
-import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
+import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory } from '@/lib/hooks/use-items';
+import { CLOTHING_SUBTYPES, categoryOfType, Item } from '@/lib/types';
+import { CategoryBadge } from '@/components/item-photos/category-badge';
+import { CategoryTypeSelect } from '@/components/item-photos/category-type-select';
+import { ItemGallery, type GalleryPhoto } from '@/components/item-photos/item-gallery';
+import { PhotoManager } from '@/components/item-photos/photo-manager';
 import {
   useClothingTypes,
   useClothingColors,
@@ -152,6 +151,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const [showWashHistory, setShowWashHistory] = useState(false);
   const [showWearHistory, setShowWearHistory] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const wasProcessing = useRef(false);
+  useEffect(() => {
+    const processing = item?.status === 'processing';
+    if (wasProcessing.current && !processing) setImageKey((k) => k + 1);
+    wasProcessing.current = processing;
+  }, [item?.status]);
 
   const updateItem = useUpdateItem();
   const deleteItem = useDeleteItem();
@@ -167,9 +172,6 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const { data: washHistory } = useWashHistory(item?.id || '');
   const { data: wearStats } = useItemWearStats(item?.id || '');
   const { data: wearHistory } = useItemWearHistory(item?.id || '', 20);
-  const addImage = useAddItemImage();
-  const deleteImage = useDeleteItemImage();
-  const setPrimary = useSetPrimaryImage();
 
   useEffect(() => {
     if (item) {
@@ -275,9 +277,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
   const handleRemoveBackground = async () => {
     try {
+      // Queued on the image worker; the photo refreshes when the item stops processing.
       await removeBackground.mutateAsync({ id: item.id });
-      setImageKey((k) => k + 1);
-      toast.success(t('actions.backgroundRemoved'));
+      toast.success(tw('ai.removeBackgroundQueued'));
     } catch (error) {
       console.error('Failed to remove background:', error);
       toast.error(t('actions.backgroundRemoveError'));
@@ -308,9 +310,26 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   };
 
   const isAnalyzing = reanalyzeItem.isPending || item.status === 'processing';
+  const isRemovingBackground = item.status === 'processing' && item.processing_kind === 'background_removal';
 
   // Use signed URL from backend for better quality in detail view
   const imageUrl = item.image_url || item.image_path;
+  // The cover first, then the other photos in their saved order. imageKey busts the browser cache
+  // after the cover is rotated or replaced in place.
+  const galleryPhotos: GalleryPhoto[] = [
+    {
+      id: 'primary',
+      src: `${imageUrl}&v=${imageKey}`,
+      thumb: item.thumbnail_url ? `${item.thumbnail_url}&v=${imageKey}` : null,
+      view: item.image_view ?? null,
+    },
+    ...(item.additional_images || []).map((img) => ({
+      id: img.id,
+      src: img.medium_url || img.image_url,
+      thumb: img.thumbnail_url,
+      view: img.view ?? null,
+    })),
+  ];
   const colorInfo = clothingColors.find((c) => c.value === item.primary_color);
   const typeInfo = clothingTypes.find((type) => type.value === item.type);
   const unrecognizedType = item.type === 'unknown' ? item.ai_unrecognized_type : null;
@@ -505,127 +524,24 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           <div className="flex-1 overflow-y-auto overscroll-contain p-6 pt-4">
             <div className="grid gap-6 sm:grid-cols-2 [&>*]:min-w-0">
             {/* Image Gallery */}
-            <div className="space-y-2">
-              <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
-                {(() => {
-                  const allImages = [
-                    { url: `${imageUrl}&v=${imageKey}`, id: 'primary' },
-                    ...(item.additional_images || []).map((img) => ({ url: img.image_url, id: img.id })),
-                  ];
-                  const currentImage = allImages[activeImageIndex] || allImages[0];
-                  return (
-                    <>
-                      <Image
-                        key={`${currentImage.id}-${imageKey}`}
-                        src={currentImage.url}
-                        alt={item.name || typeLabel(item.type)}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 100vw, 50vw"
-                      />
-                      {allImages.length > 1 && (
-                        <>
-                          <button
-                            className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
-                            onClick={() => setActiveImageIndex((i) => (i - 1 + allImages.length) % allImages.length)}
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </button>
-                          <button
-                            className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
-                            onClick={() => setActiveImageIndex((i) => (i + 1) % allImages.length)}
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </button>
-                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                            {allImages.map((_, idx) => (
-                              <button
-                                key={idx}
-                                className={`w-1.5 h-1.5 rounded-full ${idx === activeImageIndex ? 'bg-white' : 'bg-white/50'}`}
-                                onClick={() => setActiveImageIndex(idx)}
-                              />
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </>
-                  );
-                })()}
-                {isAnalyzing && (
-                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="h-8 w-8 text-white animate-spin" />
-                    <span className="text-white text-sm font-medium">{t('view.aiAnalyzing')}</span>
-                  </div>
-                )}
-              </div>
-              {/* Thumbnail strip */}
-              {(item.additional_images?.length > 0 || isEditing) && (
-                <div className="flex gap-1.5 overflow-x-auto">
-                  <button
-                    className={`relative w-12 h-12 rounded border-2 overflow-hidden flex-shrink-0 ${activeImageIndex === 0 ? 'border-primary' : 'border-transparent'}`}
-                    onClick={() => setActiveImageIndex(0)}
-                  >
-                    <Image src={imageUrl} alt={t('view.primaryImage')} fill className="object-cover" sizes="48px" />
-                  </button>
-                  {(item.additional_images || []).map((img, idx) => (
-                    <div key={img.id} className="relative flex-shrink-0">
-                      <button
-                        className={`relative w-12 h-12 rounded border-2 overflow-hidden ${activeImageIndex === idx + 1 ? 'border-primary' : 'border-transparent'}`}
-                        onClick={() => setActiveImageIndex(idx + 1)}
-                      >
-                        <Image src={img.thumbnail_url || img.image_url} alt="" fill className="object-cover" sizes="48px" />
-                      </button>
-                      {isEditing && (
-                        <div className="absolute -top-1 -right-1 flex gap-0.5">
-                          <button
-                            className="bg-primary text-primary-foreground rounded-full p-0.5 hover:bg-primary/90"
-                            title={t('titles.setAsPrimary')}
-                            onClick={() => {
-                              setPrimary.mutate({ itemId: item.id, imageId: img.id });
-                              setActiveImageIndex(0);
-                            }}
-                          >
-                            <Star className="h-2.5 w-2.5" />
-                          </button>
-                          <button
-                            className="bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/90"
-                            title={t('titles.deleteImage')}
-                            onClick={() => {
-                              deleteImage.mutate({ itemId: item.id, imageId: img.id });
-                              if (activeImageIndex > idx) setActiveImageIndex((i) => i - 1);
-                            }}
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </div>
-                      )}
+            <div className="space-y-4">
+              <ItemGallery
+                photos={galleryPhotos}
+                index={Math.min(activeImageIndex, galleryPhotos.length - 1)}
+                onIndexChange={setActiveImageIndex}
+                alt={item.name || typeLabel(item.type)}
+                overlay={
+                  isAnalyzing ? (
+                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="h-8 w-8 text-white animate-spin" />
+                      <span className="text-white text-sm font-medium">
+                        {isRemovingBackground ? tw('ai.removingBackground') : t('view.aiAnalyzing')}
+                      </span>
                     </div>
-                  ))}
-                  {isEditing && (item.additional_images?.length || 0) < 4 && (
-                    <label
-                      className="w-12 h-12 rounded border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 flex-shrink-0"
-                    >
-                      {addImage.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      ) : (
-                        <Plus className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <input
-                        type="file"
-                        accept={ACCEPTED_IMAGE_INPUT}
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            addImage.mutate({ itemId: item.id, file });
-                          }
-                          e.target.value = '';
-                        }}
-                      />
-                    </label>
-                  )}
-                </div>
-              )}
+                  ) : null
+                }
+              />
+              {isEditing && <PhotoManager item={item} />}
             </div>
 
             {/* Details */}
@@ -648,21 +564,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         {t('unrecognizedType', { value: unrecognizedType })}
                       </p>
                     )}
-                    <Select
+                    <CategoryTypeSelect
                       value={editForm.type}
                       onValueChange={(v) => setEditForm({ ...editForm, type: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clothingTypes.map((ct) => (
-                          <SelectItem key={ct.value} value={ct.value}>
-                            {ct.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="item-subtype">{t('subtype')}</Label>
@@ -772,6 +677,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       {item.subtype && (
                         <span className="text-muted-foreground">• {subtypeLabel(item.subtype)}</span>
                       )}
+                      <CategoryBadge category={item.category ?? categoryOfType(item.type)} />
                     </div>
                     {unrecognizedType && (
                       <p className="text-xs text-amber-600 dark:text-amber-500">
@@ -971,7 +877,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                                             alt={oi.name || typeLabel(oi.type)}
                                             width={20}
                                             height={20}
-                                            className="object-cover w-full h-full"
+                                            className="garment-fit w-full h-full"
                                           />
                                         )}
                                       </div>

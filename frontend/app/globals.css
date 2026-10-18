@@ -3,49 +3,67 @@
 @tailwind utilities;
 
 @layer base {
+  /* A soft, desaturated palette: a dusty indigo for actions and focus, with sage, clay and
+     rose for the wardrobe sections. Components use these tokens, never raw colours, so light and
+     dark stay consistent. Values are HSL triplets for hsl(var(--x) / alpha). */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
+    --background: 240 20% 99%;
+    --foreground: 236 28% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card-foreground: 236 28% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    --primary: 220.9 39.3% 11%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220.9 39.3% 11%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220.9 39.3% 11%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 224 71.4% 4.1%;
-    --radius: 0.5rem;
+    --popover-foreground: 236 28% 14%;
+    --primary: 244 32% 47%;
+    --primary-foreground: 240 40% 98%;
+    --secondary: 244 30% 95%;
+    --secondary-foreground: 244 30% 30%;
+    --muted: 240 16% 95.5%;
+    --muted-foreground: 238 10% 44%;
+    --accent: 244 36% 94%;
+    --accent-foreground: 244 32% 32%;
+    --destructive: 0 62% 54%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 16% 90%;
+    --input: 240 16% 88%;
+    --ring: 244 32% 55%;
+    --radius: 0.625rem;
+
+    /* Wardrobe sections and status colours */
+    --category-clothing: 244 32% 52%;
+    --category-footwear: 18 45% 41%;
+    --category-accessories: 334 32% 44%;
+    --success: 150 28% 33%;
+    --warning: 32 70% 35%;
+    --info: 204 42% 38%;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 240 12% 6%;
+    --foreground: 240 20% 96%;
+    --card: 240 10% 9%;
+    --card-foreground: 240 20% 96%;
+    --popover: 240 10% 9%;
+    --popover-foreground: 240 20% 96%;
+    --primary: 244 62% 78%;
+    --primary-foreground: 244 30% 14%;
+    --secondary: 244 16% 18%;
+    --secondary-foreground: 244 40% 90%;
+    --muted: 240 8% 15%;
+    --muted-foreground: 240 8% 66%;
+    --accent: 244 18% 20%;
+    --accent-foreground: 244 50% 90%;
+    --destructive: 0 52% 46%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 240 8% 18%;
+    --input: 240 8% 20%;
+    --ring: 244 50% 72%;
+
+    --category-clothing: 244 55% 76%;
+    --category-footwear: 18 55% 70%;
+    --category-accessories: 334 45% 74%;
+    --success: 150 30% 62%;
+    --warning: 36 70% 62%;
+    --info: 204 50% 68%;
   }
 }
 
@@ -57,6 +75,16 @@
     @apply bg-background text-foreground;
     overflow-x: hidden;
     max-width: 100vw;
+  }
+}
+
+@layer components {
+  /* Every photo of a garment: the whole piece stays visible (trouser legs, sleeves, long
+     dresses and coats), centred and undistorted, with empty space around it rather than a
+     crop. Used instead of object-cover wherever an item photo is shown. */
+  .garment-fit {
+    object-fit: contain;
+    object-position: center;
   }
 }
 

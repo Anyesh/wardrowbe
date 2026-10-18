@@ -35,8 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateItem, useBulkCreateItems, BulkUploadResponse } from '@/lib/hooks/use-items';
-import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
+import { useAddItemImage, useCreateItem, useBulkCreateItems, BulkUploadResponse } from '@/lib/hooks/use-items';
+import { useClothingColors } from '@/lib/hooks/use-translated-constants';
+import { CategoryTypeSelect } from '@/components/item-photos/category-type-select';
+import { PhotoPicker, type DraftPhoto } from '@/components/photo-picker';
+import type { Item } from '@/lib/types';
+import { readRemoveBackground, storeRemoveBackground } from '@/lib/remove-background-pref';
 import { ACCEPTED_IMAGE_TYPES } from '@/lib/image-types';
 import { useTranslations } from 'next-intl';
 
@@ -49,25 +53,6 @@ interface FileWithPreview {
   file: File;
   preview: string;
   id: string;
-}
-
-const REMOVE_BACKGROUND_KEY = 'wardrowbe.removeBackground';
-
-// Remembered per browser; on by default so new photos come out clean.
-function readRemoveBackground(): boolean {
-  try {
-    return window.localStorage.getItem(REMOVE_BACKGROUND_KEY) !== 'false';
-  } catch {
-    return true;
-  }
-}
-
-function storeRemoveBackground(value: boolean): void {
-  try {
-    window.localStorage.setItem(REMOVE_BACKGROUND_KEY, String(value));
-  } catch {
-    // Private mode or blocked storage: the choice just isn't remembered.
-  }
 }
 
 function RemoveBackgroundOption({
@@ -98,11 +83,11 @@ function RemoveBackgroundOption({
 export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const t = useTranslations('wardrobe.addItem');
   const tc = useTranslations('common');
-  const clothingTypes = useClothingTypes();
+  const tp = useTranslations('wardrobe.photos');
   const clothingColors = useClothingColors();
-  // Single upload state
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  // Single upload state: the first photo is the cover, the rest are added once the item exists
+  const [photos, setPhotos] = useState<DraftPhoto[]>([]);
+  const [savingPhotos, setSavingPhotos] = useState(false);
   const [type, setType] = useState('');
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
@@ -121,6 +106,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const blobUrlsRef = useRef<Set<string>>(new Set());
 
   const createItem = useCreateItem();
+  const addImage = useAddItemImage();
   const bulkCreateItems = useBulkCreateItems();
 
   // Cleanup blob URLs on unmount to prevent memory leaks
@@ -129,19 +115,6 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
       blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
       blobUrlsRef.current.clear();
     };
-  }, []);
-
-  // Single file drop handler
-  const onDropSingle = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      setFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
   }, []);
 
   // Bulk file drop handler
@@ -158,13 +131,6 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     setBulkFiles((prev) => [...prev, ...newFiles]);
   }, []);
 
-  const { getRootProps: getSingleRootProps, getInputProps: getSingleInputProps, isDragActive: isSingleDragActive } = useDropzone({
-    onDrop: onDropSingle,
-    accept: ACCEPTED_IMAGE_TYPES,
-    maxFiles: 1,
-    multiple: false,
-  });
-
   const { getRootProps: getBulkRootProps, getInputProps: getBulkInputProps, isDragActive: isBulkDragActive } = useDropzone({
     onDrop: onDropBulk,
     accept: ACCEPTED_IMAGE_TYPES,
@@ -174,10 +140,12 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const handleSingleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!file) return;
+    const [cover, ...rest] = photos;
+    if (!cover) return;
 
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('image', cover.file);
+    formData.append('image_view', cover.type);
     // Type is optional - AI will detect if not provided
     if (type) formData.append('type', type);
     if (name) formData.append('name', name);
@@ -186,12 +154,33 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     if (notes) formData.append('notes', notes);
     formData.append('remove_background', String(removeBackground));
 
+    let created: Item;
     try {
-      await createItem.mutateAsync(formData);
-      handleClose();
+      created = await createItem.mutateAsync(formData);
     } catch (error) {
       console.error('Failed to create item:', error);
+      return;
     }
+
+    // The item exists from here on, so a photo that fails is reported, not retried as a new item.
+    setSavingPhotos(true);
+    let failed = 0;
+    for (const photo of rest) {
+      try {
+        await addImage.mutateAsync({
+          itemId: created.id,
+          file: photo.file,
+          view: photo.type,
+          removeBackground,
+        });
+      } catch (error) {
+        console.error('Failed to add photo:', error);
+        failed += 1;
+      }
+    }
+    setSavingPhotos(false);
+    if (failed > 0) toast.warning(tp('someFailed', { count: failed }));
+    handleClose();
   };
 
   const handleBulkSubmit = async () => {
@@ -233,11 +222,11 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   };
 
   // Check if there are unsaved files that would be lost on close
-  const hasUnsavedFiles = (file !== null) || (bulkFiles.length > 0 && !bulkResult);
+  const hasUnsavedFiles = photos.length > 0 || (bulkFiles.length > 0 && !bulkResult);
 
   const handleCloseRequest = () => {
     // Show confirmation if there are unsaved files and not currently uploading
-    if (hasUnsavedFiles && !createItem.isPending && !bulkCreateItems.isPending) {
+    if (hasUnsavedFiles && !createItem.isPending && !savingPhotos && !bulkCreateItems.isPending) {
       setShowCloseConfirm(true);
     } else {
       handleClose();
@@ -245,9 +234,8 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   };
 
   const handleClose = () => {
-    // Single upload cleanup
-    setFile(null);
-    setPreview(null);
+    // Single upload cleanup (PhotoPicker releases the previews)
+    setPhotos([]);
     setType('');
     setName('');
     setBrand('');
@@ -266,11 +254,6 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     setShowCloseConfirm(false);
 
     onOpenChange(false);
-  };
-
-  const clearSingleFile = () => {
-    setFile(null);
-    setPreview(null);
   };
 
   const removeBulkFile = (id: string) => {
@@ -314,60 +297,21 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
           {/* Single Item Upload */}
           <TabsContent value="single" className="space-y-4">
             <form onSubmit={handleSingleSubmit} className="space-y-4">
-              {!preview ? (
-                <div
-                  {...getSingleRootProps()}
-                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                    isSingleDragActive
-                      ? 'border-primary bg-primary/5'
-                      : 'border-muted-foreground/25 hover:border-primary/50'
-                  }`}
-                >
-                  <input {...getSingleInputProps()} />
-                  <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {isSingleDragActive
-                      ? t('dropzoneActive')
-                      : t('dropzone')}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t('formatHint')}
-                  </p>
-                </div>
-              ) : (
-                <div className="relative">
-                  <img
-                    src={preview}
-                    alt={t('previewAlt')}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8"
-                    onClick={clearSingleFile}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+              <PhotoPicker
+                photos={photos}
+                onChange={setPhotos}
+                disabled={createItem.isPending || savingPhotos}
+              />
 
               <div className="space-y-3">
                 <div className="space-y-2">
                   <Label htmlFor="type">{t('typeLabel')}</Label>
-                  <Select value={type} onValueChange={setType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('letAiDetect')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clothingTypes.map((ct) => (
-                        <SelectItem key={ct.value} value={ct.value}>
-                          {ct.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <CategoryTypeSelect
+                    id="type"
+                    value={type}
+                    onValueChange={setType}
+                    placeholder={t('letAiDetect')}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -439,9 +383,9 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!file || createItem.isPending}
+                  disabled={photos.length === 0 || createItem.isPending || savingPhotos}
                 >
-                  {createItem.isPending ? (
+                  {createItem.isPending || savingPhotos ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       {t('uploading')}
@@ -498,7 +442,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                             <img
                               src={f.preview}
                               alt={f.file.name}
-                              className="w-full aspect-square object-cover rounded-md"
+                              className="w-full aspect-square garment-fit rounded-md"
                             />
                             <Button
                               type="button"

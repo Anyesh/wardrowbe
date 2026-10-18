@@ -83,6 +83,14 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        category: {
+          clothing: 'hsl(var(--category-clothing))',
+          footwear: 'hsl(var(--category-footwear))',
+          accessories: 'hsl(var(--category-accessories))',
+        },
+        success: 'hsl(var(--success))',
+        warning: 'hsl(var(--warning))',
+        info: 'hsl(var(--info))',
       },
       borderRadius: {
         lg: 'var(--radius)',

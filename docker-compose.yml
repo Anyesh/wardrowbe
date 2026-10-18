@@ -161,6 +161,10 @@ services:
       BG_REMOVAL_MODEL: ${BG_REMOVAL_MODEL:-birefnet-general-lite}
       BG_REMOVAL_URL: ${BG_REMOVAL_URL:-}
       BG_REMOVAL_API_KEY: ${BG_REMOVAL_API_KEY:-}
+      # Background removal is the only model the app runs itself (CPU, no GPU). Cap its
+      # threads and free its memory after a while without photos.
+      OMP_NUM_THREADS: ${BG_REMOVAL_THREADS:-2}
+      BG_REMOVAL_IDLE_SECONDS: ${BG_REMOVAL_IDLE_SECONDS:-600}
     volumes:
       - wardrobe_data:/data/wardrobe
       - rembg_models:/opt/rembg/models

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, Search, Heart, Grid3X3, Loader2, AlertCircle, RefreshCw, Droplets, ArrowUpDown, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,16 +23,19 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { AddItemDialog } from '@/components/add-item-dialog';
+import { CardPhoto } from '@/components/item-photos/card-photo';
+import { CATEGORY_ICONS, CATEGORY_STYLES, CategoryBadge } from '@/components/item-photos/category-badge';
+import { CategoryTypeSelect } from '@/components/item-photos/category-type-select';
 import { AnalysisQueuePanel } from '@/components/analysis-queue-panel';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
 import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
 import { useUserTimezone } from '@/lib/hooks/use-user';
 import { colorSwatch, normalizeColor } from '@/lib/colors';
-import { Item } from '@/lib/types';
-import { useClothingTypes, useClothingColors, useSubtypeLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { ITEM_CATEGORIES, categoryOfType, type Item, type ItemCategory } from '@/lib/types';
+import { useCategoryLabel, useClothingColors, useSubtypeLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { toast } from 'sonner';
-import { formatWornAgo, getWornAgoColorClass } from '@/lib/utils';
+import { cn, formatWornAgo, getWornAgoColorClass } from '@/lib/utils';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 import { useTranslations } from 'next-intl';
 
@@ -100,19 +102,13 @@ function ItemCard({
   return (
     <Card
       className={`group overflow-hidden cursor-pointer transition-all ${
-        selected ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md'
+        selected ? 'ring-2 ring-primary shadow-md' : 'hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md'
       }`}
       onClick={onClick}
     >
       <div className="relative aspect-square bg-muted">
         {item.thumbnail_url ? (
-          <Image
-            src={item.thumbnail_url}
-            alt={item.name || typeLabel(item.type)}
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-          />
+          <CardPhoto item={item} alt={item.name || typeLabel(item.type)} />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
             {typeLabel(item.type)}
@@ -254,6 +250,7 @@ function ItemCard({
               {item.subtype && ` • ${subtypeLabel(item.subtype)}`}
               {item.tags?.logprobs_confidence != null && ` · ${t('ai.confident', { percent: Math.round(item.tags.logprobs_confidence * 100) })}`}
             </p>
+            <CategoryBadge category={item.category ?? categoryOfType(item.type)} className="mt-1.5" />
           </div>
           {item.primary_color && (
             <TooltipProvider>
@@ -328,7 +325,7 @@ export default function WardrobePage() {
   const userTimezone = useUserTimezone();
   const t = useTranslations('wardrobe');
   const tc = useTranslations('common');
-  const clothingTypes = useClothingTypes();
+  const categoryLabel = useCategoryLabel();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [queuePanelOpen, setQueuePanelOpen] = useState(false);
   const [selection, setSelection] = useState<BulkSelection>({
@@ -339,6 +336,10 @@ export default function WardrobePage() {
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [search, setSearch] = useState(() => searchParams.get('search') ?? '');
   const [typeFilter, setTypeFilter] = useState<string>(() => searchParams.get('type') ?? 'all');
+  const [categoryFilter, setCategoryFilter] = useState<ItemCategory | 'all'>(() => {
+    const raw = searchParams.get('category');
+    return ITEM_CATEGORIES.includes(raw as ItemCategory) ? (raw as ItemCategory) : 'all';
+  });
   const [sortIndex, setSortIndex] = useState(() => {
     const raw = Number(searchParams.get('sort'));
     return Number.isInteger(raw) && raw >= 0 && raw < SORT_OPTIONS.length ? raw : 0;
@@ -393,6 +394,7 @@ export default function WardrobePage() {
 
     if (search) params.set('search', search); else params.delete('search');
     if (typeFilter !== 'all') params.set('type', typeFilter); else params.delete('type');
+    if (categoryFilter !== 'all') params.set('category', categoryFilter); else params.delete('category');
     if (sortIndex !== 0) params.set('sort', String(sortIndex)); else params.delete('sort');
     if (needsWash) params.set('needsWash', 'true'); else params.delete('needsWash');
     if (favoriteFilter) params.set('favorite', 'true'); else params.delete('favorite');
@@ -403,13 +405,14 @@ export default function WardrobePage() {
     if (next !== searchParams.toString()) {
       router.replace(next ? `/dashboard/wardrobe?${next}` : '/dashboard/wardrobe', { scroll: false });
     }
-  }, [search, typeFilter, sortIndex, needsWash, favoriteFilter, page, pageSize, searchParams, router]);
+  }, [search, typeFilter, categoryFilter, sortIndex, needsWash, favoriteFilter, page, pageSize, searchParams, router]);
 
   const sortOption = SORT_OPTIONS[sortIndex];
 
   const filters = {
     search: search || undefined,
     type: typeFilter !== 'all' ? typeFilter : undefined,
+    category: categoryFilter !== 'all' ? categoryFilter : undefined,
     needs_wash: needsWash,
     favorite: favoriteFilter,
     is_archived: false,
@@ -422,6 +425,15 @@ export default function WardrobePage() {
     favoriteFilter !== undefined,
     typeFilter !== 'all',
   ].filter(Boolean).length;
+
+  const chooseCategory = (category: ItemCategory | 'all') => {
+    setCategoryFilter(category);
+    // A type from another section would leave the grid empty.
+    if (category !== 'all' && typeFilter !== 'all' && categoryOfType(typeFilter) !== category) {
+      setTypeFilter('all');
+    }
+    setPage(1);
+  };
 
   // Fetch items with automatic polling (faster when items are processing)
   const { data, isLoading, error } = useItems(filters, page, pageSize);
@@ -464,7 +476,7 @@ export default function WardrobePage() {
   // Clear selection when filters change (but not page - allow cross-page selection)
   useEffect(() => {
     setSelection({ mode: 'none', selectedIds: new Set(), excludedIds: new Set() });
-  }, [search, typeFilter, needsWash, favoriteFilter, sortIndex]);
+  }, [search, typeFilter, categoryFilter, needsWash, favoriteFilter, sortIndex]);
 
   const handleRetry = (itemId: string) => {
     reanalyze.mutate(itemId, {
@@ -543,6 +555,7 @@ export default function WardrobePage() {
         excluded_ids: Array.from(selection.excludedIds),
         filters: {
           type: typeFilter !== 'all' ? typeFilter : undefined,
+          category: categoryFilter !== 'all' ? categoryFilter : undefined,
           search: search || undefined,
           needs_wash: needsWash,
           favorite: favoriteFilter,
@@ -773,28 +786,56 @@ export default function WardrobePage() {
           </div>
         </div>
 
+        {/* Wardrobe sections */}
+        <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label={t('categories.label')}>
+          <button
+            type="button"
+            aria-pressed={categoryFilter === 'all'}
+            onClick={() => chooseCategory('all')}
+            className={cn(
+              'shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              categoryFilter === 'all'
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground'
+            )}
+          >
+            {t('categories.all')}
+          </button>
+          {ITEM_CATEGORIES.map((category) => {
+            const Icon = CATEGORY_ICONS[category];
+            const active = categoryFilter === category;
+            return (
+              <button
+                key={category}
+                type="button"
+                aria-pressed={active}
+                onClick={() => chooseCategory(active ? 'all' : category)}
+                className={cn(
+                  'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  active ? CATEGORY_STYLES[category].active : cn('bg-card hover:bg-muted/60', CATEGORY_STYLES[category].chip)
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                {categoryLabel(category)}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Expandable filter row */}
         {showFilters && (
           <div className="flex flex-wrap gap-2 items-center p-3 rounded-lg border bg-muted/30">
-            <Select
+            <CategoryTypeSelect
               value={typeFilter}
               onValueChange={(value) => {
                 setTypeFilter(value);
                 setPage(1);
               }}
-            >
-              <SelectTrigger className="w-[150px] h-8 text-xs">
-                <SelectValue placeholder={t('allTypes')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('allTypes')}</SelectItem>
-                {clothingTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              allLabel={t('allTypes')}
+              placeholder={t('allTypes')}
+              only={categoryFilter !== 'all' ? categoryFilter : undefined}
+              className="w-[170px] h-8 text-xs"
+            />
 
             <Select
               value={String(pageSize)}
@@ -881,7 +922,7 @@ export default function WardrobePage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        search || typeFilter !== 'all' || needsWash !== undefined || favoriteFilter !== undefined ? (
+        search || typeFilter !== 'all' || categoryFilter !== 'all' || needsWash !== undefined || favoriteFilter !== undefined ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">
               {t('errors.noItemsFound')}
@@ -892,6 +933,7 @@ export default function WardrobePage() {
               onClick={() => {
                 setSearch('');
                 setTypeFilter('all');
+                setCategoryFilter('all');
                 setNeedsWash(undefined);
                 setFavoriteFilter(undefined);
                 setPage(1);

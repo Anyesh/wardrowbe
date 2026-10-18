@@ -12,6 +12,7 @@ from app.models.outfit import Outfit, OutfitStatus, UserFeedback
 from app.models.user import User
 from app.utils.auth import get_current_user
 from app.utils.clothing import WardrobeComposition, count_composition
+from app.utils.garment_vocabulary import CATEGORIES, TYPE_CATEGORY
 from app.utils.signed_urls import sign_optional
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
@@ -27,6 +28,28 @@ class TypeDistribution(BaseModel):
     type: str
     count: int
     percentage: float
+
+
+class CategoryDistribution(BaseModel):
+    category: str
+    count: int
+    percentage: float
+
+
+def category_distribution(types: list[TypeDistribution]) -> list[CategoryDistribution]:
+    """Clothing, footwear and accessories totals; every section is listed, even when empty."""
+    counts = dict.fromkeys(CATEGORIES, 0)
+    for entry in types:
+        counts[TYPE_CATEGORY.get(entry.type, "clothing")] += entry.count
+    total = sum(counts.values())
+    return [
+        CategoryDistribution(
+            category=category,
+            count=count,
+            percentage=round(count / total * 100, 1) if total else 0,
+        )
+        for category, count in counts.items()
+    ]
 
 
 class WearStats(BaseModel):
@@ -108,6 +131,7 @@ class AnalyticsResponse(BaseModel):
     wardrobe: WardrobeStats
     color_distribution: list[ColorDistribution]
     type_distribution: list[TypeDistribution]
+    category_distribution: list[CategoryDistribution] = []
     most_worn: list[WearStats]
     least_worn: list[WearStats]
     never_worn: list[WearStats]
@@ -431,6 +455,7 @@ async def get_analytics(
         wardrobe=wardrobe_stats,
         color_distribution=color_distribution,
         type_distribution=type_distribution,
+        category_distribution=category_distribution(type_distribution),
         most_worn=most_worn,
         least_worn=least_worn,
         never_worn=never_worn,

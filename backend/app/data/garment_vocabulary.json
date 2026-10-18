@@ -32,8 +32,18 @@
     {"value": "scarf", "role": "accessory", "wash_interval": 10},
     {"value": "belt", "role": "accessory", "wash_interval": 20},
     {"value": "bag", "role": "accessory", "wash_interval": 20},
-    {"value": "accessories", "role": "accessory", "wash_interval": 20}
+    {"value": "accessories", "role": "accessory", "wash_interval": 20},
+    {"value": "ring", "role": "accessory", "wash_interval": 100},
+    {"value": "necklace", "role": "accessory", "wash_interval": 100},
+    {"value": "watch", "role": "accessory", "wash_interval": 100},
+    {"value": "bracelet", "role": "accessory", "wash_interval": 100},
+    {"value": "earrings", "role": "accessory", "wash_interval": 100}
   ],
+  "categories": {
+    "clothing": ["full_body", "base_top", "mid_layer", "suit", "outer_layer", "bottom", "legwear", "socks"],
+    "footwear": ["footwear"],
+    "accessories": ["neckwear", "accessory"]
+  },
   "materials": ["cotton", "denim", "leather", "wool", "polyester", "silk", "linen", "knit", "fleece", "suede", "velvet", "nylon", "canvas", "down", "shearling"],
   "formality": ["very-casual", "casual", "smart-casual", "business-casual", "formal", "very-formal"],
   "occasions": [

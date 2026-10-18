@@ -311,6 +311,7 @@ class TestBulkRemoveBackground:
             "failed": 0,
             "skipped": 0,
             "already_done": 0,
+            "photos_queued": 0,
             "errors": [],
             "next_cursor": None,
             "has_more": False,

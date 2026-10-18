@@ -242,7 +242,12 @@
     "tie": "Cravate",
     "tights": "Collants",
     "top": "Haut",
-    "vest": "Gilet sans manches"
+    "vest": "Gilet sans manches",
+    "ring": "Bague",
+    "necklace": "Collier",
+    "watch": "Montre",
+    "bracelet": "Bracelet",
+    "earrings": "Boucles d'oreilles"
   },
   "weatherConditions": {
     "clear": "Dégagé",
@@ -271,5 +276,10 @@
     "thunderstorm": "Orage",
     "thunderstorm-with-hail": "Orage avec grêle",
     "unknown": "Inconnu"
+  },
+  "categories": {
+    "clothing": "Vêtements",
+    "footwear": "Chaussures",
+    "accessories": "Accessoires"
   }
 }

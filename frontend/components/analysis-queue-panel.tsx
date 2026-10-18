@@ -124,7 +124,7 @@ export function AnalysisQueuePanel({
                             alt={describe(entry.name, entry.type)}
                             fill
                             sizes="40px"
-                            className="object-cover"
+                            className="garment-fit"
                           />
                         )}
                       </div>
