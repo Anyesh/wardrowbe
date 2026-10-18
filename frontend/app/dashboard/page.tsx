@@ -254,6 +254,7 @@ function PendingOutfitsCard() {
                 className="h-8 w-8 text-green-500 hover:text-green-600 hover:bg-green-50"
                 onClick={() => handleAccept(outfit.id)}
                 disabled={acceptOutfit.isPending}
+                aria-label={t('pendingOutfits.acceptLabel')}
               >
                 <ThumbsUp className="h-4 w-4" />
               </Button>

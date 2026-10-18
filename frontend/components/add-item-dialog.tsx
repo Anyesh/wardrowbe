@@ -300,6 +300,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                     size="icon"
                     className="absolute top-2 right-2 h-8 w-8"
                     onClick={clearSingleFile}
+                    aria-label={t('removePhoto')}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -451,6 +452,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                               size="icon"
                               className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => removeBulkFile(f.id)}
+                              aria-label={t('bulk.removeImage', { name: f.file.name })}
                             >
                               <X className="h-3 w-3" />
                             </Button>

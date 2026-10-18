@@ -7,6 +7,7 @@
     "channelDisabled": "渠道已禁用",
     "channelEnabled": "渠道已启用",
     "channelType": "渠道类型",
+    "deleteChannel": "删除通知渠道",
     "deleteConfirm": {
       "description": "这将移除此通知渠道并停止通过它发送的所有通知。",
       "title": "删除通知渠道？"
@@ -74,6 +75,7 @@
       "description": "这将移除此推送时间表。",
       "title": "删除时间表？"
     },
+    "deleteSchedule": "删除时间表",
     "description": "设置每天接收穿搭推荐的时间",
     "dialogDescription": "设置您希望收到穿搭推荐的时间。",
     "noSchedules": "尚未配置时间表",

@@ -70,7 +70,9 @@
       "title": "Family Ratings"
     },
     "imageRotated": "Image rotated",
+    "nextItem": "Next item",
     "noImage": "No image",
+    "previousItem": "Previous item",
     "rotateFailed": "Failed to rotate image",
     "rotateLeft": "Rotate left",
     "rotateRight": "Rotate right",

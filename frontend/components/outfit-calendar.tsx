@@ -72,13 +72,18 @@ export function OutfitCalendar({
     <div className="w-full">
       {/* Month navigation */}
       <div className="flex items-center justify-between mb-4">
-        <Button variant="ghost" size="icon" onClick={handlePrevMonth}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handlePrevMonth}
+          aria-label={t('previousMonth')}
+        >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h3 className="font-semibold text-lg">
           {formatDate(currentMonth, locale, { month: 'long', year: 'numeric' })}
         </h3>
-        <Button variant="ghost" size="icon" onClick={handleNextMonth}>
+        <Button variant="ghost" size="icon" onClick={handleNextMonth} aria-label={t('nextMonth')}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

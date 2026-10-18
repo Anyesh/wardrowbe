@@ -12,6 +12,7 @@
     "description": "Configurez les points de terminaison IA pour l'analyse d'images. Les points de terminaison sont essayés dans l'ordre, de haut en bas.",
     "disabled": "Désactivé",
     "error": "Erreur",
+    "fallbackName": "Point de terminaison {number}",
     "fields": {
       "name": "Nom",
       "textModel": "Modèle de texte",
@@ -19,10 +20,13 @@
       "visionModel": "Modèle de vision"
     },
     "modelsAvailable": "{count, plural, one {{count} modèle disponible} other {{count} modèles disponibles}}",
+    "moveDown": "Descendre {name}",
+    "moveUp": "Monter {name}",
     "noEndpoints": "Aucun point de terminaison personnalisé configuré. Utilisation des paramètres serveur par défaut.",
     "placeholders": {
       "name": "ex. Ollama local"
     },
+    "removeEndpoint": "Retirer {name}",
     "testConnection": "Tester la connexion",
     "testFailed": "Échec du test du point de terminaison",
     "textModels": "Texte : {models}",

@@ -77,6 +77,7 @@ export function ChannelCard({
             size="sm"
             className="ml-auto text-destructive hover:text-destructive"
             onClick={onDelete}
+            aria-label={t('channels.deleteChannel')}
           >
             <Trash2 className="h-4 w-4" />
           </Button>

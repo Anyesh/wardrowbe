@@ -378,7 +378,12 @@ function FamilyView() {
             <code className="flex-1 rounded-md bg-muted px-4 py-3 font-mono text-lg tracking-wider">
               {family.invite_code}
             </code>
-            <Button variant="outline" size="icon" onClick={copyInviteCode}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={copyInviteCode}
+              aria-label={t('inviteCodeSection.copyCode')}
+            >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
             {isAdmin && (
@@ -387,6 +392,7 @@ function FamilyView() {
                 size="icon"
                 onClick={handleRegenerateCode}
                 disabled={regenerateCode.isPending}
+                aria-label={t('inviteCodeSection.regenerateCode')}
               >
                 {regenerateCode.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -491,7 +497,12 @@ function FamilyView() {
                     </Select>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive"
+                          aria-label={t('members.removeMember', { name: member.display_name })}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
@@ -553,6 +564,7 @@ function FamilyView() {
                     className="text-destructive"
                     onClick={() => cancelInvite.mutate(invite.id)}
                     disabled={cancelInvite.isPending}
+                    aria-label={t('pendingInvites.cancelInvite', { email: invite.email })}
                   >
                     {cancelInvite.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

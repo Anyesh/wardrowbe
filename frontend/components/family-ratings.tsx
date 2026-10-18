@@ -123,6 +123,7 @@ export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: Famil
               className="h-7 w-7 text-muted-foreground hover:text-destructive"
               onClick={handleDelete}
               disabled={deleteRating.isPending}
+              aria-label={t('removeRating')}
             >
               {deleteRating.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

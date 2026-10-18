@@ -38,7 +38,9 @@
   "inviteCode": "Invite Code",
   "inviteCodeExample": "e.g., ABC123XY",
   "inviteCodeSection": {
+    "copyCode": "Copy invite code",
     "description": "Share this code with family members to let them join",
+    "regenerateCode": "Generate a new invite code",
     "title": "Invite Code"
   },
   "inviteEmailPlaceholder": "email@example.com",
@@ -55,9 +57,11 @@
       "description": "Are you sure you want to remove {name} from the family?",
       "title": "Remove Member?"
     },
+    "removeMember": "Remove {name}",
     "title": "Members"
   },
   "pendingInvites": {
+    "cancelInvite": "Cancel invite for {email}",
     "description": "Invitations that haven't been accepted yet",
     "expires": "Expires {date}",
     "title": "Pending Invites"
@@ -68,6 +72,7 @@
     "ratingSubmitted": "Rating submitted!",
     "ratingUpdated": "Rating updated!",
     "removeError": "Failed to remove rating",
+    "removeRating": "Remove your rating",
     "selectRating": "Please select a rating",
     "submitError": "Failed to submit rating",
     "submitRating": "Submit Rating",

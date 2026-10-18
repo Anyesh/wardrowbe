@@ -185,6 +185,8 @@ export default function SettingsPage() {
   const occasions = useOccasionOptions([formData.default_occasion, preferences?.default_occasion]);
   const [hasChanges, setHasChanges] = useState(false);
   const [endpointTests, setEndpointTests] = useState<Record<number, EndpointTestResult>>({});
+  const endpointName = (endpoint: AIEndpoint, index: number) =>
+    endpoint.name || t('aiEndpoints.fallbackName', { number: index + 1 });
 
   // Location and timezone state
   const [locationName, setLocationName] = useState('');
@@ -1055,6 +1057,7 @@ export default function SettingsPage() {
                                 [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
                                 updateField('ai_endpoints', updated);
                               }}
+                              aria-label={t('aiEndpoints.moveUp', { name: endpointName(endpoint, index) })}
                             >
                               <ChevronUp className="h-3 w-3" />
                             </Button>
@@ -1068,12 +1071,13 @@ export default function SettingsPage() {
                                 [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
                                 updateField('ai_endpoints', updated);
                               }}
+                              aria-label={t('aiEndpoints.moveDown', { name: endpointName(endpoint, index) })}
                             >
                               <ChevronDown className="h-3 w-3" />
                             </Button>
                           </div>
                           <span className="font-medium text-sm truncate">
-                            {endpoint.name || `Endpoint ${index + 1}`}
+                            {endpointName(endpoint, index)}
                           </span>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
@@ -1098,6 +1102,7 @@ export default function SettingsPage() {
                                 return newTests;
                               });
                             }}
+                            aria-label={t('aiEndpoints.removeEndpoint', { name: endpointName(endpoint, index) })}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

@@ -38,7 +38,9 @@
   "inviteCode": "招待コード",
   "inviteCodeExample": "例：ABC123XY",
   "inviteCodeSection": {
+    "copyCode": "招待コードをコピー",
     "description": "このコードを家族に共有して参加してもらいましょう",
+    "regenerateCode": "新しい招待コードを生成",
     "title": "招待コード"
   },
   "inviteEmailPlaceholder": "email@example.com",
@@ -55,9 +57,11 @@
       "description": "本当に{name}さんをファミリーから削除しますか？",
       "title": "メンバーを削除しますか？"
     },
+    "removeMember": "{name} を削除",
     "title": "メンバー"
   },
   "pendingInvites": {
+    "cancelInvite": "{email} への招待を取り消す",
     "description": "まだ承認されていない招待",
     "expires": "{date}に期限切れ",
     "title": "保留中の招待"
@@ -68,6 +72,7 @@
     "ratingSubmitted": "評価を送信しました！",
     "ratingUpdated": "評価を更新しました！",
     "removeError": "評価の削除に失敗しました",
+    "removeRating": "自分の評価を削除",
     "selectRating": "評価を選択してください",
     "submitError": "評価の送信に失敗しました",
     "submitRating": "評価を送信",

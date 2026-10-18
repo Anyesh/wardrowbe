@@ -70,7 +70,9 @@
       "title": "ファミリー評価"
     },
     "imageRotated": "画像を回転しました",
+    "nextItem": "次のアイテム",
     "noImage": "画像なし",
+    "previousItem": "前のアイテム",
     "rotateFailed": "画像の回転に失敗しました",
     "rotateLeft": "左に回転",
     "rotateRight": "右に回転",

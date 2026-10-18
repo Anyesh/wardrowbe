@@ -38,7 +38,9 @@
   "inviteCode": "Code d'invitation",
   "inviteCodeExample": "ex. ABC123XY",
   "inviteCodeSection": {
+    "copyCode": "Copier le code d'invitation",
     "description": "Partagez ce code avec les membres de votre famille pour qu'ils puissent rejoindre",
+    "regenerateCode": "Générer un nouveau code d'invitation",
     "title": "Code d'invitation"
   },
   "inviteEmailPlaceholder": "email@exemple.com",
@@ -55,9 +57,11 @@
       "description": "Êtes-vous sûr de vouloir supprimer {name} de la famille ?",
       "title": "Retirer le membre ?"
     },
+    "removeMember": "Retirer {name}",
     "title": "Membres"
   },
   "pendingInvites": {
+    "cancelInvite": "Annuler l'invitation de {email}",
     "description": "Invitations qui n'ont pas encore été acceptées",
     "expires": "Expire le {date}",
     "title": "Invitations en attente"
@@ -68,6 +72,7 @@
     "ratingSubmitted": "Note soumise !",
     "ratingUpdated": "Note mise à jour !",
     "removeError": "Échec de la suppression de la note",
+    "removeRating": "Supprimer votre note",
     "selectRating": "Veuillez sélectionner une note",
     "submitError": "Échec de l'envoi de la note",
     "submitRating": "Soumettre la note",

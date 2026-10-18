@@ -111,7 +111,12 @@ function ScheduleCard({
         </div>
         <div className="flex items-center gap-2">
           <Switch checked={schedule.enabled} onCheckedChange={onToggle} />
-          <Button variant="ghost" size="sm" onClick={onDelete}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDelete}
+            aria-label={t('schedule.deleteSchedule')}
+          >
             <Trash2 className="h-4 w-4 text-muted-foreground" />
           </Button>
         </div>

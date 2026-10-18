@@ -14,8 +14,10 @@
     "legendOnDemand": "オンデマンド",
     "legendScheduled": "スケジュール",
     "monthlyCount": "今月{count, plural, one {# 件のコーデ} other {# 件のコーデ}}",
+    "nextMonth": "次の月",
     "noOutfitsOnDay": "この日のコーデはありません",
     "outfitCount": "{count, plural, one {# 件のコーデ} other {# 件のコーデ}}",
+    "previousMonth": "前の月",
     "weekDays": {
       "fri": "金",
       "mon": "月",

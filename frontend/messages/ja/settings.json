@@ -12,6 +12,7 @@
     "description": "画像解析用のAIエンドポイントを設定します。エンドポイントは上から順に試行されます。",
     "disabled": "無効",
     "error": "エラー",
+    "fallbackName": "エンドポイント {number}",
     "fields": {
       "name": "名前",
       "textModel": "テキストモデル",
@@ -19,10 +20,13 @@
       "visionModel": "ビジョンモデル"
     },
     "modelsAvailable": "{count, plural, one {{count} 個のモデルが利用可能} other {{count} 個のモデルが利用可能}}",
+    "moveDown": "{name} を下へ移動",
+    "moveUp": "{name} を上へ移動",
     "noEndpoints": "カスタムエンドポイントは未設定です。デフォルトのサーバー設定を使用します。",
     "placeholders": {
       "name": "例：Local Ollama"
     },
+    "removeEndpoint": "{name} を削除",
     "testConnection": "接続テスト",
     "testFailed": "エンドポイントのテストに失敗しました",
     "textModels": "テキスト：{models}",

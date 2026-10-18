@@ -528,12 +528,14 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                           <button
                             className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
                             onClick={() => setActiveImageIndex((i) => (i - 1 + allImages.length) % allImages.length)}
+                            aria-label={t('titles.previousImage')}
                           >
                             <ChevronLeft className="h-4 w-4" />
                           </button>
                           <button
                             className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
                             onClick={() => setActiveImageIndex((i) => (i + 1) % allImages.length)}
+                            aria-label={t('titles.nextImage')}
                           >
                             <ChevronRight className="h-4 w-4" />
                           </button>

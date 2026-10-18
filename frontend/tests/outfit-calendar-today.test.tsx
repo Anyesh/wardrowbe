@@ -52,4 +52,21 @@ describe('OutfitCalendar', () => {
     expect(screen.getByRole('button', { name: '5' })).toHaveAttribute('aria-current', 'date')
     expect(screen.getByRole('button', { name: '6' })).not.toHaveAttribute('aria-current')
   })
+
+  it('names the month navigation buttons', () => {
+    render(
+      <OutfitCalendar
+        year={2026}
+        month={10}
+        outfits={[]}
+        selectedDate={null}
+        onSelectDate={() => {}}
+        onMonthChange={() => {}}
+      />,
+      { wrapper }
+    )
+
+    expect(screen.getByRole('button', { name: 'previousMonth' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'nextMonth' })).toBeInTheDocument()
+  })
 })

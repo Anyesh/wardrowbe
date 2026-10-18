@@ -7,6 +7,7 @@
     "channelDisabled": "頻道已停用",
     "channelEnabled": "頻道已啟用",
     "channelType": "頻道類型",
+    "deleteChannel": "刪除通知頻道",
     "deleteConfirm": {
       "description": "這將移除此通知管道，並停止透過它傳送的所有通知。",
       "title": "刪除通知頻道？"
@@ -74,6 +75,7 @@
       "description": "這將移除此傳送排程。",
       "title": "刪除排程？"
     },
+    "deleteSchedule": "刪除排程",
     "description": "設定每天何時接收穿搭推薦",
     "dialogDescription": "設定你想收到穿搭推薦的時間。",
     "noSchedules": "尚未設定排程",

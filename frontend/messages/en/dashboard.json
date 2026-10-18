@@ -31,6 +31,7 @@
   },
   "pendingOutfits": {
     "acceptFailed": "Failed to accept outfit",
+    "acceptLabel": "Accept outfit",
     "accepted": "Outfit accepted",
     "allCaughtUp": "All Caught Up",
     "dismissFailed": "Failed to dismiss outfit",
