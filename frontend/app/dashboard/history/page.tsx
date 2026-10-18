@@ -28,8 +28,10 @@ import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import { isSameDay, parseISO } from 'date-fns';
 import { formatDate, parseDateString } from '@/lib/utils';
 import { useUserToday } from '@/lib/hooks/use-user';
+import { useAiUiEnabled } from '@/lib/hooks/use-features';
 
 function EmptyHistory({ t }: { t: (key: string) => string }) {
+  const aiUiEnabled = useAiUiEnabled();
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       <div className="rounded-full bg-muted p-6 mb-4">
@@ -39,9 +41,11 @@ function EmptyHistory({ t }: { t: (key: string) => string }) {
       <p className="text-muted-foreground mb-6 max-w-sm">
         {t('empty.description')}
       </p>
-      <Button variant="outline" asChild>
-        <a href="/dashboard/suggest">{t('empty.getFirstSuggestion')}</a>
-      </Button>
+      {aiUiEnabled && (
+        <Button variant="outline" asChild>
+          <a href="/dashboard/suggest">{t('empty.getFirstSuggestion')}</a>
+        </Button>
+      )}
     </div>
   );
 }

@@ -16,6 +16,7 @@ import type { StudioItem } from '@/lib/studio/editor-state';
 import type { Outfit, OutfitItem } from '@/lib/hooks/use-outfits';
 import { useTranslations } from 'next-intl';
 import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useAiUiEnabled } from '@/lib/hooks/use-features';
 
 interface DetailsPanelProps {
   items: StudioItem[];
@@ -49,6 +50,7 @@ export function DetailsPanel({
   const itemLabel = (item: StudioItem) => item.name || typeLabel(item.type);
   const t = useTranslations('outfits.details');
   const [aiLoading, setAiLoading] = useState(false);
+  const aiUiEnabled = useAiUiEnabled();
   const warnings = computeWarnings(items, t);
 
   const handleAiAssist = async () => {
@@ -134,25 +136,27 @@ export function DetailsPanel({
         </Alert>
       )}
 
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        disabled={items.length === 0 || !occasion || aiLoading}
-        onClick={handleAiAssist}
-      >
-        {aiLoading ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            {t('aiThinking')}
-          </>
-        ) : (
-          <>
-            <Sparkles className="h-4 w-4 mr-2" />
-            {t('letAiFinish')}
-          </>
-        )}
-      </Button>
+      {aiUiEnabled && (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={items.length === 0 || !occasion || aiLoading}
+          onClick={handleAiAssist}
+        >
+          {aiLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              {t('aiThinking')}
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4 mr-2" />
+              {t('letAiFinish')}
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 }
