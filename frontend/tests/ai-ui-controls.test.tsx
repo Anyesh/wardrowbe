@@ -67,10 +67,11 @@ describe.each([true, false])('AI controls with ai_ui_enabled=%s', (aiUiEnabled) 
     expect(screen.getByRole('button', { name: 'actions.logWear' })).toBeInTheDocument()
   })
 
-  it('add item type picker offers AI detection only when the switch is on', () => {
+  it('add item type field mentions AI detection only when the switch is on', () => {
     renderWithAiUi(<AddItemDialog open onOpenChange={() => {}} />, aiUiEnabled)
 
     expectShown(screen.queryByText('letAiDetect'))
+    expectShown(screen.queryByText('typeLabel'))
     expect(screen.getAllByText('selectPlaceholder')).toHaveLength(aiUiEnabled ? 1 : 2)
   })
 
