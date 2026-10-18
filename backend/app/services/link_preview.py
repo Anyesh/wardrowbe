@@ -18,6 +18,7 @@ import httpx
 
 MAX_BYTES = 1_500_000
 TIMEOUT_SECONDS = 8
+DNS_TIMEOUT_SECONDS = 5
 MAX_REDIRECTS = 4
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -159,17 +160,42 @@ def parse_preview(url: str, html: str) -> LinkPreview:
     )
 
 
-async def ensure_public_host(host: str) -> None:
+async def _resolve(host: str) -> list:
+    return await asyncio.get_running_loop().getaddrinfo(host, None, type=socket.SOCK_STREAM)
+
+
+async def ensure_public_host(host: str) -> str:
+    """Resolves the host once and returns the address to connect to, after checking that every
+    address it resolves to is public. The caller connects to that very address, so a second
+    lookup by the HTTP client cannot swap in a LAN address (DNS rebinding)."""
     try:
-        infos = await asyncio.get_running_loop().getaddrinfo(host, None, type=socket.SOCK_STREAM)
+        infos = await asyncio.wait_for(_resolve(host), DNS_TIMEOUT_SECONDS)
+    except TimeoutError:
+        raise PreviewError("The address took too long to look up.") from None
     except OSError:
         raise PreviewError("This address cannot be found.") from None
+    if not infos:
+        raise PreviewError("This address cannot be found.")
     for info in infos:
         address = ip_address(info[4][0].split("%")[0])
         if isinstance(address, IPv6Address) and address.ipv4_mapped is not None:
             address = address.ipv4_mapped
         if not address.is_global or address.is_multicast:
             raise PreviewError("Only public web pages can be read.")
+    return infos[0][4][0].split("%")[0]
+
+
+def pinned_request(url: str, address: str) -> tuple[str, dict[str, str], dict[str, str]]:
+    """The URL rewritten to the checked address, with the Host header and the TLS server name
+    (SNI, also used to verify the certificate) still naming the original host."""
+    parts = urlsplit(url)
+    host = parts.hostname or ""
+    literal = f"[{address}]" if ":" in address else address
+    netloc = f"{literal}:{parts.port}" if parts.port else literal
+    pinned = parts._replace(netloc=netloc).geturl()
+    host_header = f"{host}:{parts.port}" if parts.port else host
+    extensions = {"sni_hostname": host} if parts.scheme == "https" else {}
+    return pinned, {"Host": host_header}, extensions
 
 
 def validate_url(url: str) -> str:
@@ -190,9 +216,12 @@ async def fetch_preview(url: str) -> LinkPreview:
         headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml"},
     ) as client:
         for _ in range(MAX_REDIRECTS + 1):
-            await ensure_public_host(urlsplit(current).hostname or "")
+            address = await ensure_public_host(urlsplit(current).hostname or "")
+            target, headers, extensions = pinned_request(current, address)
             try:
-                async with client.stream("GET", current) as response:
+                async with client.stream(
+                    "GET", target, headers=headers, extensions=extensions
+                ) as response:
                     if response.is_redirect:
                         location = response.headers.get("location")
                         if not location:

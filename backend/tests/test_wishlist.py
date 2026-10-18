@@ -1,3 +1,4 @@
+import asyncio
 from decimal import Decimal
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
@@ -9,7 +10,13 @@ from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.item import ClothingItem, ItemStatus
-from app.services.link_preview import LinkPreview, PreviewError, ensure_public_host, parse_preview
+from app.services.link_preview import (
+    LinkPreview,
+    PreviewError,
+    ensure_public_host,
+    parse_preview,
+    pinned_request,
+)
 
 SHOP_PAGE = """<html><head>
 <title>Fallback title</title>
@@ -60,6 +67,51 @@ class TestPublicHostsOnly:
     async def test_refuses_the_local_network(self, host):
         with pytest.raises(PreviewError):
             await ensure_public_host(host)
+
+    @pytest.mark.asyncio
+    async def test_a_host_that_resolves_to_the_lan_is_refused(self):
+        # Even when only one of the answers is private, as in a rebinding setup.
+        answers = [
+            (2, 1, 6, "", ("93.184.216.34", 0)),
+            (2, 1, 6, "", ("192.168.1.10", 0)),
+        ]
+        with patch("app.services.link_preview._resolve", AsyncMock(return_value=answers)):
+            with pytest.raises(PreviewError):
+                await ensure_public_host("shop.example.com")
+
+    @pytest.mark.asyncio
+    async def test_returns_the_checked_address(self):
+        answers = [(2, 1, 6, "", ("93.184.216.34", 0))]
+        with patch("app.services.link_preview._resolve", AsyncMock(return_value=answers)):
+            assert await ensure_public_host("shop.example.com") == "93.184.216.34"
+
+    @pytest.mark.asyncio
+    async def test_a_stalled_lookup_gives_up(self):
+        async def stall(*args, **kwargs):
+            await asyncio.sleep(10)
+
+        with (
+            patch("app.services.link_preview.DNS_TIMEOUT_SECONDS", 0.05),
+            patch("app.services.link_preview._resolve", stall),
+        ):
+            with pytest.raises(PreviewError):
+                await ensure_public_host("shop.example.com")
+
+
+class TestPinnedRequest:
+    def test_connects_to_the_checked_address_but_keeps_the_host_name(self):
+        url, headers, extensions = pinned_request(
+            "https://shop.example.com/p/1?x=2", "93.184.216.34"
+        )
+        assert url == "https://93.184.216.34/p/1?x=2"
+        assert headers == {"Host": "shop.example.com"}
+        assert extensions == {"sni_hostname": "shop.example.com"}
+
+    def test_keeps_the_port_and_brackets_ipv6(self):
+        url, headers, extensions = pinned_request("http://shop.example.com:8080/a", "2606:4700::1")
+        assert url == "http://[2606:4700::1]:8080/a"
+        assert headers == {"Host": "shop.example.com:8080"}
+        assert extensions == {}
 
 
 class TestWishlistApi:

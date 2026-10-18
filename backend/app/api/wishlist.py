@@ -182,10 +182,17 @@ async def update_wishlist_item(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> WishlistResponse:
     entry = await _owned(db, current_user, item_id)
+    old_link, old_price = entry.link, entry.price
     for key, value in data.model_dump(exclude_unset=True).items():
         if key in ("name", "priority", "bought") and value is None:
             continue
         setattr(entry, key, value)
+    # A new shop or a new reference price starts the watch over: the old shop price and drop
+    # say nothing about it, and the next check should come soon.
+    if entry.link != old_link or entry.price != old_price:
+        entry.current_price = None
+        entry.price_checked_at = None
+        entry.price_dropped_at = None
     await db.flush()
     await db.refresh(entry)
     return WishlistResponse.model_validate(entry)
