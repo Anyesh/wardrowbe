@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -24,6 +24,7 @@ export default function SelfiePage() {
   const [done, setDone] = useState(false);
 
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  const logged = useRef<Set<string>>(new Set());
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
   }, [preview]);
@@ -32,6 +33,7 @@ export default function SelfiePage() {
     setFile(next);
     setSelected(new Set());
     setDone(false);
+    logged.current = new Set();
     recognise.reset();
     if (next) {
       recognise.mutate(next, {
@@ -51,7 +53,13 @@ export default function SelfiePage() {
   const confirm = async () => {
     setSaving(true);
     try {
-      for (const id of Array.from(selected)) await logWear.mutateAsync({ id });
+      // Each wear is its own request: after a failure, a retry skips the ones already logged
+      // instead of counting them twice.
+      for (const id of Array.from(selected)) {
+        if (logged.current.has(id)) continue;
+        await logWear.mutateAsync({ id });
+        logged.current.add(id);
+      }
       setDone(true);
       toast.success(t('saved', { count: selected.size }));
     } catch {

@@ -29,30 +29,53 @@ def describe(item: ClothingItem) -> str:
     return text
 
 
+# An answer that is only a list of numbers ("3, 7" or "matches: [3, 7]"), the one shape read
+# without JSON; prose with numbers in it ("it is 2 pm, I see 1 shirt") is not.
+BARE_LIST = re.compile(r"^\s*(?:matches\s*:)?\s*\[?\s*\d+(?:\s*,\s*\d+)*\s*\]?\s*\.?\s*$", re.I)
+
+
+def _as_number(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip())
+    return None
+
+
 def parse_matches(content: str, count: int) -> list[int]:
     """Zero-based indexes of the listed items the answer names, in order, without repeats."""
-    numbers: list[object] = []
+    numbers: list[object] | None = None
     match = re.search(r"\{.*\}", content, re.S)
     if match:
         try:
-            numbers = json.loads(match.group(0)).get("matches", [])
-        except (ValueError, AttributeError):
-            numbers = []
-    if not numbers:
-        numbers = re.findall(r"\d+", content)
+            data = json.loads(match.group(0))
+        except ValueError:
+            data = None
+        if isinstance(data, dict) and "matches" in data:
+            # A JSON answer is final, even an empty one: no digging numbers out of the prose.
+            numbers = data["matches"] if isinstance(data["matches"], list) else []
+    if numbers is None:
+        numbers = re.findall(r"\d+", content) if BARE_LIST.match(content) else []
     seen: list[int] = []
-    for number in numbers:
-        try:
-            index = int(number) - 1
-        except (TypeError, ValueError):
+    for value in numbers:
+        number = _as_number(value)
+        if number is None:
             continue
+        index = number - 1
         if 0 <= index < count and index not in seen:
             seen.append(index)
     return seen
 
 
+def candidates_for(items: list[ClothingItem]) -> list[ClothingItem]:
+    """The items the model is shown, most recently worn first (the caller orders them)."""
+    return items[:MAX_CANDIDATES]
+
+
 async def match_selfie(ai: AIService, photo: Path, items: list[ClothingItem]) -> list[ClothingItem]:
-    candidates = items[:MAX_CANDIDATES]
+    candidates = candidates_for(items)
     if not candidates:
         return []
     listing = "\n".join(f"{n}. {describe(item)}" for n, item in enumerate(candidates, start=1))

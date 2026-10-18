@@ -1,9 +1,11 @@
 import logging
 import tempfile
+from io import BytesIO
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from PIL import Image
 from pydantic import BaseModel
 from sqlalchemy import and_, select
 from sqlalchemy.orm import selectinload
@@ -15,8 +17,9 @@ from app.models.user import User
 from app.schemas.item import ItemResponse
 from app.services.ai_service import AIDisabledError, get_ai_service
 from app.services.image_service import ImageService
-from app.services.selfie_service import match_selfie
+from app.services.selfie_service import candidates_for, match_selfie
 from app.utils.auth import get_current_user
+from app.utils.rate_limit import rate_limit_by_user
 from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
 
 logger = logging.getLogger(__name__)
@@ -37,14 +40,29 @@ async def recognise_outfit(
 ) -> SelfieResponse:
     """Suggest which wardrobe items are in a photo; nothing is logged until the user confirms
     (the page then logs each confirmed item through POST /items/{id}/wear)."""
+    settings = get_settings()
+    # The photo goes to the vision model: nothing is sent when vision is switched off.
+    if not settings.effective_ai_vision_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="The AI is turned off"
+        )
+    # Each request is a full vision-model call.
+    await rate_limit_by_user(current_user.id, "selfie", max_requests=10, window_seconds=60)
     try:
-        content = await read_upload_within_limit(image, get_settings().max_upload_size_mb)
+        content = await read_upload_within_limit(image, settings.max_upload_size_mb)
     except UploadTooLargeError as e:
         raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(e)) from None
     if not ImageService().validate_image(content, image.content_type or "application/octet-stream"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
+        )
+    # Header only: a small file can still decode to a huge bitmap, so the pixel ceiling the
+    # uploads use is checked before the photo is ever decoded.
+    if _pixels(content) > settings.max_image_megapixels * 1_000_000:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"The photo is over {settings.max_image_megapixels:g} megapixels",
         )
     try:
         ai = get_ai_service()
@@ -65,7 +83,9 @@ async def recognise_outfit(
         .options(selectinload(ClothingItem.additional_images))
         .order_by(ClothingItem.last_worn_at.desc().nulls_last(), ClothingItem.created_at.desc())
     )
-    items = [i for i in result.scalars().all() if i.type and i.type != "unknown"]
+    items = candidates_for([i for i in result.scalars().all() if i.type and i.type != "unknown"])
+    # Hand the connection back before waiting on the model, which can take a while.
+    await db.commit()
 
     with tempfile.TemporaryDirectory() as folder:
         photo = Path(folder) / "selfie"
@@ -82,3 +102,12 @@ async def recognise_outfit(
     return SelfieResponse(
         matches=[ItemResponse.model_validate(i) for i in matches], considered=len(items)
     )
+
+
+def _pixels(content: bytes) -> int:
+    try:
+        with Image.open(BytesIO(content)) as photo:
+            width, height = photo.size
+    except Exception:  # noqa: BLE001 - validate_image already accepted it; let the AI step fail
+        return 0
+    return width * height
