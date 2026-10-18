@@ -60,6 +60,19 @@ class TestCleanCutout:
         assert result.getpixel((50, 100))[3] == 255
         assert result.getpixel((150, 100))[3] == 255
 
+    def test_keeps_a_small_detached_part(self):
+        # A strap or a hood cut off by the model: small next to the body, still fabric.
+        cut = _cutout(shapes=[(40, 40, 160, 160), (170, 40, 179, 90)])
+        result = clean_cutout(_photo(), cut)
+
+        assert result.getpixel((174, 65))[3] == 255
+
+    def test_accepts_a_small_garment(self):
+        # A ring in the middle of the photo covers about 1% of it.
+        result = clean_cutout(_photo(), _cutout(shapes=[(90, 90, 110, 110)]))
+
+        assert result.getpixel((100, 100))[3] == 255
+
     def test_an_empty_result_keeps_the_original(self):
         with pytest.raises(NoGarmentFound):
             clean_cutout(_photo(), _cutout(shapes=[(0, 0, 3, 3)]))
@@ -138,6 +151,42 @@ class TestRedoFromOriginal:
 
         backup = item.image_path.rsplit(".", 1)[0] + "_orig.jpg"
         assert not svc.get_image_path(backup).exists()
+
+    @pytest.mark.asyncio
+    async def test_an_interrupted_backup_write_leaves_no_backup(self, item: ClothingItem):
+        svc = ImageService()
+        with (
+            patch(
+                "app.services.background_removal.get_provider",
+                return_value=_recording_provider([]),
+            ),
+            patch("app.services.image_service.shutil.copy2", side_effect=OSError("disk full")),
+            pytest.raises(OSError),
+        ):
+            svc.remove_background(item.image_path)
+
+        backup = svc.get_image_path(item.image_path.rsplit(".", 1)[0] + "_orig.jpg")
+        assert not backup.exists()
+        assert not list(backup.parent.glob("*.tmp"))
+
+    @pytest.mark.asyncio
+    async def test_a_failed_rotation_leaves_the_backup_as_it_was(self, item: ClothingItem):
+        svc = ImageService()
+        with patch(
+            "app.services.background_removal.get_provider", return_value=_recording_provider([])
+        ):
+            svc.remove_background(item.image_path)
+        backup = svc.get_image_path(item.image_path.rsplit(".", 1)[0] + "_orig.jpg")
+        before = Image.open(backup).size
+
+        with (
+            patch.object(ImageService, "_save_all_sizes", side_effect=OSError("disk full")),
+            pytest.raises(OSError),
+        ):
+            svc.rotate_image(item.image_path, "cw")
+
+        # The photo was not turned, so neither is its backup.
+        assert Image.open(backup).size == before
 
     @pytest.mark.asyncio
     async def test_rotation_turns_the_backup_too(self, item: ClothingItem):
