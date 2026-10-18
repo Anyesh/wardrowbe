@@ -55,6 +55,7 @@ interface FileWithPreview {
 export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const t = useTranslations('wardrobe.addItem');
   const tc = useTranslations('common');
+  const tDetail = useTranslations('wardrobe.itemDetail');
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
   const aiUiEnabled = useAiUiEnabled();
@@ -310,7 +311,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="type">{t('typeLabel')}</Label>
+                  <Label htmlFor="type">{aiUiEnabled ? t('typeLabel') : tDetail('type')}</Label>
                   <Select value={type} onValueChange={setType}>
                     <SelectTrigger>
                       <SelectValue placeholder={aiUiEnabled ? t('letAiDetect') : t('selectPlaceholder')} />
