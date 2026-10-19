@@ -188,6 +188,19 @@
     },
     "primaryColor": "Colore principale",
     "subtype": "Sottotipo",
+    "tagsEditor": {
+      "fit": "Vestibilità",
+      "formality": "Formalità",
+      "hint": "Correggi ciò che l'IA ha sbagliato. Le tue modifiche vengono mantenute se il capo viene analizzato di nuovo.",
+      "material": "Materiale",
+      "none": "Nessuno",
+      "pattern": "Motivo",
+      "season": "Stagione",
+      "secondaryColor": "Colore secondario",
+      "style": "Stile",
+      "tertiaryColor": "Colore terziario",
+      "title": "Tag IA"
+    },
     "titles": {
       "analysisInProgress": "Analisi in corso...",
       "deleteImage": "Elimina immagine",

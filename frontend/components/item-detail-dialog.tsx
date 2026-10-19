@@ -79,6 +79,14 @@ import {
 import { ColorEyedropper } from '@/components/color-eyedropper';
 import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
+import { ItemTagsEditor } from '@/components/item-tags-editor';
+import {
+  diffTags,
+  draftFromTags,
+  primaryColorOf,
+  subtypeAfterTypeChange,
+  type TagDraft,
+} from '@/lib/tag-edits';
 import { useFeatures } from '@/lib/hooks/use-features';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/lib/utils';
@@ -149,6 +157,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     favorite: false,
     wash_interval: undefined,
   });
+  const [tagDraft, setTagDraft] = useState<TagDraft>(() =>
+    draftFromTags(item?.tags ?? { colors: [], style: [], season: [] }),
+  );
   const [showWashHistory, setShowWashHistory] = useState(false);
   const [showWearHistory, setShowWearHistory] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -174,6 +185,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   useEffect(() => {
     if (item) {
       setEditForm(editFormFromItem(item));
+      setTagDraft(draftFromTags(item.tags));
       setIsEditing(false);
       setActiveImageIndex(0);
     }
@@ -182,6 +194,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   if (!item) return null;
 
   const handleSave = async () => {
+    // Only the tags that differ, and none at all when nothing was touched.
+    const tagChanges = diffTags(
+      item.tags,
+      tagDraft,
+      editForm.primary_color || undefined,
+      item.primary_color || primaryColorOf(item.tags),
+    );
     try {
       await updateItem.mutateAsync({
         id: item.id,
@@ -195,6 +214,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           notes: editForm.notes || undefined,
           favorite: editForm.favorite,
           wash_interval: editForm.wash_interval,
+          ...(Object.keys(tagChanges).length > 0 ? { tags: tagChanges } : {}),
         },
       });
       setIsEditing(false);
@@ -477,7 +497,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   onClick={() => {
                     // Re-read the item on entering edit mode: tagging can finish while the
                     // dialog is open (same id, so the effect above doesn't re-run).
-                    if (!isEditing) setEditForm(editFormFromItem(item));
+                    if (!isEditing) {
+                      setEditForm(editFormFromItem(item));
+                      setTagDraft(draftFromTags(item.tags));
+                    }
                     setIsEditing(!isEditing);
                   }}
                   title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
@@ -650,7 +673,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     )}
                     <Select
                       value={editForm.type}
-                      onValueChange={(v) => setEditForm({ ...editForm, type: v })}
+                      onValueChange={(v) =>
+                        setEditForm({ ...editForm, type: v, subtype: subtypeAfterTypeChange(v, editForm.subtype) })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -741,6 +766,11 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       {t('view.washIntervalHint')}
                     </p>
                   </div>
+                  <ItemTagsEditor
+                    draft={tagDraft}
+                    onChange={setTagDraft}
+                    primaryColor={editForm.primary_color || undefined}
+                  />
                   <div className="flex gap-2 pt-2">
                     <Button
                       variant="outline"

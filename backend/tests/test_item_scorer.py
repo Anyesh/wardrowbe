@@ -414,6 +414,31 @@ class TestPreferenceScore:
         learned = {"learned_favorite_colors": ["blue"]}
         assert _preference_score(item, None, learned) == 1.05
 
+    def test_secondary_color_counts_as_a_favourite(self):
+        item = _item(primary_color="white", colors=["white", "navy"])
+        prefs = _prefs(color_favorites=["navy"])
+        assert _preference_score(item, prefs, None) == 1.1
+
+    def test_secondary_color_counts_as_an_avoided_colour(self):
+        item = _item(primary_color="navy", colors=["navy", "orange"])
+        prefs = _prefs(color_avoid=["orange"])
+        assert _preference_score(item, prefs, None) == 0.7
+
+    def test_learned_preferences_look_at_every_colour(self):
+        item = _item(primary_color="white", colors=["white", "navy"])
+        assert _preference_score(item, None, {"learned_favorite_colors": ["navy"]}) == 1.05
+        assert _preference_score(item, None, {"learned_avoid_colors": ["navy"]}) == 0.85
+
+    def test_several_matching_colours_count_once(self):
+        item = _item(primary_color="navy", colors=["navy", "blue"])
+        prefs = _prefs(color_favorites=["navy", "blue"])
+        assert _preference_score(item, prefs, None) == 1.1
+
+    def test_colour_names_match_regardless_of_case(self):
+        item = _item(primary_color="Navy", colors=["White"])
+        prefs = _prefs(color_favorites=["navy"], color_avoid=["WHITE"])
+        assert _preference_score(item, prefs, None) == pytest.approx(0.8)
+
     def test_learned_style_match(self):
         item = _item(style=["casual", "minimal"])
         learned = {"learned_preferred_styles": ["casual", "minimal"]}

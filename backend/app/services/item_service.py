@@ -14,7 +14,16 @@ from app.models.item import (
     TaggingStatus,
     WashHistory,
 )
-from app.schemas.item import DEFAULT_WASH_INTERVALS, ItemCreate, ItemFilter, ItemUpdate
+from app.schemas.item import (
+    DEFAULT_WASH_INTERVALS,
+    USER_TAG_KEYS,
+    ItemCreate,
+    ItemFilter,
+    ItemUpdate,
+)
+
+# Values the AI fills in that can also be changed on the item itself rather than inside tags.
+_EDITABLE_ITEM_FIELDS = ("type", "subtype", "primary_color", "colors")
 
 
 class ItemService:
@@ -240,11 +249,24 @@ class ItemService:
     async def update(self, item: ClothingItem, item_data: ItemUpdate) -> ClothingItem:
         update_data = item_data.model_dump(exclude_unset=True)
 
-        incoming: dict = {}
-        if "tags" in update_data and update_data["tags"] is not None:
-            incoming = update_data["tags"]
-            if not isinstance(incoming, dict):
-                incoming = incoming.model_dump(exclude_unset=True)
+        # A null (or empty) tags object means "no change". Clearing one tag is a null
+        # *inside* the object; writing None for the whole thing would wipe every tag, the
+        # AI confidence and the user-owned keys.
+        incoming = update_data.pop("tags", None) or {}
+        if not isinstance(incoming, dict):
+            incoming = incoming.model_dump(exclude_unset=True)
+        # Maintained below; a client cannot set or clear it.
+        incoming.pop("user_edited_keys", None)
+
+        # What the AI produced and the person changed, so "re-analyse and replace" can keep it.
+        # Only real changes count: the edit form resends type and subtype on every save.
+        edited = [
+            field
+            for field in _EDITABLE_ITEM_FIELDS
+            if field in update_data and update_data[field] != getattr(item, field)
+        ]
+
+        if incoming or edited:
             # Merge rather than replace: the tags JSONB also holds user-owned
             # keys (size, care_instructions, source_url) that a partial update
             # does not mention. An explicit null clears that one key.
@@ -254,12 +276,22 @@ class ItemService:
             locked = await self.db.execute(
                 select(ClothingItem.tags).where(ClothingItem.id == item.id).with_for_update()
             )
-            merged = dict(locked.scalar_one_or_none() or {})
+            existing = dict(locked.scalar_one_or_none() or {})
+            merged = dict(existing)
             for key, val in incoming.items():
                 if val is None:
                     merged.pop(key, None)
                 else:
                     merged[key] = val
+            edited += [
+                key
+                for key, val in incoming.items()
+                if key not in USER_TAG_KEYS and existing.get(key) != val
+            ]
+            if edited:
+                merged["user_edited_keys"] = list(
+                    dict.fromkeys([*existing.get("user_edited_keys", []), *edited])
+                )
             update_data["tags"] = merged
 
         for field, value in update_data.items():

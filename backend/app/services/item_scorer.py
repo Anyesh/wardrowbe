@@ -351,24 +351,26 @@ def _preference_score(
     learned: dict | None,
 ) -> float:
     score = 1.0
-    color = (item.primary_color or "").lower()
+    # Every colour on the item counts, not just the primary: a navy jumper with white
+    # stripes should react to "avoid white" and to "love navy" alike.
+    colors = {c.lower() for c in [item.primary_color, *(item.colors or [])] if c}
 
     if preferences:
-        fav_colors = [c.lower() for c in (preferences.color_favorites or [])]
-        avoid_colors = [c.lower() for c in (preferences.color_avoid or [])]
+        fav_colors = {c.lower() for c in (preferences.color_favorites or [])}
+        avoid_colors = {c.lower() for c in (preferences.color_avoid or [])}
 
-        if color and color in fav_colors:
+        if colors & fav_colors:
             score += 0.1
-        if color and color in avoid_colors:
+        if colors & avoid_colors:
             score -= 0.3
 
     if learned:
-        learned_favs = [c.lower() for c in learned.get("learned_favorite_colors", [])]
-        learned_avoids = [c.lower() for c in learned.get("learned_avoid_colors", [])]
+        learned_favs = {c.lower() for c in learned.get("learned_favorite_colors", [])}
+        learned_avoids = {c.lower() for c in learned.get("learned_avoid_colors", [])}
 
-        if color and color in learned_favs:
+        if colors & learned_favs:
             score += 0.05
-        if color and color in learned_avoids:
+        if colors & learned_avoids:
             score -= 0.15
 
         learned_styles = [s.lower() for s in learned.get("learned_preferred_styles", [])]

@@ -3,13 +3,14 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from app.models.item import ProcessingKind, TaggingStatus
 from app.schemas.color import ColorList, ColorName
 from app.schemas.outfit import Occasion
 from app.utils.garment_vocabulary import DEFAULT_WASH_INTERVALS
 from app.utils.signed_urls import sign_image_url, sign_optional
+from app.utils.tag_validation import normalize_tag_edits
 
 
 class ItemTags(BaseModel):
@@ -26,9 +27,12 @@ class ItemTags(BaseModel):
     size: str | None = Field(None, max_length=32)
     care_instructions: str | None = Field(None, max_length=255)
     source_url: str | None = Field(None, max_length=500)
+    # Tag keys changed by hand, kept so a later "re-analyse and replace" can leave them alone.
+    # The server maintains it; whatever a client sends for it is ignored.
+    user_edited_keys: list[str] = Field(default_factory=list)
 
 
-USER_TAG_KEYS = frozenset({"size", "care_instructions", "source_url"})
+USER_TAG_KEYS = frozenset({"size", "care_instructions", "source_url", "user_edited_keys"})
 
 
 class ItemBase(BaseModel):
@@ -61,6 +65,17 @@ class ItemUpdate(BaseModel):
     colors: ColorList | None = None
     primary_color: ColorName | None = None
     wash_interval: int | None = None
+
+    @field_validator("tags")
+    @classmethod
+    def _check_tag_vocabulary(cls, tags: ItemTags | None) -> ItemTags | None:
+        # Only the tags actually sent are checked and cleaned (see normalize_tag_edits).
+        if tags is not None:
+            edited = tags.model_dump(include=tags.model_fields_set)
+            for key, value in normalize_tag_edits(edited).items():
+                if value != edited[key]:
+                    setattr(tags, key, value)
+        return tags
 
 
 class ItemResponse(ItemBase):

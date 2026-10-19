@@ -15,8 +15,12 @@ from pydantic import BaseModel
 from app.config import get_settings
 from app.utils.garment_vocabulary import (
     COLORS,
+    FITS,
     FORMALITY,
     MATERIALS,
+    PATTERNS,
+    SEASONS,
+    STYLES,
     TYPES,
     normalize_color,
     render_tagging_prompt,
@@ -94,36 +98,12 @@ DESCRIPTION_QUOTES = (('"', '"'), ("“", "”"), ("「", "」"), ("『", "』")
 # Valid values for validation
 VALID_TYPES = set(TYPES)
 VALID_COLORS = set(COLORS)
-VALID_PATTERNS = {
-    "solid",
-    "striped",
-    "plaid",
-    "checkered",
-    "floral",
-    "graphic",
-    "geometric",
-    "polka-dot",
-    "camouflage",
-    "animal-print",
-}
+VALID_PATTERNS = set(PATTERNS)
 VALID_MATERIALS = set(MATERIALS)
 VALID_FORMALITY = set(FORMALITY)
-VALID_FIT = {"slim", "regular", "relaxed", "oversized", "tailored", "cropped"}
-VALID_STYLES = {
-    "casual",
-    "classic",
-    "sporty",
-    "minimalist",
-    "bohemian",
-    "preppy",
-    "streetwear",
-    "elegant",
-    "athletic",
-    "vintage",
-    "modern",
-    "rugged",
-}
-VALID_SEASONS = {"spring", "summer", "fall", "winter", "all-season"}
+VALID_FIT = set(FITS)
+VALID_STYLES = set(STYLES)
+VALID_SEASONS = set(SEASONS)
 
 
 def compute_tag_completeness(tags: "ClothingTags") -> float:

@@ -24,7 +24,7 @@ PRIMARY_COLOR (required, pick one):
 <<COLORS>>
 
 PATTERN (required, pick one):
-solid, striped, plaid, checkered, floral, graphic, geometric, polka-dot, camouflage, animal-print
+<<PATTERNS>>
 
 MATERIAL (optional, pick one or null):
 <<MATERIALS>>
@@ -33,13 +33,13 @@ FORMALITY (required, pick one):
 <<FORMALITY>>
 
 STYLE (pick 1-2 that best describe):
-casual, classic, sporty, minimalist, bohemian, preppy, streetwear, elegant, athletic, vintage, modern, rugged
+<<STYLES>>
 
 SEASON (pick all that apply):
-spring, summer, fall, winter, all-season
+<<SEASONS>>
 
 FIT (optional, pick one or null):
-slim, regular, relaxed, oversized, tailored, cropped
+<<FITS>>
 
 Output this exact JSON structure (a single object, NOT wrapped in an array):
 {"type":"TYPE","subtype":null,"primary_color":"COLOR","colors":["COLOR1"],"pattern":"PATTERN","material":null,"formality":"FORMALITY","style":["STYLE1"],"season":["SEASON1","SEASON2"],"fit":null}

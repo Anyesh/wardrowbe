@@ -188,6 +188,19 @@
     },
     "primaryColor": "Hauptfarbe",
     "subtype": "Untertyp",
+    "tagsEditor": {
+      "fit": "Passform",
+      "formality": "Formalität",
+      "hint": "Korrigiere, was die KI falsch erkannt hat. Deine Änderungen bleiben erhalten, wenn das Teil erneut analysiert wird.",
+      "material": "Material",
+      "none": "Keine",
+      "pattern": "Muster",
+      "season": "Saison",
+      "secondaryColor": "Zweitfarbe",
+      "style": "Stil",
+      "tertiaryColor": "Drittfarbe",
+      "title": "KI-Tags"
+    },
     "titles": {
       "analysisInProgress": "Analyse läuft...",
       "deleteImage": "Bild löschen",

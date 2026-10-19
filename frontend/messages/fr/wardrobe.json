@@ -188,6 +188,19 @@
     },
     "primaryColor": "Couleur principale",
     "subtype": "Sous-type",
+    "tagsEditor": {
+      "fit": "Coupe",
+      "formality": "Formalité",
+      "hint": "Corrigez ce que l'IA a mal identifié. Vos modifications sont conservées si l'article est analysé à nouveau.",
+      "material": "Matière",
+      "none": "Aucune",
+      "pattern": "Motif",
+      "season": "Saison",
+      "secondaryColor": "Couleur secondaire",
+      "style": "Style",
+      "tertiaryColor": "Couleur tertiaire",
+      "title": "Tags IA"
+    },
     "titles": {
       "analysisInProgress": "Analyse en cours...",
       "deleteImage": "Supprimer l'image",

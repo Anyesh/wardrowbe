@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { api, API_BASE_PATH, getAccessToken, ApiError, NetworkError } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
+import { applyItemEdits, type ItemEdits } from '@/lib/tag-edits';
 import { chunkArray } from '@/lib/utils';
 import { enqueueFiles } from '@/lib/upload-queue';
 import { startDrain } from '@/lib/upload-manager';
@@ -172,7 +173,7 @@ export function useUpdateItem() {
   const { data: session } = useSession();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Item> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: ItemEdits }) => {
       applySessionToken(session);
       return api.patch<Item>(`/items/${id}`, data);
     },
@@ -187,12 +188,12 @@ export function useUpdateItem() {
         if (!old) return old;
         return {
           ...old,
-          items: old.items.map((item) => (item.id === id ? { ...item, ...data } : item)),
+          items: old.items.map((item) => (item.id === id ? applyItemEdits(item, data) : item)),
         };
       });
 
       if (previousItemData) {
-        queryClient.setQueryData<Item>(queryKeys.item(id), { ...previousItemData, ...data });
+        queryClient.setQueryData<Item>(queryKeys.item(id), applyItemEdits(previousItemData, data));
       }
 
       return { previousListData, previousItemData };

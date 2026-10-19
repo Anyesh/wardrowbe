@@ -188,6 +188,19 @@
     },
     "primaryColor": "主要颜色",
     "subtype": "子类型",
+    "tagsEditor": {
+      "fit": "版型",
+      "formality": "正式程度",
+      "hint": "修正 AI 识别错误的地方。重新分析单品后，你的修改会保留。",
+      "material": "材质",
+      "none": "无",
+      "pattern": "图案",
+      "season": "季节",
+      "secondaryColor": "次要颜色",
+      "style": "风格",
+      "tertiaryColor": "第三颜色",
+      "title": "AI 标签"
+    },
     "titles": {
       "analysisInProgress": "分析进行中...",
       "deleteImage": "删除图片",

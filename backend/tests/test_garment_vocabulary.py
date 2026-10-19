@@ -8,8 +8,12 @@ from app.schemas.item import DEFAULT_WASH_INTERVALS
 from app.services.ai_service import (
     TAGGING_PROMPT,
     VALID_COLORS,
+    VALID_FIT,
     VALID_FORMALITY,
     VALID_MATERIALS,
+    VALID_PATTERNS,
+    VALID_SEASONS,
+    VALID_STYLES,
     VALID_TYPES,
 )
 from app.services.item_scorer import (
@@ -24,11 +28,15 @@ from app.services.pairing_service import PAIRING_OCCASION
 from app.utils.garment_vocabulary import (
     COLOR_ALIASES,
     COLORS,
+    FITS,
     FORMALITY,
     ITEM_ROLE,
     MATERIALS,
     OCCASIONS,
+    PATTERNS,
     ROLES,
+    SEASONS,
+    STYLES,
     TYPES,
     canonical_color,
     canonical_colors,
@@ -64,9 +72,35 @@ def test_every_type_has_a_known_role_and_a_positive_wash_interval():
 
 def test_prompt_template_tokens_are_all_rendered():
     template = load_prompt("clothing_analysis")
-    for token in ("<<TYPES>>", "<<MATERIALS>>", "<<FORMALITY>>", "<<COLORS>>"):
+    for token in (
+        "<<TYPES>>",
+        "<<MATERIALS>>",
+        "<<FORMALITY>>",
+        "<<COLORS>>",
+        "<<PATTERNS>>",
+        "<<STYLES>>",
+        "<<SEASONS>>",
+        "<<FITS>>",
+    ):
         assert token in template
     assert "<<" not in render_tagging_prompt(template)
+
+
+@pytest.mark.parametrize(
+    ("heading", "values"),
+    [("PATTERN", PATTERNS), ("STYLE", STYLES), ("SEASON", SEASONS), ("FIT", FITS)],
+)
+def test_tag_lists_in_the_prompt_come_from_the_vocabulary(heading, values):
+    assert _prompt_options(heading) == set(values)
+    assert len(set(values)) == len(values)
+    assert all(value == value.strip().lower() for value in values)
+
+
+def test_validators_use_the_vocabulary_lists():
+    assert VALID_PATTERNS == set(PATTERNS)
+    assert VALID_STYLES == set(STYLES)
+    assert VALID_SEASONS == set(SEASONS)
+    assert VALID_FIT == set(FITS)
 
 
 def test_type_lists_agree():
