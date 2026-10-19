@@ -188,6 +188,11 @@
       "washIntervalDefault": "默认：{count}"
     },
     "primaryColor": "主要颜色",
+    "replaceAnalysis": {
+      "confirm": "重新分析并替换",
+      "description": "AI 会重新查看照片并替换之前的判断。你自己编辑过的标签会保留。此功能推出之前所做的修改没有被记录，因此也可能被替换。",
+      "title": "重新分析并替换 AI 标签？"
+    },
     "subtype": "子类型",
     "tagsEditor": {
       "fit": "版型",
@@ -207,6 +212,7 @@
       "analysisInProgress": "分析进行中...",
       "deleteImage": "删除图片",
       "findMatchingOutfits": "寻找搭配穿搭",
+      "reanalyzeAndReplace": "重新分析并替换 AI 标签",
       "reanalyzeWithAI": "AI 重新分析",
       "removeBackground": "去除背景",
       "replaceImage": "替换图片",

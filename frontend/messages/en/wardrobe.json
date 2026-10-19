@@ -188,6 +188,11 @@
       "washIntervalDefault": "Default: {count}"
     },
     "primaryColor": "Primary Color",
+    "replaceAnalysis": {
+      "confirm": "Re-analyze and replace",
+      "description": "The AI looks at the photo again and replaces its earlier guesses. Tags you edited yourself are kept. Edits made before this feature existed were not recorded, so they can be replaced too.",
+      "title": "Re-analyze and replace AI tags?"
+    },
     "subtype": "Subtype",
     "tagsEditor": {
       "fit": "Fit",
@@ -207,6 +212,7 @@
       "analysisInProgress": "Analysis in progress...",
       "deleteImage": "Delete image",
       "findMatchingOutfits": "Find matching outfits",
+      "reanalyzeAndReplace": "Re-analyze and replace AI tags",
       "reanalyzeWithAI": "Re-analyze with AI",
       "removeBackground": "Remove background",
       "replaceImage": "Replace image",

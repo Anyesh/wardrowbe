@@ -188,6 +188,11 @@
       "washIntervalDefault": "デフォルト：{count}"
     },
     "primaryColor": "メインカラー",
+    "replaceAnalysis": {
+      "confirm": "再分析して置き換える",
+      "description": "AIが写真をもう一度分析し、以前の推測を置き換えます。自分で編集したタグは保持されます。この機能の追加前に行った編集は記録されていないため、置き換えられる場合があります。",
+      "title": "AIタグを再分析して置き換えますか？"
+    },
     "subtype": "サブタイプ",
     "tagsEditor": {
       "fit": "フィット",
@@ -207,6 +212,7 @@
       "analysisInProgress": "分析中...",
       "deleteImage": "画像を削除",
       "findMatchingOutfits": "マッチするコーデを探す",
+      "reanalyzeAndReplace": "AIタグを再分析して置き換える",
       "reanalyzeWithAI": "AIで再分析",
       "removeBackground": "背景を削除",
       "replaceImage": "画像を置き換え",
