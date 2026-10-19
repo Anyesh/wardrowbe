@@ -154,7 +154,7 @@ describe('applyItemEdits', () => {
   it('removes a cleared tag from the tags and the item', () => {
     const next = applyItemEdits(item, { tags: { pattern: null } })
     expect('pattern' in next.tags).toBe(false)
-    expect(next.pattern).toBeUndefined()
+    expect((next as unknown as Record<string, unknown>).pattern).toBeUndefined()
   })
 
   it('mirrors edited colours onto the item', () => {
