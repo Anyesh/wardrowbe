@@ -9,6 +9,10 @@ _DATA = json.loads(_VOCABULARY_PATH.read_text())
 ROLES: tuple[str, ...] = tuple(_DATA["roles"])
 TYPES: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["types"])
 ITEM_ROLE: dict[str, str] = {entry["value"]: entry["role"] for entry in _DATA["types"]}
+# Layers that are commonly worn with nothing under them, so they dress the upper body alone.
+WORN_ALONE_TYPES: frozenset[str] = frozenset(
+    entry["value"] for entry in _DATA["types"] if entry.get("worn_alone")
+)
 DEFAULT_WASH_INTERVALS: dict[str, int] = {
     entry["value"]: entry["wash_interval"] for entry in _DATA["types"]
 }
@@ -65,6 +69,13 @@ def canonical_colors(names: list[str]) -> list[str]:
     return list(dict.fromkeys(c for c in map(canonical_color, names) if c))
 
 
+def types_for_role(role: str) -> list[str]:
+    # Derived from the vocabulary rather than restated, so an outfit prompt cannot drift from the
+    # taxonomy the tagger validates against. For example, base_top is everything a separates top
+    # may be (shirt, sweater, tank-top, ...), not a hand-kept subset.
+    return [entry["value"] for entry in _DATA["types"] if entry["role"] == role]
+
+
 def render_tagging_prompt(template: str) -> str:
     return (
         template.replace("<<TYPES>>", ", ".join(TYPES))
@@ -72,3 +83,11 @@ def render_tagging_prompt(template: str) -> str:
         .replace("<<FORMALITY>>", ", ".join(FORMALITY))
         .replace("<<COLORS>>", ", ".join(COLORS))
     )
+
+
+def render_outfit_prompt(template: str) -> str:
+    # Outfit prompts name the garments that fill each role; <<ROLE_TYPES>> tokens are filled from
+    # ITEM_ROLE so separates, one-piece and legwear lists stay in step with the vocabulary.
+    for role in ROLES:
+        template = template.replace(f"<<{role.upper()}_TYPES>>", ", ".join(types_for_role(role)))
+    return template

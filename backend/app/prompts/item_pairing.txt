@@ -8,10 +8,14 @@ AVAILABLE ITEMS:
 
 Create {num_pairings} DIFFERENT complete outfits. Each MUST:
 - Include the source item [{source_number}]
-- Have: exactly ONE top + ONE bottom + ONE shoes (or ONE dress/jumpsuit + shoes)
-- NEVER combine two items from the same slot. Bottoms (pants, jeans, shorts, skirt) are the SAME slot. Tops (shirt, t-shirt, blouse, sweater, hoodie, polo, tank-top, cardigan, vest) are the SAME slot.
+- Complete it with ONE of these silhouettes. They are equally valid, do not assume separates:
+  - Separates: exactly ONE top (<<BASE_TOP_TYPES>>) + ONE bottom (<<BOTTOM_TYPES>>) + ONE footwear (<<FOOTWEAR_TYPES>>)
+  - One-piece: exactly ONE full-body garment (<<FULL_BODY_TYPES>>) + ONE footwear (<<FOOTWEAR_TYPES>>)
+  - Suit: exactly ONE top + ONE suit (<<SUIT_TYPES>>) + ONE footwear
+- The silhouette must contain the source item: a top or bottom source is worn as separates, a full-body source as a one-piece and a suit source as a suit. Any other source item, except legwear (below), can go with whichever silhouette suits it
+- NEVER combine two items from the same slot. Bottoms (<<BOTTOM_TYPES>>) are the SAME slot, tops (<<BASE_TOP_TYPES>>) are the SAME slot, a full-body garment already fills both the top and bottom slots, and a suit already fills the bottom slot.
 - Optionally add accessories (belt, bag, jewelry, scarf) if they complement
-- Optionally add tights under a skirt, dress or shorts; tights do not replace the bottom or shoes. When the source item is tights, build every outfit around a skirt, dress or shorts
+- Optionally add legwear (<<LEGWEAR_TYPES>>) under a skirt, dress or shorts; legwear does not replace the bottom or footwear. When the source item is legwear, build every outfit around a skirt, dress or shorts
 
 For each outfit, explain WHY the items complement the source item (color harmony, style match, formality level).
 

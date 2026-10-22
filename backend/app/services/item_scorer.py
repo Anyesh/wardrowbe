@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
+from math import prod
 from statistics import median
 from uuid import UUID
 
@@ -264,6 +265,42 @@ def _formality_score(item: ClothingItem, occasion: str) -> float:
     return 0.15
 
 
+def _fit_factors(
+    item: ClothingItem,
+    weather: WeatherData,
+    occasion: str,
+    current_season: str,
+    preferences: UserPreference | None,
+    learned_prefs: dict | None,
+) -> tuple[float, float, float, float]:
+    return (
+        _weather_score(item, weather, preferences),
+        _formality_score(item, occasion),
+        _season_score(item, current_season, weather, preferences),
+        _preference_score(item, preferences, learned_prefs),
+    )
+
+
+def rank_by_fit(
+    items: list[ClothingItem],
+    weather: WeatherData,
+    occasion: str,
+    current_season: str,
+    preferences: UserPreference | None,
+    learned_prefs: dict | None,
+) -> list[UUID]:
+    # score_items leaves small wardrobes unscored, so filling a missing piece needs its own
+    # ranking or it would fall back to database order. Most items tie on fit in mild
+    # weather, so the least recently worn goes first to avoid adding the same piece every time.
+    def key(item: ClothingItem) -> tuple[float, date]:
+        fit = prod(
+            _fit_factors(item, weather, occasion, current_season, preferences, learned_prefs)
+        )
+        return -fit, item.last_worn_at or date.min
+
+    return [item.id for item in sorted(items, key=key)]
+
+
 def _season_score(
     item: ClothingItem,
     current_season: str,
@@ -456,11 +493,10 @@ def score_items(
 
     scored = []
     for item in items:
-        ws = _weather_score(item, weather, preferences)
-        fs = _formality_score(item, occasion)
-        ss = _season_score(item, current_season, weather, preferences)
+        ws, fs, ss, ps = _fit_factors(
+            item, weather, occasion, current_season, preferences, learned_prefs
+        )
         rs = _recency_score(item, user_today, avoid_days, recently_worn_dates)
-        ps = _preference_score(item, preferences, learned_prefs)
         us = _usage_score(item, median_wear) if use_underused else 1.0
 
         total = ws * fs * ss * rs * ps * us

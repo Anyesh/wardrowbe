@@ -14,6 +14,7 @@ from app.services.item_scorer import (
     _season_score,
     _weather_score,
     get_season,
+    rank_by_fit,
     score_items,
     scoring_temp_range,
     stays_above_hot_threshold,
@@ -677,3 +678,64 @@ class TestRoleDiversity:
 )
 def test_stays_above_hot_threshold_needs_the_coolest_part_to_be_hot(weather, prefs, expected):
     assert stays_above_hot_threshold(weather, prefs) is expected
+
+
+def test_rank_by_fit_puts_weather_fit_ahead_of_wardrobe_order():
+    sweater = _item(type="sweater", material="wool")
+    linen = _item(type="shirt", material="linen")
+    assert rank_by_fit([sweater, linen], _weather(temp=35), "casual", "summer", None, None) == [
+        linen.id,
+        sweater.id,
+    ]
+    assert rank_by_fit([linen, sweater], _weather(temp=2), "casual", "winter", None, None) == [
+        sweater.id,
+        linen.id,
+    ]
+
+
+def test_rank_by_fit_puts_the_occasion_ahead_of_wardrobe_order():
+    items = [_item(type="t-shirt", formality="casual"), _item(type="shirt", formality="formal")]
+    assert rank_by_fit(items, _weather(), "formal", "spring", None, None) == [
+        items[1].id,
+        items[0].id,
+    ]
+
+
+def test_rank_by_fit_puts_the_season_ahead_of_wardrobe_order():
+    winter = _item(type="shirt", season=["winter"])
+    summer = _item(type="shirt", season=["summer"])
+    assert rank_by_fit([winter, summer], _weather(), "casual", "summer", None, None) == [
+        summer.id,
+        winter.id,
+    ]
+
+
+def test_rank_by_fit_breaks_ties_by_least_recently_worn():
+    worn = _item(type="t-shirt", last_worn_at=date(2026, 3, 7))
+    older = _item(type="shirt", last_worn_at=date(2026, 1, 2))
+    never = _item(type="polo")
+    assert rank_by_fit([worn, older, never], _weather(), "casual", "spring", None, None) == [
+        never.id,
+        older.id,
+        worn.id,
+    ]
+
+
+def test_rank_by_fit_ranks_an_avoided_colour_last():
+    red = _item(type="t-shirt", primary_color="red")
+    blue = _item(type="shirt", primary_color="blue", last_worn_at=date(2026, 3, 7))
+    prefs = _prefs(color_avoid=["red"])
+    assert rank_by_fit([red, blue], _weather(), "casual", "spring", prefs, None) == [
+        blue.id,
+        red.id,
+    ]
+
+
+def test_rank_by_fit_ranks_a_learned_avoided_colour_last():
+    orange = _item(type="t-shirt", primary_color="orange")
+    grey = _item(type="shirt", primary_color="grey", last_worn_at=date(2026, 3, 7))
+    learned = {"learned_avoid_colors": ["orange"]}
+    assert rank_by_fit([orange, grey], _weather(), "casual", "spring", None, learned) == [
+        grey.id,
+        orange.id,
+    ]

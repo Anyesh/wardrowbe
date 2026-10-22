@@ -1,4 +1,6 @@
+import json
 from datetime import date
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -16,6 +18,7 @@ from app.models.outfit import (
     OutfitStatus,
 )
 from app.models.user import User
+from app.services.pairing_service import PairingService
 from tests.identity_helpers import add_users_with_identities
 
 
@@ -394,3 +397,73 @@ class TestDeletePairing:
 
         response = await client.delete(f"/api/v1/pairings/{pairing.id}", headers=auth_headers)
         assert response.status_code == 404
+
+
+class TestGeneratePairingsPreservesSource:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("source_type", "answer", "expected"),
+        [
+            # The model swaps the source for a one-piece look: dropping the dress keeps the
+            # source but would leave no bottom, so the answer is skipped instead.
+            ("shirt", ["dress", "sneakers"], None),
+            ("pants", ["dress", "sneakers"], None),
+            ("shirt", ["source", "pants", "dress", "sneakers"], ["source", "pants", "sneakers"]),
+            ("shirt", ["pants", "sneakers"], ["source", "pants", "sneakers"]),
+            ("dress", ["shirt", "pants", "sneakers"], ["source", "sneakers"]),
+            ("pants", ["shirt", "suit", "sneakers"], ["source", "shirt", "sneakers"]),
+            ("sneakers", ["dress", "suit"], ["source", "dress"]),
+        ],
+    )
+    async def test_source_survives_a_conflicting_answer(
+        self, db_session: AsyncSession, test_user, source_type, answer, expected
+    ):
+        source = _make_item(test_user.id, source_type)
+        others = {
+            t: _make_item(test_user.id, t) for t in ("shirt", "pants", "dress", "suit", "sneakers")
+        }
+        items = {"source": source, **others}
+        db_session.add_all(items.values())
+        await db_session.commit()
+
+        number_map = {n: item.id for n, item in enumerate(items.values(), start=1)}
+        number_of = {item_id: n for n, item_id in number_map.items()}
+        ai = MagicMock()
+        ai.generate_text = AsyncMock(
+            return_value=MagicMock(
+                content=json.dumps(
+                    [
+                        {
+                            "items": [number_of[items[name].id] for name in answer],
+                            "headline": "Look",
+                            "highlights": [],
+                            "styling_tip": "",
+                        }
+                    ]
+                ),
+                model="m",
+                endpoint="e",
+            )
+        )
+
+        service = PairingService(db_session)
+        test_user.preferences = None
+        with (
+            patch("app.services.pairing_service.AIService", return_value=ai),
+            patch.object(
+                service,
+                "_format_items_for_prompt",
+                return_value=("source", "", number_of[source.id], number_map),
+            ),
+        ):
+            outfits = await service.generate_pairings(
+                user=test_user, source_item_id=source.id, num_pairings=1
+            )
+
+        if expected is None:
+            assert outfits == []
+        else:
+            assert len(outfits) == 1
+            assert [oi.item_id for oi in sorted(outfits[0].items, key=lambda oi: oi.position)] == [
+                items[name].id for name in expected
+            ]
