@@ -198,6 +198,7 @@
       "rotateLeft": "Ruota a sinistra",
       "rotateRight": "Ruota a destra",
       "setAsPrimary": "Imposta come principale",
+      "splitPhoto": "Dividi la foto",
       "suggestOutfit": "Crea outfit con questo capo",
       "toggleFavorite": "Aggiungi/rimuovi dai preferiti",
       "undoBackgroundRemoval": "Annulla rimozione sfondo"
@@ -250,6 +251,23 @@
     "newestFirst": "Più recenti prima",
     "oldestFirst": "Più vecchi prima",
     "recentlyWorn": "Indossati di recente"
+  },
+  "splitPhoto": {
+    "addBox": "Aggiungi un riquadro",
+    "archiveNote": "La foto originale viene archiviata, non eliminata. Puoi ripristinarla dall'archivio.",
+    "boxLabel": "Capo {number}",
+    "create": "{count, plural, =0 {Crea articoli} one {Crea # articolo} other {Crea # articoli}}",
+    "createFailed": "Impossibile dividere la foto",
+    "created": "{count, plural, one {Creato # articolo da questa foto} other {Creati # articoli da questa foto}}",
+    "description": "Trova ogni capo in questa foto e crea un articolo separato per ciascuno.",
+    "detectFailed": "L'IA non è riuscita a guardare questa foto.",
+    "detecting": "Ricerca dei capi…",
+    "hint": "Trascina un riquadro per spostarlo, o un angolo per ridimensionarlo.",
+    "noneFound": "Nessun capo trovato. Aggiungi un riquadro e trascinalo su un capo.",
+    "photoAlt": "La foto da dividere",
+    "removeBox": "Rimuovi il capo {number}",
+    "retry": "Riprova",
+    "title": "Dividi la foto"
   },
   "title": "Il mio guardaroba",
   "uploadQueue": {

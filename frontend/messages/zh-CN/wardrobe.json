@@ -198,6 +198,7 @@
       "rotateLeft": "向左旋转",
       "rotateRight": "向右旋转",
       "setAsPrimary": "设为主图",
+      "splitPhoto": "拆分照片",
       "suggestOutfit": "用这件衣物创建穿搭",
       "toggleFavorite": "切换收藏",
       "undoBackgroundRemoval": "撤销背景去除"
@@ -250,6 +251,23 @@
     "newestFirst": "最新在前",
     "oldestFirst": "最早在前",
     "recentlyWorn": "最近穿过"
+  },
+  "splitPhoto": {
+    "addBox": "添加框",
+    "archiveNote": "原照片会被归档而不是删除，你可以从归档中恢复。",
+    "boxLabel": "衣物 {number}",
+    "create": "{count, plural, =0 {创建单品} other {创建 # 件单品}}",
+    "createFailed": "无法拆分照片",
+    "created": "{count, plural, other {已从这张照片创建 # 件单品}}",
+    "description": "找出这张照片中的每件衣物，并为每件创建单独的单品。",
+    "detectFailed": "AI 无法查看这张照片。",
+    "detecting": "正在查找衣物…",
+    "hint": "拖动框可移动，拖动角可调整大小。",
+    "noneFound": "未找到衣物。添加一个框并拖到衣物上。",
+    "photoAlt": "要拆分的照片",
+    "removeBox": "移除衣物 {number}",
+    "retry": "重试",
+    "title": "拆分照片"
   },
   "title": "我的衣柜",
   "uploadQueue": {

@@ -198,6 +198,7 @@
       "rotateLeft": "Rotate left",
       "rotateRight": "Rotate right",
       "setAsPrimary": "Set as primary",
+      "splitPhoto": "Split photo",
       "suggestOutfit": "Create outfit with this item",
       "toggleFavorite": "Toggle favorite",
       "undoBackgroundRemoval": "Undo background removal"
@@ -250,6 +251,23 @@
     "newestFirst": "Newest first",
     "oldestFirst": "Oldest first",
     "recentlyWorn": "Recently worn"
+  },
+  "splitPhoto": {
+    "addBox": "Add a box",
+    "archiveNote": "The original photo is archived, not deleted. You can restore it from your archive.",
+    "boxLabel": "Garment {number}",
+    "create": "{count, plural, =0 {Create items} one {Create # item} other {Create # items}}",
+    "createFailed": "Could not split the photo",
+    "created": "{count, plural, one {Created # item from this photo} other {Created # items from this photo}}",
+    "description": "Find each garment in this photo and make a separate item from it.",
+    "detectFailed": "The AI could not look at this photo.",
+    "detecting": "Looking for garments…",
+    "hint": "Drag a box to move it, or drag a corner to resize it.",
+    "noneFound": "No garments were found. Add a box and drag it over a garment.",
+    "photoAlt": "The photo to split",
+    "removeBox": "Remove garment {number}",
+    "retry": "Try again",
+    "title": "Split photo"
   },
   "title": "My Wardrobe",
   "uploadQueue": {

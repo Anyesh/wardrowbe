@@ -198,6 +198,7 @@
       "rotateLeft": "Rotation à gauche",
       "rotateRight": "Rotation à droite",
       "setAsPrimary": "Définir comme image principale",
+      "splitPhoto": "Diviser la photo",
       "suggestOutfit": "Créer une tenue avec cet article",
       "toggleFavorite": "Basculer le favori",
       "undoBackgroundRemoval": "Annuler la suppression de l'arrière-plan"
@@ -250,6 +251,23 @@
     "newestFirst": "Plus récents d'abord",
     "oldestFirst": "Plus anciens d'abord",
     "recentlyWorn": "Récemment portés"
+  },
+  "splitPhoto": {
+    "addBox": "Ajouter un cadre",
+    "archiveNote": "La photo d'origine est archivée, pas supprimée. Vous pouvez la restaurer depuis vos archives.",
+    "boxLabel": "Vêtement {number}",
+    "create": "{count, plural, =0 {Créer des articles} one {Créer # article} other {Créer # articles}}",
+    "createFailed": "Impossible de diviser la photo",
+    "created": "{count, plural, one {# article créé à partir de cette photo} other {# articles créés à partir de cette photo}}",
+    "description": "Repérez chaque vêtement de cette photo et créez un article distinct pour chacun.",
+    "detectFailed": "L'IA n'a pas pu examiner cette photo.",
+    "detecting": "Recherche des vêtements…",
+    "hint": "Faites glisser un cadre pour le déplacer, ou un coin pour le redimensionner.",
+    "noneFound": "Aucun vêtement n'a été trouvé. Ajoutez un cadre et glissez-le sur un vêtement.",
+    "photoAlt": "La photo à diviser",
+    "removeBox": "Retirer le vêtement {number}",
+    "retry": "Réessayer",
+    "title": "Diviser la photo"
   },
   "title": "Ma Garde-robe",
   "uploadQueue": {

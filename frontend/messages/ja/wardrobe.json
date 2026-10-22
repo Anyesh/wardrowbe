@@ -198,6 +198,7 @@
       "rotateLeft": "左に回転",
       "rotateRight": "右に回転",
       "setAsPrimary": "メイン画像に設定",
+      "splitPhoto": "写真を分割",
       "suggestOutfit": "このアイテムでコーデを作成",
       "toggleFavorite": "お気に入りを切り替え",
       "undoBackgroundRemoval": "背景削除を元に戻す"
@@ -250,6 +251,23 @@
     "newestFirst": "新しい順",
     "oldestFirst": "古い順",
     "recentlyWorn": "最近着用"
+  },
+  "splitPhoto": {
+    "addBox": "枠を追加",
+    "archiveNote": "元の写真は削除されず、アーカイブされます。アーカイブから復元できます。",
+    "boxLabel": "アイテム {number}",
+    "create": "{count, plural, =0 {アイテムを作成} other {#件のアイテムを作成}}",
+    "createFailed": "写真を分割できませんでした",
+    "created": "{count, plural, other {この写真から#件のアイテムを作成しました}}",
+    "description": "この写真から各アイテムを見つけ、それぞれ別のアイテムとして登録します。",
+    "detectFailed": "AIがこの写真を確認できませんでした。",
+    "detecting": "アイテムを探しています…",
+    "hint": "枠をドラッグして移動、角をドラッグしてサイズを変更できます。",
+    "noneFound": "アイテムが見つかりませんでした。枠を追加して、アイテムの上にドラッグしてください。",
+    "photoAlt": "分割する写真",
+    "removeBox": "アイテム {number} を削除",
+    "retry": "再試行",
+    "title": "写真を分割"
   },
   "title": "マイワードローブ",
   "uploadQueue": {

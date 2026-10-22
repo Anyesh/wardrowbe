@@ -198,6 +198,7 @@
       "rotateLeft": "Nach links drehen",
       "rotateRight": "Nach rechts drehen",
       "setAsPrimary": "Als Hauptbild festlegen",
+      "splitPhoto": "Foto aufteilen",
       "suggestOutfit": "Outfit mit diesem Teil erstellen",
       "toggleFavorite": "Favorit umschalten",
       "undoBackgroundRemoval": "Hintergrundentfernung rückgängig machen"
@@ -250,6 +251,23 @@
     "newestFirst": "Neueste zuerst",
     "oldestFirst": "Älteste zuerst",
     "recentlyWorn": "Kürzlich getragen"
+  },
+  "splitPhoto": {
+    "addBox": "Rahmen hinzufügen",
+    "archiveNote": "Das Originalfoto wird archiviert, nicht gelöscht. Du kannst es aus deinem Archiv wiederherstellen.",
+    "boxLabel": "Kleidungsstück {number}",
+    "create": "{count, plural, =0 {Artikel erstellen} one {# Artikel erstellen} other {# Artikel erstellen}}",
+    "createFailed": "Das Foto konnte nicht aufgeteilt werden",
+    "created": "{count, plural, one {# Artikel aus diesem Foto erstellt} other {# Artikel aus diesem Foto erstellt}}",
+    "description": "Findet jedes Kleidungsstück auf diesem Foto und legt daraus je einen eigenen Artikel an.",
+    "detectFailed": "Die KI konnte dieses Foto nicht ansehen.",
+    "detecting": "Kleidungsstücke werden gesucht…",
+    "hint": "Ziehe einen Rahmen, um ihn zu verschieben, oder eine Ecke, um die Größe zu ändern.",
+    "noneFound": "Es wurden keine Kleidungsstücke gefunden. Füge einen Rahmen hinzu und ziehe ihn über ein Kleidungsstück.",
+    "photoAlt": "Das Foto zum Aufteilen",
+    "removeBox": "Kleidungsstück {number} entfernen",
+    "retry": "Erneut versuchen",
+    "title": "Foto aufteilen"
   },
   "title": "Mein Kleiderschrank",
   "uploadQueue": {
