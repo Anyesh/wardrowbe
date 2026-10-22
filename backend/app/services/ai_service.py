@@ -13,6 +13,7 @@ from PIL import Image, ImageOps
 from pydantic import BaseModel
 
 from app.config import get_settings
+from app.services.garment_detector import DetectedGarment, parse_detection
 from app.utils.garment_vocabulary import (
     COLORS,
     FORMALITY,
@@ -77,6 +78,7 @@ class ClothingTags(BaseModel):
 
 TAGGING_PROMPT = render_tagging_prompt(load_prompt("clothing_analysis"))
 DESCRIPTION_PROMPT = load_prompt("clothing_description")
+DETECTION_PROMPT = render_tagging_prompt(load_prompt("garment_detection"))
 DESCRIPTION_LANGUAGES = {
     "en": "English",
     "zh-CN": "Simplified Chinese",
@@ -669,6 +671,30 @@ class AIService:
             raise description_error or RuntimeError("AI returned nothing usable")
 
         return tags
+
+    async def detect_garments(self, image_path: str | Path) -> list[DetectedGarment]:
+        """Ask the vision model where each garment in the photo is. Writes nothing.
+
+        Returns no garments when the model finds none or answers with something unreadable;
+        raises when no endpoint could be reached at all, so a caller can tell the two apart.
+        """
+        image_base64 = await asyncio.to_thread(self._preprocess_image, image_path)
+        messages = [
+            {"role": "system", "content": DETECTION_PROMPT},
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
+                    },
+                ],
+            },
+        ]
+        content, error, _ = await self._call_with_fallback(messages, "garment detection")
+        if content is None:
+            raise error or RuntimeError("AI returned nothing usable")
+        return parse_detection(content)
 
     async def check_health(self) -> dict:
         """Check health of all configured AI endpoints."""
