@@ -16,6 +16,8 @@ email-validator>=2.1.0
 # Authentication
 PyJWT[crypto]>=2.8.0
 httpx>=0.26.0
+# Older bundles trust the compromised eMudhra intermediates, and httpx verifies against certifi
+certifi>=2026.10.19
 
 # Image processing
 pillow>=10.2.0
