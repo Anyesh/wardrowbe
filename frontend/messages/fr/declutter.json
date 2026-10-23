@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "donate": "Donner",
+    "keep": "Garder",
+    "sell": "Vendre"
+  },
+  "empty": "Tu as tout porté récemment. Bravo !",
+  "hint": "Ajoute le prix d'achat de tes vêtements pour voir combien dort dans l'armoire.",
+  "idleValue": "{value} de vêtements dorment dans l'armoire.",
+  "reason": {
+    "neverWorn": "Jamais porté · ajouté il y a {days} jours",
+    "notWorn": "Porté pour la dernière fois il y a {days} jours"
+  },
+  "subtitle": "Les vêtements que tu n'as pas portés depuis longtemps : garde-les, donne-les ou vends-les.",
+  "summary": "{count, plural, =0 {Rien à trier} one {# vêtement à trier} other {# vêtements à trier}} sur {total}",
+  "title": "Tri de la garde-robe",
+  "toast": {
+    "donated": "{name} archivé comme donné.",
+    "error": "Une erreur s'est produite. Réessaie.",
+    "kept": "{name} reste ; il n'apparaîtra plus ici pendant {months, plural, one {# mois} other {# mois}}.",
+    "sold": "{name} archivé comme vendu."
+  },
+  "window": "Non portés depuis",
+  "windowOption": "{months, plural, one {Non portés depuis # mois} other {Non portés depuis # mois}}"
+}
