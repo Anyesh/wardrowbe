@@ -1,5 +1,7 @@
 import logging
+from collections.abc import Awaitable, Callable
 from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
+from typing import TypeVar
 from uuid import UUID
 
 from fastapi import HTTPException, Request, status
@@ -8,6 +10,7 @@ from redis.asyncio import Redis
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
 
 IPV6_CLIENT_PREFIX = 64
@@ -116,3 +119,38 @@ async def rate_limit_by_user(
 ) -> None:
     key = f"rate_limit:{action}:user:{user_id}"
     await check_rate_limit(key, max_requests, window_seconds)
+
+
+# Failure counters: unlike check_rate_limit they count only the attempts that failed, so a user
+# who keeps signing in correctly is never locked out, while guessing against one account stops
+# after `limit` misses per window, whatever IP the guesses come from.
+async def _failure_redis_call(operation: Callable[[Redis], Awaitable[T]], default: T) -> T:
+    settings = get_settings()
+    try:
+        redis = Redis.from_url(settings.redis_url)
+        try:
+            return await operation(redis)
+        finally:
+            await redis.aclose()
+    except Exception as e:
+        logger.warning("Failure counter unavailable (allowing request): %s", e)
+        return default
+
+
+async def failures_exceeded(key: str, limit: int) -> bool:
+    count: bytes | None = await _failure_redis_call(lambda redis: redis.get(key), None)
+    return count is not None and int(count) >= limit
+
+
+async def record_failure(key: str, window_seconds: int) -> None:
+    async def operation(redis: Redis) -> None:
+        pipe = redis.pipeline(transaction=True)
+        pipe.set(key, 0, ex=window_seconds, nx=True)
+        pipe.incr(key)
+        await pipe.execute()
+
+    await _failure_redis_call(operation, None)
+
+
+async def clear_failures(key: str) -> None:
+    await _failure_redis_call(lambda redis: redis.delete(key), None)

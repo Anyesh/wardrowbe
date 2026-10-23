@@ -10,6 +10,9 @@ x-backend-env: &backend-env
   SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
   STORAGE_PATH: /data/wardrobe
   APP_URL: ${APP_URL:-}
+  # Built-in email + password and passkey sign-in (see docs/authentication.md).
+  LOCAL_AUTH_ENABLED: ${LOCAL_AUTH_ENABLED:-true}
+  SESSION_LIFETIME_HOURS: ${SESSION_LIFETIME_HOURS:-168}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
   AI_BASE_URL: ${AI_BASE_URL:-http://host.docker.internal:11434/v1}
   AI_API_KEY: ${AI_API_KEY:-}
@@ -72,8 +75,11 @@ services:
     restart: unless-stopped
 
   # FastAPI Backend
+  # WARDROWBE_IMAGE picks the published images; `docker compose up -d --build` builds them
+  # from this checkout instead.
   backend:
-    image: ghcr.io/anyesh/wardrowbe:backend-latest
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
+    build: ./backend
     container_name: wardrobe-backend
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -88,6 +94,12 @@ services:
       # 0 because clients reach the frontend and API directly here, so any X-Forwarded-For is
       # theirs; set 1 once a proxy is the only way in (README: Client IPs behind a reverse proxy)
       TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-0}
+      # Passkeys are bound to the public address. Leave these empty to derive them from APP_URL.
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-}
+      WEBAUTHN_RP_NAME: ${WEBAUTHN_RP_NAME:-}
+      WEBAUTHN_ORIGIN: ${WEBAUTHN_ORIGIN:-}
+      # Applies database migrations on start (the workers leave it to this service).
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
     volumes:
       - wardrobe_data:/data/wardrobe
     ports:
@@ -98,7 +110,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -106,7 +118,8 @@ services:
 
   # Next.js Frontend
   frontend:
-    image: ghcr.io/anyesh/wardrowbe:frontend-latest
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:frontend-${WARDROWBE_TAG:-latest}
+    build: ./frontend
     container_name: wardrobe-frontend
     environment:
       # NEXT_PUBLIC_API_URL is the pre-1.6 name, still honored so existing .env files keep working.
@@ -122,17 +135,24 @@ services:
       TINYAUTH_URL: ${TINYAUTH_URL:-}
       FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
       NODE_EXTRA_CA_CERTS: ${NODE_EXTRA_CA_CERTS:-}
+      SESSION_LIFETIME_HOURS: ${SESSION_LIFETIME_HOURS:-168}
+      LOCAL_AUTH_ENABLED: ${LOCAL_AUTH_ENABLED:-true}
       PUID: ${PUID:-1001}
       PGID: ${PGID:-1001}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
       - backend
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
 # Background Worker for AI Tagging
   worker:
-    image: ghcr.io/anyesh/wardrowbe:backend-latest
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
     container_name: wardrobe-worker
     command: arq app.workers.worker.WorkerSettings
     extra_hosts:
@@ -151,7 +171,7 @@ services:
 # Local image work (rotation, background removal) on its own queue, so a bulk
 # batch of it cannot block AI tagging behind it.
   image-worker:
-    image: ghcr.io/anyesh/wardrowbe:backend-latest
+    image: ${WARDROWBE_IMAGE:-ghcr.io/anyesh/wardrowbe}:backend-${WARDROWBE_TAG:-latest}
     container_name: wardrobe-image-worker
     command: arq app.workers.image_worker.ImageWorkerSettings
     environment:

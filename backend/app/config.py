@@ -1,6 +1,7 @@
 import logging
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,8 +13,8 @@ logger = logging.getLogger(__name__)
 DEFAULT_SECRET_KEY = "change-me-in-production"
 FORWARD_AUTH_SECRET_MIN_LENGTH = 32
 NO_AUTH_CONFIGURED_MESSAGE = (
-    "No authentication method configured. "
-    "Set OIDC_ISSUER_URL + OIDC_CLIENT_ID, set FORWARD_AUTH_SECRET, or enable DEBUG mode."
+    "No authentication method configured. Set LOCAL_AUTH_ENABLED=true, "
+    "set OIDC_ISSUER_URL + OIDC_CLIENT_ID, set FORWARD_AUTH_SECRET, or enable DEBUG mode."
 )
 
 
@@ -81,6 +82,20 @@ class Settings(BaseSettings):
     # Shared secret the authenticating reverse proxy adds as X-Forward-Auth-Secret,
     # so that Remote-* identity headers are only trusted when the proxy sent them.
     forward_auth_secret: str | None = Field(default=None)
+
+    # Built-in email + password and passkey sign-in. On by default so that a fresh install is
+    # never reachable without signing in; it also turns the open dev login off.
+    local_auth_enabled: bool = Field(default=True)
+    # How long a session minted by password or passkey sign-in lasts before signing in again.
+    session_lifetime_hours: int = Field(default=168, ge=1, le=24 * 90)
+
+    # WebAuthn relying party. A passkey is bound to the RP ID (a registrable domain, no scheme or
+    # port) and the browser only offers it on an origin under that domain, so both default to
+    # APP_URL and must be set when the public address differs from it. WEBAUTHN_ORIGIN takes a
+    # comma-separated list for an install reached under more than one origin of the same RP ID.
+    webauthn_rp_id: str | None = Field(default=None)
+    webauthn_rp_name: str | None = Field(default=None)
+    webauthn_origin: str | None = Field(default=None)
 
     # AI capability switches.
     # ai_internal_enabled is the master switch; ai_vision_enabled / ai_text_enabled
@@ -208,7 +223,27 @@ class Settings(BaseSettings):
 
     @property
     def dev_mode(self) -> bool:
-        return self.debug and not self.oidc_configured and not self.forward_auth_configured
+        return (
+            self.debug
+            and not self.oidc_configured
+            and not self.forward_auth_configured
+            and not self.local_auth_enabled
+        )
+
+    @property
+    def webauthn_origins(self) -> list[str]:
+        raw = self.webauthn_origin or _origin_of(self.app_url)
+        return [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+
+    @property
+    def effective_webauthn_rp_id(self) -> str:
+        if self.webauthn_rp_id:
+            return self.webauthn_rp_id.strip().lower()
+        return (urlsplit(self.webauthn_origins[0]).hostname or "localhost").lower()
+
+    @property
+    def effective_webauthn_rp_name(self) -> str:
+        return self.webauthn_rp_name or self.app_name
 
     def validate_security(self) -> str | None:
         if self.secret_key == DEFAULT_SECRET_KEY and not self.dev_mode:
@@ -238,14 +273,46 @@ class Settings(BaseSettings):
                 "FORWARD_AUTH_SECRET must contain only visible ASCII characters and no spaces."
             )
 
-        if not (self.oidc_configured or self.forward_auth_configured or self.dev_mode):
+        if not (
+            self.local_auth_enabled
+            or self.oidc_configured
+            or self.forward_auth_configured
+            or self.dev_mode
+        ):
             return NO_AUTH_CONFIGURED_MESSAGE
 
+        return None
+
+    def webauthn_problem(self) -> str | None:
+        # Reported rather than raised: a wrong passkey setting must not stop password sign-in.
+        if not self.local_auth_enabled:
+            return None
+        rp_id = self.effective_webauthn_rp_id
+        for origin in self.webauthn_origins:
+            parts = urlsplit(origin)
+            if parts.scheme not in ("http", "https") or not parts.hostname:
+                return f"WEBAUTHN_ORIGIN entry {origin!r} is not an http(s) origin."
+            host = parts.hostname.lower()
+            # The browser refuses a passkey whose RP ID is not the origin's host or a parent
+            # domain of it, so a mismatch here would only surface as a failed ceremony.
+            if host != rp_id and not host.endswith(f".{rp_id}"):
+                return (
+                    f"WEBAUTHN_RP_ID {rp_id!r} must equal the host of every WEBAUTHN_ORIGIN "
+                    f"entry or be a parent domain of it, and {origin!r} is not under it."
+                )
+            # Browsers only expose WebAuthn in a secure context: https, or http on localhost.
+            if parts.scheme == "http" and host != "localhost" and not host.endswith(".localhost"):
+                return (
+                    f"Passkeys need HTTPS: browsers refuse WebAuthn on {origin}. "
+                    "Serve Wardrowbe over https and set APP_URL / WEBAUTHN_ORIGIN to that address."
+                )
         return None
 
     def get_auth_mode(self) -> str:
         if self.forward_auth_configured:
             return "forward-auth+oidc" if self.oidc_configured else "forward-auth"
+        if self.local_auth_enabled:
+            return "local+oidc" if self.oidc_configured else "local"
         if self.oidc_configured:
             return "oidc"
         if self.dev_mode:
@@ -257,6 +324,11 @@ class Settings(BaseSettings):
 
     def get_geocoding_user_agent(self) -> str:
         return self.geocoding_user_agent or "Wardrowbe/1.0"
+
+
+def _origin_of(url: str) -> str:
+    parts = urlsplit(url)
+    return f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else url
 
 
 @lru_cache
