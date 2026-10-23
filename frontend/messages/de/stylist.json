@@ -1,0 +1,16 @@
+{
+  "aiError": "Die KI konnte nicht antworten. Versuch es gleich noch einmal.",
+  "aiOff": "Die KI ist auf diesem Server ausgeschaltet.",
+  "clear": "Neuer Chat",
+  "examples": {
+    "event": "Was kann ich im Juni zu einer Hochzeit tragen?",
+    "match": "Was passt zu meiner Jeans?",
+    "today": "Was ziehe ich heute an?"
+  },
+  "intro": "Frag alles zum Anziehen: Die Stilberatung kennt deinen Kleiderschrank und zeigt dir die vorgeschlagenen Teile.",
+  "placeholder": "Schreib eine Frage…",
+  "send": "Senden",
+  "subtitle": "Frag die KI nach Rat zu deiner eigenen Kleidung.",
+  "thinking": "Die Stilberatung überlegt… das kann bis zu einer Minute dauern.",
+  "title": "Stilberatung"
+}
