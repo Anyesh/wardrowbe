@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.api.ai_status import router as ai_status_router
 from app.api.analytics import router as analytics_router
 from app.api.auth import router as auth_router
 from app.api.families import router as families_router
@@ -32,3 +33,4 @@ api_router.include_router(pairings_router)
 api_router.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(analytics_router)
 api_router.include_router(learning_router)
+api_router.include_router(ai_status_router)

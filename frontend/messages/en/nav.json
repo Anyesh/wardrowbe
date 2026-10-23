@@ -1,5 +1,15 @@
 {
   "aiLearning": "AI Learning",
+  "aiStatus": {
+    "disabled": "AI turned off",
+    "missingDetail": "The AI server does not have: {models}",
+    "modelDetail": "Model: {model}",
+    "model_missing": "AI model not found",
+    "offline": "AI offline",
+    "online": "AI online",
+    "unknown": "AI status unknown",
+    "unknownDetail": "Checking the AI server"
+  },
   "analytics": "Analytics",
   "brandAlt": "Wardrowbe",
   "brandName": "wardrowbe",

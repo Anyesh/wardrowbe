@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { AIStatusDot } from '@/components/ai-status-dot';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -107,6 +108,9 @@ export function Sidebar() {
                   );
                 })}
               </ul>
+            </li>
+            <li className="mt-auto">
+              <AIStatusDot />
             </li>
           </ul>
         </nav>

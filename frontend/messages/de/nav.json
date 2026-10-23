@@ -1,5 +1,15 @@
 {
   "aiLearning": "KI-Lernprofil",
+  "aiStatus": {
+    "disabled": "KI ausgeschaltet",
+    "missingDetail": "Dem KI-Server fehlt: {models}",
+    "modelDetail": "Modell: {model}",
+    "model_missing": "KI-Modell fehlt",
+    "offline": "KI nicht erreichbar",
+    "online": "KI aktiv",
+    "unknown": "KI-Status unbekannt",
+    "unknownDetail": "KI-Server wird geprüft"
+  },
   "analytics": "Statistiken",
   "brandAlt": "wardrowbe",
   "brandName": "wardrowbe",
