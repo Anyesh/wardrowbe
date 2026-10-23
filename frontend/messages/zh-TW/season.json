@@ -1,0 +1,18 @@
+{
+  "bringOut": {
+    "description": "即將到來的季節的衣物。",
+    "title": "拿出來"
+  },
+  "error": "無法載入換季整理。",
+  "hint": "整理好後點一下。清單依據每件衣物的季節；在衣櫥裡補上季節會更準確。",
+  "lastYear": "去年這個時候穿過",
+  "nothing": "這次沒有。",
+  "putAway": {
+    "description": "即將結束的季節的衣物。",
+    "title": "收起來"
+  },
+  "sameSeason": "接下來兩個月季節不變，暫時不用換季。",
+  "stays": "{count, plural, other {# 件全年都放在外面}}",
+  "subtitle": "為接下來幾個月收起和拿出的衣物。",
+  "title": "換季整理"
+}
