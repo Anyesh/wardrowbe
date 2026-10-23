@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.12.0...wardrowbe-v1.12.1) (2026-10-23)
+
+
+### 🐛 Bug Fixes
+
+* **outfits:** link items with the wardrobe's item query parameter ([0bbca3a](https://github.com/Anyesh/wardrowbe/commit/0bbca3a4d92b9d3cec64a5a09ffdacce41f04d04))
+* **outfits:** link items with the wardrobe's item query parameter ([5cd2519](https://github.com/Anyesh/wardrowbe/commit/5cd2519b1ae4bd0bf6178c68ba4cbe362443ebb6))
+
+
+### 📝 Documentation
+
+* link the android app on google play ([bbe090e](https://github.com/Anyesh/wardrowbe/commit/bbe090ee64d413f330851f4667fe867fa2ea49ff))
+
 ## [1.12.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.11.0...wardrowbe-v1.12.0) (2026-10-22)
 
 
