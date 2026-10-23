@@ -1,0 +1,17 @@
+{
+  "aiError": "L'IA n'a pas pu lire la photo. Réessaie dans un instant.",
+  "aiOff": "L'IA est désactivée sur ce serveur.",
+  "checkHint": "Touche pour retirer ceux que l'IA s'est trompée.",
+  "confirm": "{count, plural, =0 {Marquer comme porté aujourd'hui} one {Marquer # vêtement comme porté aujourd'hui} other {Marquer # vêtements comme portés aujourd'hui}}",
+  "found": "{count, plural, one {# vêtement à toi trouvé} other {# vêtements à toi trouvés}}",
+  "noneFound": "Aucun vêtement de ta garde-robe reconnu.",
+  "photoAlt": "La photo de ta tenue",
+  "pick": "Prendre ou choisir une photo",
+  "pickHint": "Une photo en pied dans le miroir fonctionne le mieux.",
+  "saveError": "Échec de l'enregistrement. Réessaie.",
+  "saved": "{count, plural, one {# vêtement marqué comme porté} other {# vêtements marqués comme portés}}",
+  "savedButton": "Marqués comme portés",
+  "subtitle": "Prends une photo dans le miroir : l'IA reconnaît tes vêtements et tu les marques comme portés.",
+  "title": "Selfie de tenue",
+  "working": "L'IA regarde ta tenue… cela peut prendre jusqu'à une minute."
+}
