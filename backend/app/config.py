@@ -2,7 +2,7 @@ import logging
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, PostgresDsn, field_validator
+from pydantic import Field, PostgresDsn, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.utils.redis_url import parse_redis_url
@@ -100,6 +100,35 @@ class Settings(BaseSettings):
     ai_max_retries: int = Field(default=3)
     ai_max_tokens: int = Field(default=8000)
     ai_reasoning_effort: str | None = Field(default="none")
+
+    # Ollama shorthand. Wardrowbe never runs a model itself: it is only an HTTP client of an
+    # Ollama server that runs separately (another container, another machine). When set, these
+    # fill in the AI_* settings above:
+    #   OLLAMA_BASE_URL=http://ollama:11434        -> AI_BASE_URL=http://ollama:11434/v1
+    #   OLLAMA_MODEL=qwen2.5vl:7b                  -> AI_VISION_MODEL and AI_TEXT_MODEL
+    #   OLLAMA_VISION_MODEL / OLLAMA_TEXT_MODEL    -> one of the two only
+    #   OLLAMA_TIMEOUT=300                         -> AI_TIMEOUT
+    # Endpoints each user adds in Settings > AI still come first; these are the server default.
+    ollama_base_url: str | None = Field(default=None)
+    ollama_model: str | None = Field(default=None)
+    ollama_vision_model: str | None = Field(default=None)
+    ollama_text_model: str | None = Field(default=None)
+    ollama_timeout: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def apply_ollama_settings(self) -> "Settings":
+        if self.ollama_base_url and self.ollama_base_url.strip():
+            base = self.ollama_base_url.strip().rstrip("/")
+            self.ai_base_url = base if base.endswith("/v1") else f"{base}/v1"
+        vision = self.ollama_vision_model or self.ollama_model
+        text = self.ollama_text_model or self.ollama_model
+        if vision:
+            self.ai_vision_model = vision.strip()
+        if text:
+            self.ai_text_model = text.strip()
+        if self.ollama_timeout:
+            self.ai_timeout = self.ollama_timeout
+        return self
 
     @field_validator("ai_reasoning_effort", mode="before")
     @classmethod
