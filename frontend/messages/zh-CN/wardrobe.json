@@ -45,7 +45,9 @@
     "subtitle": "上传你的衣物照片",
     "title": "添加单品",
     "typeLabel": "类型（留空则由 AI 检测）",
-    "uploading": "上传中..."
+    "uploading": "上传中...",
+    "removeBackground": "自动去除背景",
+    "removeBackgroundHint": "在 AI 分类之前先去掉照片背景。"
   },
   "ai": {
     "analysisFailed": "分析失败",

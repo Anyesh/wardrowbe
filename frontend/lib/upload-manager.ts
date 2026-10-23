@@ -149,6 +149,7 @@ async function uploadChunk(chunk: QueuedUpload[]): Promise<BulkUploadResponse> {
   const formData = new FormData();
   chunk.forEach((record) => formData.append('images', record.file, record.filename));
   formData.append('skip_ai', String(chunk[0]?.skipAi ?? false));
+  formData.append('remove_background', String(chunk[0]?.removeBackground ?? false));
   chunk.forEach((record) => formData.append('upload_keys', record.id));
 
   const token = getAccessToken();
@@ -215,10 +216,13 @@ async function drainOnce(): Promise<boolean> {
   });
   if (actionable.length === 0) return false;
 
-  // A chunk request carries one skip_ai value - keep chunks homogeneous
+  // A chunk request carries one skip_ai and remove_background value - keep chunks homogeneous
   // rather than threading a per-file flag through the endpoint.
   const skipAi = actionable[0].skipAi;
-  const matching = actionable.filter((r) => r.skipAi === skipAi);
+  const removeBackground = actionable[0].removeBackground ?? false;
+  const matching = actionable.filter(
+    (r) => r.skipAi === skipAi && (r.removeBackground ?? false) === removeBackground
+  );
   const serverLimit = queryClient ? await fetchBulkUploadLimit(queryClient) : null;
   const maxFiles = Math.min(effectiveChunkSize, serverLimit ?? effectiveChunkSize);
   const chunk: QueuedUpload[] = [];
