@@ -66,7 +66,7 @@ export function Sidebar() {
                         className={cn(
                           'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6',
                           isActive
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-primary/10 text-primary'
                             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                         )}
                       >
@@ -96,7 +96,7 @@ export function Sidebar() {
                         className={cn(
                           'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6',
                           isActive
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-primary/10 text-primary'
                             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                         )}
                       >

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import type { ItemCategory } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
@@ -49,10 +50,18 @@ export interface WardrobeStats {
   total_wears: number;
 }
 
+export interface CategoryDistribution {
+  category: ItemCategory;
+  count: number;
+  percentage: number;
+}
+
 export interface AnalyticsData {
   wardrobe: WardrobeStats;
   color_distribution: ColorDistribution[];
   type_distribution: TypeDistribution[];
+  // Missing from servers older than the accessories sections.
+  category_distribution?: CategoryDistribution[];
   most_worn: WearStats[];
   least_worn: WearStats[];
   never_worn: WearStats[];

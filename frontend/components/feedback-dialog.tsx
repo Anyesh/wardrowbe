@@ -302,7 +302,7 @@ export function FeedbackDialog({ outfit, open, onClose }: FeedbackDialogProps) {
                         src={item.thumbnail_url || item.image_url || item.image_path}
                         alt={item.name || typeLabel(item.type)}
                         fill
-                        className="object-cover"
+                        className="garment-fit"
                         sizes="(max-width: 640px) 33vw, 25vw"
                         loading="lazy"
                       />

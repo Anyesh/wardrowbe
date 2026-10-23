@@ -242,7 +242,12 @@
     "tie": "ネクタイ",
     "tights": "タイツ",
     "top": "トップス",
-    "vest": "ベスト"
+    "vest": "ベスト",
+    "ring": "指輪",
+    "necklace": "ネックレス",
+    "watch": "腕時計",
+    "bracelet": "ブレスレット",
+    "earrings": "イヤリング"
   },
   "weatherConditions": {
     "clear": "晴れ",
@@ -271,5 +276,10 @@
     "thunderstorm": "雷雨",
     "thunderstorm-with-hail": "雷雨とひょう",
     "unknown": "不明"
+  },
+  "categories": {
+    "clothing": "衣類",
+    "footwear": "シューズ",
+    "accessories": "アクセサリー"
   }
 }

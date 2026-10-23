@@ -5,7 +5,7 @@ import { useQueries, useQuery, useMutation, useQueryClient } from '@tanstack/rea
 import { useSession } from 'next-auth/react';
 import { api, API_BASE_PATH, getAccessToken, ApiError, NetworkError } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
-import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
+import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, PhotoType, TaggingProgress } from '@/lib/types';
 import { chunkArray } from '@/lib/utils';
 import { enqueueFiles } from '@/lib/upload-queue';
 import { startDrain } from '@/lib/upload-manager';
@@ -32,6 +32,7 @@ function itemListQuery(filters: ItemFilter, page: number, pageSize: number) {
         page_size: String(pageSize),
       };
       if (filters.type) params.type = filters.type;
+      if (filters.category) params.category = filters.category;
       if (filters.colors?.length) params.colors = filters.colors.join(',');
       if (filters.search) params.search = filters.search;
       if (filters.favorite !== undefined) params.favorite = String(filters.favorite);
@@ -44,7 +45,7 @@ function itemListQuery(filters: ItemFilter, page: number, pageSize: number) {
       return api.get<ItemListResponse>('/items', { params });
     },
     refetchInterval: (query: { state: { data: ItemListResponse | undefined } }) =>
-      processingPollInterval(!!query.state.data?.items?.some((item) => item.status === 'processing')),
+      processingPollInterval(!!query.state.data?.items?.some(isProcessing)),
     // Tagging runs server-side in the worker, so it keeps going while the tab is
     // hidden. Without this the polling stops and the UI looks frozen, which reads
     // as "analysis stopped when I switched tabs".
@@ -119,7 +120,14 @@ export function useItem(itemId: string) {
     queryKey: queryKeys.item(itemId),
     queryFn: () => api.get<Item>(`/items/${itemId}`),
     enabled: !!itemId && status !== 'loading',
+    refetchInterval: (query: { state: { data: Item | undefined } }) =>
+      processingPollInterval(!!query.state.data && isProcessing(query.state.data)),
   });
+}
+
+// The item or any of its photos still has work in the image worker or the AI queue.
+export function isProcessing(item: Item): boolean {
+  return item.status === 'processing' || (item.additional_images ?? []).some((img) => img.status === 'processing');
 }
 
 export function useCreateItem() {
@@ -463,10 +471,22 @@ export function useAddItemImage() {
   const { data: session } = useSession();
 
   return useMutation({
-    mutationFn: async ({ itemId, file }: { itemId: string; file: File }) => {
+    mutationFn: async ({
+      itemId,
+      file,
+      view,
+      removeBackground,
+    }: {
+      itemId: string;
+      file: File;
+      view?: PhotoType | null;
+      removeBackground?: boolean;
+    }) => {
       const token = session?.accessToken || getAccessToken();
       const formData = new FormData();
       formData.append('image', file);
+      if (view) formData.append('view', view);
+      if (removeBackground) formData.append('remove_background', 'true');
 
       const headers: Record<string, string> = {};
       if (token) {
@@ -501,6 +521,68 @@ export function useDeleteItemImage() {
     mutationFn: async ({ itemId, imageId }: { itemId: string; imageId: string }) => {
       applySessionToken(session);
       return api.delete(`/items/${itemId}/images/${imageId}`);
+    },
+    onSuccess: (_, variables) => {
+      invalidateItemCaches(queryClient, variables.itemId);
+    },
+  });
+}
+
+// Labels one photo as front, back, detail or other; imageId null is the cover photo.
+export function useSetPhotoView() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async ({ itemId, imageId, view }: { itemId: string; imageId: string | null; view: PhotoType | null }) => {
+      applySessionToken(session);
+      return api.patch<Item>(`/items/${itemId}/photo-view`, { image_id: imageId, view });
+    },
+    onSuccess: (_, variables) => {
+      invalidateItemCaches(queryClient, variables.itemId);
+    },
+  });
+}
+
+// Background removal on one additional photo (queued on the image worker), and its undo.
+export function useRemovePhotoBackground() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async ({ itemId, imageId }: { itemId: string; imageId: string }) => {
+      applySessionToken(session);
+      return api.post<ItemImage>(`/items/${itemId}/images/${imageId}/remove-background`, { bg_color: '#FFFFFF' });
+    },
+    onSuccess: (_, variables) => {
+      invalidateItemCaches(queryClient, variables.itemId);
+    },
+  });
+}
+
+export function useRestorePhotoOriginal() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async ({ itemId, imageId }: { itemId: string; imageId: string }) => {
+      applySessionToken(session);
+      return api.post<ItemImage>(`/items/${itemId}/images/${imageId}/restore-original`);
+    },
+    onSuccess: (_, variables) => {
+      invalidateItemCaches(queryClient, variables.itemId);
+    },
+  });
+}
+
+export function useReorderItemImages() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async ({ itemId, imageIds }: { itemId: string; imageIds: string[] }) => {
+      applySessionToken(session);
+      return api.patch<ItemImage[]>(`/items/${itemId}/images/reorder`, { image_ids: imageIds });
     },
     onSuccess: (_, variables) => {
       invalidateItemCaches(queryClient, variables.itemId);
@@ -635,6 +717,7 @@ export interface BulkOperationParams {
   // Filters to apply when using select_all (to match the current view)
   filters?: {
     type?: string;
+    category?: string;
     search?: string;
     needs_wash?: boolean;
     favorite?: boolean;
@@ -1038,13 +1121,15 @@ function uploadBulkItemsChunk(
   files: File[],
   skipAi: boolean,
   token: string | null | undefined,
-  onProgress: (percent: number) => void
+  onProgress: (percent: number) => void,
+  removeBackground = false
 ): Promise<BulkUploadResponse> {
   const formData = new FormData();
   files.forEach((file) => {
     formData.append('images', file);
   });
   formData.append('skip_ai', String(skipAi));
+  formData.append('remove_background', String(removeBackground));
 
   return new Promise<BulkUploadResponse>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -1115,10 +1200,11 @@ export async function uploadFilesWithinServerLimit(
   files: File[],
   skipAi: boolean,
   token: string | null | undefined,
-  onProgress: (percent: number) => void
+  onProgress: (percent: number) => void,
+  removeBackground = false
 ): Promise<BulkUploadResponse> {
   try {
-    return await uploadBulkItemsChunk(files, skipAi, token, onProgress);
+    return await uploadBulkItemsChunk(files, skipAi, token, onProgress, removeBackground);
   } catch (error) {
     const limit =
       error instanceof ApiError && error.status === 400
@@ -1128,7 +1214,13 @@ export async function uploadFilesWithinServerLimit(
       const responses: BulkUploadResponse[] = [];
       for (let i = 0; i < files.length; i += limit) {
         responses.push(
-          await uploadFilesWithinServerLimit(files.slice(i, i + limit), skipAi, token, onProgress)
+          await uploadFilesWithinServerLimit(
+            files.slice(i, i + limit),
+            skipAi,
+            token,
+            onProgress,
+            removeBackground
+          )
         );
       }
       return mergeBulkUploadResponses(responses);
@@ -1243,11 +1335,17 @@ export function useBulkCreateItems() {
     mutationFn: async ({
       files,
       skipAi = false,
+      removeBackground = false,
     }: {
       files: File[];
       skipAi?: boolean;
+      removeBackground?: boolean;
     }): Promise<BulkStageResult> => {
-      const { staged, unprotected: unprotectedFiles } = await enqueueFiles(files, skipAi);
+      const { staged, unprotected: unprotectedFiles } = await enqueueFiles(
+        files,
+        skipAi,
+        removeBackground
+      );
       if (staged.length > 0) {
         void startDrain();
       }
@@ -1263,10 +1361,16 @@ export function useBulkCreateItems() {
         for (let i = 0; i < chunks.length; i++) {
           const chunkFiles = chunks[i];
           try {
-            const response = await uploadFilesWithinServerLimit(chunkFiles, skipAi, token, (chunkPercent) => {
-              const overall = ((i + chunkPercent / 100) / chunks.length) * 100;
-              setUploadProgress(Math.round(overall));
-            });
+            const response = await uploadFilesWithinServerLimit(
+              chunkFiles,
+              skipAi,
+              token,
+              (chunkPercent) => {
+                const overall = ((i + chunkPercent / 100) / chunks.length) * 100;
+                setUploadProgress(Math.round(overall));
+              },
+              removeBackground
+            );
             responses.push(response);
           } catch (error) {
             responses.push(failedChunkResponse(chunkFiles, error));

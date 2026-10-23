@@ -79,5 +79,5 @@ data:
   IMAGE_WORKER_CONCURRENCY: "1"
   MAX_IMAGE_MEGAPIXELS: "50"
   BG_REMOVAL_PROVIDER: "rembg"
-  BG_REMOVAL_MODEL: "u2net"
+  BG_REMOVAL_MODEL: "birefnet-general-lite"
   BG_REMOVAL_URL: ""

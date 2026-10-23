@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Enum,
@@ -167,6 +168,10 @@ class ClothingItem(Base):
         cascade="all, delete-orphan",
         order_by="ItemImage.position",
     )
+    # Loaded with the item wherever it is queried, so every ItemResponse can label its photos.
+    photo_views: Mapped[list["ItemPhotoView"]] = relationship(
+        "ItemPhotoView", cascade="all, delete-orphan", lazy="selectin", passive_deletes=True
+    )
 
 
 class ItemHistory(Base):
@@ -211,6 +216,9 @@ class WashHistory(Base):
 
 class ItemImage(Base):
     __tablename__ = "item_images"
+    __table_args__ = (
+        CheckConstraint("status IN ('ready', 'processing', 'error')", name="ck_item_images_status"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     item_id: Mapped[uuid.UUID] = mapped_column(
@@ -221,8 +229,44 @@ class ItemImage(Base):
     thumbnail_path: Mapped[str | None] = mapped_column(String(500))
     medium_path: Mapped[str | None] = mapped_column(String(500))
     position: Mapped[int] = mapped_column(Integer, default=0)
+    # Each photo has its own background removal: its own state and its own untouched original,
+    # so one failing photo never touches the others or the cover.
+    status: Mapped[str] = mapped_column(String(12), default="ready", server_default="ready")
+    original_image_path: Mapped[str | None] = mapped_column(String(500))
+    processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
     item: Mapped["ClothingItem"] = relationship("ClothingItem", back_populates="additional_images")
+
+
+class PhotoView(enum.StrEnum):
+    front = "front"
+    back = "back"
+    detail = "detail"
+    other = "other"
+
+
+class ItemPhotoView(Base):
+    """What one of an item's photos shows (front, back, detail...).
+
+    Keyed by the photo's file rather than by item_images row, so the label follows the photo when
+    it becomes or stops being the cover (set-primary swaps paths), and a replaced photo simply
+    loses its label. A table of its own rather than a clothing_items column, like declutter_keeps,
+    so it never touches how items are written. Photos without a row have no view.
+    """
+
+    __tablename__ = "item_photo_views"
+    __table_args__ = (
+        CheckConstraint(
+            "view IN ('front', 'back', 'detail', 'other')", name="ck_item_photo_views_view"
+        ),
+    )
+
+    item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clothing_items.id", ondelete="CASCADE"), primary_key=True
+    )
+    image_path: Mapped[str] = mapped_column(String(500), primary_key=True)
+    view: Mapped[str] = mapped_column(String(10), nullable=False)
+

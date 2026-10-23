@@ -242,7 +242,12 @@
     "tie": "Krawatte",
     "tights": "Strumpfhose",
     "top": "Top",
-    "vest": "Weste"
+    "vest": "Weste",
+    "ring": "Ring",
+    "necklace": "Halskette",
+    "watch": "Uhr",
+    "bracelet": "Armband",
+    "earrings": "Ohrringe"
   },
   "weatherConditions": {
     "clear": "Klar",
@@ -271,5 +276,10 @@
     "thunderstorm": "Gewitter",
     "thunderstorm-with-hail": "Gewitter mit Hagel",
     "unknown": "Unbekannt"
+  },
+  "categories": {
+    "clothing": "Kleidung",
+    "footwear": "Schuhe",
+    "accessories": "Accessoires"
   }
 }

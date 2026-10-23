@@ -242,7 +242,12 @@
     "tie": "Cravatta",
     "tights": "Collant",
     "top": "Top",
-    "vest": "Gilet"
+    "vest": "Gilet",
+    "ring": "Anello",
+    "necklace": "Collana",
+    "watch": "Orologio",
+    "bracelet": "Braccialetto",
+    "earrings": "Orecchini"
   },
   "weatherConditions": {
     "clear": "Sereno",
@@ -271,5 +276,10 @@
     "thunderstorm": "Temporale",
     "thunderstorm-with-hail": "Temporale con grandine",
     "unknown": "Sconosciuto"
+  },
+  "categories": {
+    "clothing": "Abbigliamento",
+    "footwear": "Scarpe",
+    "accessories": "Accessori"
   }
 }

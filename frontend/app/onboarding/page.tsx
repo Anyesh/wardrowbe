@@ -672,7 +672,7 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
                 <img
                   src={preview}
                   alt={t('firstItem.previewAlt')}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full garment-fit"
                 />
               </div>
               <Button

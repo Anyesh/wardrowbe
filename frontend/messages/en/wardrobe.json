@@ -45,7 +45,9 @@
     "subtitle": "Upload photos of your clothing items",
     "title": "Add Items",
     "typeLabel": "Type (AI will detect if empty)",
-    "uploading": "Uploading..."
+    "uploading": "Uploading...",
+    "removeBackground": "Remove the background automatically",
+    "removeBackgroundHint": "The photo is cleaned up before the AI catalogues it."
   },
   "ai": {
     "analysisFailed": "Analysis Failed",
@@ -104,7 +106,7 @@
     "reanalyzeQueued": "{count, plural, one {Queued # item for re-analysis} other {Queued # items for re-analysis}}",
     "reanalyzeSkipped": "{count, plural, one {# item already analyzing} other {# items already analyzing}}",
     "removeBackgroundAlreadyDone": "{count, plural, one {# item already had its background removed} other {# items already had their background removed}}",
-    "removeBackgroundConfirmDescription": "This will remove the background from {count, plural, one {# selected item} other {# selected items}}. The original photo is kept and can be restored per item afterward.",
+    "removeBackgroundConfirmDescription": "This will remove the background from {count, plural, one {# selected item} other {# selected items}}, every photo of each. The original photos are kept and can be restored afterward.",
     "removeBackgroundConfirmTitle": "Remove background from {count, plural, one {# item} other {# items}}?",
     "removeBackgroundError": "Failed to queue background removal",
     "removeBackgroundPartialFailed": "{count, plural, one {Failed to queue # item} other {Failed to queue # items}}",
@@ -277,5 +279,46 @@
     "daysAgo": "Worn {days}d ago",
     "today": "Worn today",
     "yesterday": "Worn yesterday"
+  },
+  "photos": {
+    "title": "Photos",
+    "add": "Add photos",
+    "pickerHint": "Front, back and details: up to {count} photos. The first one is the cover.",
+    "limit": "Up to {count} photos per item.",
+    "invalid": "Some files are not supported images or are larger than 20 MB.",
+    "type": "What the photo shows",
+    "noView": "Not set",
+    "front": "Front",
+    "back": "Back",
+    "detail": "Detail",
+    "other": "Other",
+    "cover": "Cover photo",
+    "coverHint": "Cover",
+    "makeCover": "Use as cover",
+    "previous": "Previous",
+    "next": "Next",
+    "remove": "Remove photo",
+    "removeTitle": "Remove this photo?",
+    "removeDescription": "The photo is deleted for good. The item and its other photos stay.",
+    "keep": "Keep it",
+    "lastPhoto": "An item needs at least one photo. Replace it instead.",
+    "uploading": "{count, plural, one {Uploading # photo…} other {Uploading # photos…}}",
+    "count": "{count} of {max}",
+    "countShort": "{count, plural, one {# photo} other {# photos}}",
+    "counter": "Photo {current} of {total}",
+    "frontBack": "Front and back",
+    "showFront": "Show the front",
+    "showBack": "Show the back",
+    "showCover": "Show the cover",
+    "someFailed": "{count, plural, one {The item was saved, but # photo could not be uploaded.} other {The item was saved, but # photos could not be uploaded.}}",
+    "error": "The photo could not be saved. Try again.",
+    "removingBackground": "Removing background…",
+    "backgroundFailed": "Background removal failed",
+    "removeBackground": "Remove background",
+    "restoreBackground": "Restore original"
+  },
+  "categories": {
+    "label": "Wardrobe sections",
+    "all": "All"
   }
 }

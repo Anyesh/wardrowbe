@@ -4,11 +4,12 @@ from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from sqlalchemy import inspect as sa_inspect
 
 from app.models.item import ProcessingKind, TaggingStatus
 from app.schemas.color import ColorList, ColorName
 from app.schemas.outfit import Occasion
-from app.utils.garment_vocabulary import DEFAULT_WASH_INTERVALS
+from app.utils.garment_vocabulary import CATEGORIES, DEFAULT_WASH_INTERVALS, TYPE_CATEGORY
 from app.utils.signed_urls import sign_image_url, sign_optional
 
 
@@ -29,6 +30,11 @@ class ItemTags(BaseModel):
 
 
 USER_TAG_KEYS = frozenset({"size", "care_instructions", "source_url"})
+
+PhotoViewName = Literal["front", "back", "detail", "other"]
+# Only one photo of an item can be its front, and one its back; details and others can repeat.
+UNIQUE_PHOTO_VIEWS = frozenset({"front", "back"})
+CategoryName = Literal[CATEGORIES]  # type: ignore[valid-type]
 
 
 class ItemBase(BaseModel):
@@ -90,12 +96,30 @@ class ItemResponse(ItemBase):
                         setattr(data, dest, raw[src])
         return data
 
+    @model_validator(mode="before")
+    @classmethod
+    def _attach_photo_views(cls, data: Any) -> Any:
+        # The views live in item_photo_views keyed by file, so each photo picks up its own label
+        # here. An item loaded without them (or a plain dict) just reports no views.
+        if isinstance(data, dict):
+            return data
+        state = sa_inspect(data, raiseerr=False)
+        if state is None or "photo_views" in state.unloaded:
+            return data
+        views = {row.image_path: row.view for row in data.photo_views}
+        data.image_view = views.get(data.image_path)
+        if "additional_images" not in state.unloaded:
+            for image in data.additional_images:
+                image.view = views.get(image.image_path)
+        return data
+
     id: UUID
     user_id: UUID
     image_path: str
     thumbnail_path: str | None = None
     medium_path: str | None = None
     original_image_path: str | None = None
+    image_view: PhotoViewName | None = None
     tags: dict = Field(default_factory=dict)
     colors: list[str] = Field(default_factory=list)
     primary_color: str | None = None
@@ -145,6 +169,12 @@ class ItemResponse(ItemBase):
     @property
     def medium_url(self) -> str | None:
         return sign_optional(self.medium_path)
+
+    @computed_field
+    @property
+    def category(self) -> str:
+        # Unknown or legacy types read as clothing, the section every item used to be in.
+        return TYPE_CATEGORY.get(self.type, "clothing")
 
     @computed_field
     @property
@@ -209,6 +239,7 @@ class ItemListResponse(BaseModel):
 
 class ItemFilter(BaseModel):
     type: str | None = None
+    category: CategoryName | None = None
     subtype: str | None = None
     colors: ColorList | None = None
     status: str | None = None
@@ -254,7 +285,13 @@ class BulkUploadResponse(BaseModel):
 
 
 class BulkFilters(BaseModel):
+    # Mirrors the list filters a "select all" was made under, so the action touches exactly the
+    # items the user saw: without category, favorite and needs_wash it would reach the whole
+    # wardrobe.
     type: str | None = None
+    category: CategoryName | None = None
+    favorite: bool | None = None
+    needs_wash: bool | None = None
     search: str | None = None
     is_archived: bool | None = None
 
@@ -349,6 +386,8 @@ class BulkRemoveBackgroundResponse(BulkBatchResponse):
     failed: int
     skipped: int = 0
     already_done: int = 0
+    # The items' other photos, each queued as its own job next to the cover.
+    photos_queued: int = 0
     errors: list[str] = Field(default_factory=list)
 
 
@@ -361,6 +400,10 @@ class ItemImageResponse(BaseModel):
     thumbnail_path: str | None = None
     medium_path: str | None = None
     position: int
+    view: PhotoViewName | None = None
+    # Background removal runs per photo, so each one reports its own state.
+    status: Literal["ready", "processing", "error"] = "ready"
+    original_image_path: str | None = None
     created_at: datetime
 
     @computed_field
@@ -381,6 +424,12 @@ class ItemImageResponse(BaseModel):
 
 class ReorderImagesRequest(BaseModel):
     image_ids: list[UUID]
+
+
+class PhotoViewRequest(BaseModel):
+    # image_id None means the item's cover photo; view None clears the label.
+    image_id: UUID | None = None
+    view: PhotoViewName | None = None
 
 
 class RemoveBackgroundRequest(BaseModel):

@@ -10,7 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.item import ClothingItem, ItemStatus
 from app.models.user import User
 from app.services.image_service import ImageService
-from app.workers.background_removal import remove_item_background_job
+from app.workers.background_removal import (
+    remove_item_background_job,
+    remove_photo_background_job,
+)
 from app.workers.image_worker import ImageWorkerSettings
 from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
 from app.workers.rotation import rotate_item_image_job
@@ -79,6 +82,7 @@ class TestWorkerSplit:
         assert set(ImageWorkerSettings.functions) == {
             rotate_item_image_job,
             remove_item_background_job,
+            remove_photo_background_job,
         }
 
     def test_tagging_worker_no_longer_runs_image_jobs(self):
