@@ -23,6 +23,8 @@ export const queryKeys = {
   userProfile: ['user-profile'] as const,
   features: ['features'] as const,
   weather: ['weather'] as const,
+  wishlist: ['wishlist'] as const,
+  wishlistSuggestions: ['wishlist-suggestions'] as const,
   preferences: ['preferences'] as const,
   family: ['family'] as const,
 

@@ -1,0 +1,54 @@
+{
+  "actions": {
+    "bought": "Gekauft",
+    "delete": "Löschen",
+    "notBought": "Nicht gekauft",
+    "open": "Shop",
+    "photo": "Foto ändern"
+  },
+  "error": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+  "form": {
+    "add": "Zur Liste hinzufügen",
+    "added": "{name} zur Liste hinzugefügt",
+    "anyType": "Beliebig",
+    "description": "Füge einen Shop-Link ein, um Foto, Name und Preis zu übernehmen, oder lade ein Foto hoch und schreib Notizen.",
+    "invalid": "Prüfe die Felder: Links müssen mit http:// oder https:// beginnen.",
+    "link": "Shop-Link",
+    "linkPlaceholder": "https://…",
+    "linkRead": "Daten von {site} übernommen",
+    "linkUnreadable": "Diese Seite konnte nicht gelesen werden. Trag die Daten von Hand ein.",
+    "name": "Name",
+    "notes": "Notizen",
+    "notesPlaceholder": "Größe, Farbe, wo es das gibt…",
+    "photo": "Foto",
+    "price": "Preis",
+    "priority": "Priorität",
+    "readLink": "Link lesen",
+    "title": "Etwas hinzufügen",
+    "type": "Art"
+  },
+  "list": {
+    "bought": "{count, plural, one {Gekauft · # Teil} other {Gekauft · # Teile}}",
+    "empty": "Deine Liste ist leer.",
+    "title": "{count, plural, =0 {Zu kaufen} one {Zu kaufen · # Teil} other {Zu kaufen · # Teile}}",
+    "total": "Etwa {total} insgesamt"
+  },
+  "price": {
+    "check": "Preise prüfen",
+    "dropped": "Preis gesunken",
+    "foundDrops": "{count, plural, one {# Preis ist gesunken} other {# Preise sind gesunken}}",
+    "noDrops": "Bisher keine Preissenkungen"
+  },
+  "priority": {
+    "1": "Brauche ich",
+    "2": "Hätte ich gern",
+    "3": "Irgendwann"
+  },
+  "subtitle": "Was du kaufen möchtest, mit einem Foto vom Shop oder deinem eigenen und deinen Notizen.",
+  "suggestions": {
+    "description": "Nach dem, was du hast; tippe darauf, um einen Eintrag anzulegen.",
+    "item": "{role} ({have}/{target})",
+    "title": "Was deinem Kleiderschrank fehlt"
+  },
+  "title": "Einkaufsliste"
+}

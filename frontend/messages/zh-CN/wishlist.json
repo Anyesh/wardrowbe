@@ -1,0 +1,54 @@
+{
+  "actions": {
+    "bought": "已买",
+    "delete": "删除",
+    "notBought": "未买",
+    "open": "商店",
+    "photo": "更换照片"
+  },
+  "error": "出了点问题，请重试。",
+  "form": {
+    "add": "加入清单",
+    "added": "已将 {name} 加入清单",
+    "anyType": "任意类型",
+    "description": "粘贴商店链接即可获取照片、名称和价格，或上传照片并写备注。",
+    "invalid": "请检查字段：链接须以 http:// 或 https:// 开头。",
+    "link": "商店链接",
+    "linkPlaceholder": "https://…",
+    "linkRead": "已从 {site} 读取",
+    "linkUnreadable": "无法读取该页面，请手动填写。",
+    "name": "名称",
+    "notes": "备注",
+    "notesPlaceholder": "尺码、颜色、在哪里买…",
+    "photo": "照片",
+    "price": "价格",
+    "priority": "优先级",
+    "readLink": "读取链接",
+    "title": "添加",
+    "type": "类型"
+  },
+  "list": {
+    "bought": "{count, plural, other {已买 · # 件}}",
+    "empty": "清单是空的。",
+    "title": "{count, plural, =0 {要买的} other {要买的 · # 件}}",
+    "total": "合计约 {total}"
+  },
+  "price": {
+    "check": "检查价格",
+    "dropped": "降价了",
+    "foundDrops": "{count, plural, other {# 件降价了}}",
+    "noDrops": "暂时没有降价"
+  },
+  "priority": {
+    "1": "必需",
+    "2": "想要",
+    "3": "以后"
+  },
+  "subtitle": "想买的东西，配上商店或自己的照片和备注。",
+  "suggestions": {
+    "description": "根据你现有的衣物；点击即可开始添加。",
+    "item": "{role}（{have}/{target}）",
+    "title": "衣橱还缺什么"
+  },
+  "title": "购物清单"
+}

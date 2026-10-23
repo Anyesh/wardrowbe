@@ -1,0 +1,54 @@
+{
+  "actions": {
+    "bought": "Comprato",
+    "delete": "Elimina",
+    "notBought": "Non comprato",
+    "open": "Negozio",
+    "photo": "Cambia foto"
+  },
+  "error": "Qualcosa è andato storto. Riprova.",
+  "form": {
+    "add": "Aggiungi alla lista",
+    "added": "{name} aggiunto alla lista",
+    "anyType": "Qualsiasi tipo",
+    "description": "Incolla il link di un negozio per prendere foto, nome e prezzo, oppure carica una foto e scrivi i tuoi appunti.",
+    "invalid": "Controlla i campi: i link devono iniziare con http:// o https://.",
+    "link": "Link del negozio",
+    "linkPlaceholder": "https://…",
+    "linkRead": "Dati presi da {site}",
+    "linkUnreadable": "Non riesco a leggere quella pagina. Compila i dati a mano.",
+    "name": "Nome",
+    "notes": "Appunti",
+    "notesPlaceholder": "Taglia, colore, dove trovarlo…",
+    "photo": "Foto",
+    "price": "Prezzo",
+    "priority": "Priorità",
+    "readLink": "Leggi link",
+    "title": "Aggiungi qualcosa",
+    "type": "Tipo"
+  },
+  "list": {
+    "bought": "{count, plural, one {Comprati · #} other {Comprati · #}}",
+    "empty": "La lista è vuota.",
+    "title": "{count, plural, =0 {Da comprare} one {Da comprare · # cosa} other {Da comprare · # cose}}",
+    "total": "Circa {total} in tutto"
+  },
+  "price": {
+    "check": "Controlla prezzi",
+    "dropped": "Prezzo sceso",
+    "foundDrops": "{count, plural, one {# prezzo è sceso} other {# prezzi sono scesi}}",
+    "noDrops": "Per ora nessun prezzo è sceso"
+  },
+  "priority": {
+    "1": "Mi serve",
+    "2": "Mi piacerebbe",
+    "3": "Un giorno"
+  },
+  "subtitle": "Le cose che vorresti comprare, con una foto del negozio o tua e i tuoi appunti.",
+  "suggestions": {
+    "description": "In base a quello che hai; toccane uno per iniziare una voce.",
+    "item": "{role} ({have}/{target})",
+    "title": "Cosa manca nel tuo guardaroba"
+  },
+  "title": "Cosa comprare"
+}
