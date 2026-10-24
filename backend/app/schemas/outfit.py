@@ -1,13 +1,16 @@
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import AfterValidator, BaseModel, Field, field_validator
 
 from app.schemas.color import ColorList
 from app.utils.garment_vocabulary import OCCASIONS
 from app.utils.preference_defaults import DEFAULT_OCCASION
+from app.utils.scales import RATING_MAX, RATING_MIN
 
 MAX_AUTHORING_TEXT_LENGTH = 2000
 VALID_OCCASIONS = frozenset(OCCASIONS)
+_RATING_RANGE = f"{RATING_MIN}-{RATING_MAX}"
 
 
 def _normalize_occasion(value: str) -> str:
@@ -68,3 +71,28 @@ class OutfitAttributeFields(BaseModel):
     def collapse_empty_palette(cls, v: list[str] | None) -> list[str] | None:
         # [] collapses to None so "no palette" has a single representation
         return v or None
+
+
+class FeedbackRequest(BaseModel):
+    accepted: bool | None = Field(None, description="Whether outfit was accepted")
+    rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Overall rating {_RATING_RANGE}"
+    )
+    comfort_rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Comfort rating {_RATING_RANGE}"
+    )
+    style_rating: int | None = Field(
+        None, ge=RATING_MIN, le=RATING_MAX, description=f"Style rating {_RATING_RANGE}"
+    )
+    comment: str | None = Field(None, max_length=1000, description="Optional comment")
+    worn: bool | None = Field(None, description="Whether the outfit was worn")
+    worn_with_modifications: bool | None = Field(
+        None, description="If worn, whether modifications were made"
+    )
+    modification_notes: str | None = Field(None, max_length=500)
+    actually_worn: bool | None = Field(
+        None, description="Did user actually wear this recommendation?"
+    )
+    wore_instead_items: list[UUID] | None = Field(
+        None, description="Item IDs user wore instead of recommendation"
+    )

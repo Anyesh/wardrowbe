@@ -14,8 +14,13 @@ from app.models.outfit import (
     OutfitItem,
     OutfitSource,
     OutfitStatus,
+    UserFeedback,
 )
 from app.models.user import User
+from app.schemas.outfit import FeedbackRequest
+from app.services.item_service import ItemService
+from app.services.studio_service import StudioService
+from app.utils.timezone import get_user_today
 
 
 @dataclass
@@ -211,3 +216,58 @@ class OutfitService:
                 detail="User is not in your family",
             )
         return family_member_id
+
+    async def apply_feedback(
+        self, user: User, outfit: Outfit, request: FeedbackRequest
+    ) -> tuple[UserFeedback, Outfit | None]:
+        if outfit.feedback:
+            feedback = outfit.feedback
+        else:
+            feedback = UserFeedback(outfit_id=outfit.id)
+            outfit.feedback = feedback
+            self.db.add(feedback)
+
+        if request.accepted is not None:
+            feedback.accepted = request.accepted
+            outfit.status = OutfitStatus.accepted if request.accepted else OutfitStatus.rejected
+            outfit.responded_at = datetime.utcnow()
+
+        if request.rating is not None:
+            feedback.rating = request.rating
+        if request.comfort_rating is not None:
+            feedback.comfort_rating = request.comfort_rating
+        if request.style_rating is not None:
+            feedback.style_rating = request.style_rating
+        if request.comment is not None:
+            feedback.comment = request.comment
+        if request.worn and not feedback.worn_at:
+            user_today = get_user_today(user)
+            feedback.worn_at = user_today
+            await ItemService(self.db).record_wears(
+                user.id,
+                [outfit_item.item_id for outfit_item in outfit.items],
+                user_today,
+                occasion=outfit.occasion,
+                outfit_id=outfit.id,
+            )
+        if request.worn_with_modifications is not None:
+            feedback.worn_with_modifications = request.worn_with_modifications
+        if request.modification_notes is not None:
+            feedback.modification_notes = request.modification_notes
+        if request.actually_worn is not None:
+            feedback.actually_worn = request.actually_worn
+        replacement: Outfit | None = None
+        if request.wore_instead_items is not None:
+            feedback.wore_instead_items = [str(item_id) for item_id in request.wore_instead_items]
+            if request.wore_instead_items:
+                studio_service = StudioService(self.db)
+                replacement = await studio_service.create_wore_instead(
+                    user=user,
+                    original_outfit_id=outfit.id,
+                    item_ids=list(request.wore_instead_items),
+                    rating=request.rating,
+                    comment=request.comment,
+                    scheduled_for=None,
+                )
+
+        return feedback, replacement
