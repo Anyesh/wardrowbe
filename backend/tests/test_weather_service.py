@@ -227,7 +227,7 @@ class TestGetCurrentWeather:
 
     @pytest.mark.asyncio
     async def test_raises_on_invalid_coordinates(self, weather_service):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid latitude"):
             await weather_service.get_current_weather(100.0, 0.0)
 
     @pytest.mark.asyncio
