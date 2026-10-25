@@ -4,7 +4,7 @@ const SWATCHES = new Map<string, string>(CLOTHING_COLORS.map((c) => [c.value, c.
 
 // Learned colour scores and rows written through the API can hold names outside the vocabulary
 // (salmon, say), so they get a neutral swatch rather than none.
-export const UNKNOWN_COLOR_SWATCH = 'hsl(var(--muted))';
+export const UNKNOWN_COLOR_SWATCH = 'var(--muted)';
 
 // Zero-width space, word joiner and BOM are dropped so that a name made only of them reads as blank
 // rather than as an invisible colour; ZWJ and ZWNJ stay because they shape scripts and emoji.
