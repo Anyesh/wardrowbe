@@ -25,6 +25,9 @@ export interface Item {
   subtype?: string | null;
   name?: string;
   brand?: string;
+  size?: string | null;
+  purchase_store?: string | null;
+  care_instructions?: string | null;
   notes?: string;
   purchase_date?: string;
   purchase_price?: number;
