@@ -270,6 +270,10 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
             was_pending = item.tagging_status == TaggingStatus.pending
 
             for field, value in ai_fields.items():
+                # An item archived while its analysis ran (split into new items, for one)
+                # keeps its archived status; only its tags are filled in.
+                if field == "status" and item.is_archived:
+                    continue
                 # Always update AI metadata fields (including tags JSONB and description)
                 if field in (
                     "ai_processed",

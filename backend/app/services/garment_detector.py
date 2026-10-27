@@ -19,6 +19,8 @@ MAX_GARMENTS = 8
 MIN_BOX_SIDE = 0.05
 # Two boxes overlapping more than this (intersection over union) are the same garment twice.
 DUPLICATE_IOU = 0.7
+# Replies whose largest coordinate is at most this are read as 0-1 fractions, others as percentages.
+FRACTION_LIMIT = 2.0
 
 _VALID_TYPES = frozenset(TYPES)
 
@@ -125,9 +127,10 @@ def parse_detection(response_text: str) -> list[DetectedGarment]:
         )
         parsed.append((garment_type, colors, edges))
 
-    # The prompt asks for percentages, but a model may answer in 0-1 fractions; a box that is
-    # really under 1% of the photo is not a garment, so "everything is at most 1" means fractions.
-    scale = 1.0 if parsed and max(max(e) for _, _, e in parsed) <= 1.0 else 100.0
+    # The prompt asks for percentages, but a model may answer in 0-1 fractions. A fraction box can
+    # overflow an edge a little (right: 1.03), so the switch is at 2, not 1: a percentage box with
+    # every edge at most 2% of the photo would be a speck and is dropped either way.
+    scale = 1.0 if parsed and max(max(e) for _, _, e in parsed) <= FRACTION_LIMIT else 100.0
 
     garments: list[DetectedGarment] = []
     for garment_type, colors, (left, top, right, bottom) in parsed:

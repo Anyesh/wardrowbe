@@ -47,6 +47,12 @@ class TestParseDetection:
 
         assert (shirt.left, shirt.width) == pytest.approx((0.1, 0.5))
 
+    def test_a_fraction_box_that_overflows_an_edge_is_clamped_not_dropped(self):
+        [shirt] = parse_detection(_reply(_g(0.6, 0.1, 1.03, 0.9)))
+
+        assert (shirt.left, shirt.top) == pytest.approx((0.6, 0.1))
+        assert (shirt.width, shirt.height) == pytest.approx((0.4, 0.8))
+
     def test_reads_a_box_given_as_a_list(self):
         reply = json.dumps({"garments": [{"type": "jeans", "box": [10, 10, 50, 90]}]})
 
@@ -100,8 +106,7 @@ class TestParseDetection:
     def test_colours_are_normalised_and_deduplicated(self):
         [g] = parse_detection(_reply(_g(0, 0, 50, 50, colors=("Blue", "blue", 3, "nonsense"))))
 
-        assert g.colors.count("blue") <= 1
-        assert all(isinstance(c, str) for c in g.colors)
+        assert g.colors == ["blue"]
 
     @pytest.mark.parametrize(
         "reply",
@@ -550,3 +555,36 @@ class TestSplitEndpoint:
         response = await client.post(f"/api/v1/items/{uuid4()}/split", json={"boxes": BOXES})
 
         assert response.status_code in (401, 403)
+
+
+class TestArchivedWhileAnalysing:
+    @pytest.mark.asyncio
+    async def test_a_split_source_still_being_tagged_stays_archived(
+        self, db_session: AsyncSession, test_user
+    ):
+        from app.services.ai_service import ClothingTags
+        from app.workers import tagging
+
+        item = await _make_item(db_session, test_user, is_archived=True)
+        item.status = ItemStatus.archived
+        await db_session.commit()
+        item_id = item.id
+
+        class _StubAI:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def analyze_image(self, path, locale="en"):
+                return ClothingTags(type="shirt", primary_color="blue", colors=["blue"])
+
+        with (
+            patch.object(tagging, "AIService", _StubAI),
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+        ):
+            result = await tagging.tag_item_image({}, str(item_id), __file__)
+
+        assert result["status"] == "success"
+        [done] = [i for i in await _all_items(db_session, test_user) if i.id == item_id]
+        assert done.status == ItemStatus.archived
+        assert done.primary_color == "blue"
