@@ -285,6 +285,27 @@ class TestReplaceInTheWorker:
         assert item.tags["primary_color"] == "navy"
 
     @pytest.mark.asyncio
+    async def test_a_chosen_primary_colour_is_listed_even_when_the_list_is_empty(
+        self, db_session, test_user, stub_ai, item_image
+    ):
+        item = await _make_item(
+            db_session,
+            test_user,
+            item_image,
+            primary_color="navy",
+            colors=[],
+            tags={"primary_color": "navy", "user_edited_keys": ["primary_color"]},
+        )
+        stub_ai()
+        _StubAI.returns = _StubAI.returns.model_copy(update={"colors": []})
+
+        await _analyse(db_session, item, item_image, replace=True)
+
+        assert item.primary_color == "navy"
+        assert item.colors == ["navy"]
+        assert item.tags["colors"] == ["navy"]
+
+    @pytest.mark.asyncio
     async def test_columns_and_tags_agree_afterwards(
         self, db_session, test_user, stub_ai, item_image
     ):
