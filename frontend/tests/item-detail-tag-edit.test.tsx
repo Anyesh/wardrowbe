@@ -164,19 +164,70 @@ describe('editing an item with the tag editor', () => {
       }),
     ).toHaveAttribute('aria-pressed', 'false')
 
+    fireEvent.change(screen.getByPlaceholderText(labels.placeholders.itemName), {
+      target: { value: 'My oxford' },
+    })
     const { body } = await save()
     expect(body).not.toHaveProperty('tags')
   })
 
-  it('does not send a type or subtype that did not change as an edit', async () => {
+  it('saves nothing when nothing was changed', async () => {
     renderDialog()
     startEditing()
 
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(screen.queryByText(labels.tagsEditor.title)).not.toBeInTheDocument())
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+
+  it('sends only the fields that were changed', async () => {
+    renderDialog()
+    startEditing()
+    fireEvent.change(screen.getByPlaceholderText(labels.placeholders.itemName), {
+      target: { value: 'My oxford' },
+    })
+
     const { body } = await save()
 
-    expect(body.type).toBe('shirt')
-    expect(body.subtype).toBe('oxford')
-    expect(body).not.toHaveProperty('tags')
+    expect(body).toEqual({ name: 'My oxford' })
+  })
+
+  it('keeps tags and colours the AI added while the form was open', async () => {
+    // The form opens on an item still being analysed; tagging finishes before the person saves
+    // an unrelated change. Nothing the AI just wrote may be sent back as a clear or an edit.
+    const bare = {
+      ...item,
+      type: 'unknown',
+      subtype: null,
+      primary_color: null,
+      colors: [],
+      tags: { colors: [], style: [], season: [] },
+    } as unknown as Item
+    const { rerender } = render(<ItemDetailDialog item={bare} open onOpenChange={() => {}} />, {
+      wrapper: Wrapper,
+    })
+    startEditing()
+    rerender(<ItemDetailDialog item={item} open onOpenChange={() => {}} />)
+    fireEvent.change(screen.getByPlaceholderText(labels.placeholders.itemName), {
+      target: { value: 'My oxford' },
+    })
+
+    const { body } = await save()
+
+    expect(body).toEqual({ name: 'My oxford' })
+  })
+
+  it('keeps the type the AI could not place as the subtype when a type is picked', async () => {
+    renderDialog({ type: 'unknown', subtype: null, ai_unrecognized_type: 'culottes' } as Partial<Item>)
+    startEditing()
+    fireEvent.keyDown(screen.getAllByRole('combobox')[0], { key: 'Enter' })
+    fireEvent.click(screen.getByRole('option', { name: 'Shorts' }))
+
+    const { body } = await save()
+
+    expect(body.type).toBe('shorts')
+    expect(body.subtype).toBe('culottes')
   })
 
   it('drops a subtype that belongs to the old type when the type changes', async () => {

@@ -85,6 +85,7 @@ import {
   draftFromTags,
   primaryColorOf,
   subtypeAfterTypeChange,
+  type ItemEdits,
   type TagDraft,
 } from '@/lib/tag-edits';
 import { useFeatures } from '@/lib/hooks/use-features';
@@ -160,6 +161,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const [tagDraft, setTagDraft] = useState<TagDraft>(() =>
     draftFromTags(item?.tags ?? { colors: [], style: [], season: [] }),
   );
+  // The item as it was when editing began. Saving compares the form with this, not with the
+  // item as it is now: tagging can finish while the form is open, and diffing against the fresh
+  // item would send its new tags back as clears and resend untouched fields as edits.
+  const [editBase, setEditBase] = useState<Item | null>(item);
   const [showWashHistory, setShowWashHistory] = useState(false);
   const [showWearHistory, setShowWearHistory] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -186,6 +191,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     if (item) {
       setEditForm(editFormFromItem(item));
       setTagDraft(draftFromTags(item.tags));
+      setEditBase(item);
       setIsEditing(false);
       setActiveImageIndex(0);
     }
@@ -194,29 +200,36 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   if (!item) return null;
 
   const handleSave = async () => {
-    // Only the tags that differ, and none at all when nothing was touched.
+    const base = editBase ?? item;
+    // Only what the person changed since editing began; an untouched field is not sent at all.
+    const before: EditForm = { ...editFormFromItem(base), subtype: base.subtype || '' };
+    const data: ItemEdits = {};
+    if (editForm.name !== before.name) data.name = editForm.name || undefined;
+    if (editForm.type !== before.type) data.type = editForm.type;
+    const subtype = editForm.subtype.trim();
+    // null (not undefined) so clearing the field actually clears it server-side.
+    if (subtype !== before.subtype) data.subtype = subtype || null;
+    if (editForm.brand !== before.brand) data.brand = editForm.brand || undefined;
+    if (editForm.primary_color !== before.primary_color) {
+      data.primary_color = editForm.primary_color || undefined;
+    }
+    if (editForm.notes !== before.notes) data.notes = editForm.notes || undefined;
+    if (editForm.favorite !== before.favorite) data.favorite = editForm.favorite;
+    if (editForm.wash_interval !== before.wash_interval) data.wash_interval = editForm.wash_interval;
     const tagChanges = diffTags(
-      item.tags,
+      base.tags,
       tagDraft,
       editForm.primary_color || undefined,
-      item.primary_color || primaryColorOf(item.tags),
+      base.primary_color || primaryColorOf(base.tags),
     );
+    if (Object.keys(tagChanges).length > 0) data.tags = tagChanges;
+
+    if (Object.keys(data).length === 0) {
+      setIsEditing(false);
+      return;
+    }
     try {
-      await updateItem.mutateAsync({
-        id: item.id,
-        data: {
-          name: editForm.name || undefined,
-          type: editForm.type,
-          // null (not undefined) so clearing the field actually clears it server-side.
-          subtype: editForm.subtype.trim() || null,
-          brand: editForm.brand || undefined,
-          primary_color: editForm.primary_color || undefined,
-          notes: editForm.notes || undefined,
-          favorite: editForm.favorite,
-          wash_interval: editForm.wash_interval,
-          ...(Object.keys(tagChanges).length > 0 ? { tags: tagChanges } : {}),
-        },
-      });
+      await updateItem.mutateAsync({ id: item.id, data });
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to update item:', error);
@@ -500,6 +513,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     if (!isEditing) {
                       setEditForm(editFormFromItem(item));
                       setTagDraft(draftFromTags(item.tags));
+                      setEditBase(item);
                     }
                     setIsEditing(!isEditing);
                   }}

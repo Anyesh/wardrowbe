@@ -72,7 +72,9 @@ class ItemUpdate(BaseModel):
         # Only the tags actually sent are checked and cleaned (see normalize_tag_edits).
         if tags is not None:
             edited = tags.model_dump(include=tags.model_fields_set)
-            for key, value in normalize_tag_edits(edited).items():
+            # Style and season are checked by ItemService.update, which knows the item's current
+            # values (an old off-list value already on the item may stay).
+            for key, value in normalize_tag_edits(edited, check_lists=False).items():
                 if value != edited[key]:
                     setattr(tags, key, value)
         return tags

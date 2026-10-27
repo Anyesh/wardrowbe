@@ -1,5 +1,6 @@
 """Checks for tags a client sets by hand on an item."""
 
+from collections.abc import Mapping
 from typing import Any
 
 from app.utils.garment_vocabulary import FITS, FORMALITY, PATTERNS, SEASONS, STYLES
@@ -21,11 +22,20 @@ def _clean(value: Any) -> str:
     return str(value).strip().lower()
 
 
-def normalize_tag_edits(edits: dict[str, Any]) -> dict[str, Any]:
+def normalize_tag_edits(
+    edits: dict[str, Any],
+    existing: Mapping[str, Any] | None = None,
+    *,
+    check_lists: bool = True,
+) -> dict[str, Any]:
     """Return the edited tags with each closed-vocabulary value cleaned up.
 
     Only keys present in ``edits`` are looked at, so an item that still holds an
     older off-list value can be saved as long as that value is not being changed.
+    A style or season list may also keep an off-list value the item already has
+    (``existing`` is the item's current tags): a person changing one style must not
+    be blocked by an old one they left switched on. ``check_lists=False`` only cleans
+    the lists, for callers that do not know the item yet.
     A value is stripped and lower-cased so " Striped " is stored as "striped"; a
     null passes through because that is how a tag is cleared. Colours and
     material are not checked here: the colour types already canonicalise colours
@@ -51,9 +61,10 @@ def normalize_tag_edits(edits: dict[str, Any]) -> dict[str, Any]:
         if values is None:
             continue
         kept: list[str] = []
+        already = {_clean(v) for v in ((existing or {}).get(key) or [])}
         for raw in values:
             value = _clean(raw)
-            if value not in allowed:
+            if check_lists and value not in allowed and value not in already:
                 problems.append(f"{key} {raw!r} is not one of: {', '.join(allowed)}")
             elif value not in kept:
                 kept.append(value)

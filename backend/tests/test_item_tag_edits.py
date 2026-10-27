@@ -287,7 +287,11 @@ class TestUserEditedKeys:
 
         await _patch(client, auth_headers, item.id, {"primary_color": "navy"})
 
-        assert (await _reload(db_session, item.id)).tags["user_edited_keys"] == ["primary_color"]
+        # The colour list follows the new primary, so it is recorded as changed too.
+        assert (await _reload(db_session, item.id)).tags["user_edited_keys"] == [
+            "primary_color",
+            "colors",
+        ]
 
     @pytest.mark.asyncio
     async def test_changing_type_or_subtype_is_recorded(
@@ -350,3 +354,108 @@ class TestUserEditedKeys:
 
         await _patch(client, auth_headers, item.id, {"tags": {"user_edited_keys": []}})
         assert (await _reload(db_session, item.id)).tags["user_edited_keys"] == ["fit"]
+
+
+class TestColoursStayInStep:
+    """A colour change sent outside `tags` reaches the tags JSON and the colour list (#294)."""
+
+    @pytest.mark.asyncio
+    async def test_a_new_primary_replaces_the_old_one_at_the_front_of_the_list(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(
+            db_session,
+            test_user,
+            primary_color="white",
+            colors=["white", "black"],
+            tags={"primary_color": "white", "colors": ["white", "black"]},
+        )
+
+        response = await _patch(client, auth_headers, item.id, {"primary_color": "navy"})
+
+        assert response.status_code == 200
+        done = await _reload(db_session, item.id)
+        assert done.primary_color == "navy"
+        assert done.colors == ["navy", "black"]
+        assert done.tags["primary_color"] == "navy"
+        assert done.tags["colors"] == ["navy", "black"]
+
+    @pytest.mark.asyncio
+    async def test_a_colour_list_sent_at_the_top_level_reaches_the_tags(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(db_session, test_user, colors=["white"], tags={"colors": ["white"]})
+
+        await _patch(client, auth_headers, item.id, {"colors": ["white", "red"]})
+
+        done = await _reload(db_session, item.id)
+        assert done.colors == ["white", "red"]
+        assert done.tags["colors"] == ["white", "red"]
+
+    @pytest.mark.asyncio
+    async def test_resending_the_same_primary_changes_nothing(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(
+            db_session,
+            test_user,
+            primary_color="white",
+            colors=["white", "black"],
+            tags={"primary_color": "white", "colors": ["white", "black"]},
+        )
+
+        await _patch(client, auth_headers, item.id, {"primary_color": "white"})
+
+        done = await _reload(db_session, item.id)
+        assert done.colors == ["white", "black"]
+        assert "user_edited_keys" not in done.tags
+
+    @pytest.mark.asyncio
+    async def test_an_explicit_list_with_the_new_primary_is_kept_as_sent(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(
+            db_session, test_user, primary_color="white", colors=["white", "black"]
+        )
+
+        await _patch(
+            client,
+            auth_headers,
+            item.id,
+            {"primary_color": "navy", "tags": {"colors": ["navy", "white"]}},
+        )
+
+        done = await _reload(db_session, item.id)
+        assert done.colors == ["navy", "white"]
+        assert done.tags["colors"] == ["navy", "white"]
+
+
+class TestOffListStyleAlreadyOnTheItem:
+    @pytest.mark.asyncio
+    async def test_an_old_off_list_style_left_switched_on_does_not_block_a_save(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(db_session, test_user, tags={"style": ["grunge", "casual"]})
+
+        response = await _patch(
+            client, auth_headers, item.id, {"tags": {"style": ["grunge", "sporty"]}}
+        )
+
+        assert response.status_code == 200
+        assert (await _reload(db_session, item.id)).tags["style"] == ["grunge", "sporty"]
+
+    @pytest.mark.asyncio
+    async def test_a_new_off_list_style_is_still_rejected(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(db_session, test_user, tags={"style": ["casual"]})
+
+        response = await _patch(client, auth_headers, item.id, {"tags": {"style": ["goth"]}})
+
+        assert response.status_code == 422
+        assert "goth" in response.text
+        assert (await _reload(db_session, item.id)).tags["style"] == ["casual"]
+
+    def test_the_check_accepts_values_the_item_already_has(self):
+        cleaned = normalize_tag_edits({"season": ["Monsoon", "summer"]}, {"season": ["monsoon"]})
+        assert cleaned == {"season": ["monsoon", "summer"]}

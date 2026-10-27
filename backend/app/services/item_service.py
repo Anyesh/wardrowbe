@@ -21,9 +21,42 @@ from app.schemas.item import (
     ItemFilter,
     ItemUpdate,
 )
+from app.utils.tag_validation import normalize_tag_edits
 
 # Values the AI fills in that can also be changed on the item itself rather than inside tags.
 _EDITABLE_ITEM_FIELDS = ("type", "subtype", "primary_color", "colors")
+
+
+class TagVocabularyError(ValueError):
+    """A tag value outside its vocabulary that the item did not already have."""
+
+
+def _keep_colours_in_step(update_data: dict, incoming: dict, current: dict) -> None:
+    """Make a colour change sent only at the top level reach the tags JSON and the colour list.
+
+    The item keeps its colours twice (the primary_color and colors columns, and the same keys in
+    the tags JSON), and suggestions read `colors`. A client that sends only a new primary colour
+    would otherwise leave the list, and the JSON, describing the old one.
+    """
+    if "colors" in update_data and "colors" not in incoming:
+        incoming["colors"] = update_data["colors"]
+    if "primary_color" in update_data and "primary_color" not in incoming:
+        incoming["primary_color"] = update_data["primary_color"]
+
+    new_primary = update_data.get("primary_color")
+    old_primary = current["primary_color"]
+    if (
+        new_primary
+        and new_primary != old_primary
+        and "colors" not in update_data
+        and "colors" not in incoming
+    ):
+        # The new primary goes first and replaces the old one; the other colours stay.
+        rest = [c for c in (current["colors"] or []) if c not in (old_primary, new_primary)]
+        update_data["colors"] = [new_primary, *rest]
+        incoming["colors"] = update_data["colors"]
+    elif "colors" in incoming and "colors" not in update_data:
+        update_data["colors"] = incoming["colors"]
 
 
 class ItemService:
@@ -258,25 +291,55 @@ class ItemService:
         # Maintained below; a client cannot set or clear it.
         incoming.pop("user_edited_keys", None)
 
-        # What the AI produced and the person changed, so "re-analyse and replace" can keep it.
-        # Only real changes count: the edit form resends type and subtype on every save.
-        edited = [
-            field
-            for field in _EDITABLE_ITEM_FIELDS
-            if field in update_data and update_data[field] != getattr(item, field)
-        ]
+        if incoming or any(field in update_data for field in _EDITABLE_ITEM_FIELDS):
+            # Re-read under a row lock and compare against that, not against `item`, which was
+            # loaded before the lock: a re-analysis committing in between would otherwise be
+            # overwritten without the person's change being recorded. Selecting columns still
+            # locks the row until the caller commits.
+            locked = (
+                await self.db.execute(
+                    select(
+                        ClothingItem.tags,
+                        ClothingItem.type,
+                        ClothingItem.subtype,
+                        ClothingItem.primary_color,
+                        ClothingItem.colors,
+                    )
+                    .where(ClothingItem.id == item.id)
+                    .with_for_update()
+                )
+            ).one()
+            existing = dict(locked.tags or {})
+            current = {
+                "type": locked.type,
+                "subtype": locked.subtype,
+                "primary_color": locked.primary_color,
+                "colors": locked.colors,
+            }
 
-        if incoming or edited:
+            _keep_colours_in_step(update_data, incoming, current)
+            # Style and season may keep an off-list value the item already has.
+            try:
+                incoming.update(
+                    normalize_tag_edits(
+                        {k: incoming[k] for k in ("style", "season") if k in incoming},
+                        existing,
+                    )
+                )
+            except ValueError as e:
+                raise TagVocabularyError(str(e)) from e
+
+            # What the AI produced and the person changed, so "re-analyse and replace" can keep
+            # it. Only real changes count: a client may resend fields it did not change.
+            edited = [
+                field
+                for field in _EDITABLE_ITEM_FIELDS
+                if field in update_data and update_data[field] != current[field]
+            ]
+
             # Merge rather than replace: the tags JSONB also holds user-owned
             # keys (size, care_instructions, source_url) that a partial update
             # does not mention. An explicit null clears that one key.
-            # Re-read under a row lock: two concurrent writers must not each merge
-            # into a stale snapshot and then overwrite the other. Selecting one
-            # column still locks the row until the caller commits.
-            locked = await self.db.execute(
-                select(ClothingItem.tags).where(ClothingItem.id == item.id).with_for_update()
-            )
-            existing = dict(locked.scalar_one_or_none() or {})
             merged = dict(existing)
             for key, val in incoming.items():
                 if val is None:
@@ -292,7 +355,8 @@ class ItemService:
                 merged["user_edited_keys"] = list(
                     dict.fromkeys([*existing.get("user_edited_keys", []), *edited])
                 )
-            update_data["tags"] = merged
+            if incoming or edited:
+                update_data["tags"] = merged
 
         for field, value in update_data.items():
             setattr(item, field, value)
