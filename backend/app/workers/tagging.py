@@ -340,16 +340,15 @@ async def tag_item_image(
                     setattr(item, field, value)
 
             # A colour the person chose as primary must stay in the list when the AI replaced
-            # the rest of it.
+            # the rest of it, including when the list ends up empty.
             if (
                 replace
                 and "primary_color" in kept
                 and "colors" not in kept
                 and item.primary_color
-                and item.colors
-                and item.primary_color not in item.colors
+                and item.primary_color not in (item.colors or [])
             ):
-                item.colors = [item.primary_color, *item.colors]
+                item.colors = [item.primary_color, *(item.colors or [])]
 
             # The guards above may have kept a user's column value while the
             # AI's went into tags; mirror the columns back so the JSONB and the
