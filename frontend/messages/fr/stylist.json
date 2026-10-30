@@ -1,0 +1,16 @@
+{
+  "aiError": "L'IA n'a pas pu répondre. Réessaie dans un instant.",
+  "aiOff": "L'IA est désactivée sur ce serveur.",
+  "clear": "Nouvelle discussion",
+  "examples": {
+    "event": "Que porter à un mariage en juin ?",
+    "match": "Qu'est-ce qui va avec mon jean ?",
+    "today": "Qu'est-ce que je mets aujourd'hui ?"
+  },
+  "intro": "Demande ce que tu veux sur quoi porter : le styliste connaît ta garde-robe et montre les pièces qu'il propose.",
+  "placeholder": "Écris une question…",
+  "send": "Envoyer",
+  "subtitle": "Demande conseil à l'IA sur tes propres vêtements.",
+  "thinking": "Le styliste réfléchit… cela peut prendre jusqu'à une minute.",
+  "title": "Styliste"
+}
