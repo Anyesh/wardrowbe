@@ -595,7 +595,7 @@ class TestEmptyCompletion:
     @pytest.mark.parametrize(
         ("tags_content", "description", "expected"),
         [
-            ('{"type": "poncho"}', 500, {"unrecognized_type": "poncho"}),
+            ('{"type": "kimono"}', 500, {"unrecognized_type": "kimono"}),
             ('{"subtype": "maxi"}', 500, {"subtype": "maxi"}),
             ("", "A navy jumpsuit", {"description": "A navy jumpsuit"}),
         ],
