@@ -18,7 +18,8 @@ SUBTYPE (optional): A more specific name within the type. Examples:
 - socks → ankle, crew, knee-high, no-show, dress, athletic
 - tights → sheer, opaque, patterned, thermal
 - tie → necktie, bow-tie, bolo
-Treat pantyhose and sheer stockings that reach the thigh or waist as tights. Otherwise, legwear that reaches the waist and covers the feet is tights, even when it is thick, ribbed or knitted; waist-high legwear that stops at the ankle is pants (leggings); and legwear that stops below the waist, including knee-high and over-the-knee socks, is socks. Use null if the type is specific enough (e.g. jeans, hoodie, blazer).
+Treat pantyhose and sheer stockings that reach the thigh or waist as tights. Otherwise, legwear that reaches the waist and covers the feet is tights, even when it is thick, ribbed or knitted; waist-high legwear that stops at the ankle is leggings; and legwear that stops below the waist, including knee-high and over-the-knee socks, is socks. Use null if the type is specific enough (e.g. jeans, hoodie, blazer).
+Heeled shoes are heels; ballet flats and flat pumps are flats, while loafers, oxfords and mules stay shoes, and boots and sandals stay boots and sandals whatever their heel height. A jersey or fleece pullover without a hood is a sweatshirt, while a knit pullover stays sweater and a hooded one is hoodie. A bib with shoulder straps worn over a top is overalls, while a one-piece with a full bodice is a jumpsuit. A sleeveless top on thin straps is a camisole, and a top that fastens under the crotch is a bodysuit.
 
 PRIMARY_COLOR (required, pick one):
 <<COLORS>>
