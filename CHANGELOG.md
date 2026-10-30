@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.12.0...wardrowbe-v1.13.0) (2026-10-30)
+
+
+### ✨ Features
+
+* edit an item's AI tags and secondary and tertiary colours ([700cd68](https://github.com/Anyesh/wardrowbe/commit/700cd6814e9d5d3dca5aabb25d191ed8e74d1ef1))
+* edit an item's AI tags and secondary and tertiary colours ([#300](https://github.com/Anyesh/wardrowbe/issues/300)) ([668002e](https://github.com/Anyesh/wardrowbe/commit/668002e1226c18d48b1b30380f62ca755ccc5e85))
+
+
+### 🐛 Bug Fixes
+
+* bulk select all filters ([#309](https://github.com/Anyesh/wardrowbe/issues/309)) ([5d262fd](https://github.com/Anyesh/wardrowbe/commit/5d262fde79fff47d152c95d81f5a20768bfceb38))
+* **bulk:** apply the view's filters to select-all and refuse unknown keys ([64c4aa0](https://github.com/Anyesh/wardrowbe/commit/64c4aa0092e74a7a25ffd845184d593266304700))
+* **family:** read a missing family as none instead of toasting the 404 ([539bd42](https://github.com/Anyesh/wardrowbe/commit/539bd42d2d7e1baf3c9b9c05f63e15d6c2adf3dc))
+* **family:** read a missing family as none instead of toasting the 404 ([#307](https://github.com/Anyesh/wardrowbe/issues/307)) ([5f7b573](https://github.com/Anyesh/wardrowbe/commit/5f7b573a4f68c518ee285e7b066b61b0e68b9ede))
+* ignore style and season order when diffing tag edits ([c2bd073](https://github.com/Anyesh/wardrowbe/commit/c2bd073edefff50a61ac453bbd197364ab09958d))
+* keep edits honest when tagging finishes mid-edit, and keep colours in step ([494c9ea](https://github.com/Anyesh/wardrowbe/commit/494c9ea095c9a90fd4d7c771674ead4fbdfaf2d4))
+* keep the colour list in step with a primary colour sent inside tags ([86c6b32](https://github.com/Anyesh/wardrowbe/commit/86c6b32879db3aeb14e449579299f8b0bfa5a8a0))
+* never refill a tag the person edited or cleared when re-analysing ([75ce556](https://github.com/Anyesh/wardrowbe/commit/75ce55674d1308882a532caa8c65aca75ba1dd55))
+* **outfits:** filter worn outfits by wear date instead of accepted status ([46bc7a7](https://github.com/Anyesh/wardrowbe/commit/46bc7a7794d777974d95403645f52ae106b33ffb))
+* **outfits:** filter worn outfits by wear date instead of accepted status ([#308](https://github.com/Anyesh/wardrowbe/issues/308)) ([1d6d859](https://github.com/Anyesh/wardrowbe/commit/1d6d8593decebfe397d36ae74c8e2c8e79cb9d2e))
+* **outfits:** follow the cursor when select-all delete passes the bulk cap ([1bcd78a](https://github.com/Anyesh/wardrowbe/commit/1bcd78ac7c932daa5e2b261693178e43e5b3c735))
+* **outfits:** link items with the wardrobe's item query parameter ([0bbca3a](https://github.com/Anyesh/wardrowbe/commit/0bbca3a4d92b9d3cec64a5a09ffdacce41f04d04))
+* **outfits:** link items with the wardrobe's item query parameter ([5cd2519](https://github.com/Anyesh/wardrowbe/commit/5cd2519b1ae4bd0bf6178c68ba4cbe362443ebb6))
+* **outfits:** read item numbers the model echoes as [n] labels ([ea476ef](https://github.com/Anyesh/wardrowbe/commit/ea476efa80455507c916f3f4b52bd739c8cf8df1))
+* **outfits:** read item numbers the model echoes as [n] labels ([e1188fe](https://github.com/Anyesh/wardrowbe/commit/e1188fee6111673b495f4f5da4c46525ed8a6f29))
+* pin redis below 6 because arq cannot install with it ([79fce2c](https://github.com/Anyesh/wardrowbe/commit/79fce2c1eb55f9be97b19fbccadf070461ddbcbe))
+* send colours only when the extra colours change, so a rename cannot drop one ([8bae496](https://github.com/Anyesh/wardrowbe/commit/8bae49600bb2e9d7882814923f4dbbf711ea7304))
+* show a translated toast when saving an item fails ([938e185](https://github.com/Anyesh/wardrowbe/commit/938e185fbb003b3196055e17a665d50974ca636e))
+* validate tag edits in one place and answer bad values with INVALID_TAG_VALUE ([d83d8da](https://github.com/Anyesh/wardrowbe/commit/d83d8dae185e2321931bf71855009bed0eb5de1f))
+
+
+### 📝 Documentation
+
+* link the android app on google play ([bbe090e](https://github.com/Anyesh/wardrowbe/commit/bbe090ee64d413f330851f4667fe867fa2ea49ff))
+
+
+### 🔧 Maintenance
+
+* **deps:** bump codecov, docker login and metadata actions, and TanStack Query ([0865c88](https://github.com/Anyesh/wardrowbe/commit/0865c887402c5f540f2a6bc5a2e24662dab572b6))
+
+
+### 🧪 Tests
+
+* cover the subtype type check, the tags-primary fallback and a signed-out save ([1062e57](https://github.com/Anyesh/wardrowbe/commit/1062e57b8933627ec3f59d63d3a65480e4940137))
+* fix a type error in the tag-edit tests ([c5f5457](https://github.com/Anyesh/wardrowbe/commit/c5f5457652050118f1240842649525213517ec8f))
+
+
+### 👷 CI/CD
+
+* keep moving image tags in place when their check cannot finish ([0d3c940](https://github.com/Anyesh/wardrowbe/commit/0d3c940ccf4f4614dbe511b09ead8d030e41e69a))
+* let actionlint 1.7.12 accept concurrency queue in docker-publish ([10536e5](https://github.com/Anyesh/wardrowbe/commit/10536e5abfe738eaf89095a41f560b9eb315f465))
+* never move latest or minor image tags back to an older build ([f5fd755](https://github.com/Anyesh/wardrowbe/commit/f5fd755143eb4cc9f69b2569f6fd51b485a9164b))
+* pin the sparse checkout in the publish job and drop its stored credentials ([648c19c](https://github.com/Anyesh/wardrowbe/commit/648c19ca8b2159e5b8869a911dc2d72fb06f11cd))
+* publish version-first image tags (1.10.0-backend) for Renovate ([9194423](https://github.com/Anyesh/wardrowbe/commit/91944235cd837705cb13fe5b94cf1eb468314b75))
+* tag each service's commit image as &lt;service&gt;-sha-&lt;commit&gt; ([8fa8ed2](https://github.com/Anyesh/wardrowbe/commit/8fa8ed2d79300e5f0ca8a87f65f310dcab6e2999))
+
 ## [1.12.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.11.0...wardrowbe-v1.12.0) (2026-10-22)
 
 
