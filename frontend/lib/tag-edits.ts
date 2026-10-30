@@ -1,3 +1,4 @@
+import { CLOTHING_TYPE_VALUES } from '@/lib/generated/garment-vocabulary';
 import { CLOTHING_SUBTYPES, type Item, type ItemTags } from '@/lib/types';
 
 // The tags a person can set by hand. In a change set, null clears a tag and a key that is
@@ -116,13 +117,17 @@ export function applyItemEdits(item: Item, edits: ItemEdits): Item {
   return next;
 }
 
+const TYPE_VALUES: ReadonlySet<string> = new Set(CLOTHING_TYPE_VALUES);
+
 // Changing an item's type leaves behind a subtype that only made sense for the old one
 // ("button-down" on a T-shirt turned into a blouse). Drop it when it belongs to some other type's
-// list and not to the new type's; free text the app has no list for is kept.
+// list, or names a type ("heels" on old shoes), and not to the new type's; free text the app has
+// no list for is kept.
 export function subtypeAfterTypeChange(newType: string, subtype: string): string {
   const key = subtype.trim().toLowerCase().replace(/\s+/g, '-');
   if (!key) return subtype;
   if ((CLOTHING_SUBTYPES[newType] ?? []).includes(key)) return subtype;
+  if (TYPE_VALUES.has(key)) return '';
   const belongsToAnotherType = Object.entries(CLOTHING_SUBTYPES).some(
     ([type, list]) => type !== newType && list.includes(key),
   );
