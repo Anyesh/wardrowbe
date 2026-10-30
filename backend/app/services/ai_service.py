@@ -13,7 +13,7 @@ from PIL import Image, ImageOps
 from pydantic import BaseModel
 
 from app.config import get_settings
-from app.services.garment_detector import DetectedGarment, parse_detection
+from app.services.garment_detector import DETECTION_EXAMPLE, DetectedGarment, parse_detection
 from app.utils.garment_vocabulary import (
     COLORS,
     FITS,
@@ -82,7 +82,9 @@ class ClothingTags(BaseModel):
 
 TAGGING_PROMPT = render_tagging_prompt(load_prompt("clothing_analysis"))
 DESCRIPTION_PROMPT = load_prompt("clothing_description")
-DETECTION_PROMPT = render_tagging_prompt(load_prompt("garment_detection"))
+DETECTION_PROMPT = render_tagging_prompt(load_prompt("garment_detection")).replace(
+    "<<EXAMPLE>>", json.dumps(DETECTION_EXAMPLE)
+)
 DESCRIPTION_LANGUAGES = {
     "en": "English",
     "zh-CN": "Simplified Chinese",

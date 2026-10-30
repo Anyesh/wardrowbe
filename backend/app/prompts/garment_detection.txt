@@ -3,7 +3,7 @@ OUTPUT ONLY JSON. NO TEXT. NO EXPLANATIONS.
 Find every separate piece of clothing, footwear or accessory in this image and give each one a tight bounding box.
 
 Return a JSON object like this:
-{"garments": [{"type": "shirt", "colors": ["blue"], "box": {"left": 5, "top": 8, "right": 48, "bottom": 60}}]}
+<<EXAMPLE>>
 
 Rules:
 - One entry per separate garment. Two shirts side by side are two entries. A pair of shoes, or a pair of socks, is ONE entry.

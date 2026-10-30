@@ -19,10 +19,24 @@ MAX_GARMENTS = 8
 MIN_BOX_SIDE = 0.05
 # Two boxes overlapping more than this (intersection over union) are the same garment twice.
 DUPLICATE_IOU = 0.7
-# Replies whose largest coordinate is at most this are read as 0-1 fractions, others as percentages.
+# Per axis, coordinates up to FRACTION_LIMIT read as 0-1 fractions, up to PERCENT_LIMIT as
+# percentages and anything larger as 0-1000.
 FRACTION_LIMIT = 2.0
+PERCENT_LIMIT = 150.0
+BOX_2D_SCALE = 1000.0
 
 _VALID_TYPES = frozenset(TYPES)
+_JSON_OPENER = re.compile(r"[\[{]")
+
+DETECTION_EXAMPLE = {
+    "garments": [
+        {
+            "type": "shirt",
+            "colors": ["blue"],
+            "box": {"left": 5, "top": 8, "right": 48, "bottom": 60},
+        }
+    ]
+}
 
 
 @dataclass(frozen=True)
@@ -37,28 +51,44 @@ class DetectedGarment:
     height: float = 0.0
 
 
-def _extract_json(text: str) -> object | None:
+def _json_values(text: str) -> list[object]:
     try:
-        return json.loads(text.strip())
+        return [json.loads(text.strip())]
     except json.JSONDecodeError:
         pass
 
-    fenced = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
-    if fenced:
+    decoder = json.JSONDecoder()
+    values: list[object] = []
+    position = 0
+    while match := _JSON_OPENER.search(text, position):
         try:
-            return json.loads(fenced.group(1))
+            value, position = decoder.raw_decode(text, match.start())
         except json.JSONDecodeError:
-            pass
+            position = match.start() + 1
+            continue
+        values.append(value)
+    return values
 
-    for opener, closer in (("{", "}"), ("[", "]")):
-        start = text.find(opener)
-        end = text.rfind(closer)
-        if start != -1 and end > start:
-            try:
-                return json.loads(text[start : end + 1])
-            except json.JSONDecodeError:
-                continue
+
+def _garment_entries(value: object) -> list | None:
+    if isinstance(value, dict) and isinstance(value.get("garments"), list):
+        return value["garments"]
+    if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
+        return value
     return None
+
+
+def _extract_entries(text: str) -> list | None:
+    """The last non-empty answer in the reply, else an empty one; echoed examples never count."""
+    answers = [
+        entries
+        for value in _json_values(text)
+        if value != DETECTION_EXAMPLE and (entries := _garment_entries(value)) is not None
+    ]
+    non_empty = [entries for entries in answers if entries]
+    if non_empty:
+        return non_empty[-1]
+    return answers[-1] if answers else None
 
 
 def _number(value: object) -> float | None:
@@ -71,17 +101,37 @@ def _number(value: object) -> float | None:
     return number if number == number and abs(number) != float("inf") else None
 
 
-def _box_edges(raw: object) -> tuple[float, float, float, float] | None:
-    """(left, top, right, bottom) from either a {left, top, right, bottom} object or a list."""
-    if isinstance(raw, dict):
-        values = [_number(raw.get(k)) for k in ("left", "top", "right", "bottom")]
-    elif isinstance(raw, list) and len(raw) == 4:
-        values = [_number(v) for v in raw]
-    else:
-        return None
+def _edges(values: list[float | None]) -> tuple[float, float, float, float] | None:
     if any(v is None for v in values):
         return None
     return values[0], values[1], values[2], values[3]  # type: ignore[return-value]
+
+
+def _box_edges(raw: object) -> tuple[float, float, float, float] | None:
+    """(left, top, right, bottom) from either a {left, top, right, bottom} object or a list."""
+    if isinstance(raw, dict):
+        return _edges([_number(raw.get(k)) for k in ("left", "top", "right", "bottom")])
+    if isinstance(raw, list) and len(raw) == 4:
+        return _edges([_number(v) for v in raw])
+    return None
+
+
+def _box_2d_fractions(raw: object) -> tuple[float, float, float, float] | None:
+    """Fraction edges from a Gemma/Gemini `box_2d`: [ymin, xmin, ymax, xmax] on a 0-1000 scale."""
+    if not isinstance(raw, list) or len(raw) != 4:
+        return None
+    edges = _edges([_number(v) for v in raw])
+    if edges is None:
+        return None
+    ymin, xmin, ymax, xmax = (v / BOX_2D_SCALE for v in edges)
+    return xmin, ymin, xmax, ymax
+
+
+def _axis_scale(values: list[float]) -> float:
+    largest = max(values, default=0.0)
+    if largest <= FRACTION_LIMIT:
+        return 1.0
+    return 100.0 if largest <= PERCENT_LIMIT else 1000.0
 
 
 def _iou(a: DetectedGarment, b: DetectedGarment) -> float:
@@ -95,18 +145,21 @@ def _iou(a: DetectedGarment, b: DetectedGarment) -> float:
 
 def parse_detection(response_text: str) -> list[DetectedGarment]:
     """Turn the model's reply into clean garments; an unusable reply gives an empty list."""
-    data = _extract_json(response_text)
-    entries = data.get("garments") if isinstance(data, dict) else data
-    if not isinstance(entries, list):
+    entries = _extract_entries(response_text)
+    if entries is None:
         if response_text.strip():
             logger.warning(f"Could not read garments from AI response: {response_text[:200]}")
         return []
 
-    parsed: list[tuple[str, list[str], tuple[float, float, float, float]]] = []
+    parsed: list[tuple[str, list[str], tuple[float, float, float, float], bool]] = []
     for entry in entries:
         if not isinstance(entry, dict):
             continue
         edges = _box_edges(entry.get("box"))
+        is_fraction = False
+        if edges is None:
+            edges = _box_2d_fractions(entry.get("box_2d"))
+            is_fraction = True
         if edges is None:
             continue
         raw_type = entry.get("type")
@@ -125,17 +178,19 @@ def parse_detection(response_text: str) -> list[DetectedGarment]:
             if isinstance(raw_colors, list)
             else []
         )
-        parsed.append((garment_type, colors, edges))
+        parsed.append((garment_type, colors, edges, is_fraction))
 
-    # The prompt asks for percentages, but a model may answer in 0-1 fractions. A fraction box can
-    # overflow an edge a little (right: 1.03), so the switch is at 2, not 1: a percentage box with
-    # every edge at most 2% of the photo would be a speck and is dropped either way.
-    scale = 1.0 if parsed and max(max(e) for _, _, e in parsed) <= FRACTION_LIMIT else 100.0
+    # Each axis gets its own scale, since a model has answered 0-1000 x with percentage y in one
+    # box. A fraction box can overflow an edge a little (right: 1.03), hence a fraction limit of 2.
+    scaled = [edges for _, _, edges, is_fraction in parsed if not is_fraction]
+    x_scale = _axis_scale([v for left, _, right, _ in scaled for v in (left, right)])
+    y_scale = _axis_scale([v for _, top, _, bottom in scaled for v in (top, bottom)])
 
     garments: list[DetectedGarment] = []
-    for garment_type, colors, (left, top, right, bottom) in parsed:
-        left, right = sorted((left / scale, right / scale))
-        top, bottom = sorted((top / scale, bottom / scale))
+    for garment_type, colors, (left, top, right, bottom), is_fraction in parsed:
+        x, y = (1.0, 1.0) if is_fraction else (x_scale, y_scale)
+        left, right = sorted((left / x, right / x))
+        top, bottom = sorted((top / y, bottom / y))
         left, right = max(left, 0.0), min(right, 1.0)
         top, bottom = max(top, 0.0), min(bottom, 1.0)
         width, height = right - left, bottom - top

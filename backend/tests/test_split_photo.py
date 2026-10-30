@@ -18,8 +18,9 @@ from app.main import app
 from app.models.item import ClothingItem, ItemStatus
 from app.models.preference import UserPreference
 from app.models.user import User
-from app.services.ai_service import AIService
+from app.services.ai_service import DETECTION_PROMPT, AIService
 from app.services.garment_detector import (
+    DETECTION_EXAMPLE,
     MAX_GARMENTS,
     DetectedGarment,
     parse_detection,
@@ -37,6 +38,13 @@ def _g(left, top, right, bottom, type_="shirt", colors=("blue",)) -> dict:
         "colors": list(colors),
         "box": {"left": left, "top": top, "right": right, "bottom": bottom},
     }
+
+
+ANSWER = _reply(_g(10, 20, 40, 80), _g(55, 20, 90, 80))
+ANSWER_BOXES = [(0.1, 0.2, 0.4, 0.8), (0.55, 0.2, 0.9, 0.8)]
+HALF = (0.0, 0.0, 0.5, 0.5)
+EMPTY = '{"garments": []}'
+EXAMPLE = json.dumps(DETECTION_EXAMPLE)
 
 
 class TestParseDetection:
@@ -67,12 +75,62 @@ class TestParseDetection:
         assert jeans.type == "jeans"
         assert jeans.width == pytest.approx(0.4)
 
-    def test_accepts_a_bare_list_and_fenced_json(self):
-        bare = json.dumps([_g(0, 0, 50, 50)])
-        fenced = "Here you go:\n```json\n" + _reply(_g(0, 0, 50, 50)) + "\n```"
+    @pytest.mark.parametrize(
+        ("reply", "expected"),
+        [
+            (json.dumps([_g(0, 0, 50, 50)]), [HALF]),
+            ("Here you go:\n```json\n" + _reply(_g(0, 0, 50, 50)) + "\n```", [HALF]),
+            ("Box format [l,t,r,b]; {shirt} found. " + ANSWER, ANSWER_BOXES),
+            (f"With no clothing I would return {EMPTY}. Answer: {ANSWER}", ANSWER_BOXES),
+            (f"```json\n{EMPTY}\n```\n```json\n{ANSWER}\n```", ANSWER_BOXES),
+            (f"The example was {EXAMPLE}. Mine: {ANSWER}", ANSWER_BOXES),
+            (f"Like {EXAMPLE} but as a list: {json.dumps([_g(0, 0, 50, 50)])}", [HALF]),
+            (_reply(_g(100, 200, 600, 800)), [(0.1, 0.2, 0.6, 0.8)]),
+            (
+                json.dumps({"garments": [{"type": "shirt", "box_2d": [200, 100, 800, 600]}]}),
+                [(0.1, 0.2, 0.6, 0.8)],
+            ),
+            (
+                _reply(_g(41, 39, 330, 95), _g(340, 41, 670, 94), _g(681, 42, 972, 95)),
+                [(0.041, 0.39, 0.33, 0.95), (0.34, 0.41, 0.67, 0.94), (0.681, 0.42, 0.972, 0.95)],
+            ),
+            (
+                "```json\n"
+                + _reply(_g(5, 30, 30, 90), _g(35, 40, 65, 88), _g(70, 45, 95, 88))
+                + "\n```",
+                [(0.05, 0.3, 0.3, 0.9), (0.35, 0.4, 0.65, 0.88), (0.7, 0.45, 0.95, 0.88)],
+            ),
+            (f"[]\n{ANSWER}", ANSWER_BOXES),
+            (f"Example {EXAMPLE}. Answer: {EMPTY}", []),
+            (f"```json\n{ANSWER}\n```\nIf none I would return {EMPTY}", ANSWER_BOXES),
+        ],
+        ids=[
+            "bare-list",
+            "fenced",
+            "brackets-and-braces-in-reasoning",
+            "empty-example-echoed-in-prose",
+            "empty-example-echoed-fenced",
+            "shirt-example-echoed",
+            "shirt-example-then-bare-list",
+            "per-mille",
+            "box-2d",
+            "per-mille-x-percent-y",
+            "fenced-percent-three-garments",
+            "empty-list-before-answer",
+            "shirt-example-then-real-empty-answer",
+            "fenced-answer-then-empty-in-prose",
+        ],
+    )
+    def test_reads_the_answer_out_of_the_reply(self, reply, expected):
+        edges = [
+            (g.left, g.top, g.left + g.width, g.top + g.height) for g in parse_detection(reply)
+        ]
 
-        assert len(parse_detection(bare)) == 1
-        assert len(parse_detection(fenced)) == 1
+        assert edges == [pytest.approx(e) for e in expected]
+
+    def test_the_prompt_shows_the_example_the_parser_ignores(self):
+        assert json.dumps(DETECTION_EXAMPLE) in DETECTION_PROMPT
+        assert "<<" not in DETECTION_PROMPT
 
     def test_clamps_boxes_into_the_photo(self):
         [shirt] = parse_detection(_reply(_g(-10, -5, 130, 120)))
