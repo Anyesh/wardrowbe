@@ -1,14 +1,16 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SplitPhotoDialog } from '@/components/split-photo-dialog'
-import { api } from '@/lib/api'
+import { ApiError, api } from '@/lib/api'
+import { createQueryClient } from '@/lib/query-client'
 import { MAX_BOXES } from '@/lib/split-boxes'
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/api', async () => ({
+  ...(await vi.importActual('@/lib/api')),
   api: { get: vi.fn(), post: vi.fn() },
   setAccessToken: vi.fn(),
-  getErrorMessage: (_: unknown, fallback: string) => fallback,
 }))
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('sonner', () => ({ toast }))
@@ -22,15 +24,25 @@ const garment = (left: number, top: number, type = 'shirt') => ({
   height: 0.3,
 })
 
-function renderDialog(props: Partial<React.ComponentProps<typeof SplitPhotoDialog>> = {}) {
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((r) => {
+    resolve = r
+  })
+  return { promise, resolve }
+}
+
+function renderDialog(props: Partial<React.ComponentProps<typeof SplitPhotoDialog>> = {}, strict = false) {
   const onClose = vi.fn()
   const onDone = vi.fn()
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  render(
+  // The app's client, so the global error toast is live and a second toast would show.
+  const client = createQueryClient()
+  const dialog = (
     <QueryClientProvider client={client}>
       <SplitPhotoDialog itemId="item-1" imageUrl="/p.jpg" open onClose={onClose} onDone={onDone} {...props} />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
+  render(strict ? <StrictMode>{dialog}</StrictMode> : dialog)
   return { onClose, onDone }
 }
 
@@ -45,16 +57,35 @@ beforeEach(() => {
 })
 
 describe('SplitPhotoDialog', () => {
-  it('asks the AI once for the garments and shows a numbered box for each', async () => {
-    vi.mocked(api.post).mockResolvedValueOnce({ garments: [garment(0.1, 0.1), garment(0.5, 0.5, 'jeans')] })
+  it.each([
+    { name: 'plain', strict: false, drawn: 0, total: 2 },
+    { name: 'strict mode', strict: true, drawn: 0, total: 2 },
+    { name: 'a box drawn while detecting', strict: true, drawn: 1, total: 3 },
+    { name: 'boxes drawn up to the limit while detecting', strict: true, drawn: MAX_BOXES - 1, total: MAX_BOXES },
+  ])('asks the AI once and adds a numbered box per garment ($name)', async ({ strict, drawn, total }) => {
+    const detection = deferred<{ garments: ReturnType<typeof garment>[] }>()
+    vi.mocked(api.post).mockReturnValueOnce(detection.promise)
 
-    renderDialog()
+    renderDialog({}, strict)
 
-    expect(await screen.findByTestId('split-box-1')).toBeInTheDocument()
-    expect(screen.getByTestId('split-box-2')).toBeInTheDocument()
+    expect(await screen.findByText('detecting')).toBeInTheDocument()
+    const add = screen.getByRole('button', { name: 'addBox' })
+    if (drawn > 0) {
+      expect(add).toBeEnabled()
+      for (let i = 0; i < drawn; i++) fireEvent.click(add)
+      expect(screen.getByTestId(`split-box-${drawn}`)).toBeInTheDocument()
+    }
+
+    detection.resolve({ garments: [garment(0.1, 0.1), garment(0.5, 0.5, 'jeans')] })
+
+    expect(await screen.findByTestId(`split-box-${total}`)).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('detecting')).not.toBeInTheDocument())
+    expect(screen.queryByTestId(`split-box-${total + 1}`)).not.toBeInTheDocument()
+    expect(screen.getByTestId(`split-box-${drawn + 1}`).style.left).toBe('10%')
     expect(api.post).toHaveBeenCalledTimes(1)
     expect(api.post).toHaveBeenCalledWith('/items/item-1/detect-garments')
     expect(screen.getByRole('button', { name: 'create' })).toBeEnabled()
+    if (total === MAX_BOXES) expect(add).toBeDisabled()
   })
 
   it('positions each box as a percentage of the photo', async () => {
@@ -160,15 +191,43 @@ describe('SplitPhotoDialog', () => {
     expect(screen.getByTestId('split-box-1')).toBeInTheDocument()
   })
 
-  it('offers a retry when the AI cannot be reached, and boxes can still be drawn by hand', async () => {
-    vi.mocked(api.post).mockRejectedValueOnce(new Error('503')).mockResolvedValueOnce({ garments: [garment(0.1, 0.1)] })
+  it.each([
+    {
+      name: 'an unreachable AI',
+      error: new ApiError('AI service is unreachable', 502, {
+        detail: { message: 'AI service is unreachable', error_code: 'AI_UNREACHABLE' },
+      }),
+      text: 'detectFailed',
+    },
+  ])('shows a detection failure inline, without a toast ($name)', async ({ error, text }) => {
+    vi.mocked(api.post).mockRejectedValueOnce(error)
+    renderDialog()
+
+    expect(await screen.findByText(text)).toBeInTheDocument()
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(api.post).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers a retry when the AI cannot be reached, and keeps boxes drawn by hand', async () => {
+    const retry = deferred<{ garments: ReturnType<typeof garment>[] }>()
+    vi.mocked(api.post).mockRejectedValueOnce(new Error('503')).mockReturnValueOnce(retry.promise)
     renderDialog()
 
     expect(await screen.findByText('detectFailed')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'addBox' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'addBox' }))
+    expect(screen.getByTestId('split-box-1')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'retry' }))
 
-    expect(await screen.findByTestId('split-box-1')).toBeInTheDocument()
+    expect(await screen.findByText('detecting')).toBeInTheDocument()
+    expect(screen.queryByText('detectFailed')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'retry' })).not.toBeInTheDocument()
+    expect(api.post).toHaveBeenCalledTimes(2)
+
+    retry.resolve({ garments: [garment(0.5, 0.5)] })
+
+    expect(await screen.findByTestId('split-box-2')).toBeInTheDocument()
+    expect(screen.getByTestId('split-box-1').style.left).toBe('30%')
+    expect(screen.getByTestId('split-box-2').style.left).toBe('50%')
   })
 })

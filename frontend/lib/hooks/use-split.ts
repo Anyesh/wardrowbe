@@ -1,9 +1,9 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { invalidateItemCaches } from '@/lib/hooks/cache-invalidation';
 import { queryKeys } from '@/lib/hooks/query-keys';
-import { applySessionToken } from '@/lib/hooks/use-session-token';
+import { applySessionToken, useSetTokenIfAvailable } from '@/lib/hooks/use-session-token';
 import type { Box } from '@/lib/split-boxes';
 
 export interface DetectedGarment extends Box {
@@ -21,14 +21,20 @@ interface SplitResponse {
 }
 
 /** Asks the AI where the garments in an item's photo are. Creates nothing. */
-export function useDetectGarments() {
-  const { data: session } = useSession();
+export function useGarmentDetection(itemId: string, enabled: boolean) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
 
-  return useMutation({
-    mutationFn: async (itemId: string) => {
-      applySessionToken(session);
-      return api.post<DetectGarmentsResponse>(`/items/${itemId}/detect-garments`);
-    },
+  return useQuery({
+    queryKey: queryKeys.garmentDetection(itemId),
+    // No abort signal: StrictMode's simulated unmount would cancel the POST and send it again.
+    queryFn: () => api.post<DetectGarmentsResponse>(`/items/${itemId}/detect-garments`),
+    enabled: enabled && status !== 'loading',
+    retry: false,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    meta: { toastsOwnErrors: true },
   });
 }
 
