@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { X, Home, Shirt, Sparkles, Layers, LayoutGrid, History, BarChart3, Brain, Settings, Users, Bell, HeartHandshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { AIStatusDot } from '@/components/ai-status-dot';
 
 interface MobileSidebarProps {
   open: boolean;
@@ -145,6 +146,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
               </li>
             </ul>
           </nav>
+          <AIStatusDot className="pt-4" />
         </div>
       </div>
     </div>
