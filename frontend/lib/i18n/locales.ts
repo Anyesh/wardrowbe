@@ -12,7 +12,8 @@ export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 // Keyed by SupportedLocale so tsc fails when a code in backend/app/data/locales.json has no entry.
 export const LOCALE_METADATA: Record<SupportedLocale, { name: string; nativeName: string; dir: 'ltr' | 'rtl' }> = {
-  en: { name: 'English', nativeName: 'English', dir: 'ltr' },
+  en: { name: 'English (US)', nativeName: 'English (US)', dir: 'ltr' },
+  'en-GB': { name: 'English (UK)', nativeName: 'English (UK)', dir: 'ltr' },
   'zh-CN': { name: 'Chinese (Simplified)', nativeName: '中文简体', dir: 'ltr' },
   'zh-TW': { name: 'Chinese (Traditional)', nativeName: '中文繁體', dir: 'ltr' },
   ko: { name: 'Korean', nativeName: '한국어', dir: 'ltr' },

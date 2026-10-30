@@ -12,7 +12,8 @@
     "i18n:keys": "node scripts/i18n-keys.mjs",
     "i18n:parity": "node scripts/i18n-check.mjs",
     "i18n:scan": "node scripts/i18n-scan.mjs",
-    "i18n:check": "npm run i18n:keys && npm run i18n:parity && npm run i18n:scan",
+    "i18n:check": "npm run i18n:keys && npm run i18n:parity && npm run i18n:scan && npm run i18n:en-gb -- --check",
+    "i18n:en-gb": "node scripts/gen-en-gb.mjs",
     "vocab:gen": "node scripts/gen-shared-data.mjs",
     "vocab:check": "node scripts/gen-shared-data.mjs --check"
   },
