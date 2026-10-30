@@ -269,7 +269,7 @@
   },
   "splitPhoto": {
     "addBox": "상자 추가",
-    "archiveNote": "원본 사진은 삭제되지 않고 보관됩니다. 보관함에서 복원할 수 있습니다.",
+    "archiveNote": "원본 사진은 보관되지만 옷장에는 표시되지 않습니다. 삭제되지 않습니다.",
     "boxLabel": "의류 {number}",
     "create": "{count, plural, =0 {아이템 만들기} other {아이템 #개 만들기}}",
     "createFailed": "사진을 나누지 못했습니다",

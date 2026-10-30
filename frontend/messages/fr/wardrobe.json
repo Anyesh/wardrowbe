@@ -269,7 +269,7 @@
   },
   "splitPhoto": {
     "addBox": "Ajouter un cadre",
-    "archiveNote": "La photo d'origine est archivée, pas supprimée. Vous pouvez la restaurer depuis vos archives.",
+    "archiveNote": "La photo d'origine est conservée mais masquée de votre garde-robe. Elle n'est pas supprimée.",
     "boxLabel": "Vêtement {number}",
     "create": "{count, plural, =0 {Créer des articles} one {Créer # article} other {Créer # articles}}",
     "createFailed": "Impossible de diviser la photo",

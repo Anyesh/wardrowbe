@@ -269,7 +269,7 @@
   },
   "splitPhoto": {
     "addBox": "Aggiungi un riquadro",
-    "archiveNote": "La foto originale viene archiviata, non eliminata. Puoi ripristinarla dall'archivio.",
+    "archiveNote": "La foto originale viene conservata ma nascosta dal tuo guardaroba. Non viene eliminata.",
     "boxLabel": "Capo {number}",
     "create": "{count, plural, =0 {Crea articoli} one {Crea # articolo} other {Crea # articoli}}",
     "createFailed": "Impossibile dividere la foto",

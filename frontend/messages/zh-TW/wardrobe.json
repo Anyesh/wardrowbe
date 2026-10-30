@@ -269,7 +269,7 @@
   },
   "splitPhoto": {
     "addBox": "新增框",
-    "archiveNote": "原照片會被封存而不是刪除，你可以從封存中還原。",
+    "archiveNote": "原照片會被保留，但不再顯示在你的衣櫥中。它不會被刪除。",
     "boxLabel": "衣物 {number}",
     "create": "{count, plural, =0 {建立單品} other {建立 # 件單品}}",
     "createFailed": "無法拆分照片",

@@ -269,7 +269,7 @@
   },
   "splitPhoto": {
     "addBox": "枠を追加",
-    "archiveNote": "元の写真は削除されず、アーカイブされます。アーカイブから復元できます。",
+    "archiveNote": "元の写真は保持されますが、ワードローブには表示されなくなります。削除はされません。",
     "boxLabel": "アイテム {number}",
     "create": "{count, plural, =0 {アイテムを作成} other {#件のアイテムを作成}}",
     "createFailed": "写真を分割できませんでした",

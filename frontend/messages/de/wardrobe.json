@@ -269,7 +269,7 @@
   },
   "splitPhoto": {
     "addBox": "Rahmen hinzufügen",
-    "archiveNote": "Das Originalfoto wird archiviert, nicht gelöscht. Du kannst es aus deinem Archiv wiederherstellen.",
+    "archiveNote": "Das Originalfoto bleibt erhalten, wird aber in deinem Kleiderschrank ausgeblendet. Es wird nicht gelöscht.",
     "boxLabel": "Kleidungsstück {number}",
     "create": "{count, plural, =0 {Artikel erstellen} one {# Artikel erstellen} other {# Artikel erstellen}}",
     "createFailed": "Das Foto konnte nicht aufgeteilt werden",
