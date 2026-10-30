@@ -10,7 +10,7 @@ from sqlalchemy import select
 
 from app.config import get_settings
 from app.database import DbSession
-from app.models.item import ClothingItem
+from app.models.item import ClothingItem, ItemStatus
 from app.models.preference import UserPreference
 from app.models.user import User
 from app.schemas.item import ItemCreate
@@ -139,10 +139,38 @@ async def split_item(
     The original is archived (restorable), never deleted. Crops skip the duplicate check, since
     garments that look alike (a white tee and a cream one) are the point.
     """
+    # Held until the split commits, so a second split of the same photo waits here and then
+    # sees it archived, and a rotate or background-removal job cannot rewrite it mid-crop.
+    locked = (
+        await db.execute(
+            select(
+                ClothingItem.is_archived,
+                ClothingItem.status,
+                ClothingItem.processing_kind,
+                ClothingItem.image_path,
+            )
+            .where(ClothingItem.id == item_id, ClothingItem.user_id == current_user.id)
+            .with_for_update()
+        )
+    ).one_or_none()
+    if locked is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    if locked.is_archived:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"message": "Item is archived", "error_code": "SOURCE_ARCHIVED"},
+        )
+    if locked.status == ItemStatus.processing and locked.processing_kind is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": "The photo is still being edited",
+                "error_code": "SOURCE_BUSY",
+            },
+        )
+
     item_service = ItemService(db)
     source = await _owned_item(item_service, item_id, current_user)
-    if source.is_archived:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Item is archived")
 
     image_service = ImageService()
     stored: list[dict[str, str]] = []
@@ -152,7 +180,7 @@ async def split_item(
             try:
                 crop = await asyncio.to_thread(
                     image_service.crop_to_jpeg,
-                    source.image_path,
+                    locked.image_path,
                     box.left,
                     box.top,
                     box.width,

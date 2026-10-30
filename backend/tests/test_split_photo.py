@@ -1,5 +1,6 @@
 """Splitting a photo with several garments: the reply parser, the crop, and the two endpoints."""
 
+import asyncio
 import json
 from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -12,6 +13,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.database import get_db
+from app.main import app
 from app.models.item import ClothingItem, ItemStatus
 from app.models.preference import UserPreference
 from app.models.user import User
@@ -182,8 +185,7 @@ async def _make_item(db_session: AsyncSession, user: User, **overrides) -> Cloth
         medium_path=paths["medium_path"],
         thumbnail_path=paths["thumbnail_path"],
         image_hash=paths["image_hash"],
-        status=ItemStatus.ready,
-        **overrides,
+        **{"status": ItemStatus.ready, **overrides},
     )
     db_session.add(item)
     await db_session.commit()
@@ -566,16 +568,72 @@ class TestSplitEndpoint:
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_an_archived_source_is_409(
-        self, client: AsyncClient, db_session: AsyncSession, test_user, auth_headers
+    @pytest.mark.parametrize(
+        ("state", "expected_status", "error_code"),
+        [
+            ({"is_archived": True, "status": ItemStatus.archived}, 409, "SOURCE_ARCHIVED"),
+            ({"status": ItemStatus.processing, "processing_kind": "rotate"}, 409, "SOURCE_BUSY"),
+            (
+                {"status": ItemStatus.processing, "processing_kind": "background_removal"},
+                409,
+                "SOURCE_BUSY",
+            ),
+            ({"status": ItemStatus.processing, "processing_kind": None}, 201, None),
+        ],
+        ids=["archived", "rotating", "removing-background", "being-tagged"],
+    )
+    async def test_the_sources_state_decides_whether_it_can_be_split(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        test_user,
+        auth_headers,
+        state,
+        expected_status,
+        error_code,
     ):
-        source = await _make_item(db_session, test_user, is_archived=True)
+        source = await _make_item(db_session, test_user, **state)
 
-        response = await client.post(
-            f"/api/v1/items/{source.id}/split", json={"boxes": BOXES}, headers=auth_headers
-        )
+        with patch("app.api.split.settings", _vision(False)):
+            response = await client.post(
+                f"/api/v1/items/{source.id}/split", json={"boxes": BOXES}, headers=auth_headers
+            )
 
-        assert response.status_code == 409
+        assert response.status_code == expected_status
+        if error_code is not None:
+            assert response.json()["detail"]["error_code"] == error_code
+            assert len(await _all_items(db_session, test_user)) == 1
+
+    @pytest.mark.asyncio
+    async def test_two_splits_at_once_make_one_set_of_items(
+        self, client: AsyncClient, db_session: AsyncSession, session_maker, test_user, auth_headers
+    ):
+        # The `client` fixture puts every request on one shared session, which cannot show
+        # row-lock contention, so each request here gets a connection of its own.
+        source = await _make_item(db_session, test_user)
+
+        async def own_session():
+            async with session_maker() as session:
+                yield session
+
+        app.dependency_overrides[get_db] = own_session
+        with patch("app.api.split.settings", _vision(False)):
+            responses = await asyncio.gather(
+                *(
+                    client.post(
+                        f"/api/v1/items/{source.id}/split",
+                        json={"boxes": BOXES},
+                        headers=auth_headers,
+                    )
+                    for _ in range(2)
+                )
+            )
+
+        assert sorted(r.status_code for r in responses) == [201, 409]
+        [refused] = [r for r in responses if r.status_code == 409]
+        assert refused.json()["detail"]["error_code"] == "SOURCE_ARCHIVED"
+        items = await _all_items(db_session, test_user)
+        assert len([i for i in items if not i.is_archived]) == len(BOXES)
 
     @pytest.mark.asyncio
     async def test_unknown_item_is_404(self, client: AsyncClient, auth_headers):
