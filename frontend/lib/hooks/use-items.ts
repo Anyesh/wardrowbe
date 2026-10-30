@@ -31,15 +31,10 @@ function itemListQuery(filters: ItemFilter, page: number, pageSize: number) {
         page: String(page),
         page_size: String(pageSize),
       };
-      if (filters.type) params.type = filters.type;
-      if (filters.colors?.length) params.colors = filters.colors.join(',');
-      if (filters.search) params.search = filters.search;
-      if (filters.favorite !== undefined) params.favorite = String(filters.favorite);
-      if (filters.needs_wash !== undefined) params.needs_wash = String(filters.needs_wash);
-      if (filters.is_archived !== undefined) params.is_archived = String(filters.is_archived);
-      if (filters.sort_by) params.sort_by = filters.sort_by;
-      if (filters.sort_order) params.sort_order = filters.sort_order;
-      if (filters.ids) params.ids = filters.ids;
+      for (const [key, value] of Object.entries(filters)) {
+        if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)) continue;
+        params[key] = Array.isArray(value) ? value.join(',') : String(value);
+      }
 
       return api.get<ItemListResponse>('/items', { params });
     },
@@ -627,19 +622,15 @@ export interface BulkDeleteResponse extends BulkBatchResponse {
   failed: number;
 }
 
+export type BulkItemFilters = Omit<ItemFilter, 'sort_by' | 'sort_order' | 'ids'>;
+
 export interface BulkOperationParams {
   // Either provide explicit item_ids, or use select_all with excluded_ids
   item_ids?: string[];
   select_all?: boolean;
   excluded_ids?: string[];
   // Filters to apply when using select_all (to match the current view)
-  filters?: {
-    type?: string;
-    search?: string;
-    needs_wash?: boolean;
-    favorite?: boolean;
-    is_archived?: boolean;
-  };
+  filters?: BulkItemFilters;
 }
 
 interface BulkBatchResponse {

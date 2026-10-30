@@ -14,7 +14,13 @@ from app.models.item import (
     TaggingStatus,
     WashHistory,
 )
-from app.schemas.item import DEFAULT_WASH_INTERVALS, ItemCreate, ItemFilter, ItemUpdate
+from app.schemas.item import (
+    DEFAULT_WASH_INTERVALS,
+    ItemCreate,
+    ItemFilter,
+    ItemFilterFields,
+    ItemUpdate,
+)
 
 
 class ItemService:
@@ -43,45 +49,29 @@ class ItemService:
         )
         return result.scalar() or 0
 
-    async def get_list(
-        self,
-        user_id: UUID,
-        filters: ItemFilter,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> tuple[list[ClothingItem], int]:
-        # Base query
-        query = (
-            select(ClothingItem)
-            .where(ClothingItem.user_id == user_id)
-            .options(selectinload(ClothingItem.additional_images))
-        )
+    def _build_filter_clauses(self, user_id: UUID, filters: ItemFilterFields) -> list:
+        clauses = [
+            ClothingItem.user_id == user_id,
+            ClothingItem.is_archived == filters.is_archived,
+        ]
 
-        # Apply filters
         if filters.type:
-            query = query.where(ClothingItem.type == filters.type)
+            clauses.append(ClothingItem.type == filters.type)
         if filters.subtype:
-            query = query.where(ClothingItem.subtype == filters.subtype)
+            clauses.append(ClothingItem.subtype == filters.subtype)
         if filters.status:
-            query = query.where(ClothingItem.status == filters.status)
+            clauses.append(ClothingItem.status == filters.status)
         if filters.tagging_status:
-            query = query.where(ClothingItem.tagging_status == filters.tagging_status)
+            clauses.append(ClothingItem.tagging_status == filters.tagging_status)
         if filters.favorite is not None:
-            query = query.where(ClothingItem.favorite == filters.favorite)
+            clauses.append(ClothingItem.favorite == filters.favorite)
         if filters.colors:
-            query = query.where(ClothingItem.colors.overlap(filters.colors))
-
-        # Archive filter
-        query = query.where(ClothingItem.is_archived == filters.is_archived)
-
-        # Needs wash filter
+            clauses.append(ClothingItem.colors.overlap(filters.colors))
         if filters.needs_wash is not None:
-            query = query.where(ClothingItem.needs_wash == filters.needs_wash)
-
-        # Search filter
+            clauses.append(ClothingItem.needs_wash == filters.needs_wash)
         if filters.search:
             search_term = f"%{filters.search}%"
-            query = query.where(
+            clauses.append(
                 or_(
                     ClothingItem.name.ilike(search_term),
                     ClothingItem.brand.ilike(search_term),
@@ -89,6 +79,21 @@ class ItemService:
                     ClothingItem.notes.ilike(search_term),
                 )
             )
+
+        return clauses
+
+    async def get_list(
+        self,
+        user_id: UUID,
+        filters: ItemFilter,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[ClothingItem], int]:
+        query = (
+            select(ClothingItem)
+            .where(*self._build_filter_clauses(user_id, filters))
+            .options(selectinload(ClothingItem.additional_images))
+        )
 
         # Get total count
         count_query = select(func.count()).select_from(query.subquery())
@@ -118,30 +123,14 @@ class ItemService:
     async def get_ids_by_filter(
         self,
         user_id: UUID,
-        type_filter: str | None = None,
-        search: str | None = None,
-        is_archived: bool = False,
+        filters: ItemFilterFields | None = None,
         excluded_ids: list[UUID] | None = None,
         after_id: UUID | None = None,
         limit: int | None = None,
     ) -> list[UUID]:
-        query = select(ClothingItem.id).where(ClothingItem.user_id == user_id)
-
-        if type_filter:
-            query = query.where(ClothingItem.type == type_filter)
-
-        query = query.where(ClothingItem.is_archived == is_archived)
-
-        if search:
-            search_term = f"%{search}%"
-            query = query.where(
-                or_(
-                    ClothingItem.name.ilike(search_term),
-                    ClothingItem.brand.ilike(search_term),
-                    ClothingItem.type.ilike(search_term),
-                    ClothingItem.notes.ilike(search_term),
-                )
-            )
+        query = select(ClothingItem.id).where(
+            *self._build_filter_clauses(user_id, filters or ItemFilterFields())
+        )
 
         if excluded_ids:
             query = query.where(ClothingItem.id.notin_(excluded_ids))

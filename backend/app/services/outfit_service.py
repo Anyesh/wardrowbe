@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from enum import StrEnum
+from typing import TypeVar
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -22,7 +24,7 @@ from app.models.user import User
 @dataclass
 class OutfitListFilters:
     user_id: UUID
-    status_filter: str | None = None
+    status: str | None = None
     occasion: str | None = None
     date_from: date | None = None
     date_to: date | None = None
@@ -36,6 +38,23 @@ class OutfitListFilters:
     search: str | None = None
     occasions: list[str] | None = None
     cloned_from_outfit_id: UUID | None = None
+
+
+E = TypeVar("E", bound=StrEnum)
+
+
+def parse_enum_csv(raw: str, enum_type: type[E]) -> tuple[list[E], list[str]]:
+    parsed: list[E] = []
+    unknown: list[str] = []
+    for part in raw.split(","):
+        token = part.strip()
+        if not token:
+            continue
+        try:
+            parsed.append(enum_type(token))
+        except ValueError:
+            unknown.append(token)
+    return parsed, unknown
 
 
 def _escape_like(term: str) -> str:
@@ -79,13 +98,8 @@ class OutfitService:
         if filters.family_member_view:
             clauses.append(Outfit.scheduled_for.is_not(None))
 
-        if filters.status_filter:
-            parsed_statuses: list[OutfitStatus] = []
-            for s in filters.status_filter.split(","):
-                try:
-                    parsed_statuses.append(OutfitStatus(s.strip()))
-                except ValueError:
-                    continue
+        if filters.status:
+            parsed_statuses, _ = parse_enum_csv(filters.status, OutfitStatus)
             if len(parsed_statuses) == 1:
                 clauses.append(Outfit.status == parsed_statuses[0])
             elif parsed_statuses:
@@ -101,12 +115,7 @@ class OutfitService:
             clauses.append(Outfit.scheduled_for <= filters.date_to)
 
         if filters.source:
-            source_values: list[OutfitSource] = []
-            for s in filters.source.split(","):
-                try:
-                    source_values.append(OutfitSource(s.strip()))
-                except ValueError:
-                    continue
+            source_values, _ = parse_enum_csv(filters.source, OutfitSource)
             if len(source_values) == 1:
                 clauses.append(Outfit.source == source_values[0])
             elif source_values:
