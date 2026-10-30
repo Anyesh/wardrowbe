@@ -1,0 +1,18 @@
+{
+  "bringOut": {
+    "description": "Capi per la stagione che arriva.",
+    "title": "Da tirare fuori"
+  },
+  "error": "Impossibile caricare il cambio stagione.",
+  "hint": "Tocca un capo quando l'hai sistemato. La lista si basa sulle stagioni di ogni capo: aggiungile nel guardaroba per un cambio più preciso.",
+  "lastYear": "L'hai indossato in questo periodo l'anno scorso",
+  "nothing": "Niente da fare qui per questa volta.",
+  "putAway": {
+    "description": "Capi di una stagione che sta finendo.",
+    "title": "Da mettere via"
+  },
+  "sameSeason": "Stessa stagione per i prossimi due mesi: ancora niente da cambiare.",
+  "stays": "{count, plural, one {# capo resta fuori tutto l'anno} other {# capi restano fuori tutto l'anno}}",
+  "subtitle": "Cosa mettere via e cosa tirare fuori per i prossimi mesi.",
+  "title": "Cambio stagione"
+}

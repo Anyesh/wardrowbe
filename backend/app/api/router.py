@@ -13,6 +13,7 @@ from app.api.notifications import router as notifications_router
 from app.api.outfits import router as outfits_router
 from app.api.pairings import router as pairings_router
 from app.api.preferences import router as preferences_router
+from app.api.season_swap import router as season_swap_router
 from app.api.users import router as users_router
 from app.api.weather import router as weather_router
 
@@ -32,3 +33,4 @@ api_router.include_router(pairings_router)
 api_router.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(analytics_router)
 api_router.include_router(learning_router)
+api_router.include_router(season_swap_router)
