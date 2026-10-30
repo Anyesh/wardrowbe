@@ -143,7 +143,7 @@ async def split_item(
     """Make one new item from each box on an item's photo, then archive the original.
 
     All or nothing: if any crop fails, the crops already stored are removed and nothing changes.
-    The original is archived (restorable), never deleted. Crops skip the duplicate check, since
+    The original is archived and hidden, never deleted. Crops skip the duplicate check, since
     garments that look alike (a white tee and a cream one) are the point.
     """
     # Held until the split commits, so a second split of the same photo waits here and then
