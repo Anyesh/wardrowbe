@@ -60,6 +60,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
+import { ApiError } from '@/lib/api';
 import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
 import {
@@ -109,6 +110,17 @@ interface EditForm {
   notes: string;
   favorite: boolean;
   wash_interval: number | undefined;
+}
+
+// The sign-in redirect handles these, as in the global error handler.
+function isUnauthorized(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401;
+}
+
+function isInvalidTagValue(error: unknown): boolean {
+  if (!(error instanceof ApiError)) return false;
+  const data = error.data as { detail?: { error_code?: string } } | undefined;
+  return data?.detail?.error_code === 'INVALID_TAG_VALUE';
 }
 
 function editFormFromItem(item: Item): EditForm {
@@ -233,6 +245,8 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to update item:', error);
+      if (isUnauthorized(error)) return;
+      toast.error(isInvalidTagValue(error) ? t('tagsEditor.invalidValue') : t('actions.saveError'));
     }
   };
 
@@ -280,6 +294,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       });
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
+      if (!isUnauthorized(error)) toast.error(t('actions.saveError'));
     }
   };
 

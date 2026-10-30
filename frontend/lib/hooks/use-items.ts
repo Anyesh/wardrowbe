@@ -169,6 +169,7 @@ export function useUpdateItem() {
   const { data: session } = useSession();
 
   return useMutation({
+    meta: { toastsOwnErrors: true },
     mutationFn: async ({ id, data }: { id: string; data: ItemEdits }) => {
       applySessionToken(session);
       return api.patch<Item>(`/items/${id}`, data);

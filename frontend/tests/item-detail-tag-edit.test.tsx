@@ -1,16 +1,19 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import type { ReactNode } from 'react'
+import { toast } from 'sonner'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ItemDetailDialog } from '@/components/item-detail-dialog'
-import { api } from '@/lib/api'
+import { ApiError, api } from '@/lib/api'
+import { createQueryClient } from '@/lib/query-client'
 import type { Item } from '@/lib/types'
 
 vi.unmock('next-intl')
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/api', async () => ({
+  ...(await vi.importActual('@/lib/api')),
   api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
   setAccessToken: vi.fn(),
 }))
@@ -23,7 +26,8 @@ const wardrobe = catalog('wardrobe')
 const labels = wardrobe.itemDetail
 
 function Wrapper({ children }: { children: ReactNode }) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  // The app's client, so the global error toast is live and a second toast would show.
+  const client = createQueryClient()
   const all = Object.fromEntries(['wardrobe', 'constants', 'common'].map((ns) => [ns, catalog(ns)]))
   return (
     <QueryClientProvider client={client}>
@@ -90,6 +94,7 @@ describe('editing an item with the tag editor', () => {
     vi.mocked(api.get).mockResolvedValue([])
     vi.mocked(api.patch).mockReset()
     vi.mocked(api.patch).mockResolvedValue(item)
+    vi.mocked(toast.error).mockClear()
   })
 
   it('shows the tag editor in edit mode', () => {
@@ -297,5 +302,39 @@ describe('editing an item with the tag editor', () => {
     fireEvent.click(screen.getByRole('option', { name: 'Shirt' }))
 
     expect(screen.getByPlaceholderText(labels.placeholders.subtype)).toHaveValue('button-down')
+  })
+
+  it.each([
+    [
+      'a value off the list',
+      422,
+      { detail: { message: 'x', error_code: 'INVALID_TAG_VALUE' } },
+      labels.tagsEditor.invalidValue,
+    ],
+    ['any other failure', 500, { detail: 'Internal Server Error' }, labels.actions.saveError],
+  ])('shows one translated toast when a save fails with %s', async (_case, status, data, message) => {
+    vi.mocked(api.patch).mockRejectedValue(new ApiError('raw server text', status, data))
+    renderDialog()
+    startEditing()
+    fireEvent.change(screen.getByPlaceholderText(labels.placeholders.itemName), {
+      target: { value: 'My oxford' },
+    })
+
+    await save()
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled())
+    expect(toast.error).toHaveBeenCalledTimes(1)
+    expect(toast.error).toHaveBeenCalledWith(message)
+  })
+
+  it('shows one translated toast when the favourite toggle fails', async () => {
+    vi.mocked(api.patch).mockRejectedValue(new ApiError('raw server text', 500, {}))
+    renderDialog()
+
+    fireEvent.click(screen.getByTitle(labels.titles.toggleFavorite))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled())
+    expect(toast.error).toHaveBeenCalledTimes(1)
+    expect(toast.error).toHaveBeenCalledWith(labels.actions.saveError)
   })
 })
