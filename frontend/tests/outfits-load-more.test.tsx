@@ -32,6 +32,7 @@ function wrapper({ children }: { children: ReactNode }) {
 
 afterEach(() => {
   vi.mocked(api.get).mockReset()
+  vi.mocked(api.post).mockReset()
   nav.params = new URLSearchParams()
 })
 
@@ -84,6 +85,27 @@ describe('bulk outfit delete', () => {
     const data = client.getQueryData<{ pages: { outfits: { id: string }[]; total: number }[] }>(key)
     expect(data?.pages.map((page) => page.outfits.map((outfit) => outfit.id))).toEqual([['a'], []])
     expect(data?.pages[0].total).toBe(1)
+  })
+})
+
+describe('bulk outfit delete select-all', () => {
+  it('follows the cursor until the server reports no more batches', async () => {
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ deleted: 2, failed: 0, errors: [], has_more: true, next_cursor: 'c1' })
+      .mockResolvedValueOnce({ deleted: 1, failed: 0, errors: [], has_more: false, next_cursor: null })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { result } = renderHook(useBulkDeleteOutfits, {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    })
+    const params = { select_all: true, filters: { status: 'accepted' as const } }
+
+    const response = await act(() => result.current.mutateAsync(params))
+
+    expect(vi.mocked(api.post).mock.calls).toEqual([
+      ['/outfits/bulk/delete', params],
+      ['/outfits/bulk/delete', { ...params, after_id: 'c1' }],
+    ])
+    expect(response.deleted).toBe(3)
   })
 })
 

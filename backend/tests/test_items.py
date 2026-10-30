@@ -114,6 +114,26 @@ class TestItemList:
         assert len(data["items"]) == 2
         assert all(item["type"] == "shirt" for item in data["items"])
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("param", ["status", "tagging_status"])
+    async def test_list_items_ignores_an_empty_status_filter(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession, param
+    ):
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="shirt",
+                image_path=f"test/{uuid4()}.jpg",
+                status=ItemStatus.ready,
+            )
+        )
+        await db_session.commit()
+
+        response = await client.get("/api/v1/items", params={param: ""}, headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json()["total"] == 1
+
 
 class TestItemCRUD:
     """Tests for item CRUD operations."""

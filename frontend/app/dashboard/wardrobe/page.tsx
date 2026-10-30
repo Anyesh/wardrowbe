@@ -27,7 +27,7 @@ import { AddItemDialog } from '@/components/add-item-dialog';
 import { AnalysisQueuePanel } from '@/components/analysis-queue-panel';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
-import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
+import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkItemFilters, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
 import { useUserTimezone } from '@/lib/hooks/use-user';
 import { colorSwatch, normalizeColor } from '@/lib/colors';
 import { Item } from '@/lib/types';
@@ -407,15 +407,14 @@ export default function WardrobePage() {
 
   const sortOption = SORT_OPTIONS[sortIndex];
 
-  const filters = {
+  const listFilters: BulkItemFilters = {
     search: search || undefined,
     type: typeFilter !== 'all' ? typeFilter : undefined,
     needs_wash: needsWash,
     favorite: favoriteFilter,
     is_archived: false,
-    sort_by: sortOption.value,
-    sort_order: sortOption.order,
   };
+  const filters = { ...listFilters, sort_by: sortOption.value, sort_order: sortOption.order };
 
   const activeFilterCount = [
     needsWash !== undefined,
@@ -541,13 +540,7 @@ export default function WardrobePage() {
       return {
         select_all: true,
         excluded_ids: Array.from(selection.excludedIds),
-        filters: {
-          type: typeFilter !== 'all' ? typeFilter : undefined,
-          search: search || undefined,
-          needs_wash: needsWash,
-          favorite: favoriteFilter,
-          is_archived: false,
-        },
+        filters: listFilters,
       };
     } else {
       return {

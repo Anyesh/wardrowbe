@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
-from app.models.item import ProcessingKind, TaggingStatus
+from app.models.item import ItemStatus, ProcessingKind, TaggingStatus
 from app.schemas.color import ColorList, ColorName
 from app.schemas.outfit import Occasion
 from app.utils.garment_vocabulary import DEFAULT_WASH_INTERVALS
@@ -207,16 +207,19 @@ class ItemListResponse(BaseModel):
     has_more: bool
 
 
-class ItemFilter(BaseModel):
+class ItemFilterFields(BaseModel):
     type: str | None = None
     subtype: str | None = None
     colors: ColorList | None = None
-    status: str | None = None
-    tagging_status: str | None = None
+    status: ItemStatus | None = None
+    tagging_status: TaggingStatus | None = None
     favorite: bool | None = None
     needs_wash: bool | None = None
     is_archived: bool = False
     search: str | None = None
+
+
+class ItemFilter(ItemFilterFields):
     sort_by: str | None = None
     sort_order: str = "desc"
 
@@ -253,13 +256,13 @@ class BulkUploadResponse(BaseModel):
     results: list[BulkUploadResult]
 
 
-class BulkFilters(BaseModel):
-    type: str | None = None
-    search: str | None = None
-    is_archived: bool | None = None
+class BulkFilters(ItemFilterFields):
+    model_config = ConfigDict(extra="forbid")
 
 
 class BulkSelectionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     # Explicit selection
     item_ids: list[UUID] | None = None
 
