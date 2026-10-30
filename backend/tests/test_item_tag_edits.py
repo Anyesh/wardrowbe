@@ -468,8 +468,13 @@ class TestColoursStayInStep:
     """A colour change sent outside `tags` reaches the tags JSON and the colour list (#294)."""
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "body",
+        [{"primary_color": "navy"}, {"tags": {"primary_color": "navy"}}],
+        ids=["top-level", "in-tags"],
+    )
     async def test_a_new_primary_replaces_the_old_one_at_the_front_of_the_list(
-        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession, body
     ):
         item = await _make_item(
             db_session,
@@ -479,7 +484,7 @@ class TestColoursStayInStep:
             tags={"primary_color": "white", "colors": ["white", "black"]},
         )
 
-        response = await _patch(client, auth_headers, item.id, {"primary_color": "navy"})
+        response = await _patch(client, auth_headers, item.id, body)
 
         assert response.status_code == 200
         done = await _reload(db_session, item.id)

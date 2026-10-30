@@ -33,7 +33,7 @@ class TagVocabularyError(ValueError):
 
 
 def _keep_colours_in_step(update_data: dict, incoming: dict, current: dict, existing: dict) -> None:
-    """Make a colour change sent only at the top level reach the tags JSON and the colour list.
+    """Make a colour change sent at either level reach both, and the colour list.
 
     The item keeps its colours twice (the primary_color and colors columns, and the same keys in
     the tags JSON), and suggestions read `colors`. A client that sends only a new primary colour
@@ -43,6 +43,8 @@ def _keep_colours_in_step(update_data: dict, incoming: dict, current: dict, exis
         incoming["colors"] = update_data["colors"]
     if "primary_color" in update_data and "primary_color" not in incoming:
         incoming["primary_color"] = update_data["primary_color"]
+    elif "primary_color" in incoming and "primary_color" not in update_data:
+        update_data["primary_color"] = incoming["primary_color"]
 
     new_primary = update_data.get("primary_color")
     old_primary = (
