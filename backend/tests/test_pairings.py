@@ -413,6 +413,8 @@ class TestGeneratePairingsPreservesSource:
             ("dress", ["shirt", "pants", "sneakers"], ["source", "sneakers"]),
             ("pants", ["shirt", "suit", "sneakers"], ["source", "shirt", "sneakers"]),
             ("sneakers", ["dress", "suit"], ["source", "dress"]),
+            ("shirt", [["pants"], ["sneakers"]], ["source", "pants", "sneakers"]),
+            ("shirt", ["source", "source", "pants", "sneakers"], ["source", "pants", "sneakers"]),
         ],
     )
     async def test_source_survives_a_conflicting_answer(
@@ -434,7 +436,12 @@ class TestGeneratePairingsPreservesSource:
                 content=json.dumps(
                     [
                         {
-                            "items": [number_of[items[name].id] for name in answer],
+                            "items": [
+                                [number_of[items[name[0]].id]]
+                                if isinstance(name, list)
+                                else number_of[items[name].id]
+                                for name in answer
+                            ],
                             "headline": "Look",
                             "highlights": [],
                             "styling_tip": "",
