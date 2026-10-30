@@ -32,6 +32,7 @@ function wrapper({ children }: { children: ReactNode }) {
 
 afterEach(() => {
   vi.mocked(api.get).mockReset()
+  vi.mocked(api.post).mockReset()
   nav.params = new URLSearchParams()
 })
 
@@ -87,6 +88,27 @@ describe('bulk outfit delete', () => {
   })
 })
 
+describe('bulk outfit delete select-all', () => {
+  it('follows the cursor until the server reports no more batches', async () => {
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ deleted: 2, failed: 0, errors: [], has_more: true, next_cursor: 'c1' })
+      .mockResolvedValueOnce({ deleted: 1, failed: 0, errors: [], has_more: false, next_cursor: null })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { result } = renderHook(useBulkDeleteOutfits, {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    })
+    const params = { select_all: true, filters: { status: 'accepted' as const } }
+
+    const response = await act(() => result.current.mutateAsync(params))
+
+    expect(vi.mocked(api.post).mock.calls).toEqual([
+      ['/outfits/bulk/delete', params],
+      ['/outfits/bulk/delete', { ...params, after_id: 'c1' }],
+    ])
+    expect(response.deleted).toBe(3)
+  })
+})
+
 describe('outfit search', () => {
   it('sends the occasions whose label contains the term alongside it', async () => {
     nav.params = new URLSearchParams('filter=my-looks')
@@ -106,5 +128,25 @@ describe('outfit search', () => {
         params: expect.objectContaining({ search: 'Lounge', occasions: 'lounge' }),
       }),
     )
+  })
+})
+
+describe('worn filter', () => {
+  it('asks for outfits with a wear date, whatever their status', async () => {
+    nav.params = new URLSearchParams('filter=worn')
+    vi.mocked(api.get).mockResolvedValue({
+      outfits: [],
+      total: 0,
+      page: 1,
+      page_size: 1,
+      has_more: false,
+    })
+
+    render(<OutfitsPage />, { wrapper })
+
+    await waitFor(() => expect(api.get).toHaveBeenCalled())
+    const params = vi.mocked(api.get).mock.calls[0][1]?.params
+    expect(params).toEqual(expect.objectContaining({ worn: 'true', is_lookbook: 'false' }))
+    expect(params).not.toHaveProperty('status')
   })
 })

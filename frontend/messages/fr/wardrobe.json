@@ -169,6 +169,7 @@
       "markWashed": "Marquer comme lavé",
       "originalRestoreError": "Échec de la restauration de l'image originale",
       "originalRestored": "Image originale restaurée",
+      "saveError": "Échec de l'enregistrement de l'article",
       "washError": "Échec du marquage comme lavé",
       "logWear": "Noter un port",
       "wearLogged": "Port enregistré",
@@ -188,6 +189,20 @@
     },
     "primaryColor": "Couleur principale",
     "subtype": "Sous-type",
+    "tagsEditor": {
+      "fit": "Coupe",
+      "formality": "Formalité",
+      "hint": "Corrigez ce que l'IA a mal identifié. Vos modifications sont conservées si l'article est analysé à nouveau.",
+      "invalidValue": "Une étiquette a une valeur absente de la liste. Choisissez-la à nouveau et enregistrez.",
+      "material": "Matière",
+      "none": "Aucune",
+      "pattern": "Motif",
+      "season": "Saison",
+      "secondaryColor": "Couleur secondaire",
+      "style": "Style",
+      "tertiaryColor": "Couleur tertiaire",
+      "title": "Tags IA"
+    },
     "titles": {
       "analysisInProgress": "Analyse en cours...",
       "deleteImage": "Supprimer l'image",

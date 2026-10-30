@@ -145,12 +145,12 @@ class TestTagsMergeOnUpdate:
 
     @pytest.mark.asyncio
     async def test_update_overwrites_keys_that_are_sent(self, db_session, test_user):
-        item = await _make_item(db_session, test_user, tags={"material": "100% Cotton"})
+        item = await _make_item(db_session, test_user, tags={"material": "cotton"})
         service = ItemService(db_session)
 
-        updated = await service.update(item, ItemUpdate(tags=ItemTags(material="100% Linen")))
+        updated = await service.update(item, ItemUpdate(tags=ItemTags(material="linen")))
 
-        assert updated.tags["material"] == "100% Linen"
+        assert updated.tags["material"] == "linen"
 
     @pytest.mark.asyncio
     async def test_explicit_null_clears_one_key(self, db_session, test_user):
@@ -187,10 +187,10 @@ class TestTagsMergeOnUpdate:
         item = await _make_item(db_session, test_user)
         service = ItemService(db_session)
 
-        updated = await service.update(item, ItemUpdate(tags=ItemTags(material="100% Silk")))
+        updated = await service.update(item, ItemUpdate(tags=ItemTags(material="silk")))
 
-        assert updated.material == "100% Silk"
-        assert updated.tags["material"] == "100% Silk"
+        assert updated.material == "silk"
+        assert updated.tags["material"] == "silk"
 
 
 # --------------------------------------------------------------------------
@@ -350,3 +350,56 @@ class TestTagsMergeOnAnalysis:
 
         await db_session.refresh(item)
         assert item.tags["fit"] == "relaxed"
+
+    @pytest.mark.asyncio
+    async def test_a_tag_cleared_by_hand_stays_cleared(
+        self, db_session, test_user, stub_ai, item_image
+    ):
+        item = await _make_item(
+            db_session,
+            test_user,
+            image_path=str(item_image),
+            tags={"user_edited_keys": ["pattern"]},
+        )
+        stub_ai(_ai_tags(pattern="solid", formality="casual"))
+
+        with (
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+        ):
+            await tagging.tag_item_image({}, str(item.id), str(item_image))
+
+        await db_session.refresh(item)
+        assert "pattern" not in item.tags
+        assert item.pattern is None
+        assert item.tags["formality"] == "casual", "an empty key nobody edited is still filled"
+        assert item.formality == "casual"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("ai_type", "subtype"),
+        [("t-shirt", None), ("blouse", "crew-neck")],
+        ids=["other-type", "same-type"],
+    )
+    async def test_a_subtype_is_only_taken_from_an_analysis_that_saw_the_items_type(
+        self, db_session, test_user, stub_ai, item_image, ai_type, subtype
+    ):
+        # The state a type change that dropped the old subtype leaves behind.
+        item = await _make_item(
+            db_session,
+            test_user,
+            type="blouse",
+            image_path=str(item_image),
+            tags={"user_edited_keys": ["type"]},
+        )
+        stub_ai(_ai_tags(type=ai_type, subtype="crew-neck"))
+
+        with (
+            patch("app.workers.tagging.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", new_callable=AsyncMock),
+        ):
+            await tagging.tag_item_image({}, str(item.id), str(item_image))
+
+        await db_session.refresh(item)
+        assert item.type == "blouse"
+        assert item.subtype == subtype

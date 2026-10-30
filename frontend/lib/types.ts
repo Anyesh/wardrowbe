@@ -16,6 +16,8 @@ export interface ItemTags {
   size?: string;
   care_instructions?: string;
   source_url?: string;
+  // Tag keys changed by hand. Maintained by the server; "re-analyse and replace" leaves these alone.
+  user_edited_keys?: string[];
 }
 
 export interface Item {

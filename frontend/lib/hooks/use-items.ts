@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { api, API_BASE_PATH, getAccessToken, ApiError, NetworkError } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
+import { applyItemEdits, type ItemEdits } from '@/lib/tag-edits';
 import { chunkArray } from '@/lib/utils';
 import { enqueueFiles } from '@/lib/upload-queue';
 import { startDrain } from '@/lib/upload-manager';
@@ -17,6 +18,7 @@ import {
 } from '@/lib/hooks/cache-invalidation';
 import { processingPollInterval } from '@/lib/hooks/query-timing';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
+import { BulkBatchResponse, drainCursor, mergeBulkBatches } from '@/lib/bulk-batches';
 import { fetchBulkUploadLimit } from '@/lib/hooks/use-features';
 
 // Capped at the server's max_bulk_upload_count from /health/features, because a
@@ -31,15 +33,10 @@ function itemListQuery(filters: ItemFilter, page: number, pageSize: number) {
         page: String(page),
         page_size: String(pageSize),
       };
-      if (filters.type) params.type = filters.type;
-      if (filters.colors?.length) params.colors = filters.colors.join(',');
-      if (filters.search) params.search = filters.search;
-      if (filters.favorite !== undefined) params.favorite = String(filters.favorite);
-      if (filters.needs_wash !== undefined) params.needs_wash = String(filters.needs_wash);
-      if (filters.is_archived !== undefined) params.is_archived = String(filters.is_archived);
-      if (filters.sort_by) params.sort_by = filters.sort_by;
-      if (filters.sort_order) params.sort_order = filters.sort_order;
-      if (filters.ids) params.ids = filters.ids;
+      for (const [key, value] of Object.entries(filters)) {
+        if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)) continue;
+        params[key] = Array.isArray(value) ? value.join(',') : String(value);
+      }
 
       return api.get<ItemListResponse>('/items', { params });
     },
@@ -172,7 +169,8 @@ export function useUpdateItem() {
   const { data: session } = useSession();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Item> }) => {
+    meta: { toastsOwnErrors: true },
+    mutationFn: async ({ id, data }: { id: string; data: ItemEdits }) => {
       applySessionToken(session);
       return api.patch<Item>(`/items/${id}`, data);
     },
@@ -187,12 +185,12 @@ export function useUpdateItem() {
         if (!old) return old;
         return {
           ...old,
-          items: old.items.map((item) => (item.id === id ? { ...item, ...data } : item)),
+          items: old.items.map((item) => (item.id === id ? applyItemEdits(item, data) : item)),
         };
       });
 
       if (previousItemData) {
-        queryClient.setQueryData<Item>(queryKeys.item(id), { ...previousItemData, ...data });
+        queryClient.setQueryData<Item>(queryKeys.item(id), applyItemEdits(previousItemData, data));
       }
 
       return { previousListData, previousItemData };
@@ -627,43 +625,15 @@ export interface BulkDeleteResponse extends BulkBatchResponse {
   failed: number;
 }
 
+export type BulkItemFilters = Omit<ItemFilter, 'sort_by' | 'sort_order' | 'ids'>;
+
 export interface BulkOperationParams {
   // Either provide explicit item_ids, or use select_all with excluded_ids
   item_ids?: string[];
   select_all?: boolean;
   excluded_ids?: string[];
   // Filters to apply when using select_all (to match the current view)
-  filters?: {
-    type?: string;
-    search?: string;
-    needs_wash?: boolean;
-    favorite?: boolean;
-    is_archived?: boolean;
-  };
-}
-
-interface BulkBatchResponse {
-  errors: string[];
-  next_cursor?: string | null;
-  has_more?: boolean;
-}
-
-// The server caps how many items one bulk request touches. An explicit id list
-// is ours to keep under the cap, but a select_all is only filters here, so the
-// server walks it and hands back a cursor for the next batch.
-const MAX_BULK_BATCHES = 200;
-
-function mergeBulkBatches<T extends BulkBatchResponse>(
-  acc: T,
-  batch: T,
-  sumKeys: (keyof T)[]
-): T {
-  const merged = { ...acc, ...batch } as T;
-  for (const key of sumKeys) {
-    merged[key] = ((acc[key] as number) + (batch[key] as number)) as T[keyof T];
-  }
-  merged.errors = [...acc.errors, ...batch.errors];
-  return merged;
+  filters?: BulkItemFilters;
 }
 
 const BULK_ACTION_LIMIT_ERROR = /^Maximum (\d+) items per bulk action$/;
@@ -700,22 +670,6 @@ async function drainIdList<T extends BulkBatchResponse>(
   }
 
   return results.reduce((acc, result) => mergeBulkBatches(acc, result, sumKeys));
-}
-
-async function drainCursor<T extends BulkBatchResponse>(
-  path: string,
-  params: BulkOperationParams,
-  sumKeys: (keyof T)[]
-): Promise<T> {
-  let batch = await api.post<T>(path, params);
-  let merged = batch;
-
-  for (let i = 0; batch.has_more && batch.next_cursor && i < MAX_BULK_BATCHES; i++) {
-    batch = await api.post<T>(path, { ...params, after_id: batch.next_cursor });
-    merged = mergeBulkBatches(merged, batch, sumKeys);
-  }
-
-  return merged;
 }
 
 export async function drainBulkAction<T extends BulkBatchResponse>(

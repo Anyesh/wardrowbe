@@ -268,6 +268,8 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
             # same loop would otherwise make the guard for the later two fields see the
             # already-updated status and skip them even outside of a race.
             was_pending = item.tagging_status == TaggingStatus.pending
+            # Keys the person set or cleared by hand; an empty one stays empty.
+            kept = set((item.tags or {}).get("user_edited_keys") or [])
 
             for field, value in ai_fields.items():
                 # An item archived while its analysis ran (split into new items, for one)
@@ -296,7 +298,7 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                     # so an earlier run's score must not survive the fill below.
                     merged.pop("logprobs_confidence", None)
                     for key, val in (value or {}).items():
-                        if val in (None, [], "", {}):
+                        if val in (None, [], "", {}) or key in kept:
                             continue
                         if merged.get(key) in (None, [], "", {}):
                             merged[key] = val
@@ -304,12 +306,16 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                 elif field in ("tagging_status", "tagged_by", "tagged_at"):
                     if was_pending:
                         setattr(item, field, value)
+                elif field in kept:
+                    continue
                 # Only update content fields if user hasn't set them (or they're default/unknown)
                 elif field == "type":
                     if not item.type or item.type == "unknown":
                         setattr(item, field, value)
                 elif field == "subtype":
-                    if not item.subtype:
+                    # A subtype only fits the type it was seen as ("crew-neck" on a T-shirt the
+                    # person has since made a blouse).
+                    if not item.subtype and item.type == ai_fields["type"]:
                         setattr(item, field, value)
                 elif field == "primary_color":
                     if not item.primary_color or item.primary_color == "unknown":

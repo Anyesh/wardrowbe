@@ -59,7 +59,7 @@ from app.schemas.item import (
     WashHistoryResponse,
 )
 from app.services.image_service import ImageService
-from app.services.item_service import ItemService
+from app.services.item_service import ItemService, TagVocabularyError
 from app.utils.auth import get_current_user
 from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
@@ -108,12 +108,9 @@ async def _resolve_bulk_item_ids(
             )
         return item_ids, None, False
 
-    filters = request.filters
     item_ids = await item_service.get_ids_by_filter(
         user_id=user_id,
-        type_filter=filters.type if filters else None,
-        search=filters.search if filters else None,
-        is_archived=filters.is_archived if filters and filters.is_archived is not None else False,
+        filters=request.filters,
         excluded_ids=list(request.excluded_ids) if request.excluded_ids else None,
         after_id=request.after_id,
         limit=limit + 1,
@@ -159,8 +156,8 @@ async def list_items(
         type=type,
         subtype=subtype,
         colors=color_list,
-        status=status,
-        tagging_status=tagging_status,
+        status=status or None,
+        tagging_status=tagging_status or None,
         favorite=favorite,
         needs_wash=needs_wash,
         is_archived=is_archived,
@@ -1294,7 +1291,13 @@ async def update_item(
         item.tagged_by = TaggedBy.manual
         item.tagged_at = datetime.now(UTC)
 
-    item = await item_service.update(item, item_data)
+    try:
+        item = await item_service.update(item, item_data)
+    except TagVocabularyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"message": str(e), "error_code": "INVALID_TAG_VALUE"},
+        ) from e
     return ItemResponse.model_validate(item)
 
 
