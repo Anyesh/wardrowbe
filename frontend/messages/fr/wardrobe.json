@@ -277,6 +277,14 @@
     "description": "Repérez chaque vêtement de cette photo et créez un article distinct pour chacun.",
     "detectFailed": "L'IA n'a pas pu examiner cette photo.",
     "detecting": "Recherche des vêtements…",
+    "errors": {
+      "aiUnreachable": "Le service d'IA est injoignable. Réessayez, ou ajoutez un cadre pour chaque vêtement.",
+      "imageNotFound": "La photo de cet article est introuvable.",
+      "rateLimited": "Trop d'essais en peu de temps. Attendez une minute, puis réessayez.",
+      "sourceArchived": "Cet article est déjà archivé, sa photo ne peut donc plus être divisée.",
+      "sourceBusy": "Cette photo est encore en cours de rotation ou de suppression de l'arrière-plan. Réessayez une fois l'opération terminée.",
+      "visionDisabled": "La détection automatique des vêtements est désactivée. Ajoutez un cadre pour chaque vêtement."
+    },
     "hint": "Faites glisser un cadre pour le déplacer, ou un coin pour le redimensionner.",
     "noneFound": "Aucun vêtement n'a été trouvé. Ajoutez un cadre et glissez-le sur un vêtement.",
     "photoAlt": "La photo à diviser",

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SplitPhotoDialog } from '@/components/split-photo-dialog'
-import { ApiError, api } from '@/lib/api'
+import { ApiError, NetworkError, api } from '@/lib/api'
 import { createQueryClient } from '@/lib/query-client'
 import { MAX_BOXES } from '@/lib/split-boxes'
 
@@ -23,6 +23,9 @@ const garment = (left: number, top: number, type = 'shirt') => ({
   width: 0.3,
   height: 0.3,
 })
+
+const coded = (status: number, error_code: string, message = 'Raw server text') =>
+  new ApiError(message, status, { detail: { message, error_code } })
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -176,36 +179,53 @@ describe('SplitPhotoDialog', () => {
     expect(toast.success).toHaveBeenCalled()
   })
 
-  it('keeps the dialog open and says so when creating fails', async () => {
+  it.each([
+    { name: 'an archived source', error: coded(409, 'SOURCE_ARCHIVED'), text: 'errors.sourceArchived' },
+    { name: 'a source with a job running', error: coded(409, 'SOURCE_BUSY'), text: 'errors.sourceBusy' },
+    { name: 'a missing photo', error: coded(404, 'IMAGE_NOT_FOUND'), text: 'errors.imageNotFound' },
+    { name: 'an uncoded 404', error: new ApiError('Item not found', 404, { detail: 'Item not found' }), text: 'createFailed' },
+    { name: 'no connection', error: new NetworkError(), text: 'createFailed' },
+    { name: 'an unexpected error', error: new Error('boom'), text: 'createFailed' },
+    { name: 'a signed-out session', error: new ApiError('Not authenticated', 401, {}), text: null },
+  ])('keeps the dialog open and shows one translated toast when creating fails ($name)', async ({ error, text }) => {
     vi.mocked(api.post)
       .mockResolvedValueOnce({ garments: [garment(0.1, 0.1)] })
-      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValueOnce(error)
     const { onClose, onDone } = renderDialog()
     await screen.findByTestId('split-box-1')
 
     fireEvent.click(screen.getByRole('button', { name: 'create' }))
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalled())
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'create' })).toBeEnabled())
+    if (text) {
+      expect(toast.error).toHaveBeenCalledTimes(1)
+      expect(toast.error).toHaveBeenCalledWith(text)
+    } else {
+      expect(toast.error).not.toHaveBeenCalled()
+    }
     expect(onClose).not.toHaveBeenCalled()
     expect(onDone).not.toHaveBeenCalled()
     expect(screen.getByTestId('split-box-1')).toBeInTheDocument()
   })
 
   it.each([
-    {
-      name: 'an unreachable AI',
-      error: new ApiError('AI service is unreachable', 502, {
-        detail: { message: 'AI service is unreachable', error_code: 'AI_UNREACHABLE' },
-      }),
-      text: 'detectFailed',
-    },
-  ])('shows a detection failure inline, without a toast ($name)', async ({ error, text }) => {
+    { name: 'vision switched off', error: coded(503, 'AI_VISION_DISABLED'), text: 'errors.visionDisabled', retry: false },
+    { name: 'an unreachable AI', error: coded(502, 'AI_UNREACHABLE'), text: 'errors.aiUnreachable', retry: true },
+    { name: 'a missing photo', error: coded(404, 'IMAGE_NOT_FOUND'), text: 'errors.imageNotFound', retry: true },
+    { name: 'the rate limit', error: new ApiError('Too many requests', 429, { detail: 'Too many requests' }), text: 'errors.rateLimited', retry: true },
+    { name: 'an uncoded server error', error: new ApiError('Internal Server Error', 500, {}), text: 'detectFailed', retry: true },
+  ])('shows a detection failure inline, without a toast ($name)', async ({ error, text, retry }) => {
     vi.mocked(api.post).mockRejectedValueOnce(error)
     renderDialog()
 
     expect(await screen.findByText(text)).toBeInTheDocument()
     expect(toast.error).not.toHaveBeenCalled()
     expect(api.post).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('Raw server text')).not.toBeInTheDocument()
+    if (retry) expect(screen.getByRole('button', { name: 'retry' })).toBeInTheDocument()
+    else expect(screen.queryByRole('button', { name: 'retry' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'addBox' })).toBeEnabled()
   })
 
   it('offers a retry when the AI cannot be reached, and keeps boxes drawn by hand', async () => {

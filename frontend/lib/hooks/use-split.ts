@@ -44,6 +44,7 @@ export function useSplitItem() {
   const { data: session } = useSession();
 
   return useMutation({
+    meta: { toastsOwnErrors: true },
     mutationFn: async ({ itemId, boxes }: { itemId: string; boxes: Box[] }) => {
       applySessionToken(session);
       return api.post<SplitResponse>(`/items/${itemId}/split`, {

@@ -277,6 +277,14 @@
     "description": "找出這張照片中的每件衣物，並為每件建立獨立的單品。",
     "detectFailed": "AI 無法檢視這張照片。",
     "detecting": "正在尋找衣物…",
+    "errors": {
+      "aiUnreachable": "無法連線到 AI 服務。請重試，或為每件衣物新增一個框。",
+      "imageNotFound": "找不到這件單品的照片。",
+      "rateLimited": "短時間內嘗試次數過多。請稍候一分鐘再試。",
+      "sourceArchived": "這件單品已封存，無法再次拆分它的照片。",
+      "sourceBusy": "這張照片仍在旋轉或移除背景中。完成後再試。",
+      "visionDisabled": "自動辨識衣物已關閉。請為每件衣物新增一個框。"
+    },
     "hint": "拖動框可移動，拖動角可調整大小。",
     "noneFound": "找不到衣物。新增一個框並拖到衣物上。",
     "photoAlt": "要拆分的照片",

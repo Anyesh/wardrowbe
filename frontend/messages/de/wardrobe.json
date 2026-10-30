@@ -277,6 +277,14 @@
     "description": "Findet jedes Kleidungsstück auf diesem Foto und legt daraus je einen eigenen Artikel an.",
     "detectFailed": "Die KI konnte dieses Foto nicht ansehen.",
     "detecting": "Kleidungsstücke werden gesucht…",
+    "errors": {
+      "aiUnreachable": "Der KI-Dienst ist nicht erreichbar. Versuche es erneut oder füge für jedes Kleidungsstück einen Rahmen hinzu.",
+      "imageNotFound": "Das Foto dieses Artikels wurde nicht gefunden.",
+      "rateLimited": "Zu viele Versuche in kurzer Zeit. Warte eine Minute und versuche es dann erneut.",
+      "sourceArchived": "Dieser Artikel ist bereits archiviert, daher kann sein Foto nicht erneut aufgeteilt werden.",
+      "sourceBusy": "Dieses Foto wird noch gedreht oder sein Hintergrund wird entfernt. Versuche es erneut, sobald das fertig ist.",
+      "visionDisabled": "Die automatische Erkennung von Kleidungsstücken ist ausgeschaltet. Füge für jedes Kleidungsstück einen Rahmen hinzu."
+    },
     "hint": "Ziehe einen Rahmen, um ihn zu verschieben, oder eine Ecke, um die Größe zu ändern.",
     "noneFound": "Es wurden keine Kleidungsstücke gefunden. Füge einen Rahmen hinzu und ziehe ihn über ein Kleidungsstück.",
     "photoAlt": "Das Foto zum Aufteilen",
