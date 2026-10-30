@@ -17,9 +17,11 @@ from app.services.ai_service import (
     VALID_TYPES,
 )
 from app.services.item_scorer import (
+    COLD_EXPOSED_TYPES,
     FORMALITY_ORDER,
     HEAVY_LAYER_MATERIALS,
     HEAVY_LAYER_TYPES,
+    HOT_PENALTY_TYPES,
     OCCASION_FORMALITY,
     RAIN_LAYER_TYPES,
     WARM_LAYER_TYPES,
@@ -173,7 +175,13 @@ def test_scorer_formality_scale_is_the_validated_vocabulary():
 
 
 def test_scorer_layer_types_are_real_types():
-    scorer_types = RAIN_LAYER_TYPES | WARM_LAYER_TYPES | HEAVY_LAYER_TYPES
+    scorer_types = (
+        RAIN_LAYER_TYPES
+        | WARM_LAYER_TYPES
+        | HEAVY_LAYER_TYPES
+        | COLD_EXPOSED_TYPES
+        | HOT_PENALTY_TYPES
+    )
     assert scorer_types <= VALID_TYPES
 
 

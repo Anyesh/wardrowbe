@@ -92,8 +92,9 @@ class TestWeatherScore:
         item = _item(type="coat")
         assert _weather_score(item, _weather(temp=5), None) == 1.0
 
-    def test_cold_shorts_scores_low(self):
-        item = _item(type="shorts")
+    @pytest.mark.parametrize("item_type", ["shorts", "tank-top", "sandals", "camisole"])
+    def test_cold_exposed_type_scores_low(self, item_type):
+        item = _item(type=item_type)
         assert _weather_score(item, _weather(temp=5), None) == 0.05
 
     def test_hot_cotton_scores_high(self):
@@ -119,8 +120,11 @@ class TestWeatherScore:
         item = _item(type="shirt", material="wool")
         assert _weather_score(item, _weather(temp=5), None) == 1.0
 
-    def test_hot_sweater_scores_low(self):
-        item = _item(type="sweater")
+    @pytest.mark.parametrize(
+        ("item_type", "material"), [("sweater", None), ("sweatshirt", "fleece"), ("boots", None)]
+    )
+    def test_hot_heavy_type_scores_low(self, item_type, material):
+        item = _item(type=item_type, material=material)
         assert _weather_score(item, _weather(temp=30), None) == 0.05
 
     def test_cold_regular_shirt(self):
@@ -280,6 +284,13 @@ class TestWeatherScoreRealItemTypes:
             assert _weather_score(item, _weather(temp=30, precipitation=60), None) == pytest.approx(
                 0.15
             )
+
+    def test_rain_boosts_a_poncho(self):
+        item = _item(type="poncho")
+        dry = _weather_score(item, _weather(temp=30), None)
+        wet = _weather_score(item, _weather(temp=30, precipitation=60), None)
+        assert dry < 1.0
+        assert wet > dry
 
     def test_blazer_gets_no_rain_boost(self):
         item = _item(type="blazer")
