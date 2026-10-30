@@ -109,9 +109,14 @@ describe('diffTags', () => {
     expect(diffTags(tags, draft, 'navy')).toEqual({ style: ['preppy', 'classic'], season: [] })
   })
 
-  it('treats a list in a different order as a change', () => {
+  it('does not treat a style or season list in a different order as a change', () => {
     const draft = { ...draftFromTags(tags), season: ['summer', 'spring'] }
-    expect(diffTags(tags, draft, 'navy')).toEqual({ season: ['summer', 'spring'] })
+    expect(diffTags(tags, draft, 'navy')).toEqual({})
+  })
+
+  it('sends a changed season list in the order the editor shows it', () => {
+    const draft = { ...draftFromTags(tags), season: ['summer', 'fall', 'spring'] }
+    expect(diffTags(tags, draft, 'navy')).toEqual({ season: ['summer', 'fall', 'spring'] })
   })
 
   it('adds a secondary colour after the primary', () => {

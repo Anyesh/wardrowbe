@@ -57,6 +57,13 @@ function sameList(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((value, i) => value === b[i]);
 }
 
+// Style and season chips toggle in place, so switching one off and on again reorders the list
+// without changing it; only colours carry meaning in their order.
+function sameSet(a: readonly string[], b: readonly string[]): boolean {
+  const inB = new Set(b);
+  return new Set(a).size === inB.size && a.every((value) => inB.has(value));
+}
+
 // The colours of an item, primary first, each colour once.
 export function colorsFrom(primary: string | undefined, extraColors: readonly string[]): string[] {
   return Array.from(new Set([primary, ...extraColors].filter((c): c is string => !!c)));
@@ -77,8 +84,8 @@ export function diffTags(
   for (const key of SINGLE_VALUE_KEYS) {
     if (draft[key] !== (original[key] ?? null)) changes[key] = draft[key];
   }
-  if (!sameList(draft.style, original.style ?? [])) changes.style = draft.style;
-  if (!sameList(draft.season, original.season ?? [])) changes.season = draft.season;
+  if (!sameSet(draft.style, original.style ?? [])) changes.style = draft.style;
+  if (!sameSet(draft.season, original.season ?? [])) changes.season = draft.season;
 
   const colors = colorsFrom(primary, draft.extraColors);
   const originalExtras = draftFromTags(original, currentPrimary).extraColors;
