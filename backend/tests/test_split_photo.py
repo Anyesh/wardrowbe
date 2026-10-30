@@ -490,21 +490,48 @@ class TestSplitEndpoint:
         assert len(new) == 2 and all(i.status == ItemStatus.ready for i in new)
 
     @pytest.mark.asyncio
-    async def test_redis_down_still_creates_the_items(
-        self, client: AsyncClient, db_session: AsyncSession, test_user, auth_headers
+    @pytest.mark.parametrize(
+        ("pool_error", "enqueue_errors", "expected_jobs"),
+        [
+            (ConnectionError, [], [None, None]),
+            (None, [None, ConnectionError, None], ["job-1", None, "job-1"]),
+        ],
+        ids=["redis-down", "one-enqueue-fails"],
+    )
+    async def test_a_queueing_failure_still_creates_the_items(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        test_user,
+        auth_headers,
+        pool_error,
+        enqueue_errors,
+        expected_jobs,
     ):
         source = await _make_item(db_session, test_user)
+        redis = _redis()
+        job = redis.enqueue_job.return_value
+        redis.enqueue_job.side_effect = [error or job for error in enqueue_errors] or None
+        boxes = [{"left": 0.3 * i, "top": 0.1, "width": 0.25, "height": 0.5} for i in range(3)]
 
         with (
             patch("app.api.split.settings", _vision(True)),
-            patch("app.api.split.create_pool", AsyncMock(side_effect=ConnectionError)),
+            patch(
+                "app.api.split.create_pool", AsyncMock(side_effect=pool_error, return_value=redis)
+            ),
         ):
             response = await client.post(
-                f"/api/v1/items/{source.id}/split", json={"boxes": BOXES}, headers=auth_headers
+                f"/api/v1/items/{source.id}/split",
+                json={"boxes": boxes[: len(expected_jobs)]},
+                headers=auth_headers,
             )
 
         assert response.status_code == 201
-        assert len(response.json()["item_ids"]) == 2
+        ids = response.json()["item_ids"]
+        assert redis.enqueue_job.await_count == len(enqueue_errors)
+        by_id = {str(i.id): i for i in await _all_items(db_session, test_user)}
+        assert [by_id[i].ai_job_id for i in ids] == expected_jobs
+        assert all(by_id[i].status == ItemStatus.processing for i in ids)
 
     @pytest.mark.asyncio
     async def test_a_failure_part_way_creates_nothing_and_removes_the_files(

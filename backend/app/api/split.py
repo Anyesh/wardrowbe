@@ -240,15 +240,16 @@ async def _start_tagging(
         return
     try:
         for item in items:
-            job = await redis.enqueue_job(
-                "tag_item_image",
-                str(item.id),
-                str(image_service.get_image_path(item.image_path)),
-                _queue_name=TAGGING_QUEUE,
-            )
-            item.ai_job_id = job.job_id
-        await db.commit()
-    except Exception as e:
-        logger.error(f"Failed to queue tagging for split items: {e}")
+            try:
+                job = await redis.enqueue_job(
+                    "tag_item_image",
+                    str(item.id),
+                    str(image_service.get_image_path(item.image_path)),
+                    _queue_name=TAGGING_QUEUE,
+                )
+                item.ai_job_id = job.job_id
+                await db.commit()
+            except Exception as e:
+                logger.error(f"Failed to queue tagging for split item {item.id}: {e}")
     finally:
         await redis.aclose()
