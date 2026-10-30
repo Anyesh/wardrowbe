@@ -1,0 +1,17 @@
+{
+  "aiError": "L'IA non è riuscita a leggere la foto. Riprova tra poco.",
+  "aiOff": "L'IA è disattivata su questo server.",
+  "checkHint": "Tocca per togliere quelli che l'IA ha sbagliato.",
+  "confirm": "{count, plural, =0 {Segna come indossati oggi} one {Segna # capo come indossato oggi} other {Segna # capi come indossati oggi}}",
+  "found": "{count, plural, one {Trovato # capo tuo} other {Trovati # capi tuoi}}",
+  "noneFound": "Non ho riconosciuto capi del tuo guardaroba.",
+  "photoAlt": "La foto del tuo outfit",
+  "pick": "Scatta o scegli una foto",
+  "pickHint": "Funziona meglio una foto a figura intera allo specchio.",
+  "saveError": "Salvataggio non riuscito. Riprova.",
+  "saved": "{count, plural, one {# capo segnato come indossato} other {# capi segnati come indossati}}",
+  "savedButton": "Segnati come indossati",
+  "subtitle": "Fai una foto allo specchio: l'IA riconosce i tuoi capi e li segni come indossati.",
+  "title": "Selfie outfit",
+  "working": "L'IA sta guardando il tuo outfit… può volerci fino a un minuto."
+}

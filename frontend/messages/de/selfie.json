@@ -1,0 +1,17 @@
+{
+  "aiError": "Die KI konnte das Foto nicht lesen. Versuch es gleich noch einmal.",
+  "aiOff": "Die KI ist auf diesem Server ausgeschaltet.",
+  "checkHint": "Tippe, um falsch erkannte Teile abzuwählen.",
+  "confirm": "{count, plural, =0 {Heute als getragen markieren} one {# Teil heute als getragen markieren} other {# Teile heute als getragen markieren}}",
+  "found": "{count, plural, one {# Teil von dir gefunden} other {# Teile von dir gefunden}}",
+  "noneFound": "Keine Kleidung aus deinem Schrank erkannt.",
+  "photoAlt": "Dein Outfit-Foto",
+  "pick": "Foto aufnehmen oder auswählen",
+  "pickHint": "Am besten ein Ganzkörperfoto im Spiegel.",
+  "saveError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+  "saved": "{count, plural, one {# Teil als getragen markiert} other {# Teile als getragen markiert}}",
+  "savedButton": "Als getragen markiert",
+  "subtitle": "Mach ein Spiegelfoto: Die KI erkennt deine Kleidung und du markierst sie als getragen.",
+  "title": "Outfit-Selfie",
+  "working": "Die KI schaut sich dein Outfit an… das kann bis zu einer Minute dauern."
+}
