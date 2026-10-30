@@ -326,14 +326,8 @@ class ItemService:
             # Checked before the reorder below, which writes a list the client never sent.
             client_sent_colors = "colors" in update_data or "colors" in incoming
             _keep_colours_in_step(update_data, incoming, current, existing)
-            # Style and season may keep an off-list value the item already has.
             try:
-                incoming.update(
-                    normalize_tag_edits(
-                        {k: incoming[k] for k in ("style", "season") if k in incoming},
-                        existing,
-                    )
-                )
+                incoming.update(normalize_tag_edits(incoming, existing))
             except ValueError as e:
                 raise TagVocabularyError(str(e)) from e
 

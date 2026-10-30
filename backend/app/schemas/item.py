@@ -3,14 +3,13 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from app.models.item import ItemStatus, ProcessingKind, TaggingStatus
 from app.schemas.color import ColorList, ColorName
 from app.schemas.outfit import Occasion
 from app.utils.garment_vocabulary import DEFAULT_WASH_INTERVALS
 from app.utils.signed_urls import sign_image_url, sign_optional
-from app.utils.tag_validation import normalize_tag_edits
 
 
 class ItemTags(BaseModel):
@@ -65,19 +64,6 @@ class ItemUpdate(BaseModel):
     colors: ColorList | None = None
     primary_color: ColorName | None = None
     wash_interval: int | None = None
-
-    @field_validator("tags")
-    @classmethod
-    def _check_tag_vocabulary(cls, tags: ItemTags | None) -> ItemTags | None:
-        # Only the tags actually sent are checked and cleaned (see normalize_tag_edits).
-        if tags is not None:
-            edited = tags.model_dump(include=tags.model_fields_set)
-            # Style and season are checked by ItemService.update, which knows the item's current
-            # values (an old off-list value already on the item may stay).
-            for key, value in normalize_tag_edits(edited, check_lists=False).items():
-                if value != edited[key]:
-                    setattr(tags, key, value)
-        return tags
 
 
 class ItemResponse(ItemBase):

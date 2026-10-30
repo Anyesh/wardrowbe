@@ -145,12 +145,12 @@ class TestTagsMergeOnUpdate:
 
     @pytest.mark.asyncio
     async def test_update_overwrites_keys_that_are_sent(self, db_session, test_user):
-        item = await _make_item(db_session, test_user, tags={"material": "100% Cotton"})
+        item = await _make_item(db_session, test_user, tags={"material": "cotton"})
         service = ItemService(db_session)
 
-        updated = await service.update(item, ItemUpdate(tags=ItemTags(material="100% Linen")))
+        updated = await service.update(item, ItemUpdate(tags=ItemTags(material="linen")))
 
-        assert updated.tags["material"] == "100% Linen"
+        assert updated.tags["material"] == "linen"
 
     @pytest.mark.asyncio
     async def test_explicit_null_clears_one_key(self, db_session, test_user):
@@ -187,10 +187,10 @@ class TestTagsMergeOnUpdate:
         item = await _make_item(db_session, test_user)
         service = ItemService(db_session)
 
-        updated = await service.update(item, ItemUpdate(tags=ItemTags(material="100% Silk")))
+        updated = await service.update(item, ItemUpdate(tags=ItemTags(material="silk")))
 
-        assert updated.material == "100% Silk"
-        assert updated.tags["material"] == "100% Silk"
+        assert updated.material == "silk"
+        assert updated.tags["material"] == "silk"
 
 
 # --------------------------------------------------------------------------

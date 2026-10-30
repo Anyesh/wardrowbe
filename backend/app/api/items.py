@@ -1294,7 +1294,10 @@ async def update_item(
     try:
         item = await item_service.update(item, item_data)
     except TagVocabularyError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"message": str(e), "error_code": "INVALID_TAG_VALUE"},
+        ) from e
     return ItemResponse.model_validate(item)
 
 

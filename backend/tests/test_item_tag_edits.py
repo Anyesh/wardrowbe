@@ -2,13 +2,11 @@
 
 import pytest
 from httpx import AsyncClient
-from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.item import ClothingItem, ItemStatus
-from app.schemas.item import ItemUpdate
-from app.utils.garment_vocabulary import FITS, PATTERNS, SEASONS, STYLES
+from app.utils.garment_vocabulary import FITS, FORMALITY, MATERIALS, PATTERNS, SEASONS, STYLES
 from app.utils.tag_validation import normalize_tag_edits
 
 # --------------------------------------------------------------------------
@@ -66,14 +64,22 @@ class TestNormalizeTagEdits:
     def test_keys_not_sent_are_not_checked_or_added(self):
         assert normalize_tag_edits({"pattern": "solid"}) == {"pattern": "solid"}
 
-    def test_colours_material_and_free_text_keys_are_left_alone(self):
-        edits = {
-            "colors": ["Sea Foam"],
-            "primary_color": "Sea Foam",
-            "material": "100% Linen",
-            "size": "M",
-        }
+    def test_colours_and_free_text_keys_are_left_alone(self):
+        edits = {"colors": ["Sea Foam"], "primary_color": "Sea Foam", "size": "M"}
         assert normalize_tag_edits(edits) == edits
+
+    def test_material_is_a_closed_list(self):
+        assert normalize_tag_edits({"material": " Linen "}) == {"material": "linen"}
+        with pytest.raises(ValueError, match="material '100% Linen'"):
+            normalize_tag_edits({"material": "100% Linen"})
+
+    def test_an_off_list_value_the_item_has_is_kept_exactly_as_stored(self):
+        cleaned = normalize_tag_edits({"material": "100% linen "}, {"material": "100% Linen"})
+        assert cleaned == {"material": "100% Linen"}
+
+    def test_none_is_not_a_pattern_on_an_item_without_one(self):
+        with pytest.raises(ValueError, match="pattern 'none'"):
+            normalize_tag_edits({"pattern": "none"}, {})
 
     def test_rejects_every_unknown_value(self):
         with pytest.raises(ValueError) as error:
@@ -88,27 +94,21 @@ class TestNormalizeTagEdits:
         normalize_tag_edits(edits)
         assert edits == {"pattern": " Striped "}
 
-
-class TestItemUpdateSchema:
-    def test_cleans_only_the_tags_that_were_sent(self):
-        update = ItemUpdate(tags={"pattern": " Striped "})
-        assert update.tags.pattern == "striped"
-        assert update.model_dump(exclude_unset=True)["tags"] == {"pattern": "striped"}
-
-    def test_rejects_an_unknown_pattern(self):
-        with pytest.raises(ValidationError, match="pattern 'swirly'"):
-            ItemUpdate(tags={"pattern": "swirly"})
-
-    def test_a_missing_tags_object_is_fine(self):
-        assert ItemUpdate(name="x").tags is None
-
     @pytest.mark.parametrize(
         ("key", "values"),
-        [("pattern", PATTERNS), ("fit", FITS), ("style", STYLES), ("season", SEASONS)],
+        [
+            ("pattern", PATTERNS),
+            ("material", MATERIALS),
+            ("formality", FORMALITY),
+            ("fit", FITS),
+            ("style", STYLES),
+            ("season", SEASONS),
+        ],
     )
     def test_every_vocabulary_value_is_accepted(self, key, values):
         for value in values:
-            ItemUpdate(tags={key: [value] if key in ("style", "season") else value})
+            edit = {key: [value] if key in ("style", "season") else value}
+            assert normalize_tag_edits(edit) == edit
 
 
 # --------------------------------------------------------------------------
@@ -150,14 +150,26 @@ class TestPatchTags:
         assert (await _reload(db_session, item.id)).tags == {"pattern": "solid", "size": "M"}
 
     @pytest.mark.asyncio
-    async def test_unknown_value_is_rejected_and_nothing_changes(
-        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    @pytest.mark.parametrize(
+        "tags",
+        [
+            {"pattern": "swirly"},
+            {"pattern": "none"},
+            {"style": ["goth"]},
+            {"material": "unobtainium"},
+            {"material": "x" * 60},
+        ],
+        ids=["pattern", "pattern-none", "style", "material", "long-material"],
+    )
+    async def test_unknown_value_is_rejected_with_a_code_and_nothing_changes(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession, tags
     ):
         item = await _make_item(db_session, test_user, tags={"pattern": "solid"}, pattern="solid")
 
-        response = await _patch(client, auth_headers, item.id, {"tags": {"pattern": "swirly"}})
+        response = await _patch(client, auth_headers, item.id, {"tags": tags})
 
         assert response.status_code == 422
+        assert response.json()["detail"]["error_code"] == "INVALID_TAG_VALUE"
         refreshed = await _reload(db_session, item.id)
         assert refreshed.tags == {"pattern": "solid"}
         assert refreshed.pattern == "solid"
@@ -168,7 +180,11 @@ class TestPatchTags:
     ):
         # Rows tagged before the vocabulary settled can hold values it no longer lists.
         item = await _make_item(
-            db_session, test_user, tags={"pattern": "paisley", "fit": "regular"}, pattern="paisley"
+            db_session,
+            test_user,
+            tags={"pattern": "paisley", "material": "100% Linen", "fit": "regular"},
+            pattern="paisley",
+            material="100% Linen",
         )
 
         response = await _patch(client, auth_headers, item.id, {"tags": {"fit": "slim"}})
@@ -177,7 +193,32 @@ class TestPatchTags:
         refreshed = await _reload(db_session, item.id)
         assert refreshed.tags["pattern"] == "paisley"
         assert refreshed.pattern == "paisley"
+        assert refreshed.tags["material"] == "100% Linen"
         assert refreshed.tags["fit"] == "slim"
+
+    @pytest.mark.asyncio
+    async def test_an_old_off_list_value_sent_back_unchanged_is_left_as_it_was(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(
+            db_session,
+            test_user,
+            tags={"pattern": "paisley", "material": "100% Linen"},
+            pattern="paisley",
+            material="100% Linen",
+        )
+
+        response = await _patch(
+            client,
+            auth_headers,
+            item.id,
+            {"tags": {"pattern": "paisley", "material": "100% linen"}},
+        )
+
+        assert response.status_code == 200
+        refreshed = await _reload(db_session, item.id)
+        assert refreshed.tags == {"pattern": "paisley", "material": "100% Linen"}
+        assert refreshed.material == "100% Linen"
 
     @pytest.mark.asyncio
     async def test_stored_values_are_cleaned_in_json_and_column(
