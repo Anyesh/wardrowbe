@@ -39,4 +39,15 @@ describe('CLOTHING_SUBTYPES', () => {
 
     expect(clashes).toEqual(['socks → dress'])
   })
+
+  it('never offers a type as an example in the subtype field', () => {
+    const types = new Set<string>(CLOTHING_TYPES.map((t) => t.value))
+    const placeholder: string = JSON.parse(
+      readFileSync(resolve(__dirname, '..', 'messages', 'en', 'wardrobe.json'), 'utf8'),
+    ).itemDetail.placeholders.subtype
+    const examples = placeholder.replace(/^e\.g\.\s*/, '').split(',').map((word) => word.trim().toLowerCase())
+
+    expect(examples.length).toBeGreaterThan(1)
+    expect(examples.filter((word) => types.has(word))).toEqual([])
+  })
 })
