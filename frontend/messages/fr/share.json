@@ -1,0 +1,8 @@
+{
+  "button": "Partager",
+  "downloaded": "Image enregistrée",
+  "error": "Impossible de créer l'image.",
+  "footer": "Créé avec Wardrowbe",
+  "missingPhotos": "Certaines photos n'ont pas pu être chargées, l'image n'a donc pas été créée.",
+  "title": "Tenue {occasion}"
+}
