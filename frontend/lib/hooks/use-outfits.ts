@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
+import { BulkBatchResponse, drainCursor } from '@/lib/bulk-batches';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import type { FamilyRating, Outfit, OutfitStatus } from '@/lib/types';
 import { formatDateKey } from '@/lib/utils';
@@ -201,10 +202,9 @@ export function useDeleteOutfit() {
   });
 }
 
-export interface BulkDeleteOutfitsResponse {
+export interface BulkDeleteOutfitsResponse extends BulkBatchResponse {
   deleted: number;
   failed: number;
-  errors: string[];
 }
 
 export interface BulkOutfitOperationParams {
@@ -223,6 +223,12 @@ export function useBulkDeleteOutfits() {
   return useMutation({
     mutationFn: async (params: BulkOutfitOperationParams) => {
       applySessionToken(session);
+      if (params.select_all) {
+        return drainCursor<BulkDeleteOutfitsResponse>('/outfits/bulk/delete', params, [
+          'deleted',
+          'failed',
+        ]);
+      }
       return api.post<BulkDeleteOutfitsResponse>('/outfits/bulk/delete', params);
     },
     onMutate: async (params) => {
