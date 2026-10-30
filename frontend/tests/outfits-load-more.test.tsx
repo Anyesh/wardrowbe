@@ -108,3 +108,23 @@ describe('outfit search', () => {
     )
   })
 })
+
+describe('worn filter', () => {
+  it('asks for outfits with a wear date, whatever their status', async () => {
+    nav.params = new URLSearchParams('filter=worn')
+    vi.mocked(api.get).mockResolvedValue({
+      outfits: [],
+      total: 0,
+      page: 1,
+      page_size: 1,
+      has_more: false,
+    })
+
+    render(<OutfitsPage />, { wrapper })
+
+    await waitFor(() => expect(api.get).toHaveBeenCalled())
+    const params = vi.mocked(api.get).mock.calls[0][1]?.params
+    expect(params).toEqual(expect.objectContaining({ worn: 'true', is_lookbook: 'false' }))
+    expect(params).not.toHaveProperty('status')
+  })
+})
