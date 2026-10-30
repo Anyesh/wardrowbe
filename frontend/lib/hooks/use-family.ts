@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { Family, FamilyCreateResponse, JoinFamilyResponse, FamilyMember } from '@/lib/types';
@@ -14,15 +14,18 @@ export function useFamily() {
 
   return useQuery({
     queryKey: queryKeys.family,
-    queryFn: () => api.get<Family>('/families/me'),
+    queryFn: () =>
+      api.get<Family>('/families/me').catch((error) => {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }),
     enabled: status !== 'loading',
-    retry: false, // Don't retry on 404 (user not in family)
   });
 }
 
 // Matched by user id because a member's email can change under them, for example when a
 // verified sign-in reclaims it and parks this account on a placeholder address.
-export function useCurrentFamilyMember(family: Family | undefined): {
+export function useCurrentFamilyMember(family: Family | null | undefined): {
   member: FamilyMember | undefined;
   isPending: boolean;
   isError: boolean;

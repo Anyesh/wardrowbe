@@ -13,7 +13,7 @@ from app.models.user import User
 from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
 from app.utils.clothing import covered_regions, deduplicate_by_body_slot
 from app.utils.garment_vocabulary import render_outfit_prompt
-from app.utils.prompts import load_prompt
+from app.utils.prompts import load_prompt, picked_item_ids
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
@@ -248,19 +248,7 @@ class PairingService:
             item_type_map[item.id] = (item.type or "").lower()
 
         for pairing in pairings_data[:num_pairings]:
-            # Get item numbers from the pairing
-            selected_numbers = pairing.get("items", [])
-            valid_ids = []
-
-            for num in selected_numbers:
-                try:
-                    num_int = int(num)
-                    if num_int in number_map:
-                        valid_ids.append(number_map[num_int])
-                    else:
-                        logger.warning(f"AI selected invalid item number: {num}")
-                except (ValueError, TypeError):
-                    logger.warning(f"AI returned non-numeric item: {num}")
+            valid_ids = picked_item_ids(pairing.get("items"), number_map)
 
             # Ensure source item is included
             if source_item.id not in valid_ids:
