@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from app.models.outfit import Outfit
     from app.models.preference import UserPreference
     from app.models.schedule import Schedule
+    from app.models.webauthn import WebAuthnCredential
 
 
 class User(Base):
@@ -54,6 +55,12 @@ class User(Base):
     location_name: Mapped[str | None] = mapped_column(String(100))
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Argon2id hash for built-in sign-in; NULL for accounts that only sign in through OIDC,
+    # forward-auth or dev login.
+    password_hash: Mapped[str | None] = mapped_column(String(255))
+    # Instance administrator: the account /setup created, allowed to add other local accounts.
+    # Unrelated to role, which is the user's role in their family.
+    is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     body_measurements: Mapped[dict | None] = mapped_column(JSONB)
@@ -84,4 +91,7 @@ class User(Base):
     )
     learning_profile: Mapped[Optional["UserLearningProfile"]] = relationship(
         "UserLearningProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    passkeys: Mapped[list["WebAuthnCredential"]] = relationship(
+        "WebAuthnCredential", back_populates="user", cascade="all, delete-orphan"
     )

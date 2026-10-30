@@ -46,7 +46,7 @@ async function sessionToken(request: NextRequest): Promise<JWT | null> {
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
+  const { pathname } = request.nextUrl;
   if (pathname === LOGIN_PATH) {
     const response = NextResponse.next();
     if (request.nextUrl.searchParams.get('loggedOut') === '1') clearSessionCookies(request, response);
@@ -57,7 +57,12 @@ export async function middleware(request: NextRequest) {
   if (action !== null && action !== 'session') return NextResponse.next();
 
   const token = await sessionToken(request);
-  if (!token || belongsToRequest(token, request)) return NextResponse.next();
+  if (!token) {
+    // A page needs a session before any of it renders; the API checks its own token, and the
+    // session action answers signed out by itself.
+    return action === null ? redirectToLogin(request) : NextResponse.next();
+  }
+  if (belongsToRequest(token, request)) return NextResponse.next();
   if (!token.proxyUser) {
     // The login page offers OIDC or dev sign-in when the backend has no forward-auth secret, so a
     // frontend that has one would end each of those sessions with nothing on screen to say why.
@@ -73,26 +78,33 @@ export async function middleware(request: NextRequest) {
     // must never receive the previous user's backend token.
     response = NextResponse.json({});
   } else {
-    const login = request.nextUrl.clone();
-    login.pathname = '/login';
-    login.search = new URLSearchParams({ callbackUrl: `${pathname}${search}` }).toString();
-    response = NextResponse.redirect(login);
+    response = redirectToLogin(request);
   }
   clearSessionCookies(request, response);
   return response;
 }
 
+function redirectToLogin(request: NextRequest): NextResponse {
+  const { pathname, search } = request.nextUrl;
+  const login = request.nextUrl.clone();
+  login.pathname = LOGIN_PATH;
+  login.search = new URLSearchParams({ callbackUrl: `${pathname}${search}` }).toString();
+  return NextResponse.redirect(login);
+}
+
 // API routes are left out, because Next buffers the whole body of every matched non-GET request
 // before forwarding it, uploads included, and the backend refuses a switched proxy user itself.
 // NextAuth's routes are the exception, since its session action hands the backend token to the
-// browser. Static files (any path with an extension) carry no session and are left out too.
+// browser. Static files (any path with an extension) carry no session and are left out too, and
+// so are /setup (first-run account creation, which the backend closes once an account exists)
+// and /health (the container healthcheck).
 //
 // The logout route clears the session before sending the browser to /login?loggedOut=1, but a
 // session request still in flight in another tab sets the cookie again when it answers, so the
 // logged-out page clears it once more.
 export const config = {
   matcher: [
-    '/((?!api/|login|auth/logout|_next|.*\\..*).*)',
+    '/((?!api/|login|setup|health|auth/logout|_next|.*\\..*).*)',
     '/api/auth/:path*',
     { source: '/login', has: [{ type: 'query', key: 'loggedOut', value: '1' }] },
   ],

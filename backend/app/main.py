@@ -24,6 +24,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     warning = settings.validate_security()
     if warning:
         logger.error("Configuration: %s", warning)
+    passkey_warning = settings.webauthn_problem()
+    if passkey_warning:
+        logger.warning("Passkeys: %s", passkey_warning)
     logger.info("Auth mode: %s", settings.get_auth_mode())
     yield
     await engine.dispose()
@@ -59,6 +62,12 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=500)
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
+
+
+# Liveness probe outside /api/v1 for container healthchecks; says nothing about the install.
+@app.get("/health", include_in_schema=False)
+async def root_health() -> dict[str, str]:
+    return {"status": "healthy"}
 
 
 # Global exception handlers

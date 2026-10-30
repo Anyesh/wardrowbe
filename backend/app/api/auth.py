@@ -85,6 +85,7 @@ async def get_auth_config() -> AuthConfigResponse:
             if oidc_enabled
             else None,
         ),
+        local_auth=settings.local_auth_enabled,
         dev_mode=settings.dev_mode,
         forward_auth=forward_auth,
         mobile_notice=FORWARD_AUTH_ONLY_MOBILE_NOTICE

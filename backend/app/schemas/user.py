@@ -121,6 +121,7 @@ class AuthConfigOIDC(BaseModel):
 
 class AuthConfigResponse(BaseModel):
     oidc: AuthConfigOIDC
+    local_auth: bool = False
     dev_mode: bool = False
     forward_auth: bool = False
     mobile_notice: str | None = None
