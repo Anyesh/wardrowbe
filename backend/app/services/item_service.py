@@ -66,6 +66,22 @@ def _keep_colours_in_step(update_data: dict, incoming: dict, current: dict, exis
         update_data["colors"] = incoming["colors"]
 
 
+def _handed_back_to_the_ai(update_data: dict, incoming: dict, edited: list[str]) -> set[str]:
+    """Keys the person gave up on, which analysis may fill again.
+
+    "unknown" is how the form says "don't know" for the type (which cannot be empty) and the
+    primary colour; a subtype dropped because the type changed was the old type's.
+    """
+    keys = set()
+    if update_data.get("type") == "unknown":
+        keys.add("type")
+    if "unknown" in (update_data.get("primary_color"), incoming.get("primary_color")):
+        keys.add("primary_color")
+    if "subtype" in update_data and not update_data["subtype"] and "type" in edited:
+        keys.add("subtype")
+    return keys
+
+
 class ItemService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -307,6 +323,8 @@ class ItemService:
                 "colors": locked.colors,
             }
 
+            # Checked before the reorder below, which writes a list the client never sent.
+            client_sent_colors = "colors" in update_data or "colors" in incoming
             _keep_colours_in_step(update_data, incoming, current, existing)
             # Style and season may keep an off-list value the item already has.
             try:
@@ -341,11 +359,19 @@ class ItemService:
                 for key, val in incoming.items()
                 if key not in USER_TAG_KEYS and existing.get(key) != val
             ]
-            if edited:
-                merged["user_edited_keys"] = list(
-                    dict.fromkeys([*existing.get("user_edited_keys", []), *edited])
-                )
-            if incoming or edited:
+            if not client_sent_colors:
+                edited = [key for key in edited if key != "colors"]
+            unlocked = _handed_back_to_the_ai(update_data, incoming, edited)
+            keys = [
+                key
+                for key in dict.fromkeys([*existing.get("user_edited_keys", []), *edited])
+                if key not in unlocked
+            ]
+            if keys:
+                merged["user_edited_keys"] = keys
+            else:
+                merged.pop("user_edited_keys", None)
+            if incoming or edited or unlocked:
                 update_data["tags"] = merged
 
         for field, value in update_data.items():

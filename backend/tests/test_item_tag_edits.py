@@ -287,11 +287,8 @@ class TestUserEditedKeys:
 
         await _patch(client, auth_headers, item.id, {"primary_color": "navy"})
 
-        # The colour list follows the new primary, so it is recorded as changed too.
-        assert (await _reload(db_session, item.id)).tags["user_edited_keys"] == [
-            "primary_color",
-            "colors",
-        ]
+        # The server reorders the colour list for the new primary; the person did not edit it.
+        assert (await _reload(db_session, item.id)).tags["user_edited_keys"] == ["primary_color"]
 
     @pytest.mark.asyncio
     async def test_changing_type_or_subtype_is_recorded(
@@ -302,6 +299,76 @@ class TestUserEditedKeys:
         await _patch(client, auth_headers, item.id, {"type": "t-shirt", "subtype": "crew"})
 
         assert (await _reload(db_session, item.id)).tags["user_edited_keys"] == ["type", "subtype"]
+
+    @pytest.mark.asyncio
+    async def test_setting_the_type_back_to_unknown_hands_it_to_the_ai(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(
+            db_session, test_user, type="shirt", tags={"user_edited_keys": ["type", "pattern"]}
+        )
+
+        response = await _patch(client, auth_headers, item.id, {"type": "unknown"})
+
+        assert response.status_code == 200
+        assert (await _reload(db_session, item.id)).tags["user_edited_keys"] == ["pattern"]
+
+    @pytest.mark.asyncio
+    async def test_unlocking_the_only_locked_key_leaves_no_list(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(
+            db_session, test_user, type="shirt", tags={"user_edited_keys": ["type"]}
+        )
+
+        await _patch(client, auth_headers, item.id, {"type": "unknown"})
+
+        assert "user_edited_keys" not in (await _reload(db_session, item.id)).tags
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "body",
+        [{"primary_color": "unknown"}, {"tags": {"primary_color": "unknown"}}],
+        ids=["top-level", "in-tags"],
+    )
+    async def test_an_unknown_primary_colour_hands_it_to_the_ai(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession, body
+    ):
+        item = await _make_item(
+            db_session,
+            test_user,
+            primary_color="white",
+            colors=["white", "black"],
+            tags={
+                "primary_color": "white",
+                "colors": ["white", "black"],
+                "user_edited_keys": ["primary_color", "pattern"],
+            },
+        )
+
+        response = await _patch(client, auth_headers, item.id, body)
+
+        assert response.status_code == 200
+        done = await _reload(db_session, item.id)
+        assert done.tags["user_edited_keys"] == ["pattern"]
+        assert done.colors == ["white", "black"]
+
+    @pytest.mark.asyncio
+    async def test_a_subtype_cleared_with_a_type_change_is_handed_back(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        # The form drops a subtype that belonged to the old type; the AI may suggest a new one.
+        item = await _make_item(
+            db_session,
+            test_user,
+            type="t-shirt",
+            subtype="button-down",
+            tags={"user_edited_keys": ["subtype"]},
+        )
+
+        await _patch(client, auth_headers, item.id, {"type": "polo", "subtype": None})
+
+        assert (await _reload(db_session, item.id)).tags["user_edited_keys"] == ["type"]
 
     @pytest.mark.asyncio
     async def test_resending_unchanged_form_fields_records_nothing(
