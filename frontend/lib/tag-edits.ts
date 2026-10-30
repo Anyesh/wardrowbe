@@ -35,8 +35,13 @@ export function primaryColorOf(tags: ItemTags): string | undefined {
   return tags.primary_color || tags.colors?.[0] || undefined;
 }
 
-export function draftFromTags(tags: ItemTags): TagDraft {
-  const primary = primaryColorOf(tags);
+// The item's primary colour as the edit form shows it: the column, which can be set while the
+// tags are still empty or say something else.
+export function primaryColorOfItem(item: Item | null | undefined): string | undefined {
+  return item ? item.primary_color || primaryColorOf(item.tags) : undefined;
+}
+
+export function draftFromTags(tags: ItemTags, primary = primaryColorOf(tags)): TagDraft {
   return {
     pattern: tags.pattern ?? null,
     material: tags.material ?? null,
@@ -58,8 +63,9 @@ export function colorsFrom(primary: string | undefined, extraColors: readonly st
 }
 
 // Only what actually differs from the item, so saving without touching a tag sends no tags at all.
-// `primary` is the colour in the edit form; `currentPrimary` is the one the item has now, which
-// can be set on the item while its tags are still empty.
+// `primary` is the colour in the edit form and `currentPrimary` the one it started from. A new
+// primary alone is not a tag change: it goes as the item's primary_color, and the server reorders
+// the colour list it holds, so a list the AI wrote while the form was open is not overwritten.
 export function diffTags(
   original: ItemTags,
   draft: TagDraft,
@@ -75,9 +81,8 @@ export function diffTags(
   if (!sameList(draft.season, original.season ?? [])) changes.season = draft.season;
 
   const colors = colorsFrom(primary, draft.extraColors);
-  const currentColors = colorsFrom(currentPrimary, draftFromTags(original).extraColors);
-  if (!sameList(colors, currentColors)) changes.colors = colors;
-  if (primary && primary !== currentPrimary) changes.primary_color = primary;
+  const originalExtras = draftFromTags(original, currentPrimary).extraColors;
+  if (!sameList(colors, colorsFrom(primary, originalExtras))) changes.colors = colors;
 
   return changes;
 }

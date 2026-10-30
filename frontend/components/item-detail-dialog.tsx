@@ -83,7 +83,7 @@ import { ItemTagsEditor } from '@/components/item-tags-editor';
 import {
   diffTags,
   draftFromTags,
-  primaryColorOf,
+  primaryColorOfItem,
   subtypeAfterTypeChange,
   type ItemEdits,
   type TagDraft,
@@ -119,7 +119,7 @@ function editFormFromItem(item: Item): EditForm {
     // supported type doesn't lose what the model actually saw.
     subtype: item.subtype || (item.type === 'unknown' && item.ai_unrecognized_type) || '',
     brand: item.brand || '',
-    primary_color: item.primary_color || '',
+    primary_color: primaryColorOfItem(item) || '',
     notes: item.notes || '',
     favorite: item.favorite,
     wash_interval: item.wash_interval ?? undefined,
@@ -159,7 +159,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     wash_interval: undefined,
   });
   const [tagDraft, setTagDraft] = useState<TagDraft>(() =>
-    draftFromTags(item?.tags ?? { colors: [], style: [], season: [] }),
+    draftFromTags(item?.tags ?? { colors: [], style: [], season: [] }, primaryColorOfItem(item)),
   );
   // The item as it was when editing began. Saving compares the form with this, not with the
   // item as it is now: tagging can finish while the form is open, and diffing against the fresh
@@ -190,7 +190,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   useEffect(() => {
     if (item) {
       setEditForm(editFormFromItem(item));
-      setTagDraft(draftFromTags(item.tags));
+      setTagDraft(draftFromTags(item.tags, primaryColorOfItem(item)));
       setEditBase(item);
       setIsEditing(false);
       setActiveImageIndex(0);
@@ -220,7 +220,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       base.tags,
       tagDraft,
       editForm.primary_color || undefined,
-      base.primary_color || primaryColorOf(base.tags),
+      primaryColorOfItem(base),
     );
     if (Object.keys(tagChanges).length > 0) data.tags = tagChanges;
 
@@ -512,7 +512,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     // dialog is open (same id, so the effect above doesn't re-run).
                     if (!isEditing) {
                       setEditForm(editFormFromItem(item));
-                      setTagDraft(draftFromTags(item.tags));
+                      setTagDraft(draftFromTags(item.tags, primaryColorOfItem(item)));
                       setEditBase(item);
                     }
                     setIsEditing(!isEditing);

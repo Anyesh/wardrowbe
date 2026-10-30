@@ -381,6 +381,38 @@ class TestColoursStayInStep:
         assert done.tags["colors"] == ["navy", "black"]
 
     @pytest.mark.asyncio
+    async def test_a_new_primary_replaces_the_first_colour_when_no_primary_is_recorded(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(
+            db_session, test_user, colors=["red", "blue"], tags={"colors": ["red", "blue"]}
+        )
+
+        await _patch(client, auth_headers, item.id, {"primary_color": "green"})
+
+        done = await _reload(db_session, item.id)
+        assert done.colors == ["green", "blue"]
+        assert done.tags["colors"] == ["green", "blue"]
+
+    @pytest.mark.asyncio
+    async def test_unknown_as_the_primary_leaves_the_colour_list_alone(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        item = await _make_item(
+            db_session,
+            test_user,
+            primary_color="white",
+            colors=["white", "black"],
+            tags={"primary_color": "white", "colors": ["white", "black"]},
+        )
+
+        await _patch(client, auth_headers, item.id, {"primary_color": "unknown"})
+
+        done = await _reload(db_session, item.id)
+        assert done.colors == ["white", "black"]
+        assert done.tags["colors"] == ["white", "black"]
+
+    @pytest.mark.asyncio
     async def test_a_colour_list_sent_at_the_top_level_reaches_the_tags(
         self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
     ):

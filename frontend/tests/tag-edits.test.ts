@@ -6,6 +6,7 @@ import {
   diffTags,
   draftFromTags,
   primaryColorOf,
+  primaryColorOfItem,
   subtypeAfterTypeChange,
 } from '@/lib/tag-edits'
 import type { Item, ItemTags } from '@/lib/types'
@@ -55,6 +56,27 @@ describe('draftFromTags', () => {
   it('takes the first colour as the primary when none is recorded', () => {
     expect(primaryColorOf({ colors: ['red', 'blue'], style: [], season: [] })).toBe('red')
   })
+
+  it('leaves out the primary it is given rather than the one in the tags', () => {
+    expect(
+      draftFromTags({ ...tags, colors: ['black', 'white'], primary_color: 'black' }, 'navy').extraColors,
+    ).toEqual(['black', 'white'])
+  })
+})
+
+describe('primaryColorOfItem', () => {
+  it('prefers the primary colour column', () => {
+    expect(primaryColorOfItem({ primary_color: 'navy', tags } as unknown as Item)).toBe('navy')
+  })
+
+  it('falls back to the tags when the column is empty', () => {
+    const item = { primary_color: null, tags: { colors: ['red', 'blue'], style: [], season: [] } }
+    expect(primaryColorOfItem(item as unknown as Item)).toBe('red')
+  })
+
+  it('copes with no item', () => {
+    expect(primaryColorOfItem(null)).toBeUndefined()
+  })
 })
 
 describe('colorsFrom', () => {
@@ -103,11 +125,24 @@ describe('diffTags', () => {
     expect(diffTags(tags, draft, 'navy')).toEqual({ colors: ['navy'] })
   })
 
-  it('keeps the colour list and primary colour in step when the primary changes', () => {
-    expect(diffTags(tags, draftFromTags(tags), 'red')).toEqual({
-      colors: ['red', 'white'],
-      primary_color: 'red',
-    })
+  it('leaves a primary-only change to the primary colour field', () => {
+    // The server puts the new primary at the front of the list it holds when the save lands.
+    expect(diffTags(tags, draftFromTags(tags), 'red')).toEqual({})
+  })
+
+  it('sends the whole list when the colours after the primary change', () => {
+    const draft = { ...draftFromTags(tags), extraColors: ['white', 'red'] }
+    expect(diffTags(tags, draft, 'black')).toEqual({ colors: ['black', 'white', 'red'] })
+  })
+
+  it('sends nothing for an item with no primary column whose tags hold the colours', () => {
+    const base = { colors: ['red', 'blue'], style: [], season: [] }
+    expect(diffTags(base, draftFromTags(base, 'red'), 'red', 'red')).toEqual({})
+  })
+
+  it('sends nothing when the primary column and the tags disagree', () => {
+    const base = { colors: ['black', 'white'], primary_color: 'black', style: [], season: [] }
+    expect(diffTags(base, draftFromTags(base, 'navy'), 'navy', 'navy')).toEqual({})
   })
 
   it('does not repeat a colour that became the primary', () => {

@@ -32,7 +32,7 @@ class TagVocabularyError(ValueError):
     """A tag value outside its vocabulary that the item did not already have."""
 
 
-def _keep_colours_in_step(update_data: dict, incoming: dict, current: dict) -> None:
+def _keep_colours_in_step(update_data: dict, incoming: dict, current: dict, existing: dict) -> None:
     """Make a colour change sent only at the top level reach the tags JSON and the colour list.
 
     The item keeps its colours twice (the primary_color and colors columns, and the same keys in
@@ -45,9 +45,15 @@ def _keep_colours_in_step(update_data: dict, incoming: dict, current: dict) -> N
         incoming["primary_color"] = update_data["primary_color"]
 
     new_primary = update_data.get("primary_color")
-    old_primary = current["primary_color"]
+    old_primary = (
+        current["primary_color"]
+        or existing.get("primary_color")
+        or (current["colors"] or [None])[0]
+    )
     if (
         new_primary
+        # "unknown" is how a client hands the primary back to the AI; it is not a colour.
+        and new_primary != "unknown"
         and new_primary != old_primary
         and "colors" not in update_data
         and "colors" not in incoming
@@ -301,7 +307,7 @@ class ItemService:
                 "colors": locked.colors,
             }
 
-            _keep_colours_in_step(update_data, incoming, current)
+            _keep_colours_in_step(update_data, incoming, current, existing)
             # Style and season may keep an off-list value the item already has.
             try:
                 incoming.update(

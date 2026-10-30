@@ -150,6 +150,53 @@ describe('editing an item with the tag editor', () => {
     expect(body.tags).toEqual({ colors: ['navy', 'white'] })
   })
 
+  it('sends no colours on a rename when the primary is only in the colour list', async () => {
+    renderDialog({
+      primary_color: null,
+      colors: ['red', 'blue'],
+      tags: { colors: ['red', 'blue'], style: [], season: [] },
+    } as unknown as Partial<Item>)
+    startEditing()
+    fireEvent.change(screen.getByPlaceholderText(labels.placeholders.itemName), {
+      target: { value: 'My oxford' },
+    })
+
+    const { body } = await save()
+
+    expect(body).toEqual({ name: 'My oxford' })
+  })
+
+  it('sends no colours on a rename when the primary column and the tags disagree', async () => {
+    renderDialog({
+      primary_color: 'navy',
+      colors: ['black', 'white'],
+      tags: { colors: ['black', 'white'], primary_color: 'black', style: [], season: [] },
+    } as unknown as Partial<Item>)
+    startEditing()
+    fireEvent.change(screen.getByPlaceholderText(labels.placeholders.itemName), {
+      target: { value: 'My oxford' },
+    })
+
+    const { body } = await save()
+
+    expect(body).toEqual({ name: 'My oxford' })
+  })
+
+  it('sends a new primary colour on its own, without a colour list', async () => {
+    renderDialog({
+      colors: ['navy', 'white'],
+      tags: { ...item.tags, colors: ['navy', 'white'] },
+    } as unknown as Partial<Item>)
+    startEditing()
+    const primary = screen.getAllByRole('combobox').find((el) => el.textContent?.includes('Navy'))!
+    fireEvent.keyDown(primary, { key: 'Enter' })
+    fireEvent.click(screen.getByRole('option', { name: 'Red' }))
+
+    const { body } = await save()
+
+    expect(body).toEqual({ primary_color: 'red' })
+  })
+
   it('forgets tag changes that were cancelled', async () => {
     renderDialog()
     startEditing()
