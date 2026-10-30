@@ -12,6 +12,10 @@ updates:
       python-dependencies:
         patterns:
           - "*"
+    ignore:
+      # arq requires redis<6, so a redis 6+ bump cannot install; drop this when arq lifts its cap
+      - dependency-name: "redis"
+        versions: [">=6"]
 
   # NPM dependencies
   - package-ecosystem: "npm"

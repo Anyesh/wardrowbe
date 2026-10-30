@@ -24,7 +24,7 @@ pillow>=10.2.0
 pillow-heif>=0.14.0
 
 # Background jobs
-redis>=5.0.1
+redis>=5.0.1,<6  # arq requires redis<6
 arq>=0.26.3
 watchfiles>=0.21.0  # Hot reload for worker in development
 
