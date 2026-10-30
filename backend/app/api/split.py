@@ -73,6 +73,13 @@ async def _owned_item(item_service: ItemService, item_id: UUID, user: User) -> C
     return item
 
 
+def _image_not_found() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={"message": "Image not found", "error_code": "IMAGE_NOT_FOUND"},
+    )
+
+
 @router.post("/{item_id}/detect-garments", response_model=DetectGarmentsResponse)
 async def detect_garments(
     item_id: UUID,
@@ -92,7 +99,7 @@ async def detect_garments(
 
     image_path = ImageService().get_image_path(item.image_path)
     if not image_path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+        raise _image_not_found()
 
     ai_endpoints = (
         await db.execute(
@@ -169,10 +176,12 @@ async def split_item(
             },
         )
 
+    image_service = ImageService()
+    if not image_service.get_image_path(locked.image_path).exists():
+        raise _image_not_found()
+
     item_service = ItemService(db)
     source = await _owned_item(item_service, item_id, current_user)
-
-    image_service = ImageService()
     stored: list[dict[str, str]] = []
     created: list[ClothingItem] = []
     try:

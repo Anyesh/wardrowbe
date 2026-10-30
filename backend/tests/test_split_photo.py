@@ -636,6 +636,27 @@ class TestSplitEndpoint:
         assert len([i for i in items if not i.is_archived]) == len(BOXES)
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("action", "body"), [("detect-garments", None), ("split", {"boxes": BOXES})]
+    )
+    async def test_a_missing_photo_file_is_404_without_leaking_the_path(
+        self, client: AsyncClient, db_session: AsyncSession, test_user, auth_headers, action, body
+    ):
+        source = await _make_item(db_session, test_user)
+        (ImageService().storage_path / source.image_path).unlink()
+
+        with patch("app.api.split.settings", _vision(False)), _detects([]) as detect:
+            response = await client.post(
+                f"/api/v1/items/{source.id}/{action}", json=body, headers=auth_headers
+            )
+
+        assert response.status_code == 404
+        assert response.json()["detail"]["error_code"] == "IMAGE_NOT_FOUND"
+        assert source.image_path not in response.text
+        detect.assert_not_awaited()
+        assert len(await _all_items(db_session, test_user)) == 1
+
+    @pytest.mark.asyncio
     async def test_unknown_item_is_404(self, client: AsyncClient, auth_headers):
         response = await client.post(
             f"/api/v1/items/{uuid4()}/split", json={"boxes": BOXES}, headers=auth_headers
