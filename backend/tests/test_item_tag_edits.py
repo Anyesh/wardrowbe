@@ -494,18 +494,24 @@ class TestColoursStayInStep:
         assert done.tags["colors"] == ["navy", "black"]
 
     @pytest.mark.asyncio
-    async def test_a_new_primary_replaces_the_first_colour_when_no_primary_is_recorded(
-        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    @pytest.mark.parametrize(
+        ("tags", "expected"),
+        [
+            ({"colors": ["red", "blue"]}, ["green", "blue"]),
+            ({"colors": ["blue", "red"], "primary_color": "red"}, ["green", "blue"]),
+        ],
+        ids=["first-colour", "tags-primary"],
+    )
+    async def test_a_new_primary_replaces_the_old_one_when_the_column_is_empty(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession, tags, expected
     ):
-        item = await _make_item(
-            db_session, test_user, colors=["red", "blue"], tags={"colors": ["red", "blue"]}
-        )
+        item = await _make_item(db_session, test_user, colors=tags["colors"], tags=tags)
 
         await _patch(client, auth_headers, item.id, {"primary_color": "green"})
 
         done = await _reload(db_session, item.id)
-        assert done.colors == ["green", "blue"]
-        assert done.tags["colors"] == ["green", "blue"]
+        assert done.colors == expected
+        assert done.tags["colors"] == expected
 
     @pytest.mark.asyncio
     async def test_unknown_as_the_primary_leaves_the_colour_list_alone(

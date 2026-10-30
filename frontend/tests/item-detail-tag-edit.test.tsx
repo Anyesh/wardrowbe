@@ -327,6 +327,20 @@ describe('editing an item with the tag editor', () => {
     expect(toast.error).toHaveBeenCalledWith(message)
   })
 
+  it('leaves a signed-out save to the sign-in redirect without a toast', async () => {
+    vi.mocked(api.patch).mockRejectedValue(new ApiError('Unauthorized', 401, {}))
+    renderDialog()
+    startEditing()
+    fireEvent.change(screen.getByPlaceholderText(labels.placeholders.itemName), {
+      target: { value: 'My oxford' },
+    })
+
+    await save()
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled())
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
   it('shows one translated toast when the favourite toggle fails', async () => {
     vi.mocked(api.patch).mockRejectedValue(new ApiError('raw server text', 500, {}))
     renderDialog()

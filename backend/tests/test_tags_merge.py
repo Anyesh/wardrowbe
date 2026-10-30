@@ -376,17 +376,23 @@ class TestTagsMergeOnAnalysis:
         assert item.formality == "casual"
 
     @pytest.mark.asyncio
-    async def test_no_subtype_from_an_analysis_that_saw_another_type(
-        self, db_session, test_user, stub_ai, item_image
+    @pytest.mark.parametrize(
+        ("ai_type", "subtype"),
+        [("t-shirt", None), ("blouse", "crew-neck")],
+        ids=["other-type", "same-type"],
+    )
+    async def test_a_subtype_is_only_taken_from_an_analysis_that_saw_the_items_type(
+        self, db_session, test_user, stub_ai, item_image, ai_type, subtype
     ):
+        # The state a type change that dropped the old subtype leaves behind.
         item = await _make_item(
             db_session,
             test_user,
             type="blouse",
             image_path=str(item_image),
-            tags={"user_edited_keys": ["type", "subtype"]},
+            tags={"user_edited_keys": ["type"]},
         )
-        stub_ai(_ai_tags(type="t-shirt", subtype="crew-neck"))
+        stub_ai(_ai_tags(type=ai_type, subtype="crew-neck"))
 
         with (
             patch("app.workers.tagging.get_db_session", return_value=db_session),
@@ -396,4 +402,4 @@ class TestTagsMergeOnAnalysis:
 
         await db_session.refresh(item)
         assert item.type == "blouse"
-        assert item.subtype is None
+        assert item.subtype == subtype
