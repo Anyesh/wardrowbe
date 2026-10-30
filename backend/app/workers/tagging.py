@@ -272,6 +272,9 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
             kept = set((item.tags or {}).get("user_edited_keys") or [])
 
             for field, value in ai_fields.items():
+                # An item archived before or while its analysis ran keeps its archived status.
+                if field == "status" and item.is_archived:
+                    value = ItemStatus.archived
                 # Always update AI metadata fields (including tags JSONB and description)
                 if field in (
                     "ai_processed",

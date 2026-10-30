@@ -1,0 +1,14 @@
+OUTPUT ONLY JSON. NO TEXT. NO EXPLANATIONS.
+
+Find every separate piece of clothing, footwear or accessory in this image and give each one a tight bounding box.
+
+Return a JSON object like this:
+<<EXAMPLE>>
+
+Rules:
+- One entry per separate garment. Two shirts side by side are two entries. A pair of shoes, or a pair of socks, is ONE entry.
+- type must be one of: <<TYPES>>
+- colors: up to 3 main colours of that garment, each one of: <<COLORS>>
+- box coordinates are percentages of the whole image, from 0 to 100: left and right measure from the left edge, top and bottom from the top edge. The box must contain the whole garment and as little else as possible. Do not let boxes of different garments cover each other more than the garments really overlap.
+- Ignore people, hangers, furniture, floors and anything that is not clothing.
+- If the image shows only one garment, return one entry. If it shows no clothing, return {"garments": []}.

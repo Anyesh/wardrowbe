@@ -18,6 +18,7 @@ import {
   RotateCcw,
   RotateCw,
   Eraser,
+  Scissors,
   Undo2,
   ImagePlus,
   Layers,
@@ -60,6 +61,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
+import { SplitPhotoDialog } from '@/components/split-photo-dialog';
 import { ApiError } from '@/lib/api';
 import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
@@ -178,6 +180,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   // item would send its new tags back as clears and resend untouched fields as edits.
   const [editBase, setEditBase] = useState<Item | null>(item);
   const [showWashHistory, setShowWashHistory] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
   const [showWearHistory, setShowWearHistory] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -506,6 +509,16 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     <ImagePlus className="h-5 w-5" />
                   )}
                 </Button>
+                {item.image_url && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowSplit(true)}
+                    title={t('titles.splitPhoto')}
+                  >
+                    <Scissors className="h-5 w-5" />
+                  </Button>
+                )}
                 <input
                   ref={replaceImageInputRef}
                   type="file"
@@ -1141,6 +1154,16 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           </div>
         </DialogContent>
       </Dialog>
+
+      {showSplit && item.image_url && (
+        <SplitPhotoDialog
+          itemId={item.id}
+          imageUrl={item.medium_url ?? item.image_url}
+          open
+          onClose={() => setShowSplit(false)}
+          onDone={() => onOpenChange(false)}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

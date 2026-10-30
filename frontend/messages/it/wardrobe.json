@@ -213,6 +213,7 @@
       "rotateLeft": "Ruota a sinistra",
       "rotateRight": "Ruota a destra",
       "setAsPrimary": "Imposta come principale",
+      "splitPhoto": "Dividi la foto",
       "suggestOutfit": "Crea outfit con questo capo",
       "toggleFavorite": "Aggiungi/rimuovi dai preferiti",
       "undoBackgroundRemoval": "Annulla rimozione sfondo"
@@ -265,6 +266,31 @@
     "newestFirst": "Più recenti prima",
     "oldestFirst": "Più vecchi prima",
     "recentlyWorn": "Indossati di recente"
+  },
+  "splitPhoto": {
+    "addBox": "Aggiungi un riquadro",
+    "archiveNote": "La foto originale viene conservata ma nascosta dal tuo guardaroba. Non viene eliminata.",
+    "boxLabel": "Capo {number}",
+    "create": "{count, plural, =0 {Crea articoli} one {Crea # articolo} other {Crea # articoli}}",
+    "createFailed": "Impossibile dividere la foto",
+    "created": "{count, plural, one {Creato # articolo da questa foto} other {Creati # articoli da questa foto}}",
+    "description": "Trova ogni capo in questa foto e crea un articolo separato per ciascuno.",
+    "detectFailed": "L'IA non è riuscita a guardare questa foto.",
+    "detecting": "Ricerca dei capi…",
+    "errors": {
+      "aiUnreachable": "Impossibile raggiungere il servizio di IA. Riprova, oppure aggiungi un riquadro per ogni capo.",
+      "imageNotFound": "La foto di questo articolo non è stata trovata.",
+      "rateLimited": "Troppi tentativi in poco tempo. Attendi un minuto, poi riprova.",
+      "sourceArchived": "Questo articolo è già archiviato, quindi la sua foto non può essere divisa di nuovo.",
+      "sourceBusy": "Questa foto è ancora in fase di rotazione o di rimozione dello sfondo. Riprova al termine dell'operazione.",
+      "visionDisabled": "Il rilevamento automatico dei capi è disattivato. Aggiungi un riquadro per ogni capo."
+    },
+    "hint": "Trascina un riquadro per spostarlo, o un angolo per ridimensionarlo.",
+    "noneFound": "Nessun capo trovato. Aggiungi un riquadro e trascinalo su un capo.",
+    "photoAlt": "La foto da dividere",
+    "removeBox": "Rimuovi il capo {number}",
+    "retry": "Riprova",
+    "title": "Dividi la foto"
   },
   "title": "Il mio guardaroba",
   "uploadQueue": {
