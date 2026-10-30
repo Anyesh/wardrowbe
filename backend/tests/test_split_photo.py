@@ -11,8 +11,11 @@ from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus
+from app.models.preference import UserPreference
 from app.models.user import User
+from app.services.ai_service import AIService
 from app.services.garment_detector import (
     MAX_GARMENTS,
     DetectedGarment,
@@ -188,12 +191,12 @@ async def _make_item(db_session: AsyncSession, user: User, **overrides) -> Cloth
     return item
 
 
-def _ai(garments=None, error=None):
-    ai = MagicMock()
-    ai.detect_garments = AsyncMock(
-        side_effect=error, return_value=garments if garments is not None else []
+def _detects(garments=None, error=None):
+    return patch.object(
+        AIService,
+        "detect_garments",
+        AsyncMock(side_effect=error, return_value=garments if garments is not None else []),
     )
-    return ai
 
 
 class TestDetectGarmentsEndpoint:
@@ -207,7 +210,7 @@ class TestDetectGarmentsEndpoint:
             DetectedGarment("jeans", [], 0.1, 0.5, 0.4, 0.4),
         ]
 
-        with patch("app.api.split.get_ai_service", return_value=_ai(found)):
+        with _detects(found):
             response = await client.post(
                 f"/api/v1/items/{item.id}/detect-garments", headers=auth_headers
             )
@@ -231,7 +234,7 @@ class TestDetectGarmentsEndpoint:
     ):
         item = await _make_item(db_session, test_user)
 
-        with patch("app.api.split.get_ai_service", return_value=_ai([])):
+        with _detects([]):
             response = await client.post(
                 f"/api/v1/items/{item.id}/detect-garments", headers=auth_headers
             )
@@ -271,19 +274,26 @@ class TestDetectGarmentsEndpoint:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_ai_disabled_is_503(
+    async def test_vision_off_is_503_without_calling_the_ai_or_spending_the_quota(
         self, client: AsyncClient, db_session: AsyncSession, test_user, auth_headers
     ):
-        from app.services.ai_service import AIDisabledError
-
         item = await _make_item(db_session, test_user)
+        limiter = AsyncMock()
 
-        with patch("app.api.split.get_ai_service", side_effect=AIDisabledError("off")):
+        with (
+            patch.object(get_settings(), "ai_vision_enabled", False),
+            patch.object(get_settings(), "ai_text_enabled", True),
+            patch("app.api.split.rate_limit_by_user", limiter),
+            _detects([]) as detect,
+        ):
             response = await client.post(
                 f"/api/v1/items/{item.id}/detect-garments", headers=auth_headers
             )
 
         assert response.status_code == 503
+        assert response.json()["detail"]["error_code"] == "AI_VISION_DISABLED"
+        detect.assert_not_awaited()
+        limiter.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_unreachable_ai_is_502(
@@ -291,12 +301,37 @@ class TestDetectGarmentsEndpoint:
     ):
         item = await _make_item(db_session, test_user)
 
-        with patch("app.api.split.get_ai_service", return_value=_ai(error=RuntimeError("down"))):
+        with _detects(error=RuntimeError("down")):
             response = await client.post(
                 f"/api/v1/items/{item.id}/detect-garments", headers=auth_headers
             )
 
         assert response.status_code == 502
+        assert response.json()["detail"]["error_code"] == "AI_UNREACHABLE"
+
+    @pytest.mark.asyncio
+    async def test_uses_the_users_own_ai_endpoints(
+        self, client: AsyncClient, db_session: AsyncSession, test_user, auth_headers
+    ):
+        item = await _make_item(db_session, test_user)
+        db_session.add(
+            UserPreference(
+                user_id=test_user.id,
+                ai_endpoints=[
+                    {"url": "http://users-own-ai:11434/v1", "name": "mine", "enabled": True}
+                ],
+            )
+        )
+        await db_session.commit()
+
+        with patch.object(AIService, "detect_garments", autospec=True, return_value=[]) as detect:
+            response = await client.post(
+                f"/api/v1/items/{item.id}/detect-garments", headers=auth_headers
+            )
+
+        assert response.status_code == 200
+        [call] = detect.await_args_list
+        assert call.args[0]._endpoints[0].url == "http://users-own-ai:11434/v1"
 
     @pytest.mark.asyncio
     async def test_is_rate_limited(
@@ -304,7 +339,7 @@ class TestDetectGarmentsEndpoint:
     ):
         item = await _make_item(db_session, test_user)
 
-        with patch("app.api.split.get_ai_service", return_value=_ai([])):
+        with _detects([]):
             codes = [
                 (
                     await client.post(
