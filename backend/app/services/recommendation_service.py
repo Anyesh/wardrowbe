@@ -54,7 +54,7 @@ from app.utils.preference_defaults import (
     DEFAULT_LAYERING_PREFERENCE,
     DEFAULT_TEMPERATURE_SENSITIVITY,
 )
-from app.utils.prompts import load_prompt
+from app.utils.prompts import PAIRS_WELL_WITH, load_prompt, picked_item_ids
 from app.utils.timezone import get_user_now, get_user_today
 
 logger = logging.getLogger(__name__)
@@ -135,21 +135,6 @@ def cached_suggestion_fits(
     )
 
 
-def picked_item_ids(outfit_data: dict, number_map: dict[int, UUID]) -> list[UUID]:
-    picked: list[UUID] = []
-    for num in outfit_data.get("items", []):
-        try:
-            num_int = int(num)
-        except (ValueError, TypeError):
-            logger.warning(f"AI returned non-numeric item: {num}")
-            continue
-        if num_int not in number_map:
-            logger.warning(f"AI selected invalid item number: {num}")
-        elif number_map[num_int] not in picked:
-            picked.append(number_map[num_int])
-    return picked
-
-
 def resolve_outfit_items(
     outfit_data: dict,
     number_map: dict[int, UUID],
@@ -157,7 +142,7 @@ def resolve_outfit_items(
     mandatory_item_ids: set[UUID] | None,
     drop_legwear: bool,
 ) -> list[UUID]:
-    valid_ids = picked_item_ids(outfit_data, number_map)
+    valid_ids = picked_item_ids(outfit_data.get("items"), number_map)
 
     numbered = set(number_map.values())
     for mid in mandatory_item_ids or ():
@@ -413,7 +398,7 @@ class RecommendationService:
                 pair_nums = sorted([id_to_number[p] for p in partners if p in id_to_number])[:3]
                 if pair_nums:
                     refs = ", ".join(f"[{n}]" for n in pair_nums)
-                    parts.append(f"pairs well with: {refs}")
+                    parts.append(f"{PAIRS_WELL_WITH} {refs}")
 
             line = f"[{num}] {' | '.join(parts)}"
             lines.append(line)
@@ -910,7 +895,10 @@ class RecommendationService:
                 number_map = {int(k): UUID(v) for k, v in cached_number_map.items()}
 
                 # Rejected items are covered too, because they were merged into exclude_items.
-                if not set(picked_item_ids(cached, number_map)) <= item_type_map.keys():
+                if (
+                    not set(picked_item_ids(cached.get("items"), number_map))
+                    <= item_type_map.keys()
+                ):
                     logger.info("Cached suggestion uses items no longer available, skipping")
                     continue
 
