@@ -45,7 +45,9 @@
     "subtitle": "衣類の写真をアップロード",
     "title": "アイテムを追加",
     "typeLabel": "タイプ（空欄ならAIが検出）",
-    "uploading": "アップロード中..."
+    "uploading": "アップロード中...",
+    "removeBackground": "背景を自動で削除",
+    "removeBackgroundHint": "AIが分類する前に写真の背景を消します。"
   },
   "ai": {
     "analysisFailed": "分析失敗",
@@ -277,5 +279,46 @@
     "daysAgo": "{days}日前に着用",
     "today": "今日着用",
     "yesterday": "昨日着用"
+  },
+  "photos": {
+    "title": "写真",
+    "add": "写真を追加",
+    "pickerHint": "表・裏・ディテールなど最大{count}枚。1枚目がカバー写真になります。",
+    "limit": "1アイテムにつき最大{count}枚です。",
+    "invalid": "対応していない画像、または20MBを超えるファイルがあります。",
+    "type": "写真の内容",
+    "noView": "未設定",
+    "front": "表",
+    "back": "裏",
+    "detail": "ディテール",
+    "other": "その他",
+    "cover": "カバー写真",
+    "coverHint": "カバー",
+    "makeCover": "カバーにする",
+    "previous": "前へ",
+    "next": "次へ",
+    "remove": "写真を削除",
+    "removeTitle": "この写真を削除しますか？",
+    "removeDescription": "写真は完全に削除されます。アイテムと他の写真は残ります。",
+    "keep": "残す",
+    "lastPhoto": "アイテムには写真が1枚以上必要です。代わりに差し替えてください。",
+    "uploading": "{count, plural, other {#枚をアップロード中…}}",
+    "count": "{count} / {max}",
+    "countShort": "{count, plural, other {#枚}}",
+    "counter": "{total}枚中{current}枚目",
+    "frontBack": "表と裏",
+    "showFront": "表を表示",
+    "showBack": "裏を表示",
+    "showCover": "カバーを表示",
+    "someFailed": "{count, plural, other {アイテムは保存されましたが、#枚の写真をアップロードできませんでした。}}",
+    "error": "写真を保存できませんでした。もう一度お試しください。",
+    "removingBackground": "背景を削除中…",
+    "backgroundFailed": "背景の削除に失敗しました",
+    "removeBackground": "背景を削除",
+    "restoreBackground": "元に戻す"
+  },
+  "categories": {
+    "label": "ワードローブの区分",
+    "all": "すべて"
   }
 }

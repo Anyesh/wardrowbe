@@ -242,7 +242,12 @@
     "tie": "領帶",
     "tights": "連褲襪",
     "top": "上衣",
-    "vest": "馬甲"
+    "vest": "馬甲",
+    "ring": "戒指",
+    "necklace": "項鍊",
+    "watch": "手錶",
+    "bracelet": "手鍊",
+    "earrings": "耳環"
   },
   "weatherConditions": {
     "clear": "晴朗",
@@ -271,5 +276,10 @@
     "thunderstorm": "雷雨",
     "thunderstorm-with-hail": "雷雨夾冰雹",
     "unknown": "未知"
+  },
+  "categories": {
+    "clothing": "服裝",
+    "footwear": "鞋履",
+    "accessories": "配飾"
   }
 }

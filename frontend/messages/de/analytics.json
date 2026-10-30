@@ -65,5 +65,9 @@
   },
   "subtitle": "Deine Kleiderschrank-Einblicke und Statistiken",
   "title": "Statistiken",
-  "wearCount": "{count}x"
+  "wearCount": "{count}x",
+  "categories": {
+    "title": "Bereiche des Kleiderschranks",
+    "description": "Wie sich deine Teile auf Kleidung, Schuhe und Accessoires verteilen."
+  }
 }

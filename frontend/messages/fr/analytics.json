@@ -65,5 +65,9 @@
   },
   "subtitle": "Vos aperçus et statistiques de garde-robe",
   "title": "Statistiques",
-  "wearCount": "{count}x"
+  "wearCount": "{count}x",
+  "categories": {
+    "title": "Sections de la garde-robe",
+    "description": "La répartition de tes articles entre vêtements, chaussures et accessoires."
+  }
 }

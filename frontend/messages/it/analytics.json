@@ -65,5 +65,9 @@
   },
   "subtitle": "Approfondimenti e statistiche del tuo guardaroba",
   "title": "Analisi",
-  "wearCount": "{count}x"
+  "wearCount": "{count}x",
+  "categories": {
+    "title": "Sezioni del guardaroba",
+    "description": "Come si dividono i tuoi capi tra abbigliamento, scarpe e accessori."
+  }
 }

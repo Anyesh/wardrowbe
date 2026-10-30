@@ -85,7 +85,7 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
                   src={item.thumbnail_url}
                   alt={item.name || typeLabel(item.type)}
                   fill
-                  className="object-cover"
+                  className="garment-fit"
                   sizes="64px"
                 />
               ) : (
@@ -140,7 +140,7 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
                         src={item.thumbnail_url}
                         alt={item.name || typeLabel(item.type)}
                         fill
-                        className="object-cover"
+                        className="garment-fit"
                         sizes="56px"
                       />
                     ) : (

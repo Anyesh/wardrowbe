@@ -65,5 +65,9 @@
   },
   "subtitle": "Your wardrobe insights and statistics",
   "title": "Analytics",
-  "wearCount": "{count}x"
+  "wearCount": "{count}x",
+  "categories": {
+    "title": "Wardrobe sections",
+    "description": "How your items split between clothing, footwear and accessories."
+  }
 }

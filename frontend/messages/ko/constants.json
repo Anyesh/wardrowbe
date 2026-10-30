@@ -242,7 +242,12 @@
     "tie": "넥타이",
     "tights": "타이츠",
     "top": "상의",
-    "vest": "조끼"
+    "vest": "조끼",
+    "ring": "반지",
+    "necklace": "목걸이",
+    "watch": "시계",
+    "bracelet": "팔찌",
+    "earrings": "귀걸이"
   },
   "weatherConditions": {
     "clear": "맑음",
@@ -271,5 +276,10 @@
     "thunderstorm": "뇌우",
     "thunderstorm-with-hail": "우박을 동반한 뇌우",
     "unknown": "알 수 없음"
+  },
+  "categories": {
+    "clothing": "의류",
+    "footwear": "신발",
+    "accessories": "액세서리"
   }
 }

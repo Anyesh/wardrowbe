@@ -65,5 +65,9 @@
   },
   "subtitle": "옷장 인사이트와 통계",
   "title": "분석",
-  "wearCount": "{count}회"
+  "wearCount": "{count}회",
+  "categories": {
+    "title": "옷장 구분",
+    "description": "의류, 신발, 액세서리별 아이템 비율이에요."
+  }
 }

@@ -13,14 +13,60 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { useAnalytics } from '@/lib/hooks/use-analytics';
+import { useAnalytics, type AnalyticsData } from '@/lib/hooks/use-analytics';
 import { AcceptanceTrendChart } from '@/components/acceptance-trend-chart';
-import { useColorLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useCategoryLabel, useColorLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { CATEGORY_ICONS, CATEGORY_STYLES } from '@/components/item-photos/category-badge';
+import { cn } from '@/lib/utils';
 import { useAnalyticsInsightLines } from '@/lib/hooks/use-insight-text';
 import { colorSwatch } from '@/lib/colors';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+
+// Tinted icon badges for the stat cards, from the palette tokens in globals.css.
+const STAT_TONES = {
+  primary: 'bg-primary/10 text-primary',
+  success: 'bg-success/10 text-success',
+  info: 'bg-info/10 text-info',
+  warning: 'bg-warning/10 text-warning',
+} as const;
+
+function CategoryBreakdown({ data }: { data: NonNullable<AnalyticsData['category_distribution']> }) {
+  const t = useTranslations('analytics');
+  const label = useCategoryLabel();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('categories.title')}</CardTitle>
+        <CardDescription>{t('categories.description')}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {data.map((entry) => {
+            const Icon = CATEGORY_ICONS[entry.category];
+            const style = CATEGORY_STYLES[entry.category];
+            return (
+              <div key={entry.category} className={cn('rounded-lg border p-3', style.chip)}>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-sm font-medium">
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                    {label(entry.category)}
+                  </span>
+                  <span className="text-xl font-bold tabular-nums">{entry.count}</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-background/70">
+                  <div className="h-full rounded-full bg-current" style={{ width: `${entry.percentage}%` }} />
+                </div>
+                <p className="mt-1 text-xs opacity-80">{t('percent', { value: entry.percentage })}</p>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function StatCard({
   title,
@@ -28,24 +74,28 @@ function StatCard({
   description,
   icon: Icon,
   trend,
+  tone = 'primary',
 }: {
   title: string;
   value: string | number;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
   trend?: 'up' | 'down' | 'neutral';
+  tone?: keyof typeof STAT_TONES;
 }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <span className={cn('rounded-full p-1.5', STAT_TONES[tone])}>
+          <Icon className="h-4 w-4" />
+        </span>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
         <p className="text-xs text-muted-foreground flex items-center gap-1">
-          {trend === 'up' && <TrendingUp className="h-3 w-3 text-green-500" />}
-          {trend === 'down' && <TrendingUp className="h-3 w-3 text-red-500 rotate-180" />}
+          {trend === 'up' && <TrendingUp className="h-3 w-3 text-success" />}
+          {trend === 'down' && <TrendingUp className="h-3 w-3 text-destructive rotate-180" />}
           {description}
         </p>
       </CardContent>
@@ -131,7 +181,7 @@ function ItemCard({ item }: { item: { id: string; name: string | null; type: str
             src={item.thumbnail_url}
             alt={item.name || typeLabel(item.type)}
             fill
-            className="object-cover"
+            className="garment-fit"
             sizes="48px"
           />
         ) : (
@@ -175,7 +225,7 @@ export default function AnalyticsPage() {
     );
   }
 
-  const { wardrobe, color_distribution, type_distribution, most_worn, least_worn, never_worn, acceptance_trend } = data;
+  const { wardrobe, color_distribution, type_distribution, category_distribution, most_worn, least_worn, never_worn, acceptance_trend } = data;
 
   return (
     <div className="space-y-6">
@@ -197,12 +247,14 @@ export default function AnalyticsPage() {
           value={wardrobe.total_outfits}
           description={t('stats.outfitsGenerated.description', { count: wardrobe.outfits_this_week })}
           icon={Sparkles}
+          tone="info"
         />
         <StatCard
           title={t('stats.acceptanceRate.title')}
           value={wardrobe.acceptance_rate != null ? t('percent', { value: wardrobe.acceptance_rate }) : '-'}
           description={wardrobe.acceptance_rate != null ? t('stats.acceptanceRate.description') : t('stats.totalWears.noData')}
           icon={TrendingUp}
+          tone="success"
           trend={wardrobe.acceptance_rate != null && wardrobe.acceptance_rate > 50 ? 'up' : undefined}
         />
         <StatCard
@@ -210,8 +262,11 @@ export default function AnalyticsPage() {
           value={wardrobe.total_wears}
           description={wardrobe.average_rating != null ? t('stats.avgRating', { rating: wardrobe.average_rating }) : t('stats.totalWears.description')}
           icon={Activity}
+          tone="warning"
         />
       </div>
+
+      {category_distribution && wardrobe.total_items > 0 && <CategoryBreakdown data={category_distribution} />}
 
       {/* Insights */}
       {insights.length > 0 && (

@@ -65,5 +65,9 @@
   },
   "subtitle": "ワードローブのインサイトと統計",
   "title": "分析",
-  "wearCount": "{count}回"
+  "wearCount": "{count}回",
+  "categories": {
+    "title": "ワードローブの区分",
+    "description": "衣類・シューズ・アクセサリーの内訳です。"
+  }
 }

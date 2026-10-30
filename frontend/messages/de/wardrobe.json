@@ -45,7 +45,9 @@
     "subtitle": "Lade Fotos deiner Kleidungsstücke hoch",
     "title": "Stücke hinzufügen",
     "typeLabel": "Typ (die KI erkennt ihn, wenn leer)",
-    "uploading": "Wird hochgeladen..."
+    "uploading": "Wird hochgeladen...",
+    "removeBackground": "Hintergrund automatisch entfernen",
+    "removeBackgroundHint": "Das Foto wird bereinigt, bevor die KI es katalogisiert."
   },
   "ai": {
     "analysisFailed": "Analyse fehlgeschlagen",
@@ -277,5 +279,46 @@
     "daysAgo": "Vor {days} T. getragen",
     "today": "Heute getragen",
     "yesterday": "Gestern getragen"
+  },
+  "photos": {
+    "title": "Fotos",
+    "add": "Fotos hinzufügen",
+    "pickerHint": "Vorderseite, Rückseite und Details: bis zu {count} Fotos. Das erste ist das Titelbild.",
+    "limit": "Bis zu {count} Fotos pro Teil.",
+    "invalid": "Einige Dateien sind keine unterstützten Bilder oder größer als 20 MB.",
+    "type": "Was das Foto zeigt",
+    "noView": "Nicht angegeben",
+    "front": "Vorderseite",
+    "back": "Rückseite",
+    "detail": "Detail",
+    "other": "Sonstiges",
+    "cover": "Titelbild",
+    "coverHint": "Titelbild",
+    "makeCover": "Als Titelbild verwenden",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "remove": "Foto löschen",
+    "removeTitle": "Dieses Foto löschen?",
+    "removeDescription": "Das Foto wird endgültig gelöscht. Das Teil und seine anderen Fotos bleiben.",
+    "keep": "Behalten",
+    "lastPhoto": "Ein Teil braucht mindestens ein Foto. Ersetze es stattdessen.",
+    "uploading": "{count, plural, one {# Foto wird hochgeladen…} other {# Fotos werden hochgeladen…}}",
+    "count": "{count} von {max}",
+    "countShort": "{count, plural, one {# Foto} other {# Fotos}}",
+    "counter": "Foto {current} von {total}",
+    "frontBack": "Vorder- und Rückseite",
+    "showFront": "Vorderseite zeigen",
+    "showBack": "Rückseite zeigen",
+    "showCover": "Titelbild zeigen",
+    "someFailed": "{count, plural, one {Das Teil wurde gespeichert, aber # Foto konnte nicht hochgeladen werden.} other {Das Teil wurde gespeichert, aber # Fotos konnten nicht hochgeladen werden.}}",
+    "error": "Das Foto konnte nicht gespeichert werden. Versuch es noch einmal.",
+    "removingBackground": "Hintergrund wird entfernt…",
+    "backgroundFailed": "Hintergrundentfernung fehlgeschlagen",
+    "removeBackground": "Hintergrund entfernen",
+    "restoreBackground": "Original wiederherstellen"
+  },
+  "categories": {
+    "label": "Bereiche des Kleiderschranks",
+    "all": "Alles"
   }
 }

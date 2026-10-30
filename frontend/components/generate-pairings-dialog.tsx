@@ -97,7 +97,7 @@ export function GeneratePairingsDialog({
                   src={imageUrl}
                   alt={item.name || typeLabel(item.type)}
                   fill
-                  className="object-cover"
+                  className="garment-fit"
                   sizes="64px"
                 />
               </div>
@@ -162,7 +162,7 @@ export function GeneratePairingsDialog({
                           src={pairingItem.thumbnail_url}
                           alt={typeLabel(pairingItem.type)}
                           fill
-                          className="object-cover"
+                          className="garment-fit"
                           sizes="32px"
                         />
                       ) : (

@@ -15,6 +15,7 @@ from app.models.item import (
     WashHistory,
 )
 from app.schemas.item import DEFAULT_WASH_INTERVALS, ItemCreate, ItemFilter, ItemUpdate
+from app.utils.garment_vocabulary import TYPES_BY_CATEGORY
 
 
 class ItemService:
@@ -60,6 +61,8 @@ class ItemService:
         # Apply filters
         if filters.type:
             query = query.where(ClothingItem.type == filters.type)
+        if filters.category:
+            query = query.where(ClothingItem.type.in_(TYPES_BY_CATEGORY[filters.category]))
         if filters.subtype:
             query = query.where(ClothingItem.subtype == filters.subtype)
         if filters.status:
@@ -122,6 +125,9 @@ class ItemService:
         search: str | None = None,
         is_archived: bool = False,
         excluded_ids: list[UUID] | None = None,
+        category: str | None = None,
+        favorite: bool | None = None,
+        needs_wash: bool | None = None,
         after_id: UUID | None = None,
         limit: int | None = None,
     ) -> list[UUID]:
@@ -129,6 +135,12 @@ class ItemService:
 
         if type_filter:
             query = query.where(ClothingItem.type == type_filter)
+        if category:
+            query = query.where(ClothingItem.type.in_(TYPES_BY_CATEGORY[category]))
+        if favorite is not None:
+            query = query.where(ClothingItem.favorite == favorite)
+        if needs_wash is not None:
+            query = query.where(ClothingItem.needs_wash == needs_wash)
 
         query = query.where(ClothingItem.is_archived == is_archived)
 

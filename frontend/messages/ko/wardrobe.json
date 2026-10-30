@@ -45,7 +45,9 @@
     "subtitle": "옷 사진을 업로드하세요",
     "title": "아이템 추가",
     "typeLabel": "유형 (비워두면 AI가 감지해요)",
-    "uploading": "업로드 중..."
+    "uploading": "업로드 중...",
+    "removeBackground": "배경 자동 제거",
+    "removeBackgroundHint": "AI가 분류하기 전에 사진 배경을 지워요."
   },
   "ai": {
     "analysisFailed": "분석 실패",
@@ -277,5 +279,46 @@
     "daysAgo": "{days}일 전 착용",
     "today": "오늘 착용",
     "yesterday": "어제 착용"
+  },
+  "photos": {
+    "title": "사진",
+    "add": "사진 추가",
+    "pickerHint": "앞면, 뒷면, 디테일 등 최대 {count}장. 첫 번째 사진이 대표 사진이에요.",
+    "limit": "아이템당 최대 {count}장까지 가능해요.",
+    "invalid": "지원하지 않는 이미지이거나 20MB를 넘는 파일이 있어요.",
+    "type": "사진 내용",
+    "noView": "지정 안 함",
+    "front": "앞면",
+    "back": "뒷면",
+    "detail": "디테일",
+    "other": "기타",
+    "cover": "대표 사진",
+    "coverHint": "대표",
+    "makeCover": "대표 사진으로",
+    "previous": "이전",
+    "next": "다음",
+    "remove": "사진 삭제",
+    "removeTitle": "이 사진을 삭제할까요?",
+    "removeDescription": "사진이 영구 삭제돼요. 아이템과 다른 사진은 그대로 남아요.",
+    "keep": "유지",
+    "lastPhoto": "아이템에는 사진이 한 장 이상 필요해요. 대신 교체하세요.",
+    "uploading": "{count, plural, other {사진 #장 업로드 중…}}",
+    "count": "{max}장 중 {count}장",
+    "countShort": "{count, plural, other {사진 #장}}",
+    "counter": "{total}장 중 {current}번째",
+    "frontBack": "앞면과 뒷면",
+    "showFront": "앞면 보기",
+    "showBack": "뒷면 보기",
+    "showCover": "대표 사진 보기",
+    "someFailed": "{count, plural, other {아이템은 저장했지만 사진 #장을 업로드하지 못했어요.}}",
+    "error": "사진을 저장하지 못했어요. 다시 시도하세요.",
+    "removingBackground": "배경 제거 중…",
+    "backgroundFailed": "배경 제거 실패",
+    "removeBackground": "배경 제거",
+    "restoreBackground": "원본 복원"
+  },
+  "categories": {
+    "label": "옷장 구분",
+    "all": "전체"
   }
 }

@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.item import ClothingItem, ItemStatus
+from app.models.item import ClothingItem, ItemImage, ItemStatus
 from app.models.user import User
 from app.schemas.item import RemoveBackgroundRequest
 from app.services.image_service import ImageService
@@ -21,6 +21,35 @@ def _jpeg_bytes(size: tuple[int, int] = (400, 600)) -> bytes:
     buf = BytesIO()
     Image.new("RGB", size, (10, 200, 30)).save(buf, format="JPEG")
     return buf.getvalue()
+
+
+def _inline_queue(db_session):
+    """Stands in for redis + the image worker: the queued removal runs right away."""
+    from unittest.mock import AsyncMock
+
+    from app.workers.background_removal import (
+        remove_item_background_job,
+        remove_photo_background_job,
+    )
+
+    jobs = {
+        "remove_item_background_job": remove_item_background_job,
+        "remove_photo_background_job": remove_photo_background_job,
+    }
+
+    async def enqueue(name, target_id, color, *args, **kwargs):
+        with (
+            patch("app.workers.background_removal.get_db_session", return_value=db_session),
+            patch.object(db_session, "close", AsyncMock()),
+        ):
+            await jobs[name]({}, target_id, color)
+        job = MagicMock()
+        job.job_id = "inline-job"
+        return job
+
+    pool = AsyncMock()
+    pool.enqueue_job.side_effect = enqueue
+    return patch("app.api.items.create_pool", AsyncMock(return_value=pool))
 
 
 def _mock_provider():
@@ -132,7 +161,10 @@ class TestRemoveBackgroundEndpoint:
         )
         item_id = item.id
 
-        with patch("app.services.background_removal.get_provider", return_value=_mock_provider()):
+        with (
+            patch("app.services.background_removal.get_provider", return_value=_mock_provider()),
+            _inline_queue(db_session),
+        ):
             response = await client.post(
                 f"/api/v1/items/{item_id}/remove-background",
                 json={},
@@ -153,7 +185,10 @@ class TestRemoveBackgroundEndpoint:
             ai_job_id=None,
         )
 
-        with patch("app.services.background_removal.get_provider", return_value=_mock_provider()):
+        with (
+            patch("app.services.background_removal.get_provider", return_value=_mock_provider()),
+            _inline_queue(db_session),
+        ):
             response = await client.post(
                 f"/api/v1/items/{item.id}/remove-background",
                 json={},
@@ -173,7 +208,10 @@ class TestRemoveBackgroundEndpoint:
         )
         item_id = item.id
 
-        with patch("app.services.background_removal.get_provider", return_value=_mock_provider()):
+        with (
+            patch("app.services.background_removal.get_provider", return_value=_mock_provider()),
+            _inline_queue(db_session),
+        ):
             response = await client.post(
                 f"/api/v1/items/{item_id}/remove-background",
                 json={},
@@ -197,7 +235,10 @@ class TestRemoveBackgroundEndpoint:
         item = await _make_item(db_session, test_user, status=ItemStatus.ready)
         item_id = item.id
 
-        with patch("app.services.background_removal.get_provider", return_value=_mock_provider()):
+        with (
+            patch("app.services.background_removal.get_provider", return_value=_mock_provider()),
+            _inline_queue(db_session),
+        ):
             response = await client.post(
                 f"/api/v1/items/{item_id}/remove-background",
                 json={},
@@ -212,6 +253,44 @@ class TestRemoveBackgroundEndpoint:
         refreshed = result.scalar_one()
         assert refreshed.status == ItemStatus.ready
         assert refreshed.processing_kind is None
+
+    @pytest.mark.asyncio
+    async def test_other_photos_get_their_background_removed_too(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        # The item's button used to clean the cover only: a second photo kept its background.
+        item = await _make_item(db_session, test_user)
+        paths = await ImageService().process_and_store(
+            user_id=test_user.id, image_data=_jpeg_bytes(), original_filename="back.jpg"
+        )
+        extra = ItemImage(
+            item_id=item.id,
+            image_path=paths["image_path"],
+            medium_path=paths["medium_path"],
+            thumbnail_path=paths["thumbnail_path"],
+            position=0,
+        )
+        db_session.add(extra)
+        await db_session.commit()
+        extra_id = extra.id
+
+        with (
+            patch("app.services.background_removal.get_provider", return_value=_mock_provider()),
+            _inline_queue(db_session),
+        ):
+            response = await client.post(
+                f"/api/v1/items/{item.id}/remove-background",
+                json={},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        db_session.expire_all()
+        refreshed = (
+            await db_session.execute(select(ItemImage).where(ItemImage.id == extra_id))
+        ).scalar_one()
+        assert refreshed.status == "ready"
+        assert refreshed.original_image_path
 
 
 class TestHealthFeatures:

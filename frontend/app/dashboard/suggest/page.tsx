@@ -343,7 +343,7 @@ function OutfitCard({
                       src={item.thumbnail_url}
                       alt={item.name || typeLabel(item.type)}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform"
+                      className="garment-fit group-hover:scale-105 transition-transform"
                       sizes="(max-width: 640px) 50vw, 33vw"
                     />
                   ) : (
@@ -792,7 +792,7 @@ function SuggestContent() {
                             src={(selectedItem.thumbnail_url || selectedItem.image_url)!}
                             alt={selectedItem.name || typeLabel(selectedItem.type)}
                             fill
-                            className="object-cover"
+                            className="garment-fit"
                             sizes="56px"
                           />
                         ) : (

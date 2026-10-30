@@ -135,7 +135,7 @@ export function ItemPicker({
                     src={(item.thumbnail_url || item.image_url)!}
                     alt={item.name || typeLabel(item.type)}
                     fill
-                    className="object-cover"
+                    className="garment-fit"
                     sizes="(max-width: 640px) 33vw, 20vw"
                     loading="lazy"
                   />

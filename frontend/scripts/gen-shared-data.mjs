@@ -20,9 +20,12 @@ const header = (source) => [
   '// Do not edit by hand; run `npm run vocab:gen`.',
 ];
 
-function renderVocabulary({ roles: roleOrder, types, materials, formality, occasions, colors, color_aliases: colorAliases }) {
+function renderVocabulary({ roles: roleOrder, types, materials, formality, occasions, colors, color_aliases: colorAliases, categories }) {
   const roles = types.map(({ value, role }) => `  ${key(value)}: ${quote(role)},`).join('\n');
   const swatches = colors.map(({ value, hex }) => `  { value: ${quote(value)}, hex: ${quote(hex)} },`).join('\n');
+  const roleCategories = Object.entries(categories)
+    .flatMap(([category, roles]) => roles.map((role) => `  ${key(role)}: ${quote(category)},`))
+    .join('\n');
   const aliases = Object.entries(colorAliases)
     .map(([alias, color]) => `  ${key(alias)}: ${quote(color)},`)
     .join('\n');
@@ -32,6 +35,12 @@ function renderVocabulary({ roles: roleOrder, types, materials, formality, occas
     `export const FORMALITY_VALUES = ${list(formality)};`,
     `export const OCCASION_VALUES = ${list(occasions.map((o) => o.value))};`,
     `export const ROLE_VALUES = ${list(roleOrder)};`,
+    `export const CATEGORY_VALUES = ${list(Object.keys(categories))};`,
+    '',
+    '// Wardrobe section (clothing, footwear, accessories) of each role.',
+    'export const ROLE_CATEGORY: Record<string, string> = {',
+    roleCategories,
+    '};',
     '',
     'export const ITEM_ROLE: Record<string, string> = {',
     roles,

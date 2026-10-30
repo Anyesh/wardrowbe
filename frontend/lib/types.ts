@@ -1,4 +1,10 @@
-import { CLOTHING_TYPE_VALUES, OCCASION_VALUES } from '@/lib/generated/garment-vocabulary';
+import {
+  CATEGORY_VALUES,
+  CLOTHING_TYPE_VALUES,
+  ITEM_ROLE,
+  OCCASION_VALUES,
+  ROLE_CATEGORY,
+} from '@/lib/generated/garment-vocabulary';
 
 // API response types matching backend schemas
 
@@ -61,6 +67,9 @@ export interface Item {
   needs_wash: boolean;
   effective_wash_interval: number;
   additional_images: ItemImage[];
+  // What the cover photo shows; null when the user has not said.
+  image_view?: PhotoType | null;
+  category?: ItemCategory;
   is_archived: boolean;
   archived_at?: string;
   archive_reason?: string;
@@ -122,6 +131,7 @@ export interface TaggingProgress {
 
 export interface ItemFilter {
   type?: string;
+  category?: ItemCategory;
   subtype?: string;
   colors?: string[];
   status?: string;
@@ -173,6 +183,19 @@ export { CLOTHING_COLORS } from '@/lib/generated/garment-vocabulary';
 export const CLOTHING_TYPES = [...CLOTHING_TYPE_VALUES].sort().map((value) => ({ value }));
 
 export type ClothingTypeValue = (typeof CLOTHING_TYPE_VALUES)[number];
+
+// Wardrobe sections. Each type belongs to one through its role; an unknown type reads as clothing.
+export type ItemCategory = (typeof CATEGORY_VALUES)[number];
+export const ITEM_CATEGORIES: readonly ItemCategory[] = CATEGORY_VALUES;
+
+export function categoryOfType(type: string | null | undefined): ItemCategory {
+  const role = type ? ITEM_ROLE[type] : undefined;
+  return ((role && ROLE_CATEGORY[role]) || 'clothing') as ItemCategory;
+}
+
+// What a photo of an item shows. Only one photo can be the front and one the back.
+export type PhotoType = 'front' | 'back' | 'detail' | 'other';
+export const PHOTO_TYPES: readonly PhotoType[] = ['front', 'back', 'detail', 'other'];
 
 // Suggested subtypes per type. Mirrors the SUBTYPE examples in clothing_analysis.txt.
 // Subtype is free text on the backend (and the model may answer outside this list),
@@ -249,6 +272,10 @@ export interface ItemImage {
   thumbnail_path?: string;
   medium_path?: string;
   position: number;
+  view?: PhotoType | null;
+  // Background removal runs per photo, so each one has its own state and backup.
+  status?: 'ready' | 'processing' | 'error';
+  original_image_path?: string | null;
   created_at: string;
   image_url: string;
   thumbnail_url?: string;
