@@ -184,6 +184,7 @@ class BulkOutfitFilters(BaseModel):
     is_lookbook: bool | None = None
     is_replacement: bool | None = None
     has_source_item: bool | None = None
+    worn: bool | None = None
     item_type: str | None = None
     search: str | None = None
     occasions: Annotated[list[str] | None, Field(max_length=MAX_SEARCH_OCCASIONS)] = None
@@ -611,6 +612,7 @@ async def list_outfits(
     is_lookbook: bool | None = Query(None, description="true for templates only"),
     is_replacement: bool | None = Query(None),
     has_source_item: bool | None = Query(None),
+    worn: bool | None = Query(None, description="true for outfits with a wear date"),
     item_type: str | None = Query(None),
     source_type: str | None = Query(
         None, description="Legacy alias for item_type used by /pairings"
@@ -639,6 +641,7 @@ async def list_outfits(
         is_lookbook=is_lookbook,
         is_replacement=is_replacement,
         has_source_item=has_source_item,
+        worn=worn,
         item_type=item_type or source_type,
         family_member_view=family_member_id is not None,
         search=search,
@@ -688,6 +691,7 @@ async def bulk_delete_outfits(
             is_lookbook=request.filters.is_lookbook if request.filters else None,
             is_replacement=request.filters.is_replacement if request.filters else None,
             has_source_item=request.filters.has_source_item if request.filters else None,
+            worn=request.filters.worn if request.filters else None,
             item_type=request.filters.item_type if request.filters else None,
             search=request.filters.search if request.filters else None,
             occasions=request.filters.occasions if request.filters else None,

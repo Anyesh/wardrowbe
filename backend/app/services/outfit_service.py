@@ -14,6 +14,7 @@ from app.models.outfit import (
     OutfitItem,
     OutfitSource,
     OutfitStatus,
+    UserFeedback,
 )
 from app.models.user import User
 
@@ -29,6 +30,7 @@ class OutfitListFilters:
     is_lookbook: bool | None = None
     is_replacement: bool | None = None
     has_source_item: bool | None = None
+    worn: bool | None = None
     item_type: str | None = None
     family_member_view: bool = False
     search: str | None = None
@@ -124,6 +126,15 @@ class OutfitService:
             clauses.append(Outfit.source_item_id.is_not(None))
         elif filters.has_source_item is False:
             clauses.append(Outfit.source_item_id.is_(None))
+
+        if filters.worn is not None:
+            worn = Outfit.feedback.has(
+                and_(
+                    UserFeedback.worn_at.is_not(None),
+                    UserFeedback.actually_worn.is_not(False),
+                )
+            )
+            clauses.append(worn if filters.worn else ~worn)
 
         if filters.item_type:
             clauses.append(Outfit.source_item.has(ClothingItem.type == filters.item_type))

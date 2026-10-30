@@ -41,6 +41,7 @@ export interface OutfitFilters {
   is_lookbook?: boolean;
   is_replacement?: boolean;
   has_source_item?: boolean;
+  worn?: boolean;
   search?: string;
   occasions?: string[];
   cloned_from_outfit_id?: string;
@@ -91,6 +92,7 @@ function outfitListParams(filters: OutfitFilters, page: number, pageSize: number
     params.is_replacement = String(filters.is_replacement);
   if (filters.has_source_item !== undefined)
     params.has_source_item = String(filters.has_source_item);
+  if (filters.worn !== undefined) params.worn = String(filters.worn);
   if (filters.search) params.search = filters.search;
   if (filters.occasions?.length) params.occasions = filters.occasions.join(',');
   if (filters.cloned_from_outfit_id)
