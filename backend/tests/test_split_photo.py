@@ -18,7 +18,7 @@ from app.main import app
 from app.models.item import ClothingItem, ItemStatus
 from app.models.preference import UserPreference
 from app.models.user import User
-from app.services.ai_service import DETECTION_PROMPT, AIService
+from app.services.ai_service import DETECTION_PROMPT, AIService, ClothingTags
 from app.services.garment_detector import (
     DETECTION_EXAMPLE,
     MAX_GARMENTS,
@@ -26,6 +26,7 @@ from app.services.garment_detector import (
     parse_detection,
 )
 from app.services.image_service import ImageService
+from app.workers import tagging
 
 
 def _reply(*garments: dict) -> str:
@@ -758,15 +759,17 @@ class TestSplitEndpoint:
 
 class TestArchivedWhileAnalysing:
     @pytest.mark.asyncio
-    async def test_a_split_source_still_being_tagged_stays_archived(
-        self, db_session: AsyncSession, test_user
+    @pytest.mark.parametrize(
+        "status_when_job_lands",
+        [ItemStatus.archived, ItemStatus.processing],
+        ids=["split-while-tagging", "re-analysed-while-archived"],
+    )
+    async def test_an_archived_item_stays_archived_after_its_analysis(
+        self, db_session: AsyncSession, test_user, status_when_job_lands
     ):
-        from app.services.ai_service import ClothingTags
-        from app.workers import tagging
-
-        item = await _make_item(db_session, test_user, is_archived=True)
-        item.status = ItemStatus.archived
-        await db_session.commit()
+        item = await _make_item(
+            db_session, test_user, is_archived=True, status=status_when_job_lands
+        )
         item_id = item.id
 
         class _StubAI:
