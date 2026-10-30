@@ -59,7 +59,7 @@ from app.schemas.item import (
     WashHistoryResponse,
 )
 from app.services.image_service import ImageService
-from app.services.item_service import ItemService
+from app.services.item_service import ItemService, TagVocabularyError
 from app.utils.auth import get_current_user
 from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
@@ -1291,7 +1291,13 @@ async def update_item(
         item.tagged_by = TaggedBy.manual
         item.tagged_at = datetime.now(UTC)
 
-    item = await item_service.update(item, item_data)
+    try:
+        item = await item_service.update(item, item_data)
+    except TagVocabularyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"message": str(e), "error_code": "INVALID_TAG_VALUE"},
+        ) from e
     return ItemResponse.model_validate(item)
 
 

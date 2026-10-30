@@ -169,6 +169,7 @@
       "markWashed": "세탁 완료 표시",
       "originalRestoreError": "원본 이미지 복원 실패",
       "originalRestored": "원본 이미지가 복원되었어요",
+      "saveError": "아이템 저장 실패",
       "washError": "세탁 완료 표시 실패",
       "logWear": "착용 기록",
       "wearLogged": "착용을 기록했어요",
@@ -188,6 +189,20 @@
     },
     "primaryColor": "메인 색상",
     "subtype": "세부 유형",
+    "tagsEditor": {
+      "fit": "핏",
+      "formality": "격식",
+      "hint": "AI가 잘못 인식한 부분을 고쳐 보세요. 아이템을 다시 분석해도 수정한 내용은 유지돼요.",
+      "invalidValue": "목록에 없는 값의 태그가 있어요. 다시 선택한 뒤 저장해 주세요.",
+      "material": "소재",
+      "none": "없음",
+      "pattern": "패턴",
+      "season": "계절",
+      "secondaryColor": "보조 색상",
+      "style": "스타일",
+      "tertiaryColor": "세 번째 색상",
+      "title": "AI 태그"
+    },
     "titles": {
       "analysisInProgress": "분석 진행 중...",
       "deleteImage": "이미지 삭제",

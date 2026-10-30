@@ -19,6 +19,10 @@ DEFAULT_WASH_INTERVALS: dict[str, int] = {
 MATERIALS: tuple[str, ...] = tuple(_DATA["materials"])
 # Ordered from least to most formal; the scorer measures distance along this scale.
 FORMALITY: tuple[str, ...] = tuple(_DATA["formality"])
+PATTERNS: tuple[str, ...] = tuple(_DATA["patterns"])
+STYLES: tuple[str, ...] = tuple(_DATA["styles"])
+SEASONS: tuple[str, ...] = tuple(_DATA["seasons"])
+FITS: tuple[str, ...] = tuple(_DATA["fits"])
 OCCASIONS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["occasions"])
 OCCASION_FORMALITY: dict[str, tuple[str, ...]] = {
     entry["value"]: tuple(entry["formality"]) for entry in _DATA["occasions"]
@@ -82,6 +86,10 @@ def render_tagging_prompt(template: str) -> str:
         .replace("<<MATERIALS>>", ", ".join(MATERIALS))
         .replace("<<FORMALITY>>", ", ".join(FORMALITY))
         .replace("<<COLORS>>", ", ".join(COLORS))
+        .replace("<<PATTERNS>>", ", ".join(PATTERNS))
+        .replace("<<STYLES>>", ", ".join(STYLES))
+        .replace("<<SEASONS>>", ", ".join(SEASONS))
+        .replace("<<FITS>>", ", ".join(FITS))
     )
 
 

@@ -169,6 +169,7 @@
       "markWashed": "Mark Washed",
       "originalRestoreError": "Failed to restore original image",
       "originalRestored": "Original image restored",
+      "saveError": "Failed to save item",
       "washError": "Failed to mark as washed",
       "logWear": "Log wear",
       "wearLogged": "Wear logged",
@@ -188,6 +189,20 @@
     },
     "primaryColor": "Primary Color",
     "subtype": "Subtype",
+    "tagsEditor": {
+      "fit": "Fit",
+      "formality": "Formality",
+      "hint": "Fix anything the AI got wrong. Your changes are kept if the item is analyzed again.",
+      "invalidValue": "A tag has a value that isn't on the list. Pick it again and save.",
+      "material": "Material",
+      "none": "None",
+      "pattern": "Pattern",
+      "season": "Season",
+      "secondaryColor": "Secondary color",
+      "style": "Style",
+      "tertiaryColor": "Tertiary color",
+      "title": "AI tags"
+    },
     "titles": {
       "analysisInProgress": "Analysis in progress...",
       "deleteImage": "Delete image",

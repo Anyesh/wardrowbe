@@ -36,6 +36,10 @@
   ],
   "materials": ["cotton", "denim", "leather", "wool", "polyester", "silk", "linen", "knit", "fleece", "suede", "velvet", "nylon", "canvas", "down", "shearling"],
   "formality": ["very-casual", "casual", "smart-casual", "business-casual", "formal", "very-formal"],
+  "patterns": ["solid", "striped", "plaid", "checkered", "floral", "graphic", "geometric", "polka-dot", "camouflage", "animal-print"],
+  "styles": ["casual", "classic", "sporty", "minimalist", "bohemian", "preppy", "streetwear", "elegant", "athletic", "vintage", "modern", "rugged"],
+  "seasons": ["spring", "summer", "fall", "winter", "all-season"],
+  "fits": ["slim", "regular", "relaxed", "oversized", "tailored", "cropped"],
   "occasions": [
     {"value": "casual", "formality": ["very-casual", "casual", "smart-casual"]},
     {"value": "office", "formality": ["smart-casual", "business-casual", "formal"]},

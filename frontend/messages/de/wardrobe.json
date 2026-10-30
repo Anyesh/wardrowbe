@@ -169,6 +169,7 @@
       "markWashed": "Als gewaschen markieren",
       "originalRestoreError": "Originalbild konnte nicht wiederhergestellt werden",
       "originalRestored": "Originalbild wiederhergestellt",
+      "saveError": "Stück konnte nicht gespeichert werden",
       "washError": "Konnte nicht als gewaschen markiert werden",
       "logWear": "Tragen erfassen",
       "wearLogged": "Tragen erfasst",
@@ -188,6 +189,20 @@
     },
     "primaryColor": "Hauptfarbe",
     "subtype": "Untertyp",
+    "tagsEditor": {
+      "fit": "Passform",
+      "formality": "Formalität",
+      "hint": "Korrigiere, was die KI falsch erkannt hat. Deine Änderungen bleiben erhalten, wenn das Teil erneut analysiert wird.",
+      "invalidValue": "Ein Tag hat einen Wert, der nicht in der Liste steht. Wähle ihn erneut aus und speichere.",
+      "material": "Material",
+      "none": "Keine",
+      "pattern": "Muster",
+      "season": "Saison",
+      "secondaryColor": "Zweitfarbe",
+      "style": "Stil",
+      "tertiaryColor": "Drittfarbe",
+      "title": "KI-Tags"
+    },
     "titles": {
       "analysisInProgress": "Analyse läuft...",
       "deleteImage": "Bild löschen",

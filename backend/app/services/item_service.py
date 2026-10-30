@@ -16,11 +16,72 @@ from app.models.item import (
 )
 from app.schemas.item import (
     DEFAULT_WASH_INTERVALS,
+    USER_TAG_KEYS,
     ItemCreate,
     ItemFilter,
     ItemFilterFields,
     ItemUpdate,
 )
+from app.utils.tag_validation import normalize_tag_edits
+
+# Values the AI fills in that can also be changed on the item itself rather than inside tags.
+_EDITABLE_ITEM_FIELDS = ("type", "subtype", "primary_color", "colors")
+
+
+class TagVocabularyError(ValueError):
+    """A tag value outside its vocabulary that the item did not already have."""
+
+
+def _keep_colours_in_step(update_data: dict, incoming: dict, current: dict, existing: dict) -> None:
+    """Make a colour change sent at either level reach both, and the colour list.
+
+    The item keeps its colours twice (the primary_color and colors columns, and the same keys in
+    the tags JSON), and suggestions read `colors`. A client that sends only a new primary colour
+    would otherwise leave the list, and the JSON, describing the old one.
+    """
+    if "colors" in update_data and "colors" not in incoming:
+        incoming["colors"] = update_data["colors"]
+    if "primary_color" in update_data and "primary_color" not in incoming:
+        incoming["primary_color"] = update_data["primary_color"]
+    elif "primary_color" in incoming and "primary_color" not in update_data:
+        update_data["primary_color"] = incoming["primary_color"]
+
+    new_primary = update_data.get("primary_color")
+    old_primary = (
+        current["primary_color"]
+        or existing.get("primary_color")
+        or (current["colors"] or [None])[0]
+    )
+    if (
+        new_primary
+        # "unknown" is how a client hands the primary back to the AI; it is not a colour.
+        and new_primary != "unknown"
+        and new_primary != old_primary
+        and "colors" not in update_data
+        and "colors" not in incoming
+    ):
+        # The new primary goes first and replaces the old one; the other colours stay.
+        rest = [c for c in (current["colors"] or []) if c not in (old_primary, new_primary)]
+        update_data["colors"] = [new_primary, *rest]
+        incoming["colors"] = update_data["colors"]
+    elif "colors" in incoming and "colors" not in update_data:
+        update_data["colors"] = incoming["colors"]
+
+
+def _handed_back_to_the_ai(update_data: dict, incoming: dict, edited: list[str]) -> set[str]:
+    """Keys the person gave up on, which analysis may fill again.
+
+    "unknown" is how the form says "don't know" for the type (which cannot be empty) and the
+    primary colour; a subtype dropped because the type changed was the old type's.
+    """
+    keys = set()
+    if update_data.get("type") == "unknown":
+        keys.add("type")
+    if "unknown" in (update_data.get("primary_color"), incoming.get("primary_color")):
+        keys.add("primary_color")
+    if "subtype" in update_data and not update_data["subtype"] and "type" in edited:
+        keys.add("subtype")
+    return keys
 
 
 class ItemService:
@@ -229,27 +290,85 @@ class ItemService:
     async def update(self, item: ClothingItem, item_data: ItemUpdate) -> ClothingItem:
         update_data = item_data.model_dump(exclude_unset=True)
 
-        incoming: dict = {}
-        if "tags" in update_data and update_data["tags"] is not None:
-            incoming = update_data["tags"]
-            if not isinstance(incoming, dict):
-                incoming = incoming.model_dump(exclude_unset=True)
+        # A null (or empty) tags object means "no change". Clearing one tag is a null
+        # *inside* the object; writing None for the whole thing would wipe every tag, the
+        # AI confidence and the user-owned keys.
+        incoming = update_data.pop("tags", None) or {}
+        if not isinstance(incoming, dict):
+            incoming = incoming.model_dump(exclude_unset=True)
+        # Maintained below; a client cannot set or clear it.
+        incoming.pop("user_edited_keys", None)
+
+        if incoming or any(field in update_data for field in _EDITABLE_ITEM_FIELDS):
+            # Re-read under a row lock and compare against that, not against `item`, which was
+            # loaded before the lock: a re-analysis committing in between would otherwise be
+            # overwritten without the person's change being recorded. Selecting columns still
+            # locks the row until the caller commits.
+            locked = (
+                await self.db.execute(
+                    select(
+                        ClothingItem.tags,
+                        ClothingItem.type,
+                        ClothingItem.subtype,
+                        ClothingItem.primary_color,
+                        ClothingItem.colors,
+                    )
+                    .where(ClothingItem.id == item.id)
+                    .with_for_update()
+                )
+            ).one()
+            existing = dict(locked.tags or {})
+            current = {
+                "type": locked.type,
+                "subtype": locked.subtype,
+                "primary_color": locked.primary_color,
+                "colors": locked.colors,
+            }
+
+            # Checked before the reorder below, which writes a list the client never sent.
+            client_sent_colors = "colors" in update_data or "colors" in incoming
+            _keep_colours_in_step(update_data, incoming, current, existing)
+            try:
+                incoming.update(normalize_tag_edits(incoming, existing))
+            except ValueError as e:
+                raise TagVocabularyError(str(e)) from e
+
+            # What the AI produced and the person changed, so "re-analyse and replace" can keep
+            # it. Only real changes count: a client may resend fields it did not change.
+            edited = [
+                field
+                for field in _EDITABLE_ITEM_FIELDS
+                if field in update_data and update_data[field] != current[field]
+            ]
+
             # Merge rather than replace: the tags JSONB also holds user-owned
             # keys (size, care_instructions, source_url) that a partial update
             # does not mention. An explicit null clears that one key.
-            # Re-read under a row lock: two concurrent writers must not each merge
-            # into a stale snapshot and then overwrite the other. Selecting one
-            # column still locks the row until the caller commits.
-            locked = await self.db.execute(
-                select(ClothingItem.tags).where(ClothingItem.id == item.id).with_for_update()
-            )
-            merged = dict(locked.scalar_one_or_none() or {})
+            merged = dict(existing)
             for key, val in incoming.items():
                 if val is None:
                     merged.pop(key, None)
                 else:
                     merged[key] = val
-            update_data["tags"] = merged
+            edited += [
+                key
+                for key, val in incoming.items()
+                if key not in USER_TAG_KEYS and existing.get(key) != val
+            ]
+            if not client_sent_colors:
+                edited = [key for key in edited if key != "colors"]
+            unlocked = _handed_back_to_the_ai(update_data, incoming, edited)
+            keys = [
+                key
+                for key in dict.fromkeys([*existing.get("user_edited_keys", []), *edited])
+                if key not in unlocked
+            ]
+            if keys:
+                merged["user_edited_keys"] = keys
+            else:
+                merged.pop("user_edited_keys", None)
+            if incoming or edited or unlocked:
+                update_data["tags"] = merged
 
         for field, value in update_data.items():
             setattr(item, field, value)

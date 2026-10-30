@@ -26,9 +26,12 @@ class ItemTags(BaseModel):
     size: str | None = Field(None, max_length=32)
     care_instructions: str | None = Field(None, max_length=255)
     source_url: str | None = Field(None, max_length=500)
+    # Tag keys changed by hand, kept so a later "re-analyse and replace" can leave them alone.
+    # The server maintains it; whatever a client sends for it is ignored.
+    user_edited_keys: list[str] = Field(default_factory=list)
 
 
-USER_TAG_KEYS = frozenset({"size", "care_instructions", "source_url"})
+USER_TAG_KEYS = frozenset({"size", "care_instructions", "source_url", "user_edited_keys"})
 
 
 class ItemBase(BaseModel):
