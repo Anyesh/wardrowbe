@@ -9,19 +9,18 @@ This service implements a Netflix/Spotify-style recommendation learning system t
 5. Integrates learned preferences into the recommendation flow
 """
 
-import enum
 import logging
 from collections.abc import Iterable
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from itertools import combinations
 from uuid import UUID
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, delete, func, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.item import ClothingItem
 from app.models.learning import (
@@ -33,7 +32,9 @@ from app.models.learning import (
 from app.models.outfit import Outfit, OutfitItem, OutfitStatus, UserFeedback
 from app.models.preference import UserPreference
 from app.utils.clothing import ITEM_ROLE
-from app.utils.signed_urls import sign_image_url
+from app.utils.garment_vocabulary import canonical_primary_color
+from app.utils.scales import rating_to_signed, rating_to_unit
+from app.utils.signed_urls import sign_optional
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +52,120 @@ def slot_composition(item_types: Iterable[str | None]) -> dict[str, str]:
     return composition
 
 
-class PairSignalType(enum.Enum):
-    intent = "intent"
-    wear = "wear"
-    rating = "rating"
+# Ties break on the colour name so that the choice does not depend on item order. A colour seen only
+# in outfits with a negative signal has a zero count and is not preferred.
+def _top_occasion_colors(counts: dict[str, int]) -> list[str]:
+    ranked = sorted(
+        (entry for entry in counts.items() if entry[1] > 0),
+        key=lambda entry: (-entry[1], entry[0]),
+    )
+    return [color for color, _ in ranked[:3]]
+
+
+# Studio outfits stay pending with feedback.accepted set, so they must match on feedback too.
+_HAS_PROFILE_SIGNAL = or_(
+    Outfit.status.in_([OutfitStatus.accepted, OutfitStatus.rejected]),
+    Outfit.feedback.has(UserFeedback.accepted.is_not(None)),
+)
+
+
+def _outfit_accepted(outfit: Outfit) -> bool:
+    if outfit.status in (OutfitStatus.accepted, OutfitStatus.rejected):
+        return outfit.status == OutfitStatus.accepted
+    return bool(outfit.feedback and outfit.feedback.accepted)
+
+
+_HAS_PAIR_SIGNAL = or_(
+    UserFeedback.accepted.is_not(None),
+    UserFeedback.worn_at.is_not(None),
+    UserFeedback.rating.is_not(None),
+)
+
+
+# Postgres binds at most 32767 parameters per statement; a pair row binds 12, and a pair key 2.
+_PAIR_WRITE_BATCH = 1000
+
+
+def _item_pairs(item_ids: Iterable[UUID]) -> set[tuple[UUID, UUID]]:
+    return {tuple(sorted(pair)) for pair in combinations(set(item_ids), 2)}
+
+
+def _is_positive_pair_signal(feedback: UserFeedback) -> bool:
+    if feedback.worn_at is not None:
+        return True
+    if feedback.rating is not None:
+        intent = {True: 0.3, False: -0.3}.get(feedback.accepted, 0.0)
+        return intent + rating_to_signed(feedback.rating) * 0.3 > 0
+    return feedback.accepted is True
+
+
+@dataclass
+class _PairTally:
+    times_paired: int = 0
+    times_accepted: int = 0
+    times_rejected: int = 0
+    total_rating_sum: int = 0
+    rating_count: int = 0
+    times_worn: int = 0
+    occasion_performance: dict[str, dict[str, int]] = field(default_factory=dict)
+    weather_performance: dict[str, dict[str, int]] = field(default_factory=dict)
+
+    def add(self, feedback: UserFeedback, occasion: str, temp_bucket: str | None) -> None:
+        self.times_paired += 1
+        if feedback.accepted is True:
+            self.times_accepted += 1
+        elif feedback.accepted is False:
+            self.times_rejected += 1
+        if feedback.rating is not None:
+            self.total_rating_sum += feedback.rating
+            self.rating_count += 1
+        if feedback.worn_at is not None:
+            self.times_worn += 1
+
+        positive = int(_is_positive_pair_signal(feedback))
+        for performance, key in (
+            (self.occasion_performance, occasion),
+            (self.weather_performance, temp_bucket),
+        ):
+            if key is not None:
+                entry = performance.setdefault(key, {"count": 0, "positive": 0})
+                entry["count"] += 1
+                entry["positive"] += positive
+
+
+def score_interpretation(score: float) -> str:
+    if score >= 0.5:
+        return "stronglyLiked"
+    if score >= 0.2:
+        return "liked"
+    if score >= -0.2:
+        return "neutral"
+    if score >= -0.5:
+        return "disliked"
+    return "stronglyDisliked"
+
+
+def insight_message(insight: StyleInsight) -> tuple[str | None, dict]:
+    """The learning.json key and params that render a stored insight in any language.
+
+    Derived from supporting_data rather than stored, so insights written before clients could
+    translate them render too. generate_insights must keep writing the fields read here.
+    """
+    data = insight.supporting_data or {}
+    kind = (insight.category, insight.insight_type)
+    if kind == ("color", "positive") and data.get("color"):
+        return "insightColorLoved", {"color": data["color"]}
+    if kind == ("color", "negative") and data.get("colors"):
+        return "insightColorAvoided", {"color": data["colors"][0]}
+    if kind == ("overall", "positive") and data.get("acceptance_rate") is not None:
+        return "insightGreatMatch", {"percent": round(float(data["acceptance_rate"]) * 100)}
+    if kind == ("overall", "suggestion"):
+        return "insightHelpUsLearn", {}
+    if kind == ("style", "pattern") and data.get("styles"):
+        # JSONB does not keep insertion order, so rank by score again.
+        styles = sorted(data["styles"], key=lambda style: data["styles"][style], reverse=True)
+        return "insightStyleLeaning", {"style": styles[0], "styles": styles}
+    return None, {}
 
 
 class LearningService:
@@ -73,16 +184,6 @@ class LearningService:
 
     def __init__(self, db: AsyncSession):
         self.db = db
-
-    def _determine_signal_types(self, feedback: UserFeedback) -> set[PairSignalType]:
-        types: set[PairSignalType] = set()
-        if feedback.accepted is not None:
-            types.add(PairSignalType.intent)
-        if feedback.worn_at is not None:
-            types.add(PairSignalType.wear)
-        if feedback.rating is not None:
-            types.add(PairSignalType.rating)
-        return types
 
     def create_synthetic_feedback(
         self,
@@ -119,25 +220,12 @@ class LearningService:
             return
 
         await self._update_outfit_performance(outfit)
-
-        signal_types = self._determine_signal_types(outfit.feedback)
-        if signal_types:
-            await self._update_item_pair_scores(outfit, signal_types)
-
+        await self.rebuild_pair_scores(
+            outfit.user_id, _item_pairs(oi.item_id for oi in outfit.items)
+        )
         await self.db.commit()
 
-        result = await self.db.execute(
-            select(Outfit)
-            .where(Outfit.id == outfit_id)
-            .options(
-                selectinload(Outfit.feedback),
-                selectinload(Outfit.items).selectinload(OutfitItem.item),
-            )
-        )
-        outfit = result.scalar_one()
-
-        signal = self._get_outfit_signal(outfit)
-        await self._update_profile_incremental(user_id, outfit, signal)
+        await self._recompute_profile(user_id)
 
     async def _update_outfit_performance(self, outfit: Outfit) -> None:
         """Compute and store outfit performance metrics."""
@@ -152,8 +240,7 @@ class LearningService:
 
         rating_score = None
         if feedback.rating is not None:
-            # Normalize 1-5 rating to 0-1
-            rating_score = Decimal(str((feedback.rating - 1) / 4))
+            rating_score = Decimal(str(rating_to_unit(feedback.rating)))
 
         wear_score = None
         if feedback.worn_at is not None:
@@ -236,249 +323,99 @@ class LearningService:
 
         await self.db.execute(stmt)
 
-    async def _update_item_pair_scores(
-        self, outfit: Outfit, signal_types: set[PairSignalType] | None = None
-    ) -> None:
-        feedback = outfit.feedback
-        if not feedback:
+    async def rebuild_pair_scores(self, user_id: UUID, pairs: Iterable[tuple[UUID, UUID]]) -> None:
+        tallies = {tuple(sorted(pair)): _PairTally() for pair in pairs}
+        if not tallies:
             return
+        item_ids = {item_id for pair in tallies for item_id in pair}
 
-        items = [oi.item for oi in outfit.items]
-        if len(items) < 2:
-            return
-
-        # Determine feedback signal
-        is_positive = False
-        signal_strength = 0.0
-
-        if feedback.accepted is not None:
-            if feedback.accepted:
-                is_positive = True
-                signal_strength = 0.3
-            else:
-                signal_strength = -0.3
-
-        if feedback.rating is not None:
-            rating_signal = (feedback.rating - 3) / 2  # -1 to 1
-            signal_strength += rating_signal * 0.3
-            is_positive = signal_strength > 0
-
-        if feedback.worn_at is not None:
-            signal_strength += 0.2
-            is_positive = True
-
-        # Create all pairs (ensuring item1_id < item2_id for uniqueness)
-        for item1, item2 in combinations(items, 2):
-            id1, id2 = (item1.id, item2.id) if item1.id < item2.id else (item2.id, item1.id)
-
-            try:
-                # Get or create pair score
-                result = await self.db.execute(
-                    select(ItemPairScore).where(
-                        and_(
-                            ItemPairScore.user_id == outfit.user_id,
-                            ItemPairScore.item1_id == id1,
-                            ItemPairScore.item2_id == id2,
-                        )
-                    )
-                )
-                pair_score = result.scalar_one_or_none()
-
-                if not pair_score:
-                    pair_score = ItemPairScore(
-                        user_id=outfit.user_id,
-                        item1_id=id1,
-                        item2_id=id2,
-                    )
-                    self.db.add(pair_score)
-
-                # Update counts
-                pair_score.times_paired = (pair_score.times_paired or 0) + 1
-
-                if feedback.accepted is True:
-                    pair_score.times_accepted = (pair_score.times_accepted or 0) + 1
-                elif feedback.accepted is False:
-                    pair_score.times_rejected = (pair_score.times_rejected or 0) + 1
-
-                if feedback.rating is not None:
-                    pair_score.total_rating_sum = (
-                        pair_score.total_rating_sum or 0
-                    ) + feedback.rating
-                    pair_score.rating_count = (pair_score.rating_count or 0) + 1
-
-                occasion = outfit.occasion
-                occasion_perf = (
-                    dict(pair_score.occasion_performance) if pair_score.occasion_performance else {}
-                )
-                if occasion not in occasion_perf:
-                    occasion_perf[occasion] = {"count": 0, "positive": 0}
-                occasion_perf[occasion]["count"] += 1
-                if is_positive:
-                    occasion_perf[occasion]["positive"] += 1
-                pair_score.occasion_performance = occasion_perf
-
-                if outfit.weather_data:
-                    temp = outfit.weather_data.get("temperature")
-                    if temp is not None:
-                        temp_bucket = self._get_temp_bucket(temp)
-                        weather_perf = (
-                            dict(pair_score.weather_performance)
-                            if pair_score.weather_performance
-                            else {}
-                        )
-                        if temp_bucket not in weather_perf:
-                            weather_perf[temp_bucket] = {"count": 0, "positive": 0}
-                        weather_perf[temp_bucket]["count"] += 1
-                        if is_positive:
-                            weather_perf[temp_bucket]["positive"] += 1
-                        pair_score.weather_performance = weather_perf
-
-                pair_score.compatibility_score = self._compute_pair_compatibility(pair_score)
-
-            except Exception:
-                logger.exception(
-                    f"[_update_item_pair_scores] Exception processing pair {id1} + {id2} "
-                    f"for outfit {outfit.id}, user {outfit.user_id}"
-                )
-                raise
-
-    async def _process_wore_instead(self, outfit: Outfit) -> None:
-        """
-        Process items the user wore instead of the recommendation.
-
-        When a user rejects our outfit and tells us what they wore instead,
-        we learn that those items are preferred. This creates positive pair
-        scores for items they chose.
-        """
-        feedback = outfit.feedback
-        if not feedback or not feedback.wore_instead_items:
-            return
-
-        # Get the items they wore instead
-        wore_instead_ids = [UUID(item_id) for item_id in feedback.wore_instead_items]
-
-        if len(wore_instead_ids) < 2:
-            # Need at least 2 items to form a pair
-            return
-
-        # Get the actual items
         result = await self.db.execute(
-            select(ClothingItem).where(ClothingItem.id.in_(wore_instead_ids))
+            select(Outfit)
+            .join(Outfit.feedback)
+            .where(
+                Outfit.user_id == user_id,
+                _HAS_PAIR_SIGNAL,
+                Outfit.items.any(OutfitItem.item_id.in_(item_ids)),
+            )
+            .options(selectinload(Outfit.feedback), selectinload(Outfit.items))
         )
-        wore_items = list(result.scalars().all())
+        for outfit in result.scalars().all():
+            outfit_item_ids = {oi.item_id for oi in outfit.items}
+            temp = (outfit.weather_data or {}).get("temperature")
+            bucket = self._get_temp_bucket(temp) if temp is not None else None
+            for pair in _item_pairs(outfit_item_ids) & tallies.keys():
+                tallies[pair].add(outfit.feedback, outfit.occasion, bucket)
 
-        if len(wore_items) < 2:
-            return
-
-        logger.info(
-            f"Processing 'wore instead' items for user {outfit.user_id}: {len(wore_items)} items"
-        )
-
-        # Create positive pair scores for items they actually wore
-        # These get a strong positive signal since user actively chose them
-        for item1, item2 in combinations(wore_items, 2):
-            id1, id2 = (item1.id, item2.id) if item1.id < item2.id else (item2.id, item1.id)
-
-            # Get or create pair score
-            result = await self.db.execute(
-                select(ItemPairScore).where(
-                    and_(
-                        ItemPairScore.user_id == outfit.user_id,
-                        ItemPairScore.item1_id == id1,
-                        ItemPairScore.item2_id == id2,
-                    )
+        empty = [pair for pair, tally in tallies.items() if tally.times_paired == 0]
+        for start in range(0, len(empty), _PAIR_WRITE_BATCH):
+            await self.db.execute(
+                delete(ItemPairScore).where(
+                    ItemPairScore.user_id == user_id,
+                    tuple_(ItemPairScore.item1_id, ItemPairScore.item2_id).in_(
+                        empty[start : start + _PAIR_WRITE_BATCH]
+                    ),
                 )
             )
-            pair_score = result.scalar_one_or_none()
 
-            if not pair_score:
-                pair_score = ItemPairScore(
-                    user_id=outfit.user_id,
-                    item1_id=id1,
-                    item2_id=id2,
-                )
-                self.db.add(pair_score)
-
-            # Strong positive signal - user chose this over our recommendation
-            pair_score.times_paired = (pair_score.times_paired or 0) + 1
-            pair_score.times_accepted = (
-                pair_score.times_accepted or 0
-            ) + 1  # Treat as accepted since user chose it
-
-            # Give a strong rating boost (equivalent to 5-star rating)
-            pair_score.total_rating_sum = (pair_score.total_rating_sum or 0) + 5
-            pair_score.rating_count = (pair_score.rating_count or 0) + 1
-
-            # Recompute compatibility
-            pair_score.compatibility_score = self._compute_pair_compatibility(pair_score)
-
-    async def process_item_diff(
-        self,
-        outfit: Outfit,
-        added_pairs: set[tuple[UUID, UUID]],
-        removed_pairs: set[tuple[UUID, UUID]],
-    ) -> None:
-        feedback = outfit.feedback
-        if not feedback:
-            return
-
-        signal_types = self._determine_signal_types(feedback)
-        if not signal_types:
-            return
-
-        for pair in removed_pairs:
-            await self._apply_pair_delta(outfit, pair, signal_types, feedback, sign=-1)
-
-        for pair in added_pairs:
-            await self._apply_pair_delta(outfit, pair, signal_types, feedback, sign=+1)
-
+        rows = [
+            {
+                "user_id": user_id,
+                "item1_id": item1_id,
+                "item2_id": item2_id,
+                "times_paired": tally.times_paired,
+                "times_accepted": tally.times_accepted,
+                "times_rejected": tally.times_rejected,
+                "total_rating_sum": tally.total_rating_sum,
+                "rating_count": tally.rating_count,
+                "occasion_performance": tally.occasion_performance,
+                "weather_performance": tally.weather_performance,
+                "wear_bonus": min(
+                    self.WEAR_BONUS_CAP, self.WEAR_BONUS_INCREMENT * tally.times_worn
+                ),
+                "compatibility_score": self._compute_pair_compatibility(tally),
+            }
+            # Sorted so that concurrent upserts lock shared rows in the same order.
+            for (item1_id, item2_id), tally in sorted(tallies.items(), key=lambda kv: kv[0])
+            if tally.times_paired > 0
+        ]
+        for start in range(0, len(rows), _PAIR_WRITE_BATCH):
+            stmt = insert(ItemPairScore).values(rows[start : start + _PAIR_WRITE_BATCH])
+            stmt = stmt.on_conflict_do_update(
+                constraint="uq_user_item_pair",
+                set_={
+                    column: stmt.excluded[column]
+                    for column in rows[0]
+                    if column not in ("user_id", "item1_id", "item2_id")
+                }
+                | {"updated_at": func.now()},
+            )
+            await self.db.execute(stmt)
         await self.db.flush()
 
-    async def _apply_pair_delta(
-        self,
-        outfit: Outfit,
-        pair_ids: tuple[UUID, UUID],
-        signal_types: set[PairSignalType],
-        feedback: UserFeedback,
-        sign: int,
-    ) -> None:
-        lo, hi = sorted(pair_ids)
-        result = await self.db.execute(
-            select(ItemPairScore).where(
-                and_(
-                    ItemPairScore.user_id == outfit.user_id,
-                    ItemPairScore.item1_id == lo,
-                    ItemPairScore.item2_id == hi,
-                )
+    async def rebuild_all_pair_scores(self, user_id: UUID) -> None:
+        stored = await self.db.execute(
+            select(ItemPairScore.item1_id, ItemPairScore.item2_id).where(
+                ItemPairScore.user_id == user_id
             )
         )
-        pair = result.scalar_one_or_none()
+        pairs = {tuple(row) for row in stored.all()}
 
-        if pair is None:
-            if sign < 0:
-                return
-            pair = ItemPairScore(user_id=outfit.user_id, item1_id=lo, item2_id=hi)
-            self.db.add(pair)
-            await self.db.flush()
+        result = await self.db.execute(
+            select(Outfit)
+            .join(Outfit.feedback)
+            .where(Outfit.user_id == user_id, _HAS_PAIR_SIGNAL)
+            .options(selectinload(Outfit.items))
+        )
+        for outfit in result.scalars().all():
+            pairs.update(_item_pairs(oi.item_id for oi in outfit.items))
 
-        if PairSignalType.intent in signal_types and feedback.accepted is not None:
-            pair.times_paired = max(0, (pair.times_paired or 0) + sign)
-            if feedback.accepted:
-                pair.times_accepted = max(0, (pair.times_accepted or 0) + sign)
-            else:
-                pair.times_rejected = max(0, (pair.times_rejected or 0) + sign)
+        await self.rebuild_pair_scores(user_id, pairs)
 
-        if PairSignalType.wear in signal_types and feedback.worn_at is not None:
-            delta = self.WEAR_BONUS_INCREMENT * sign
-            current = pair.wear_bonus or Decimal("0")
-            new_val = current + delta
-            if new_val < Decimal("0"):
-                new_val = Decimal("0")
-            if new_val > self.WEAR_BONUS_CAP:
-                new_val = self.WEAR_BONUS_CAP
-            pair.wear_bonus = new_val
-
-        pair.compatibility_score = self._compute_pair_compatibility(pair)
+    async def process_item_diff(
+        self, outfit: Outfit, removed_pairs: set[tuple[UUID, UUID]]
+    ) -> None:
+        current = _item_pairs(oi.item_id for oi in outfit.items)
+        await self.rebuild_pair_scores(outfit.user_id, current | removed_pairs)
 
     def _get_temp_bucket(self, temp: float) -> str:
         if temp < 5:
@@ -490,7 +427,7 @@ class LearningService:
         else:
             return "hot"
 
-    def _compute_pair_compatibility(self, pair: ItemPairScore) -> Decimal:
+    def _compute_pair_compatibility(self, pair: _PairTally) -> Decimal:
         """Compute overall compatibility score for an item pair."""
         if pair.times_paired < self.MIN_PAIRS_FOR_SCORING:
             return Decimal("0.0")  # Not enough data
@@ -505,7 +442,7 @@ class LearningService:
         # Rating component
         if pair.rating_count > 0:
             avg_rating = pair.total_rating_sum / pair.rating_count
-            rating_score = (avg_rating - 1) / 4  # Normalize to 0-1
+            rating_score = rating_to_unit(avg_rating)
         else:
             rating_score = 0.5
 
@@ -533,16 +470,13 @@ class LearningService:
         - Temporal patterns
         """
         logger.info(f"Recomputing learning profile for user {user_id}")
+        await self.rebuild_all_pair_scores(user_id)
+        return await self._recompute_profile(user_id)
 
-        # Get all feedbacks with outfit details
+    async def _recompute_profile(self, user_id: UUID) -> UserLearningProfile:
         result = await self.db.execute(
             select(Outfit)
-            .where(
-                and_(
-                    Outfit.user_id == user_id,
-                    Outfit.status.in_([OutfitStatus.accepted, OutfitStatus.rejected]),
-                )
-            )
+            .where(Outfit.user_id == user_id, _HAS_PROFILE_SIGNAL)
             .options(
                 selectinload(Outfit.feedback),
                 selectinload(Outfit.items).selectinload(OutfitItem.item),
@@ -552,7 +486,9 @@ class LearningService:
 
         if len(outfits) < self.MIN_FEEDBACK_FOR_LEARNING:
             logger.info(f"Not enough feedback for user {user_id} ({len(outfits)} outfits)")
-            return await self._get_or_create_profile(user_id)
+            profile = await self._get_or_create_profile(user_id)
+            await self.db.commit()
+            return profile
 
         # Initialize accumulators
         color_scores: dict[str, list[float]] = {}
@@ -578,10 +514,9 @@ class LearningService:
                 item = oi.item
 
                 # Color signals
-                if item.primary_color:
-                    if item.primary_color not in color_scores:
-                        color_scores[item.primary_color] = []
-                    color_scores[item.primary_color].append(signal)
+                color = canonical_primary_color(item.primary_color or "")
+                if color:
+                    color_scores.setdefault(color, []).append(signal)
 
                 # Style signals
                 for style in item.style or []:
@@ -604,8 +539,8 @@ class LearningService:
 
             # Track colors per occasion
             for oi in outfit.items:
-                if oi.item.primary_color:
-                    color = oi.item.primary_color
+                color = canonical_primary_color(oi.item.primary_color or "")
+                if color:
                     if color not in occasion_patterns[occasion]["colors"]:
                         occasion_patterns[occasion]["colors"][color] = 0
                     if signal > 0:
@@ -623,8 +558,7 @@ class LearningService:
                         weather_prefs[bucket]["positive"] += 1
                     weather_prefs[bucket]["layers"].append(len(outfit.items))
 
-            # Aggregate statistics
-            if outfit.status == OutfitStatus.accepted:
+            if _outfit_accepted(outfit):
                 total_accepted += 1
             else:
                 total_rejected += 1
@@ -656,14 +590,9 @@ class LearningService:
         learned_occasion_patterns = {}
         for occasion, data in occasion_patterns.items():
             if data["count"] >= 1:
-                # Find most successful colors for this occasion
-                top_colors = sorted(
-                    data["colors"].items(),
-                    key=lambda x: x[1],
-                    reverse=True,
-                )[:3]
                 learned_occasion_patterns[occasion] = {
-                    "preferred_colors": [c for c, _ in top_colors],
+                    "colors": data["colors"],
+                    "preferred_colors": _top_occasion_colors(data["colors"]),
                     "success_rate": round(data["positive"] / data["count"], 2),
                 }
 
@@ -692,13 +621,17 @@ class LearningService:
         profile.learned_occasion_patterns = learned_occasion_patterns
         profile.learned_weather_preferences = learned_weather_prefs
         profile.overall_acceptance_rate = (
-            Decimal(str(round(acceptance_rate, 4))) if acceptance_rate else None
+            Decimal(str(round(acceptance_rate, 4))) if acceptance_rate is not None else None
         )
-        profile.average_overall_rating = Decimal(str(round(avg_rating, 2))) if avg_rating else None
+        profile.average_overall_rating = (
+            Decimal(str(round(avg_rating, 2))) if avg_rating is not None else None
+        )
         profile.average_comfort_rating = (
-            Decimal(str(round(avg_comfort, 2))) if avg_comfort else None
+            Decimal(str(round(avg_comfort, 2))) if avg_comfort is not None else None
         )
-        profile.average_style_rating = Decimal(str(round(avg_style, 2))) if avg_style else None
+        profile.average_style_rating = (
+            Decimal(str(round(avg_style, 2))) if avg_style is not None else None
+        )
         profile.feedback_count = len(outfits)
         profile.outfits_rated = rating_count
         profile.last_computed_at = datetime.now(UTC)
@@ -721,8 +654,7 @@ class LearningService:
 
         if outfit.feedback:
             if outfit.feedback.rating is not None:
-                # Map 1-5 to -1 to 1
-                signal += (outfit.feedback.rating - 3) / 2 * 0.4
+                signal += rating_to_signed(outfit.feedback.rating) * 0.4
 
             if outfit.feedback.worn_at is not None:
                 signal += 0.3
@@ -737,59 +669,6 @@ class LearningService:
                     signal -= 0.2
 
         return max(-1.0, min(1.0, signal))
-
-    EMA_ALPHA = 0.15
-
-    async def _update_profile_incremental(
-        self, user_id: UUID, outfit: Outfit, signal: float
-    ) -> None:
-        profile = await self._get_or_create_profile(user_id)
-        alpha = self.EMA_ALPHA
-
-        new_color_scores = dict(profile.learned_color_scores or {})
-        for oi in outfit.items:
-            color = oi.item.primary_color
-            if color:
-                old = new_color_scores.get(color, 0.0)
-                new_color_scores[color] = round(old * (1 - alpha) + signal * alpha, 3)
-        profile.learned_color_scores = new_color_scores
-        flag_modified(profile, "learned_color_scores")
-
-        new_style_scores = dict(profile.learned_style_scores or {})
-        for oi in outfit.items:
-            for style in oi.item.style or []:
-                old = new_style_scores.get(style, 0.0)
-                new_style_scores[style] = round(old * (1 - alpha) + signal * alpha, 3)
-        profile.learned_style_scores = new_style_scores
-        flag_modified(profile, "learned_style_scores")
-
-        occasion = outfit.occasion
-        new_occasion_patterns = dict(profile.learned_occasion_patterns or {})
-        occ_data = dict(new_occasion_patterns.get(occasion, {}))
-
-        occ_colors = dict(occ_data.get("colors", occ_data.get("preferred_colors_scores", {})))
-        for oi in outfit.items:
-            color = oi.item.primary_color
-            if color and signal > 0:
-                occ_colors[color] = occ_colors.get(color, 0) + 1
-
-        old_rate = occ_data.get("success_rate", 0.5)
-        positive_signal = 1.0 if signal > 0 else 0.0
-        new_rate = round(old_rate * (1 - alpha) + positive_signal * alpha, 2)
-
-        top_colors = sorted(occ_colors.items(), key=lambda x: x[1], reverse=True)[:3]
-        occ_data["preferred_colors"] = [c for c, _ in top_colors]
-        occ_data["success_rate"] = new_rate
-        new_occasion_patterns[occasion] = occ_data
-        profile.learned_occasion_patterns = new_occasion_patterns
-        flag_modified(profile, "learned_occasion_patterns")
-
-        profile.feedback_count = (profile.feedback_count or 0) + 1
-        profile.last_computed_at = datetime.now(UTC)
-
-        await self.db.commit()
-        await self.db.refresh(profile)
-        logger.info(f"Incremental learning update for user {user_id}")
 
     async def _get_or_create_profile(self, user_id: UUID) -> UserLearningProfile:
         """Get existing profile or create a new one."""
@@ -859,59 +738,6 @@ class LearningService:
 
         return suggestions[:limit]
 
-    async def get_learned_preferences(
-        self,
-        user_id: UUID,
-    ) -> dict:
-        """
-        Get learned preferences for use in recommendations.
-
-        Returns a dict that can be used to augment the recommendation prompt.
-        """
-        profile = await self._get_or_create_profile(user_id)
-
-        if not profile.last_computed_at:
-            return {}
-
-        preferences = {}
-
-        # Top liked colors
-        if profile.learned_color_scores:
-            liked_colors = sorted(
-                [(c, s) for c, s in profile.learned_color_scores.items() if s > 0.2],
-                key=lambda x: x[1],
-                reverse=True,
-            )[:5]
-            disliked_colors = sorted(
-                [(c, s) for c, s in profile.learned_color_scores.items() if s < -0.2],
-                key=lambda x: x[1],
-            )[:3]
-
-            if liked_colors:
-                preferences["learned_favorite_colors"] = [c for c, _ in liked_colors]
-            if disliked_colors:
-                preferences["learned_avoid_colors"] = [c for c, _ in disliked_colors]
-
-        # Top liked styles
-        if profile.learned_style_scores:
-            liked_styles = sorted(
-                [(s, score) for s, score in profile.learned_style_scores.items() if score > 0.2],
-                key=lambda x: x[1],
-                reverse=True,
-            )[:3]
-            if liked_styles:
-                preferences["learned_preferred_styles"] = [s for s, _ in liked_styles]
-
-        # Occasion-specific preferences
-        if profile.learned_occasion_patterns:
-            preferences["occasion_insights"] = profile.learned_occasion_patterns
-
-        # Weather preferences
-        if profile.learned_weather_preferences:
-            preferences["weather_insights"] = profile.learned_weather_preferences
-
-        return preferences
-
     async def generate_insights(self, user_id: UUID) -> list[StyleInsight]:
         """Generate human-readable insights about the user's style."""
         profile = await self._get_or_create_profile(user_id)
@@ -924,9 +750,9 @@ class LearningService:
         expiry = now + timedelta(days=30)
 
         # Color insights
-        if profile.learned_color_scores:
+        if profile.color_scores:
             top_colors = sorted(
-                profile.learned_color_scores.items(),
+                profile.color_scores.items(),
                 key=lambda x: x[1],
                 reverse=True,
             )
@@ -947,7 +773,7 @@ class LearningService:
                 )
 
             # Look for avoided colors
-            avoided = [c for c, s in profile.learned_color_scores.items() if s < -0.3]
+            avoided = [c for c, s in profile.color_scores.items() if s < -0.3]
             if avoided:
                 insights.append(
                     StyleInsight(
@@ -993,9 +819,9 @@ class LearningService:
                 )
 
         # Style insights
-        if profile.learned_style_scores:
+        if profile.style_scores:
             top_styles = sorted(
-                profile.learned_style_scores.items(),
+                profile.style_scores.items(),
                 key=lambda x: x[1],
                 reverse=True,
             )[:2]
@@ -1092,9 +918,7 @@ class LearningService:
                     "name": p.item1.name,
                     "primary_color": p.item1.primary_color,
                     "thumbnail_path": p.item1.thumbnail_path,
-                    "thumbnail_url": sign_image_url(p.item1.thumbnail_path)
-                    if p.item1.thumbnail_path
-                    else None,
+                    "thumbnail_url": sign_optional(p.item1.thumbnail_path),
                 },
                 "item2": {
                     "id": str(p.item2.id),
@@ -1102,9 +926,7 @@ class LearningService:
                     "name": p.item2.name,
                     "primary_color": p.item2.primary_color,
                     "thumbnail_path": p.item2.thumbnail_path,
-                    "thumbnail_url": sign_image_url(p.item2.thumbnail_path)
-                    if p.item2.thumbnail_path
-                    else None,
+                    "thumbnail_url": sign_optional(p.item2.thumbnail_path),
                 },
                 "compatibility_score": float(p.compatibility_score),
                 "times_paired": p.times_paired,
@@ -1141,10 +963,10 @@ class LearningService:
         updates = {}
 
         # Suggest adding learned favorite colors
-        if profile.learned_color_scores:
+        if profile.color_scores:
             strong_likes = [
                 c
-                for c, s in profile.learned_color_scores.items()
+                for c, s in profile.color_scores.items()
                 if s >= threshold and c not in (prefs.color_favorites or [])
             ]
             if strong_likes:
@@ -1152,7 +974,7 @@ class LearningService:
 
             strong_dislikes = [
                 c
-                for c, s in profile.learned_color_scores.items()
+                for c, s in profile.color_scores.items()
                 if s <= -threshold and c not in (prefs.color_avoid or [])
             ]
             if strong_dislikes:
@@ -1162,6 +984,6 @@ class LearningService:
             "updated": bool(updates),
             "suggestions": updates,
             "confidence": float(profile.overall_acceptance_rate)
-            if profile.overall_acceptance_rate
+            if profile.overall_acceptance_rate is not None
             else None,
         }

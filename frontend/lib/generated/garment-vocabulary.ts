@@ -1,8 +1,14 @@
-// Generated from backend/app/data/garment_vocabulary.json by scripts/gen-garment-vocabulary.mjs.
+// Generated from backend/app/data/garment_vocabulary.json by scripts/gen-shared-data.mjs.
 // Do not edit by hand; run `npm run vocab:gen`.
-export const CLOTHING_TYPE_VALUES = ['shirt', 't-shirt', 'top', 'pants', 'jeans', 'shorts', 'dress', 'jumpsuit', 'skirt', 'jacket', 'coat', 'sweater', 'hoodie', 'blazer', 'suit', 'vest', 'cardigan', 'polo', 'blouse', 'tank-top', 'shoes', 'sneakers', 'boots', 'sandals', 'socks', 'tie', 'hat', 'scarf', 'belt', 'bag', 'accessories'] as const;
+export const CLOTHING_TYPE_VALUES = ['shirt', 't-shirt', 'top', 'pants', 'jeans', 'shorts', 'dress', 'jumpsuit', 'skirt', 'jacket', 'coat', 'sweater', 'hoodie', 'blazer', 'suit', 'vest', 'cardigan', 'polo', 'blouse', 'tank-top', 'shoes', 'sneakers', 'boots', 'sandals', 'socks', 'tights', 'tie', 'hat', 'scarf', 'belt', 'bag', 'accessories'] as const;
 export const MATERIAL_VALUES = ['cotton', 'denim', 'leather', 'wool', 'polyester', 'silk', 'linen', 'knit', 'fleece', 'suede', 'velvet', 'nylon', 'canvas', 'down', 'shearling'] as const;
 export const FORMALITY_VALUES = ['very-casual', 'casual', 'smart-casual', 'business-casual', 'formal', 'very-formal'] as const;
+export const PATTERN_VALUES = ['solid', 'striped', 'plaid', 'checkered', 'floral', 'graphic', 'geometric', 'polka-dot', 'camouflage', 'animal-print'] as const;
+export const ITEM_STYLE_VALUES = ['casual', 'classic', 'sporty', 'minimalist', 'bohemian', 'preppy', 'streetwear', 'elegant', 'athletic', 'vintage', 'modern', 'rugged'] as const;
+export const SEASON_VALUES = ['spring', 'summer', 'fall', 'winter', 'all-season'] as const;
+export const FIT_VALUES = ['slim', 'regular', 'relaxed', 'oversized', 'tailored', 'cropped'] as const;
+export const OCCASION_VALUES = ['casual', 'office', 'work', 'formal', 'smart-casual', 'business-casual', 'date', 'party', 'sporty', 'sport', 'outdoor', 'travel', 'lounge', 'beach', 'interview', 'wedding', 'dinner', 'brunch', 'gym', 'running', 'hiking', 'weekend'] as const;
+export const ROLE_VALUES = ['full_body', 'base_top', 'mid_layer', 'suit', 'outer_layer', 'bottom', 'legwear', 'footwear', 'socks', 'neckwear', 'accessory'] as const;
 
 export const ITEM_ROLE: Record<string, string> = {
   shirt: 'base_top',
@@ -30,10 +36,65 @@ export const ITEM_ROLE: Record<string, string> = {
   boots: 'footwear',
   sandals: 'footwear',
   socks: 'socks',
+  tights: 'legwear',
   tie: 'neckwear',
   hat: 'accessory',
   scarf: 'accessory',
   belt: 'accessory',
   bag: 'accessory',
   accessories: 'accessory',
+};
+
+export const CLOTHING_COLORS = [
+  { value: 'black', hex: '#1a1a1a' },
+  { value: 'white', hex: '#FAFAFA' },
+  { value: 'gray', hex: '#808080' },
+  { value: 'navy', hex: '#1B2A4A' },
+  { value: 'blue', hex: '#4A7DB8' },
+  { value: 'light-blue', hex: '#9CBFE0' },
+  { value: 'red', hex: '#C44536' },
+  { value: 'burgundy', hex: '#722F37' },
+  { value: 'pink', hex: '#E8A0B0' },
+  { value: 'green', hex: '#4A7C59' },
+  { value: 'olive', hex: '#707B52' },
+  { value: 'yellow', hex: '#D4A84B' },
+  { value: 'orange', hex: '#D2691E' },
+  { value: 'purple', hex: '#6B5B7A' },
+  { value: 'brown', hex: '#8B5A3C' },
+  { value: 'tan', hex: '#C9B896' },
+  { value: 'beige', hex: '#D4C4A8' },
+  { value: 'cream', hex: '#F5F5DC' },
+  { value: 'gold', hex: '#B08D3C' },
+  { value: 'silver', hex: '#BFC1C2' },
+] as const;
+
+export const COLOR_ALIASES: Record<string, string> = {
+  grey: 'gray',
+  'light grey': 'gray',
+  'light gray': 'gray',
+  'dark grey': 'gray',
+  'dark gray': 'gray',
+  charcoal: 'gray',
+  'off-white': 'cream',
+  ivory: 'cream',
+  wine: 'burgundy',
+  maroon: 'burgundy',
+  'forest green': 'green',
+  'army-green': 'olive',
+  'army green': 'olive',
+  'dark blue': 'navy',
+  'royal blue': 'blue',
+  teal: 'blue',
+  'sky blue': 'light-blue',
+  'baby blue': 'light-blue',
+  camel: 'tan',
+  khaki: 'tan',
+  'dark-brown': 'brown',
+  'dark brown': 'brown',
+  rust: 'orange',
+  coral: 'pink',
+  rose: 'pink',
+  mauve: 'purple',
+  lavender: 'purple',
+  mustard: 'yellow',
 };

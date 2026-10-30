@@ -2,24 +2,26 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
+import { queryKeys } from '@/lib/hooks/query-keys';
 
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
+export type NotificationChannel = 'ntfy' | 'mattermost' | 'email' | 'expo_push';
+
+// expo_push is registered by the mobile app through /notifications/push-token, never from the form.
+export type ManualNotificationChannel = Exclude<NotificationChannel, 'expo_push'>;
 
 export interface NotificationSettings {
   id: string;
   user_id: string;
-  channel: 'ntfy' | 'mattermost' | 'email';
+  channel: NotificationChannel;
   enabled: boolean;
   priority: number;
   config: Record<string, string>;
   created_at: string;
   updated_at: string;
+  // Set when a stored config fails this version's validation; the dispatcher skips past it.
+  config_error: string | null;
 }
 
 export interface Schedule {
@@ -52,9 +54,25 @@ export function useNotificationSettings() {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['notification-settings'],
+    queryKey: queryKeys.notificationSettings,
     queryFn: () => api.get<NotificationSettings[]>('/notifications/settings'),
     enabled: status !== 'loading',
+  });
+}
+
+export interface NtfyDefaults {
+  server: string;
+  has_token: boolean;
+}
+
+export function useNtfyDefaults(enabled = true) {
+  const { status } = useSession();
+  useSetTokenIfAvailable();
+
+  return useQuery({
+    queryKey: queryKeys.ntfyDefaults,
+    queryFn: () => api.get<NtfyDefaults>('/notifications/defaults/ntfy'),
+    enabled: enabled && status !== 'loading',
   });
 }
 
@@ -64,18 +82,16 @@ export function useCreateNotificationSetting() {
 
   return useMutation({
     mutationFn: async (data: {
-      channel: 'ntfy' | 'mattermost' | 'email';
+      channel: ManualNotificationChannel;
       enabled: boolean;
       priority: number;
       config: Record<string, string>;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<NotificationSettings>('/notifications/settings', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notificationSettings });
     },
   });
 }
@@ -92,13 +108,11 @@ export function useUpdateNotificationSetting() {
       id: string;
       data: Partial<{ enabled: boolean; priority: number; config: Record<string, string> }>;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<NotificationSettings>(`/notifications/settings/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notificationSettings });
     },
   });
 }
@@ -109,13 +123,11 @@ export function useDeleteNotificationSetting() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/notifications/settings/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notificationSettings });
     },
   });
 }
@@ -125,9 +137,7 @@ export function useTestNotificationSetting() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<{ success: boolean; message: string }>(
         `/notifications/settings/${id}/test`
       );
@@ -140,7 +150,7 @@ export function useSchedules() {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['schedules'],
+    queryKey: queryKeys.schedules,
     queryFn: () => api.get<Schedule[]>('/notifications/schedules'),
     enabled: status !== 'loading',
   });
@@ -158,13 +168,11 @@ export function useCreateSchedule() {
       enabled: boolean;
       notify_day_before?: boolean;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<Schedule>('/notifications/schedules', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.schedules });
     },
   });
 }
@@ -181,13 +189,11 @@ export function useUpdateSchedule() {
       id: string;
       data: Partial<{ notification_time: string; occasion: string; enabled: boolean; notify_day_before: boolean }>;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<Schedule>(`/notifications/schedules/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.schedules });
     },
   });
 }
@@ -198,13 +204,11 @@ export function useDeleteSchedule() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/notifications/schedules/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.schedules });
     },
   });
 }
@@ -214,7 +218,7 @@ export function useNotificationHistory(limit = 20) {
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['notification-history', limit],
+    queryKey: queryKeys.notificationHistory(limit),
     queryFn: () => api.get<NotificationHistory[]>(`/notifications/history?limit=${limit}`),
     enabled: status !== 'loading',
   });

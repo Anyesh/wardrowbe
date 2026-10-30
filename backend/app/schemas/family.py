@@ -1,7 +1,11 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.models.family import FamilyRole
+from app.schemas.email import EmailAddress
+from app.schemas.text import SingleLineName
 
 
 class FamilyMember(BaseModel):
@@ -11,7 +15,7 @@ class FamilyMember(BaseModel):
     display_name: str
     email: str
     avatar_url: str | None = None
-    role: str
+    role: FamilyRole
     created_at: datetime
 
 
@@ -36,11 +40,11 @@ class FamilyResponse(BaseModel):
 
 
 class FamilyCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
+    name: SingleLineName = Field(..., min_length=1, max_length=100)
 
 
 class FamilyUpdate(BaseModel):
-    name: str | None = Field(None, min_length=1, max_length=100)
+    name: SingleLineName | None = Field(None, min_length=1, max_length=100)
 
 
 class FamilyCreateResponse(BaseModel):
@@ -49,7 +53,7 @@ class FamilyCreateResponse(BaseModel):
     id: UUID
     name: str
     invite_code: str
-    role: str = "admin"
+    role: FamilyRole = FamilyRole.admin
 
 
 class JoinFamilyRequest(BaseModel):
@@ -63,12 +67,12 @@ class JoinByTokenRequest(BaseModel):
 class JoinFamilyResponse(BaseModel):
     family_id: UUID
     family_name: str
-    role: str = "member"
+    role: FamilyRole = FamilyRole.member
 
 
 class InviteMemberRequest(BaseModel):
-    email: EmailStr
-    role: str = Field(default="member", pattern="^(admin|member)$")
+    email: EmailAddress
+    role: FamilyRole = FamilyRole.member
 
 
 class InviteResponse(BaseModel):
@@ -77,6 +81,8 @@ class InviteResponse(BaseModel):
     id: UUID
     email: str
     expires_at: datetime
+    # False when SMTP is unconfigured or the send failed, so the inviter knows to share the code.
+    email_sent: bool
 
 
 class InviteCodeResponse(BaseModel):
@@ -84,7 +90,7 @@ class InviteCodeResponse(BaseModel):
 
 
 class UpdateMemberRoleRequest(BaseModel):
-    role: str = Field(..., pattern="^(admin|member)$")
+    role: FamilyRole
 
 
 class MessageResponse(BaseModel):

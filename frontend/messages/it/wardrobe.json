@@ -169,7 +169,11 @@
       "markWashed": "Segna come lavato",
       "originalRestoreError": "Ripristino dell’immagine originale fallito",
       "originalRestored": "Immagine originale ripristinata",
+      "saveError": "Salvataggio capo fallito",
       "washError": "Impossibile segnare come lavato",
+      "logWear": "Registra utilizzo",
+      "wearLogged": "Utilizzo registrato",
+      "wearLogError": "Impossibile registrare l'utilizzo",
       "washed": "Capo segnato come lavato"
     },
     "brand": "Marca",
@@ -185,6 +189,20 @@
     },
     "primaryColor": "Colore principale",
     "subtype": "Sottotipo",
+    "tagsEditor": {
+      "fit": "Vestibilità",
+      "formality": "Formalità",
+      "hint": "Correggi ciò che l'IA ha sbagliato. Le tue modifiche vengono mantenute se il capo viene analizzato di nuovo.",
+      "invalidValue": "Un tag ha un valore che non è nell'elenco. Selezionalo di nuovo e salva.",
+      "material": "Materiale",
+      "none": "Nessuno",
+      "pattern": "Motivo",
+      "season": "Stagione",
+      "secondaryColor": "Colore secondario",
+      "style": "Stile",
+      "tertiaryColor": "Colore terziario",
+      "title": "Tag IA"
+    },
     "titles": {
       "analysisInProgress": "Analisi in corso...",
       "deleteImage": "Elimina immagine",
@@ -260,7 +278,14 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
+    "failure": {
+      "tooLarge": "{name} supera {limit} MB",
+      "tooLargeForServer": "{name} è troppo grande perché il server lo accetti",
+      "unsupportedFormat": "{name} non è in un formato supportato (JPEG, PNG, WebP o HEIC)",
+      "duplicate": "{name} è già nel tuo guardaroba",
+      "generic": "Impossibile caricare {name}"
+    }
   },
   "wearCount": "{count, plural, one {Indossato # volta} other {Indossato # volte}}",
   "wornAgo": {

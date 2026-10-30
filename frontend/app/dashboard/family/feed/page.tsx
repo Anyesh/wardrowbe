@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
 import {
   Loader2,
   Users,
@@ -9,23 +8,23 @@ import {
   Shirt,
   ChevronRight,
   Settings,
-  Calendar,
-  Zap,
-  Edit3,
-  Bot,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useFamily } from '@/lib/hooks/use-family';
-import { useFamilyOutfits, type Outfit, type OutfitSource } from '@/lib/hooks/use-outfits';
+import { useCurrentFamilyMember, useFamily } from '@/lib/hooks/use-family';
+import { useFamilyOutfits, type Outfit } from '@/lib/hooks/use-outfits';
+import { useOccasionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { SourceBadge } from '@/components/shared/source-badge';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { OutfitPreviewDialog } from '@/components/outfit-preview-dialog';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDate } from '@/lib/utils';
+import { StarRatingDisplay } from '@/components/shared/star-rating';
 
 function getInitials(name: string) {
   return name
@@ -34,46 +33,6 @@ function getInitials(name: string) {
     .join('')
     .toUpperCase()
     .slice(0, 2);
-}
-
-function SourceBadge({ source }: { source: OutfitSource }) {
-  const t = useTranslations('family');
-  const config: Record<OutfitSource, { icon: typeof Calendar; label: string; className: string }> = {
-    scheduled: {
-      icon: Calendar,
-      label: t('feed.sourceBadges.scheduled'),
-      className: 'bg-primary/10 text-primary border-primary/20',
-    },
-    on_demand: {
-      icon: Zap,
-      label: t('feed.sourceBadges.onDemand'),
-      className: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-    },
-    manual: {
-      icon: Edit3,
-      label: t('feed.sourceBadges.manual'),
-      className: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-    },
-    pairing: {
-      icon: Zap,
-      label: t('feed.sourceBadges.pairing'),
-      className: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
-    },
-    external: {
-      icon: Bot,
-      label: t('feed.sourceBadges.external'),
-      className: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
-    },
-  };
-
-  const { icon: Icon, label, className } = config[source];
-
-  return (
-    <Badge variant="outline" className={className}>
-      <Icon className="h-3 w-3 mr-1" />
-      {label}
-    </Badge>
-  );
 }
 
 function FeedOutfitCard({
@@ -87,8 +46,11 @@ function FeedOutfitCard({
   memberName: string;
   onPreview: () => void;
 }) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('family');
   const tc = useTranslations('common');
+  const occasionLabel = useOccasionLabel();
+  const locale = useLocale();
   const [showRatingForm, setShowRatingForm] = useState(false);
   const myRating = outfit.family_ratings?.find((r) => r.user_id === currentMemberId);
 
@@ -100,15 +62,17 @@ function FeedOutfitCard({
           <div className="flex items-center gap-2">
             <SourceBadge source={outfit.source} />
             <Badge variant="secondary" className="capitalize text-xs">
-              {outfit.occasion}
+              {occasionLabel(outfit.occasion)}
             </Badge>
           </div>
           <span className="text-xs text-muted-foreground">
-            {outfit.scheduled_for ? new Date(outfit.scheduled_for).toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            }) : t('feed.lookbook')}
+            {outfit.scheduled_for
+              ? formatDate(outfit.scheduled_for, locale, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
+              : t('feed.lookbook')}
           </span>
         </div>
 
@@ -126,14 +90,14 @@ function FeedOutfitCard({
               {item.thumbnail_url ? (
                 <Image
                   src={item.thumbnail_url}
-                  alt={item.name || item.type}
+                  alt={item.name || typeLabel(item.type)}
                   fill
                   className="object-cover"
                   sizes="80px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                  {item.type}
+                  {typeLabel(item.type)}
                 </div>
               )}
             </div>
@@ -149,18 +113,10 @@ function FeedOutfitCard({
         {outfit.family_rating_count != null && outfit.family_rating_count > 0 && (
           <div className="flex items-center gap-2 text-sm">
             <Users className="h-4 w-4 text-muted-foreground" />
-            <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={`h-4 w-4 ${
-                    star <= Math.round(outfit.family_rating_average ?? 0)
-                      ? 'fill-yellow-400 text-yellow-400'
-                      : 'text-muted-foreground/30'
-                  }`}
-                />
-              ))}
-            </div>
+            <StarRatingDisplay
+              value={Math.round(outfit.family_rating_average ?? 0)}
+              starClassName="h-4 w-4"
+            />
             <span className="text-muted-foreground text-xs">
               {t('feed.ratingCount', { count: outfit.family_rating_count })}
             </span>
@@ -200,18 +156,7 @@ function FeedOutfitCard({
           <div className="flex items-center justify-between pt-2 border-t">
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">{t('ratings.yourRating')}</span>
-              <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`h-4 w-4 ${
-                      star <= myRating.rating
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-muted-foreground/30'
-                    }`}
-                  />
-                ))}
-              </div>
+              <StarRatingDisplay value={myRating.rating} starClassName="h-4 w-4" />
               {myRating.comment && (
                 <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                   &ldquo;{myRating.comment}&rdquo;
@@ -276,11 +221,19 @@ function NoFamilyState() {
 
 function FeedContent() {
   const t = useTranslations('family');
-  const { data: session } = useSession();
+  const te = useTranslations('errors');
   const { data: family, isLoading: familyLoading } = useFamily();
-  const currentEmail = session?.user?.email;
-  const currentMember = family?.members.find((m) => m.email === currentEmail);
-  const otherMembers = family?.members.filter((m) => m.email !== currentEmail) ?? [];
+  const {
+    member: currentMember,
+    isPending: memberPending,
+    isError: memberError,
+  } = useCurrentFamilyMember(family);
+  // Until the current member is known, filtering on it would list the user among the others
+  // and auto-select their own feed.
+  const otherMembers =
+    memberPending || memberError
+      ? []
+      : (family?.members.filter((m) => m.id !== currentMember?.id) ?? []);
 
   const [selectedMember, setSelectedMember] = useState<string | undefined>(undefined);
   const [previewOutfit, setPreviewOutfit] = useState<Outfit | null>(null);
@@ -291,7 +244,7 @@ function FeedContent() {
 
   const selectedMemberInfo = otherMembers.find((m) => m.id === activeMemberId);
 
-  if (familyLoading) {
+  if (familyLoading || memberPending) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -301,6 +254,10 @@ function FeedContent() {
 
   if (!family) {
     return <NoFamilyState />;
+  }
+
+  if (memberError) {
+    return <div className="text-center py-8 text-red-500">{te('pageLoad.title')}</div>;
   }
 
   if (otherMembers.length === 0) {

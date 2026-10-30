@@ -8,12 +8,15 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
-from app.models.learning import UserLearningProfile
+from app.database import DbSession
+from app.models.learning import StyleInsight, UserLearningProfile
 from app.models.user import User
-from app.services.learning_service import LearningService
+from app.services.learning_service import (
+    LearningService,
+    insight_message,
+    score_interpretation,
+)
 from app.utils.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -27,7 +30,9 @@ class LearnedColorScore(BaseModel):
 
     color: str
     score: float
-    interpretation: str  # "strongly liked", "liked", "neutral", "disliked", "strongly disliked"
+    # English label kept for older clients; interpretation_key picks the translated one.
+    interpretation: str
+    interpretation_key: str | None = None
 
 
 class LearnedStyleScore(BaseModel):
@@ -90,6 +95,24 @@ class InsightResponse(BaseModel):
     description: str
     confidence: float
     created_at: datetime
+    # title and description are English; newer clients render message_key instead.
+    message_key: str | None = None
+    message_params: dict = {}
+
+
+def _insight_response(insight: StyleInsight) -> InsightResponse:
+    message_key, message_params = insight_message(insight)
+    return InsightResponse(
+        id=insight.id,
+        category=insight.category,
+        insight_type=insight.insight_type,
+        title=insight.title,
+        description=insight.description,
+        confidence=float(insight.confidence),
+        created_at=insight.created_at,
+        message_key=message_key,
+        message_params=message_params,
+    )
 
 
 class LearningInsightsResponse(BaseModel):
@@ -101,23 +124,87 @@ class LearningInsightsResponse(BaseModel):
     preference_suggestions: dict
 
 
-def _interpret_score(score: float) -> str:
-    """Convert numeric score to human-readable interpretation."""
-    if score >= 0.5:
-        return "strongly liked"
-    elif score >= 0.2:
-        return "liked"
-    elif score >= -0.2:
-        return "neutral"
-    elif score >= -0.5:
-        return "disliked"
-    else:
-        return "strongly disliked"
+_INTERPRETATION_EN = {
+    "stronglyLiked": "strongly liked",
+    "liked": "liked",
+    "neutral": "neutral",
+    "disliked": "disliked",
+    "stronglyDisliked": "strongly disliked",
+}
+
+
+def _color_score(color: str, score: float) -> LearnedColorScore:
+    key = score_interpretation(score)
+    return LearnedColorScore(
+        color=color, score=score, interpretation=_INTERPRETATION_EN[key], interpretation_key=key
+    )
+
+
+def _profile_response(profile: UserLearningProfile | None) -> LearningProfileResponse:
+    if profile is None:
+        return LearningProfileResponse(
+            has_learning_data=False,
+            feedback_count=0,
+            outfits_rated=0,
+            color_preferences=[],
+            style_preferences=[],
+            occasion_patterns=[],
+            weather_preferences=[],
+        )
+
+    has_data = profile.last_computed_at is not None
+    color_scores = profile.color_scores if has_data else {}
+    style_scores = profile.style_scores if has_data else {}
+    occasion_patterns = profile.occasion_patterns if has_data else {}
+    weather_preferences = profile.weather_preferences if has_data else {}
+
+    return LearningProfileResponse(
+        has_learning_data=has_data,
+        feedback_count=profile.feedback_count,
+        outfits_rated=profile.outfits_rated,
+        overall_acceptance_rate=float(profile.overall_acceptance_rate)
+        if profile.overall_acceptance_rate is not None
+        else None,
+        average_rating=float(profile.average_overall_rating)
+        if profile.average_overall_rating is not None
+        else None,
+        average_comfort_rating=float(profile.average_comfort_rating)
+        if profile.average_comfort_rating is not None
+        else None,
+        average_style_rating=float(profile.average_style_rating)
+        if profile.average_style_rating is not None
+        else None,
+        color_preferences=[
+            _color_score(color, score)
+            for color, score in sorted(color_scores.items(), key=lambda x: x[1], reverse=True)
+        ],
+        style_preferences=[
+            LearnedStyleScore(style=style, score=score)
+            for style, score in sorted(style_scores.items(), key=lambda x: x[1], reverse=True)
+        ],
+        occasion_patterns=[
+            OccasionPattern(
+                occasion=occasion,
+                preferred_colors=data.get("preferred_colors", []),
+                success_rate=data.get("success_rate", 0),
+            )
+            for occasion, data in occasion_patterns.items()
+        ],
+        weather_preferences=[
+            WeatherPreference(
+                weather_type=weather,
+                preferred_layers=data.get("preferred_layers", 0),
+                success_rate=data.get("success_rate", 0),
+            )
+            for weather, data in weather_preferences.items()
+        ],
+        last_computed_at=profile.last_computed_at,
+    )
 
 
 @router.get("", response_model=LearningInsightsResponse)
 async def get_learning_insights(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> LearningInsightsResponse:
     """
@@ -134,85 +221,7 @@ async def get_learning_insights(
     )
     profile = result.scalar_one_or_none()
 
-    # Build profile response
-    has_data = profile is not None and profile.last_computed_at is not None
-
-    color_preferences = []
-    style_preferences = []
-    occasion_patterns = []
-    weather_preferences = []
-
-    if profile and has_data:
-        # Color preferences
-        if profile.learned_color_scores:
-            color_preferences = [
-                LearnedColorScore(
-                    color=color,
-                    score=score,
-                    interpretation=_interpret_score(score),
-                )
-                for color, score in sorted(
-                    profile.learned_color_scores.items(),
-                    key=lambda x: x[1],
-                    reverse=True,
-                )
-            ]
-
-        # Style preferences
-        if profile.learned_style_scores:
-            style_preferences = [
-                LearnedStyleScore(style=style, score=score)
-                for style, score in sorted(
-                    profile.learned_style_scores.items(),
-                    key=lambda x: x[1],
-                    reverse=True,
-                )
-            ]
-
-        # Occasion patterns
-        if profile.learned_occasion_patterns:
-            occasion_patterns = [
-                OccasionPattern(
-                    occasion=occasion,
-                    preferred_colors=data.get("preferred_colors", []),
-                    success_rate=data.get("success_rate", 0),
-                )
-                for occasion, data in profile.learned_occasion_patterns.items()
-            ]
-
-        # Weather preferences
-        if profile.learned_weather_preferences:
-            weather_preferences = [
-                WeatherPreference(
-                    weather_type=weather,
-                    preferred_layers=data.get("preferred_layers", 0),
-                    success_rate=data.get("success_rate", 0),
-                )
-                for weather, data in profile.learned_weather_preferences.items()
-            ]
-
-    profile_response = LearningProfileResponse(
-        has_learning_data=has_data,
-        feedback_count=profile.feedback_count if profile else 0,
-        outfits_rated=profile.outfits_rated if profile else 0,
-        overall_acceptance_rate=float(profile.overall_acceptance_rate)
-        if profile and profile.overall_acceptance_rate
-        else None,
-        average_rating=float(profile.average_overall_rating)
-        if profile and profile.average_overall_rating
-        else None,
-        average_comfort_rating=float(profile.average_comfort_rating)
-        if profile and profile.average_comfort_rating
-        else None,
-        average_style_rating=float(profile.average_style_rating)
-        if profile and profile.average_style_rating
-        else None,
-        color_preferences=color_preferences,
-        style_preferences=style_preferences,
-        occasion_patterns=occasion_patterns,
-        weather_preferences=weather_preferences,
-        last_computed_at=profile.last_computed_at if profile else None,
-    )
+    profile_response = _profile_response(profile)
 
     # Get best item pairs
     best_pairs_data = await learning_service.get_best_item_pairs(current_user.id, limit=10)
@@ -229,18 +238,7 @@ async def get_learning_insights(
 
     # Get active insights
     active_insights = await learning_service.get_active_insights(current_user.id)
-    insights = [
-        InsightResponse(
-            id=insight.id,
-            category=insight.category,
-            insight_type=insight.insight_type,
-            title=insight.title,
-            description=insight.description,
-            confidence=float(insight.confidence),
-            created_at=insight.created_at,
-        )
-        for insight in active_insights
-    ]
+    insights = [_insight_response(insight) for insight in active_insights]
 
     # Get preference suggestions
     suggestions = await learning_service.apply_learning_to_preferences(current_user.id)
@@ -255,7 +253,7 @@ async def get_learning_insights(
 
 @router.post("/recompute", response_model=LearningProfileResponse)
 async def recompute_learning_profile(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> LearningProfileResponse:
     """
@@ -268,83 +266,12 @@ async def recompute_learning_profile(
 
     profile = await learning_service.recompute_learning_profile(current_user.id)
 
-    # Build response
-    color_preferences = []
-    style_preferences = []
-    occasion_patterns = []
-    weather_preferences = []
-
-    if profile.learned_color_scores:
-        color_preferences = [
-            LearnedColorScore(
-                color=color,
-                score=score,
-                interpretation=_interpret_score(score),
-            )
-            for color, score in sorted(
-                profile.learned_color_scores.items(),
-                key=lambda x: x[1],
-                reverse=True,
-            )
-        ]
-
-    if profile.learned_style_scores:
-        style_preferences = [
-            LearnedStyleScore(style=style, score=score)
-            for style, score in sorted(
-                profile.learned_style_scores.items(),
-                key=lambda x: x[1],
-                reverse=True,
-            )
-        ]
-
-    if profile.learned_occasion_patterns:
-        occasion_patterns = [
-            OccasionPattern(
-                occasion=occasion,
-                preferred_colors=data.get("preferred_colors", []),
-                success_rate=data.get("success_rate", 0),
-            )
-            for occasion, data in profile.learned_occasion_patterns.items()
-        ]
-
-    if profile.learned_weather_preferences:
-        weather_preferences = [
-            WeatherPreference(
-                weather_type=weather,
-                preferred_layers=data.get("preferred_layers", 0),
-                success_rate=data.get("success_rate", 0),
-            )
-            for weather, data in profile.learned_weather_preferences.items()
-        ]
-
-    return LearningProfileResponse(
-        has_learning_data=profile.last_computed_at is not None,
-        feedback_count=profile.feedback_count,
-        outfits_rated=profile.outfits_rated,
-        overall_acceptance_rate=float(profile.overall_acceptance_rate)
-        if profile.overall_acceptance_rate
-        else None,
-        average_rating=float(profile.average_overall_rating)
-        if profile.average_overall_rating
-        else None,
-        average_comfort_rating=float(profile.average_comfort_rating)
-        if profile.average_comfort_rating
-        else None,
-        average_style_rating=float(profile.average_style_rating)
-        if profile.average_style_rating
-        else None,
-        color_preferences=color_preferences,
-        style_preferences=style_preferences,
-        occasion_patterns=occasion_patterns,
-        weather_preferences=weather_preferences,
-        last_computed_at=profile.last_computed_at,
-    )
+    return _profile_response(profile)
 
 
 @router.post("/generate-insights", response_model=list[InsightResponse])
 async def generate_insights(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[InsightResponse]:
     """
@@ -356,24 +283,13 @@ async def generate_insights(
 
     insights = await learning_service.generate_insights(current_user.id)
 
-    return [
-        InsightResponse(
-            id=insight.id,
-            category=insight.category,
-            insight_type=insight.insight_type,
-            title=insight.title,
-            description=insight.description,
-            confidence=float(insight.confidence),
-            created_at=insight.created_at,
-        )
-        for insight in insights
-    ]
+    return [_insight_response(insight) for insight in insights]
 
 
 @router.post("/insights/{insight_id}/acknowledge")
 async def acknowledge_insight(
     insight_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     """Mark an insight as acknowledged/dismissed."""
@@ -393,7 +309,7 @@ async def acknowledge_insight(
 @router.get("/item-pairs/{item_id}", response_model=list[dict])
 async def get_item_pair_suggestions(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(5, ge=1, le=20),
 ) -> list[dict]:

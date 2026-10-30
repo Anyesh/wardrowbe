@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { CalendarDays, ChevronLeft, ChevronRight, X, RotateCcw, RotateCw, Loader2, Users, Star, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,36 +10,51 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { type Outfit } from '@/lib/hooks/use-outfits';
-import { useFamily } from '@/lib/hooks/use-family';
+import { useCurrentFamilyMember, useFamily } from '@/lib/hooks/use-family';
 import { useRotateImage } from '@/lib/hooks/use-items';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
-import { useSubtypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatShortDate } from '@/lib/utils';
+import { useOccasionLabel, useSubtypeLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
+
+export type OutfitPreview = Pick<
+  Outfit,
+  | 'id'
+  | 'items'
+  | 'occasion'
+  | 'scheduled_for'
+  | 'reasoning'
+  | 'highlights'
+  | 'style_notes'
+  | 'family_ratings'
+  | 'family_rating_average'
+  | 'family_rating_count'
+>;
 
 interface OutfitPreviewDialogProps {
-  outfit: Outfit;
+  outfit: OutfitPreview;
   open: boolean;
   onClose: () => void;
   isOwner?: boolean;
 }
 
 export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: OutfitPreviewDialogProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('suggest.outfitPreview');
   const ts = useTranslations('suggest');
   const tc = useTranslations('common');
+  const locale = useLocale();
   const subtypeLabel = useSubtypeLabel();
+  const occasionLabel = useOccasionLabel();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageKey, setImageKey] = useState(0); // Force image reload after rotation
   const [showRatingForm, setShowRatingForm] = useState(false);
   const items = outfit.items;
   const rotateImage = useRotateImage();
-  const { data: session } = useSession();
   const { data: family } = useFamily();
-
-  const currentEmail = session?.user?.email;
-  const currentMember = family?.members.find((m) => m.email === currentEmail);
+  const { member: currentMember } = useCurrentFamilyMember(family);
   const isInFamily = !!family && !!currentMember;
   const canRate = isInFamily && !isOwner;
   const myRating = outfit.family_ratings?.find((r) => r.user_id === currentMember?.id);
@@ -73,12 +87,12 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
         {/* Header - sticky */}
         <div className="flex items-center justify-between p-4 pb-2 border-b flex-shrink-0">
           <div>
-            <h2 className="text-lg font-semibold capitalize">{t('title', { occasion: outfit.occasion })}</h2>
+            <h2 className="text-lg font-semibold">{t('title', { occasion: occasionLabel(outfit.occasion) })}</h2>
             <div className="flex items-center gap-2 mt-0.5">
               {outfit.scheduled_for && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                   <CalendarDays className="h-3 w-3" />
-                  {new Date(outfit.scheduled_for + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                  {formatShortDate(outfit.scheduled_for, locale)}
                 </span>
               )}
               <span className="text-xs text-muted-foreground">
@@ -102,7 +116,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                   <Image
                     key={`${currentItem.id}-${imageKey}`}
                     src={currentItem.image_url}
-                    alt={currentItem.name || currentItem.type}
+                    alt={currentItem.name || typeLabel(currentItem.type)}
                     fill
                     className="object-contain"
                     sizes="(max-width: 512px) 100vw, 512px"
@@ -144,7 +158,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary" className="capitalize">
-                  {currentItem.type}
+                  {typeLabel(currentItem.type)}
                 </Badge>
                 {currentItem.subtype && (
                   <Badge variant="outline" className="capitalize">
@@ -225,7 +239,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                     {item.thumbnail_url ? (
                       <Image
                         src={item.thumbnail_url}
-                        alt={item.name || item.type}
+                        alt={item.name || typeLabel(item.type)}
                         fill
                         className="object-cover"
                         sizes="56px"

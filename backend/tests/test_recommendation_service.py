@@ -1,18 +1,26 @@
+import json
 from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import func, select
 
 from app.models.item import ClothingItem, ItemStatus
-from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus
+from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus, TimeOfDay
+from app.models.preference import UserPreference
 from app.models.user import User
 from app.services.item_scorer import ScoredItem
 from app.services.recommendation_service import (
     RECOMMENDATION_PROMPT,
+    AIRecommendationError,
     RecommendationService,
+    cached_suggestion_fits,
+    fill_best_partial,
     format_temp_range_text,
     get_time_of_day,
+    resolve_outfit_items,
+    suggestion_context,
 )
 from app.services.weather_service import WeatherData
 
@@ -52,7 +60,7 @@ class TestGetTimeOfDay:
     def test_time_buckets(self, hour, expected):
         user = _make_user("UTC")
         mock_dt = datetime(2026, 3, 8, hour, 30, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -61,7 +69,7 @@ class TestGetTimeOfDay:
     def test_respects_user_timezone(self):
         user = _make_user("Asia/Kolkata")
         mock_dt = datetime(2026, 3, 8, 13, 30, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -70,7 +78,7 @@ class TestGetTimeOfDay:
     def test_invalid_timezone_falls_back_to_utc(self):
         user = _make_user("Invalid/Timezone")
         mock_dt = datetime(2026, 3, 8, 9, 0, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -80,7 +88,7 @@ class TestGetTimeOfDay:
         user = _make_user()
         user.timezone = None
         mock_dt = datetime(2026, 3, 8, 22, 0, 0, tzinfo=UTC)
-        with patch("app.services.recommendation_service.datetime") as mock_datetime:
+        with patch("app.utils.timezone.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: datetime(*a, **kw)
             result = get_time_of_day(user)
@@ -141,16 +149,24 @@ class TestPromptTemplate:
 
 
 def _weather(
-    temp=20, temp_min=None, temp_max=None, is_day=True, window_min=None, window_max=None
+    temp=20,
+    temp_min=None,
+    temp_max=None,
+    is_day=True,
+    window_min=None,
+    window_max=None,
+    condition="clear",
+    feels_like=None,
+    precipitation=0,
 ) -> WeatherData:
     return WeatherData(
         temperature=temp,
-        feels_like=temp,
+        feels_like=temp if feels_like is None else feels_like,
         humidity=50,
-        precipitation_chance=0,
+        precipitation_chance=precipitation,
         precipitation_mm=0,
         wind_speed=10,
-        condition="clear",
+        condition=condition,
         condition_code=0,
         is_day=is_day,
         uv_index=5,
@@ -230,6 +246,109 @@ class TestTempRangeText:
         text = format_temp_range_text(weather)
         assert "5.1°C" in text
         assert "30.0°C" in text
+
+
+def _fit_prefs(updated_at=datetime(2026, 3, 8, 9, 0), **kwargs) -> UserPreference:
+    return UserPreference(
+        user_id=uuid4(),
+        cold_threshold=10,
+        hot_threshold=25,
+        temperature_sensitivity="normal",
+        updated_at=updated_at,
+        **kwargs,
+    )
+
+
+_FIT_PREFS = _fit_prefs()
+
+
+def _ctx(weather=None, time="morning", prefs=_FIT_PREFS, measurements=None) -> dict:
+    return suggestion_context(weather or _weather(), TimeOfDay(time), prefs, measurements)
+
+
+@pytest.mark.parametrize(
+    ("cached", "now", "expected"),
+    [
+        (_ctx(), _ctx(), True),
+        (_ctx(_weather(temp=20)), _ctx(_weather(temp=22.5)), True),
+        (_ctx(_weather(temp=20)), _ctx(_weather(temp=23.5)), False),
+        (_ctx(_weather(temp=2)), _ctx(_weather(temp=28)), False),
+        (_ctx(_weather(temp=11)), _ctx(_weather(temp=9)), False),
+        (_ctx(_weather(temp=24)), _ctx(_weather(temp=26)), False),
+        (_ctx(_weather(temp=20)), _ctx(_weather(temp=20, feels_like=14)), False),
+        (_ctx(), _ctx(_weather(condition="rainy")), False),
+        (_ctx(_weather(precipitation=10)), _ctx(_weather(precipitation=40)), True),
+        (_ctx(_weather(precipitation=10)), _ctx(_weather(precipitation=80)), False),
+        (_ctx(), _ctx(time="evening"), False),
+        (_ctx(), _ctx(_weather(temp=20, window_min=8, window_max=22)), False),
+        (
+            _ctx(_weather(temp=14, window_min=10.5, window_max=24)),
+            _ctx(_weather(temp=14, window_min=10.5, window_max=26)),
+            False,
+        ),
+        (
+            _ctx(_weather(temp=12, window_min=8, window_max=22)),
+            _ctx(_weather(temp=13, window_min=9, window_max=23)),
+            True,
+        ),
+        (_ctx(prefs=None), _ctx(), False),
+        (_ctx(prefs=_fit_prefs(updated_at=datetime(2026, 3, 8, 8, 0))), _ctx(), False),
+        (_ctx(measurements={"height": 170}), _ctx(measurements={"height": 170}), True),
+        (_ctx(measurements={"height": 170}), _ctx(measurements={"height": 180}), False),
+    ],
+    ids=[
+        "same",
+        "small-drift",
+        "drift-past-tolerance",
+        "cold-to-hot",
+        "crosses-cold-threshold",
+        "crosses-hot-threshold",
+        "feels-colder",
+        "condition-changed",
+        "rain-chance-stays-low",
+        "rain-became-likely",
+        "time-of-day-changed",
+        "swing-appeared",
+        "window-top-crossed-hot",
+        "window-small-drift",
+        "preferences-created",
+        "preferences-edited",
+        "same-measurements",
+        "measurements-edited",
+    ],
+)
+def test_cached_suggestion_fits_only_the_context_it_was_made_for(cached, now, expected):
+    stored = json.loads(json.dumps(cached))
+    assert cached_suggestion_fits(stored, now, _FIT_PREFS) is expected
+
+
+def test_a_cached_suggestion_without_context_does_not_fit():
+    assert cached_suggestion_fits(None, _ctx(), _FIT_PREFS) is False
+    assert cached_suggestion_fits({}, _ctx(), _FIT_PREFS) is False
+    older = {k: v for k, v in _ctx().items() if k != "body_measurements"}
+    assert cached_suggestion_fits(older, _ctx(), _FIT_PREFS) is False
+
+
+def test_fill_best_partial_prefers_an_option_the_fill_can_complete():
+    coat, jeans, boots, hoodie = uuid4(), uuid4(), uuid4(), uuid4()
+    types = {coat: "coat", jeans: "jeans", boots: "boots", hoodie: "hoodie"}
+    unfillable = ({"headline": "coat"}, [coat, jeans, boots])
+    fillable = ({"headline": "jeans"}, [jeans])
+    outfit_data, item_ids = fill_best_partial(
+        [unfillable, fillable], [hoodie, boots, coat, jeans], types
+    )
+    assert outfit_data["headline"] == "jeans"
+    assert set(item_ids) == {jeans, hoodie, boots}
+    assert outfit_data["_filled_item_ids"] == [str(hoodie), str(boots)]
+    assert "_filled_item_ids" not in unfillable[0]
+
+
+def test_fill_best_partial_gives_up_when_no_option_can_be_completed():
+    coat, jeans, boots, hoodie = uuid4(), uuid4(), uuid4(), uuid4()
+    types = {coat: "coat", jeans: "jeans", boots: "boots", hoodie: "hoodie"}
+    outfit_data = {"headline": "coat"}
+    assert fill_best_partial([(outfit_data, [coat, jeans, boots])], [hoodie], types) is None
+    assert "_filled_item_ids" not in outfit_data
 
 
 class TestSuggestRequestTimeOfDay:
@@ -350,6 +469,34 @@ class TestSuggestEndpointRuntime:
         data = response.json()
         assert data["is_starter_suggestion"] is True
 
+    @pytest.mark.asyncio
+    async def test_suggest_without_occasion_falls_back_from_an_unlisted_default(
+        self, client, test_user, auth_headers, db_session
+    ):
+        db_session.add(UserPreference(user_id=test_user.id, default_occasion="banana"))
+        outfit = Outfit(
+            user_id=test_user.id,
+            occasion="casual",
+            status=OutfitStatus.pending,
+            source=OutfitSource.on_demand,
+        )
+        outfit.feedback = None
+        outfit.family_ratings = []
+        outfit.items = []
+        db_session.add(outfit)
+        await db_session.commit()
+        generate = AsyncMock(return_value=outfit)
+
+        with patch("app.api.outfits.RecommendationService.generate_recommendation", generate):
+            response = await client.post(
+                "/api/v1/outfits/suggest",
+                json={"weather_override": {"temperature": 20, "condition": "clear"}},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        assert generate.await_args.kwargs["occasion"] == "casual"
+
 
 def _make_item(**kwargs) -> ClothingItem:
     defaults = {
@@ -444,6 +591,12 @@ class TestPromptPreRanking:
         assert "pre-ranked" in RECOMMENDATION_PROMPT
 
 
+def _nested(value, depth):
+    for _ in range(depth):
+        value = [value]
+    return value
+
+
 class TestIncludeItems:
     def test_format_mandatory_items_section(self):
         service = RecommendationService.__new__(RecommendationService)
@@ -455,58 +608,145 @@ class TestIncludeItems:
         assert "MANDATORY ITEMS" in section
         assert "MUST appear in all outfit suggestions" in section
 
-    @pytest.mark.asyncio
-    async def test_materialize_outfit_enforces_mandatory_item_even_if_omitted_by_ai(
-        self, db_session, test_user
-    ):
-        mand_item = ClothingItem(
-            user_id=test_user.id,
-            type="shirt",
-            image_path=f"test/{uuid4()}.jpg",
-            status=ItemStatus.ready,
-            primary_color="blue",
+    def test_resolve_outfit_items_enforces_mandatory_item_even_if_omitted_by_ai(self):
+        shirt, pants = uuid4(), uuid4()
+        resolved = resolve_outfit_items(
+            {"items": [2], "headline": "Casual day"},
+            {1: shirt, 2: pants},
+            {shirt: "shirt", pants: "pants"},
+            {shirt},
+            drop_legwear=False,
         )
-        ai_item = ClothingItem(
-            user_id=test_user.id,
-            type="pants",
-            image_path=f"test/{uuid4()}.jpg",
-            status=ItemStatus.ready,
-            primary_color="black",
-        )
-        db_session.add_all([mand_item, ai_item])
-        await db_session.commit()
+        assert set(resolved) == {shirt, pants}
 
-        service = RecommendationService(db_session)
-        weather = WeatherData(
-            temperature=20,
-            feels_like=20,
-            humidity=50,
-            precipitation_chance=0,
-            precipitation_mm=0,
-            wind_speed=0,
-            condition="clear",
-            condition_code=0,
-            is_day=True,
-            uv_index=0,
-            timestamp=datetime.utcnow(),
+    @pytest.mark.parametrize(
+        "picked",
+        [
+            [10, 12],
+            [[10], [12]],
+            ["[10]", "[12]"],
+            ["10", " 12 "],
+            [[[10]], ["[12]"]],
+            [[10, 12]],
+            "[10, 12]",
+            "[[10], [12]]",
+            '"[10, 12]"',
+            ["[10] shirt | worn 2 days ago | pairs well with: [3]", "[12] pants | size 32"],
+            ["[10] 3/4 sleeve tee", "[12] pants"],
+        ],
+        ids=[
+            "numbers",
+            "nested-lists",
+            "bracketed-strings",
+            "numeric-strings",
+            "mixed",
+            "wrapped-list",
+            "json-string",
+            "json-string-of-lists",
+            "double-encoded",
+            "echoed-lines",
+            "description-starting-with-a-digit",
+        ],
+    )
+    def test_item_numbers_echoed_as_prompt_labels_are_read(self, picked):
+        shirt, pants, other = uuid4(), uuid4(), uuid4()
+        number_map = {10: shirt, 12: pants, 2: other, 3: other, 32: other}
+        resolved = resolve_outfit_items(
+            {"items": picked},
+            number_map,
+            {shirt: "shirt", pants: "pants", other: "sneakers"},
+            None,
+            drop_legwear=False,
         )
-        number_map = {1: mand_item.id, 2: ai_item.id}
-        # AI returned only item 2, omitting item 1
-        outfit_data = {"items": [2], "headline": "Casual day"}
+        assert resolved == [shirt, pants]
 
-        outfit = await service._materialize_outfit(
-            outfit_data,
-            test_user,
-            weather,
-            occasion="casual",
-            source=OutfitSource.on_demand,
-            number_map=number_map,
-            mandatory_item_ids={mand_item.id},
+    @pytest.mark.parametrize(
+        "junk",
+        [
+            "one",
+            "item 1",
+            None,
+            True,
+            "true",
+            [],
+            "[]",
+            float("inf"),
+            "Infinity",
+            {"id": 1},
+            "[" * 3000 + "1" + "]" * 3000,
+        ],
+        ids=lambda junk: str(junk)[:20],
+    )
+    def test_entries_that_are_not_one_item_number_are_skipped(self, junk):
+        shirt, pants = uuid4(), uuid4()
+        resolved = resolve_outfit_items(
+            {"items": [junk, 2]},
+            {1: shirt, 2: pants},
+            {shirt: "shirt", pants: "pants"},
+            None,
+            drop_legwear=False,
         )
+        assert resolved == [pants]
 
-        outfit_item_ids = {oi.item_id for oi in outfit.items}
-        assert mand_item.id in outfit_item_ids
-        assert ai_item.id in outfit_item_ids
+    @pytest.mark.parametrize(
+        "items",
+        [
+            None,
+            {"2": "pants"},
+            "1, 2",
+            "the pants from 2 days ago",
+            "shirt | worn 2 days ago | pairs well with: [1], [2]",
+            "[1] navy shirt, [2] jeans",
+            ["[1] navy shirt, [2] jeans"],
+            ["[1] shirt\n[2] jeans"],
+            ["[1][2]"],
+            ["[1], [2]"],
+            ["1, 2"],
+            ["[1] navy shirt", "[2] jeans, [3] sneakers"],
+            [[1, 2], [2, 1]],
+            [[1, 2], [2]],
+            "[[1, 2], [2, 1]]",
+            ["[1, 2]", "[2, 1]"],
+            ["1", "[2, 1]"],
+            [[[1, 2]], [2]],
+        ],
+        ids=str,
+    )
+    def test_items_that_cannot_be_read_pick_nothing(self, items):
+        shirt, pants = uuid4(), uuid4()
+        resolved = resolve_outfit_items(
+            {"items": items},
+            {1: shirt, 2: pants},
+            {shirt: "shirt", pants: "pants"},
+            None,
+            drop_legwear=False,
+        )
+        assert resolved == []
+
+    @pytest.mark.parametrize(
+        "items",
+        [[2], [[2]], [2.0], "[2]", '"[2]"', ["2"], ["[2] pants | blue"], _nested(2, 3000)],
+        ids=[
+            "list",
+            "nested",
+            "float",
+            "json",
+            "double-encoded",
+            "string",
+            "echoed-line",
+            "deeply-nested",
+        ],
+    )
+    def test_a_single_item_answer_is_read(self, items):
+        shirt, pants = uuid4(), uuid4()
+        resolved = resolve_outfit_items(
+            {"items": items},
+            {1: shirt, 2: pants},
+            {shirt: "shirt", pants: "pants"},
+            None,
+            drop_legwear=False,
+        )
+        assert resolved == [pants]
 
     @pytest.mark.asyncio
     async def test_suggest_accepts_include_items(self, client, test_user, auth_headers, db_session):
@@ -619,3 +859,349 @@ class TestIncludeItems:
             assert isinstance(data, list)
             assert len(data) == 3
             assert mock_generate.call_args.kwargs["count"] == 3
+
+
+class TestHotDayLegwear:
+    def _resolve(self, kinds, picked, drop_legwear, mandatory=()):
+        ids = [uuid4() for _ in kinds]
+        resolved = resolve_outfit_items(
+            {"items": picked},
+            dict(enumerate(ids, start=1)),
+            dict(zip(ids, kinds, strict=True)),
+            {ids[n - 1] for n in mandatory} or None,
+            drop_legwear=drop_legwear,
+        )
+        return ids, set(resolved)
+
+    @pytest.mark.parametrize(
+        ("drop_legwear", "mandatory", "tights_kept"),
+        [(True, (), False), (False, (), True), (True, (3,), True)],
+        ids=["hot", "not-hot", "hot-but-requested"],
+    )
+    def test_drops_only_unrequested_tights_on_a_hot_day(self, drop_legwear, mandatory, tights_kept):
+        ids, kept = self._resolve(
+            ("t-shirt", "skirt", "tights", "sneakers"), [1, 2, 3, 4], drop_legwear, mandatory
+        )
+        assert (ids[2] in kept) is tights_kept
+        assert {ids[0], ids[1], ids[3]} <= kept
+
+    def test_an_answer_of_only_tights_resolves_to_nothing(self):
+        assert self._resolve(("tights",), [1], True)[1] == set()
+
+    def test_unknown_and_non_numeric_picks_are_ignored(self):
+        ids, kept = self._resolve(("shirt", "jeans"), [1, "two", 9, 1], False)
+        assert kept == {ids[0]}
+
+    async def _hot_day_outfits(
+        self,
+        db_session,
+        user,
+        ai_outfits,
+        cached=None,
+        count=1,
+        cached_weather=None,
+        unavailable=None,
+        include=(),
+        extras=(),
+        single_outfit=False,
+        kinds=("tights", "skirt", "t-shirt", "sneakers"),
+    ):
+        # Extras come first among the candidates and are numbered last, so that neither
+        # candidate order nor prompt order can stand in for the fill ranking.
+        extra_items = [
+            ClothingItem(
+                user_id=user.id,
+                type=kind,
+                image_path=f"test/{uuid4()}.jpg",
+                status=ItemStatus.ready,
+                primary_color="black",
+            )
+            for kind in extras
+        ]
+        db_session.add_all(extra_items)
+        await db_session.commit()
+        items = [
+            ClothingItem(
+                user_id=user.id,
+                type=kind,
+                image_path=f"test/{uuid4()}.jpg",
+                status=ItemStatus.ready,
+                primary_color="black",
+            )
+            for kind in kinds
+        ]
+        if unavailable == "archived":
+            items[3].is_archived = True
+        elif unavailable == "needs_wash":
+            items[3].needs_wash = True
+        db_session.add_all(items)
+        await db_session.commit()
+        items += extra_items
+        number_map = {n: item.id for n, item in enumerate(items, start=1)}
+        user.preferences = None
+        options = [{"items": o, "headline": f"AI {n}"} for n, o in enumerate(ai_outfits, start=1)]
+        ai = MagicMock()
+        ai.generate_text = AsyncMock(
+            return_value=MagicMock(
+                content=json.dumps(options[0] if single_outfit else {"outfits": options}),
+                model="m",
+                endpoint="e",
+            )
+        )
+        self.ai = ai
+        weather = _weather(temp=35)
+        if cached is not None:
+            cached = {
+                "headline": "Cached",
+                **cached,
+                "_number_map": {str(k): str(v) for k, v in number_map.items()},
+                "_context": suggestion_context(
+                    cached_weather or weather, TimeOfDay.afternoon, None, user.body_measurements
+                ),
+            }
+            cached = json.loads(json.dumps(cached))
+        rejected = {items[3].id} if unavailable == "rejected" else set()
+        service = RecommendationService(db_session)
+        unpatched = service.get_candidate_items
+        extra_ids = {item.id for item in extra_items}
+
+        async def extras_first(**kwargs):
+            return sorted(await unpatched(**kwargs), key=lambda item: item.id not in extra_ids)
+
+        with (
+            patch("app.services.recommendation_service.AIService", return_value=ai),
+            patch(
+                "app.services.recommendation_service.pop_suggestion",
+                AsyncMock(side_effect=[cached, None]),
+            ) as pop,
+            patch("app.services.recommendation_service.push_suggestions", AsyncMock()) as push,
+            patch.object(service, "_format_items_for_prompt", return_value=("", number_map)),
+            patch.object(service, "_get_today_rejected_item_ids", AsyncMock(return_value=rejected)),
+            patch.object(service, "get_candidate_items", extras_first),
+        ):
+            outfits = await service.generate_recommendations(
+                user=user,
+                occasion="casual",
+                weather_override=weather,
+                include_items=[items[n - 1].id for n in include],
+                time_of_day=TimeOfDay.afternoon,
+                count=count,
+                single_outfit=single_outfit,
+            )
+        self.reasonings = [o.reasoning for o in outfits]
+        self.pop = pop
+        self.raw_responses = [o.ai_raw_response for o in outfits]
+        self.pushed_contexts = (
+            [od["_context"] for od in push.call_args.args[2]] if push.call_args else []
+        )
+        self.pushed = [od["items"] for od in push.call_args.args[2]] if push.call_args else []
+        return items, [{oi.item_id for oi in o.items} for o in outfits]
+
+    @pytest.mark.asyncio
+    async def test_a_tights_only_option_is_skipped_not_fatal(self, db_session, test_user):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[3, 2, 4], [1], [2, 3, 4], [3, 2, 4]], count=2
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}] * 2
+        assert self.reasonings == ["AI 1", "AI 3"]
+        assert self.pushed == [[3, 2, 4]]
+
+    @pytest.mark.asyncio
+    async def test_a_tights_only_cached_suggestion_falls_through_to_a_fresh_one(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[3, 2, 4]], cached={"items": [1]}
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.reasonings == ["AI 1"]
+
+    @pytest.mark.asyncio
+    async def test_a_cached_suggestion_for_the_same_weather_is_served(self, db_session, test_user):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[3, 2, 4]], cached={"items": [2, 3, 4]}
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.reasonings == ["Cached"]
+        self.ai.generate_text.assert_not_called()
+        assert not {"_context", "_number_map"} & set(self.raw_responses[0])
+
+    @pytest.mark.asyncio
+    async def test_a_cached_suggestion_from_a_cold_day_is_not_served_on_a_hot_day(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session,
+            test_user,
+            [[3, 2, 4]],
+            cached={"items": [2, 3, 4]},
+            cached_weather=_weather(temp=2),
+        )
+        assert self.reasonings == ["AI 1"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("unavailable", ["archived", "needs_wash", "rejected"])
+    async def test_a_cached_suggestion_with_an_unavailable_item_is_not_served(
+        self, db_session, test_user, unavailable
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[3, 2]], cached={"items": [2, 3, 4]}, unavailable=unavailable
+        )
+        assert outfits == [{items[1].id, items[2].id}]
+        assert self.reasonings == ["AI 1"]
+        assert self.pop.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_a_cached_suggestion_with_a_requested_item_is_served_even_if_it_needs_a_wash(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session,
+            test_user,
+            [[3, 2]],
+            cached={"items": [2, 3, 4]},
+            unavailable="needs_wash",
+            include=(4,),
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.reasonings == ["Cached"]
+        self.ai.generate_text.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cached_options_record_the_weather_they_were_made_for(
+        self, db_session, test_user
+    ):
+        await self._hot_day_outfits(db_session, test_user, [[3, 2, 4], [2, 3, 4]])
+        assert self.pushed_contexts == [
+            suggestion_context(
+                _weather(temp=35), TimeOfDay.afternoon, None, test_user.body_measurements
+            )
+        ]
+
+    @pytest.mark.asyncio
+    async def test_a_tights_only_first_option_falls_through_to_the_next(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[1], [3, 2, 4], [2, 3, 4]]
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.reasonings == ["AI 2"]
+        assert self.pushed == [[2, 3, 4]]
+
+    @pytest.mark.asyncio
+    async def test_an_option_without_shoes_is_skipped_for_a_complete_one(
+        self, db_session, test_user
+    ):
+        await self._hot_day_outfits(db_session, test_user, [[3, 2], [3, 2, 4]])
+        assert self.reasonings == ["AI 2"]
+        assert "_filled_item_ids" not in self.raw_responses[0]
+
+    @pytest.mark.asyncio
+    async def test_incomplete_leftovers_are_not_cached(self, db_session, test_user):
+        await self._hot_day_outfits(db_session, test_user, [[3, 2, 4], [3, 2], [2, 3, 4]])
+        assert self.pushed == [[2, 3, 4]]
+
+    @pytest.mark.asyncio
+    async def test_when_no_option_is_complete_the_least_changed_one_is_filled_with_the_best_fit(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[3], [2, 4]], extras=("sweater",)
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.reasonings == ["AI 2"]
+        assert self.raw_responses[0]["_filled_item_ids"] == [str(items[2].id)]
+
+    @pytest.mark.asyncio
+    async def test_a_single_outfit_missing_a_top_is_filled_with_the_best_fit(
+        self, db_session, test_user
+    ):
+        items, outfits = await self._hot_day_outfits(
+            db_session, test_user, [[2, 4]], extras=("sweater",), single_outfit=True
+        )
+        assert outfits == [{items[1].id, items[2].id, items[3].id}]
+        assert self.raw_responses[0]["_filled_item_ids"] == [str(items[2].id)]
+
+    # The only piece for the top is a dress, which cannot go over the skirt the AI chose.
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("single_outfit", [True, False], ids=["single", "options"])
+    async def test_an_outfit_the_wardrobe_cannot_complete_is_not_saved(
+        self, db_session, test_user, single_outfit
+    ):
+        with pytest.raises(AIRecommendationError, match="cannot be completed"):
+            await self._hot_day_outfits(
+                db_session,
+                test_user,
+                [[2, 4]],
+                single_outfit=single_outfit,
+                kinds=("tights", "skirt", "dress", "sneakers"),
+            )
+        saved = await db_session.scalar(
+            select(func.count()).select_from(Outfit).where(Outfit.user_id == test_user.id)
+        )
+        assert saved == 0
+
+    @pytest.mark.asyncio
+    async def test_a_requested_item_the_wardrobe_cannot_complete_is_refused_before_the_ai(
+        self, db_session, test_user
+    ):
+        with pytest.raises(ValueError, match="selected items cannot make a complete outfit"):
+            await self._hot_day_outfits(
+                db_session,
+                test_user,
+                [[2, 4]],
+                include=(2,),
+                kinds=("tights", "skirt", "dress", "sneakers"),
+            )
+        self.ai.generate_text.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_a_single_outfit_with_nothing_valid_is_not_built_from_scratch(
+        self, db_session, test_user
+    ):
+        with pytest.raises(AIRecommendationError, match="did not select"):
+            await self._hot_day_outfits(db_session, test_user, [[99]], single_outfit=True)
+
+    @pytest.mark.asyncio
+    async def test_options_with_nothing_valid_are_not_built_from_scratch(
+        self, db_session, test_user
+    ):
+        with pytest.raises(AIRecommendationError, match="did not select"):
+            await self._hot_day_outfits(db_session, test_user, [[99], [1]])
+
+    @pytest.mark.asyncio
+    async def test_an_accessory_only_single_outfit_is_not_built_from_scratch(
+        self, db_session, test_user
+    ):
+        with pytest.raises(AIRecommendationError, match="did not select"):
+            await self._hot_day_outfits(
+                db_session, test_user, [[5]], extras=("bag",), single_outfit=True
+            )
+
+    @pytest.mark.asyncio
+    async def test_the_fallback_fills_the_option_needing_the_fewest_additions(
+        self, db_session, test_user
+    ):
+        await self._hot_day_outfits(db_session, test_user, [[5], [4], [3, 4]], extras=("bag",))
+        assert self.reasonings == ["AI 3"]
+
+    @pytest.mark.asyncio
+    async def test_fewer_complete_options_than_asked_for_are_returned_as_they_are(
+        self, db_session, test_user
+    ):
+        await self._hot_day_outfits(db_session, test_user, [[3, 2], [3, 2, 4], [2, 4]], count=3)
+        assert self.reasonings == ["AI 2"]
+
+    @pytest.mark.asyncio
+    async def test_a_requested_item_counts_toward_completeness(self, db_session, test_user):
+        await self._hot_day_outfits(db_session, test_user, [[3, 4], [3, 2, 4]], include=(2,))
+        assert self.reasonings == ["AI 1"]
+
+    @pytest.mark.asyncio
+    async def test_an_incomplete_cached_suggestion_falls_through_to_a_fresh_one(
+        self, db_session, test_user
+    ):
+        await self._hot_day_outfits(db_session, test_user, [[3, 2, 4]], cached={"items": [2, 4]})
+        assert self.reasonings == ["AI 1"]
+        self.ai.generate_text.assert_awaited_once()

@@ -29,13 +29,6 @@
     },
     "rateOutfit": "Valuta l'outfit di {member}",
     "ratingCount": "({count, plural, one {{count} valutazione} other {{count} valutazioni}})",
-    "sourceBadges": {
-      "external": "Esterno",
-      "manual": "Manuale",
-      "onDemand": "Su richiesta",
-      "pairing": "Abbinamento",
-      "scheduled": "Programmato"
-    },
     "subtitle": "Sfoglia e valuta gli outfit dei membri della tua famiglia",
     "title": "Feed Famiglia",
     "unknownMember": "Questo membro",
@@ -95,6 +88,7 @@
     "createFailed": "Creazione della famiglia fallita. Riprova.",
     "created": "Famiglia creata!",
     "inviteFailed": "Invio invito fallito",
+    "inviteNotEmailed": "Invito salvato, ma non è stato possibile inviare l'email. Condividi invece il codice di invito.",
     "inviteSent": "Invito inviato!",
     "joined": "Ti sei unito alla famiglia!",
     "nameUpdateFailed": "Aggiornamento nome famiglia fallito",

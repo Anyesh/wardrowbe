@@ -16,6 +16,7 @@
     "title": "Noch keine Kombinationen"
   },
   "generate": {
+    "colorAndType": "{type} in {color}",
     "description": "Die KI erstellt komplette Outfits mit diesem Stück",
     "failed": "Kombinationen konnten nicht generiert werden",
     "generate": "Outfits generieren",

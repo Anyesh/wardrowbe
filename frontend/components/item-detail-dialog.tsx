@@ -60,19 +60,38 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
+import { ApiError } from '@/lib/api';
+import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
 import {
   useClothingTypes,
   useClothingColors,
+  useColorLabel,
+  useFitLabel,
   useFormalityLabel,
   useMaterialLabel,
+  useOccasionLabel,
+  usePatternLabel,
+  useSeasonLabel,
+  useStyleLabel,
   useSubtypeLabel,
+  useTypeLabel,
 } from '@/lib/hooks/use-translated-constants';
 import { ColorEyedropper } from '@/components/color-eyedropper';
+import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
+import { ItemTagsEditor } from '@/components/item-tags-editor';
+import {
+  diffTags,
+  draftFromTags,
+  primaryColorOfItem,
+  subtypeAfterTypeChange,
+  type ItemEdits,
+  type TagDraft,
+} from '@/lib/tag-edits';
 import { useFeatures } from '@/lib/hooks/use-features';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDate } from '@/lib/utils';
 
 interface ItemDetailDialogProps {
   item: Item | null;
@@ -93,6 +112,17 @@ interface EditForm {
   wash_interval: number | undefined;
 }
 
+// The sign-in redirect handles these, as in the global error handler.
+function isUnauthorized(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401;
+}
+
+function isInvalidTagValue(error: unknown): boolean {
+  if (!(error instanceof ApiError)) return false;
+  const data = error.data as { detail?: { error_code?: string } } | undefined;
+  return data?.detail?.error_code === 'INVALID_TAG_VALUE';
+}
+
 function editFormFromItem(item: Item): EditForm {
   return {
     name: item.name || '',
@@ -101,7 +131,7 @@ function editFormFromItem(item: Item): EditForm {
     // supported type doesn't lose what the model actually saw.
     subtype: item.subtype || (item.type === 'unknown' && item.ai_unrecognized_type) || '',
     brand: item.brand || '',
-    primary_color: item.primary_color || '',
+    primary_color: primaryColorOfItem(item) || '',
     notes: item.notes || '',
     favorite: item.favorite,
     wash_interval: item.wash_interval ?? undefined,
@@ -109,15 +139,23 @@ function editFormFromItem(item: Item): EditForm {
 }
 
 export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('wardrobe.itemDetail');
   const tc = useTranslations('common');
   const tw = useTranslations('wardrobe');
+  const locale = useLocale();
   const router = useRouter();
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
   const subtypeLabel = useSubtypeLabel();
   const materialLabel = useMaterialLabel();
+  const occasionLabel = useOccasionLabel();
   const formalityLabel = useFormalityLabel();
+  const colorLabel = useColorLabel();
+  const patternLabel = usePatternLabel();
+  const styleLabel = useStyleLabel();
+  const seasonLabel = useSeasonLabel();
+  const fitLabel = useFitLabel();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPairingsDialog, setShowPairingsDialog] = useState(false);
@@ -132,6 +170,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     favorite: false,
     wash_interval: undefined,
   });
+  const [tagDraft, setTagDraft] = useState<TagDraft>(() =>
+    draftFromTags(item?.tags ?? { colors: [], style: [], season: [] }, primaryColorOfItem(item)),
+  );
+  // The item as it was when editing began. Saving compares the form with this, not with the
+  // item as it is now: tagging can finish while the form is open, and diffing against the fresh
+  // item would send its new tags back as clears and resend untouched fields as edits.
+  const [editBase, setEditBase] = useState<Item | null>(item);
   const [showWashHistory, setShowWashHistory] = useState(false);
   const [showWearHistory, setShowWearHistory] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -145,6 +190,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const replaceImage = useReplaceItemImage();
   const replaceImageInputRef = useRef<HTMLInputElement>(null);
   const { data: features } = useFeatures();
+  const logWear = useLogWear();
   const logWash = useLogWash();
   const { data: washHistory } = useWashHistory(item?.id || '');
   const { data: wearStats } = useItemWearStats(item?.id || '');
@@ -156,6 +202,8 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   useEffect(() => {
     if (item) {
       setEditForm(editFormFromItem(item));
+      setTagDraft(draftFromTags(item.tags, primaryColorOfItem(item)));
+      setEditBase(item);
       setIsEditing(false);
       setActiveImageIndex(0);
     }
@@ -164,24 +212,51 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   if (!item) return null;
 
   const handleSave = async () => {
+    const base = editBase ?? item;
+    // Only what the person changed since editing began; an untouched field is not sent at all.
+    const before: EditForm = { ...editFormFromItem(base), subtype: base.subtype || '' };
+    const data: ItemEdits = {};
+    if (editForm.name !== before.name) data.name = editForm.name || undefined;
+    if (editForm.type !== before.type) data.type = editForm.type;
+    const subtype = editForm.subtype.trim();
+    // null (not undefined) so clearing the field actually clears it server-side.
+    if (subtype !== before.subtype) data.subtype = subtype || null;
+    if (editForm.brand !== before.brand) data.brand = editForm.brand || undefined;
+    if (editForm.primary_color !== before.primary_color) {
+      data.primary_color = editForm.primary_color || undefined;
+    }
+    if (editForm.notes !== before.notes) data.notes = editForm.notes || undefined;
+    if (editForm.favorite !== before.favorite) data.favorite = editForm.favorite;
+    if (editForm.wash_interval !== before.wash_interval) data.wash_interval = editForm.wash_interval;
+    const tagChanges = diffTags(
+      base.tags,
+      tagDraft,
+      editForm.primary_color || undefined,
+      primaryColorOfItem(base),
+    );
+    if (Object.keys(tagChanges).length > 0) data.tags = tagChanges;
+
+    if (Object.keys(data).length === 0) {
+      setIsEditing(false);
+      return;
+    }
     try {
-      await updateItem.mutateAsync({
-        id: item.id,
-        data: {
-          name: editForm.name || undefined,
-          type: editForm.type,
-          // null (not undefined) so clearing the field actually clears it server-side.
-          subtype: editForm.subtype.trim() || null,
-          brand: editForm.brand || undefined,
-          primary_color: editForm.primary_color || undefined,
-          notes: editForm.notes || undefined,
-          favorite: editForm.favorite,
-          wash_interval: editForm.wash_interval,
-        },
-      });
+      await updateItem.mutateAsync({ id: item.id, data });
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to update item:', error);
+      if (isUnauthorized(error)) return;
+      toast.error(isInvalidTagValue(error) ? t('tagsEditor.invalidValue') : t('actions.saveError'));
+    }
+  };
+
+  const handleLogWear = async () => {
+    try {
+      await logWear.mutateAsync({ id: item.id });
+      toast.success(t('actions.wearLogged'));
+    } catch (error) {
+      console.error('Failed to log wear:', error);
+      toast.error(t('actions.wearLogError'));
     }
   };
 
@@ -219,6 +294,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       });
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
+      if (!isUnauthorized(error)) toast.error(t('actions.saveError'));
     }
   };
 
@@ -291,8 +367,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   // AI-generated tags
   const tags = item.tags || {};
   const hasAiTags = !!(tags.colors?.length || tags.pattern || tags.material ||
-                   tags.style?.length || tags.season?.length || tags.formality || tags.fit ||
-                   tags.occasion?.length || tags.condition || tags.features?.length);
+                   tags.style?.length || tags.season?.length || tags.formality || tags.fit);
 
   return (
     <>
@@ -434,7 +509,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 <input
                   ref={replaceImageInputRef}
                   type="file"
-                  accept="image/*"
+                  accept={ACCEPTED_IMAGE_INPUT}
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -450,7 +525,11 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   onClick={() => {
                     // Re-read the item on entering edit mode: tagging can finish while the
                     // dialog is open (same id, so the effect above doesn't re-run).
-                    if (!isEditing) setEditForm(editFormFromItem(item));
+                    if (!isEditing) {
+                      setEditForm(editFormFromItem(item));
+                      setTagDraft(draftFromTags(item.tags, primaryColorOfItem(item)));
+                      setEditBase(item);
+                    }
                     setIsEditing(!isEditing);
                   }}
                   title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
@@ -491,7 +570,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       <Image
                         key={`${currentImage.id}-${imageKey}`}
                         src={currentImage.url}
-                        alt={item.name || item.type}
+                        alt={item.name || typeLabel(item.type)}
                         fill
                         className="object-cover"
                         sizes="(max-width: 640px) 100vw, 50vw"
@@ -585,7 +664,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       )}
                       <input
                         type="file"
-                        accept="image/*"
+                        accept={ACCEPTED_IMAGE_INPUT}
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -623,7 +702,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     )}
                     <Select
                       value={editForm.type}
-                      onValueChange={(v) => setEditForm({ ...editForm, type: v })}
+                      onValueChange={(v) =>
+                        setEditForm({ ...editForm, type: v, subtype: subtypeAfterTypeChange(v, editForm.subtype) })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -714,6 +795,11 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       {t('view.washIntervalHint')}
                     </p>
                   </div>
+                  <ItemTagsEditor
+                    draft={tagDraft}
+                    onChange={setTagDraft}
+                    primaryColor={editForm.primary_color || undefined}
+                  />
                   <div className="flex gap-2 pt-2">
                     <Button
                       variant="outline"
@@ -774,7 +860,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                           {t('view.wornCount', { count: item.wear_count })}
                           {item.last_worn_at && (
                             <span className="text-muted-foreground">
-                              {' '}{t('view.lastWornDate', { date: new Date(item.last_worn_at).toLocaleDateString() })}
+                              {' '}{t('view.lastWornDate', { date: formatDate(item.last_worn_at, locale) })}
                             </span>
                           )}
                         </span>
@@ -789,20 +875,36 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         <Droplets className={`h-4 w-4 ${item.needs_wash ? 'text-amber-500' : 'text-muted-foreground'}`} />
                         {t('view.washStatus')}
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={handleMarkWashed}
-                        disabled={logWash.isPending}
-                      >
-                        {logWash.isPending ? (
-                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        ) : (
-                          <Droplets className="h-3 w-3 mr-1" />
-                        )}
-                        {t('actions.markWashed')}
-                      </Button>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={handleLogWear}
+                          disabled={logWear.isPending}
+                        >
+                          {logWear.isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          ) : (
+                            <Shirt className="h-3 w-3 mr-1" />
+                          )}
+                          {t('actions.logWear')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={handleMarkWashed}
+                          disabled={logWash.isPending}
+                        >
+                          {logWash.isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          ) : (
+                            <Droplets className="h-3 w-3 mr-1" />
+                          )}
+                          {t('actions.markWashed')}
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs text-muted-foreground">
@@ -817,7 +919,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       />
                       {item.last_washed_at && (
                         <p className="text-xs text-muted-foreground">
-                          {t('view.lastWashed', { date: new Date(item.last_washed_at).toLocaleDateString() })}
+                          {t('view.lastWashed', { date: formatDate(item.last_washed_at, locale) })}
                         </p>
                       )}
                     </div>
@@ -832,7 +934,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         <CollapsibleContent className="mt-1.5 space-y-1">
                           {washHistory.map((wash) => (
                             <div key={wash.id} className="text-xs text-muted-foreground flex items-center gap-2">
-                              <span>{new Date(wash.washed_at).toLocaleDateString()}</span>
+                              <span>{formatDate(wash.washed_at, locale)}</span>
                               {wash.method && <Badge variant="outline" className="text-[10px] h-4">{wash.method}</Badge>}
                               {wash.notes && <span className="truncate">{wash.notes}</span>}
                             </div>
@@ -871,7 +973,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         {wearStats.most_common_occasion && (
                           <div className="bg-muted/50 rounded-md p-2">
                             <p className="text-muted-foreground">{t('view.usualOccasion')}</p>
-                            <p className="font-medium text-sm capitalize">{wearStats.most_common_occasion}</p>
+                            <p className="font-medium text-sm">{occasionLabel(wearStats.most_common_occasion)}</p>
                           </div>
                         )}
                       </div>
@@ -909,10 +1011,10 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                             {wearHistory.map((entry) => (
                               <div key={entry.id} className="text-xs flex items-start gap-2">
                                 <span className="text-muted-foreground whitespace-nowrap">
-                                  {new Date(entry.worn_at).toLocaleDateString()}
+                                  {formatDate(entry.worn_at, locale)}
                                 </span>
                                 {entry.occasion && (
-                                  <Badge variant="outline" className="text-[10px] h-4">{entry.occasion}</Badge>
+                                  <Badge variant="outline" className="text-[10px] h-4">{occasionLabel(entry.occasion)}</Badge>
                                 )}
                                 {entry.outfit && (
                                   <div className="flex -space-x-1">
@@ -920,12 +1022,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                                       <div
                                         key={oi.id}
                                         className="w-5 h-5 rounded-full bg-muted border-2 border-background overflow-hidden"
-                                        title={oi.name || oi.type}
+                                        title={oi.name || typeLabel(oi.type)}
                                       >
                                         {oi.thumbnail_url && (
                                           <Image
                                             src={oi.thumbnail_url}
-                                            alt={oi.name || oi.type}
+                                            alt={oi.name || typeLabel(oi.type)}
                                             width={20}
                                             height={20}
                                             className="object-cover w-full h-full"
@@ -968,12 +1070,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       {hasAiTags && <div className="flex flex-wrap gap-1.5">
                         {tags.colors?.map((color) => (
                           <Badge key={color} variant="outline" className="text-xs">
-                            {color}
+                            {colorLabel(color)}
                           </Badge>
                         ))}
                         {tags.pattern && (
                           <Badge variant="outline" className="text-xs">
-                            {tags.pattern}
+                            {patternLabel(tags.pattern)}
                           </Badge>
                         )}
                         {tags.material && (
@@ -983,12 +1085,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         )}
                         {tags.style?.map((s) => (
                           <Badge key={s} variant="outline" className="text-xs">
-                            {s}
+                            {styleLabel(s)}
                           </Badge>
                         ))}
                         {tags.season?.map((s) => (
                           <Badge key={s} variant="outline" className="text-xs">
-                            {s}
+                            {seasonLabel(s)}
                           </Badge>
                         ))}
                         {tags.formality && (
@@ -998,24 +1100,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         )}
                         {tags.fit && (
                           <Badge variant="outline" className="text-xs">
-                            {tags.fit ? t('view.fitBadge', { fit: tags.fit }) : null}
+                            {t('view.fitBadge', { fit: fitLabel(tags.fit) })}
                           </Badge>
                         )}
-                        {tags.occasion?.map((o: string) => (
-                          <Badge key={o} variant="outline" className="text-xs">
-                            {o}
-                          </Badge>
-                        ))}
-                        {tags.condition && (
-                          <Badge variant="outline" className="text-xs">
-                            {tags.condition}
-                          </Badge>
-                        )}
-                        {tags.features?.map((f: string) => (
-                          <Badge key={f} variant="outline" className="text-xs">
-                            {f}
-                          </Badge>
-                        ))}
                       </div>}
                     </div>
                   )}
@@ -1030,7 +1117,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
 
                   {/* Metadata */}
                   <div className="text-xs text-muted-foreground pt-2 border-t">
-                    {t('view.addedDate', { date: new Date(item.created_at).toLocaleDateString() })}
+                    {t('view.addedDate', { date: formatDate(item.created_at, locale) })}
                   </div>
                 </div>
               )}
@@ -1061,7 +1148,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           <AlertDialogHeader>
             <AlertDialogTitle>{t('actions.deleteConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('actions.deleteDescription', { name: item.name || item.type })}
+              {t('actions.deleteDescription', { name: item.name || typeLabel(item.type) })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

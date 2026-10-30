@@ -22,25 +22,18 @@
   },
   "filters": {
     "allOccasions": "All occasions",
-    "allStatus": "All status",
-    "workout": "Workout"
+    "allStatus": "All status"
   },
   "loadError": "Failed to load history. Please try again.",
   "noOutfitsForDate": "No outfits for {date}",
   "outfitCount": "{count, plural, one {# outfit} other {# outfits}}",
-  "sourceBadges": {
-    "external": "External",
-    "manual": "Manual",
-    "onDemand": "On Demand",
-    "pairing": "Pairing",
-    "scheduled": "Scheduled"
-  },
   "status": {
     "accepted": "Accepted",
     "expired": "Expired",
     "pending": "Pending",
     "rejected": "Rejected",
     "sent": "Sent",
+    "skipped": "Skipped",
     "viewed": "Viewed"
   },
   "subtitle": "View your past outfit recommendations",

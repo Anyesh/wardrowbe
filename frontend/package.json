@@ -13,8 +13,8 @@
     "i18n:parity": "node scripts/i18n-check.mjs",
     "i18n:scan": "node scripts/i18n-scan.mjs",
     "i18n:check": "npm run i18n:keys && npm run i18n:parity && npm run i18n:scan",
-    "vocab:gen": "node scripts/gen-garment-vocabulary.mjs",
-    "vocab:check": "node scripts/gen-garment-vocabulary.mjs --check"
+    "vocab:gen": "node scripts/gen-shared-data.mjs",
+    "vocab:check": "node scripts/gen-shared-data.mjs --check"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
@@ -32,7 +32,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.0.7",
-    "@tanstack/react-query": "^5.17.19",
+    "@tanstack/react-query": "^5.101.4",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "date-fns": "^3.3.1",

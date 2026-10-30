@@ -35,6 +35,9 @@ spec:
           command:
             - arq
             - app.workers.image_worker.ImageWorkerSettings
+          envFrom:
+            - configMapRef:
+                name: wardrobe-config
           env:
             - name: DATABASE_URL
               valueFrom:
@@ -45,35 +48,34 @@ spec:
               value: "redis://redis:6379"
             - name: STORAGE_PATH
               value: "/data/uploads"
-            - name: IMAGE_WORKER_CONCURRENCY
+            - name: SECRET_KEY
               valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: IMAGE_WORKER_CONCURRENCY
+                secretKeyRef:
+                  name: wardrobe-secrets
+                  key: backend-secret-key
+            - name: AI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: wardrobe-secrets
+                  key: ai-api-key
                   optional: true
-            - name: MAX_IMAGE_MEGAPIXELS
+            - name: NTFY_TOKEN
               valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: MAX_IMAGE_MEGAPIXELS
+                secretKeyRef:
+                  name: wardrobe-notifications
+                  key: ntfy-token
                   optional: true
-            - name: BG_REMOVAL_PROVIDER
+            - name: SMTP_USER
               valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: BG_REMOVAL_PROVIDER
+                secretKeyRef:
+                  name: wardrobe-notifications
+                  key: smtp-user
                   optional: true
-            - name: BG_REMOVAL_MODEL
+            - name: SMTP_PASSWORD
               valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: BG_REMOVAL_MODEL
-                  optional: true
-            - name: BG_REMOVAL_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: BG_REMOVAL_URL
+                secretKeyRef:
+                  name: wardrobe-notifications
+                  key: smtp-password
                   optional: true
             - name: BG_REMOVAL_API_KEY
               valueFrom:
@@ -81,11 +83,6 @@ spec:
                   name: wardrobe-secrets
                   key: bg-removal-api-key
                   optional: true
-            - name: LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  name: wardrobe-config
-                  key: LOG_LEVEL
           volumeMounts:
             - name: uploads
               mountPath: /data/uploads

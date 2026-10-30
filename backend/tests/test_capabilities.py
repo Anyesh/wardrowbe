@@ -241,7 +241,7 @@ async def test_tag_item_image_runs_ai_when_enabled(monkeypatch):
         def __init__(self, *args, **kwargs):
             constructed["called"] = True
 
-        async def analyze_image(self, path):  # pragma: no cover - not reached
+        async def analyze_image(self, path, locale="en"):  # pragma: no cover - not reached
             raise RuntimeError("stop after construction")
 
     monkeypatch.setattr(tagging, "AIService", _StubAI)

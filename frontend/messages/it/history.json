@@ -22,25 +22,18 @@
   },
   "filters": {
     "allOccasions": "Tutte le occasioni",
-    "allStatus": "Tutti gli stati",
-    "workout": "Allenamento"
+    "allStatus": "Tutti gli stati"
   },
   "loadError": "Caricamento cronologia fallito. Riprova.",
   "noOutfitsForDate": "Nessun outfit per {date}",
   "outfitCount": "{count, plural, one {# outfit} other {# outfit}}",
-  "sourceBadges": {
-    "external": "Esterno",
-    "manual": "Manuale",
-    "onDemand": "Su richiesta",
-    "pairing": "Abbinamento",
-    "scheduled": "Programmato"
-  },
   "status": {
-    "accepted": "accettati",
+    "accepted": "Accettati",
     "expired": "Scaduti",
     "pending": "In attesa",
     "rejected": "Rifiutati",
     "sent": "Inviati",
+    "skipped": "Saltati",
     "viewed": "Visualizzati"
   },
   "subtitle": "Visualizza i tuoi suggerimenti di outfit passati",

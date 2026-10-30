@@ -3,8 +3,11 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
+# ca-certificates is listed so a build takes Debian's current CA bundle even when the base image
+# lags it: OIDC discovery and SMTP verify TLS against this store, not certifi.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    ca-certificates \
     libpq-dev \
     curl \
     gosu \
@@ -14,8 +17,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt requirements-extras.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-extras.txt
 
-# Pre-download rembg model so first request is instant
-RUN python -c "from rembg import new_session; new_session()"
+# REMBG_HOME is outside /root because the app runs as non-root uids. The model is baked into
+# baked/ and linked from models/, so a volume mounted over models/ cannot hide it: the entrypoint
+# adds a link for every baked model the volume lacks. models/ is 1777 because PUID remapping
+# changes appuser's numeric uid, so a build-time chown would not survive.
+# Importing rembg JIT-compiles pymatting through numba for over a minute, so the bake also fills
+# the numba cache. A generic CPU target keeps those entries valid on hosts other than the builder,
+# and the cache stays writable by every uid because numba refuses a cache dir it cannot write to.
+ARG BG_REMOVAL_MODEL=u2net
+ENV REMBG_HOME=/opt/rembg \
+    NUMBA_CACHE_DIR=/opt/numba_cache \
+    NUMBA_CPU_NAME=generic
+RUN python -c "from rembg import new_session; new_session('$BG_REMOVAL_MODEL')" \
+    && mv /opt/rembg/models /opt/rembg/baked \
+    && mkdir -m 1777 /opt/rembg/models \
+    && ln -s /opt/rembg/baked/* /opt/rembg/models/ \
+    && chmod -R a+rX /opt/rembg/baked \
+    && chmod -R a+rwX /opt/numba_cache
 
 # Copy application code
 COPY . .

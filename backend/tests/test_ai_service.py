@@ -1,15 +1,121 @@
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
 
-from app.services.ai_service import AIResponseTruncatedError, AIService, ClothingTags
+from app.services.ai_service import (
+    DESCRIPTION_LANGUAGES,
+    AIResponseTruncatedError,
+    AIService,
+    ClothingTags,
+)
+from app.utils.locale import SUPPORTED_LOCALES
 
 FAKE_REQUEST = httpx.Request("POST", "http://ai-endpoint.test/chat/completions")
 
 
 def _mock_response(json_data: dict, status_code: int = 200) -> httpx.Response:
     return httpx.Response(status_code, json=json_data, request=FAKE_REQUEST)
+
+
+async def _complete(service: AIService, path: str) -> str:
+    if path == "text":
+        return await service.generate_text("suggest an outfit")
+    content, error, _ = await service._call_with_fallback(
+        [{"role": "user", "content": "tag this"}], "tags"
+    )
+    if error is not None:
+        raise error
+    return content
+
+
+class TestLocalizedDescription:
+    @pytest.mark.parametrize(
+        ("locale", "language"),
+        [
+            ("en", "English"),
+            ("zh-CN", "Simplified Chinese"),
+            ("zh-TW", "Traditional Chinese"),
+            ("ko", "Korean"),
+            ("ja", "Japanese"),
+            ("fr", "French"),
+            ("de", "German"),
+            ("it", "Italian"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_only_description_prompt_uses_locale(self, locale, language):
+        service = AIService()
+        call = AsyncMock(
+            side_effect=[
+                ('{"type": "shirt", "material": "cotton"}', None, None),
+                ("A shirt", None, None),
+            ]
+        )
+        with (
+            patch.object(service, "_preprocess_image", return_value="image-data"),
+            patch.object(service, "_call_with_fallback", call),
+        ):
+            tags = await service.analyze_image("unused.jpg", locale=locale)
+
+        tagging_messages = call.call_args_list[0].args[0]
+        description_messages = call.call_args_list[1].args[0]
+        assert language in description_messages[0]["content"]
+        assert "{language}" not in description_messages[0]["content"]
+        assert language not in tagging_messages[0]["content"]
+        assert tags.type == "shirt"
+        assert tags.material == "cotton"
+        assert tags.description == "A shirt"
+
+    def test_every_supported_locale_has_a_description_language(self):
+        assert set(DESCRIPTION_LANGUAGES) == set(SUPPORTED_LOCALES)
+
+    @pytest.mark.asyncio
+    async def test_unexpected_stored_locale_falls_back_to_english(self):
+        service = AIService()
+        call = AsyncMock(side_effect=[(None, None, None), ("A shirt", None, None)])
+        with (
+            patch.object(service, "_preprocess_image", return_value="image-data"),
+            patch.object(service, "_call_with_fallback", call),
+        ):
+            await service.analyze_image("unused.jpg", locale="unexpected")
+
+        assert "in English" in call.call_args_list[1].args[0][0]["content"]
+
+    @pytest.mark.parametrize(
+        ("reply", "expected"),
+        [
+            ('"A navy shirt"', "A navy shirt"),
+            ("“Eine blaue Bluse”", "Eine blaue Bluse"),
+            ("「紺色のシャツ」", "紺色のシャツ"),
+            ("『藍色襯衫』", "藍色襯衫"),
+            ("« Chemise bleue »", "Chemise bleue"),
+            ('Un "trench" beige', 'Un "trench" beige'),
+            ('"Levi\'s" jeans in "indigo"', '"Levi\'s" jeans in "indigo"'),
+            ("「ユニクロ」のシャツ、色は「紺」", "「ユニクロ」のシャツ、色は「紺」"),
+        ],
+        ids=[
+            "ascii",
+            "curly",
+            "kagikakko",
+            "double-kagikakko",
+            "guillemets",
+            "inner-quotes",
+            "two-quoted-spans",
+            "two-kagikakko-spans",
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_description_loses_wrapping_quotes_of_any_script(self, reply, expected):
+        service = AIService()
+        call = AsyncMock(side_effect=[(None, None, None), (reply, None, None)])
+        with (
+            patch.object(service, "_preprocess_image", return_value="image-data"),
+            patch.object(service, "_call_with_fallback", call),
+        ):
+            tags = await service.analyze_image("unused.jpg", locale="en")
+
+        assert tags.description == expected
 
 
 class TestTagParsing:
@@ -73,9 +179,15 @@ class TestTagParsing:
 
     def test_rejected_type_is_kept_as_unrecognized(self):
         service = AIService()
-        tags = service._parse_tags_from_response('{"type": " Tights ", "primary_color": "black"}')
+        tags = service._parse_tags_from_response('{"type": " Culottes ", "primary_color": "black"}')
         assert tags.type == "unknown"
-        assert tags.unrecognized_type == "tights"
+        assert tags.unrecognized_type == "culottes"
+
+    def test_tights_are_recognized(self):
+        service = AIService()
+        tags = service._parse_tags_from_response('{"type": " Tights ", "primary_color": "black"}')
+        assert tags.type == "tights"
+        assert tags.unrecognized_type is None
 
     def test_missing_type_is_not_unrecognized(self):
         service = AIService()
@@ -116,6 +228,23 @@ class TestTagParsing:
         """
         tags = service._parse_tags_from_response(response)
         assert tags.primary_color == "gray"
+
+    def test_frontend_only_names_normalise_to_stored_colors(self):
+        service = AIService()
+        tags = service._parse_tags_from_response(
+            '{"type": "pants", "primary_color": "Charcoal", '
+            '"colors": ["charcoal", "gray", "khaki", "teal", "army green", "light-blue"]}'
+        )
+        assert tags.primary_color == "gray"
+        assert tags.colors == ["gray", "tan", "blue", "olive", "light-blue"]
+
+    def test_gold_and_silver_are_stored_not_aliased(self):
+        service = AIService()
+        tags = service._parse_tags_from_response(
+            '{"type": "belt", "primary_color": "gold", "colors": ["gold", "silver"]}'
+        )
+        assert tags.primary_color == "gold"
+        assert tags.colors == ["gold", "silver"]
 
     def test_parse_invalid_json(self):
         """Test parsing completely invalid response."""
@@ -331,6 +460,163 @@ class TestGenerateTextErrorEnvelope:
         with patch("httpx.AsyncClient.post", return_value=error_envelope):
             with pytest.raises(RuntimeError, match="The operation was aborted"):
                 await service.generate_text("suggest an outfit")
+
+
+class TestEmptyCompletion:
+    """A blank vision completion read as success left analyze_image storing an "unknown"
+    item with no error to raise, so both paths must treat it as a failed attempt."""
+
+    @staticmethod
+    def _empty_vision_response() -> dict:
+        return {
+            "model": "vision-model",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": ""},
+                    "finish_reason": "length",
+                }
+            ],
+        }
+
+    @pytest.mark.asyncio
+    async def test_blank_completion_is_not_treated_as_success(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        mock_response = _mock_response(self._empty_vision_response())
+
+        with patch("httpx.AsyncClient.post", return_value=mock_response):
+            content, error, _ = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags"
+            )
+
+        assert content is None
+        assert isinstance(error, AIResponseTruncatedError)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("first_endpoint", "retryable"),
+        [("unreachable", True), ("cut-off", False)],
+    )
+    async def test_cutoff_is_retryable_unless_every_endpoint_cut_off(
+        self, first_endpoint, retryable
+    ):
+        service = AIService(endpoints=[{"url": "http://custom:11434/v1", "name": "custom"}])
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        first = (
+            httpx.ConnectError("custom down")
+            if first_endpoint == "unreachable"
+            else _mock_response(self._empty_vision_response())
+        )
+
+        with patch(
+            "httpx.AsyncClient.post",
+            side_effect=[first, _mock_response(self._empty_vision_response())],
+        ):
+            _, error, _ = await service._call_with_fallback(
+                [{"role": "user", "content": "tag this"}], "tags"
+            )
+
+        assert isinstance(error, AIResponseTruncatedError)
+        assert error.retryable is retryable
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("path", ["vision", "text"])
+    @pytest.mark.parametrize(("finish_reason", "expected_calls"), [("length", 1), ("stop", 3)])
+    async def test_only_an_empty_completion_that_can_change_is_retried(
+        self, path, finish_reason, expected_calls
+    ):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 3})
+        payload = self._empty_vision_response()
+        payload["choices"][0]["finish_reason"] = finish_reason
+
+        with (
+            patch("httpx.AsyncClient.post", return_value=_mock_response(payload)) as mock_post,
+            patch("app.services.ai_service.asyncio.sleep"),
+        ):
+            with pytest.raises(AIResponseTruncatedError) as exc_info:
+                await _complete(service, path)
+
+        assert mock_post.call_count == expected_calls
+        assert exc_info.value.retryable is (finish_reason != "length")
+
+    def _analyze_responses(self, tags_content: str, description: str | int) -> list:
+        tags_payload = self._empty_vision_response()
+        tags_payload["choices"][0]["message"]["content"] = tags_content
+        if isinstance(description, int):
+            return [
+                _mock_response(tags_payload),
+                _mock_response({"error": "upstream down"}, status_code=description),
+            ]
+        description_payload = self._empty_vision_response()
+        description_payload["choices"][0]["message"]["content"] = description
+        description_payload["choices"][0]["finish_reason"] = "stop" if description else "length"
+        return [_mock_response(tags_payload), _mock_response(description_payload)]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("max_retries", "tags_content", "description", "expected_error", "message", "retryable"),
+        [
+            (1, "", "", AIResponseTruncatedError, "empty response", False),
+            (1, "", 503, AIResponseTruncatedError, "empty response", True),
+            (1, "I cannot identify this garment.", 500, RuntimeError, "no usable tags", True),
+            (1, "{}", '""', RuntimeError, "empty description reply", True),
+            (0, "", "", RuntimeError, "nothing usable", True),
+        ],
+        ids=[
+            "empty-completions",
+            "cut-tags-transient-description",
+            "unparseable-tags",
+            "empty-json-empty-description",
+            "no-attempts",
+        ],
+    )
+    async def test_analyze_image_raises_when_neither_pass_returns_anything_usable(
+        self, max_retries, tags_content, description, expected_error, message, retryable
+    ):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": max_retries})
+
+        with (
+            patch(
+                "httpx.AsyncClient.post",
+                side_effect=self._analyze_responses(tags_content, description),
+            ),
+            patch.object(AIService, "_preprocess_image", return_value="base64data"),
+        ):
+            with pytest.raises(expected_error, match=message) as exc_info:
+                await service.analyze_image("/fake/image.jpg", locale="en")
+
+        assert type(exc_info.value) is expected_error
+        assert getattr(exc_info.value, "retryable", True) is retryable
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("tags_content", "description", "expected"),
+        [
+            ('{"type": "poncho"}', 500, {"unrecognized_type": "poncho"}),
+            ('{"subtype": "maxi"}', 500, {"subtype": "maxi"}),
+            ("", "A navy jumpsuit", {"description": "A navy jumpsuit"}),
+        ],
+        ids=["unsupported-type-only", "subtype-only", "description-only"],
+    )
+    async def test_analyze_image_keeps_a_partial_result(self, tags_content, description, expected):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+
+        with (
+            patch(
+                "httpx.AsyncClient.post",
+                side_effect=self._analyze_responses(tags_content, description),
+            ),
+            patch.object(AIService, "_preprocess_image", return_value="base64data"),
+        ):
+            tags = await service.analyze_image("/fake/image.jpg", locale="en")
+
+        assert tags.type == "unknown"
+        for field, value in expected.items():
+            assert getattr(tags, field) == value
 
 
 class TestLogprobsRejection:
@@ -594,7 +880,8 @@ class TestReasoningEffort:
         assert "reasoning" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_truncation_recovers_by_retrying_with_none(self):
+    @pytest.mark.parametrize("path", ["vision", "text"])
+    async def test_truncation_recovers_by_retrying_with_none(self, path):
         service = AIService()
         service.settings = service.settings.model_copy(update={"ai_reasoning_effort": "high"})
         truncated = _mock_response(
@@ -617,7 +904,7 @@ class TestReasoningEffort:
         success = self._success_response('{"outfits": [{"items": [1, 2]}]}')
 
         with patch("httpx.AsyncClient.post", side_effect=[truncated, success]) as mock_post:
-            result = await service.generate_text("suggest an outfit")
+            result = await _complete(service, path)
 
         assert "items" in result
         assert mock_post.call_count == 2

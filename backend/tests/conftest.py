@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import subprocess
 
@@ -19,17 +20,23 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.api.auth import create_access_token
 from app.config import get_settings
 from app.database import get_db
 from app.main import app
-from app.models import User, UserPreference
+from app.models import User, UserIdentity, UserPreference
+from tests.identity_helpers import add_users_with_identities
 
 # Test database URL from environment — set in docker-compose.dev.yml, never falls back to DATABASE_URL.
 TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
-_ADMIN_DSN = TEST_DATABASE_URL.replace("+asyncpg", "").rsplit("/", 1)[0] + "/postgres"
+_TEST_DB_URL = make_url(TEST_DATABASE_URL)
+_TEST_DB_NAME = _TEST_DB_URL.database
+_ADMIN_DSN = _TEST_DB_URL.set(drivername="postgresql", database="postgres").render_as_string(
+    hide_password=False
+)
 
 _test_db_ready = False
 
@@ -41,9 +48,10 @@ async def _ensure_test_db():
 
     conn = await asyncpg.connect(_ADMIN_DSN)
     try:
-        exists = await conn.fetchval("SELECT 1 FROM pg_database WHERE datname = 'wardrobe_test'")
+        exists = await conn.fetchval("SELECT 1 FROM pg_database WHERE datname = $1", _TEST_DB_NAME)
         if not exists:
-            await conn.execute("CREATE DATABASE wardrobe_test")
+            quoted = await conn.fetchval("SELECT quote_ident($1)", _TEST_DB_NAME)
+            await conn.execute(f"CREATE DATABASE {quoted}")
     finally:
         await conn.close()
 
@@ -86,6 +94,13 @@ async def db_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+@pytest.fixture
+def session_maker(async_engine):
+    return async_sessionmaker(
+        async_engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
+    )
+
+
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db():
@@ -100,11 +115,22 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides.clear()
 
 
+# configure_logging is a once-per-process startup call, so a test that runs worker startup or the
+# API lifespan would otherwise leave its handler and level on "app" for every later test.
+@pytest.fixture(autouse=True)
+def _restore_app_logger():
+    logger = logging.getLogger("app")
+    saved_level, saved_handlers = logger.level, list(logger.handlers)
+    yield
+    logger.setLevel(saved_level)
+    logger.handlers = saved_handlers
+
+
 @pytest_asyncio.fixture(autouse=True)
 async def _clear_rate_limits():
     settings = get_settings()
     try:
-        redis = Redis.from_url(str(settings.redis_url))
+        redis = Redis.from_url(settings.redis_url)
         keys = await redis.keys("rate_limit:*")
         if keys:
             await redis.delete(*keys)
@@ -114,7 +140,7 @@ async def _clear_rate_limits():
 
 
 @pytest_asyncio.fixture
-async def test_user(db_session: AsyncSession) -> User:
+async def test_user_identity(db_session: AsyncSession) -> UserIdentity:
     unique_id = uuid4()
     user = User(
         id=unique_id,
@@ -124,11 +150,17 @@ async def test_user(db_session: AsyncSession) -> User:
         timezone="UTC",
         is_active=True,
         onboarding_completed=False,
+        email_verified=True,
     )
-    db_session.add(user)
+    (identity,) = await add_users_with_identities(db_session, user)
     await db_session.commit()
     await db_session.refresh(user)
-    return user
+    return identity
+
+
+@pytest_asyncio.fixture
+async def test_user(db_session: AsyncSession, test_user_identity: UserIdentity) -> User:
+    return await db_session.get(User, test_user_identity.user_id)
 
 
 @pytest_asyncio.fixture
@@ -145,8 +177,8 @@ async def test_user_with_preferences(db_session: AsyncSession, test_user: User) 
 
 
 @pytest.fixture
-def auth_headers(test_user: User) -> dict[str, str]:
-    token = create_access_token(test_user.external_id)
+def auth_headers(test_user: User, test_user_identity: UserIdentity) -> dict[str, str]:
+    token = create_access_token(test_user.id, test_user_identity.id)
     return {"Authorization": f"Bearer {token}"}
 
 

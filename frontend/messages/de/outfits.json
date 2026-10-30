@@ -38,9 +38,11 @@
     "pairing": "Kombination",
     "replacement": "Ersatz",
     "studio": "Studio",
+    "woreInsteadFallback": "{occasion} (stattdessen getragen)",
     "worn": "Getragen"
   },
   "cloneToLookbook": {
+    "defaultName": "{occasion} · {date}",
     "description": "Gib diesem Look einen Namen, damit du ihn später wiederfindest und erneut tragen kannst.",
     "errorEmpty": "Bitte gib einen Namen ein",
     "name": "Name",
@@ -76,6 +78,7 @@
     "name": "Name",
     "namePlaceholder": "Brunch am Freitag",
     "nameRequired": "(für das Lookbook erforderlich)",
+    "required": "erforderlich",
     "occasion": "Anlass",
     "pickOccasion": "Wähle vor dem Speichern einen Anlass.",
     "skippedItem": "{name} übersprungen: {reason}",

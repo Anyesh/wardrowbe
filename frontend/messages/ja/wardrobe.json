@@ -169,7 +169,11 @@
       "markWashed": "洗濯済みにする",
       "originalRestoreError": "元の画像の復元に失敗しました",
       "originalRestored": "元の画像を復元しました",
+      "saveError": "アイテムの保存に失敗しました",
       "washError": "洗濯済みマークに失敗しました",
+      "logWear": "着用を記録",
+      "wearLogged": "着用を記録しました",
+      "wearLogError": "着用の記録に失敗しました",
       "washed": "洗濯済みにしました"
     },
     "brand": "ブランド",
@@ -185,6 +189,20 @@
     },
     "primaryColor": "メインカラー",
     "subtype": "サブタイプ",
+    "tagsEditor": {
+      "fit": "フィット",
+      "formality": "フォーマル度",
+      "hint": "AIの間違いを修正できます。アイテムを再分析しても、あなたの変更は保持されます。",
+      "invalidValue": "リストにない値のタグがあります。選び直してから保存してください。",
+      "material": "素材",
+      "none": "なし",
+      "pattern": "柄",
+      "season": "季節",
+      "secondaryColor": "サブカラー",
+      "style": "スタイル",
+      "tertiaryColor": "3番目の色",
+      "title": "AIタグ"
+    },
     "titles": {
       "analysisInProgress": "分析中...",
       "deleteImage": "画像を削除",
@@ -260,7 +278,14 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
+    "failure": {
+      "tooLarge": "{name} は {limit} MB を超えています",
+      "tooLargeForServer": "{name} はサーバーが受け付けるには大きすぎます",
+      "unsupportedFormat": "{name} はサポートされていない形式です（JPEG、PNG、WebP、HEIC に対応）",
+      "duplicate": "{name} はすでにワードローブにあります",
+      "generic": "{name} をアップロードできませんでした"
+    }
   },
   "wearCount": "{count, plural, one {# 回着用} other {# 回着用}}",
   "wornAgo": {

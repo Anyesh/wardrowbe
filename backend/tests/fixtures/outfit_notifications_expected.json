@@ -1,0 +1,106 @@
+{
+  "today": {
+    "email": {
+      "html_body": "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head><body style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\"><div style=\"text-align: center; margin-bottom: 30px;\"><h1 style=\"color: #1F2937; margin: 0;\">Wardrowbe</h1></div><div style=\"background: #F9FAFB; border-radius: 12px; padding: 20px; margin-bottom: 20px;\"><h2 style=\"color: #1F2937; margin: 0 0 10px 0;\"> Today's Outfit: Casual </h2><p style=\"color: #6B7280; margin: 0;\"> 20°C, Partly Cloudy </p></div><div style=\"background: #F3F4F6; border-radius: 8px; padding: 15px; margin: 20px 0;\"><p style=\"color: #1F2937; font-weight: 600; margin: 0 0 10px 0;\"> Light layers for a mild day </p><ul style=\"margin: 15px 0; padding-left: 20px;\"><li style=\"color: #4B5563; margin: 5px 0;\">Breathable linen</li><li style=\"color: #4B5563; margin: 5px 0;\">Neutral palette</li><li style=\"color: #4B5563; margin: 5px 0;\">Comfortable loafers</li></ul></div><div style=\"background: #F3F4F6; border-radius: 8px; padding: 12px; margin: 15px 0; border: 1px solid #E5E7EB;\"><p style=\"color: #4B5563; margin: 0;\"><strong style=\"color: #1F2937;\">Tip:</strong> Roll the sleeves </p></div><div style=\"text-align: center; margin: 30px 0;\"><a href=\"https://wardrobe.example.com/dashboard/history\" style=\"background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; margin: 5px;\"> View Outfit </a></div><div style=\"text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 40px;\"><p>Sent by Wardrowbe</p><p><a href=\"https://wardrobe.example.com/dashboard/notifications\" style=\"color: #6B7280;\"> Manage notification settings </a></p></div></body></html>",
+      "subject": "Today's Outfit: Casual",
+      "text_body": "Wardrowbe - Today's Outfit: Casual\n\nLight layers for a mild day\n\n- Breathable linen\n- Neutral palette\n- Comfortable loafers\n\nTip: Roll the sleeves\n\nView Outfit: https://wardrobe.example.com/dashboard/history",
+      "to": "sam@example.com"
+    },
+    "expo_push": {
+      "json": {
+        "body": "Light layers for a mild day • Tip: Roll the sleeves",
+        "channelId": "outfit-suggestions",
+        "data": {
+          "outfit_id": "00000000-0000-0000-0000-0000000000aa",
+          "screen": "history"
+        },
+        "sound": "default",
+        "title": "Today's Casual Outfit - 20°C",
+        "to": "ExponentPushToken[abc]"
+      },
+      "url": "https://exp.host/--/api/v2/push/send"
+    },
+    "mattermost": {
+      "json": {
+        "attachments": [
+          {
+            "actions": [],
+            "color": "#3B82F6",
+            "fields": [],
+            "image_url": null,
+            "text": "**Light layers for a mild day**\n\n- Breathable linen\n- Neutral palette\n- Comfortable loafers\n\n_Tip: Roll the sleeves_",
+            "thumb_url": null,
+            "title": "Today's Outfit: Casual | 20°C Partly Cloudy",
+            "title_link": "https://wardrobe.example.com/dashboard/history"
+          }
+        ],
+        "icon_emoji": ":shirt:",
+        "text": "Good morning, Sam! Here's your outfit suggestion for today:",
+        "username": "Wardrowbe"
+      },
+      "url": "https://chat.example.com/hooks/abc"
+    },
+    "ntfy": {
+      "content": "Light layers for a mild day\n\n* Breathable linen\n* Neutral palette\n* Comfortable loafers\n\nTip: Roll the sleeves",
+      "headers": {
+        "Click": "https://wardrobe.example.com/dashboard/history",
+        "Priority": "3",
+        "Tags": "cloud",
+        "Title": "Today's Casual Outfit - 20°C"
+      },
+      "url": "https://ntfy.example.com/outfits"
+    }
+  },
+  "tomorrow": {
+    "email": {
+      "html_body": "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head><body style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\"><div style=\"text-align: center; margin-bottom: 30px;\"><h1 style=\"color: #1F2937; margin: 0;\">Wardrowbe</h1></div><div style=\"background: #F9FAFB; border-radius: 12px; padding: 20px; margin-bottom: 20px;\"><h2 style=\"color: #1F2937; margin: 0 0 10px 0;\"> Tomorrow's Outfit: Casual </h2><p style=\"color: #6B7280; margin: 0;\"> 20°C, Partly Cloudy (forecast) </p></div><div style=\"background: #F3F4F6; border-radius: 8px; padding: 15px; margin: 20px 0;\"><p style=\"color: #1F2937; font-weight: 600; margin: 0 0 10px 0;\"> Light layers for a mild day </p><ul style=\"margin: 15px 0; padding-left: 20px;\"><li style=\"color: #4B5563; margin: 5px 0;\">Breathable linen</li><li style=\"color: #4B5563; margin: 5px 0;\">Neutral palette</li><li style=\"color: #4B5563; margin: 5px 0;\">Comfortable loafers</li></ul></div><div style=\"background: #F3F4F6; border-radius: 8px; padding: 12px; margin: 15px 0; border: 1px solid #E5E7EB;\"><p style=\"color: #4B5563; margin: 0;\"><strong style=\"color: #1F2937;\">Tip:</strong> Roll the sleeves </p></div><div style=\"text-align: center; margin: 30px 0;\"><a href=\"https://wardrobe.example.com/dashboard/history\" style=\"background: #111827; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; margin: 5px;\"> View Outfit </a></div><div style=\"text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 40px;\"><p>Sent by Wardrowbe</p><p><a href=\"https://wardrobe.example.com/dashboard/notifications\" style=\"color: #6B7280;\"> Manage notification settings </a></p></div></body></html>",
+      "subject": "Tomorrow's Outfit: Casual",
+      "text_body": "Wardrowbe - Tomorrow's Outfit: Casual\n\nLight layers for a mild day\n\n- Breathable linen\n- Neutral palette\n- Comfortable loafers\n\nTip: Roll the sleeves\n\nView Outfit: https://wardrobe.example.com/dashboard/history",
+      "to": "sam@example.com"
+    },
+    "expo_push": {
+      "json": {
+        "body": "Light layers for a mild day • Tip: Roll the sleeves",
+        "channelId": "outfit-suggestions",
+        "data": {
+          "outfit_id": "00000000-0000-0000-0000-0000000000aa",
+          "screen": "history"
+        },
+        "sound": "default",
+        "title": "Tomorrow's Casual Outfit - 20°C",
+        "to": "ExponentPushToken[abc]"
+      },
+      "url": "https://exp.host/--/api/v2/push/send"
+    },
+    "mattermost": {
+      "json": {
+        "attachments": [
+          {
+            "actions": [],
+            "color": "#3B82F6",
+            "fields": [],
+            "image_url": null,
+            "text": "**Light layers for a mild day**\n\n- Breathable linen\n- Neutral palette\n- Comfortable loafers\n\n_Tip: Roll the sleeves_",
+            "thumb_url": null,
+            "title": "Tomorrow's Outfit: Casual | 20°C Partly Cloudy",
+            "title_link": "https://wardrobe.example.com/dashboard/history"
+          }
+        ],
+        "icon_emoji": ":shirt:",
+        "text": "Good evening, Sam! Here's your outfit suggestion for tomorrow:",
+        "username": "Wardrowbe"
+      },
+      "url": "https://chat.example.com/hooks/abc"
+    },
+    "ntfy": {
+      "content": "Light layers for a mild day\n\n* Breathable linen\n* Neutral palette\n* Comfortable loafers\n\nTip: Roll the sleeves",
+      "headers": {
+        "Click": "https://wardrobe.example.com/dashboard/history",
+        "Priority": "3",
+        "Tags": "cloud",
+        "Title": "Tomorrow's Casual Outfit - 20°C"
+      },
+      "url": "https://ntfy.example.com/outfits"
+    }
+  }
+}

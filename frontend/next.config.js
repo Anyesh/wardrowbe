@@ -4,6 +4,7 @@ const createNextIntlPlugin = require('next-intl/plugin');
 const nextConfig = {
   output: 'standalone',
   experimental: {
+    instrumentationHook: true,
     // Disable automatic static optimization for pages using client-side context
     missingSuspenseWithCSRBailout: false,
   },

@@ -3,23 +3,22 @@
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatDate, formatDateKey } from '@/lib/utils';
+import { useUserToday } from '@/lib/hooks/use-user';
 import {
   startOfMonth,
   endOfMonth,
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
-  format,
   isSameMonth,
   isSameDay,
-  isToday,
   addMonths,
   subMonths,
 } from 'date-fns';
 import type { Outfit } from '@/lib/hooks/use-outfits';
 import { buildCalendarIndicators } from '@/lib/outfits/calendar-indicators';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
@@ -41,9 +40,11 @@ export function OutfitCalendar({
   onMonthChange,
 }: OutfitCalendarProps) {
   const t = useTranslations('outfits.calendar');
+  const locale = useLocale();
   const currentMonth = new Date(year, month - 1, 1);
 
   const outfitsByDate = useMemo(() => buildCalendarIndicators(outfits), [outfits]);
+  const todayKey = useUserToday()();
 
   // Generate calendar days
   const calendarDays = useMemo(() => {
@@ -75,7 +76,7 @@ export function OutfitCalendar({
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h3 className="font-semibold text-lg">
-          {format(currentMonth, 'MMMM yyyy')}
+          {formatDate(currentMonth, locale, { month: 'long', year: 'numeric' })}
         </h3>
         <Button variant="ghost" size="icon" onClick={handleNextMonth}>
           <ChevronRight className="h-4 w-4" />
@@ -97,19 +98,20 @@ export function OutfitCalendar({
       {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-1">
         {calendarDays.map((day) => {
-          const dateKey = format(day, 'yyyy-MM-dd');
+          const dateKey = formatDateKey(day);
           const indicators = outfitsByDate.get(dateKey);
           const hasScheduled = indicators?.scheduled;
           const hasOnDemand = indicators?.onDemand;
           const isSelected = selectedDate && isSameDay(day, selectedDate);
           const isCurrentMonth = isSameMonth(day, currentMonth);
-          const isDayToday = isToday(day);
+          const isDayToday = dateKey === todayKey;
 
           return (
             <button
               key={dateKey}
               type="button"
               onClick={() => onSelectDate(day)}
+              aria-current={isDayToday ? 'date' : undefined}
               className={cn(
                 'relative h-10 w-full rounded-md text-sm transition-colors',
                 'hover:bg-accent hover:text-accent-foreground',
@@ -119,7 +121,7 @@ export function OutfitCalendar({
                 isDayToday && !isSelected && 'bg-accent font-semibold'
               )}
             >
-              <span>{format(day, 'd')}</span>
+              <span>{day.getDate()}</span>
               {/* Outfit indicators */}
               {(hasScheduled || hasOnDemand) && (
                 <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">

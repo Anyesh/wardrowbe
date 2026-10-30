@@ -14,8 +14,10 @@ from app.services.item_scorer import (
     _season_score,
     _weather_score,
     get_season,
+    rank_by_fit,
     score_items,
     scoring_temp_range,
+    stays_above_hot_threshold,
 )
 from app.services.weather_service import WeatherData
 
@@ -124,6 +126,23 @@ class TestWeatherScore:
     def test_cold_regular_shirt(self):
         item = _item(type="shirt")
         assert _weather_score(item, _weather(temp=5), None) == 0.7
+
+    @pytest.mark.parametrize(
+        ("subtype", "material", "cold", "hot"),
+        [
+            ("Thermal", None, 1.0, 0.05),
+            ("opaque", "wool", 1.0, 0.05),
+            (None, "fleece", 1.0, 0.05),
+            ("sheer", None, 0.7, 0.8),
+            ("opaque", "polyester", 0.7, 0.8),
+            ("opaque", "knit", 1.0, 0.05),
+        ],
+        ids=["thermal", "wool-opaque", "fleece-untyped", "sheer", "synthetic-opaque", "knit"],
+    )
+    def test_only_warm_tights_count_as_a_warm_layer(self, subtype, material, cold, hot):
+        item = _item(type="tights", subtype=subtype, material=material)
+        assert _weather_score(item, _weather(temp=5), None) == cold
+        assert _weather_score(item, _weather(temp=30), None) == hot
 
 
 class TestWeatherScoreRange:
@@ -395,6 +414,31 @@ class TestPreferenceScore:
         learned = {"learned_favorite_colors": ["blue"]}
         assert _preference_score(item, None, learned) == 1.05
 
+    def test_secondary_color_counts_as_a_favourite(self):
+        item = _item(primary_color="white", colors=["white", "navy"])
+        prefs = _prefs(color_favorites=["navy"])
+        assert _preference_score(item, prefs, None) == 1.1
+
+    def test_secondary_color_counts_as_an_avoided_colour(self):
+        item = _item(primary_color="navy", colors=["navy", "orange"])
+        prefs = _prefs(color_avoid=["orange"])
+        assert _preference_score(item, prefs, None) == 0.7
+
+    def test_learned_preferences_look_at_every_colour(self):
+        item = _item(primary_color="white", colors=["white", "navy"])
+        assert _preference_score(item, None, {"learned_favorite_colors": ["navy"]}) == 1.05
+        assert _preference_score(item, None, {"learned_avoid_colors": ["navy"]}) == 0.85
+
+    def test_several_matching_colours_count_once(self):
+        item = _item(primary_color="navy", colors=["navy", "blue"])
+        prefs = _prefs(color_favorites=["navy", "blue"])
+        assert _preference_score(item, prefs, None) == 1.1
+
+    def test_colour_names_match_regardless_of_case(self):
+        item = _item(primary_color="Navy", colors=["White"])
+        prefs = _prefs(color_favorites=["navy"], color_avoid=["WHITE"])
+        assert _preference_score(item, prefs, None) == pytest.approx(0.8)
+
     def test_learned_style_match(self):
         item = _item(style=["casual", "minimal"])
         learned = {"learned_preferred_styles": ["casual", "minimal"]}
@@ -632,3 +676,91 @@ class TestRoleDiversity:
         result_ids = {s.item.id for s in result}
         assert mandatory.id in result_ids
         assert {s.id for s in shoes} <= result_ids
+
+
+@pytest.mark.parametrize(
+    ("weather", "prefs", "expected"),
+    [
+        (_weather(temp=28), _prefs(), True),
+        (_weather(temp=24), _prefs(), False),
+        (_weather(temp=28, window_min=15, window_max=29), _prefs(), False),
+        (_weather(temp=28, window_min=26, window_max=35), _prefs(), True),
+        (_weather(temp=30, window_min=23, window_max=30), _prefs(), False),
+        (_weather(temp=22), _prefs(temperature_sensitivity="high"), True),
+        (_weather(temp=28), _prefs(temperature_sensitivity="low"), False),
+        (_weather(temp=45), None, True),
+    ],
+    ids=[
+        "hot",
+        "mild",
+        "cool-morning",
+        "hot-all-window",
+        "narrow-swing-cool-evening",
+        "runs-hot",
+        "runs-cold",
+        "no-preferences",
+    ],
+)
+def test_stays_above_hot_threshold_needs_the_coolest_part_to_be_hot(weather, prefs, expected):
+    assert stays_above_hot_threshold(weather, prefs) is expected
+
+
+def test_rank_by_fit_puts_weather_fit_ahead_of_wardrobe_order():
+    sweater = _item(type="sweater", material="wool")
+    linen = _item(type="shirt", material="linen")
+    assert rank_by_fit([sweater, linen], _weather(temp=35), "casual", "summer", None, None) == [
+        linen.id,
+        sweater.id,
+    ]
+    assert rank_by_fit([linen, sweater], _weather(temp=2), "casual", "winter", None, None) == [
+        sweater.id,
+        linen.id,
+    ]
+
+
+def test_rank_by_fit_puts_the_occasion_ahead_of_wardrobe_order():
+    items = [_item(type="t-shirt", formality="casual"), _item(type="shirt", formality="formal")]
+    assert rank_by_fit(items, _weather(), "formal", "spring", None, None) == [
+        items[1].id,
+        items[0].id,
+    ]
+
+
+def test_rank_by_fit_puts_the_season_ahead_of_wardrobe_order():
+    winter = _item(type="shirt", season=["winter"])
+    summer = _item(type="shirt", season=["summer"])
+    assert rank_by_fit([winter, summer], _weather(), "casual", "summer", None, None) == [
+        summer.id,
+        winter.id,
+    ]
+
+
+def test_rank_by_fit_breaks_ties_by_least_recently_worn():
+    worn = _item(type="t-shirt", last_worn_at=date(2026, 3, 7))
+    older = _item(type="shirt", last_worn_at=date(2026, 1, 2))
+    never = _item(type="polo")
+    assert rank_by_fit([worn, older, never], _weather(), "casual", "spring", None, None) == [
+        never.id,
+        older.id,
+        worn.id,
+    ]
+
+
+def test_rank_by_fit_ranks_an_avoided_colour_last():
+    red = _item(type="t-shirt", primary_color="red")
+    blue = _item(type="shirt", primary_color="blue", last_worn_at=date(2026, 3, 7))
+    prefs = _prefs(color_avoid=["red"])
+    assert rank_by_fit([red, blue], _weather(), "casual", "spring", prefs, None) == [
+        blue.id,
+        red.id,
+    ]
+
+
+def test_rank_by_fit_ranks_a_learned_avoided_colour_last():
+    orange = _item(type="t-shirt", primary_color="orange")
+    grey = _item(type="shirt", primary_color="grey", last_worn_at=date(2026, 3, 7))
+    learned = {"learned_avoid_colors": ["orange"]}
+    assert rank_by_fit([orange, grey], _weather(), "casual", "spring", None, learned) == [
+        grey.id,
+        orange.id,
+    ]

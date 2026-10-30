@@ -1,12 +1,12 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.database import get_db
+from app.database import DbSession
 from app.services.ai_service import get_ai_service
+from app.services.background_removal import get_provider
 
 router = APIRouter()
 
@@ -42,7 +42,7 @@ async def capabilities() -> dict[str, Any]:
 
 
 @router.get("/health/ready")
-async def readiness_check(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+async def readiness_check(db: DbSession) -> dict[str, Any]:
     checks = {
         "database": "unhealthy",
     }
@@ -63,10 +63,11 @@ async def readiness_check(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
 
 @router.get("/health/features")
 async def feature_check() -> dict[str, Any]:
-    features = {}
+    features: dict[str, Any] = {
+        "max_upload_size_mb": get_settings().max_upload_size_mb,
+        "max_bulk_upload_count": get_settings().max_bulk_upload_count,
+    }
     try:
-        from app.services.background_removal import get_provider
-
         get_provider()
         features["background_removal"] = True
     except Exception:

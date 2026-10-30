@@ -16,14 +16,15 @@ SUBTYPE (optional): A more specific name within the type. Examples:
 - skirt → mini, midi, maxi, pleated, wrap, pencil
 - sweater → pullover, crewneck, turtleneck, v-neck
 - socks → ankle, crew, knee-high, no-show, dress, athletic
+- tights → sheer, opaque, patterned, thermal
 - tie → necktie, bow-tie, bolo
-Use null if the type is specific enough (e.g. jeans, hoodie, blazer).
+Treat pantyhose and sheer stockings that reach the thigh or waist as tights. Otherwise, legwear that reaches the waist and covers the feet is tights, even when it is thick, ribbed or knitted; waist-high legwear that stops at the ankle is pants (leggings); and legwear that stops below the waist, including knee-high and over-the-knee socks, is socks. Use null if the type is specific enough (e.g. jeans, hoodie, blazer).
 
 PRIMARY_COLOR (required, pick one):
-black, white, gray, navy, blue, light-blue, red, burgundy, pink, green, olive, yellow, orange, purple, brown, tan, beige, cream, gold, silver
+<<COLORS>>
 
 PATTERN (required, pick one):
-solid, striped, plaid, checkered, floral, graphic, geometric, polka-dot, camouflage, animal-print
+<<PATTERNS>>
 
 MATERIAL (optional, pick one or null):
 <<MATERIALS>>
@@ -32,13 +33,13 @@ FORMALITY (required, pick one):
 <<FORMALITY>>
 
 STYLE (pick 1-2 that best describe):
-casual, classic, sporty, minimalist, bohemian, preppy, streetwear, elegant, athletic, vintage, modern, rugged
+<<STYLES>>
 
 SEASON (pick all that apply):
-spring, summer, fall, winter, all-season
+<<SEASONS>>
 
 FIT (optional, pick one or null):
-slim, regular, relaxed, oversized, tailored, cropped
+<<FITS>>
 
 Output this exact JSON structure (a single object, NOT wrapped in an array):
 {"type":"TYPE","subtype":null,"primary_color":"COLOR","colors":["COLOR1"],"pattern":"PATTERN","material":null,"formality":"FORMALITY","style":["STYLE1"],"season":["SEASON1","SEASON2"],"fit":null}

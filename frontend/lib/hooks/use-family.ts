@@ -2,27 +2,36 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
+import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
+import { useUserProfile } from '@/lib/hooks/use-user';
 import { Family, FamilyCreateResponse, JoinFamilyResponse, FamilyMember } from '@/lib/types';
-
-// Helper to set token if available (for NextAuth mode)
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
+import { queryKeys } from '@/lib/hooks/query-keys';
 
 export function useFamily() {
   const { status } = useSession();
   useSetTokenIfAvailable();
 
   return useQuery({
-    queryKey: ['family'],
-    queryFn: () => api.get<Family>('/families/me'),
+    queryKey: queryKeys.family,
+    queryFn: () =>
+      api.get<Family>('/families/me').catch((error) => {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }),
     enabled: status !== 'loading',
-    retry: false, // Don't retry on 404 (user not in family)
   });
+}
+
+// Matched by user id because a member's email can change under them, for example when a
+// verified sign-in reclaims it and parks this account on a placeholder address.
+export function useCurrentFamilyMember(family: Family | null | undefined): {
+  member: FamilyMember | undefined;
+  isPending: boolean;
+  isError: boolean;
+} {
+  const { data: profile, isPending, isError } = useUserProfile();
+  return { member: family?.members.find((m) => m.id === profile?.id), isPending, isError };
 }
 
 export function useCreateFamily() {
@@ -31,13 +40,11 @@ export function useCreateFamily() {
 
   return useMutation({
     mutationFn: async (name: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<FamilyCreateResponse>('/families', { name });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -48,13 +55,11 @@ export function useUpdateFamily() {
 
   return useMutation({
     mutationFn: async (name: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<Family>('/families/me', { name });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -65,13 +70,11 @@ export function useJoinFamily() {
 
   return useMutation({
     mutationFn: async (inviteCode: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<JoinFamilyResponse>('/families/join', { invite_code: inviteCode });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -82,13 +85,11 @@ export function useJoinFamilyByToken() {
 
   return useMutation({
     mutationFn: async (token: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<JoinFamilyResponse>('/families/join-by-token', { token });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -99,13 +100,11 @@ export function useLeaveFamily() {
 
   return useMutation({
     mutationFn: async () => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<{ message: string }>('/families/me/leave');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -116,13 +115,11 @@ export function useRegenerateInviteCode() {
 
   return useMutation({
     mutationFn: async () => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.post<{ invite_code: string }>('/families/me/regenerate-code');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -133,16 +130,14 @@ export function useInviteMember() {
 
   return useMutation({
     mutationFn: async ({ email, role }: { email: string; role?: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
-      return api.post<{ id: string; email: string; expires_at: string }>(
+      applySessionToken(session);
+      return api.post<{ id: string; email: string; expires_at: string; email_sent: boolean }>(
         '/families/me/invite',
         { email, role: role || 'member' }
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -153,13 +148,11 @@ export function useCancelInvite() {
 
   return useMutation({
     mutationFn: async (inviteId: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/families/me/invites/${inviteId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -170,13 +163,11 @@ export function useUpdateMemberRole() {
 
   return useMutation({
     mutationFn: async ({ memberId, role }: { memberId: string; role: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.patch<FamilyMember>(`/families/me/members/${memberId}`, { role });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }
@@ -187,13 +178,11 @@ export function useRemoveMember() {
 
   return useMutation({
     mutationFn: async (memberId: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      applySessionToken(session);
       return api.delete(`/families/me/members/${memberId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['family'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.family });
     },
   });
 }

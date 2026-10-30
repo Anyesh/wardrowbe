@@ -1,14 +1,87 @@
 from collections import Counter
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
-from app.models.item import ClothingItem, ItemHistory, ItemStatus, TaggingStatus, WashHistory
-from app.schemas.item import DEFAULT_WASH_INTERVALS, ItemCreate, ItemFilter, ItemUpdate
+from app.models.item import (
+    TAG_COLUMNS,
+    ClothingItem,
+    ItemHistory,
+    ItemStatus,
+    TaggingStatus,
+    WashHistory,
+)
+from app.schemas.item import (
+    DEFAULT_WASH_INTERVALS,
+    USER_TAG_KEYS,
+    ItemCreate,
+    ItemFilter,
+    ItemFilterFields,
+    ItemUpdate,
+)
+from app.utils.tag_validation import normalize_tag_edits
+
+# Values the AI fills in that can also be changed on the item itself rather than inside tags.
+_EDITABLE_ITEM_FIELDS = ("type", "subtype", "primary_color", "colors")
+
+
+class TagVocabularyError(ValueError):
+    """A tag value outside its vocabulary that the item did not already have."""
+
+
+def _keep_colours_in_step(update_data: dict, incoming: dict, current: dict, existing: dict) -> None:
+    """Make a colour change sent at either level reach both, and the colour list.
+
+    The item keeps its colours twice (the primary_color and colors columns, and the same keys in
+    the tags JSON), and suggestions read `colors`. A client that sends only a new primary colour
+    would otherwise leave the list, and the JSON, describing the old one.
+    """
+    if "colors" in update_data and "colors" not in incoming:
+        incoming["colors"] = update_data["colors"]
+    if "primary_color" in update_data and "primary_color" not in incoming:
+        incoming["primary_color"] = update_data["primary_color"]
+    elif "primary_color" in incoming and "primary_color" not in update_data:
+        update_data["primary_color"] = incoming["primary_color"]
+
+    new_primary = update_data.get("primary_color")
+    old_primary = (
+        current["primary_color"]
+        or existing.get("primary_color")
+        or (current["colors"] or [None])[0]
+    )
+    if (
+        new_primary
+        # "unknown" is how a client hands the primary back to the AI; it is not a colour.
+        and new_primary != "unknown"
+        and new_primary != old_primary
+        and "colors" not in update_data
+        and "colors" not in incoming
+    ):
+        # The new primary goes first and replaces the old one; the other colours stay.
+        rest = [c for c in (current["colors"] or []) if c not in (old_primary, new_primary)]
+        update_data["colors"] = [new_primary, *rest]
+        incoming["colors"] = update_data["colors"]
+    elif "colors" in incoming and "colors" not in update_data:
+        update_data["colors"] = incoming["colors"]
+
+
+def _handed_back_to_the_ai(update_data: dict, incoming: dict, edited: list[str]) -> set[str]:
+    """Keys the person gave up on, which analysis may fill again.
+
+    "unknown" is how the form says "don't know" for the type (which cannot be empty) and the
+    primary colour; a subtype dropped because the type changed was the old type's.
+    """
+    keys = set()
+    if update_data.get("type") == "unknown":
+        keys.add("type")
+    if "unknown" in (update_data.get("primary_color"), incoming.get("primary_color")):
+        keys.add("primary_color")
+    if "subtype" in update_data and not update_data["subtype"] and "type" in edited:
+        keys.add("subtype")
+    return keys
 
 
 class ItemService:
@@ -37,45 +110,29 @@ class ItemService:
         )
         return result.scalar() or 0
 
-    async def get_list(
-        self,
-        user_id: UUID,
-        filters: ItemFilter,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> tuple[list[ClothingItem], int]:
-        # Base query
-        query = (
-            select(ClothingItem)
-            .where(ClothingItem.user_id == user_id)
-            .options(selectinload(ClothingItem.additional_images))
-        )
+    def _build_filter_clauses(self, user_id: UUID, filters: ItemFilterFields) -> list:
+        clauses = [
+            ClothingItem.user_id == user_id,
+            ClothingItem.is_archived == filters.is_archived,
+        ]
 
-        # Apply filters
         if filters.type:
-            query = query.where(ClothingItem.type == filters.type)
+            clauses.append(ClothingItem.type == filters.type)
         if filters.subtype:
-            query = query.where(ClothingItem.subtype == filters.subtype)
+            clauses.append(ClothingItem.subtype == filters.subtype)
         if filters.status:
-            query = query.where(ClothingItem.status == filters.status)
+            clauses.append(ClothingItem.status == filters.status)
         if filters.tagging_status:
-            query = query.where(ClothingItem.tagging_status == filters.tagging_status)
+            clauses.append(ClothingItem.tagging_status == filters.tagging_status)
         if filters.favorite is not None:
-            query = query.where(ClothingItem.favorite == filters.favorite)
+            clauses.append(ClothingItem.favorite == filters.favorite)
         if filters.colors:
-            query = query.where(ClothingItem.colors.overlap(filters.colors))
-
-        # Archive filter
-        query = query.where(ClothingItem.is_archived == filters.is_archived)
-
-        # Needs wash filter
+            clauses.append(ClothingItem.colors.overlap(filters.colors))
         if filters.needs_wash is not None:
-            query = query.where(ClothingItem.needs_wash == filters.needs_wash)
-
-        # Search filter
+            clauses.append(ClothingItem.needs_wash == filters.needs_wash)
         if filters.search:
             search_term = f"%{filters.search}%"
-            query = query.where(
+            clauses.append(
                 or_(
                     ClothingItem.name.ilike(search_term),
                     ClothingItem.brand.ilike(search_term),
@@ -83,6 +140,21 @@ class ItemService:
                     ClothingItem.notes.ilike(search_term),
                 )
             )
+
+        return clauses
+
+    async def get_list(
+        self,
+        user_id: UUID,
+        filters: ItemFilter,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[ClothingItem], int]:
+        query = (
+            select(ClothingItem)
+            .where(*self._build_filter_clauses(user_id, filters))
+            .options(selectinload(ClothingItem.additional_images))
+        )
 
         # Get total count
         count_query = select(func.count()).select_from(query.subquery())
@@ -112,30 +184,14 @@ class ItemService:
     async def get_ids_by_filter(
         self,
         user_id: UUID,
-        type_filter: str | None = None,
-        search: str | None = None,
-        is_archived: bool = False,
+        filters: ItemFilterFields | None = None,
         excluded_ids: list[UUID] | None = None,
         after_id: UUID | None = None,
         limit: int | None = None,
     ) -> list[UUID]:
-        query = select(ClothingItem.id).where(ClothingItem.user_id == user_id)
-
-        if type_filter:
-            query = query.where(ClothingItem.type == type_filter)
-
-        query = query.where(ClothingItem.is_archived == is_archived)
-
-        if search:
-            search_term = f"%{search}%"
-            query = query.where(
-                or_(
-                    ClothingItem.name.ilike(search_term),
-                    ClothingItem.brand.ilike(search_term),
-                    ClothingItem.type.ilike(search_term),
-                    ClothingItem.notes.ilike(search_term),
-                )
-            )
+        query = select(ClothingItem.id).where(
+            *self._build_filter_clauses(user_id, filters or ItemFilterFields())
+        )
 
         if excluded_ids:
             query = query.where(ClothingItem.id.notin_(excluded_ids))
@@ -234,30 +290,96 @@ class ItemService:
     async def update(self, item: ClothingItem, item_data: ItemUpdate) -> ClothingItem:
         update_data = item_data.model_dump(exclude_unset=True)
 
-        if "tags" in update_data and update_data["tags"]:
-            tags = update_data["tags"]
-            if isinstance(tags, dict):
-                update_data["tags"] = {k: v for k, v in tags.items() if v is not None}
+        # A null (or empty) tags object means "no change". Clearing one tag is a null
+        # *inside* the object; writing None for the whole thing would wipe every tag, the
+        # AI confidence and the user-owned keys.
+        incoming = update_data.pop("tags", None) or {}
+        if not isinstance(incoming, dict):
+            incoming = incoming.model_dump(exclude_unset=True)
+        # Maintained below; a client cannot set or clear it.
+        incoming.pop("user_edited_keys", None)
+
+        if incoming or any(field in update_data for field in _EDITABLE_ITEM_FIELDS):
+            # Re-read under a row lock and compare against that, not against `item`, which was
+            # loaded before the lock: a re-analysis committing in between would otherwise be
+            # overwritten without the person's change being recorded. Selecting columns still
+            # locks the row until the caller commits.
+            locked = (
+                await self.db.execute(
+                    select(
+                        ClothingItem.tags,
+                        ClothingItem.type,
+                        ClothingItem.subtype,
+                        ClothingItem.primary_color,
+                        ClothingItem.colors,
+                    )
+                    .where(ClothingItem.id == item.id)
+                    .with_for_update()
+                )
+            ).one()
+            existing = dict(locked.tags or {})
+            current = {
+                "type": locked.type,
+                "subtype": locked.subtype,
+                "primary_color": locked.primary_color,
+                "colors": locked.colors,
+            }
+
+            # Checked before the reorder below, which writes a list the client never sent.
+            client_sent_colors = "colors" in update_data or "colors" in incoming
+            _keep_colours_in_step(update_data, incoming, current, existing)
+            try:
+                incoming.update(normalize_tag_edits(incoming, existing))
+            except ValueError as e:
+                raise TagVocabularyError(str(e)) from e
+
+            # What the AI produced and the person changed, so "re-analyse and replace" can keep
+            # it. Only real changes count: a client may resend fields it did not change.
+            edited = [
+                field
+                for field in _EDITABLE_ITEM_FIELDS
+                if field in update_data and update_data[field] != current[field]
+            ]
+
+            # Merge rather than replace: the tags JSONB also holds user-owned
+            # keys (size, care_instructions, source_url) that a partial update
+            # does not mention. An explicit null clears that one key.
+            merged = dict(existing)
+            for key, val in incoming.items():
+                if val is None:
+                    merged.pop(key, None)
+                else:
+                    merged[key] = val
+            edited += [
+                key
+                for key, val in incoming.items()
+                if key not in USER_TAG_KEYS and existing.get(key) != val
+            ]
+            if not client_sent_colors:
+                edited = [key for key in edited if key != "colors"]
+            unlocked = _handed_back_to_the_ai(update_data, incoming, edited)
+            keys = [
+                key
+                for key in dict.fromkeys([*existing.get("user_edited_keys", []), *edited])
+                if key not in unlocked
+            ]
+            if keys:
+                merged["user_edited_keys"] = keys
             else:
-                update_data["tags"] = tags.model_dump(exclude_none=True)
+                merged.pop("user_edited_keys", None)
+            if incoming or edited or unlocked:
+                update_data["tags"] = merged
 
         for field, value in update_data.items():
             setattr(item, field, value)
 
         if "tags" in update_data:
             attributes.flag_modified(item, "tags")
-            tag_data = update_data["tags"] or {}
-            for column in (
-                "colors",
-                "primary_color",
-                "pattern",
-                "material",
-                "style",
-                "season",
-                "formality",
-            ):
-                if column in tag_data:
-                    setattr(item, column, tag_data[column])
+            # Mirror from what the caller sent, not from the merged result, so
+            # clearing a tag also clears its column instead of leaving it stale.
+            for column in TAG_COLUMNS:
+                if column in incoming:
+                    setattr(item, column, incoming[column])
 
         await self.db.flush()
         # Re-fetch with eager loading to ensure relationships are properly loaded
@@ -432,32 +554,61 @@ class ItemService:
         notes: str | None = None,
         outfit_id: UUID | None = None,
     ) -> ItemHistory:
-        # Create history entry
-        history = ItemHistory(
-            item_id=item.id,
-            outfit_id=outfit_id,
-            worn_at=worn_at,
-            occasion=occasion,
-            notes=notes,
+        [history] = await self.record_wears(
+            item.user_id, [item.id], worn_at, occasion=occasion, notes=notes, outfit_id=outfit_id
         )
-        self.db.add(history)
-
-        # Update item stats
-        item.wear_count += 1
-        item.last_worn_at = worn_at
-
-        # Update wash tracking
-        item.wears_since_wash += 1
-        effective_interval = (
-            item.wash_interval
-            if item.wash_interval is not None
-            else DEFAULT_WASH_INTERVALS.get(item.type, 3)
-        )
-        item.needs_wash = item.wears_since_wash >= effective_interval
-
-        await self.db.flush()
-        await self.db.refresh(history)
         return history
+
+    # Every wear, logged on an item or by wearing an outfit, goes through here so that the
+    # counters, wash tracking and the item's wear history cannot disagree.
+    async def record_wears(
+        self,
+        user_id: UUID,
+        item_ids: list[UUID],
+        worn_at: date,
+        *,
+        occasion: str | None = None,
+        notes: str | None = None,
+        outfit_id: UUID | None = None,
+    ) -> list[ItemHistory]:
+        result = await self.db.execute(
+            select(ClothingItem).where(
+                ClothingItem.id.in_(item_ids), ClothingItem.user_id == user_id
+            )
+        )
+        histories = []
+        for item in result.scalars().all():
+            effective_interval = (
+                item.wash_interval
+                if item.wash_interval is not None
+                else DEFAULT_WASH_INTERVALS.get(item.type, 3)
+            )
+            # Updated in SQL so that concurrent wears both count, and last_worn_at only moves
+            # forward when an older wear is logged late.
+            await self.db.execute(
+                update(ClothingItem)
+                .where(ClothingItem.id == item.id)
+                .values(
+                    wear_count=ClothingItem.wear_count + 1,
+                    last_worn_at=func.greatest(
+                        func.coalesce(ClothingItem.last_worn_at, worn_at), worn_at
+                    ),
+                    wears_since_wash=ClothingItem.wears_since_wash + 1,
+                    needs_wash=ClothingItem.wears_since_wash + 1 >= effective_interval,
+                )
+            )
+            history = ItemHistory(
+                item_id=item.id,
+                outfit_id=outfit_id,
+                worn_at=worn_at,
+                occasion=occasion,
+                notes=notes,
+            )
+            self.db.add(history)
+            histories.append(history)
+            self.db.expire(item)
+        await self.db.flush()
+        return histories
 
     async def log_wash(
         self,
@@ -509,14 +660,7 @@ class ItemService:
         )
         return list(result.scalars().all())
 
-    async def get_wear_stats(self, item: ClothingItem, user_timezone: str = "UTC") -> dict:
-        # Calculate today's date in user's timezone
-        try:
-            user_tz = ZoneInfo(user_timezone)
-        except Exception:
-            user_tz = ZoneInfo("UTC")
-        user_today = datetime.now(UTC).astimezone(user_tz).date()
-
+    async def get_wear_stats(self, item: ClothingItem, user_today: date) -> dict:
         # Days since last worn
         days_since_last_worn = None
         if item.last_worn_at:

@@ -6,9 +6,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.api.pagination import PaginationParams
+from app.database import DbSession
 from app.models.outfit import Outfit
 from app.models.user import User
 from app.schemas.outfit import MAX_AUTHORING_TEXT_LENGTH, OutfitAttributeFields
@@ -23,7 +23,7 @@ from app.services.pairing_service import (
 from app.services.studio_service import ItemOwnershipError
 from app.utils.auth import get_current_user
 from app.utils.rate_limit import rate_limit_by_user
-from app.utils.signed_urls import sign_image_url
+from app.utils.signed_urls import sign_image_url, sign_optional
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +52,7 @@ class SourceItemResponse(BaseModel):
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
-        if self.thumbnail_path:
-            return sign_image_url(self.thumbnail_path)
-        return None
+        return sign_optional(self.thumbnail_path)
 
 
 class PairingItemResponse(BaseModel):
@@ -77,9 +75,7 @@ class PairingItemResponse(BaseModel):
     @computed_field
     @property
     def thumbnail_url(self) -> str | None:
-        if self.thumbnail_path:
-            return sign_image_url(self.thumbnail_path)
-        return None
+        return sign_optional(self.thumbnail_path)
 
 
 class FeedbackSummary(BaseModel):
@@ -230,7 +226,7 @@ def pairing_to_response(outfit: Outfit) -> PairingResponse:
 async def generate_pairings(
     item_id: UUID,
     request: GeneratePairingsRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> GeneratePairingsResponse:
     service = PairingService(db)
@@ -271,51 +267,49 @@ async def generate_pairings(
 
 @router.get("", response_model=PairingListResponse)
 async def list_pairings(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pagination: Annotated[PaginationParams, Depends()],
     source_type: str | None = Query(None, description="Filter by source item type"),
 ) -> PairingListResponse:
     service = PairingService(db)
     pairings, total = await service.get_all_pairings(
         user_id=current_user.id,
-        page=page,
-        page_size=page_size,
+        page=pagination.page,
+        page_size=pagination.page_size,
         source_type=source_type,
     )
 
     return PairingListResponse(
         pairings=[pairing_to_response(p) for p in pairings],
         total=total,
-        page=page,
-        page_size=page_size,
-        has_more=(page * page_size) < total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        has_more=pagination.has_more(total),
     )
 
 
 @router.get("/item/{item_id}", response_model=PairingListResponse)
 async def list_item_pairings(
     item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pagination: Annotated[PaginationParams, Depends()],
 ) -> PairingListResponse:
     service = PairingService(db)
     pairings, total = await service.get_pairings_for_item(
         user_id=current_user.id,
         source_item_id=item_id,
-        page=page,
-        page_size=page_size,
+        page=pagination.page,
+        page_size=pagination.page_size,
     )
 
     return PairingListResponse(
         pairings=[pairing_to_response(p) for p in pairings],
         total=total,
-        page=page,
-        page_size=page_size,
-        has_more=(page * page_size) < total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        has_more=pagination.has_more(total),
     )
 
 
@@ -336,7 +330,7 @@ class PairingCreateRequest(OutfitAttributeFields):
 async def create_external_pairing(
     item_id: UUID,
     request: PairingCreateRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> PairingResponse:
     """Persist an externally-authored pairing; available regardless of the AI flags."""
@@ -388,7 +382,7 @@ async def create_external_pairing(
 @router.delete("/{pairing_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_pairing(
     pairing_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     query = select(Outfit).where(

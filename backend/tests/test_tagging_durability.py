@@ -13,7 +13,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.item import ClothingItem, ItemStatus
-from app.services.ai_service import AIService, ClothingTags
+from app.services.ai_service import AIResponseTruncatedError, AIService, ClothingTags
 from app.workers import tagging as tagging_module
 from app.workers.tagging import tag_item_image
 from app.workers.worker import WorkerSettings, stale_processing_cutoff_seconds
@@ -124,7 +124,14 @@ class TestWorkerFailsLoudly:
                 await tag_item_image({"job_try": 1}, str(uuid4()), __file__)
 
     @pytest.mark.asyncio
-    async def test_reraises_ai_errors_so_arq_can_retry(self, db_session: AsyncSession, test_user):
+    @pytest.mark.parametrize(
+        "error",
+        [RuntimeError("upstream 500"), AIResponseTruncatedError("upstream 500 cut off")],
+        ids=["error", "retryable-truncation"],
+    )
+    async def test_reraises_ai_errors_so_arq_can_retry(
+        self, db_session: AsyncSession, test_user, error
+    ):
         item = ClothingItem(
             user_id=test_user.id,
             type="unknown",
@@ -139,7 +146,7 @@ class TestWorkerFailsLoudly:
             patch.object(db_session, "close", new_callable=AsyncMock),
             patch.object(AIService, "analyze_image", new_callable=AsyncMock) as analyze,
         ):
-            analyze.side_effect = RuntimeError("upstream 500")
+            analyze.side_effect = error
             with pytest.raises(Retry):
                 await tag_item_image({"job_try": 1}, str(item.id), __file__)
 
@@ -149,7 +156,17 @@ class TestWorkerFailsLoudly:
         assert item.status == ItemStatus.processing
 
     @pytest.mark.asyncio
-    async def test_marks_error_on_final_attempt(self, db_session: AsyncSession, test_user):
+    @pytest.mark.parametrize(
+        ("job_try", "error"),
+        [
+            (WorkerSettings.max_tries, RuntimeError("upstream 500")),
+            (1, AIResponseTruncatedError("upstream 500 cut off", retryable=False)),
+        ],
+        ids=["final-attempt", "deterministic-truncation"],
+    )
+    async def test_marks_error_on_final_attempt(
+        self, db_session: AsyncSession, test_user, job_try, error
+    ):
         item = ClothingItem(
             user_id=test_user.id,
             type="unknown",
@@ -164,9 +181,9 @@ class TestWorkerFailsLoudly:
             patch.object(db_session, "close", new_callable=AsyncMock),
             patch.object(AIService, "analyze_image", new_callable=AsyncMock) as analyze,
         ):
-            analyze.side_effect = RuntimeError("upstream 500")
-            with pytest.raises(RuntimeError):
-                await tag_item_image({"job_try": WorkerSettings.max_tries}, str(item.id), __file__)
+            analyze.side_effect = error
+            with pytest.raises(type(error)):
+                await tag_item_image({"job_try": job_try}, str(item.id), __file__)
 
         await db_session.refresh(item)
         assert item.status == ItemStatus.error
@@ -266,8 +283,11 @@ class TestAiStartedAtLifecycle:
         await db_session.commit()
 
         monkeypatch.setattr(tagging_module, "_tagging_call_budget", lambda ai_service: 0.05)
+        started = False
 
-        async def _hang(self, path):
+        async def _hang(self, path, locale="en"):
+            nonlocal started
+            started = True
             await asyncio.sleep(10)
 
         with (
@@ -278,6 +298,7 @@ class TestAiStartedAtLifecycle:
             with pytest.raises(Retry):
                 await tag_item_image({"job_try": 1}, str(item.id), __file__)
 
+        assert started, "the timeout test must reach the simulated hung AI call"
         await db_session.refresh(item)
         # A budget timeout goes through the normal retry path - unlike arq's own
         # job_timeout kill, which does not retry at all.
@@ -342,11 +363,11 @@ class TestFailureReasonReachesTheApi:
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
         fields = tagging_module.tags_to_item_fields(
-            ClothingTags(unrecognized_type="tights"), '{"type": "tights"}'
+            ClothingTags(unrecognized_type="culottes"), '{"type": "culottes"}'
         )
         assert fields["ai_raw_response"] == {
-            "raw_text": '{"type": "tights"}',
-            "unrecognized_type": "tights",
+            "raw_text": '{"type": "culottes"}',
+            "unrecognized_type": "culottes",
         }
         item = ClothingItem(
             user_id=test_user.id,
@@ -360,7 +381,7 @@ class TestFailureReasonReachesTheApi:
         resp = await client.get(f"/api/v1/items/{item.id}", headers=auth_headers)
         assert resp.status_code == 200
         body = resp.json()
-        assert body["ai_unrecognized_type"] == "tights"
+        assert body["ai_unrecognized_type"] == "culottes"
         assert body["ai_error"] is None
 
     @pytest.mark.asyncio

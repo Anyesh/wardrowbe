@@ -54,6 +54,8 @@
   "previous": "前へ",
   "previousPage": "前のページ",
   "privacyMatters": "プライバシーを大切にしています",
+  "rateStars": "{count, plural, other {星#つで評価}}",
+  "ratedStars": "評価 {rating}/{max}",
   "remove": "削除",
   "retry": "再試行",
   "save": "保存",

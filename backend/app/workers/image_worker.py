@@ -1,6 +1,7 @@
 import logging
 
 from app.config import get_settings
+from app.logging_config import configure_logging
 from app.workers.background_removal import remove_item_background_job
 from app.workers.db import close_db, init_db
 from app.workers.queues import IMAGE_QUEUE
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 async def startup(ctx: dict) -> None:
+    configure_logging(get_settings())
     logger.info("Image worker starting up...")
     await init_db(ctx)
 

@@ -33,7 +33,7 @@ describe('useSubtypeLabel', () => {
     // The model and users can both write subtypes outside the suggestion list; these
     // must not render as a raw "constants.subtypes.x" key path.
     const { result } = renderHook(() => useSubtypeLabel(), { wrapper: wrapperFor('en') })
-    expect(result.current('tights')).toBe('Tights')
+    expect(result.current('culottes')).toBe('Culottes')
     expect(result.current('fishnet-tights')).toBe('Fishnet tights')
   })
 })

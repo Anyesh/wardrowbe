@@ -169,7 +169,11 @@
       "markWashed": "Mark Washed",
       "originalRestoreError": "Failed to restore original image",
       "originalRestored": "Original image restored",
+      "saveError": "Failed to save item",
       "washError": "Failed to mark as washed",
+      "logWear": "Log wear",
+      "wearLogged": "Wear logged",
+      "wearLogError": "Failed to log wear",
       "washed": "Item marked as washed"
     },
     "brand": "Brand",
@@ -185,6 +189,20 @@
     },
     "primaryColor": "Primary Color",
     "subtype": "Subtype",
+    "tagsEditor": {
+      "fit": "Fit",
+      "formality": "Formality",
+      "hint": "Fix anything the AI got wrong. Your changes are kept if the item is analyzed again.",
+      "invalidValue": "A tag has a value that isn't on the list. Pick it again and save.",
+      "material": "Material",
+      "none": "None",
+      "pattern": "Pattern",
+      "season": "Season",
+      "secondaryColor": "Secondary color",
+      "style": "Style",
+      "tertiaryColor": "Tertiary color",
+      "title": "AI tags"
+    },
     "titles": {
       "analysisInProgress": "Analysis in progress...",
       "deleteImage": "Delete image",
@@ -260,7 +278,14 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes"
+    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
+    "failure": {
+      "tooLarge": "{name} is larger than {limit} MB",
+      "tooLargeForServer": "{name} is too large for the server to accept",
+      "unsupportedFormat": "{name} is not a supported format (JPEG, PNG, WebP or HEIC)",
+      "duplicate": "{name} is already in your wardrobe",
+      "generic": "{name} could not be uploaded"
+    }
   },
   "wearCount": "{count, plural, one {Worn # time} other {Worn # times}}",
   "wornAgo": {

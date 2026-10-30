@@ -22,25 +22,18 @@
   },
   "filters": {
     "allOccasions": "所有場合",
-    "allStatus": "所有狀態",
-    "workout": "運動"
+    "allStatus": "所有狀態"
   },
   "loadError": "載入歷史紀錄失敗，請重試。",
   "noOutfitsForDate": "{date} 沒有穿搭",
   "outfitCount": "{count, plural, one {# 套穿搭} other {# 套穿搭}}",
-  "sourceBadges": {
-    "external": "外部",
-    "manual": "手動",
-    "onDemand": "隨選",
-    "pairing": "配對",
-    "scheduled": "排程"
-  },
   "status": {
     "accepted": "已接受",
     "expired": "已過期",
     "pending": "待處理",
     "rejected": "已拒絕",
     "sent": "已傳送",
+    "skipped": "已略過",
     "viewed": "已查看"
   },
   "subtitle": "查看你過去的穿搭推薦",

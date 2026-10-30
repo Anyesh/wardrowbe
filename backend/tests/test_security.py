@@ -1,12 +1,144 @@
 import html as html_mod
-from unittest.mock import AsyncMock, patch
+from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, PropertyMock, patch
+from uuid import UUID, uuid4
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy import update
 
-from app.api.auth import _is_dev_mode
-from app.config import Settings
+from app.api.outfits import StudioCreateRequest, SuggestionCreateRequest, SuggestRequest
+from app.api.users import UserProfileUpdate
+from app.config import DEFAULT_SECRET_KEY, Settings
+from app.main import docs_urls
+from app.models import Family, FamilyInvite, User, UserIdentity
+from app.schemas.family import FamilyCreate, FamilyUpdate
+from app.schemas.item import LogWearRequest
 from app.schemas.notification import NtfyConfig, ScheduleBase, ScheduleUpdate
+from app.schemas.preference import PreferenceUpdate
+from app.schemas.user import UserSyncRequest
+from app.utils.auth import decode_token
+from app.utils.garment_vocabulary import OCCASIONS
+from tests.identity_helpers import identities_of, identity_ids_of, user_of_subject
+
+ITEM_ID = "00000000-0000-0000-0000-000000000001"
+OCCASION_REQUESTS = {
+    "suggest": lambda occasion: SuggestRequest(occasion=occasion),
+    "authoring": lambda occasion: SuggestionCreateRequest(items=[ITEM_ID], occasion=occasion),
+    "studio": lambda occasion: StudioCreateRequest(items=[ITEM_ID], occasion=occasion),
+    "schedule": lambda occasion: ScheduleBase(
+        day_of_week=0, notification_time="08:00", occasion=occasion
+    ),
+    "schedule-update": lambda occasion: ScheduleUpdate(occasion=occasion),
+    "wear-log": lambda occasion: LogWearRequest(occasion=occasion),
+    "default-occasion": lambda occasion: SimpleNamespace(
+        occasion=PreferenceUpdate(default_occasion=occasion).default_occasion
+    ),
+}
+
+
+# Every user-written name that reaches an email Subject header or a chat message.
+NAME_REQUESTS = {
+    "family-create": lambda name: FamilyCreate(name=name).name,
+    "family-update": lambda name: FamilyUpdate(name=name).name,
+    "profile-update": lambda name: UserProfileUpdate(display_name=name).display_name,
+    "sign-in-sync": lambda name, email="jane@example.com": (
+        UserSyncRequest(external_id="sub", email=email, display_name=name).display_name
+    ),
+}
+
+
+class TestNamesAreSingleLine:
+    # Sign-in flattens instead of refusing because the IdP owns that name and a refusal would lock
+    # the user out on every login.
+    @pytest.mark.parametrize("request_id", NAME_REQUESTS.keys())
+    @pytest.mark.parametrize(
+        ("name", "email", "synced"),
+        [
+            (
+                "Smith\r\nBcc: victim@example.com",
+                "jane@example.com",
+                "Smith Bcc: victim@example.com",
+            ),
+            ("Smith\nFamily", "jane@example.com", "Smith Family"),
+            ("Tab\tName", "jane@example.com", "Tab Name"),
+            ("Nul\x00", "jane@example.com", "Nul"),
+            ("Line\u2028Sep", "jane@example.com", "Line Sep"),
+            ("Jane Doe\r\n", "jane@example.com", "Jane Doe"),
+            ("\r\n\t\u2029", "jane.doe@example.com", "jane.doe"),
+            ("x" * 150, "jane@example.com", "x" * 100),
+            ("A" * 99 + "\tB", "jane@example.com", "A" * 99),
+            ("   ", "jane.doe@example.com", "jane.doe"),
+            ("\u200b", "jane.doe@example.com", "jane.doe"),
+            (" \u2060\ufeff\u3000\u200b ", "jane.doe@example.com", "jane.doe"),
+            ("\u200c", "jane.doe@example.com", "jane.doe"),
+            ("\u200d", "jane.doe@example.com", "jane.doe"),
+            ("\u200e", "jane.doe@example.com", "jane.doe"),
+            ("\u00ad", "jane.doe@example.com", "jane.doe"),
+            ("\u180e", "jane.doe@example.com", "jane.doe"),
+            ("\u2061", "jane.doe@example.com", "jane.doe"),
+            ("\u202e", "jane.doe@example.com", "jane.doe"),
+            ("\u3164", "jane.doe@example.com", "jane.doe"),
+            ("\u115f", "jane.doe@example.com", "jane.doe"),
+            ("\u1160", "jane.doe@example.com", "jane.doe"),
+            ("\uffa0", "jane.doe@example.com", "jane.doe"),
+            ("\u2800", "jane.doe@example.com", "jane.doe"),
+            ("\u034f", "jane.doe@example.com", "jane.doe"),
+            ("\ufe0f", "jane.doe@example.com", "jane.doe"),
+            ("\U000e0100", "jane.doe@example.com", "jane.doe"),
+            ("\u17b4", "jane.doe@example.com", "jane.doe"),
+            ("\u2065", "jane.doe@example.com", "jane.doe"),
+            ("\ufff0", "jane.doe@example.com", "jane.doe"),
+            ("\ufff9\ufffb", "jane.doe@example.com", "jane.doe"),
+            ("\U00013430", "jane.doe@example.com", "jane.doe"),
+            ("\u0301\u0308", "jane.doe@example.com", "jane.doe"),
+            ("\u200c\u200d\u00ad\u3164", "jane.doe@example.com", "jane.doe"),
+            pytest.param(
+                "\u200b" * 100 + "Bob",
+                "jane.doe@example.com",
+                "jane.doe",
+                id="cut-leaves-only-zero-width",
+            ),
+        ],
+    )
+    def test_every_request_refuses_a_broken_or_blank_name_but_sign_in_repairs_it(
+        self, request_id, name, email, synced
+    ):
+        if request_id == "sign-in-sync":
+            assert NAME_REQUESTS[request_id](name, email) == synced
+        else:
+            with pytest.raises(ValidationError):
+                NAME_REQUESTS[request_id](name)
+
+    @pytest.mark.parametrize("build", NAME_REQUESTS.values(), ids=NAME_REQUESTS.keys())
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "Smith & Co ☃ Müller",
+            "\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645",
+            "\U0001f468\u200d\U0001f469\u200d\U0001f467",
+            "\U0001f98a",
+            "\u2603\ufe0f",
+            "\u06dd",
+            "\u0600\u0661\u0662\u0663",
+            "Rene\u0301",
+            "\u0928\u092e\u0938\u094d\u0924\u0947",
+        ],
+    )
+    def test_every_request_accepts_a_plain_name(self, build, name):
+        assert build(name) == name
+
+    @pytest.mark.asyncio
+    async def test_family_with_a_header_breaking_name_is_never_created(self, client, auth_headers):
+        response = await client.post(
+            "/api/v1/families",
+            json={"name": "Smith\r\nBcc: victim@example.com"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert (await client.get("/api/v1/families/me", headers=auth_headers)).status_code == 404
 
 
 class TestAIEndpointSchemeValidation:
@@ -130,22 +262,21 @@ class TestNtfyServerValidation:
         assert config.server == "http://ntfy.local:8080"
 
 
-class TestScheduleOccasionValidation:
-    def test_rejects_invalid(self):
+class TestSharedOccasionVocabulary:
+    @pytest.mark.parametrize("build", OCCASION_REQUESTS.values(), ids=OCCASION_REQUESTS.keys())
+    @pytest.mark.parametrize("occasion", OCCASIONS)
+    def test_every_request_accepts_every_occasion(self, build, occasion):
+        assert build(occasion).occasion == occasion
+
+    @pytest.mark.parametrize("build", OCCASION_REQUESTS.values(), ids=OCCASION_REQUESTS.keys())
+    @pytest.mark.parametrize("occasion", ["space-walk", "pairing", ""])
+    def test_every_request_rejects_unknown_occasions(self, build, occasion):
         with pytest.raises(ValidationError):
-            ScheduleBase(day_of_week=0, notification_time="08:00", occasion="invalid-occasion")
+            build(occasion)
 
-    def test_accepts_valid(self):
-        schedule = ScheduleBase(day_of_week=0, notification_time="08:00", occasion="casual")
-        assert schedule.occasion == "casual"
-
-    def test_update_rejects_invalid(self):
-        with pytest.raises(ValidationError):
-            ScheduleUpdate(occasion="invalid-occasion")
-
-    def test_update_accepts_valid(self):
-        update = ScheduleUpdate(occasion="formal")
-        assert update.occasion == "formal"
+    @pytest.mark.parametrize("build", OCCASION_REQUESTS.values(), ids=OCCASION_REQUESTS.keys())
+    def test_every_request_normalizes_case_and_whitespace(self, build):
+        assert build("  Wedding ").occasion == "wedding"
 
 
 class TestMattermostWebhookValidation:
@@ -203,128 +334,401 @@ class TestHealthEndpointInfoLeak:
             assert "available_models" not in ep
 
 
+@pytest.fixture
+def oidc_claims():
+    with (
+        patch("app.api.auth.validate_oidc_id_token") as validate,
+        patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
+        patch("app.api.auth.settings") as mock_settings,
+    ):
+        mock_settings.oidc_issuer_url = "https://auth.example.com"
+        mock_settings.oidc_client_id = "test-client"
+        mock_settings.dev_mode = False
+        mock_settings.oidc_configured = True
+        mock_settings.oidc_mobile_client_id = None
+        mock_settings.secret_key = "test-secret"
+        yield validate
+
+
 class TestAuthEmailValidation:
     @pytest.mark.asyncio
-    async def test_oidc_rejects_mismatched_email(self, client, db_session):
-        mock_claims = {
-            "sub": "oidc-user-123",
-            "email": "real@example.com",
+    @pytest.mark.parametrize(
+        ("claim_email", "request_email", "display_name", "stored", "stored_name"),
+        [
+            pytest.param(
+                "User@Example.com",
+                "user@example.com",
+                "Claim",
+                "user@example.com",
+                "Claim",
+                id="case",
+            ),
+            pytest.param(
+                "user@xn--mnchen-3ya.de",
+                "user@münchen.de",
+                "Claim",
+                "user@münchen.de",
+                "Claim",
+                id="punycode-claim",
+            ),
+            pytest.param(
+                "user@xn--mnchen-3ya.de", None, "Claim", "user@münchen.de", "Claim", id="claim-only"
+            ),
+            pytest.param(
+                "jane.doe@example.com",
+                None,
+                "\r\n",
+                "jane.doe@example.com",
+                "jane.doe",
+                id="claim-only-blank-name",
+            ),
+        ],
+    )
+    async def test_oidc_claim_matching_the_request_is_stored_normalised(
+        self,
+        client,
+        db_session,
+        oidc_claims,
+        claim_email,
+        request_email,
+        display_name,
+        stored,
+        stored_name,
+    ):
+        external_id = f"claim-{uuid4()}"
+        oidc_claims.return_value = {
+            "sub": external_id,
+            "email": claim_email,
             "email_verified": True,
         }
-        with (
-            patch("app.api.auth._is_dev_mode", return_value=False),
-            patch("app.api.auth._oidc_configured", return_value=True),
-            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
-            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
-            patch("app.api.auth.settings") as mock_settings,
-        ):
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-            mock_settings.oidc_mobile_client_id = None
+        body = {"external_id": external_id, "display_name": display_name, "id_token": "t"}
+        if request_email is not None:
+            body["email"] = request_email
 
-            response = await client.post(
-                "/api/v1/auth/sync",
-                json={
-                    "external_id": "oidc-user-123",
-                    "email": "spoofed@example.com",
-                    "display_name": "Test",
-                    "id_token": "fake-token",
-                },
-            )
-            assert response.status_code == 401
-            assert "email does not match" in response.json()["detail"]
+        response = await client.post("/api/v1/auth/sync", json=body)
+
+        assert response.status_code == 200
+        assert response.json()["email"] == stored
+        user = await user_of_subject(db_session, external_id)
+        assert (user.email, user.email_verified, user.display_name) == (stored, True, stored_name)
 
     @pytest.mark.asyncio
-    async def test_oidc_allows_matching_email_case_insensitive(self, client, db_session):
-        mock_claims = {
-            "sub": "oidc-user-456",
-            "email": "User@Example.com",
-            "email_verified": True,
-        }
-        with (
-            patch("app.api.auth._is_dev_mode", return_value=False),
-            patch("app.api.auth._oidc_configured", return_value=True),
-            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
-            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
-            patch("app.api.auth.settings") as mock_settings,
-        ):
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-            mock_settings.oidc_mobile_client_id = None
-            mock_settings.secret_key = "test-secret"
+    @pytest.mark.parametrize(
+        ("claim_email", "request_email", "expected_status", "expected_detail"),
+        [
+            pytest.param(
+                "real@example.com",
+                "spoofed@example.com",
+                401,
+                "email does not match",
+                id="mismatched",
+            ),
+            pytest.param("not-an-email", None, 400, "not a valid email address", id="malformed"),
+            pytest.param("a@b@example.com", None, 400, "not a valid email address", id="two-ats"),
+            pytest.param(["x@example.com"], None, 400, "not a valid email address", id="non-str"),
+            pytest.param(
+                "not-an-email",
+                "user@example.com",
+                400,
+                "not a valid email address",
+                id="malformed-with-request-email",
+            ),
+            pytest.param(None, None, 400, "email claim", id="missing"),
+        ],
+    )
+    async def test_bad_missing_or_mismatched_oidc_claim_is_refused(
+        self,
+        client,
+        db_session,
+        oidc_claims,
+        claim_email,
+        request_email,
+        expected_status,
+        expected_detail,
+    ):
+        external_id = f"claim-{uuid4()}"
+        oidc_claims.return_value = {"sub": external_id, "email_verified": True}
+        if claim_email is not None:
+            oidc_claims.return_value["email"] = claim_email
+        body = {"external_id": external_id, "display_name": "Claim", "id_token": "t"}
+        if request_email is not None:
+            body["email"] = request_email
 
+        response = await client.post("/api/v1/auth/sync", json=body)
+
+        assert response.status_code == expected_status
+        assert expected_detail in response.json()["detail"]
+        assert await user_of_subject(db_session, external_id) is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("claims", "expected_verified"),
+        [
+            pytest.param({"email_verified": True}, True, id="oidc-verified"),
+            pytest.param({"email_verified": False}, False, id="oidc-unverified"),
+            pytest.param(None, True, id="dev"),
+        ],
+    )
+    async def test_new_user_records_whether_email_was_verified(
+        self, client, db_session, oidc_claims, claims, expected_verified
+    ):
+        external_id = f"new-{uuid4()}"
+        email = f"{external_id}@example.com"
+        oidc_claims.return_value = {"sub": external_id, "email": email, **(claims or {})}
+        with patch("app.api.auth.settings.dev_mode", claims is None):
             response = await client.post(
                 "/api/v1/auth/sync",
                 json={
-                    "external_id": "oidc-user-456",
-                    "email": "user@example.com",
-                    "display_name": "Test User",
+                    "external_id": external_id,
+                    "email": email,
+                    "display_name": "New",
                     "id_token": "fake-token",
                 },
             )
-            assert response.status_code == 200
+
+        assert response.status_code == 200
+        assert response.json()["is_new_user"] is True
+        user = await user_of_subject(db_session, external_id)
+        assert user.email_verified is expected_verified
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("dev_mode", "email_template", "in_body", "expected_status"),
+        [
+            pytest.param(True, "{}@detached.invalid", True, 422, id="dev-exact"),
+            pytest.param(True, "{}@DETACHED.Invalid", True, 422, id="dev-uppercase"),
+            pytest.param(True, "  {}@detached.invalid ", True, 422, id="dev-padded"),
+            pytest.param(False, "{}@Detached.INVALID", True, 422, id="oidc-body"),
+            pytest.param(False, "{}@Detached.INVALID", False, 400, id="oidc-claim-only"),
+        ],
+    )
+    async def test_sync_refuses_a_detached_placeholder_address(
+        self,
+        client,
+        db_session,
+        oidc_claims,
+        dev_mode,
+        email_template,
+        in_body,
+        expected_status,
+    ):
+        external_id = f"claim-{uuid4()}"
+        email = email_template.format(uuid4())
+        oidc_claims.return_value = {"sub": external_id, "email": email, "email_verified": True}
+        body = {"external_id": external_id, "display_name": "Claim", "id_token": "fake-token"}
+        if in_body:
+            body["email"] = email
+        with patch("app.api.auth.settings.dev_mode", dev_mode):
+            response = await client.post("/api/v1/auth/sync", json=body)
+
+        assert response.status_code == expected_status
+        assert await user_of_subject(db_session, external_id) is None
 
 
 class TestProviderMigrationRequiresVerifiedEmail:
     @pytest.mark.asyncio
-    async def test_unverified_blocks_migration(self, client, db_session, test_user):
-        mock_claims = {
-            "sub": "new-provider-id",
-            "email": test_user.email,
-            "email_verified": False,
-        }
-        with (
-            patch("app.api.auth._is_dev_mode", return_value=False),
-            patch("app.api.auth._oidc_configured", return_value=True),
-            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
-            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
-            patch("app.api.auth.settings") as mock_settings,
-        ):
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-            mock_settings.oidc_mobile_client_id = None
+    @pytest.mark.parametrize(
+        ("email_claim", "email_verified", "expected_status"),
+        [
+            pytest.param(True, False, 409, id="unverified-claim"),
+            pytest.param(False, True, 409, id="no-email-claim"),
+            pytest.param(True, True, 200, id="verified"),
+            pytest.param(True, "true", 200, id="verified-as-string"),
+            pytest.param(True, "false", 409, id="unverified-as-string"),
+            pytest.param(True, "TRUE", 409, id="other-string"),
+            pytest.param(True, 1, 409, id="non-boolean"),
+            pytest.param(True, None, 409, id="claim-missing"),
+        ],
+    )
+    @pytest.mark.parametrize("stored_provider", ["legacy", "dev", "oidc"])
+    async def test_migration_requires_verified_email_claim(
+        self,
+        client,
+        db_session,
+        test_user,
+        oidc_claims,
+        email_claim,
+        email_verified,
+        expected_status,
+        stored_provider,
+    ):
+        stored = (stored_provider, test_user.external_id)
+        await db_session.execute(
+            update(UserIdentity)
+            .where(UserIdentity.user_id == test_user.id)
+            .values(provider=stored_provider)
+        )
+        new_subject = f"new-provider-{uuid4()}"
+        oidc_claims.return_value = {"sub": new_subject}
+        if email_verified is not None:
+            oidc_claims.return_value["email_verified"] = email_verified
+        if email_claim:
+            oidc_claims.return_value["email"] = test_user.email
+        response = await client.post(
+            "/api/v1/auth/sync",
+            json={
+                "external_id": new_subject,
+                "email": test_user.email,
+                "display_name": "Test",
+                "id_token": "fake-token",
+            },
+        )
 
-            response = await client.post(
-                "/api/v1/auth/sync",
-                json={
-                    "external_id": "new-provider-id",
-                    "email": test_user.email,
-                    "display_name": "Test",
-                    "id_token": "fake-token",
-                },
-            )
-            assert response.status_code == 409
-            assert "Verified email required" in response.json()["detail"]
+        assert response.status_code == expected_status
+        identities = await identities_of(db_session, test_user.id)
+        if expected_status == 409:
+            assert "provider that verifies" in response.json()["detail"]
+            assert identities == {stored}
+        elif stored_provider == "dev":
+            assert identities == {stored, ("oidc", new_subject)}
+        else:
+            # The legacy identity ends as main's external_id overwrite did, and an earlier OIDC
+            # subject is replaced because a user holds one subject per provider.
+            assert identities == {("oidc", new_subject)}
 
+
+class TestSignInThroughAnotherProvider:
     @pytest.mark.asyncio
-    async def test_verified_allows_migration(self, client, db_session, test_user):
-        mock_claims = {
-            "sub": "new-provider-id-2",
-            "email": test_user.email,
-            "email_verified": True,
-        }
+    async def test_signing_in_through_another_provider_keeps_the_first_session(
+        self, client, db_session
+    ):
+        run = uuid4()
+        email = f"both-{run}@example.com"
         with (
-            patch("app.api.auth._is_dev_mode", return_value=False),
-            patch("app.api.auth._oidc_configured", return_value=True),
-            patch("app.api.auth.validate_oidc_id_token", return_value=mock_claims),
             patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
-            patch("app.api.auth.settings") as mock_settings,
+            patch.object(Settings, "dev_mode", new_callable=PropertyMock, return_value=True),
         ):
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
-            mock_settings.oidc_mobile_client_id = None
-            mock_settings.secret_key = "test-secret"
-
-            response = await client.post(
+            first = await client.post(
+                "/api/v1/auth/sync",
+                json={"external_id": f"dev-{run}", "email": email, "display_name": "Dev"},
+            )
+        with (
+            patch("app.api.auth.rate_limit_by_ip", new_callable=AsyncMock),
+            patch.object(Settings, "dev_mode", new_callable=PropertyMock, return_value=False),
+            patch.object(Settings, "oidc_configured", new_callable=PropertyMock, return_value=True),
+            patch("app.api.auth.validate_oidc_id_token") as validate,
+        ):
+            validate.return_value = {"sub": f"oidc-{run}", "email": email, "email_verified": True}
+            second = await client.post(
                 "/api/v1/auth/sync",
                 json={
-                    "external_id": "new-provider-id-2",
-                    "email": test_user.email,
-                    "display_name": "Test",
-                    "id_token": "fake-token",
+                    "external_id": f"oidc-{run}",
+                    "email": email,
+                    "display_name": "Oidc",
+                    "id_token": "t",
                 },
             )
-            assert response.status_code == 200
+        assert (first.status_code, second.status_code) == (200, 200)
+        assert second.json()["id"] == first.json()["id"]
+
+        session = await client.get(
+            "/api/v1/auth/session",
+            headers={"Authorization": f"Bearer {first.json()['access_token']}"},
+        )
+
+        assert session.status_code == 200
+        held = await identity_ids_of(db_session, UUID(first.json()["id"]))
+        assert set(held) == {("dev", f"dev-{run}"), ("oidc", f"oidc-{run}")}
+        assert decode_token(second.json()["access_token"]).iid == str(held[("oidc", f"oidc-{run}")])
+
+
+DIFFERENT_EMAIL = "This invite was sent to a different email address"
+UNVERIFIED_DETAIL = {
+    "message": "Your sign-in provider has not verified this email address",
+    "error_code": "EMAIL_NOT_VERIFIED",
+}
+
+
+class TestInviteRequiresVerifiedEmail:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("invited_email", "email_verified", "expected_status", "expected_detail"),
+        [
+            pytest.param(None, True, 200, None, id="verified"),
+            pytest.param(None, False, 403, UNVERIFIED_DETAIL, id="unverified"),
+            pytest.param(
+                "someone-else@example.com", True, 403, DIFFERENT_EMAIL, id="different-email"
+            ),
+            pytest.param(
+                "someone-else@example.com",
+                False,
+                403,
+                DIFFERENT_EMAIL,
+                id="different-email-checked-before-verification",
+            ),
+        ],
+    )
+    async def test_join_by_token(
+        self,
+        client,
+        db_session,
+        test_user,
+        auth_headers,
+        invited_email,
+        email_verified,
+        expected_status,
+        expected_detail,
+    ):
+        run = uuid4()
+        inviter = User(
+            external_id=f"inviter-{run}", email=f"inviter-{run}@example.com", display_name="Inviter"
+        )
+        db_session.add(inviter)
+        await db_session.flush()
+        family = Family(name="Family", created_by=inviter.id, invite_code=run.hex[:12])
+        db_session.add(family)
+        await db_session.flush()
+        db_session.add(
+            FamilyInvite(
+                family_id=family.id,
+                email=invited_email or test_user.email,
+                token=f"token-{run}",
+                invited_by=inviter.id,
+                expires_at=datetime.now(UTC) + timedelta(days=1),
+            )
+        )
+        test_user.email_verified = email_verified
+        await db_session.flush()
+
+        response = await client.post(
+            "/api/v1/families/join-by-token", json={"token": f"token-{run}"}, headers=auth_headers
+        )
+
+        assert (response.status_code, response.json().get("detail")) == (
+            expected_status,
+            expected_detail,
+        )
+        await db_session.refresh(test_user)
+        assert (test_user.family_id == family.id) is (expected_status == 200)
+
+
+class TestDetachedAccount:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("path", "email_of"),
+        [
+            pytest.param("/api/v1/auth/session", lambda body: body["email"], id="session"),
+            pytest.param(
+                "/api/v1/families/me", lambda body: body["members"][0]["email"], id="family"
+            ),
+        ],
+    )
+    async def test_reads_return_the_placeholder_address(
+        self, client, db_session, test_user, auth_headers, path, email_of
+    ):
+        family = Family(name="Family", created_by=test_user.id, invite_code=uuid4().hex[:12])
+        db_session.add(family)
+        await db_session.flush()
+        placeholder = f"{test_user.id}@detached.invalid"
+        test_user.family_id = family.id
+        test_user.email = placeholder
+        test_user.email_verified = False
+        await db_session.flush()
+
+        response = await client.get(path, headers=auth_headers)
+
+        assert response.status_code == 200
+        assert email_of(response.json()) == placeholder
 
 
 class TestDevModeAuthDecoupledFromSecretKey:
@@ -343,18 +747,81 @@ class TestDevModeAuthDecoupledFromSecretKey:
         assert settings.get_auth_mode() == "oidc"
         assert settings.validate_security() is None
 
-    def test_is_dev_mode_true_with_custom_secret_and_no_oidc(self):
-        with patch("app.api.auth.settings") as mock_settings:
-            mock_settings.debug = True
-            mock_settings.oidc_issuer_url = None
-            mock_settings.oidc_client_id = None
 
-            assert _is_dev_mode() is True
+class TestDefaultSecretKeyWithRealAuth:
+    OIDC = {"oidc_issuer_url": "https://auth.example.com", "oidc_client_id": "test-client"}
+    FORWARD_AUTH = {"forward_auth_secret": "p" * 32}
 
-    def test_is_dev_mode_false_when_oidc_configured_even_with_debug(self):
-        with patch("app.api.auth.settings") as mock_settings:
-            mock_settings.debug = True
-            mock_settings.oidc_issuer_url = "https://auth.example.com"
-            mock_settings.oidc_client_id = "test-client"
+    @pytest.mark.parametrize("debug", [True, False])
+    @pytest.mark.parametrize("auth", [OIDC, FORWARD_AUTH, {**OIDC, **FORWARD_AUTH}])
+    def test_default_key_is_refused_when_a_real_auth_mode_is_configured(self, debug, auth):
+        settings = Settings(debug=debug, secret_key=DEFAULT_SECRET_KEY, **auth)
+        with pytest.raises(RuntimeError, match="SECRET_KEY"):
+            settings.validate_security()
 
-            assert _is_dev_mode() is False
+    def test_default_key_is_allowed_in_pure_dev_mode(self):
+        settings = Settings(debug=True, secret_key=DEFAULT_SECRET_KEY)
+        assert settings.validate_security() is None
+        assert settings.get_auth_mode() == "dev"
+
+    def test_default_key_is_refused_without_debug(self):
+        settings = Settings(debug=False, secret_key=DEFAULT_SECRET_KEY)
+        with pytest.raises(RuntimeError, match="SECRET_KEY"):
+            settings.validate_security()
+
+
+class TestApiDocsExposure:
+    OIDC = {"oidc_issuer_url": "https://auth.example.com", "oidc_client_id": "test-client"}
+    FORWARD_AUTH = {"forward_auth_secret": "p" * 32}
+
+    @pytest.mark.parametrize(
+        ("debug", "auth", "exposed"),
+        [
+            (True, {}, True),
+            (False, {}, False),
+            (True, OIDC, False),
+            (True, FORWARD_AUTH, False),
+        ],
+        ids=["dev", "no-debug", "debug-with-oidc", "debug-with-forward-auth"],
+    )
+    def test_docs_are_exposed_only_in_dev_mode(self, debug, auth, exposed):
+        settings = Settings(debug=debug, secret_key="a-strong-custom-secret", **auth)
+
+        urls = docs_urls(settings)
+
+        assert (urls["docs_url"] == "/docs") is exposed
+        assert (urls["redoc_url"] == "/redoc") is exposed
+        assert (urls["openapi_url"] == "/openapi.json") is exposed
+        assert [url is None for url in urls.values()] == [not exposed] * 3
+
+
+class TestOidcConfigured:
+    @pytest.mark.parametrize(
+        ("issuer", "client_id", "expected"),
+        [
+            ("https://auth.example.com", "test-client", True),
+            ("https://auth.example.com", None, False),
+            (None, "test-client", False),
+            (None, None, False),
+        ],
+    )
+    def test_needs_both_issuer_and_client_id(self, issuer, client_id, expected):
+        settings = Settings(
+            secret_key="a-strong-custom-secret", oidc_issuer_url=issuer, oidc_client_id=client_id
+        )
+        assert settings.oidc_configured is expected
+
+
+class TestDevModeProperty:
+    @pytest.mark.parametrize(
+        ("debug", "auth", "expected"),
+        [
+            (True, {}, True),
+            (False, {}, False),
+            (True, {"oidc_issuer_url": "https://a.example.com", "oidc_client_id": "c"}, False),
+            (True, {"forward_auth_secret": "p" * 32}, False),
+        ],
+    )
+    def test_dev_mode_is_debug_with_no_real_auth(self, debug, auth, expected):
+        settings = Settings(debug=debug, secret_key="a-strong-custom-secret", **auth)
+        assert settings.dev_mode is expected

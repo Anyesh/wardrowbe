@@ -22,25 +22,18 @@
   },
   "filters": {
     "allOccasions": "Toutes les occasions",
-    "allStatus": "Tous les statuts",
-    "workout": "Sport"
+    "allStatus": "Tous les statuts"
   },
   "loadError": "Échec du chargement de l'historique. Veuillez réessayer.",
   "noOutfitsForDate": "Aucune tenue pour le {date}",
   "outfitCount": "{count, plural, one {# tenue} other {# tenues}}",
-  "sourceBadges": {
-    "external": "Externe",
-    "manual": "Manuel",
-    "onDemand": "À la demande",
-    "pairing": "Combinaison",
-    "scheduled": "Planifié"
-  },
   "status": {
     "accepted": "Accepté",
     "expired": "Expiré",
     "pending": "En attente",
     "rejected": "Rejeté",
     "sent": "Envoyé",
+    "skipped": "Ignoré",
     "viewed": "Consulté"
   },
   "subtitle": "Consultez vos recommandations de tenues passées",

@@ -9,21 +9,8 @@ import { useDeletePairing } from '@/lib/hooks/use-pairings';
 import { Pairing } from '@/lib/types';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={`h-3.5 w-3.5 ${
-            star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'
-          }`}
-        />
-      ))}
-    </div>
-  );
-}
+import { StarRatingDisplay } from '@/components/shared/star-rating';
+import { useTypeLabel } from '@/lib/hooks/use-translated-constants';
 
 interface PairingCardProps {
   pairing: Pairing;
@@ -32,6 +19,7 @@ interface PairingCardProps {
 }
 
 export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps) {
+  const typeLabel = useTypeLabel();
   const t = useTranslations('pairings.card');
   const deletePairing = useDeletePairing();
 
@@ -128,14 +116,14 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
               {item.thumbnail_url ? (
                 <Image
                   src={item.thumbnail_url}
-                  alt={item.name || item.type}
+                  alt={item.name || typeLabel(item.type)}
                   fill
                   className="object-cover"
                   sizes="56px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                  {item.type}
+                  {typeLabel(item.type)}
                 </div>
               )}
             </div>
@@ -147,7 +135,7 @@ export function PairingCard({ pairing, onFeedback, onPreview }: PairingCardProps
           <div className="mt-2 pt-2 border-t">
             <div className="flex items-center gap-2">
               {pairing.feedback.rating && (
-                <StarRating rating={pairing.feedback.rating} />
+                <StarRatingDisplay value={pairing.feedback.rating} />
               )}
               {pairing.feedback.comment && (
                 <p className="text-xs text-muted-foreground truncate flex-1">
