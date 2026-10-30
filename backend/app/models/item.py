@@ -226,3 +226,16 @@ class ItemImage(Base):
 
     # Relationships
     item: Mapped["ClothingItem"] = relationship("ClothingItem", back_populates="additional_images")
+
+
+class DeclutterKeep(Base):
+    """An item the user chose to keep in the declutter review; it stays out of the review until
+    kept_until. A table of its own rather than a clothing_items column, so it never touches how
+    items are written."""
+
+    __tablename__ = "declutter_keeps"
+
+    item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clothing_items.id", ondelete="CASCADE"), primary_key=True
+    )
+    kept_until: Mapped[date] = mapped_column(Date, nullable=False)
