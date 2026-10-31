@@ -14,7 +14,7 @@ Create {num_pairings} DIFFERENT complete outfits. Each MUST:
   - Suit: exactly ONE top + ONE suit (<<SUIT_TYPES>>) + ONE footwear
 - The silhouette must contain the source item: a top or bottom source is worn as separates, a full-body source as a one-piece and a suit source as a suit. Any other source item, except legwear (below), can go with whichever silhouette suits it
 - NEVER combine two items from the same slot. Bottoms (<<BOTTOM_TYPES>>) are the SAME slot, tops (<<BASE_TOP_TYPES>>) are the SAME slot, a full-body garment already fills both the top and bottom slots, and a suit already fills the bottom slot.
-- Optionally add accessories (belt, bag, jewelry, scarf) if they complement
+- Optionally add accessories (belt, bag, watch, jewelry, scarf) if they complement
 - Optionally add legwear (<<LEGWEAR_TYPES>>) under a skirt, dress or shorts; legwear does not replace the bottom or footwear. When the source item is legwear, build every outfit around a skirt, dress or shorts
 
 For each outfit, explain WHY the items complement the source item (color harmony, style match, formality level).

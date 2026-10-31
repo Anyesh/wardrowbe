@@ -184,7 +184,7 @@
       "brandName": "브랜드명",
       "itemName": "아이템 이름",
       "selectColor": "색상 선택",
-      "subtype": "예: 레깅스, 첼시",
+      "subtype": "예: 치노, 첼시",
       "washIntervalDefault": "기본값: {count}"
     },
     "primaryColor": "메인 색상",

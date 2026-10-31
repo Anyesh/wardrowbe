@@ -184,7 +184,7 @@
       "brandName": "ブランド名",
       "itemName": "アイテム名",
       "selectColor": "色を選択",
-      "subtype": "例：レギンス、チェルシー",
+      "subtype": "例：チノパン、チェルシー",
       "washIntervalDefault": "デフォルト：{count}"
     },
     "primaryColor": "メインカラー",

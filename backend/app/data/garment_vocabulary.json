@@ -32,7 +32,16 @@
     {"value": "scarf", "role": "accessory", "wash_interval": 10},
     {"value": "belt", "role": "accessory", "wash_interval": 20},
     {"value": "bag", "role": "accessory", "wash_interval": 20},
-    {"value": "accessories", "role": "accessory", "wash_interval": 20}
+    {"value": "accessories", "role": "accessory", "wash_interval": 20},
+    {"value": "leggings", "role": "bottom", "wash_interval": 2},
+    {"value": "camisole", "role": "base_top", "wash_interval": 1},
+    {"value": "bodysuit", "role": "base_top", "wash_interval": 1},
+    {"value": "sweatshirt", "role": "base_top", "wash_interval": 4},
+    {"value": "heels", "role": "footwear", "wash_interval": 15},
+    {"value": "flats", "role": "footwear", "wash_interval": 15},
+    {"value": "overalls", "role": "bottom", "wash_interval": 5},
+    {"value": "poncho", "role": "outer_layer", "wash_interval": 8},
+    {"value": "watch", "role": "accessory", "wash_interval": 20}
   ],
   "materials": ["cotton", "denim", "leather", "wool", "polyester", "silk", "linen", "knit", "fleece", "suede", "velvet", "nylon", "canvas", "down", "shearling"],
   "formality": ["very-casual", "casual", "smart-casual", "business-casual", "formal", "very-formal"],

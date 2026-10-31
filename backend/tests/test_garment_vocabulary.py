@@ -17,9 +17,11 @@ from app.services.ai_service import (
     VALID_TYPES,
 )
 from app.services.item_scorer import (
+    COLD_EXPOSED_TYPES,
     FORMALITY_ORDER,
     HEAVY_LAYER_MATERIALS,
     HEAVY_LAYER_TYPES,
+    HOT_PENALTY_TYPES,
     OCCASION_FORMALITY,
     RAIN_LAYER_TYPES,
     WARM_LAYER_TYPES,
@@ -110,6 +112,25 @@ def test_type_lists_agree():
     assert prompt_types == set(DEFAULT_WASH_INTERVALS)
 
 
+@pytest.mark.parametrize(
+    ("item_type", "role"),
+    [
+        ("leggings", "bottom"),
+        ("camisole", "base_top"),
+        ("bodysuit", "base_top"),
+        ("sweatshirt", "base_top"),
+        ("heels", "footwear"),
+        ("flats", "footwear"),
+        ("overalls", "bottom"),
+        ("poncho", "outer_layer"),
+        ("watch", "accessory"),
+    ],
+)
+def test_type_has_its_outfit_role(item_type, role):
+    assert ITEM_ROLE.get(item_type) == role
+    assert item_type in VALID_TYPES
+
+
 def test_types_for_role_is_derived_from_the_vocabulary():
     # Compared against ITEM_ROLE rather than fixed lists, so adding a garment to a role fails this
     # test unless types_for_role picks it up.
@@ -154,7 +175,13 @@ def test_scorer_formality_scale_is_the_validated_vocabulary():
 
 
 def test_scorer_layer_types_are_real_types():
-    scorer_types = RAIN_LAYER_TYPES | WARM_LAYER_TYPES | HEAVY_LAYER_TYPES
+    scorer_types = (
+        RAIN_LAYER_TYPES
+        | WARM_LAYER_TYPES
+        | HEAVY_LAYER_TYPES
+        | COLD_EXPOSED_TYPES
+        | HOT_PENALTY_TYPES
+    )
     assert scorer_types <= VALID_TYPES
 
 
