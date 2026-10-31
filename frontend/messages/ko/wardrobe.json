@@ -188,6 +188,11 @@
       "washIntervalDefault": "기본값: {count}"
     },
     "primaryColor": "메인 색상",
+    "replaceAnalysis": {
+      "confirm": "다시 분석하고 바꾸기",
+      "description": "AI가 사진을 다시 살펴보고 이전 추측을 바꿔요. 직접 수정한 태그는 그대로 유지돼요. 이 기능이 생기기 전에 수정한 내용은 기록되지 않아서 바뀔 수 있어요.",
+      "title": "AI 태그를 다시 분석해서 바꿀까요?"
+    },
     "subtype": "세부 유형",
     "tagsEditor": {
       "fit": "핏",
@@ -207,6 +212,7 @@
       "analysisInProgress": "분석 진행 중...",
       "deleteImage": "이미지 삭제",
       "findMatchingOutfits": "어울리는 코디 찾기",
+      "reanalyzeAndReplace": "AI 태그 다시 분석하고 바꾸기",
       "reanalyzeWithAI": "AI로 재분석",
       "removeBackground": "배경 제거",
       "replaceImage": "이미지 교체",

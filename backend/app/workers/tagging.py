@@ -173,7 +173,31 @@ async def update_item_status_to_error(ctx: dict, item_id: str, error_msg: str) -
         logger.error(f"Failed to update item {item_id} status to error: {e}")
 
 
-async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, Any]:
+_NOTHING = (None, [], "", {})
+
+
+def _ai_may_set(
+    field: str, current: Any, value: Any, *, replace: bool, kept: frozenset[str]
+) -> bool:
+    """Whether the AI's `value` goes into `field`, given what the item holds now.
+
+    Normally the AI only fills what is empty (an unknown type or colour counts as empty).
+    On "re-analyse and replace" it overwrites its own earlier answers, but never a field
+    in `kept` (the keys a person set or cleared by hand, which it never refills either)
+    and never with an empty or unknown answer.
+    """
+    if field in kept:
+        return False
+    if replace:
+        return value not in _NOTHING and value != "unknown"
+    if field in ("type", "primary_color"):
+        return not current or current == "unknown"
+    return current in _NOTHING
+
+
+async def tag_item_image(
+    ctx: dict, item_id: str, image_path: str, replace: bool = False
+) -> dict[str, Any]:
     """
     Analyze an item's image and update it with AI-generated tags.
 
@@ -181,6 +205,8 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
         ctx: arq context
         item_id: UUID of the item to tag
         image_path: Path to the image file
+        replace: overwrite the AI's earlier tags (except those a person edited) instead
+            of only filling the empty ones
 
     Returns:
         Dict with status and tags
@@ -269,7 +295,7 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
             # already-updated status and skip them even outside of a race.
             was_pending = item.tagging_status == TaggingStatus.pending
             # Keys the person set or cleared by hand; an empty one stays empty.
-            kept = set((item.tags or {}).get("user_edited_keys") or [])
+            kept = frozenset((item.tags or {}).get("user_edited_keys") or [])
 
             for field, value in ai_fields.items():
                 # Always update AI metadata fields (including tags JSONB and description)
@@ -294,38 +320,35 @@ async def tag_item_image(ctx: dict, item_id: str, image_path: str) -> dict[str, 
                     # so an earlier run's score must not survive the fill below.
                     merged.pop("logprobs_confidence", None)
                     for key, val in (value or {}).items():
-                        if val in (None, [], "", {}) or key in kept:
+                        if val in _NOTHING:
                             continue
-                        if merged.get(key) in (None, [], "", {}):
+                        if _ai_may_set(key, merged.get(key), val, replace=replace, kept=kept):
                             merged[key] = val
                     item.tags = merged
                 elif field in ("tagging_status", "tagged_by", "tagged_at"):
                     if was_pending:
                         setattr(item, field, value)
-                elif field in kept:
-                    continue
-                # Only update content fields if user hasn't set them (or they're default/unknown)
-                elif field == "type":
-                    if not item.type or item.type == "unknown":
-                        setattr(item, field, value)
-                elif field == "subtype":
+                elif field == "subtype" and item.type != ai_fields["type"]:
                     # A subtype only fits the type it was seen as ("crew-neck" on a T-shirt the
                     # person has since made a blouse).
-                    if not item.subtype and item.type == ai_fields["type"]:
-                        setattr(item, field, value)
-                elif field == "primary_color":
-                    if not item.primary_color or item.primary_color == "unknown":
-                        setattr(item, field, value)
-                else:
-                    # For other fields (colors, pattern, material, style, etc.), only set if not already set
-                    current_value = getattr(item, field, None)
-                    if (
-                        current_value is None
-                        or current_value == []
-                        or current_value == ""
-                        or current_value == {}
-                    ):
-                        setattr(item, field, value)
+                    continue
+                # Content fields: fill what is empty, or replace the AI's own earlier answer
+                # (see _ai_may_set); a value a person set is never touched.
+                elif _ai_may_set(
+                    field, getattr(item, field, None), value, replace=replace, kept=kept
+                ):
+                    setattr(item, field, value)
+
+            # A colour the person chose as primary must stay in the list when the AI replaced
+            # the rest of it, including when the list ends up empty.
+            if (
+                replace
+                and "primary_color" in kept
+                and "colors" not in kept
+                and item.primary_color
+                and item.primary_color not in (item.colors or [])
+            ):
+                item.colors = [item.primary_color, *(item.colors or [])]
 
             # The guards above may have kept a user's column value while the
             # AI's went into tags; mirror the columns back so the JSONB and the
