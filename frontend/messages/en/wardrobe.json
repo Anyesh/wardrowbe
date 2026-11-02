@@ -184,7 +184,7 @@
       "brandName": "Brand name",
       "itemName": "Item name",
       "selectColor": "Select color",
-      "subtype": "e.g. leggings, chelsea",
+      "subtype": "e.g. chinos, chelsea",
       "washIntervalDefault": "Default: {count}"
     },
     "primaryColor": "Primary Color",

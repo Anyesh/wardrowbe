@@ -184,7 +184,7 @@
       "brandName": "Nom de la marque",
       "itemName": "Nom de l'article",
       "selectColor": "Sélectionner une couleur",
-      "subtype": "ex. leggings, chelsea",
+      "subtype": "ex. chino, chelsea",
       "washIntervalDefault": "Par défaut : {count}"
     },
     "primaryColor": "Couleur principale",

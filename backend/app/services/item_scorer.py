@@ -76,9 +76,11 @@ TEMP_RANGE_MIN_SWING = 8.0
 REMOVABLE_LAYER_HOT_FLOOR = 0.6
 
 REMOVABLE_LAYER_TYPES = {"jacket", "coat", "blazer", "hoodie", "cardigan", "vest"}
-RAIN_LAYER_TYPES = {"jacket", "coat", "hoodie"}
+RAIN_LAYER_TYPES = {"jacket", "coat", "hoodie", "poncho"}
 RAIN_LIKELY_CHANCE = 50
-WARM_LAYER_TYPES = REMOVABLE_LAYER_TYPES | {"sweater"}
+WARM_LAYER_TYPES = REMOVABLE_LAYER_TYPES | {"sweater", "sweatshirt"}
+COLD_EXPOSED_TYPES = {"shorts", "tank-top", "sandals", "camisole"}
+HOT_PENALTY_TYPES = WARM_LAYER_TYPES | {"boots"}
 HEAVY_LAYER_TYPES = {"coat"}
 HEAVY_LAYER_MATERIALS = {"wool", "fleece", "down", "shearling"}
 HEAVY_LAYER_SUBTYPES = {
@@ -135,7 +137,7 @@ def _temp_bucket_score(
             return 1.0
         elif "winter" in seasons:
             return 1.0
-        elif item_type in ("shorts", "tank-top", "sandals"):
+        elif item_type in COLD_EXPOSED_TYPES:
             return 0.05
         else:
             return 0.7
@@ -144,7 +146,7 @@ def _temp_bucket_score(
             return 0.05
         if material in ("cotton", "linen", "silk") or "summer" in seasons:
             return 1.0
-        elif item_type in WARM_LAYER_TYPES or item_type == "boots":
+        elif item_type in HOT_PENALTY_TYPES:
             return 0.05
         else:
             return 0.8

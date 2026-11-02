@@ -181,10 +181,10 @@ export type ClothingTypeValue = (typeof CLOTHING_TYPE_VALUES)[number];
 // so these are suggestions, not a closed set.
 export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
   shirt: ['henley', 'button-down', 'oxford', 'flannel', 'hawaiian', 'camp-collar'],
-  pants: ['chinos', 'joggers', 'cargo', 'trousers', 'leggings', 'sweatpants'],
+  pants: ['chinos', 'joggers', 'cargo', 'trousers', 'sweatpants'],
   dress: ['sundress', 'slip-dress', 'maxi', 'midi', 'wrap', 'shirt-dress', 'a-line'],
   jacket: ['denim-jacket', 'bomber', 'parka', 'windbreaker', 'trucker', 'anorak'],
-  shoes: ['loafers', 'oxfords', 'mules', 'flats', 'heels', 'platforms'],
+  shoes: ['loafers', 'oxfords', 'mules', 'platforms'],
   sneakers: ['low-top', 'high-top', 'chunky', 'slip-on'],
   boots: ['ankle', 'chelsea', 'combat', 'knee-high', 'rain'],
   skirt: ['mini', 'midi', 'maxi', 'pleated', 'wrap', 'pencil'],

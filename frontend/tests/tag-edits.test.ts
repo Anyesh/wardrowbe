@@ -220,6 +220,12 @@ describe('subtypeAfterTypeChange', () => {
     expect(subtypeAfterTypeChange('dress', 'button-down')).toBe('')
   })
 
+  it('drops a subtype that names a type', () => {
+    expect(subtypeAfterTypeChange('leggings', 'leggings')).toBe('')
+    expect(subtypeAfterTypeChange('sneakers', 'heels')).toBe('')
+    expect(subtypeAfterTypeChange('shoes', 'Flats')).toBe('')
+  })
+
   it('keeps a word that is a subtype of both the old and the new type', () => {
     expect(subtypeAfterTypeChange('socks', 'ankle')).toBe('ankle')
     expect(subtypeAfterTypeChange('boots', 'ankle')).toBe('ankle')
