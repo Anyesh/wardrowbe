@@ -15,6 +15,8 @@ export interface QueuedUpload {
   size: number;
   lastModified: number;
   skipAi: boolean;
+  // Absent on records queued before the option existed, which means no.
+  removeBackground?: boolean;
   addedAt: number;
   updatedAt: number;
   status: UploadStatus;
@@ -161,7 +163,8 @@ async function findReusableRecord(
 
 export async function enqueueFiles(
   files: File[],
-  skipAi: boolean
+  skipAi: boolean,
+  removeBackground = false
 ): Promise<{ staged: string[]; unprotected: File[] }> {
   if (!hasIndexedDb()) {
     return { staged: [], unprotected: files };
@@ -191,6 +194,7 @@ export async function enqueueFiles(
         size: file.size,
         lastModified: file.lastModified,
         skipAi,
+        removeBackground,
         addedAt: now,
         updatedAt: now,
         status: 'pending',

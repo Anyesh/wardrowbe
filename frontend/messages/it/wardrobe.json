@@ -45,7 +45,9 @@
     "subtitle": "Carica foto dei tuoi capi di abbigliamento",
     "title": "Aggiungi capi",
     "typeLabel": "Tipo (l'IA rileverà se vuoto)",
-    "uploading": "Caricamento in corso..."
+    "uploading": "Caricamento in corso...",
+    "removeBackground": "Rimuovi lo sfondo automaticamente",
+    "removeBackgroundHint": "La foto viene ripulita prima che l'IA la catalogui."
   },
   "ai": {
     "analysisFailed": "Analisi fallita",

@@ -45,7 +45,9 @@
     "subtitle": "衣類の写真をアップロード",
     "title": "アイテムを追加",
     "typeLabel": "タイプ（空欄ならAIが検出）",
-    "uploading": "アップロード中..."
+    "uploading": "アップロード中...",
+    "removeBackground": "背景を自動で削除",
+    "removeBackgroundHint": "AIが分類する前に写真の背景を消します。"
   },
   "ai": {
     "analysisFailed": "分析失敗",

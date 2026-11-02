@@ -45,7 +45,9 @@
     "subtitle": "Importez des photos de vos vêtements",
     "title": "Ajouter des articles",
     "typeLabel": "Type (l'IA détectera si vide)",
-    "uploading": "Import en cours..."
+    "uploading": "Import en cours...",
+    "removeBackground": "Supprimer l'arrière-plan automatiquement",
+    "removeBackgroundHint": "La photo est détourée avant que l'IA ne la catalogue."
   },
   "ai": {
     "analysisFailed": "Analyse échouée",
