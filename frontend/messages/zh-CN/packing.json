@@ -1,0 +1,33 @@
+{
+  "addItems": "添加衣物",
+  "error": "无法规划行程，请重试。",
+  "form": {
+    "destination": "目的地",
+    "destinationPlaceholder": "例如：葡萄牙里斯本",
+    "end": "返回",
+    "laundry": "可以洗衣服",
+    "laundryHelp": "只带几天的衣服，途中清洗",
+    "occasion": "场合",
+    "start": "出发",
+    "submit": "规划行李"
+  },
+  "groupCount": "{found}/{needed}",
+  "invalidDates": "请检查日期：行程须在今天或之后结束，且最长 30 天。",
+  "missing": "你的衣橱缺少：{roles}。",
+  "noneSuitable": "衣橱里没有适合这种天气的衣物。",
+  "notFound": "找不到目的地，试试加上国家名称。",
+  "packedLabel": "已打包",
+  "subtitle": "根据目的地天气，从你自己的衣橱生成行李清单。",
+  "summary": {
+    "dates": "{start} – {end} · {days, plural, other {#天}}",
+    "dayRange": "{min}° / {max}°",
+    "estimated": "按季节估算",
+    "estimatedHelp": "天气预报尚未覆盖这些日期，清单按该季节的常见气温生成。临近出发时请再检查一次。",
+    "progress": "已打包 {packed}/{total}",
+    "rainDays": "{count, plural, =0 {预计无雨} other {# 个雨天}}",
+    "rainUnknown": "降雨未知，已备防雨外层",
+    "temperature": "{min}° 至 {max}°",
+    "underwear": "带上 {count} 套内衣和袜子"
+  },
+  "title": "打包行李"
+}

@@ -1,0 +1,33 @@
+{
+  "addItems": "Teile hinzufügen",
+  "error": "Die Reise konnte nicht geplant werden. Bitte erneut versuchen.",
+  "form": {
+    "destination": "Reiseziel",
+    "destinationPlaceholder": "z. B. Lissabon, Portugal",
+    "end": "Bis",
+    "laundry": "Ich kann Wäsche waschen",
+    "laundryHelp": "Für wenige Tage packen und unterwegs waschen",
+    "occasion": "Anlass",
+    "start": "Von",
+    "submit": "Koffer planen"
+  },
+  "groupCount": "{found}/{needed}",
+  "invalidDates": "Prüfe die Daten: Die Reise muss heute oder später enden und darf höchstens 30 Tage dauern.",
+  "missing": "In deinem Kleiderschrank fehlt: {roles}.",
+  "noneSuitable": "Nichts in deinem Kleiderschrank passt zu diesem Wetter.",
+  "notFound": "Reiseziel nicht gefunden. Versuche es mit dem Land dazu.",
+  "packedLabel": "Gepackt",
+  "subtitle": "Eine Packliste aus deinem eigenen Kleiderschrank, passend zum Wetter am Reiseziel.",
+  "summary": {
+    "dates": "{start} – {end} · {days, plural, one {# Tag} other {# Tage}}",
+    "dayRange": "{min}° / {max}°",
+    "estimated": "Saisonale Schätzung",
+    "estimatedHelp": "Die Vorhersage reicht noch nicht bis zu diesen Tagen, daher nutzt die Liste typische Temperaturen der Jahreszeit. Kurz vor der Abreise erneut prüfen.",
+    "progress": "{packed} von {total} gepackt",
+    "rainDays": "{count, plural, =0 {Kein Regen erwartet} one {# Regentag} other {# Regentage}}",
+    "rainUnknown": "Regen unbekannt, eine Regenschicht ist dabei",
+    "temperature": "{min}° bis {max}°",
+    "underwear": "nimm {count} Garnituren Unterwäsche und Socken mit"
+  },
+  "title": "Kofferpacken"
+}

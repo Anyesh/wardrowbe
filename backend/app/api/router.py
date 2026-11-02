@@ -11,6 +11,7 @@ from app.api.items import router as items_router
 from app.api.learning import router as learning_router
 from app.api.notifications import router as notifications_router
 from app.api.outfits import router as outfits_router
+from app.api.packing import router as packing_router
 from app.api.pairings import router as pairings_router
 from app.api.preferences import router as preferences_router
 from app.api.users import router as users_router
@@ -32,3 +33,4 @@ api_router.include_router(pairings_router)
 api_router.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(analytics_router)
 api_router.include_router(learning_router)
+api_router.include_router(packing_router)

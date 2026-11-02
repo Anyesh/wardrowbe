@@ -1,0 +1,33 @@
+{
+  "addItems": "アイテムを追加",
+  "error": "旅行の準備ができませんでした。もう一度お試しください。",
+  "form": {
+    "destination": "行き先",
+    "destinationPlaceholder": "例：リスボン、ポルトガル",
+    "end": "帰着日",
+    "laundry": "洗濯できる",
+    "laundryHelp": "数日分だけ持って、旅先で洗濯する",
+    "occasion": "シーン",
+    "start": "出発日",
+    "submit": "荷物を準備する"
+  },
+  "groupCount": "{found}/{needed}",
+  "invalidDates": "日付を確認してください：今日以降に終わり、30日以内の旅行にしてください。",
+  "missing": "ワードローブに足りないもの：{roles}",
+  "noneSuitable": "この天気に合うアイテムがありません。",
+  "notFound": "行き先が見つかりません。国名も入れてみてください。",
+  "packedLabel": "詰めた",
+  "subtitle": "行き先の天気に合わせて、あなたのワードローブから持ち物リストを作ります。",
+  "summary": {
+    "dates": "{start} – {end} · {days, plural, other {#日間}}",
+    "dayRange": "{min}° / {max}°",
+    "estimated": "季節からの推定",
+    "estimatedHelp": "まだこの日程の予報がないため、季節の平均的な気温で作成しています。出発が近づいたら再確認してください。",
+    "progress": "{total}点中{packed}点を詰めました",
+    "rainDays": "{count, plural, =0 {雨の予報なし} other {雨の日 #日}}",
+    "rainUnknown": "雨は不明のため、雨具を入れています",
+    "temperature": "{min}°〜{max}°",
+    "underwear": "下着と靴下を{count}組持っていきましょう"
+  },
+  "title": "荷造り"
+}
