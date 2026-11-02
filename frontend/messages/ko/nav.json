@@ -1,5 +1,15 @@
 {
   "aiLearning": "AI 학습",
+  "aiStatus": {
+    "disabled": "AI 꺼짐",
+    "missingDetail": "AI 서버에 없음: {models}",
+    "modelDetail": "모델: {model}",
+    "model_missing": "AI 모델 없음",
+    "offline": "AI 오프라인",
+    "online": "AI 작동 중",
+    "unknown": "AI 상태 알 수 없음",
+    "unknownDetail": "AI 서버 확인 중"
+  },
   "analytics": "분석",
   "brandAlt": "wardrowbe",
   "brandName": "wardrowbe",
