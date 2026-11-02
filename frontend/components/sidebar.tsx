@@ -15,6 +15,7 @@ import {
   Users,
   Bell,
   HeartHandshake,
+  Camera,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -33,6 +34,7 @@ export function Sidebar() {
     { name: t('familyFeed'), href: '/dashboard/family/feed', icon: HeartHandshake },
     { name: t('analytics'), href: '/dashboard/analytics', icon: BarChart3 },
     { name: t('aiLearning'), href: '/dashboard/learning', icon: Brain },
+    { name: t('selfie'), href: '/dashboard/selfie', icon: Camera },
   ];
 
   const secondaryNavigation = [
