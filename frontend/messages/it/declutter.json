@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "donate": "Regala",
+    "keep": "Tieni",
+    "sell": "Vendi"
+  },
+  "empty": "Hai indossato tutto di recente. Ottimo lavoro!",
+  "hint": "Aggiungi il prezzo d'acquisto ai capi per vedere quanto valore resta fermo nell'armadio.",
+  "idleValue": "{value} di vestiti restano nell'armadio senza essere indossati.",
+  "reason": {
+    "neverWorn": "Mai indossato · aggiunto {days} giorni fa",
+    "notWorn": "Ultima volta {days} giorni fa"
+  },
+  "subtitle": "I capi che non indossi da tempo: tienili, regalali o vendili.",
+  "summary": "{count, plural, =0 {Niente da rivedere} one {# capo da rivedere} other {# capi da rivedere}} su {total}",
+  "title": "Pulizia armadio",
+  "toast": {
+    "donated": "{name} spostato in archivio come regalato.",
+    "error": "Qualcosa è andato storto. Riprova.",
+    "kept": "{name} resta; non comparirà qui per {months, plural, one {# mese} other {# mesi}}.",
+    "sold": "{name} spostato in archivio come venduto."
+  },
+  "window": "Non indossati da",
+  "windowOption": "{months, plural, one {Non indossati da # mese} other {Non indossati da # mesi}}"
+}

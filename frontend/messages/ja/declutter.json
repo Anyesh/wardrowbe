@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "donate": "寄付する",
+    "keep": "残す",
+    "sell": "売る"
+  },
+  "empty": "最近すべて着ています。すばらしい！",
+  "hint": "購入価格を入力すると、眠っている服の金額がわかります。",
+  "idleValue": "{value}分の服が着られずに眠っています。",
+  "reason": {
+    "neverWorn": "未着用 · {days}日前に追加",
+    "notWorn": "最後に着たのは{days}日前"
+  },
+  "subtitle": "しばらく着ていない服：残す、譲る、売るを選べます。",
+  "summary": "{total}点中 {count, plural, =0 {見直すものはありません} other {#点を見直し}}",
+  "title": "クローゼット整理",
+  "toast": {
+    "donated": "{name}を寄付済みとしてアーカイブしました。",
+    "error": "問題が発生しました。もう一度お試しください。",
+    "kept": "{name}を残します。{months, plural, other {#か月}}間はここに表示されません。",
+    "sold": "{name}を売却済みとしてアーカイブしました。"
+  },
+  "window": "着ていない期間",
+  "windowOption": "{months, plural, other {#か月以上着ていない}}"
+}
