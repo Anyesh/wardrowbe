@@ -1,0 +1,18 @@
+{
+  "bringOut": {
+    "description": "即将到来的季节的衣物。",
+    "title": "拿出来"
+  },
+  "error": "无法加载换季整理。",
+  "hint": "整理好后点一下。清单依据每件衣物的季节；在衣橱里补充季节会更准确。",
+  "lastYear": "去年这个时候穿过",
+  "nothing": "这次没有。",
+  "putAway": {
+    "description": "即将结束的季节的衣物。",
+    "title": "收起来"
+  },
+  "sameSeason": "接下来两个月季节不变，暂时不用换季。",
+  "stays": "{count, plural, other {# 件全年都放在外面}}",
+  "subtitle": "为接下来几个月收起和拿出的衣物。",
+  "title": "换季整理"
+}

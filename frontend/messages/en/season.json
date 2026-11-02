@@ -1,0 +1,18 @@
+{
+  "bringOut": {
+    "description": "Clothes for the season that is coming.",
+    "title": "Bring out"
+  },
+  "error": "Could not load the season swap.",
+  "hint": "Tap an item once it is done. The list comes from each item's seasons: add them in the wardrobe for a better swap.",
+  "lastYear": "You wore it this time last year",
+  "nothing": "Nothing here this time.",
+  "putAway": {
+    "description": "Clothes for a season that is ending.",
+    "title": "Put away"
+  },
+  "sameSeason": "Same season for the next two months: nothing to swap yet.",
+  "stays": "{count, plural, one {# item stays out all year} other {# items stay out all year}}",
+  "subtitle": "What to put away and what to bring out for the coming months.",
+  "title": "Season swap"
+}
