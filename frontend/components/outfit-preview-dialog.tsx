@@ -15,6 +15,7 @@ import { useRotateImage } from '@/lib/hooks/use-items';
 import { FamilyRatingForm, FamilyRatingsDisplay } from '@/components/family-ratings';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { ShareOutfitButton } from '@/components/share-outfit-button';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatShortDate } from '@/lib/utils';
 import { useOccasionLabel, useSubtypeLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
@@ -343,8 +344,9 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
         </div>
 
         {/* Close button at bottom - always visible */}
-        <div className="border-t p-3 flex-shrink-0">
-          <Button variant="outline" className="w-full" onClick={onClose}>
+        <div className="border-t p-3 flex-shrink-0 flex gap-2">
+          <ShareOutfitButton outfit={outfit} className="flex-1" />
+          <Button variant="outline" className="flex-1" onClick={onClose}>
             {tc('close')}
           </Button>
         </div>
