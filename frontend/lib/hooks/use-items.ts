@@ -569,10 +569,13 @@ export function useReanalyzeItem() {
   const { data: session } = useSession();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    // A plain id keeps the AI's answers for anything already set; with replace, the AI redoes its
+    // own earlier answers and only what a person edited is kept.
+    mutationFn: async (target: string | { id: string; replace?: boolean }) => {
+      const { id, replace } = typeof target === 'string' ? { id: target, replace: false } : target;
       applySessionToken(session);
       return api.post<{ job_id?: string; status: string; retry_after_seconds?: number }>(
-        `/items/${id}/analyze`
+        `/items/${id}/analyze${replace ? '?replace=true' : ''}`
       );
     },
     onSuccess: () => {

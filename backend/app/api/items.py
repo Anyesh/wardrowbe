@@ -1541,6 +1541,11 @@ async def trigger_ai_analysis(
     item_id: UUID,
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
+    replace: bool = Query(
+        False,
+        description="Overwrite the AI's earlier tags, keeping any a person edited by hand, "
+        "instead of only filling the empty ones.",
+    ),
 ) -> dict:
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
@@ -1557,6 +1562,8 @@ async def trigger_ai_analysis(
         return {"status": "deferred", "reason": "vision disabled"}
 
     image_service = ImageService()
+    # Only sent when replacing, so a plain re-analysis enqueues exactly what it always did.
+    job_options = {"replace": True} if replace else {}
 
     if item.status == ItemStatus.processing and item.ai_job_id:
         # Dedup: a live job already owns this item. If ai_job_id is None instead,
@@ -1596,6 +1603,7 @@ async def trigger_ai_analysis(
                     full_image_path,
                     _job_id=job_id,
                     _queue_name=TAGGING_QUEUE,
+                    **job_options,
                 )
                 if enqueued is None:
                     raise RuntimeError("enqueue_job returned None")
@@ -1626,6 +1634,7 @@ async def trigger_ai_analysis(
                 str(item.id),
                 full_image_path,
                 _queue_name=TAGGING_QUEUE,
+                **job_options,
             )
             item.ai_job_id = job.job_id
             await db.commit()

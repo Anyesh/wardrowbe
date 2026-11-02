@@ -15,6 +15,7 @@ import {
   Shirt,
   Sparkles,
   RefreshCw,
+  Replace,
   RotateCcw,
   RotateCw,
   Eraser,
@@ -81,6 +82,7 @@ import { ColorEyedropper } from '@/components/color-eyedropper';
 import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
 import { ItemTagsEditor } from '@/components/item-tags-editor';
+import { ReplaceAnalysisDialog } from '@/components/replace-analysis-dialog';
 import {
   diffTags,
   draftFromTags,
@@ -158,6 +160,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const fitLabel = useFitLabel();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
   const [showPairingsDialog, setShowPairingsDialog] = useState(false);
   const [imageKey, setImageKey] = useState(0);
   const [editForm, setEditForm] = useState<EditForm>({
@@ -298,9 +301,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     }
   };
 
-  const handleReanalyze = async () => {
+  const handleReanalyze = async (replace = false) => {
     try {
-      const result = await reanalyzeItem.mutateAsync(item.id);
+      const result = await reanalyzeItem.mutateAsync({ id: item.id, replace });
       if (result.status === 'cooldown' && result.retry_after_seconds) {
         toast.info(tw('ai.retryCooldown', { seconds: result.retry_after_seconds }));
       }
@@ -429,13 +432,22 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={handleReanalyze}
+                  onClick={() => handleReanalyze()}
                   disabled={isAnalyzing}
                   title={isAnalyzing ? t('titles.analysisInProgress') : t('titles.reanalyzeWithAI')}
                 >
                   <RefreshCw
                     className={`h-5 w-5 ${isAnalyzing ? 'animate-spin text-primary' : ''}`}
                   />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowReplaceConfirm(true)}
+                  disabled={isAnalyzing}
+                  title={t('titles.reanalyzeAndReplace')}
+                >
+                  <Replace className="h-5 w-5" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -1141,6 +1153,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
           </div>
         </DialogContent>
       </Dialog>
+
+      <ReplaceAnalysisDialog
+        open={showReplaceConfirm}
+        onOpenChange={setShowReplaceConfirm}
+        onConfirm={() => handleReanalyze(true)}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

@@ -188,6 +188,11 @@
       "washIntervalDefault": "Predefinito: {count}"
     },
     "primaryColor": "Colore principale",
+    "replaceAnalysis": {
+      "confirm": "Rianalizza e sostituisci",
+      "description": "L'IA guarda di nuovo la foto e sostituisce le sue stime precedenti. I tag che hai modificato tu vengono mantenuti. Le modifiche fatte prima di questa funzione non sono state registrate, quindi possono essere sostituite.",
+      "title": "Rianalizzare e sostituire i tag IA?"
+    },
     "subtype": "Sottotipo",
     "tagsEditor": {
       "fit": "Vestibilità",
@@ -207,6 +212,7 @@
       "analysisInProgress": "Analisi in corso...",
       "deleteImage": "Elimina immagine",
       "findMatchingOutfits": "Trova outfit abbinati",
+      "reanalyzeAndReplace": "Rianalizza e sostituisci i tag IA",
       "reanalyzeWithAI": "Rianalizza con IA",
       "removeBackground": "Rimuovi sfondo",
       "replaceImage": "Sostituisci immagine",
