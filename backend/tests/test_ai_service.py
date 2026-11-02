@@ -34,6 +34,7 @@ class TestLocalizedDescription:
         ("locale", "language"),
         [
             ("en", "English"),
+            ("en-GB", "British English"),
             ("zh-CN", "Simplified Chinese"),
             ("zh-TW", "Traditional Chinese"),
             ("ko", "Korean"),
