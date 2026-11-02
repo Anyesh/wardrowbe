@@ -15,6 +15,7 @@ from app.api.pairings import router as pairings_router
 from app.api.preferences import router as preferences_router
 from app.api.users import router as users_router
 from app.api.weather import router as weather_router
+from app.api.wishlist import router as wishlist_router
 
 api_router = APIRouter()
 
@@ -32,3 +33,4 @@ api_router.include_router(pairings_router)
 api_router.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(analytics_router)
 api_router.include_router(learning_router)
+api_router.include_router(wishlist_router)

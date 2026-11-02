@@ -1,0 +1,54 @@
+{
+  "actions": {
+    "bought": "구매함",
+    "delete": "삭제",
+    "notBought": "구매 안 함",
+    "open": "쇼핑몰",
+    "photo": "사진 변경"
+  },
+  "error": "문제가 발생했어요. 다시 시도해 주세요.",
+  "form": {
+    "add": "목록에 추가",
+    "added": "{name}을(를) 목록에 추가했어요",
+    "anyType": "모든 종류",
+    "description": "쇼핑몰 링크를 붙여 넣으면 사진·이름·가격을 가져와요. 사진을 올리고 메모를 써도 돼요.",
+    "invalid": "입력을 확인하세요: 링크는 http:// 또는 https://로 시작해야 해요.",
+    "link": "쇼핑몰 링크",
+    "linkPlaceholder": "https://…",
+    "linkRead": "{site}에서 정보를 가져왔어요",
+    "linkUnreadable": "그 페이지를 읽지 못했어요. 직접 입력해 주세요.",
+    "name": "이름",
+    "notes": "메모",
+    "notesPlaceholder": "사이즈, 색상, 구할 수 있는 곳…",
+    "photo": "사진",
+    "price": "가격",
+    "priority": "우선순위",
+    "readLink": "링크 읽기",
+    "title": "추가하기",
+    "type": "종류"
+  },
+  "list": {
+    "bought": "{count, plural, other {구매함 · #개}}",
+    "empty": "목록이 비어 있어요.",
+    "title": "{count, plural, =0 {살 것} other {살 것 · #개}}",
+    "total": "총 약 {total}"
+  },
+  "price": {
+    "check": "가격 확인",
+    "dropped": "가격 인하",
+    "foundDrops": "{count, plural, other {#개 가격이 내려갔어요}}",
+    "noDrops": "아직 내려간 가격이 없어요"
+  },
+  "priority": {
+    "1": "꼭 필요",
+    "2": "갖고 싶음",
+    "3": "언젠가"
+  },
+  "subtitle": "사고 싶은 것을 쇼핑몰 사진이나 직접 찍은 사진, 메모와 함께.",
+  "suggestions": {
+    "description": "가진 옷을 기준으로 했어요. 눌러서 항목을 시작하세요.",
+    "item": "{role} ({have}/{target})",
+    "title": "옷장에 부족한 것"
+  },
+  "title": "쇼핑 목록"
+}

@@ -1,0 +1,54 @@
+{
+  "actions": {
+    "bought": "Bought",
+    "delete": "Delete",
+    "notBought": "Not bought",
+    "open": "Shop",
+    "photo": "Change photo"
+  },
+  "error": "Something went wrong. Please try again.",
+  "form": {
+    "add": "Add to list",
+    "added": "{name} added to the list",
+    "anyType": "Any type",
+    "description": "Paste a shop link to fill in the photo, name and price, or upload a photo and write notes.",
+    "invalid": "Check the fields: links must start with http:// or https://.",
+    "link": "Shop link",
+    "linkPlaceholder": "https://…",
+    "linkRead": "Details read from {site}",
+    "linkUnreadable": "That page could not be read. Fill in the details by hand.",
+    "name": "Name",
+    "notes": "Notes",
+    "notesPlaceholder": "Size, colour, where to find it…",
+    "photo": "Photo",
+    "price": "Price",
+    "priority": "Priority",
+    "readLink": "Read link",
+    "title": "Add something",
+    "type": "Type"
+  },
+  "list": {
+    "bought": "{count, plural, one {Bought · # item} other {Bought · # items}}",
+    "empty": "Your list is empty.",
+    "title": "{count, plural, =0 {To buy} one {To buy · # item} other {To buy · # items}}",
+    "total": "About {total} in all"
+  },
+  "price": {
+    "check": "Check prices",
+    "dropped": "Price drop",
+    "foundDrops": "{count, plural, one {# price went down} other {# prices went down}}",
+    "noDrops": "No price drops for now"
+  },
+  "priority": {
+    "1": "Must have",
+    "2": "Would like",
+    "3": "Some day"
+  },
+  "subtitle": "Things you'd like to buy, with a photo from the shop or your own and your notes.",
+  "suggestions": {
+    "description": "Based on what you own; tap one to start an entry.",
+    "item": "{role} ({have}/{target})",
+    "title": "What your wardrobe is short of"
+  },
+  "title": "Shopping list"
+}

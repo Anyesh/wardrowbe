@@ -17,6 +17,7 @@ from app.workers.notifications import (
     retry_failed_notifications,
     update_learning_profiles,
 )
+from app.workers.price_watch import check_wishlist_prices
 from app.workers.queues import IMAGE_PROCESSING_KINDS, TAGGING_QUEUE, queue_for_kind
 from app.workers.settings import get_redis_settings
 from app.workers.tagging import TAGGING_MAX_TRIES, tag_item_image, worker_job_timeout_seconds
@@ -126,6 +127,7 @@ class WorkerSettings:
         process_scheduled_notification,
         check_wash_reminders,
         update_learning_profiles,
+        check_wishlist_prices,
     ]
 
     cron_jobs = [
@@ -134,6 +136,7 @@ class WorkerSettings:
         cron(check_wash_reminders, minute=15, hour={0, 6, 12, 18}),
         cron(update_learning_profiles, minute=30, hour=None),
         cron(recover_stale_processing_items, minute={0, 15, 30, 45}),
+        cron(check_wishlist_prices, minute=5, hour=9),
     ]
 
     on_startup = startup

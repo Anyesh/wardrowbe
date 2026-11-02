@@ -1,0 +1,54 @@
+{
+  "actions": {
+    "bought": "購入済み",
+    "delete": "削除",
+    "notBought": "未購入",
+    "open": "ショップ",
+    "photo": "写真を変更"
+  },
+  "error": "問題が発生しました。もう一度お試しください。",
+  "form": {
+    "add": "リストに追加",
+    "added": "{name}をリストに追加しました",
+    "anyType": "すべての種類",
+    "description": "ショップのリンクを貼ると写真・名前・価格を取り込みます。写真をアップしてメモを書くこともできます。",
+    "invalid": "入力を確認してください：リンクはhttp://またはhttps://で始めてください。",
+    "link": "ショップのリンク",
+    "linkPlaceholder": "https://…",
+    "linkRead": "{site}から取り込みました",
+    "linkUnreadable": "このページは読めませんでした。手入力してください。",
+    "name": "名前",
+    "notes": "メモ",
+    "notesPlaceholder": "サイズ、色、売っている場所…",
+    "photo": "写真",
+    "price": "価格",
+    "priority": "優先度",
+    "readLink": "リンクを読む",
+    "title": "追加する",
+    "type": "種類"
+  },
+  "list": {
+    "bought": "{count, plural, other {購入済み · #点}}",
+    "empty": "リストは空です。",
+    "title": "{count, plural, =0 {買うもの} other {買うもの · #点}}",
+    "total": "合計 約{total}"
+  },
+  "price": {
+    "check": "価格を確認",
+    "dropped": "値下がり",
+    "foundDrops": "{count, plural, other {#件が値下がりしました}}",
+    "noDrops": "今のところ値下がりはありません"
+  },
+  "priority": {
+    "1": "必要",
+    "2": "欲しい",
+    "3": "いつか"
+  },
+  "subtitle": "買いたいものを、ショップの写真や自分の写真、メモと一緒に。",
+  "suggestions": {
+    "description": "手持ちの服から判断しました。タップで追加を始めます。",
+    "item": "{role}（{have}/{target}）",
+    "title": "ワードローブに足りないもの"
+  },
+  "title": "買い物リスト"
+}
