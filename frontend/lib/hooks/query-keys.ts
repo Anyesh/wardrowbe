@@ -37,6 +37,7 @@ export const queryKeys = {
   colorDistribution: ['color-distribution'] as const,
   taggingProgress: ['tagging-progress'] as const,
   washHistory: (itemId: string) => ['wash-history', itemId] as const,
+  garmentDetection: (itemId: string) => ['garment-detection', itemId] as const,
   wearStats: {
     all: WEAR_STATS,
     item: (itemId: string) => [...WEAR_STATS, itemId] as const,
