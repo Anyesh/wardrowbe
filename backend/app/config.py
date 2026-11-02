@@ -167,7 +167,7 @@ class Settings(BaseSettings):
 
     # Background removal
     bg_removal_provider: str = Field(default="rembg")  # "rembg" or "http"
-    bg_removal_model: str = Field(default="u2net")  # rembg model name
+    bg_removal_model: str = Field(default="birefnet-general-lite")  # rembg model name
     bg_removal_url: str | None = Field(default=None)  # URL for http provider (e.g. withoutbg)
     bg_removal_api_key: str | None = Field(default=None)  # API key for http provider
 
