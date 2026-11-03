@@ -79,6 +79,10 @@ Self-hosted wardrobe management with AI-powered outfit recommendations. Take pho
 
 ## Quick Start
 
+### One-Click Deploy
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/Wardrowbe/)
+
 You need Docker with Docker Compose, about 4GB of RAM (with local Ollama models), and an AI service: [Ollama](#using-ollama-recommended-for-self-hosting) for free local AI, or an OpenAI API key. The published images are multi-arch (`linux/amd64` and `linux/arm64`), so it runs on a Raspberry Pi 5 too.
 
 ```bash
