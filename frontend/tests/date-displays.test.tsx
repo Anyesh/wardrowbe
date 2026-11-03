@@ -54,9 +54,16 @@ const CASES = [
     month: '2026年10月',
     relative: '3 日後',
   },
+  {
+    locale: 'es',
+    heading: 'lunes, 5 de octubre',
+    emptyDate: 'noOutfitsForDate: 5 de octubre de 2026',
+    month: 'octubre de 2026',
+    relative: 'dentro de 3 días',
+  },
 ]
 
-const TODAY = { en: 'today', de: 'heute', ja: '今日' }
+const TODAY = { en: 'today', de: 'heute', ja: '今日', es: 'hoy' }
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })

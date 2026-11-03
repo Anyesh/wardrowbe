@@ -151,7 +151,7 @@ export function ItemCard({ item, onSelect }: ItemCardProps) {
 
 ## Internationalization
 
-Wardrowbe ships in 8 languages. **Every user-visible string must go through `next-intl`.** A PR that
+Wardrowbe ships in 9 languages. **Every user-visible string must go through `next-intl`.** A PR that
 hardcodes English will be blocked by CI.
 
 Translation files live in `frontend/messages/<locale>/<namespace>.json`, split by feature area.
