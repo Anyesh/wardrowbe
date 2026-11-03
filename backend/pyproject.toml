@@ -17,6 +17,12 @@ select = [
     "B",   # flake8-bugbear
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
+    "PT011",  # constrain broad pytest.raises assertions
+    "PT018",  # keep compound test assertions independently diagnosable
+    "S2",  # security checks for Flask debug mode and unsafe tar extraction
+    "S3",  # security checks for unsafe Python APIs
+    "S5",  # security checks for TLS, YAML, and SSH risks
+    "S6",  # security checks for subprocess and SQL injection risks
 ]
 ignore = [
     "E501",  # line too long (handled by formatter)

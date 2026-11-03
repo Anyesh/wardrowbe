@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import subprocess
+import sys
 
 # Set test environment — clear OIDC vars so auth tests run with a known state
 os.environ["DEBUG"] = "true"
@@ -57,7 +58,7 @@ async def _ensure_test_db():
 
     env = {**os.environ, "DATABASE_URL": TEST_DATABASE_URL}
     subprocess.run(
-        ["python", "-m", "alembic", "upgrade", "head"],
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
         env=env,
         check=True,
         capture_output=True,

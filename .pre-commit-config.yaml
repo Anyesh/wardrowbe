@@ -1,10 +1,9 @@
 repos:
   # Backend: Ruff linting and formatting
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+    rev: v0.16.8
     hooks:
-      - id: ruff
-        args: [--fix]
+      - id: ruff-check
         files: ^backend/
       - id: ruff-format
         files: ^backend/
