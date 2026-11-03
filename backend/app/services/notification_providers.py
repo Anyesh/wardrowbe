@@ -381,8 +381,10 @@ class EmailProvider:
         self.from_name = settings.smtp_from_name
         self.from_email = settings.smtp_from_email or self.smtp_user
 
+    # SMTP_USER is optional so a relay that accepts mail without AUTH can be used, but the sender
+    # address still has to come from SMTP_FROM_EMAIL or SMTP_USER.
     def is_configured(self) -> bool:
-        return bool(self.smtp_host and self.smtp_user)
+        return bool(self.smtp_host and self.from_email)
 
     async def send(self, message: EmailMessage) -> dict:
         if not self.is_configured():

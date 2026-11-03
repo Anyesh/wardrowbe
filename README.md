@@ -308,11 +308,11 @@ Upgrading from a release before sign-in identities (the `user_identities` table)
 | `NTFY_TOKEN` | Access token for `NTFY_SERVER`, used for any ntfy channel on that server that has no token of its own | No |
 | `SMTP_HOST` | SMTP server for email notifications | No |
 | `SMTP_PORT` | SMTP port (default: 587) | No |
-| `SMTP_USER` | SMTP username | No |
-| `SMTP_PASSWORD` | SMTP password | No |
+| `SMTP_USER` | SMTP username; leave unset for a relay that accepts mail without authentication | No |
+| `SMTP_PASSWORD` | SMTP password; only used with `SMTP_USER` | No |
 | `SMTP_USE_TLS` | Use STARTTLS for SMTP (default: true) | No |
 | `SMTP_FROM_NAME` | Sender name on notification emails (default: Wardrowbe) | No |
-| `SMTP_FROM_EMAIL` | Sender address (default: `SMTP_USER`) | No |
+| `SMTP_FROM_EMAIL` | Sender address (default: `SMTP_USER`); required when `SMTP_USER` is unset | No |
 
 </details>
 
@@ -387,7 +387,7 @@ An account can sign in through more than one provider. To block a person or unli
 
 ### Notifications
 
-Users add their own channels in the app: **ntfy** push notifications, **Mattermost** webhooks, or **email** (set `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` in `.env`).
+Users add their own channels in the app: **ntfy** push notifications, **Mattermost** webhooks, or **email** (set `SMTP_HOST` and either `SMTP_USER`/`SMTP_PASSWORD` or, for a relay without authentication, `SMTP_FROM_EMAIL` in `.env`).
 
 ### Weather and location
 
