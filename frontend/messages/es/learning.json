@@ -1,0 +1,94 @@
+{
+  "bestCombinations": {
+    "description": "Prendas que sueles querer llevar juntas",
+    "title": "Tus mejores combinaciones"
+  },
+  "colorPreferences": {
+    "description": "Colores que sueles aceptar o rechazar",
+    "noData": "Todavía no hay suficientes valoraciones para saber tus colores.",
+    "title": "Colores aprendidos"
+  },
+  "confidence": "{percent} % de confianza",
+  "dismiss": "Descartar",
+  "insightCategoryColor": "Color",
+  "insightCategoryOccasion": "Ocasión",
+  "insightCategoryOverall": "General",
+  "insightCategoryStyle": "Estilo",
+  "insightCategoryWeather": "Tiempo",
+  "insightColorAvoidedDescription": "Sueles rechazar los conjuntos con {color}. Te propondremos alternativas.",
+  "insightColorAvoidedTitle": "{color} no te convence",
+  "insightColorLovedDescription": "Tus valoraciones muestran que te gustan mucho las prendas de {color}. Las priorizaremos en las recomendaciones.",
+  "insightColorLovedTitle": "¡Te encanta el {color}!",
+  "insightGreatMatchDescription": "Aceptas el {percent} de nuestras sugerencias. Estamos aprendiendo bien tu estilo.",
+  "insightGreatMatchTitle": "¡Encaja muy bien!",
+  "insightHelpUsLearnDescription": "Has rechazado muchas sugerencias. Actualiza tus preferencias para que podamos mejorar.",
+  "insightHelpUsLearnTitle": "Ayúdanos a aprender tu estilo",
+  "insightStyleLeaningDescription": "Según tus valoraciones, te inclinas por estilos {styles}.",
+  "insightStyleLeaningTitle": "Tu estilo: {style}",
+  "interpretationDisliked": "no te gusta",
+  "interpretationLiked": "te gusta",
+  "interpretationNeutral": "neutro",
+  "interpretationStronglyDisliked": "te disgusta mucho",
+  "interpretationStronglyLiked": "te gusta mucho",
+  "lastUpdated": "Perfil de aprendizaje actualizado: {date}",
+  "loadError": "No se han podido cargar los datos de aprendizaje. Inténtalo de nuevo.",
+  "noData": {
+    "alreadyGaveFeedback": "¿Ya has valorado algo? Pulsa «Calcular ahora» para procesarlo.",
+    "computeNow": "Calcular ahora",
+    "computing": "Calculando…",
+    "description": "Empieza aceptando o rechazando sugerencias de conjuntos y valorándolas.",
+    "getOutfitSuggestions": "Pedir sugerencias de conjuntos",
+    "title": "Todavía no hay datos de aprendizaje"
+  },
+  "occasionPatterns": {
+    "description": "Qué funciona en cada ocasión",
+    "title": "Patrones por ocasión"
+  },
+  "percent": "{value} %",
+  "preferredColors": "Colores preferidos:",
+  "recompute": "Recalcular",
+  "stats": {
+    "acceptanceRate": "Tasa de aceptación",
+    "averageRating": "Valoración media",
+    "feedbackGiven": "Valoraciones hechas",
+    "notEnoughData": "No hay datos suficientes",
+    "outOfStars": "de {max, plural, one {# estrella} other {# estrellas}}",
+    "outfitsRated": "{count, plural, one {{count} conjunto valorado} other {{count} conjuntos valorados}}",
+    "rateMoreOutfits": "Valora más conjuntos",
+    "rateOutfitStyles": "Valora estilos de conjuntos",
+    "styleRating": "Valoración de estilo",
+    "styleSatisfaction": "satisfacción con el estilo",
+    "suggestionsAccepted": "de las sugerencias aceptadas"
+  },
+  "styleInsights": {
+    "description": "Lo que hemos aprendido de tus preferencias",
+    "generate": "Nuevas ideas",
+    "title": "Ideas de estilo"
+  },
+  "stylePreferences": {
+    "description": "Estilos que encajan con tu gusto",
+    "noData": "Todavía no hay suficientes valoraciones para saber tus estilos.",
+    "title": "Estilos aprendidos"
+  },
+  "subtitle": "Cómo aprende la IA de tus valoraciones",
+  "subtitleEmpty": "Empieza a valorar conjuntos para que la IA aprenda tus preferencias",
+  "successRate": "{percent} % de acierto",
+  "suggestedUpdates": {
+    "addToAvoid": "Añadir a colores que evitar:",
+    "addToFavorites": "Añadir a colores favoritos:",
+    "description": "Según tus valoraciones, te proponemos actualizar las preferencias",
+    "title": "Cambios de preferencias sugeridos",
+    "updatePreferences": "Actualizar preferencias"
+  },
+  "timesPaired": "combinado {count} veces",
+  "title": "Aprendizaje de la IA",
+  "weatherPreferences": {
+    "description": "Cómo te vistes según el tiempo",
+    "layers": "~{count} capas",
+    "title": "Preferencias según el tiempo"
+  },
+  "weatherTypeCold": "Frío",
+  "weatherTypeCool": "Fresco",
+  "weatherTypeHot": "Calor",
+  "weatherTypeMild": "Suave"
+}

@@ -1,0 +1,106 @@
+{
+  "baseItem": {
+    "all": "Todas",
+    "basePiece": "Prenda base",
+    "change": "Cambiar",
+    "chooseItem": "Elige una prenda",
+    "chooseItemHint": "Elige una camisa, unos pantalones, unos zapatos o cualquier pieza sobre la que montar el conjunto",
+    "clear": "Quitar",
+    "dialogDescription": "Elige una prenda del armario para montar este conjunto a partir de ella.",
+    "dialogTitle": "Elige una prenda para tu conjunto",
+    "mustInclude": "Tiene que incluir",
+    "remove": "Quitar",
+    "subtitle": "Elige una camisa, unos pantalones, unos zapatos o cualquier prenda que tenga que salir en el conjunto",
+    "title": "Montar el conjunto a partir de una prenda (opcional)"
+  },
+  "dismissOutfit": "Descartar conjunto",
+  "error": "No se ha podido generar la sugerencia de conjunto. Inténtalo de nuevo.",
+  "feedback": {
+    "commentsOptional": "Comentarios (opcional)",
+    "commentsPlaceholder": "¿Qué te ha parecido este conjunto?",
+    "didYouWear": "¿Te has puesto este conjunto?",
+    "didYouWearDesc": "Dinos si has seguido la recomendación para que podamos aprender tus preferencias.",
+    "howDidItWork": "¿Qué tal te fue con este conjunto?",
+    "itemsSelected": "{count, plural, one {# prenda seleccionada} other {# prendas seleccionadas}}",
+    "loadingMore": "Cargando más…",
+    "noItemsInWardrobe": "No hay prendas en el armario",
+    "noMatch": "Ninguna prenda coincide con la búsqueda",
+    "noWoreSomethingElse": "No, me puse otra cosa",
+    "overallRating": "Valoración general",
+    "rateHowItWent": "Valora cómo te fue",
+    "rateThisOutfit": "Valorar este conjunto",
+    "searchWardrobe": "Busca en tu armario…",
+    "showingAll": "{count, plural, one {Mostrando # prenda} other {Mostrando las # prendas}}",
+    "submitError": "No se ha podido enviar la valoración",
+    "submitWithCount": "Enviar ({count})",
+    "submitted": "Valoración enviada",
+    "submitting": "Enviando…",
+    "tellUsWhatYouWore": "Cuéntanos qué te pusiste",
+    "whatDidYouWear": "¿Qué te pusiste en su lugar?",
+    "whatDidYouWearDesc": "Selecciona las prendas que te pusiste de verdad. Así aprendemos tus preferencias.",
+    "yesWoreIt": "Sí, me lo puse"
+  },
+  "generating": "Creando tu look…",
+  "getSuggestion": "Pedir sugerencia",
+  "greeting": {
+    "afternoon": "Buenas tardes",
+    "evening": "Buenas noches",
+    "morning": "Buenos días"
+  },
+  "location": {
+    "notSet": "Ubicación sin definir",
+    "setDescription": "Define tu ubicación en Ajustes para sugerencias que tengan en cuenta el tiempo"
+  },
+  "loveIt": "Me encanta",
+  "occasionPrompt": "¿Cuál es la ocasión?",
+  "options": {
+    "allOptions": "Comparar todas",
+    "chooseThis": "Elegir este look",
+    "generateNew": "Generar 3 looks nuevos",
+    "optionNumber": "Look {number}",
+    "singleView": "Vista enfocada",
+    "title": "{count} opciones de conjunto"
+  },
+  "outfitPreview": {
+    "familyRatings": {
+      "average": "({rating} <star></star> de media)",
+      "noRatings": "Todavía no hay valoraciones de la familia.",
+      "noRatingsPrompt": "Todavía no hay valoraciones de la familia. ¡Valora tú primero!",
+      "rate": "Valorar",
+      "title": "Valoraciones de la familia"
+    },
+    "imageRotated": "Imagen girada",
+    "noImage": "Sin imagen",
+    "rotateFailed": "No se ha podido girar la imagen",
+    "rotateLeft": "Girar a la izquierda",
+    "rotateRight": "Girar a la derecha",
+    "title": "Conjunto de {occasion}",
+    "viewItemDetails": "Ver detalles de la prenda"
+  },
+  "startOver": "Empezar de nuevo",
+  "subtitle": "Vamos a encontrar el conjunto perfecto para tu día",
+  "tip": "Consejo:",
+  "tryAnother": "Probar otro",
+  "weather": {
+    "feelsLike": "Sensación {temp}°",
+    "feelsLikeInline": "(sensación {temp}°)",
+    "rainChance": "{chance} % de lluvia",
+    "windSpeed": "{speed} km/h"
+  },
+  "weatherHints": {
+    "cold": "Abrígate: hace bastante frío",
+    "hot": "Mejor algo ligero y que transpire",
+    "mild": "Una chaqueta ligera vendría de perlas",
+    "nice": "Buen tiempo para cualquier estilo",
+    "rainy": "Lleva paraguas o un chubasquero",
+    "windy": "Mejor algo que corte el viento"
+  },
+  "weatherOverride": {
+    "active": "Tiempo personalizado activo",
+    "condition": "Condición",
+    "overrideWeather": "Cambiar el tiempo",
+    "reset": "Restablecer",
+    "temperature": "Temperatura"
+  },
+  "yourOutfit": "Tu conjunto"
+}

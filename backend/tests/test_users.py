@@ -185,7 +185,7 @@ class TestUserLocale:
         assert response.json()["locale"] == "zh-CN"
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("locale", ["en", "zh-CN", "zh-TW", "ko", "ja", "fr", "de", "it"])
+    @pytest.mark.parametrize("locale", ["en", "zh-CN", "zh-TW", "ko", "ja", "fr", "de", "it", "es"])
     async def test_all_supported_locales_accepted(
         self, client: AsyncClient, test_user, auth_headers, locale
     ):

@@ -1,0 +1,99 @@
+{
+  "channels": {
+    "addChannel": "Añadir canal",
+    "addFailed": "No se ha podido añadir el canal",
+    "channelAdded": "Canal añadido",
+    "channelDeleted": "Canal eliminado",
+    "channelDisabled": "Canal desactivado",
+    "channelEnabled": "Canal activado",
+    "channelType": "Tipo de canal",
+    "deleteConfirm": {
+      "description": "Se eliminará este canal de avisos y dejarán de enviarse notificaciones por él.",
+      "title": "¿Eliminar el canal de avisos?"
+    },
+    "description": "Añade canales para recibir tus recomendaciones diarias de conjuntos",
+    "dialog": {
+      "description": "Configura una forma nueva de recibir recomendaciones de conjuntos.",
+      "title": "Canal de avisos"
+    },
+    "fields": {
+      "accessToken": "Token de acceso",
+      "emailAddress": "Correo electrónico *",
+      "serverUrl": "URL del servidor",
+      "topic": "Tema *",
+      "webhookUrl": "URL del webhook *"
+    },
+    "helpers": {
+      "accessTokenOptional": "Hace falta si tu servidor ntfy usa autenticación",
+      "accessTokenServerDefault": "Déjalo vacío para usar el token de acceso configurado en este servidor",
+      "mattermostWebhook": "Crea un webhook entrante en los ajustes de Mattermost",
+      "topicSubscribe": "Suscríbete a este tema en tu app de ntfy"
+    },
+    "invalidConfig": "Ajustes no válidos",
+    "invalidConfigHint": "Estos ajustes ya no se aceptan, así que no se envía nada por este canal. Elimínalo y vuelve a añadirlo.",
+    "mobileAppRegistered": "Registrado desde la app móvil",
+    "noChannels": "No hay canales de avisos configurados",
+    "noChannelsDesc": "Añade un canal para empezar a recibir sugerencias de conjuntos",
+    "placeholders": {
+      "accessToken": "tk_...",
+      "emailAddress": "tu@ejemplo.com"
+    },
+    "priority": "Prioridad {level}",
+    "test": "Probar",
+    "testFailed": "No se ha podido enviar el aviso de prueba",
+    "testSent": "Aviso de prueba enviado",
+    "title": "Canales de avisos",
+    "types": {
+      "email": "Correo electrónico",
+      "expo_push": "Aviso de la app móvil",
+      "mattermost": "Mattermost",
+      "ntfy": "Avisos push de ntfy"
+    },
+    "validation": {
+      "emailRequired": "El correo electrónico es obligatorio",
+      "topicRequired": "El tema es obligatorio para ntfy",
+      "webhookRequired": "La URL del webhook es obligatoria para Mattermost"
+    },
+    "webhookConfigured": "Webhook configurado"
+  },
+  "days": {
+    "friday": "Viernes",
+    "monday": "Lunes",
+    "saturday": "Sábado",
+    "sunday": "Domingo",
+    "thursday": "Jueves",
+    "tuesday": "Martes",
+    "wednesday": "Miércoles"
+  },
+  "deleteFailed": "No se ha podido eliminar",
+  "schedule": {
+    "addFailed": "No se ha podido añadir el horario",
+    "addSchedule": "Añadir horario",
+    "dayLabel": "Día",
+    "deleteConfirm": {
+      "description": "Se eliminará este horario de envío.",
+      "title": "¿Eliminar el horario?"
+    },
+    "description": "Elige cuándo quieres recibir las recomendaciones de conjuntos cada día",
+    "dialogDescription": "Configura cuándo quieres recibir las recomendaciones de conjuntos.",
+    "noSchedules": "No hay horarios configurados",
+    "noSchedulesDesc": "Añade un horario para recibir sugerencias diarias de conjuntos",
+    "notifyDayBefore": "Avisar el día anterior",
+    "notifyDayBeforeDesc": "Recibe el aviso la tarde anterior, con la previsión de mañana",
+    "notifyDayBeforeInfo": "Recibirás el aviso el {notifyDay} a las {time} para tu conjunto del {outfitDay}.",
+    "notifyDayEvening": "tarde del {day}",
+    "occasionLabel": "Ocasión",
+    "scheduleAdded": "Horario añadido",
+    "scheduleDeleted": "Horario eliminado",
+    "scheduleDisabled": "Horario desactivado",
+    "scheduleEnabled": "Horario activado",
+    "summary": "{time} - {occasion}",
+    "timeLabel": "Hora",
+    "title": "Horario de envío",
+    "willNotifyDayBefore": "Avisará el día anterior",
+    "willNotifySameDay": "Avisará el mismo día"
+  },
+  "subtitle": "Configura cómo y cuándo recibes las recomendaciones de conjuntos",
+  "title": "Avisos",
+  "updateFailed": "No se ha podido actualizar"
+}

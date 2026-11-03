@@ -90,6 +90,7 @@ DESCRIPTION_LANGUAGES = {
     "fr": "French",
     "de": "German",
     "it": "Italian",
+    "es": "Spanish from Spain, using informal tú",
 }
 # Localized replies wrap the sentence in their own script's quotes, which would otherwise
 # show inside the quotes the item dialog already draws around the description.

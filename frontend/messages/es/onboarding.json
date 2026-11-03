@@ -1,0 +1,80 @@
+{
+  "complete": {
+    "description": "Tu armario está listo. Empieza a añadir ropa y recibe sugerencias de conjuntos personalizadas.",
+    "finishing": "Terminando…",
+    "goToDashboard": "Ir al inicio",
+    "setupFailed": "No se ha podido completar la configuración. Inténtalo de nuevo.",
+    "title": "¡Todo listo!"
+  },
+  "family": {
+    "createFamily": "Crear familia",
+    "createFamilyDesc": "Empieza una familia nueva",
+    "description": "Crea o únete a una familia para compartir la experiencia del armario",
+    "error": "No se ha podido configurar la familia. Inténtalo de nuevo.",
+    "familyName": "Nombre de la familia",
+    "familyNamePlaceholder": "p. ej., Familia García",
+    "inviteCode": "Código de invitación",
+    "inviteCodePlaceholder": "p. ej., ABC123XY",
+    "joinFamily": "Unirme a una familia",
+    "joinFamilyDesc": "Usa un código de invitación",
+    "joinSuccess": "¡Te has unido a la familia!",
+    "success": "¡Familia creada!",
+    "title": "Configuración familiar"
+  },
+  "firstItem": {
+    "addToWardrobe": "Añadir al armario",
+    "chooseDifferentPhoto": "Elegir otra foto",
+    "description": "Haz una foto o sube una imagen de una prenda",
+    "formatHint": "PNG, JPG o HEIC",
+    "previewAlt": "Vista previa",
+    "title": "Añade tu primera prenda",
+    "typeLabel": "¿Qué tipo de prenda es?",
+    "typePlaceholder": "Elige el tipo…",
+    "uploadError": "No se ha podido subir la prenda. Inténtalo de nuevo.",
+    "uploadPrompt": "Pulsa para subir o hacer una foto",
+    "uploadSuccess": "¡Prenda añadida a tu armario!"
+  },
+  "location": {
+    "cityLabel": "Ciudad o lugar",
+    "cityPlaceholder": "p. ej., Madrid",
+    "description": "Lo usamos para sugerirte conjuntos acordes al tiempo",
+    "detectLocation": "Detectar mi ubicación",
+    "locationError": "No se ha podido detectar la ubicación. Escríbela a mano.",
+    "locationSuccess": "¡Ubicación guardada!",
+    "orManual": "O escríbela a mano",
+    "saveError": "No se ha podido guardar la ubicación. Inténtalo de nuevo.",
+    "title": "Tu ubicación"
+  },
+  "skipForNow": "Omitir por ahora",
+  "steps": {
+    "family": "Familia",
+    "firstItem": "Primera prenda",
+    "location": "Ubicación",
+    "style": "Estilo",
+    "welcome": "Bienvenida"
+  },
+  "style": {
+    "colorsToAvoid": "Colores que prefieres evitar",
+    "colorsToAvoidDesc": "Toca los colores que prefieres no llevar",
+    "description": "Ayúdanos a entender tus preferencias de estilo",
+    "favoriteColors": "Colores favoritos",
+    "favoriteColorsDesc": "Toca los colores que te gusta llevar",
+    "percentValue": "{value} %",
+    "saveError": "No se han podido guardar las preferencias de estilo.",
+    "saveSuccess": "¡Preferencias de estilo guardadas!",
+    "styleProfile": "Perfil de estilo",
+    "styleProfileDesc": "Ajusta cuánto te gusta cada estilo",
+    "title": "Tu estilo"
+  },
+  "welcome": {
+    "description": "Vamos a preparar tu armario digital en unos pocos pasos.",
+    "feature1": "Fotografía tu ropa",
+    "feature1Desc": "La IA etiquetará sola los colores, los estilos y más",
+    "feature2": "Recibe conjuntos personalizados",
+    "feature2Desc": "Recomendaciones diarias según el tiempo y tu estilo",
+    "feature3": "Compártelo con la familia",
+    "feature3Desc": "Cada persona puede tener su propio armario",
+    "getStarted": "Empezar",
+    "greeting": "¡Te damos la bienvenida a Wardrowbe{name}!"
+  }
+}

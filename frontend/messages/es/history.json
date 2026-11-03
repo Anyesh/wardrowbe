@@ -1,0 +1,41 @@
+{
+  "card": {
+    "accept": "Aceptar",
+    "acceptFailed": "No se ha podido aceptar el conjunto",
+    "didntWearThis": "No me lo puse",
+    "dismiss": "Descartar",
+    "dismissFailed": "No se ha podido descartar el conjunto",
+    "familyLabel": "Familia:",
+    "itemFallback": "Prenda",
+    "outfitAccepted": "Conjunto aceptado",
+    "outfitDismissed": "Conjunto descartado",
+    "rate": "Valorar",
+    "tip": "Consejo:",
+    "update": "Actualizar",
+    "viewItemDetails": "Ver detalles de la prenda",
+    "woreInstead": "Me puse esto:"
+  },
+  "empty": {
+    "description": "El historial de recomendaciones aparecerá aquí cuando empieces a recibir sugerencias.",
+    "getFirstSuggestion": "Pide tu primera sugerencia",
+    "title": "No hay historial de recomendaciones"
+  },
+  "filters": {
+    "allOccasions": "Todas las ocasiones",
+    "allStatus": "Todos los estados"
+  },
+  "loadError": "No se ha podido cargar el historial. Inténtalo de nuevo.",
+  "noOutfitsForDate": "No hay conjuntos para el {date}",
+  "outfitCount": "{count, plural, one {# conjunto} other {# conjuntos}}",
+  "status": {
+    "accepted": "Aceptado",
+    "expired": "Caducado",
+    "pending": "Pendiente",
+    "rejected": "Rechazado",
+    "sent": "Enviado",
+    "skipped": "Omitido",
+    "viewed": "Visto"
+  },
+  "subtitle": "Consulta tus recomendaciones de conjuntos anteriores",
+  "title": "Historial"
+}
