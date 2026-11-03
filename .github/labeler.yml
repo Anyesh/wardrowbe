@@ -2,9 +2,17 @@ python:
   - changed-files:
       - any-glob-to-any-file: 'backend/**'
 
-javascript:
+frontend:
   - changed-files:
       - any-glob-to-any-file: 'frontend/**'
+
+typescript:
+  - changed-files:
+      - any-glob-to-any-file: ['frontend/**/*.ts', 'frontend/**/*.tsx']
+
+javascript:
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/**/*.{js,jsx,mjs,cjs}'
 
 docker:
   - changed-files:
