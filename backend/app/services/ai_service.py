@@ -15,12 +15,17 @@ from pydantic import BaseModel
 from app.config import get_settings
 from app.utils.garment_vocabulary import (
     COLORS,
+    FITS,
     FORMALITY,
     MATERIALS,
+    PATTERNS,
+    SEASONS,
+    STYLES,
     TYPES,
     normalize_color,
     render_tagging_prompt,
 )
+from app.utils.locale import DEFAULT_LOCALE
 from app.utils.prompts import load_prompt
 
 logger = logging.getLogger(__name__)
@@ -55,7 +60,7 @@ class ClothingTags(BaseModel):
     raw_response: str | None = None
     # The model's type answer when it fell outside VALID_TYPES. Kept so "the model
     # didn't know" (type missing) stays distinguishable from "the model answered
-    # something we don't support" (e.g. "tights"), which otherwise both read "unknown".
+    # something we don't support" (e.g. "culottes"), which otherwise both read "unknown".
     unrecognized_type: str | None = None
 
     def has_content(self) -> bool:
@@ -76,40 +81,29 @@ class ClothingTags(BaseModel):
 
 TAGGING_PROMPT = render_tagging_prompt(load_prompt("clothing_analysis"))
 DESCRIPTION_PROMPT = load_prompt("clothing_description")
+DESCRIPTION_LANGUAGES = {
+    "en": "English",
+    "zh-CN": "Simplified Chinese",
+    "zh-TW": "Traditional Chinese",
+    "ko": "Korean",
+    "ja": "Japanese",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+}
+# Localized replies wrap the sentence in their own script's quotes, which would otherwise
+# show inside the quotes the item dialog already draws around the description.
+DESCRIPTION_QUOTES = (('"', '"'), ("“", "”"), ("「", "」"), ("『", "』"), ("«", "»"))
 
 # Valid values for validation
 VALID_TYPES = set(TYPES)
 VALID_COLORS = set(COLORS)
-VALID_PATTERNS = {
-    "solid",
-    "striped",
-    "plaid",
-    "checkered",
-    "floral",
-    "graphic",
-    "geometric",
-    "polka-dot",
-    "camouflage",
-    "animal-print",
-}
+VALID_PATTERNS = set(PATTERNS)
 VALID_MATERIALS = set(MATERIALS)
 VALID_FORMALITY = set(FORMALITY)
-VALID_FIT = {"slim", "regular", "relaxed", "oversized", "tailored", "cropped"}
-VALID_STYLES = {
-    "casual",
-    "classic",
-    "sporty",
-    "minimalist",
-    "bohemian",
-    "preppy",
-    "streetwear",
-    "elegant",
-    "athletic",
-    "vintage",
-    "modern",
-    "rugged",
-}
-VALID_SEASONS = {"spring", "summer", "fall", "winter", "all-season"}
+VALID_FIT = set(FITS)
+VALID_STYLES = set(STYLES)
+VALID_SEASONS = set(SEASONS)
 
 
 def compute_tag_completeness(tags: "ClothingTags") -> float:
@@ -570,7 +564,7 @@ class AIService:
             last_error.retryable = True
         return None, last_error, None
 
-    async def analyze_image(self, image_path: str | Path) -> ClothingTags:
+    async def analyze_image(self, image_path: str | Path, *, locale: str) -> ClothingTags:
         # PIL preprocessing is CPU-bound and synchronous; run off the event loop so
         # concurrent tagging jobs don't stall each other's in-flight HTTP reads.
         image_base64 = await asyncio.to_thread(self._preprocess_image, image_path)
@@ -590,7 +584,14 @@ class AIService:
         ]
 
         messages_desc = [
-            {"role": "system", "content": DESCRIPTION_PROMPT},
+            {
+                "role": "system",
+                "content": DESCRIPTION_PROMPT.format(
+                    language=DESCRIPTION_LANGUAGES.get(
+                        locale, DESCRIPTION_LANGUAGES[DEFAULT_LOCALE]
+                    )
+                ),
+            },
             {
                 "role": "user",
                 "content": [
@@ -620,8 +621,14 @@ class AIService:
         )
         if description:
             description = description.strip()
-            if description.startswith('"') and description.endswith('"'):
-                description = description[1:-1]
+            for opening, closing in DESCRIPTION_QUOTES:
+                if description.startswith(opening) and description.endswith(closing):
+                    inner = description[len(opening) : -len(closing)]
+                    # A mark inside means the outer two belong to separate quoted spans
+                    # (a quoted brand at the start, a quoted colour at the end).
+                    if opening not in inner and closing not in inner:
+                        description = inner.strip()
+                    break
             tags.description = description
 
         # A partial answer (an unsupported type with its colours, or only a description) is

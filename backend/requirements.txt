@@ -19,14 +19,16 @@ email-validator>=2.1.0
 # Authentication
 PyJWT[crypto]>=2.8.0
 httpx>=0.26.0
+# Older bundles trust the compromised eMudhra intermediates, and httpx verifies against certifi
+certifi>=2026.10.19
 
 # Image processing
 pillow>=10.2.0
 pillow-heif>=0.14.0
 
 # Background jobs
-redis>=5.0.1
-arq>=0.25.0
+redis>=5.0.1,<6  # arq requires redis<6
+arq>=0.26.3
 watchfiles>=0.21.0  # Hot reload for worker in development
 
 # Scheduling

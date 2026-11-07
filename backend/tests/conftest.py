@@ -132,7 +132,7 @@ def _restore_app_logger():
 async def _clear_rate_limits():
     settings = get_settings()
     try:
-        redis = Redis.from_url(str(settings.redis_url))
+        redis = Redis.from_url(settings.redis_url)
         keys = await redis.keys("rate_limit:*")
         if keys:
             await redis.delete(*keys)

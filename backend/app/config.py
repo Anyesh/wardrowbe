@@ -2,8 +2,10 @@ import logging
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, PostgresDsn, RedisDsn, field_validator
+from pydantic import Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.utils.redis_url import parse_redis_url
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
         env_ignore_empty=True,
+        hide_input_in_errors=True,
     )
 
     # Application
@@ -60,7 +63,14 @@ class Settings(BaseSettings):
     database_echo: bool = False
 
     # Redis
-    redis_url: RedisDsn = Field(default="redis://localhost:6379/0")
+    redis_url: str = Field(default="redis://localhost:6379/0")
+
+    @field_validator("redis_url")
+    @classmethod
+    def validate_redis_url(cls, value: str) -> str:
+        value = value.strip()
+        parse_redis_url(value)
+        return value
 
     # Authentication - OIDC
     oidc_issuer_url: str | None = Field(default=None)

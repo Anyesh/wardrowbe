@@ -33,7 +33,13 @@ async def test_update_item_does_not_stamp(call_tool, make_item, test_user):
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("tool", "arguments"),
-    [("set_item_tags", {}), ("update_item", {}), ("set_item_tags", {"type": "tights"})],
+    [
+        ("set_item_tags", {}),
+        ("update_item", {}),
+        ("set_item_tags", {"type": "cape"}),
+        ("set_item_tags", {"material": "unobtainium"}),
+        ("set_item_tags", {"style": ["casual", "swashbuckling"]}),
+    ],
 )
 async def test_rejects_empty_or_invalid_input(
     call_tool_raw, make_item, db_session, test_user, tool, arguments

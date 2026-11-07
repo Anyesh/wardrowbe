@@ -160,7 +160,7 @@ export default function OutfitDetailPage() {
             {outfit.items.map((item) => (
               <Link
                 key={item.id}
-                href={`/dashboard/wardrobe?itemId=${item.id}`}
+                href={`/dashboard/wardrobe?item=${item.id}`}
                 className="group"
               >
                 <div className="relative aspect-square rounded-lg overflow-hidden border bg-muted">

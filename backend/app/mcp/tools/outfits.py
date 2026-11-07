@@ -65,7 +65,7 @@ def register(mcp: MCPServer) -> None:
         async with tool_context() as ctx:
             filters = OutfitListFilters(
                 user_id=ctx.user.id,
-                status_filter=status,
+                status=status,
                 occasion=occasion,
                 source=source,
                 date_from=date_from,

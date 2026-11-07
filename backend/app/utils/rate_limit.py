@@ -82,7 +82,7 @@ def _get_client_ip(request: Request) -> str:
 async def check_rate_limit(key: str, limit: int, window_seconds: int) -> None:
     settings = get_settings()
     try:
-        redis = Redis.from_url(str(settings.redis_url))
+        redis = Redis.from_url(settings.redis_url)
         try:
             # The window is fixed when the key is first created, because re-arming the expiry on
             # every hit would let a steady trickle keep the counter alive forever. SET NX rather

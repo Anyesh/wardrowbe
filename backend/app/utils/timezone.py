@@ -13,7 +13,9 @@ def _load_zone(name: str | None) -> ZoneInfo | None:
         return None
     try:
         return ZoneInfo(name)
-    except (ZoneInfoNotFoundError, ValueError):
+    # With the tzdata package installed, Python 3.11 lets a key naming one of its
+    # directories ("America") escape as IsADirectoryError instead of not-found.
+    except (ZoneInfoNotFoundError, ValueError, IsADirectoryError):
         return None
 
 

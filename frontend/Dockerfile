@@ -1,4 +1,11 @@
 FROM node:24-alpine AS base
+# Node's CA store is compiled in, and before 24.22.1 it trusts the compromised eMudhra
+# intermediates; a stale local node:24-alpine would otherwise build without complaint.
+RUN node -e "const [major, minor, patch] = process.versions.node.split('.').map(Number); \
+  if (major === 24 && (minor < 22 || (minor === 22 && patch < 1))) { \
+    console.error('Node ' + process.version + ' trusts compromised eMudhra CAs: pull node:24-alpine again'); \
+    process.exit(1); \
+  }"
 
 # Install dependencies only when needed
 FROM base AS deps

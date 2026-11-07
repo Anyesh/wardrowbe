@@ -604,7 +604,7 @@ class TestForwardAuthRateLimit:
     @pytest.mark.asyncio
     async def test_hits_inside_the_window_do_not_extend_it(self):
         key = f"rate_limit:test:{uuid4()}"
-        redis = Redis.from_url(str(get_settings().redis_url))
+        redis = Redis.from_url(get_settings().redis_url)
         try:
             await check_rate_limit(key, 10, 60)
             assert 0 < await redis.ttl(key) <= 60

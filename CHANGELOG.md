@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.11.0...wardrowbe-v1.12.0) (2026-10-22)
+
+
+### ✨ Features
+
+* add tights as optional legwear ([#222](https://github.com/Anyesh/wardrowbe/issues/222)) ([06242db](https://github.com/Anyesh/wardrowbe/commit/06242db0571587f2323067483814360f99d6cdbe))
+* localize AI clothing descriptions by owner locale ([#224](https://github.com/Anyesh/wardrowbe/issues/224)) ([8c0aeb0](https://github.com/Anyesh/wardrowbe/commit/8c0aeb0fdf50e6fe091582402e4cc07e58010cbf))
+* Rework outfit recommendation slot rules to treat full body items better ([#264](https://github.com/Anyesh/wardrowbe/issues/264)) ([cfbb5a9](https://github.com/Anyesh/wardrowbe/commit/cfbb5a93da84550a065402d4a07ab8c908df42e2))
+
+
+### 🐛 Bug Fixes
+
+* emudhra ca trust ([#286](https://github.com/Anyesh/wardrowbe/issues/286)) ([c3ef983](https://github.com/Anyesh/wardrowbe/commit/c3ef9832918f058cc3ddd831466462278b56bcbb))
+* outfit needs top ([#262](https://github.com/Anyesh/wardrowbe/issues/262)) ([464841a](https://github.com/Anyesh/wardrowbe/commit/464841aaf8dc697cc64207379aa9e58be9e29b4f))
+* parse Redis URLs consistently for background workers ([27768a2](https://github.com/Anyesh/wardrowbe/commit/27768a2b564fd016614a59dac6f434fa02e8bbfe))
+* **redis:** build worker settings from redis-py's parse of REDIS_URL ([1026d99](https://github.com/Anyesh/wardrowbe/commit/1026d99e031a24fb76505903fda20a296b079d0a))
+
+
+### 📝 Documentation
+
+* collapse the own-Redis URL notes into a details block ([85ce73b](https://github.com/Anyesh/wardrowbe/commit/85ce73bcb8d2daff7bf8bcbe76ee216352c9676b))
+* explain how the self-hosted edition relates to Wardrowbe Cloud ([9a9291e](https://github.com/Anyesh/wardrowbe/commit/9a9291e26af2abb12d45734e0496b4959ba149b6))
+* reorganize section ([d1bae17](https://github.com/Anyesh/wardrowbe/commit/d1bae1727e67f1287d54ff3dfa5db9ac9ca4e687))
+* reorganize section ([b5d2c0a](https://github.com/Anyesh/wardrowbe/commit/b5d2c0abbb6c1794700bf632fb500e1a5cd15e50))
+
 ## [1.11.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.10.3...wardrowbe-v1.11.0) (2026-10-11)
 
 

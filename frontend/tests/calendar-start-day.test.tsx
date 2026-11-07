@@ -12,10 +12,12 @@ vi.mock('@/lib/api', () => ({
   api: { get: vi.fn() },
   setAccessToken: vi.fn(),
 }))
+const nav = vi.hoisted(() => ({ query: 'view=calendar' }))
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/dashboard/outfits',
-  useSearchParams: () => new URLSearchParams('view=calendar'),
+  useSearchParams: () => new URLSearchParams(nav.query),
 }))
 vi.mock('@/lib/hooks/use-outfits', () => {
   const empty = { data: { outfits: [], total: 0, has_more: false }, isLoading: false, isError: false }
@@ -60,6 +62,7 @@ afterEach(() => {
   vi.useRealTimers()
   process.env.TZ = originalTz
   vi.mocked(useCalendarOutfits).mockClear()
+  nav.query = 'view=calendar'
 })
 
 describe("calendars start on the user's day", () => {
@@ -80,5 +83,12 @@ describe("calendars start on the user's day", () => {
     expect(vi.mocked(useCalendarOutfits).mock.lastCall?.slice(0, 2)).toEqual([2026, 10])
     const last = calendarProps[calendarProps.length - 1]
     expect([last.year, last.month]).toEqual([2026, 10])
+  })
+
+  it('does not filter the outfits calendar by a list chip it hides', () => {
+    nav.query = 'view=calendar&filter=worn'
+    render(<OutfitsPage />, { wrapper })
+
+    expect(vi.mocked(useCalendarOutfits).mock.lastCall).toEqual([2026, 10])
   })
 })

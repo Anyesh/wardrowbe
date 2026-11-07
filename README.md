@@ -21,6 +21,7 @@
   <a href="#ai-configuration">AI</a> •
   <a href="#deployment">Deployment</a> •
   <a href="#configuration">Configuration</a> •
+  <a href="#self-hosted-and-cloud">Self-Hosted and Cloud</a> •
   <a href="#contributing">Contributing</a>
 </p>
 
@@ -31,7 +32,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Google%20Play-Coming%20Soon-34A853?style=for-the-badge&logo=googleplay&logoColor=white" alt="Google Play - Coming Soon">
+  <a href="https://play.google.com/store/apps/details?id=app.wardrowbe.mobile">
+    <img src="https://img.shields.io/badge/Google%20Play-34A853?style=for-the-badge&logo=googleplay&logoColor=white" alt="Google Play">
+  </a>
   &nbsp;
   <a href="https://apps.apple.com/us/app/wardrowbe/id6759947671">
     <img src="https://img.shields.io/badge/App%20Store-0D96F6?style=for-the-badge&logo=appstore&logoColor=white" alt="App Store">
@@ -244,7 +247,7 @@ docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
 ```
 
-Images are tagged `backend-latest` / `frontend-latest`, and each release also publishes `backend-<version>` / `frontend-<version>`. To pin a release, replace the `-latest` tags in the compose file, e.g. `ghcr.io/anyesh/wardrowbe:backend-1.3.0`.
+Images are tagged `backend-latest` / `frontend-latest`, and each release also publishes `backend-<version>` / `frontend-<version>`. To pin a release, replace the `-latest` tags in the compose file, e.g. `ghcr.io/anyesh/wardrowbe:backend-1.12.0`. Releases from 1.12.1 on also publish the same tags in version-first form, `<version>-backend` / `<version>-frontend`. If Renovate keeps your pins up to date, use that form (`ghcr.io/anyesh/wardrowbe:<version>-backend`): Renovate's default Docker versioning reads it as a version for the `backend` variant and proposes upgrades without a custom rule, while it cannot parse `backend-<version>`.
 
 ### Kubernetes
 
@@ -299,6 +302,7 @@ Upgrading from a release before sign-in identities (the `user_identities` table)
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `REDIS_URL` | Redis URL for the API and workers (default: `redis://localhost:6379/0`; the bundled Compose files set it themselves) | No |
 | `SECRET_KEY` | Backend secret for JWT. The backend refuses to start with the default `change-me-in-production` unless `DEBUG=true` and neither OIDC nor forward-auth is configured | Yes |
 | `NEXTAUTH_SECRET` | NextAuth session encryption. The frontend refuses to start with a value beginning `change-me-in-production` when `OIDC_ISSUER_URL` or `FORWARD_AUTH_SECRET` is set | Yes |
 | `AI_BASE_URL` | AI service URL | Yes |
@@ -354,6 +358,19 @@ Upgrading from a release before sign-in identities (the `user_identities` table)
 | `NEXT_PUBLIC_NETWORK_LOCATION_URL` | Override the IP geolocation provider (default: `https://ipapi.co/json/`). Only used when the fallback above is enabled | No |
 | `PUID` | Uid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
 | `PGID` | Gid the app process runs as (default: 1000 backend/worker, 1001 frontend) | No |
+
+</details>
+
+<details>
+<summary>Using your own Redis (password, TLS, unix socket)</summary>
+
+Set the same `REDIS_URL` on the API and both workers. The bundled Compose files point every service at their own Redis container, so a `REDIS_URL` in `.env` has no effect there.
+
+- Password: `redis://:password@redis:6379/2` (or `user:password@`)
+- TLS: `rediss://:password@redis:6380/2`
+- Unix socket: `unix://:password@/run/redis/redis.sock?db=2`
+
+`db` is the only supported query parameter. Percent-encode reserved characters in passwords and socket paths (`@` as `%40`, `/` as `%2F`, `#` as `%23`).
 
 </details>
 
@@ -544,6 +561,10 @@ docker stats
 </details>
 
 Still stuck? Check the [issues](https://github.com/Anyesh/wardrowbe/issues) and [discussions](https://github.com/Anyesh/wardrowbe/discussions), or open a new issue with the output of `docker compose ps`, the relevant logs, your `.env` with secrets redacted, and the steps to reproduce.
+
+## Self-Hosted and Cloud
+
+This repo is the self-hosted edition. [Wardrowbe Cloud](https://wardrowbe.com) shares the same core but has its own roadmap, so features differ and aren't ported 1:1; this README describes the self-hosted edition. Ideas and core fixes go back and forth between the two. Community contributions stay free and open here and never go behind a paywall. Want a cloud feature here, or have an idea? Please open an issue or discussion; if there's strong interest, we'll look into bringing it over. If you contribute here and are happy for it to go into Cloud too, say so in your PR. More in [this discussion](https://github.com/Anyesh/wardrowbe/discussions/267).
 
 ## Contributing
 

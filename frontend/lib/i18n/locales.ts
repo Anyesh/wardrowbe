@@ -48,6 +48,17 @@ export function isValidLocale(locale: string | undefined | null): locale is Supp
   return !!locale && (SUPPORTED_LOCALES as readonly string[]).includes(locale);
 }
 
+// The last NEXT_LOCALE wins because that is the one the server's cookie parser keeps.
+export function readLocaleCookie(): SupportedLocale | undefined {
+  const prefix = `${LOCALE_COOKIE}=`;
+  const value = document.cookie
+    .split('; ')
+    .filter((part) => part.startsWith(prefix))
+    .pop()
+    ?.slice(prefix.length);
+  return isValidLocale(value) ? value : undefined;
+}
+
 /** Maps a browser Accept-Language tag onto a supported locale: exact match first, then the
  *  base language, so `de-AT` resolves to `de` and `zh-HK` to `zh-TW` rather than to English. */
 export function resolveLocale(candidate: string | undefined | null): SupportedLocale {

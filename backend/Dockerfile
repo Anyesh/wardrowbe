@@ -3,8 +3,11 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
+# ca-certificates is listed so a build takes Debian's current CA bundle even when the base image
+# lags it: OIDC discovery and SMTP verify TLS against this store, not certifi.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    ca-certificates \
     libpq-dev \
     curl \
     gosu \

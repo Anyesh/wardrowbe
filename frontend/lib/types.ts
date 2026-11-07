@@ -16,6 +16,8 @@ export interface ItemTags {
   size?: string;
   care_instructions?: string;
   source_url?: string;
+  // Tag keys changed by hand. Maintained by the server; "re-analyse and replace" leaves these alone.
+  user_edited_keys?: string[];
 }
 
 export interface Item {
@@ -179,15 +181,16 @@ export type ClothingTypeValue = (typeof CLOTHING_TYPE_VALUES)[number];
 // so these are suggestions, not a closed set.
 export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
   shirt: ['henley', 'button-down', 'oxford', 'flannel', 'hawaiian', 'camp-collar'],
-  pants: ['chinos', 'joggers', 'cargo', 'trousers', 'leggings', 'sweatpants'],
+  pants: ['chinos', 'joggers', 'cargo', 'trousers', 'sweatpants'],
   dress: ['sundress', 'slip-dress', 'maxi', 'midi', 'wrap', 'shirt-dress', 'a-line'],
   jacket: ['denim-jacket', 'bomber', 'parka', 'windbreaker', 'trucker', 'anorak'],
-  shoes: ['loafers', 'oxfords', 'mules', 'flats', 'heels', 'platforms'],
+  shoes: ['loafers', 'oxfords', 'mules', 'platforms'],
   sneakers: ['low-top', 'high-top', 'chunky', 'slip-on'],
   boots: ['ankle', 'chelsea', 'combat', 'knee-high', 'rain'],
   skirt: ['mini', 'midi', 'maxi', 'pleated', 'wrap', 'pencil'],
   sweater: ['pullover', 'crewneck', 'turtleneck', 'v-neck'],
   socks: ['ankle', 'crew', 'knee-high', 'no-show', 'dress', 'athletic'],
+  tights: ['sheer', 'opaque', 'patterned', 'thermal'],
   tie: ['necktie', 'bow-tie', 'bolo'],
 };
 

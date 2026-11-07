@@ -283,8 +283,11 @@ class TestAiStartedAtLifecycle:
         await db_session.commit()
 
         monkeypatch.setattr(tagging_module, "_tagging_call_budget", lambda ai_service: 0.05)
+        started = False
 
-        async def _hang(self, path):
+        async def _hang(self, path, locale="en"):
+            nonlocal started
+            started = True
             await asyncio.sleep(10)
 
         with (
@@ -295,6 +298,7 @@ class TestAiStartedAtLifecycle:
             with pytest.raises(Retry):
                 await tag_item_image({"job_try": 1}, str(item.id), __file__)
 
+        assert started, "the timeout test must reach the simulated hung AI call"
         await db_session.refresh(item)
         # A budget timeout goes through the normal retry path - unlike arq's own
         # job_timeout kill, which does not retry at all.
@@ -359,11 +363,11 @@ class TestFailureReasonReachesTheApi:
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
         fields = tagging_module.tags_to_item_fields(
-            ClothingTags(unrecognized_type="tights"), '{"type": "tights"}'
+            ClothingTags(unrecognized_type="culottes"), '{"type": "culottes"}'
         )
         assert fields["ai_raw_response"] == {
-            "raw_text": '{"type": "tights"}',
-            "unrecognized_type": "tights",
+            "raw_text": '{"type": "culottes"}',
+            "unrecognized_type": "culottes",
         }
         item = ClothingItem(
             user_id=test_user.id,
@@ -377,7 +381,7 @@ class TestFailureReasonReachesTheApi:
         resp = await client.get(f"/api/v1/items/{item.id}", headers=auth_headers)
         assert resp.status_code == 200
         body = resp.json()
-        assert body["ai_unrecognized_type"] == "tights"
+        assert body["ai_unrecognized_type"] == "culottes"
         assert body["ai_error"] is None
 
     @pytest.mark.asyncio

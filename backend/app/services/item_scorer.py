@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
+from math import prod
 from statistics import median
 from uuid import UUID
 
@@ -75,8 +76,11 @@ TEMP_RANGE_MIN_SWING = 8.0
 REMOVABLE_LAYER_HOT_FLOOR = 0.6
 
 REMOVABLE_LAYER_TYPES = {"jacket", "coat", "blazer", "hoodie", "cardigan", "vest"}
-RAIN_LAYER_TYPES = {"jacket", "coat", "hoodie"}
-WARM_LAYER_TYPES = REMOVABLE_LAYER_TYPES | {"sweater"}
+RAIN_LAYER_TYPES = {"jacket", "coat", "hoodie", "poncho"}
+RAIN_LIKELY_CHANCE = 50
+WARM_LAYER_TYPES = REMOVABLE_LAYER_TYPES | {"sweater", "sweatshirt"}
+COLD_EXPOSED_TYPES = {"shorts", "tank-top", "sandals", "camisole"}
+HOT_PENALTY_TYPES = WARM_LAYER_TYPES | {"boots"}
 HEAVY_LAYER_TYPES = {"coat"}
 HEAVY_LAYER_MATERIALS = {"wool", "fleece", "down", "shearling"}
 HEAVY_LAYER_SUBTYPES = {
@@ -104,27 +108,45 @@ class ScoredItem:
     pair_bonus: float = 0.0
 
 
+def _temp_band(temp: float, cold_threshold: float, hot_threshold: float) -> str:
+    if temp < cold_threshold:
+        return "cold"
+    if temp > hot_threshold:
+        return "hot"
+    return "mild"
+
+
 def _temp_bucket_score(
     item_type: str,
+    subtype: str,
     material: str,
     seasons: list[str],
     temp: float,
     cold_threshold: float,
     hot_threshold: float,
 ) -> float:
-    if temp < cold_threshold:
-        if item_type in WARM_LAYER_TYPES or material in ("wool", "fleece", "knit"):
+    # Sheer and thermal tights serve different weather needs, so the type alone
+    # must not mark every pair as a warm layer. The materials match the cold-weather
+    # rule below so the heat penalty hits the same pairs the cold reward favours.
+    warm_tights = item_type == "tights" and (
+        subtype == "thermal" or material in ("wool", "fleece", "knit")
+    )
+    band = _temp_band(temp, cold_threshold, hot_threshold)
+    if band == "cold":
+        if warm_tights or item_type in WARM_LAYER_TYPES or material in ("wool", "fleece", "knit"):
             return 1.0
         elif "winter" in seasons:
             return 1.0
-        elif item_type in ("shorts", "tank-top", "sandals"):
+        elif item_type in COLD_EXPOSED_TYPES:
             return 0.05
         else:
             return 0.7
-    elif temp > hot_threshold:
+    elif band == "hot":
+        if warm_tights:
+            return 0.05
         if material in ("cotton", "linen", "silk") or "summer" in seasons:
             return 1.0
-        elif item_type in WARM_LAYER_TYPES or item_type == "boots":
+        elif item_type in HOT_PENALTY_TYPES:
             return 0.05
         else:
             return 0.8
@@ -167,6 +189,22 @@ def _resolve_temp_thresholds(preferences: UserPreference | None) -> tuple[float,
     return cold_threshold, hot_threshold
 
 
+def stays_above_hot_threshold(weather: WeatherData, preferences: UserPreference | None) -> bool:
+    # The raw window, not scoring_temp_range: that hides swings under 8C, which would
+    # let a hot midday reading stand in for a cool evening.
+    _, hot_threshold = _resolve_temp_thresholds(preferences)
+    coolest = weather.window_min if weather.window_min is not None else weather.temperature
+    return coolest > hot_threshold
+
+
+def temperature_band(temp: float, preferences: UserPreference | None) -> str:
+    return _temp_band(temp, *_resolve_temp_thresholds(preferences))
+
+
+def rain_likely(weather: WeatherData) -> bool:
+    return weather.precipitation_chance > RAIN_LIKELY_CHANCE
+
+
 def _weather_score(
     item: ClothingItem,
     weather: WeatherData,
@@ -183,20 +221,26 @@ def _weather_score(
 
     if temp_range is not None:
         low = _temp_bucket_score(
-            item_type, material, seasons, temp_range[0], cold_threshold, hot_threshold
+            item_type, subtype, material, seasons, temp_range[0], cold_threshold, hot_threshold
         )
         high = _temp_bucket_score(
-            item_type, material, seasons, temp_range[1], cold_threshold, hot_threshold
+            item_type, subtype, material, seasons, temp_range[1], cold_threshold, hot_threshold
         )
         if item_type in REMOVABLE_LAYER_TYPES and not _is_heavy_layer(item_type, material, subtype):
             high = max(high, REMOVABLE_LAYER_HOT_FLOOR)
         score = (low + high) / 2
     else:
         score = _temp_bucket_score(
-            item_type, material, seasons, weather.temperature, cold_threshold, hot_threshold
+            item_type,
+            subtype,
+            material,
+            seasons,
+            weather.temperature,
+            cold_threshold,
+            hot_threshold,
         )
 
-    if weather.precipitation_chance > 50 and item_type in RAIN_LAYER_TYPES:
+    if rain_likely(weather) and item_type in RAIN_LAYER_TYPES:
         score = min(1.0, score + 0.1)
 
     return score
@@ -221,6 +265,42 @@ def _formality_score(item: ClothingItem, occasion: str) -> float:
     if min_distance == 1:
         return 0.5
     return 0.15
+
+
+def _fit_factors(
+    item: ClothingItem,
+    weather: WeatherData,
+    occasion: str,
+    current_season: str,
+    preferences: UserPreference | None,
+    learned_prefs: dict | None,
+) -> tuple[float, float, float, float]:
+    return (
+        _weather_score(item, weather, preferences),
+        _formality_score(item, occasion),
+        _season_score(item, current_season, weather, preferences),
+        _preference_score(item, preferences, learned_prefs),
+    )
+
+
+def rank_by_fit(
+    items: list[ClothingItem],
+    weather: WeatherData,
+    occasion: str,
+    current_season: str,
+    preferences: UserPreference | None,
+    learned_prefs: dict | None,
+) -> list[UUID]:
+    # score_items leaves small wardrobes unscored, so filling a missing piece needs its own
+    # ranking or it would fall back to database order. Most items tie on fit in mild
+    # weather, so the least recently worn goes first to avoid adding the same piece every time.
+    def key(item: ClothingItem) -> tuple[float, date]:
+        fit = prod(
+            _fit_factors(item, weather, occasion, current_season, preferences, learned_prefs)
+        )
+        return -fit, item.last_worn_at or date.min
+
+    return [item.id for item in sorted(items, key=key)]
 
 
 def _season_score(
@@ -273,24 +353,26 @@ def _preference_score(
     learned: dict | None,
 ) -> float:
     score = 1.0
-    color = (item.primary_color or "").lower()
+    # Every colour on the item counts, not just the primary: a navy jumper with white
+    # stripes should react to "avoid white" and to "love navy" alike.
+    colors = {c.lower() for c in [item.primary_color, *(item.colors or [])] if c}
 
     if preferences:
-        fav_colors = [c.lower() for c in (preferences.color_favorites or [])]
-        avoid_colors = [c.lower() for c in (preferences.color_avoid or [])]
+        fav_colors = {c.lower() for c in (preferences.color_favorites or [])}
+        avoid_colors = {c.lower() for c in (preferences.color_avoid or [])}
 
-        if color and color in fav_colors:
+        if colors & fav_colors:
             score += 0.1
-        if color and color in avoid_colors:
+        if colors & avoid_colors:
             score -= 0.3
 
     if learned:
-        learned_favs = [c.lower() for c in learned.get("learned_favorite_colors", [])]
-        learned_avoids = [c.lower() for c in learned.get("learned_avoid_colors", [])]
+        learned_favs = {c.lower() for c in learned.get("learned_favorite_colors", [])}
+        learned_avoids = {c.lower() for c in learned.get("learned_avoid_colors", [])}
 
-        if color and color in learned_favs:
+        if colors & learned_favs:
             score += 0.05
-        if color and color in learned_avoids:
+        if colors & learned_avoids:
             score -= 0.15
 
         learned_styles = [s.lower() for s in learned.get("learned_preferred_styles", [])]
@@ -415,11 +497,10 @@ def score_items(
 
     scored = []
     for item in items:
-        ws = _weather_score(item, weather, preferences)
-        fs = _formality_score(item, occasion)
-        ss = _season_score(item, current_season, weather, preferences)
+        ws, fs, ss, ps = _fit_factors(
+            item, weather, occasion, current_season, preferences, learned_prefs
+        )
         rs = _recency_score(item, user_today, avoid_days, recently_worn_dates)
-        ps = _preference_score(item, preferences, learned_prefs)
         us = _usage_score(item, median_wear) if use_underused else 1.0
 
         total = ws * fs * ss * rs * ps * us

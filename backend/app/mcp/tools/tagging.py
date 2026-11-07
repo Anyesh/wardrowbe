@@ -7,10 +7,28 @@ from mcp.server.mcpserver.exceptions import ToolError
 from app.mcp.runtime import present, tool_context, validated
 from app.mcp.tools.items import get_owned_item, item_dump
 from app.schemas.item import ItemUpdate
-from app.services.item_service import ItemService, stamp_manual_tag_writeback
-from app.utils.garment_vocabulary import TYPES
+from app.services.item_service import (
+    ItemService,
+    TagVocabularyError,
+    stamp_manual_tag_writeback,
+)
+from app.utils.garment_vocabulary import (
+    FITS,
+    FORMALITY,
+    MATERIALS,
+    PATTERNS,
+    SEASONS,
+    STYLES,
+    TYPES,
+)
 
 ItemType = Literal[TYPES]  # type: ignore[valid-type]
+Pattern = Literal[PATTERNS]  # type: ignore[valid-type]
+Material = Literal[MATERIALS]  # type: ignore[valid-type]
+Style = Literal[STYLES]  # type: ignore[valid-type]
+Season = Literal[SEASONS]  # type: ignore[valid-type]
+Formality = Literal[FORMALITY]  # type: ignore[valid-type]
+Fit = Literal[FITS]  # type: ignore[valid-type]
 
 
 async def _apply_update(item_id: UUID, payload: dict[str, Any]) -> dict:
@@ -19,7 +37,10 @@ async def _apply_update(item_id: UUID, payload: dict[str, Any]) -> dict:
     async with tool_context() as ctx:
         item = await get_owned_item(ctx, item_id)
         stamp_manual_tag_writeback(item, update_data)
-        item = await ItemService(ctx.db).update(item, update)
+        try:
+            item = await ItemService(ctx.db).update(item, update)
+        except TagVocabularyError as exc:
+            raise ToolError(str(exc)) from exc
         return item_dump(item)
 
 
@@ -31,16 +52,18 @@ def register(mcp: MCPServer) -> None:
         subtype: str | None = None,
         colors: list[str] | None = None,
         primary_color: str | None = None,
-        pattern: str | None = None,
-        material: str | None = None,
-        style: list[str] | None = None,
-        season: list[str] | None = None,
-        formality: str | None = None,
-        fit: str | None = None,
+        pattern: Pattern | None = None,
+        material: Material | None = None,
+        style: list[Style] | None = None,
+        season: list[Season] | None = None,
+        formality: Formality | None = None,
+        fit: Fit | None = None,
     ) -> dict:
         """Write tags back to an item (external tagging). Sent fields replace
         their stored values and omitted fields keep theirs; a tag cannot be
-        cleared here. Non-empty content marks the item tagged (tagged_by=manual)."""
+        cleared here. Tag values must come from the closed vocabularies in this
+        schema; colors and subtype are free text. Non-empty content marks the
+        item tagged (tagged_by=manual)."""
         tags = present(
             colors=colors,
             primary_color=primary_color,

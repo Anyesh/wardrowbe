@@ -9,6 +9,12 @@ import { ItemDetailDialog } from '@/components/item-detail-dialog'
 import type { Item } from '@/lib/types'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
+import {
+  FIT_VALUES,
+  ITEM_STYLE_VALUES,
+  PATTERN_VALUES,
+  SEASON_VALUES,
+} from '@/lib/generated/garment-vocabulary'
 
 vi.unmock('next-intl')
 vi.mock('@/lib/api', () => ({
@@ -39,17 +45,6 @@ function wrapperFor(locale: string) {
   }
 }
 
-// The tagger only accepts values from these sets, so each needs a label in constants.
-function backendTagValues(name: string): string[] {
-  const source = readFileSync(
-    resolve(__dirname, '..', '..', 'backend', 'app', 'services', 'ai_service.py'),
-    'utf8',
-  )
-  const start = source.indexOf(`${name} = {`)
-  const block = source.slice(start, source.indexOf('}', start))
-  return Array.from(block.matchAll(/"([^"]+)"/g), (m) => m[1])
-}
-
 const item = {
   id: 'i1',
   type: 'shirt',
@@ -71,12 +66,11 @@ const item = {
 
 describe('item tag labels', () => {
   it.each([
-    ['VALID_PATTERNS', 'patterns'],
-    ['VALID_FIT', 'fits'],
-    ['VALID_STYLES', 'styles'],
-    ['VALID_SEASONS', 'seasons'],
-  ])('has a constants label for every %s value', (backendSet, namespace) => {
-    const values = backendTagValues(backendSet)
+    ['patterns', PATTERN_VALUES],
+    ['fits', FIT_VALUES],
+    ['styles', ITEM_STYLE_VALUES],
+    ['seasons', SEASON_VALUES],
+  ])('has a constants label for every value in the %s vocabulary', (namespace, values) => {
     expect(values.length).toBeGreaterThan(3)
     const labels = messages('en', 'constants')[namespace] ?? {}
     for (const value of values) expect(Object.keys(labels), value).toContain(value)

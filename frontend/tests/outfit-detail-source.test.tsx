@@ -19,7 +19,7 @@ const outfit = vi.hoisted(() => ({
   source: 'on_demand',
   occasion: 'casual',
   name: 'Look' as string | null,
-  items: [],
+  items: [] as Array<Record<string, unknown>>,
   feedback: null,
 }))
 
@@ -77,5 +77,40 @@ describe('outfit detail source label', () => {
     expect(screen.getByRole('heading', { name: `${de.constants.occasions.casual} (stattdessen getragen)` })).toBeInTheDocument()
     outfit.name = 'Look'
     outfit.replaces_outfit_id = null
+  })
+
+  it('links an outfit item to the wardrobe item dialog', () => {
+    const en = {
+      outfits: messages('en', 'outfits'),
+      common: messages('en', 'common'),
+      history: messages('en', 'history'),
+      constants: messages('en', 'constants'),
+    }
+    outfit.items = [
+      {
+        id: 'i1',
+        type: 'shirt',
+        subtype: null,
+        name: 'Shirt',
+        primary_color: null,
+        colors: [],
+        image_path: null,
+        thumbnail_path: null,
+        image_url: null,
+        thumbnail_url: null,
+        layer_type: null,
+        position: 1,
+      },
+    ]
+    render(
+      <NextIntlClientProvider locale="en" messages={en} onError={() => {}}>
+        <OutfitDetailPage />
+      </NextIntlClientProvider>,
+    )
+    const link = screen
+      .getAllByRole('link')
+      .find((element) => element.getAttribute('href')?.startsWith('/dashboard/wardrobe'))
+    expect(link).toHaveAttribute('href', '/dashboard/wardrobe?item=i1')
+    outfit.items = []
   })
 })

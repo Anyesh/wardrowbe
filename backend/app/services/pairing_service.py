@@ -11,13 +11,14 @@ from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
 from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
-from app.utils.clothing import deduplicate_by_body_slot
-from app.utils.prompts import load_prompt
+from app.utils.clothing import covered_regions, deduplicate_by_body_slot
+from app.utils.garment_vocabulary import render_outfit_prompt
+from app.utils.prompts import load_prompt, picked_item_ids
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
 
-PAIRING_PROMPT_TEMPLATE = load_prompt("item_pairing")
+PAIRING_PROMPT_TEMPLATE = render_outfit_prompt(load_prompt("item_pairing"))
 
 # A pairing is an internally-generated row, or an externally-authored one carrying the
 # server-set "pairing" occasion (external rows with any other occasion are suggestions).
@@ -247,26 +248,25 @@ class PairingService:
             item_type_map[item.id] = (item.type or "").lower()
 
         for pairing in pairings_data[:num_pairings]:
-            # Get item numbers from the pairing
-            selected_numbers = pairing.get("items", [])
-            valid_ids = []
-
-            for num in selected_numbers:
-                try:
-                    num_int = int(num)
-                    if num_int in number_map:
-                        valid_ids.append(number_map[num_int])
-                    else:
-                        logger.warning(f"AI selected invalid item number: {num}")
-                except (ValueError, TypeError):
-                    logger.warning(f"AI returned non-numeric item: {num}")
+            valid_ids = picked_item_ids(pairing.get("items"), number_map)
 
             # Ensure source item is included
             if source_item.id not in valid_ids:
                 valid_ids.insert(0, source_item.id)
 
-            # Deduplicate by body slot (e.g. prevent shorts + pants)
-            valid_ids = deduplicate_by_body_slot(valid_ids, item_type_map)
+            # Deduplicate by body slot (e.g. prevent shorts + pants). The source item is
+            # mandatory: a full-body garment claims both the top and bottom slots first, so
+            # without this the source would be dropped and the pairing persisted without the
+            # item it is supposed to feature.
+            picked_regions = covered_regions(valid_ids, item_type_map)
+            valid_ids = deduplicate_by_body_slot(
+                valid_ids, item_type_map, mandatory_item_ids={source_item.id}
+            )
+            # Dedup must not leave the top or bottom bare where the model had covered it: a
+            # dress dropped for a shirt source would leave the outfit with no bottom.
+            if covered_regions(valid_ids, item_type_map) != picked_regions:
+                logger.warning("Pairing silhouette does not fit the source item, skipping")
+                continue
 
             if len(valid_ids) < 2:
                 logger.warning("Pairing has too few valid items, skipping")

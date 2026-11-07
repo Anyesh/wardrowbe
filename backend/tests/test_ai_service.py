@@ -1,9 +1,15 @@
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
 
-from app.services.ai_service import AIResponseTruncatedError, AIService, ClothingTags
+from app.services.ai_service import (
+    DESCRIPTION_LANGUAGES,
+    AIResponseTruncatedError,
+    AIService,
+    ClothingTags,
+)
+from app.utils.locale import SUPPORTED_LOCALES
 
 FAKE_REQUEST = httpx.Request("POST", "http://ai-endpoint.test/chat/completions")
 
@@ -21,6 +27,95 @@ async def _complete(service: AIService, path: str) -> str:
     if error is not None:
         raise error
     return content
+
+
+class TestLocalizedDescription:
+    @pytest.mark.parametrize(
+        ("locale", "language"),
+        [
+            ("en", "English"),
+            ("zh-CN", "Simplified Chinese"),
+            ("zh-TW", "Traditional Chinese"),
+            ("ko", "Korean"),
+            ("ja", "Japanese"),
+            ("fr", "French"),
+            ("de", "German"),
+            ("it", "Italian"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_only_description_prompt_uses_locale(self, locale, language):
+        service = AIService()
+        call = AsyncMock(
+            side_effect=[
+                ('{"type": "shirt", "material": "cotton"}', None, None),
+                ("A shirt", None, None),
+            ]
+        )
+        with (
+            patch.object(service, "_preprocess_image", return_value="image-data"),
+            patch.object(service, "_call_with_fallback", call),
+        ):
+            tags = await service.analyze_image("unused.jpg", locale=locale)
+
+        tagging_messages = call.call_args_list[0].args[0]
+        description_messages = call.call_args_list[1].args[0]
+        assert language in description_messages[0]["content"]
+        assert "{language}" not in description_messages[0]["content"]
+        assert language not in tagging_messages[0]["content"]
+        assert tags.type == "shirt"
+        assert tags.material == "cotton"
+        assert tags.description == "A shirt"
+
+    def test_every_supported_locale_has_a_description_language(self):
+        assert set(DESCRIPTION_LANGUAGES) == set(SUPPORTED_LOCALES)
+
+    @pytest.mark.asyncio
+    async def test_unexpected_stored_locale_falls_back_to_english(self):
+        service = AIService()
+        call = AsyncMock(side_effect=[(None, None, None), ("A shirt", None, None)])
+        with (
+            patch.object(service, "_preprocess_image", return_value="image-data"),
+            patch.object(service, "_call_with_fallback", call),
+        ):
+            await service.analyze_image("unused.jpg", locale="unexpected")
+
+        assert "in English" in call.call_args_list[1].args[0][0]["content"]
+
+    @pytest.mark.parametrize(
+        ("reply", "expected"),
+        [
+            ('"A navy shirt"', "A navy shirt"),
+            ("“Eine blaue Bluse”", "Eine blaue Bluse"),
+            ("「紺色のシャツ」", "紺色のシャツ"),
+            ("『藍色襯衫』", "藍色襯衫"),
+            ("« Chemise bleue »", "Chemise bleue"),
+            ('Un "trench" beige', 'Un "trench" beige'),
+            ('"Levi\'s" jeans in "indigo"', '"Levi\'s" jeans in "indigo"'),
+            ("「ユニクロ」のシャツ、色は「紺」", "「ユニクロ」のシャツ、色は「紺」"),
+        ],
+        ids=[
+            "ascii",
+            "curly",
+            "kagikakko",
+            "double-kagikakko",
+            "guillemets",
+            "inner-quotes",
+            "two-quoted-spans",
+            "two-kagikakko-spans",
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_description_loses_wrapping_quotes_of_any_script(self, reply, expected):
+        service = AIService()
+        call = AsyncMock(side_effect=[(None, None, None), (reply, None, None)])
+        with (
+            patch.object(service, "_preprocess_image", return_value="image-data"),
+            patch.object(service, "_call_with_fallback", call),
+        ):
+            tags = await service.analyze_image("unused.jpg", locale="en")
+
+        assert tags.description == expected
 
 
 class TestTagParsing:
@@ -84,9 +179,15 @@ class TestTagParsing:
 
     def test_rejected_type_is_kept_as_unrecognized(self):
         service = AIService()
-        tags = service._parse_tags_from_response('{"type": " Tights ", "primary_color": "black"}')
+        tags = service._parse_tags_from_response('{"type": " Culottes ", "primary_color": "black"}')
         assert tags.type == "unknown"
-        assert tags.unrecognized_type == "tights"
+        assert tags.unrecognized_type == "culottes"
+
+    def test_tights_are_recognized(self):
+        service = AIService()
+        tags = service._parse_tags_from_response('{"type": " Tights ", "primary_color": "black"}')
+        assert tags.type == "tights"
+        assert tags.unrecognized_type is None
 
     def test_missing_type_is_not_unrecognized(self):
         service = AIService()
@@ -485,7 +586,7 @@ class TestEmptyCompletion:
             patch.object(AIService, "_preprocess_image", return_value="base64data"),
         ):
             with pytest.raises(expected_error, match=message) as exc_info:
-                await service.analyze_image("/fake/image.jpg")
+                await service.analyze_image("/fake/image.jpg", locale="en")
 
         assert type(exc_info.value) is expected_error
         assert getattr(exc_info.value, "retryable", True) is retryable
@@ -494,7 +595,7 @@ class TestEmptyCompletion:
     @pytest.mark.parametrize(
         ("tags_content", "description", "expected"),
         [
-            ('{"type": "tights"}', 500, {"unrecognized_type": "tights"}),
+            ('{"type": "kimono"}', 500, {"unrecognized_type": "kimono"}),
             ('{"subtype": "maxi"}', 500, {"subtype": "maxi"}),
             ("", "A navy jumpsuit", {"description": "A navy jumpsuit"}),
         ],
@@ -511,7 +612,7 @@ class TestEmptyCompletion:
             ),
             patch.object(AIService, "_preprocess_image", return_value="base64data"),
         ):
-            tags = await service.analyze_image("/fake/image.jpg")
+            tags = await service.analyze_image("/fake/image.jpg", locale="en")
 
         assert tags.type == "unknown"
         for field, value in expected.items():
