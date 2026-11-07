@@ -53,6 +53,10 @@ data:
   # AI_VISION_ENABLED: "false"
   # AI_TEXT_ENABLED: "false"
 
+  # Built-in MCP server. When "true" the backend serves an MCP endpoint at
+  # /api/v1/mcp, authenticated with the same bearer JWTs as the REST API.
+  MCP_ENABLED: "false"
+
   # Logging
   LOG_LEVEL: "INFO"
 

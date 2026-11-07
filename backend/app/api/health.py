@@ -24,6 +24,7 @@ async def capabilities() -> dict[str, Any]:
     is deferring that work to an external agent.
     `features.*` — whether the write-back endpoint for that capability exists and
     accepts agent-authored results. `false` until the endpoint lands.
+    `features.builtin_mcp` follows MCP_ENABLED.
     Public / no-auth: leaks no user data.
     """
     settings = get_settings()
@@ -36,6 +37,7 @@ async def capabilities() -> dict[str, Any]:
             "external_tagging": True,
             "external_suggestions": True,
             "external_pairings": True,
+            "builtin_mcp": settings.mcp_enabled,
         },
         "version": "1.0.0",
     }

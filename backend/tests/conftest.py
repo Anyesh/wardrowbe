@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import subprocess
@@ -28,6 +29,7 @@ from app.config import get_settings
 from app.database import get_db
 from app.main import app
 from app.models import User, UserIdentity, UserPreference
+from app.models.item import ClothingItem, ItemStatus, TaggingStatus
 from tests.identity_helpers import add_users_with_identities
 
 # Test database URL from environment — set in docker-compose.dev.yml, never falls back to DATABASE_URL.
@@ -209,3 +211,113 @@ def sample_tags() -> dict[str, Any]:
         "season": ["spring", "fall", "all-season"],
         "confidence": 0.85,
     }
+
+
+@pytest_asyncio.fixture
+async def mcp_asgi_client(session_maker, monkeypatch) -> AsyncGenerator[AsyncClient, None]:
+    from app.config import Settings
+    from app.mcp import runtime
+    from app.mcp.server import build_mcp_asgi, build_mcp_server
+
+    monkeypatch.setattr(runtime, "async_session_maker", session_maker)
+    monkeypatch.setattr("app.mcp.auth.get_settings", lambda: Settings(mcp_enabled=True))
+
+    server = build_mcp_server()
+    asgi = build_mcp_asgi(server)
+
+    # anyio cancel scopes must enter and exit in the same task, but pytest-asyncio
+    # runs fixture setup and teardown in different tasks — so the session manager
+    # lives in a dedicated task for the fixture's lifetime.
+    started = asyncio.Event()
+    stop = asyncio.Event()
+
+    async def _run_session_manager() -> None:
+        async with server.session_manager.run():
+            started.set()
+            await stop.wait()
+
+    runner = asyncio.create_task(_run_session_manager())
+    await started.wait()
+    try:
+        transport = ASGITransport(app=asgi)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac
+    finally:
+        stop.set()
+        await runner
+
+
+@pytest.fixture
+def mcp_call(mcp_asgi_client, auth_headers):
+    async def _call(method: str, params: dict | None = None, headers: dict | None = None):
+        return await mcp_asgi_client.post(
+            "/",
+            json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}},
+            headers={
+                "accept": "application/json, text/event-stream",
+                "mcp-protocol-version": "2025-06-18",
+                **auth_headers,
+                **(headers or {}),
+            },
+        )
+
+    return _call
+
+
+@pytest.fixture
+def call_tool_raw(mcp_call):
+    async def _tool(name: str, arguments: dict | None = None) -> dict:
+        resp = await mcp_call("tools/call", {"name": name, "arguments": arguments or {}})
+        assert resp.status_code == 200, resp.text
+        return resp.json()["result"]
+
+    return _tool
+
+
+@pytest.fixture
+def call_tool(call_tool_raw):
+    async def _tool(name: str, arguments: dict | None = None) -> dict:
+        result = await call_tool_raw(name, arguments)
+        assert not result.get("isError"), result
+        return result.get("structuredContent") or json.loads(result["content"][0]["text"])
+
+    return _tool
+
+
+@pytest.fixture
+def make_item(db_session: AsyncSession):
+    async def _make(user: User, **overrides) -> ClothingItem:
+        item = ClothingItem(
+            **{
+                "user_id": user.id,
+                "type": "top",
+                "name": f"Item {uuid4().hex[:6]}",
+                "image_path": f"{user.id}/{uuid4().hex}.webp",
+                "status": ItemStatus.ready,
+                "tagging_status": TaggingStatus.pending,
+                **overrides,
+            }
+        )
+        db_session.add(item)
+        await db_session.commit()
+        await db_session.refresh(item)
+        return item
+
+    return _make
+
+
+@pytest_asyncio.fixture
+async def other_user(db_session: AsyncSession) -> User:
+    user = User(
+        id=uuid4(),
+        external_id=f"other-{uuid4()}",
+        email=f"other-{uuid4()}@example.com",
+        display_name="Other",
+        timezone="UTC",
+        is_active=True,
+        onboarding_completed=False,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
