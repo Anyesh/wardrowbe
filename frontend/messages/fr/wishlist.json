@@ -1,0 +1,54 @@
+{
+  "actions": {
+    "bought": "Acheté",
+    "delete": "Supprimer",
+    "notBought": "Pas acheté",
+    "open": "Boutique",
+    "photo": "Changer la photo"
+  },
+  "error": "Une erreur s'est produite. Réessaie.",
+  "form": {
+    "add": "Ajouter à la liste",
+    "added": "{name} ajouté à la liste",
+    "anyType": "Tous types",
+    "description": "Colle le lien d'une boutique pour récupérer photo, nom et prix, ou ajoute une photo et tes notes.",
+    "invalid": "Vérifie les champs : les liens doivent commencer par http:// ou https://.",
+    "link": "Lien de la boutique",
+    "linkPlaceholder": "https://…",
+    "linkRead": "Infos récupérées sur {site}",
+    "linkUnreadable": "Impossible de lire cette page. Remplis les infos à la main.",
+    "name": "Nom",
+    "notes": "Notes",
+    "notesPlaceholder": "Taille, couleur, où le trouver…",
+    "photo": "Photo",
+    "price": "Prix",
+    "priority": "Priorité",
+    "readLink": "Lire le lien",
+    "title": "Ajouter quelque chose",
+    "type": "Type"
+  },
+  "list": {
+    "bought": "{count, plural, one {Acheté · # article} other {Achetés · # articles}}",
+    "empty": "Ta liste est vide.",
+    "title": "{count, plural, =0 {À acheter} one {À acheter · # article} other {À acheter · # articles}}",
+    "total": "Environ {total} au total"
+  },
+  "price": {
+    "check": "Vérifier les prix",
+    "dropped": "Prix en baisse",
+    "foundDrops": "{count, plural, one {# prix a baissé} other {# prix ont baissé}}",
+    "noDrops": "Aucune baisse de prix pour l'instant"
+  },
+  "priority": {
+    "1": "Indispensable",
+    "2": "Envie",
+    "3": "Un jour"
+  },
+  "subtitle": "Ce que tu aimerais acheter, avec une photo de la boutique ou la tienne et tes notes.",
+  "suggestions": {
+    "description": "D'après ce que tu as ; touche-en un pour commencer une entrée.",
+    "item": "{role} ({have}/{target})",
+    "title": "Ce qui manque à ta garde-robe"
+  },
+  "title": "À acheter"
+}

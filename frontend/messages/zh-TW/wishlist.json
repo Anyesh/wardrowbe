@@ -1,0 +1,54 @@
+{
+  "actions": {
+    "bought": "已買",
+    "delete": "刪除",
+    "notBought": "未買",
+    "open": "商店",
+    "photo": "更換照片"
+  },
+  "error": "發生問題，請再試一次。",
+  "form": {
+    "add": "加入清單",
+    "added": "已將 {name} 加入清單",
+    "anyType": "任何類型",
+    "description": "貼上商店連結即可取得照片、名稱和價格，或上傳照片並寫備註。",
+    "invalid": "請檢查欄位：連結須以 http:// 或 https:// 開頭。",
+    "link": "商店連結",
+    "linkPlaceholder": "https://…",
+    "linkRead": "已從 {site} 讀取",
+    "linkUnreadable": "無法讀取該頁面，請手動填寫。",
+    "name": "名稱",
+    "notes": "備註",
+    "notesPlaceholder": "尺寸、顏色、在哪裡買…",
+    "photo": "照片",
+    "price": "價格",
+    "priority": "優先順序",
+    "readLink": "讀取連結",
+    "title": "新增",
+    "type": "類型"
+  },
+  "list": {
+    "bought": "{count, plural, other {已買 · # 件}}",
+    "empty": "清單是空的。",
+    "title": "{count, plural, =0 {要買的} other {要買的 · # 件}}",
+    "total": "合計約 {total}"
+  },
+  "price": {
+    "check": "檢查價格",
+    "dropped": "降價了",
+    "foundDrops": "{count, plural, other {# 件降價了}}",
+    "noDrops": "暫時沒有降價"
+  },
+  "priority": {
+    "1": "必需",
+    "2": "想要",
+    "3": "以後"
+  },
+  "subtitle": "想買的東西，配上商店或自己的照片和備註。",
+  "suggestions": {
+    "description": "根據你現有的衣物；點一下即可開始新增。",
+    "item": "{role}（{have}/{target}）",
+    "title": "衣櫥還缺什麼"
+  },
+  "title": "購物清單"
+}
