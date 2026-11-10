@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { placeholders } from './icu-placeholders.mjs';
 
 const MESSAGES_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'messages');
 const SOURCE_LOCALE = 'en';
@@ -25,13 +26,6 @@ function loadLocale(locale) {
     for (const [k, v] of Object.entries(flatten(parsed))) flat[`${ns}.${k}`] = v;
   }
   return flat;
-}
-
-// Matches {name}, {count, plural, ...}, {when, date, ...}. Deliberately not a full ICU parser:
-// it only needs to catch placeholder drift between a source string and its translations.
-function placeholders(value) {
-  if (typeof value !== 'string') return new Set();
-  return new Set([...value.matchAll(/\{\s*([a-zA-Z0-9_]+)\s*[,}]/g)].map((m) => m[1]));
 }
 
 function balanced(value) {
