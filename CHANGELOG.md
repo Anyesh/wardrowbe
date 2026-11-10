@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.13.0...wardrowbe-v1.14.0) (2026-11-10)
+
+
+### ✨ Features
+
+* re-analyse an item and replace the AI's earlier tags ([#301](https://github.com/Anyesh/wardrowbe/issues/301)) ([0a611f8](https://github.com/Anyesh/wardrowbe/commit/0a611f87b5f834b84035e7cc814d0a39f96ac838))
+* runtime ai UI enabled switch that hides ([#325](https://github.com/Anyesh/wardrowbe/issues/325)) ([8599172](https://github.com/Anyesh/wardrowbe/commit/85991728abe7f232603b58345ceda9f63592d028))
+* split a photo with several garments into items ([#302](https://github.com/Anyesh/wardrowbe/issues/302)) ([f56e2e9](https://github.com/Anyesh/wardrowbe/commit/f56e2e95e3569b60ef814fc2d8892fdf951eb97a))
+
+
+### 🐛 Bug Fixes
+
+* backend backlog ([#319](https://github.com/Anyesh/wardrowbe/issues/319)) ([550e409](https://github.com/Anyesh/wardrowbe/commit/550e4096273c6f71f721d2dae15ba8a9fe699301))
+* derive the theme provider props from next-themes so its 0.4 upgrade typechecks ([#328](https://github.com/Anyesh/wardrowbe/issues/328)) ([27c40ad](https://github.com/Anyesh/wardrowbe/commit/27c40ad2b61cb3575168850520954bacf38d83e1))
+* label the phone add item button on the wardrobe page ([#321](https://github.com/Anyesh/wardrowbe/issues/321)) ([7d085f0](https://github.com/Anyesh/wardrowbe/commit/7d085f0b192c4fc46acd429cab221e1f3543ed36))
+* studio skip reason i18n ([#320](https://github.com/Anyesh/wardrowbe/issues/320)) ([1ebe14c](https://github.com/Anyesh/wardrowbe/commit/1ebe14c5923db3eccb3de8e4ed65a1271869d20d))
+* untranslated messages ([#326](https://github.com/Anyesh/wardrowbe/issues/326)) ([c2dd4cf](https://github.com/Anyesh/wardrowbe/commit/c2dd4cf7b0d67b5bf17431ec40f609dfb8d0afb9))
+
+
+### 🔧 Maintenance
+
+* **deps:** bump @tanstack/react-query ([#323](https://github.com/Anyesh/wardrowbe/issues/323)) ([537222a](https://github.com/Anyesh/wardrowbe/commit/537222a90b246aa3e7d5ab342fd0efe8669dfd11))
+* **deps:** bump @tanstack/react-query ([#88](https://github.com/Anyesh/wardrowbe/issues/88)) ([f377dbb](https://github.com/Anyesh/wardrowbe/commit/f377dbb091cf54884e0e29684b4d76700fc7f1d7))
+* **deps:** bump the python-dependencies group across 1 directory with 28 updates ([#314](https://github.com/Anyesh/wardrowbe/issues/314)) ([e7b7117](https://github.com/Anyesh/wardrowbe/commit/e7b711761e260029992b4e8fd1d0b6054db8a8f3))
+* **deps:** bump the radix-ui group across 1 directory with 14 updates ([#151](https://github.com/Anyesh/wardrowbe/issues/151)) ([409779b](https://github.com/Anyesh/wardrowbe/commit/409779bd2c143a7e2894e8fcc1c881bb67c7a852))
+
+
+### 👷 CI/CD
+
+* group only minor and patch npm updates so majors arrive one per PR ([#324](https://github.com/Anyesh/wardrowbe/issues/324)) ([b490ea4](https://github.com/Anyesh/wardrowbe/commit/b490ea48c8dfd5cf33582db1c39219496e0fab13))
+
 ## [1.13.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.12.0...wardrowbe-v1.13.0) (2026-11-02)
 
 
