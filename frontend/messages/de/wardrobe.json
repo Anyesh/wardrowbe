@@ -123,6 +123,7 @@
     "confirmTitleAll": "Alle {count, plural, one {# Stück} other {# Stücke}} löschen?"
   },
   "clearFilters": "Filter zurücksetzen",
+  "filtersToggle": "{count, plural, =0 {Filter} one {Filter, # aktiv} other {Filter, # aktiv}}",
   "colorEyedropper": {
     "buttonTitle": "Farbe aus Bild wählen",
     "description": "Klicke auf das Bild, um eine Farbe auszuwählen",

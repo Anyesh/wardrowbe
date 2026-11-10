@@ -123,6 +123,7 @@
     "confirmTitleAll": "{count, plural, one {Supprimer # article ?} other {Supprimer tous les # articles ?}}"
   },
   "clearFilters": "Effacer les filtres",
+  "filtersToggle": "{count, plural, =0 {Filtres} one {Filtres, # actif} other {Filtres, # actifs}}",
   "colorEyedropper": {
     "buttonTitle": "Choisir une couleur depuis l'image",
     "description": "Cliquez n'importe où sur l'image pour prélever une couleur",

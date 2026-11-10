@@ -123,6 +123,7 @@
     "confirmTitleAll": "Delete all {count, plural, one {# item} other {# items}}?"
   },
   "clearFilters": "Clear filters",
+  "filtersToggle": "{count, plural, =0 {Filters} one {Filters, # active} other {Filters, # active}}",
   "colorEyedropper": {
     "buttonTitle": "Pick color from image",
     "description": "Click anywhere on the image to sample a color",

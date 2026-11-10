@@ -123,6 +123,7 @@
     "confirmTitleAll": "{count, plural, one {Eliminare # capo?} other {Eliminare tutti i capi (#)?}}"
   },
   "clearFilters": "Cancella filtri",
+  "filtersToggle": "{count, plural, =0 {Filtri} one {Filtri, # attivo} other {Filtri, # attivi}}",
   "colorEyedropper": {
     "buttonTitle": "Scegli colore dall'immagine",
     "description": "Clicca ovunque sull'immagine per campionare un colore",
