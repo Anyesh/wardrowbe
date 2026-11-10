@@ -174,6 +174,7 @@ async def update_item_status_to_error(ctx: dict, item_id: str, error_msg: str) -
 
 
 _NOTHING = (None, [], "", {})
+_UNSET_LABEL = (None, "", "unknown")
 
 
 def _ai_may_set(
@@ -296,6 +297,10 @@ async def tag_item_image(
             was_pending = item.tagging_status == TaggingStatus.pending
             # Keys the person set or cleared by hand; an empty one stays empty.
             kept = frozenset((item.tags or {}).get("user_edited_keys") or [])
+            # A subtype set by hand confirms the type it belongs to.
+            if replace and "subtype" in kept and item.subtype and item.type not in _UNSET_LABEL:
+                kept |= {"type"}
+            type_before = item.type
 
             for field, value in ai_fields.items():
                 # An item archived before or while its analysis ran keeps its archived status.
@@ -331,6 +336,20 @@ async def tag_item_image(
                 elif field in ("tagging_status", "tagged_by", "tagged_at"):
                     if was_pending:
                         setattr(item, field, value)
+                elif (
+                    field == "subtype"
+                    and replace
+                    and item.type != type_before
+                    and "subtype" not in kept
+                ):
+                    item.subtype = None if value in _UNSET_LABEL else value
+                elif (
+                    field == "primary_color"
+                    and replace
+                    and "colors" in kept
+                    and value not in (item.colors or [])
+                ):
+                    continue
                 elif field == "subtype" and item.type != ai_fields["type"]:
                     # A subtype only fits the type it was seen as ("crew-neck" on a T-shirt the
                     # person has since made a blouse).
@@ -342,13 +361,12 @@ async def tag_item_image(
                 ):
                     setattr(item, field, value)
 
-            # A colour the person chose as primary must stay in the list when the AI replaced
-            # the rest of it, including when the list ends up empty.
+            # The primary colour must stay in the list when the AI replaced the rest of it,
+            # including when the list ends up empty.
             if (
                 replace
-                and "primary_color" in kept
                 and "colors" not in kept
-                and item.primary_color
+                and item.primary_color not in _UNSET_LABEL
                 and item.primary_color not in (item.colors or [])
             ):
                 item.colors = [item.primary_color, *(item.colors or [])]

@@ -306,6 +306,91 @@ class TestReplaceInTheWorker:
         assert item.tags["colors"] == ["navy"]
 
     @pytest.mark.asyncio
+    async def test_a_new_type_drops_the_old_types_subtype(
+        self, db_session, test_user, stub_ai, item_image
+    ):
+        item = await _make_item(db_session, test_user, item_image)
+        stub_ai()
+        _StubAI.returns = _StubAI.returns.model_copy(update={"subtype": None})
+
+        await _analyse(db_session, item, item_image, replace=True)
+
+        assert (item.type, item.subtype) == ("shirt", None)
+
+    @pytest.mark.asyncio
+    async def test_a_subtype_set_by_hand_keeps_its_type(
+        self, db_session, test_user, stub_ai, item_image
+    ):
+        item = await _make_item(
+            db_session,
+            test_user,
+            item_image,
+            type="polo",
+            subtype="piqué",
+            tags={"user_edited_keys": ["subtype"]},
+        )
+        stub_ai()
+
+        await _analyse(db_session, item, item_image, replace=True)
+
+        assert (item.type, item.subtype) == ("polo", "piqué")
+        assert item.material == "linen"
+
+    @pytest.mark.asyncio
+    async def test_an_unknown_type_is_replaced_despite_a_subtype_set_by_hand(
+        self, db_session, test_user, stub_ai, item_image
+    ):
+        item = await _make_item(
+            db_session,
+            test_user,
+            item_image,
+            type="unknown",
+            subtype="kimono",
+            tags={"user_edited_keys": ["subtype"]},
+        )
+        stub_ai()
+
+        await _analyse(db_session, item, item_image, replace=True)
+
+        assert (item.type, item.subtype) == ("shirt", "kimono")
+
+    @pytest.mark.asyncio
+    async def test_a_kept_primary_colour_stays_listed_when_the_answer_is_unknown(
+        self, db_session, test_user, stub_ai, item_image
+    ):
+        item = await _make_item(db_session, test_user, item_image)
+        stub_ai()
+        _StubAI.returns = _StubAI.returns.model_copy(
+            update={"primary_color": "unknown", "colors": ["blue"]}
+        )
+
+        await _analyse(db_session, item, item_image, replace=True)
+
+        assert item.primary_color == "white"
+        assert item.colors == ["white", "blue"]
+        assert item.tags["colors"] == ["white", "blue"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(("answer", "expected"), [("blue", "white"), ("red", "red")])
+    async def test_a_colour_list_set_by_hand_bounds_the_new_primary(
+        self, db_session, test_user, stub_ai, item_image, answer, expected
+    ):
+        item = await _make_item(
+            db_session,
+            test_user,
+            item_image,
+            colors=["red", "white"],
+            tags={"colors": ["red", "white"], "user_edited_keys": ["colors"]},
+        )
+        stub_ai()
+        _StubAI.returns = _StubAI.returns.model_copy(update={"primary_color": answer})
+
+        await _analyse(db_session, item, item_image, replace=True)
+
+        assert item.primary_color == expected
+        assert item.colors == ["red", "white"]
+
+    @pytest.mark.asyncio
     async def test_columns_and_tags_agree_afterwards(
         self, db_session, test_user, stub_ai, item_image
     ):
