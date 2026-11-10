@@ -213,6 +213,7 @@
       "rotateLeft": "向左旋轉",
       "rotateRight": "向右旋轉",
       "setAsPrimary": "設為主要",
+      "splitPhoto": "拆分照片",
       "suggestOutfit": "用這件衣物建立穿搭",
       "toggleFavorite": "切換收藏",
       "undoBackgroundRemoval": "復原背景移除"
@@ -265,6 +266,31 @@
     "newestFirst": "最新優先",
     "oldestFirst": "最舊優先",
     "recentlyWorn": "最近穿過"
+  },
+  "splitPhoto": {
+    "addBox": "新增框",
+    "archiveNote": "原照片會被保留，但不再顯示在你的衣櫥中。它不會被刪除。",
+    "boxLabel": "衣物 {number}",
+    "create": "{count, plural, =0 {建立單品} other {建立 # 件單品}}",
+    "createFailed": "無法拆分照片",
+    "created": "{count, plural, other {已從這張照片建立 # 件單品}}",
+    "description": "找出這張照片中的每件衣物，並為每件建立獨立的單品。",
+    "detectFailed": "AI 無法檢視這張照片。",
+    "detecting": "正在尋找衣物…",
+    "errors": {
+      "aiUnreachable": "無法連線到 AI 服務。請重試，或為每件衣物新增一個框。",
+      "imageNotFound": "找不到這件單品的照片。",
+      "rateLimited": "短時間內嘗試次數過多。請稍候一分鐘再試。",
+      "sourceArchived": "這件單品已封存，無法再次拆分它的照片。",
+      "sourceBusy": "這張照片仍在旋轉或移除背景中。完成後再試。",
+      "visionDisabled": "自動辨識衣物已關閉。請為每件衣物新增一個框。"
+    },
+    "hint": "拖動框可移動，拖動角可調整大小。",
+    "noneFound": "找不到衣物。新增一個框並拖到衣物上。",
+    "photoAlt": "要拆分的照片",
+    "removeBox": "移除衣物 {number}",
+    "retry": "重試",
+    "title": "拆分照片"
   },
   "title": "我的衣櫥",
   "uploadQueue": {

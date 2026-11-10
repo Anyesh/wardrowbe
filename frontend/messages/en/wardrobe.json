@@ -213,6 +213,7 @@
       "rotateLeft": "Rotate left",
       "rotateRight": "Rotate right",
       "setAsPrimary": "Set as primary",
+      "splitPhoto": "Split photo",
       "suggestOutfit": "Create outfit with this item",
       "toggleFavorite": "Toggle favorite",
       "undoBackgroundRemoval": "Undo background removal"
@@ -265,6 +266,31 @@
     "newestFirst": "Newest first",
     "oldestFirst": "Oldest first",
     "recentlyWorn": "Recently worn"
+  },
+  "splitPhoto": {
+    "addBox": "Add a box",
+    "archiveNote": "The original photo is kept but hidden from your wardrobe. It is not deleted.",
+    "boxLabel": "Garment {number}",
+    "create": "{count, plural, =0 {Create items} one {Create # item} other {Create # items}}",
+    "createFailed": "Could not split the photo",
+    "created": "{count, plural, one {Created # item from this photo} other {Created # items from this photo}}",
+    "description": "Find each garment in this photo and make a separate item from it.",
+    "detectFailed": "The AI could not look at this photo.",
+    "detecting": "Looking for garments…",
+    "errors": {
+      "aiUnreachable": "The AI service could not be reached. Try again, or add a box for each garment.",
+      "imageNotFound": "The photo for this item could not be found.",
+      "rateLimited": "Too many tries in a short time. Wait a minute, then try again.",
+      "sourceArchived": "This item is already archived, so its photo cannot be split again.",
+      "sourceBusy": "This photo is still being rotated or having its background removed. Try again when that finishes.",
+      "visionDisabled": "Automatic garment detection is turned off. Add a box for each garment."
+    },
+    "hint": "Drag a box to move it, or drag a corner to resize it.",
+    "noneFound": "No garments were found. Add a box and drag it over a garment.",
+    "photoAlt": "The photo to split",
+    "removeBox": "Remove garment {number}",
+    "retry": "Try again",
+    "title": "Split photo"
   },
   "title": "My Wardrobe",
   "uploadQueue": {
