@@ -1,5 +1,15 @@
 {
   "aiLearning": "Apprendimento IA",
+  "aiStatus": {
+    "disabled": "IA disattivata",
+    "missingDetail": "Il server IA non ha: {models}",
+    "modelDetail": "Modello: {model}",
+    "model_missing": "Modello IA non trovato",
+    "offline": "IA spenta",
+    "online": "IA attiva",
+    "unknown": "Stato IA sconosciuto",
+    "unknownDetail": "Controllo il server IA"
+  },
   "analytics": "Analisi",
   "brandAlt": "Wardrowbe",
   "brandName": "Wardrowbe",
