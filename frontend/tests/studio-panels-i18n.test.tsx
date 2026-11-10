@@ -6,6 +6,7 @@ const toast = vi.hoisted(() => ({ info: vi.fn(), success: vi.fn(), error: vi.fn(
 
 vi.mock('@/lib/api', () => ({ api: { post }, getErrorMessage: (_: unknown, fallback: string) => fallback }))
 vi.mock('sonner', () => ({ toast }))
+vi.mock('@/lib/hooks/use-features', () => ({ useAiUiEnabled: () => true }))
 // The global next-intl mock drops the namespace and ICU values, so this one keeps both to
 // prove each label comes from the catalogs rather than from raw values.
 vi.mock('next-intl', () => ({
