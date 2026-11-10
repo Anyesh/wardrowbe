@@ -91,7 +91,7 @@ import {
   type ItemEdits,
   type TagDraft,
 } from '@/lib/tag-edits';
-import { useFeatures } from '@/lib/hooks/use-features';
+import { useAiUiEnabled, useFeatures } from '@/lib/hooks/use-features';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/lib/utils';
 
@@ -193,6 +193,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const replaceImage = useReplaceItemImage();
   const replaceImageInputRef = useRef<HTMLInputElement>(null);
   const { data: features } = useFeatures();
+  const aiUiEnabled = useAiUiEnabled();
   const logWear = useLogWear();
   const logWash = useLogWash();
   const { data: washHistory } = useWashHistory(item?.id || '');
@@ -408,38 +409,42 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     }`}
                   />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowPairingsDialog(true)}
-                  disabled={item.status !== 'ready'}
-                  title={t('titles.findMatchingOutfits')}
-                >
-                  <Layers className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    onOpenChange(false);
-                    router.push(`/dashboard/suggest?item=${item.id}`);
-                  }}
-                  disabled={item.status !== 'ready'}
-                  title={t('titles.suggestOutfit')}
-                >
-                  <Sparkles className="h-5 w-5 text-primary" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleReanalyze}
-                  disabled={isAnalyzing}
-                  title={isAnalyzing ? t('titles.analysisInProgress') : t('titles.reanalyzeWithAI')}
-                >
-                  <RefreshCw
-                    className={`h-5 w-5 ${isAnalyzing ? 'animate-spin text-primary' : ''}`}
-                  />
-                </Button>
+                {aiUiEnabled && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowPairingsDialog(true)}
+                      disabled={item.status !== 'ready'}
+                      title={t('titles.findMatchingOutfits')}
+                    >
+                      <Layers className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        onOpenChange(false);
+                        router.push(`/dashboard/suggest?item=${item.id}`);
+                      }}
+                      disabled={item.status !== 'ready'}
+                      title={t('titles.suggestOutfit')}
+                    >
+                      <Sparkles className="h-5 w-5 text-primary" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleReanalyze}
+                      disabled={isAnalyzing}
+                      title={isAnalyzing ? t('titles.analysisInProgress') : t('titles.reanalyzeWithAI')}
+                    >
+                      <RefreshCw
+                        className={`h-5 w-5 ${isAnalyzing ? 'animate-spin text-primary' : ''}`}
+                      />
+                    </Button>
+                  </>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1190,12 +1195,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Generate Pairings Dialog */}
-      <GeneratePairingsDialog
-        item={item}
-        open={showPairingsDialog}
-        onOpenChange={setShowPairingsDialog}
-      />
+      {aiUiEnabled && (
+        <GeneratePairingsDialog
+          item={item}
+          open={showPairingsDialog}
+          onOpenChange={setShowPairingsDialog}
+        />
+      )}
     </>
   );
 }

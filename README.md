@@ -170,6 +170,16 @@ to an external agent. You can also disable a single capability with
 reported at `GET /api/v1/capabilities`. Defaults keep internal AI **on**, so
 existing deployments are unaffected.
 
+When internal AI is fully off, the web app hides Suggest, Pairings and AI Learning
+from the navigation, sends those pages back to the dashboard, and drops the AI
+buttons (suggest, generate pairings, re-analyze, the analysis queue, "Let AI finish"
+in the outfit builder and the AI endpoint settings), while adding, editing and
+wearing items and building outfits by hand all keep working. If an external agent
+fills in suggestions and pairings for you, set `AI_UI_ENABLED=true` on the backend
+to keep that UI; `AI_UI_ENABLED=false` hides it even with internal AI on, while
+uploads are still tagged in the background. It is read at runtime, so no frontend
+rebuild is needed.
+
 </details>
 
 ## Architecture

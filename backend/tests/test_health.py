@@ -35,3 +35,18 @@ async def test_features_need_no_auth(client: AsyncClient):
     response = await client.get("/api/v1/health/features")
     assert response.status_code == 200
     assert response.json()["max_bulk_upload_count"] == get_settings().max_bulk_upload_count
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "ui_switch, internal, expected",
+    [(None, True, True), (None, False, False), (True, False, True), (False, True, False)],
+)
+async def test_features_report_effective_ai_ui(
+    client: AsyncClient, monkeypatch, ui_switch, internal, expected
+):
+    monkeypatch.setattr(get_settings(), "ai_ui_enabled", ui_switch)
+    monkeypatch.setattr(get_settings(), "ai_internal_enabled", internal)
+    response = await client.get("/api/v1/health/features")
+    assert response.status_code == 200
+    assert response.json()["ai_ui_enabled"] is expected

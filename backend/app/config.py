@@ -90,6 +90,9 @@ class Settings(BaseSettings):
     ai_internal_enabled: bool = Field(default=True)
     ai_vision_enabled: bool | None = Field(default=None)
     ai_text_enabled: bool | None = Field(default=None)
+    # Unset follows internal AI; true keeps the AI UI for an external agent that
+    # authors suggestions and pairings while internal AI is off.
+    ai_ui_enabled: bool | None = Field(default=None)
 
     # AI Service (OpenAI-compatible API - supports Ollama, OpenAI, etc.)
     ai_base_url: str = Field(default="")
@@ -197,6 +200,10 @@ class Settings(BaseSettings):
     def ai_enabled(self) -> bool:
         """True if any internal AI capability is active."""
         return self.effective_ai_vision_enabled or self.effective_ai_text_enabled
+
+    @property
+    def effective_ai_ui_enabled(self) -> bool:
+        return self.ai_enabled if self.ai_ui_enabled is None else self.ai_ui_enabled
 
     @property
     def oidc_configured(self) -> bool:

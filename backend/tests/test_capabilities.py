@@ -56,6 +56,42 @@ def test_defaults_keep_internal_ai_on():
     assert settings.ai_enabled is True
 
 
+@pytest.mark.parametrize(
+    "internal, vision, text, expected",
+    [
+        (True, None, None, True),
+        (True, False, None, True),
+        (True, None, False, True),
+        (True, False, False, False),
+        (False, None, None, False),
+        (False, True, True, False),
+    ],
+)
+def test_ai_ui_follows_internal_ai_when_unset(monkeypatch, internal, vision, text, expected):
+    monkeypatch.delenv("AI_UI_ENABLED", raising=False)
+    settings = Settings(
+        ai_internal_enabled=internal, ai_vision_enabled=vision, ai_text_enabled=text
+    )
+    assert settings.effective_ai_ui_enabled is expected
+
+
+def test_ai_ui_can_stay_on_for_an_external_agent_with_internal_ai_off(monkeypatch):
+    monkeypatch.setenv("AI_UI_ENABLED", "true")
+    assert Settings(ai_internal_enabled=False).effective_ai_ui_enabled is True
+
+
+def test_ai_ui_can_be_hidden_with_internal_ai_on(monkeypatch):
+    monkeypatch.setenv("AI_UI_ENABLED", "false")
+    assert Settings(ai_internal_enabled=True).effective_ai_ui_enabled is False
+
+
+def test_empty_ai_ui_env_var_follows_internal_ai(monkeypatch):
+    monkeypatch.setenv("AI_UI_ENABLED", "")
+    settings = Settings(ai_internal_enabled=False)
+    assert settings.ai_ui_enabled is None
+    assert settings.effective_ai_ui_enabled is False
+
+
 def test_empty_string_env_var_inherits_master(monkeypatch):
     # env_ignore_empty=True: compose :-  default sends "" which must map to None,
     # so the sub-switch inherits the master rather than clamping to True.

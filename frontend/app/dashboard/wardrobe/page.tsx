@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/tooltip';
 import { AddItemDialog } from '@/components/add-item-dialog';
 import { AnalysisQueuePanel } from '@/components/analysis-queue-panel';
+import { useAiUiEnabled } from '@/lib/hooks/use-features';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
 import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkItemFilters, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
@@ -434,6 +435,7 @@ export default function WardrobePage() {
   const bulkRotate = useBulkRotateItems();
   const bulkRemoveBackground = useBulkRemoveBackgroundItems();
   const removeBackground = useRemoveBackground();
+  const aiUiEnabled = useAiUiEnabled();
 
   const items = data?.items || [];
   const total = data?.total || 0;
@@ -686,14 +688,16 @@ export default function WardrobePage() {
                   {t('ai.queuedCount', { count: queuedCount })}
                 </Badge>
               )}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 px-2 text-xs"
-                onClick={() => setQueuePanelOpen(true)}
-              >
-                {t('ai.queue.open')}
-              </Button>
+              {aiUiEnabled && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setQueuePanelOpen(true)}
+                >
+                  {t('ai.queue.open')}
+                </Button>
+              )}
               {(queuedCount > 0 || analyzingCount > 0) && (
                 <Button
                   size="sm"
@@ -914,7 +918,7 @@ export default function WardrobePage() {
                 item={item}
                 selected={isSelected}
                 onSelect={handleSelect}
-                onRetry={handleRetry}
+                onRetry={aiUiEnabled ? handleRetry : undefined}
                 onRetryBackgroundRemoval={handleRetryBackgroundRemoval}
                 onCancelAnalysis={handleCancelAnalysis}
                 onClick={() => setDetailItemId(item.id)}
@@ -935,7 +939,7 @@ export default function WardrobePage() {
         onSelectAllMatching={handleSelectAllMatching}
         onClear={handleClearSelection}
         onDelete={handleBulkDelete}
-        onReanalyze={handleBulkReanalyze}
+        onReanalyze={aiUiEnabled ? handleBulkReanalyze : undefined}
         onRotate={handleBulkRotate}
         onRemoveBackground={handleBulkRemoveBackground}
         isDeleting={bulkDelete.isPending}
@@ -947,13 +951,15 @@ export default function WardrobePage() {
       />
 
       <AddItemDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
-      <AnalysisQueuePanel
-        open={queuePanelOpen}
-        onOpenChange={setQueuePanelOpen}
-        progress={taggingProgress}
-        onRetry={handleRetry}
-        retryPending={reanalyze.isPending}
-      />
+      {aiUiEnabled && (
+        <AnalysisQueuePanel
+          open={queuePanelOpen}
+          onOpenChange={setQueuePanelOpen}
+          progress={taggingProgress}
+          onRetry={handleRetry}
+          retryPending={reanalyze.isPending}
+        />
+      )}
       <ItemDetailDialog
         item={detailItem}
         open={!!detailItemId}

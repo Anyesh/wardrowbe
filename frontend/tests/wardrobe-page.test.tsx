@@ -29,6 +29,7 @@ vi.mock('@/lib/hooks/use-items', async (importOriginal) => {
 })
 
 vi.mock('@/lib/hooks/use-user', () => ({ useUserTimezone: () => 'UTC' }))
+vi.mock('@/lib/hooks/use-features', () => ({ useAiUiEnabled: () => true }))
 
 vi.mock('@/lib/hooks/use-translated-constants', () => ({
   useClothingTypes: () => [],
