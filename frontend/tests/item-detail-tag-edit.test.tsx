@@ -352,3 +352,25 @@ describe('editing an item with the tag editor', () => {
     expect(toast.error).toHaveBeenCalledWith(labels.actions.saveError)
   })
 })
+
+describe('item detail icon-only buttons', () => {
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset()
+    vi.mocked(api.get).mockResolvedValue([])
+  })
+
+  it('names the toolbar buttons with aria-label, not only a tooltip', () => {
+    renderDialog()
+    for (const name of [
+      labels.titles.toggleFavorite,
+      labels.titles.findMatchingOutfits,
+      labels.titles.suggestOutfit,
+      labels.titles.rotateLeft,
+      labels.titles.rotateRight,
+      labels.titles.replaceImage,
+      labels.actions.editItem,
+    ]) {
+      expect(screen.getByTitle(name)).toHaveAttribute('aria-label', name)
+    }
+  })
+})

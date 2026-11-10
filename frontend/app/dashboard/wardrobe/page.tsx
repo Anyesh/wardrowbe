@@ -232,6 +232,7 @@ function ItemCard({
                   variant="secondary"
                   className="h-7 w-7 p-0"
                   title={t('ai.dismiss')}
+                  aria-label={t('ai.dismiss')}
                   onClick={(e) => {
                     e.stopPropagation();
                     onDismissError(item.id);
@@ -764,6 +765,7 @@ export default function WardrobePage() {
               size="icon"
               className="shrink-0 relative"
               onClick={() => setShowFilters((v) => !v)}
+              aria-label={tc('filter')}
             >
               <SlidersHorizontal className="h-4 w-4" />
               {activeFilterCount > 0 && (

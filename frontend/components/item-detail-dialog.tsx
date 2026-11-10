@@ -402,6 +402,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   onClick={handleToggleFavorite}
                   disabled={updateItem.isPending}
                   title={t('titles.toggleFavorite')}
+                  aria-label={t('titles.toggleFavorite')}
                 >
                   <Heart
                     className={`h-5 w-5 ${
@@ -417,6 +418,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       onClick={() => setShowPairingsDialog(true)}
                       disabled={item.status !== 'ready'}
                       title={t('titles.findMatchingOutfits')}
+                      aria-label={t('titles.findMatchingOutfits')}
                     >
                       <Layers className="h-5 w-5" />
                     </Button>
@@ -429,6 +431,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       }}
                       disabled={item.status !== 'ready'}
                       title={t('titles.suggestOutfit')}
+                      aria-label={t('titles.suggestOutfit')}
                     >
                       <Sparkles className="h-5 w-5 text-primary" />
                     </Button>
@@ -438,6 +441,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                       onClick={handleReanalyze}
                       disabled={isAnalyzing}
                       title={isAnalyzing ? t('titles.analysisInProgress') : t('titles.reanalyzeWithAI')}
+                      aria-label={isAnalyzing ? t('titles.analysisInProgress') : t('titles.reanalyzeWithAI')}
                     >
                       <RefreshCw
                         className={`h-5 w-5 ${isAnalyzing ? 'animate-spin text-primary' : ''}`}
@@ -451,6 +455,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   onClick={() => handleRotate('ccw')}
                   disabled={rotateImage.isPending}
                   title={t('titles.rotateLeft')}
+                  aria-label={t('titles.rotateLeft')}
                 >
                   {rotateImage.isPending ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -464,6 +469,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   onClick={() => handleRotate('cw')}
                   disabled={rotateImage.isPending}
                   title={t('titles.rotateRight')}
+                  aria-label={t('titles.rotateRight')}
                 >
                   {rotateImage.isPending ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -478,6 +484,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     onClick={handleRemoveBackground}
                     disabled={removeBackground.isPending || !item.image_url}
                     title={t('titles.removeBackground')}
+                    aria-label={t('titles.removeBackground')}
                   >
                     {removeBackground.isPending ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
@@ -493,6 +500,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     onClick={handleRestoreOriginal}
                     disabled={restoreOriginal.isPending}
                     title={t('titles.undoBackgroundRemoval')}
+                    aria-label={t('titles.undoBackgroundRemoval')}
                   >
                     {restoreOriginal.isPending ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
@@ -507,6 +515,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   onClick={() => replaceImageInputRef.current?.click()}
                   disabled={replaceImage.isPending}
                   title={t('titles.replaceImage')}
+                  aria-label={t('titles.replaceImage')}
                 >
                   {replaceImage.isPending ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -551,6 +560,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     setIsEditing(!isEditing);
                   }}
                   title={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
+                  aria-label={isEditing ? t('actions.cancelEditing') : t('actions.editItem')}
                 >
                   {isEditing ? (
                     <X className="h-5 w-5" />
@@ -566,6 +576,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
               onClick={() => onOpenChange(false)}
               className="rounded-full flex-shrink-0"
               title={tc('close')}
+              aria-label={tc('close')}
             >
               <X className="h-5 w-5" />
             </Button>
@@ -652,6 +663,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                           <button
                             className="bg-primary text-primary-foreground rounded-full p-0.5 hover:bg-primary/90"
                             title={t('titles.setAsPrimary')}
+                            aria-label={t('titles.setAsPrimary')}
                             onClick={() => {
                               setPrimary.mutate({ itemId: item.id, imageId: img.id });
                               setActiveImageIndex(0);
@@ -662,6 +674,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                           <button
                             className="bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/90"
                             title={t('titles.deleteImage')}
+                            aria-label={t('titles.deleteImage')}
                             onClick={() => {
                               deleteImage.mutate({ itemId: item.id, imageId: img.id });
                               if (activeImageIndex > idx) setActiveImageIndex((i) => i - 1);

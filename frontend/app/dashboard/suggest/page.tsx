@@ -837,6 +837,7 @@ function SuggestContent() {
                         onClick={() => setSelectedItem(null)}
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                         title={t('baseItem.remove')}
+                        aria-label={t('baseItem.remove')}
                       >
                         <X className="h-4 w-4" />
                       </Button>
