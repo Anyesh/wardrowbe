@@ -1,0 +1,13 @@
+{
+  "default": "Algo ha salido mal. Inténtalo de nuevo.",
+  "invite": {
+    "alreadyInFamily": "Ya estás en una familia.",
+    "emailNotVerified": "Tu proveedor de acceso no ha verificado tu correo. Verifícalo allí e inicia sesión otra vez para aceptar esta invitación.",
+    "invalidLink": "Este enlace de invitación no es válido o ha caducado.",
+    "wrongEmail": "Esta invitación se envió a otra dirección de correo."
+  },
+  "pageLoad": {
+    "description": "No se ha podido cargar este contenido. Puede ser un problema temporal.",
+    "title": "No se ha podido cargar esta página"
+  }
+}
