@@ -1,0 +1,33 @@
+{
+  "addItems": "아이템 추가",
+  "error": "여행 계획을 만들지 못했어요. 다시 시도해 주세요.",
+  "form": {
+    "destination": "목적지",
+    "destinationPlaceholder": "예: 포르투갈 리스본",
+    "end": "도착",
+    "laundry": "빨래를 할 수 있어요",
+    "laundryHelp": "며칠 분만 챙기고 여행 중에 세탁하기",
+    "occasion": "상황",
+    "start": "출발",
+    "submit": "짐 계획하기"
+  },
+  "groupCount": "{found}/{needed}",
+  "invalidDates": "날짜를 확인하세요: 여행은 오늘 이후에 끝나야 하며 최대 30일까지 가능해요.",
+  "missing": "옷장에 부족한 것: {roles}",
+  "noneSuitable": "이 날씨에 맞는 옷이 옷장에 없어요.",
+  "notFound": "목적지를 찾을 수 없어요. 국가 이름을 함께 입력해 보세요.",
+  "packedLabel": "챙김",
+  "subtitle": "목적지 날씨에 맞춰 내 옷장에서 짐 목록을 만들어 드려요.",
+  "summary": {
+    "dates": "{start} – {end} · {days, plural, other {#일}}",
+    "dayRange": "{min}° / {max}°",
+    "estimated": "계절 기준 추정",
+    "estimatedHelp": "아직 이 날짜의 예보가 없어 계절 평균 기온으로 목록을 만들었어요. 출발이 가까워지면 다시 확인하세요.",
+    "progress": "{total}개 중 {packed}개 챙김",
+    "rainDays": "{count, plural, =0 {비 예보 없음} other {비 오는 날 #일}}",
+    "rainUnknown": "비 여부를 알 수 없어 우비를 챙깁니다",
+    "temperature": "{min}°~{max}°",
+    "underwear": "속옷과 양말 {count}벌을 챙기세요"
+  },
+  "title": "짐 싸기"
+}
