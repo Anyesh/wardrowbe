@@ -109,6 +109,15 @@ describe('re-analyse and replace', () => {
     await waitFor(() => expect(toast.info).toHaveBeenCalledTimes(1))
   })
 
+  it('tells the user when a plain analysis already queued keeps the replace from running', async () => {
+    vi.mocked(api.post).mockResolvedValue({ status: 'already_queued', job_id: 'j0' })
+    renderDialog()
+    fireEvent.click(replaceButton())
+    fireEvent.click(screen.getByRole('button', { name: itemDetail.replaceAnalysis.confirm }))
+
+    await waitFor(() => expect(toast.info).toHaveBeenCalledWith(itemDetail.replaceAnalysis.alreadyQueued))
+  })
+
   it('is disabled while the item is being analysed', () => {
     renderDialog({ status: 'processing' } as Partial<Item>)
     expect(replaceButton()).toBeDisabled()

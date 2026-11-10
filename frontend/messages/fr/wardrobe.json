@@ -189,8 +189,9 @@
     },
     "primaryColor": "Couleur principale",
     "replaceAnalysis": {
+      "alreadyQueued": "Cet article est déjà en cours d'analyse, rien n'a donc été remplacé. Réessayez une fois l'analyse terminée.",
       "confirm": "Réanalyser et remplacer",
-      "description": "L'IA examine à nouveau la photo et remplace ses estimations précédentes. Les tags que vous avez modifiés vous-même sont conservés. Les modifications faites avant cette fonctionnalité n'ont pas été enregistrées et peuvent donc aussi être remplacées.",
+      "description": "L'IA examine à nouveau la photo et remplace ses estimations précédentes. Les tags que vous avez modifiés vous-même sont conservés. Certaines modifications faites avec d'anciennes versions n'ont pas été enregistrées et peuvent donc aussi être remplacées.",
       "title": "Réanalyser et remplacer les tags IA ?"
     },
     "subtype": "Sous-type",

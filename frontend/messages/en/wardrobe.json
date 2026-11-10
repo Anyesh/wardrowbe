@@ -189,8 +189,9 @@
     },
     "primaryColor": "Primary Color",
     "replaceAnalysis": {
+      "alreadyQueued": "This item is already being analyzed, so nothing was replaced. Try again when it finishes.",
       "confirm": "Re-analyze and replace",
-      "description": "The AI looks at the photo again and replaces its earlier guesses. Tags you edited yourself are kept. Edits made before this feature existed were not recorded, so they can be replaced too.",
+      "description": "The AI looks at the photo again and replaces its earlier guesses. Tags you edited yourself are kept. Some edits from older versions were not recorded, so they can be replaced too.",
       "title": "Re-analyze and replace AI tags?"
     },
     "subtype": "Subtype",

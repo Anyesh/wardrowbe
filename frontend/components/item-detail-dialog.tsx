@@ -310,6 +310,8 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       const result = await reanalyzeItem.mutateAsync({ id: item.id, replace });
       if (result.status === 'cooldown' && result.retry_after_seconds) {
         toast.info(tw('ai.retryCooldown', { seconds: result.retry_after_seconds }));
+      } else if (replace && result.status === 'already_queued') {
+        toast.info(t('replaceAnalysis.alreadyQueued'));
       }
       // Otherwise status will update to 'processing' and UI will reflect it
     } catch (error) {
