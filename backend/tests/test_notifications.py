@@ -397,6 +397,32 @@ class TestEmailProviderSettings:
 
         assert not EmailProvider(EmailConfig(address="to@example.com")).is_configured()
 
+    def test_unconfigured_without_sender(self, monkeypatch):
+        settings = Settings(_env_file=None, smtp_host="smtp.example.com")
+        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+
+        assert not EmailProvider(EmailConfig(address="to@example.com")).is_configured()
+
+    @pytest.mark.asyncio
+    async def test_relay_without_smtp_user_sends_without_auth(self, monkeypatch):
+        settings = Settings(
+            _env_file=None, smtp_host="relay.example.com", smtp_from_email="closet@example.com"
+        )
+        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+        provider = EmailProvider(EmailConfig(address="to@example.com"))
+
+        with patch(
+            "app.services.notification_providers.aiosmtplib.send", new_callable=AsyncMock
+        ) as send:
+            result = await provider.send(
+                EmailMessage(to="to@example.com", subject="Hi", html_body="<p>Hi</p>")
+            )
+
+        assert provider.is_configured()
+        assert result == {"success": True}
+        assert send.await_args.kwargs["username"] is None
+        assert send.await_args.kwargs["password"] is None
+
 
 # An SMTP server that, like many self-hosted relays, does not advertise SMTPUTF8.
 @pytest_asyncio.fixture
