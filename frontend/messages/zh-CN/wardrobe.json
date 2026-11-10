@@ -123,6 +123,7 @@
     "confirmTitleAll": "删除全部 {count, plural, one {# 件单品} other {# 件单品}}？"
   },
   "clearFilters": "清除筛选",
+  "filtersToggle": "{count, plural, =0 {筛选} other {筛选，已启用 # 项}}",
   "colorEyedropper": {
     "buttonTitle": "从图片取色",
     "description": "点击图片上任意位置取色",

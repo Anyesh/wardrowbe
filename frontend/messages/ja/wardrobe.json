@@ -123,6 +123,7 @@
     "confirmTitleAll": "すべての{count, plural, one {# 件のアイテム} other {# 件のアイテム}}を削除しますか？"
   },
   "clearFilters": "フィルターをクリア",
+  "filtersToggle": "{count, plural, =0 {フィルター} other {フィルター（#件適用中）}}",
   "colorEyedropper": {
     "buttonTitle": "画像から色を選択",
     "description": "画像の任意の場所をクリックして色を取得",

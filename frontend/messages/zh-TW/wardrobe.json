@@ -123,6 +123,7 @@
     "confirmTitleAll": "刪除全部 {count, plural, one {# 件單品} other {# 件單品}}？"
   },
   "clearFilters": "清除篩選",
+  "filtersToggle": "{count, plural, =0 {篩選} other {篩選，已套用 # 項}}",
   "colorEyedropper": {
     "buttonTitle": "從圖片取色",
     "description": "點擊圖片任意位置取色",

@@ -765,7 +765,8 @@ export default function WardrobePage() {
               size="icon"
               className="shrink-0 relative"
               onClick={() => setShowFilters((v) => !v)}
-              aria-label={tc('filter')}
+              aria-label={t('filtersToggle', { count: activeFilterCount })}
+              aria-expanded={showFilters}
             >
               <SlidersHorizontal className="h-4 w-4" />
               {activeFilterCount > 0 && (

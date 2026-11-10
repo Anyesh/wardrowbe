@@ -123,6 +123,7 @@
     "confirmTitleAll": "{count, plural, other {아이템 #개 전체를 삭제하시겠어요?}}"
   },
   "clearFilters": "필터 초기화",
+  "filtersToggle": "{count, plural, =0 {필터} other {필터, #개 적용됨}}",
   "colorEyedropper": {
     "buttonTitle": "이미지에서 색상 추출",
     "description": "이미지 아무 곳이나 클릭하여 색상을 추출하세요",
