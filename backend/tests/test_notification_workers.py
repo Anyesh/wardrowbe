@@ -21,6 +21,7 @@ from app.models.schedule import Schedule
 from app.models.user import User
 from app.services.notification_providers import EXPO_PUSH_URL
 from app.services.notification_service import NotificationDispatcher
+from app.services.recommendation_service import InsufficientWardrobeError
 from app.utils import redis_lock
 from app.workers.notifications import (
     _check_wash_reminders_inner,
@@ -461,6 +462,23 @@ class TestProcessScheduledNotification:
         assert raised.value.defer_score == job_try * 5 * 60 * 1000
         await db_session.refresh(schedule)
         assert schedule.last_triggered_at is not None
+
+    @pytest.mark.asyncio
+    async def test_a_wardrobe_too_small_for_an_outfit_is_skipped_not_retried(
+        self, db_session: AsyncSession, schedule_user: User, ntfy_channel
+    ):
+        schedule = _make_due_schedule(schedule_user)
+        db_session.add(schedule)
+        await db_session.commit()
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock(
+            side_effect=InsufficientWardrobeError("Add a top and a bottom")
+        )
+
+        with _scheduled_job_patches(db_session, mock_rec_service):
+            result = await process_scheduled_notification({"job_try": 1}, str(schedule.id))
+
+        assert result == {"status": "skipped", "reason": "Add a top and a bottom"}
 
     @pytest.mark.asyncio
     async def test_failure_on_the_last_try_reraises(
