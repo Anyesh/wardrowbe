@@ -2,7 +2,7 @@
 
 import uuid
 from contextlib import ExitStack
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -563,6 +563,44 @@ class TestProcessScheduledNotification:
 
         mock_rec_service.generate_recommendation.assert_awaited_once()
         assert result["outfit_id"] == str(fresh.id)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("notify_day_before", "expected"),
+        [(False, date(2026, 3, 13)), (True, date(2026, 3, 14))],
+        ids=["same-day", "day-before"],
+    )
+    async def test_retry_after_midnight_keeps_the_enqueue_day(
+        self,
+        db_session: AsyncSession,
+        schedule_user: User,
+        ntfy_channel,
+        notify_day_before,
+        expected,
+    ):
+        schedule_user.timezone = "America/New_York"
+        schedule = _make_due_schedule(schedule_user, notify_day_before=notify_day_before)
+        outfit = _scheduled_outfit(schedule_user, schedule.occasion)
+        db_session.add(schedule)
+        await db_session.commit()
+
+        async def generate(**_):
+            db_session.add(outfit)
+            await db_session.commit()
+            return outfit
+
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock(side_effect=generate)
+        ctx = {"job_try": 2, "enqueue_time": datetime(2026, 3, 14, 3, 58, tzinfo=UTC)}
+
+        with (
+            _scheduled_job_patches(db_session, mock_rec_service),
+            patch.object(httpx.AsyncClient, "post", _fake_post()),
+        ):
+            await process_scheduled_notification(ctx, str(schedule.id))
+
+        call = mock_rec_service.generate_recommendation.await_args
+        assert call.kwargs["scheduled_date"] == expected
 
 
 def _scheduled_outfit(user: User, occasion: str) -> Outfit:
