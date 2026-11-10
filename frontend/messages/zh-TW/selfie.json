@@ -1,0 +1,17 @@
+{
+  "aiError": "AI 無法讀取照片，請稍後再試。",
+  "aiOff": "此伺服器已關閉 AI。",
+  "checkHint": "點一下可取消 AI 認錯的衣物。",
+  "confirm": "{count, plural, =0 {標記為今天已穿} other {將 # 件標記為今天已穿}}",
+  "found": "{count, plural, other {找到你的 # 件衣物}}",
+  "noneFound": "沒有認出你衣櫥裡的衣物。",
+  "photoAlt": "你的穿搭照片",
+  "pick": "拍攝或選擇照片",
+  "pickHint": "對鏡全身照效果最好。",
+  "saveError": "儲存失敗，請再試一次。",
+  "saved": "{count, plural, other {已將 # 件標記為已穿}}",
+  "savedButton": "已標記為已穿",
+  "subtitle": "對著鏡子拍一張，AI 認出你的衣物，你可以標記為已穿。",
+  "title": "穿搭自拍",
+  "working": "AI 正在查看你的穿搭…最多可能需要一分鐘。"
+}
