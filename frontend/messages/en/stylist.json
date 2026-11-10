@@ -1,0 +1,16 @@
+{
+  "aiError": "The AI could not answer. Try again in a moment.",
+  "aiOff": "The AI is turned off on this server.",
+  "clear": "New chat",
+  "examples": {
+    "event": "What can I wear to a wedding in June?",
+    "match": "What goes with my jeans?",
+    "today": "What should I wear today?"
+  },
+  "intro": "Ask anything about what to wear: the stylist knows your wardrobe and shows the pieces it suggests.",
+  "placeholder": "Write a question…",
+  "send": "Send",
+  "subtitle": "Ask the AI for advice about your own clothes.",
+  "thinking": "The stylist is thinking… this can take up to a minute.",
+  "title": "Stylist"
+}
