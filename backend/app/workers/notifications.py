@@ -1,7 +1,8 @@
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
+from arq import Retry
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,31 +18,14 @@ from app.services.ai_service import AIDisabledError
 from app.services.learning_service import LearningService
 from app.services.notification_providers import NotificationMessage
 from app.services.notification_service import NotificationDispatcher
-from app.services.recommendation_service import RecommendationService
+from app.services.recommendation_service import InsufficientWardrobeError, RecommendationService
 from app.services.weather_service import WeatherService
 from app.utils.redis_lock import distributed_lock
-from app.utils.timezone import get_user_timezone, get_user_today
+from app.utils.timezone import get_user_timezone
 from app.workers.db import get_db_session
+from app.workers.queues import WORKER_MAX_TRIES
 
 logger = logging.getLogger(__name__)
-
-
-async def reset_schedule_trigger(ctx: dict, schedule_id: str) -> None:
-    try:
-        db = get_db_session(ctx)
-        try:
-            result = await db.execute(select(Schedule).where(Schedule.id == schedule_id))
-            sched = result.scalar_one_or_none()
-            if sched:
-                sched.last_triggered_at = None
-                await db.commit()
-                logger.info(
-                    f"Reset last_triggered_at for schedule {schedule_id} after final retry failure"
-                )
-        finally:
-            await db.close()
-    except (OSError, ConnectionError) as e:
-        logger.warning(f"Best-effort recovery failed for schedule {schedule_id}: {e}")
 
 
 async def _retry_notification(
@@ -147,6 +131,29 @@ async def retry_failed_notifications(ctx: dict):
         await db.close()
 
 
+async def _outfit_from_earlier_try(
+    db: AsyncSession, user_id: UUID, occasion: str, target_date: date, enqueued_at: datetime
+) -> Outfit | None:
+    result = await db.execute(
+        select(Outfit)
+        .where(
+            Outfit.user_id == user_id,
+            Outfit.source == OutfitSource.scheduled,
+            Outfit.occasion == occasion,
+            Outfit.scheduled_for == target_date,
+            Outfit.created_at >= enqueued_at,
+        )
+        .order_by(Outfit.created_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def _has_notification(db: AsyncSession, outfit_id: UUID) -> bool:
+    result = await db.execute(select(Notification.id).where(Notification.outfit_id == outfit_id))
+    return result.first() is not None
+
+
 async def process_scheduled_notification(ctx: dict, schedule_id: str):
     logger.info(f"Processing scheduled notification for schedule {schedule_id}")
 
@@ -174,34 +181,48 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
             return {"status": "skipped", "reason": "no_channels"}
 
         is_for_tomorrow = schedule.notify_day_before
-        weather_override = None
-
-        if is_for_tomorrow and user.location_lat is not None and user.location_lon is not None:
-            try:
-                weather_service = WeatherService()
-                weather_override = await weather_service.get_tomorrow_weather(
-                    user.location_lat, user.location_lon
-                )
-                logger.info(
-                    f"Fetched tomorrow's forecast for user {user.id}: "
-                    f"{weather_override.temperature}°C, {weather_override.condition}"
-                )
-            except Exception as e:
-                logger.warning(f"Failed to fetch tomorrow's weather: {e}")
-
-        user_today = get_user_today(user)
+        # Retries keep the original enqueue time, so the target date cannot move past midnight
+        # between tries and only an outfit made by this job counts as an earlier try's.
+        enqueued_at = ctx.get("enqueue_time") or datetime.now(UTC)
+        user_today = enqueued_at.astimezone(get_user_timezone(user)).date()
         target_date = user_today + timedelta(days=1) if is_for_tomorrow else user_today
 
-        recommendation_service = RecommendationService(db)
-        outfit = await recommendation_service.generate_recommendation(
-            user=user,
-            occasion=schedule.occasion,
-            source=OutfitSource.scheduled,
-            weather_override=weather_override,
-            time_of_day=TimeOfDay.full_day if is_for_tomorrow else None,
-            single_outfit=True,
-            scheduled_date=target_date,
-        )
+        # The outfit is committed before it is sent, so a retry must not generate a second one,
+        # and once a notification row exists the dispatcher's own retry job owns delivery.
+        outfit = None
+        if ctx.get("job_try", 1) > 1:
+            outfit = await _outfit_from_earlier_try(
+                db, user.id, schedule.occasion, target_date, enqueued_at
+            )
+            if outfit and await _has_notification(db, outfit.id):
+                logger.info(f"Schedule {schedule_id} was already notified for outfit {outfit.id}")
+                return {"status": "sent", "outfit_id": str(outfit.id)}
+
+        if outfit is None:
+            weather_override = None
+            if is_for_tomorrow and user.location_lat is not None and user.location_lon is not None:
+                try:
+                    weather_service = WeatherService()
+                    weather_override = await weather_service.get_tomorrow_weather(
+                        user.location_lat, user.location_lon
+                    )
+                    logger.info(
+                        f"Fetched tomorrow's forecast for user {user.id}: "
+                        f"{weather_override.temperature}°C, {weather_override.condition}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to fetch tomorrow's weather: {e}")
+
+            recommendation_service = RecommendationService(db)
+            outfit = await recommendation_service.generate_recommendation(
+                user=user,
+                occasion=schedule.occasion,
+                source=OutfitSource.scheduled,
+                weather_override=weather_override,
+                time_of_day=TimeOfDay.full_day if is_for_tomorrow else None,
+                single_outfit=True,
+                scheduled_date=target_date,
+            )
 
         await dispatcher.send_outfit_notification(user_id=str(user.id), outfit_id=str(outfit.id))
 
@@ -217,14 +238,16 @@ async def process_scheduled_notification(ctx: dict, schedule_id: str):
         # Internal text is off — defer to the external agent; skip, don't retry.
         logger.info(f"Skipping schedule {schedule_id}: internal AI text disabled")
         return {"status": "skipped", "reason": "internal_ai_disabled"}
-    except ValueError as e:
+    except (ValueError, InsufficientWardrobeError) as e:
         logger.warning(f"Cannot generate outfit for schedule {schedule_id}: {e}")
         return {"status": "skipped", "reason": str(e)}
     except Exception:
         logger.exception(f"Failed to process schedule {schedule_id}")
         await db.rollback()
-        if ctx.get("job_try", 1) >= 3:
-            await reset_schedule_trigger(ctx, schedule_id)
+        job_try = ctx.get("job_try", 1)
+        # arq only re-queues a job that raises Retry; any other exception ends it for good.
+        if job_try < WORKER_MAX_TRIES:
+            raise Retry(defer=timedelta(minutes=5 * job_try)) from None
         raise
     finally:
         await db.close()

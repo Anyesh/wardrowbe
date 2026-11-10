@@ -1,13 +1,15 @@
 """Tests for notification worker concurrency fixes."""
 
 import uuid
-from datetime import UTC, datetime, time, timedelta
+from contextlib import ExitStack
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
 import pytest_asyncio
+from arq import Retry
 from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +21,7 @@ from app.models.schedule import Schedule
 from app.models.user import User
 from app.services.notification_providers import EXPO_PUSH_URL
 from app.services.notification_service import NotificationDispatcher
+from app.services.recommendation_service import InsufficientWardrobeError
 from app.utils import redis_lock
 from app.workers.notifications import (
     _check_wash_reminders_inner,
@@ -441,31 +444,202 @@ class TestProcessScheduledNotification:
         assert "not enough items" in result["reason"]
 
     @pytest.mark.asyncio
-    async def test_generic_exception_rolls_back_and_reraises(
-        self, db_session: AsyncSession, schedule_user: User, ntfy_channel
+    @pytest.mark.parametrize("job_try", [1, 2])
+    async def test_failure_before_the_last_try_is_retried_later(
+        self, db_session: AsyncSession, schedule_user: User, ntfy_channel, job_try
     ):
-        schedule = _make_due_schedule(schedule_user)
+        schedule = _make_due_schedule(schedule_user, last_triggered_at=datetime.now(UTC))
         db_session.add(schedule)
         await db_session.commit()
-
         mock_rec_service = MagicMock()
         mock_rec_service.generate_recommendation = AsyncMock(
             side_effect=RuntimeError("AI service down")
         )
 
-        ctx = {"job_try": 1}
+        with pytest.raises(Retry) as raised, _scheduled_job_patches(db_session, mock_rec_service):
+            await process_scheduled_notification({"job_try": job_try}, str(schedule.id))
 
-        with pytest.raises(RuntimeError, match="AI service down"):
-            with (
-                patch("app.workers.notifications.get_db_session", return_value=db_session),
-                patch.object(db_session, "close", new_callable=AsyncMock),
-                patch(
-                    "app.workers.notifications.RecommendationService",
-                    return_value=mock_rec_service,
-                ),
-                patch("app.workers.notifications.WeatherService"),
-            ):
-                await process_scheduled_notification(ctx, str(schedule.id))
+        assert raised.value.defer_score == job_try * 5 * 60 * 1000
+        await db_session.refresh(schedule)
+        assert schedule.last_triggered_at is not None
+
+    @pytest.mark.asyncio
+    async def test_a_wardrobe_too_small_for_an_outfit_is_skipped_not_retried(
+        self, db_session: AsyncSession, schedule_user: User, ntfy_channel
+    ):
+        schedule = _make_due_schedule(schedule_user)
+        db_session.add(schedule)
+        await db_session.commit()
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock(
+            side_effect=InsufficientWardrobeError("Add a top and a bottom")
+        )
+
+        with _scheduled_job_patches(db_session, mock_rec_service):
+            result = await process_scheduled_notification({"job_try": 1}, str(schedule.id))
+
+        assert result == {"status": "skipped", "reason": "Add a top and a bottom"}
+
+    @pytest.mark.asyncio
+    async def test_failure_on_the_last_try_reraises(
+        self, db_session: AsyncSession, schedule_user: User, ntfy_channel
+    ):
+        schedule = _make_due_schedule(schedule_user)
+        db_session.add(schedule)
+        await db_session.commit()
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock(
+            side_effect=RuntimeError("AI service down")
+        )
+
+        with (
+            pytest.raises(RuntimeError, match="AI service down"),
+            _scheduled_job_patches(db_session, mock_rec_service),
+        ):
+            await process_scheduled_notification(
+                {"job_try": WorkerSettings.max_tries}, str(schedule.id)
+            )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("already_notified", [False, True], ids=["unsent", "notified"])
+    async def test_retry_reuses_the_outfit_an_earlier_try_saved(
+        self, db_session: AsyncSession, schedule_user: User, ntfy_channel, already_notified
+    ):
+        schedule = _make_due_schedule(schedule_user)
+        outfit = _scheduled_outfit(schedule_user, schedule.occasion)
+        db_session.add_all([schedule, outfit])
+        await db_session.flush()
+        if already_notified:
+            db_session.add(
+                Notification(
+                    user_id=schedule_user.id,
+                    outfit_id=outfit.id,
+                    channel="ntfy",
+                    status=NotificationStatus.retrying,
+                    payload={},
+                )
+            )
+        await db_session.commit()
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock()
+        post = _fake_post()
+        ctx = {"job_try": 2, "enqueue_time": datetime.now(UTC) - timedelta(minutes=5)}
+
+        with (
+            _scheduled_job_patches(db_session, mock_rec_service),
+            patch.object(httpx.AsyncClient, "post", post),
+        ):
+            result = await process_scheduled_notification(ctx, str(schedule.id))
+
+        mock_rec_service.generate_recommendation.assert_not_called()
+        assert result["outfit_id"] == str(outfit.id)
+        assert post.call_count == (0 if already_notified else 1)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("change", "enqueued_after_outfit"),
+        [
+            ({"source": OutfitSource.manual}, False),
+            ({"occasion": "formal"}, False),
+            ({"scheduled_for": datetime.now(UTC).date() - timedelta(days=1)}, False),
+            ({}, True),
+        ],
+        ids=["manual", "other-occasion", "yesterday", "made-before-this-job"],
+    )
+    async def test_retry_generates_when_no_outfit_belongs_to_this_job(
+        self,
+        db_session: AsyncSession,
+        schedule_user: User,
+        ntfy_channel,
+        change,
+        enqueued_after_outfit,
+    ):
+        schedule = _make_due_schedule(schedule_user)
+        other = _scheduled_outfit(schedule_user, schedule.occasion)
+        for field, value in change.items():
+            setattr(other, field, value)
+        fresh = _scheduled_outfit(schedule_user, schedule.occasion)
+        db_session.add_all([schedule, other])
+        await db_session.commit()
+        await db_session.refresh(other)
+        offset = timedelta(minutes=1 if enqueued_after_outfit else -5)
+        ctx = {"job_try": 2, "enqueue_time": other.created_at + offset}
+
+        async def generate(**_):
+            db_session.add(fresh)
+            await db_session.commit()
+            return fresh
+
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock(side_effect=generate)
+
+        with (
+            _scheduled_job_patches(db_session, mock_rec_service),
+            patch.object(httpx.AsyncClient, "post", _fake_post()),
+        ):
+            result = await process_scheduled_notification(ctx, str(schedule.id))
+
+        mock_rec_service.generate_recommendation.assert_awaited_once()
+        assert result["outfit_id"] == str(fresh.id)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("notify_day_before", "expected"),
+        [(False, date(2026, 3, 13)), (True, date(2026, 3, 14))],
+        ids=["same-day", "day-before"],
+    )
+    async def test_retry_after_midnight_keeps_the_enqueue_day(
+        self,
+        db_session: AsyncSession,
+        schedule_user: User,
+        ntfy_channel,
+        notify_day_before,
+        expected,
+    ):
+        schedule_user.timezone = "America/New_York"
+        schedule = _make_due_schedule(schedule_user, notify_day_before=notify_day_before)
+        outfit = _scheduled_outfit(schedule_user, schedule.occasion)
+        db_session.add(schedule)
+        await db_session.commit()
+
+        async def generate(**_):
+            db_session.add(outfit)
+            await db_session.commit()
+            return outfit
+
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock(side_effect=generate)
+        ctx = {"job_try": 2, "enqueue_time": datetime(2026, 3, 14, 3, 58, tzinfo=UTC)}
+
+        with (
+            _scheduled_job_patches(db_session, mock_rec_service),
+            patch.object(httpx.AsyncClient, "post", _fake_post()),
+        ):
+            await process_scheduled_notification(ctx, str(schedule.id))
+
+        call = mock_rec_service.generate_recommendation.await_args
+        assert call.kwargs["scheduled_date"] == expected
+
+
+def _scheduled_outfit(user: User, occasion: str) -> Outfit:
+    return Outfit(
+        user_id=user.id,
+        occasion=occasion,
+        scheduled_for=datetime.now(UTC).date(),
+        status=OutfitStatus.pending,
+        source=OutfitSource.scheduled,
+    )
+
+
+def _scheduled_job_patches(db_session: AsyncSession, rec_service: MagicMock) -> ExitStack:
+    stack = ExitStack()
+    stack.enter_context(patch("app.workers.notifications.get_db_session", return_value=db_session))
+    stack.enter_context(patch.object(db_session, "close", new_callable=AsyncMock))
+    stack.enter_context(
+        patch("app.workers.notifications.RecommendationService", return_value=rec_service)
+    )
+    stack.enter_context(patch("app.workers.notifications.WeatherService"))
+    return stack
 
 
 def _shirts(count: int) -> list[ClothingItem]:

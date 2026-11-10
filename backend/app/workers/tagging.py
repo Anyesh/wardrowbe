@@ -15,10 +15,10 @@ from app.models.user import User
 from app.services.ai_service import AIService, ClothingTags, repeats_identically
 from app.utils.locale import DEFAULT_LOCALE
 from app.workers.db import get_db_session
+from app.workers.queues import WORKER_MAX_TRIES
 
 logger = logging.getLogger(__name__)
 
-TAGGING_MAX_TRIES = 3
 
 # Margin left below job_timeout so the in-job call budget always fires before
 # arq's own kill (which does not retry - see _tagging_call_budget).
@@ -36,7 +36,7 @@ class ItemVanishedError(Exception):
 
 
 def _is_final_attempt(ctx: dict) -> bool:
-    return int(ctx.get("job_try") or 1) >= TAGGING_MAX_TRIES
+    return int(ctx.get("job_try") or 1) >= WORKER_MAX_TRIES
 
 
 def retry_delay_seconds(ctx: dict) -> int:
