@@ -45,12 +45,44 @@ function balanced(value) {
   return depth === 0;
 }
 
+// ICU literal text sits at even brace depths and argument syntax at odd ones, so every brace
+// opened at an odd depth starts a plural or select branch. A nested branch gets its own entry, so
+// that native text around it cannot hide an English inner branch.
+function branchTexts(value) {
+  if (typeof value !== 'string') return [];
+  const texts = [];
+  const open = [];
+  let depth = 0;
+  for (const ch of value) {
+    if (ch === '{') {
+      depth++;
+      if (depth % 2 === 0) open.push(texts.push('') - 1);
+    } else if (ch === '}') {
+      if (depth % 2 === 0) open.pop();
+      depth--;
+    } else if (depth > 0 && depth % 2 === 0) {
+      texts[open[open.length - 1]] += ch;
+    }
+  }
+  return texts;
+}
+
 const locales = readdirSync(MESSAGES_DIR).filter((d) => statSync(join(MESSAGES_DIR, d)).isDirectory()).sort();
 
 if (!locales.includes(SOURCE_LOCALE)) {
   console.error(`i18n-check: no '${SOURCE_LOCALE}' directory in ${MESSAGES_DIR}`);
   process.exit(1);
 }
+
+// Strings that read the same in every language (brand names, units, sample values). Anything
+// else left identical across every translation was never translated, or was copied from an older
+// English text, which the presence and placeholder checks cannot see.
+const SAME_IN_EVERY_LOCALE = new Set([
+  'constants.timezones.UTC',
+  'notifications.channels.placeholders.accessToken',
+  'notifications.channels.types.mattermost',
+  'settings.aiEndpoints.fields.url',
+]);
 
 const source = loadLocale(SOURCE_LOCALE);
 const sourceKeys = new Set(Object.keys(source));
@@ -87,6 +119,55 @@ for (const locale of locales) {
   }
 
   for (const key of targetKeys) if (!sourceKeys.has(key)) problems.push(`${locale}: extra key '${key}' not in ${SOURCE_LOCALE}`);
+}
+
+const words = (value) => (typeof value === 'string' ? value.replace(/\{\w+\}/g, '') : '');
+
+const translations = locales.filter((l) => l !== SOURCE_LOCALE).map(loadLocale);
+for (const key of sourceKeys) {
+  // Argument names are stripped first so that a format-only pattern like '{time} - {occasion}'
+  // does not count as words.
+  if (SAME_IN_EVERY_LOCALE.has(key) || !/\p{L}/u.test(words(source[key]))) continue;
+  if (translations.length > 1 && new Set(translations.map((t) => t[key])).size === 1) {
+    problems.push(`every locale: '${key}' is identical in every translation, so it is untranslated or stale`);
+  }
+}
+
+// Latin-script locales share too many cognates with English for a per-locale check, but a CJK
+// string with no CJK character at all was left in English, even when other locales were fixed.
+const NATIVE_SCRIPT = {
+  ja: /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u,
+  ko: /[\p{Script=Hangul}\p{Script=Han}]/u,
+  'zh-CN': /\p{Script=Han}/u,
+  'zh-TW': /\p{Script=Han}/u,
+};
+const LATIN_IN_CJK = new Set([
+  'auth.brandName',
+  'dashboard.nextScheduled.dayAtTime',
+  'family.feed.unknownMemberShort',
+  'family.inviteEmailPlaceholder',
+  'nav.brandAlt',
+  'nav.brandName',
+  'notifications.channels.fields.webhookUrl',
+  'notifications.channels.placeholders.emailAddress',
+  'onboarding.firstItem.formatHint',
+  'outfits.cards.ai',
+  'outfits.filters.ai',
+  'suggest.weather.windSpeed',
+  'wardrobe.addItem.formatHint',
+]);
+for (const [locale, script] of Object.entries(NATIVE_SCRIPT)) {
+  if (!locales.includes(locale)) continue;
+  const target = loadLocale(locale);
+  for (const key of sourceKeys) {
+    if (SAME_IN_EVERY_LOCALE.has(key) || LATIN_IN_CJK.has(key)) continue;
+    if (!/\p{Script=Latin}/u.test(words(source[key]))) continue;
+    if (!script.test(words(target[key]))) {
+      problems.push(`${locale}: '${key}' has no ${locale} text, so it is untranslated or stale`);
+    } else if (branchTexts(target[key]).some((t) => /\p{Script=Latin}/u.test(t) && !script.test(t))) {
+      problems.push(`${locale}: '${key}' has a plural or select branch with no ${locale} text`);
+    }
+  }
 }
 
 console.log(`i18n-check: ${locales.length} locales [${locales.join(', ')}], ${sourceKeys.size} keys in ${SOURCE_LOCALE}`);

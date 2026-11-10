@@ -77,7 +77,7 @@
       "unknownError": "No reason was reported.",
       "unnamedItem": "Untitled item",
       "concurrency": "{count, plural, one {This instance analyzes # item at a time.} other {This instance analyzes # items at a time.}}",
-      "concurrencyLink": "Change this",
+      "concurrencyLink": "How to change this",
       "open": "View queue"
     },
     "queued": "Queued",
@@ -304,7 +304,6 @@
     "dismissAll": "Dismiss all",
     "retry": "Retry",
     "dismiss": "Dismiss",
-    "unprotectedWarning": "{count, plural, one {# file could not be protected against interruption (storage full)} other {# files could not be protected against interruption (storage full)}} - keep this tab open until upload completes",
     "failure": {
       "tooLarge": "{name} is larger than {limit} MB",
       "tooLargeForServer": "{name} is too large for the server to accept",
