@@ -56,6 +56,10 @@ data:
   # "true" keeps them for an external agent; "false" hides them with AI on.
   # AI_UI_ENABLED: "true"
 
+  # Built-in MCP server. When "true" the backend serves an MCP endpoint at
+  # /api/v1/mcp, authenticated with the same bearer JWTs as the REST API.
+  MCP_ENABLED: "false"
+
   # Logging
   LOG_LEVEL: "INFO"
 
