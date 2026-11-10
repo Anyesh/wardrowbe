@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ItemDetailDialog } from '@/components/item-detail-dialog'
 import { api } from '@/lib/api'
+import { queryKeys } from '@/lib/hooks/query-keys'
 import type { Item } from '@/lib/types'
 import { toast } from 'sonner'
 
@@ -25,6 +26,7 @@ const itemDetail = wardrobe.itemDetail
 
 function Wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  client.setQueryData(queryKeys.features, { background_removal: false, max_upload_size_mb: 20, ai_ui_enabled: true })
   const all = Object.fromEntries(['wardrobe', 'constants', 'common'].map((ns) => [ns, catalog(ns)]))
   return (
     <QueryClientProvider client={client}>
