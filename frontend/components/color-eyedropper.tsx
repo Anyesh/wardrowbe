@@ -265,6 +265,7 @@ export function ColorEyedropper({ imageUrl, onColorSelect, trigger }: ColorEyedr
           size="icon"
           onClick={() => setOpen(true)}
           title={t('buttonTitle')}
+          aria-label={t('buttonTitle')}
         >
           <Pipette className="h-4 w-4" />
         </Button>

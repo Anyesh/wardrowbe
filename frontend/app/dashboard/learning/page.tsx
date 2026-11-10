@@ -281,6 +281,7 @@ function InsightCard({
         onClick={() => onAcknowledge(insight.id)}
         className="absolute top-2 right-2 p-1 rounded hover:bg-muted transition-colors"
         title={t('dismiss')}
+        aria-label={t('dismiss')}
       >
         <X className="h-4 w-4 text-muted-foreground" />
       </button>

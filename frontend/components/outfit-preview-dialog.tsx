@@ -194,6 +194,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                   onClick={() => handleRotate('ccw')}
                   disabled={rotateImage.isPending}
                   title={t('rotateLeft')}
+                  aria-label={t('rotateLeft')}
                   className="h-8 w-8"
                 >
                   {rotateImage.isPending ? (
@@ -208,6 +209,7 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
                   onClick={() => handleRotate('cw')}
                   disabled={rotateImage.isPending}
                   title={t('rotateRight')}
+                  aria-label={t('rotateRight')}
                   className="h-8 w-8"
                 >
                   {rotateImage.isPending ? (
