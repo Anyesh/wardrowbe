@@ -529,6 +529,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     size="icon"
                     onClick={() => setShowSplit(true)}
                     title={t('titles.splitPhoto')}
+                    aria-label={t('titles.splitPhoto')}
                   >
                     <Scissors className="h-5 w-5" />
                   </Button>

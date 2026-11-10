@@ -359,8 +359,9 @@ describe('item detail icon-only buttons', () => {
     vi.mocked(api.get).mockResolvedValue([])
   })
 
-  it('names the toolbar buttons with aria-label, not only a tooltip', () => {
+  it('names the toolbar buttons with aria-label, not only a tooltip', async () => {
     renderDialog()
+    await screen.findByTitle(labels.titles.findMatchingOutfits)
     for (const name of [
       labels.titles.toggleFavorite,
       labels.titles.findMatchingOutfits,
@@ -368,6 +369,7 @@ describe('item detail icon-only buttons', () => {
       labels.titles.rotateLeft,
       labels.titles.rotateRight,
       labels.titles.replaceImage,
+      labels.titles.splitPhoto,
       labels.actions.editItem,
     ]) {
       expect(screen.getByTitle(name)).toHaveAttribute('aria-label', name)
