@@ -188,6 +188,12 @@
       "washIntervalDefault": "預設：{count}"
     },
     "primaryColor": "主色",
+    "replaceAnalysis": {
+      "alreadyQueued": "此單品已在分析中，因此沒有取代任何內容。請在分析完成後再試一次。",
+      "confirm": "重新分析並取代",
+      "description": "AI 會重新查看照片並取代先前的判斷。你自己編輯過的標籤會保留。舊版本中所做的部分修改沒有被記錄，因此也可能被取代。",
+      "title": "重新分析並取代 AI 標籤？"
+    },
     "subtype": "子類型",
     "tagsEditor": {
       "fit": "版型",
@@ -207,6 +213,7 @@
       "analysisInProgress": "分析進行中...",
       "deleteImage": "刪除圖片",
       "findMatchingOutfits": "尋找搭配穿搭",
+      "reanalyzeAndReplace": "重新分析並取代 AI 標籤",
       "reanalyzeWithAI": "用 AI 重新分析",
       "removeBackground": "移除背景",
       "replaceImage": "替換圖片",

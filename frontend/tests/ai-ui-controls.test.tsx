@@ -64,6 +64,7 @@ describe.each([true, false])('AI controls with ai_ui_enabled=%s', (aiUiEnabled) 
     expectShown(screen.queryByTitle('titles.suggestOutfit'))
     expectShown(screen.queryByTitle('titles.findMatchingOutfits'))
     expectShown(screen.queryByTitle('titles.reanalyzeWithAI'))
+    expectShown(screen.queryByTitle('titles.reanalyzeAndReplace'))
     expect(screen.getByRole('button', { name: 'actions.logWear' })).toBeInTheDocument()
   })
 

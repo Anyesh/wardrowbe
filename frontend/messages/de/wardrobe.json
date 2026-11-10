@@ -188,6 +188,12 @@
       "washIntervalDefault": "Standard: {count}"
     },
     "primaryColor": "Hauptfarbe",
+    "replaceAnalysis": {
+      "alreadyQueued": "Dieser Artikel wird bereits analysiert, daher wurde nichts ersetzt. Versuche es erneut, wenn die Analyse fertig ist.",
+      "confirm": "Neu analysieren und ersetzen",
+      "description": "Die KI betrachtet das Foto erneut und ersetzt ihre früheren Einschätzungen. Tags, die du selbst bearbeitet hast, bleiben erhalten. Manche Änderungen aus älteren Versionen wurden nicht erfasst und können deshalb ebenfalls ersetzt werden.",
+      "title": "KI-Tags neu analysieren und ersetzen?"
+    },
     "subtype": "Untertyp",
     "tagsEditor": {
       "fit": "Passform",
@@ -207,6 +213,7 @@
       "analysisInProgress": "Analyse läuft...",
       "deleteImage": "Bild löschen",
       "findMatchingOutfits": "Passende Outfits finden",
+      "reanalyzeAndReplace": "KI-Tags neu analysieren und ersetzen",
       "reanalyzeWithAI": "Erneut mit KI analysieren",
       "removeBackground": "Hintergrund entfernen",
       "replaceImage": "Bild ersetzen",
