@@ -1,0 +1,8 @@
+{
+  "button": "分享",
+  "downloaded": "图片已保存",
+  "error": "无法生成图片。",
+  "footer": "由 Wardrowbe 生成",
+  "missingPhotos": "部分照片无法加载，因此未生成图片。",
+  "title": "{occasion}穿搭"
+}
