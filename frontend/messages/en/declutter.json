@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "donate": "Donate",
+    "keep": "Keep",
+    "sell": "Sell"
+  },
+  "empty": "Everything has been worn recently. Nice work!",
+  "hint": "Add a purchase price to your items to see how much is sitting unworn.",
+  "idleValue": "{value} of clothing is sitting unworn.",
+  "reason": {
+    "neverWorn": "Never worn · added {days} days ago",
+    "notWorn": "Last worn {days} days ago"
+  },
+  "subtitle": "Clothes you haven't worn in a while: keep them, give them away or sell them.",
+  "summary": "{count, plural, =0 {Nothing to review} one {# item to review} other {# items to review}} out of {total}",
+  "title": "Declutter",
+  "toast": {
+    "donated": "{name} moved to the archive as donated.",
+    "error": "Something went wrong. Please try again.",
+    "kept": "{name} stays; it won't show up here for {months, plural, one {# month} other {# months}}.",
+    "sold": "{name} moved to the archive as sold."
+  },
+  "window": "Not worn for",
+  "windowOption": "{months, plural, one {Not worn for # month} other {Not worn for # months}}"
+}

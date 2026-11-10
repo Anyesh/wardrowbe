@@ -23,6 +23,8 @@ export const queryKeys = {
   userProfile: ['user-profile'] as const,
   features: ['features'] as const,
   weather: ['weather'] as const,
+  declutter: (months: number) => ['declutter', months] as const,
+  declutterAll: ['declutter'] as const,
   preferences: ['preferences'] as const,
   family: ['family'] as const,
 

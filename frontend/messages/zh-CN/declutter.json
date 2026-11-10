@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "donate": "捐赠",
+    "keep": "保留",
+    "sell": "出售"
+  },
+  "empty": "最近每件都穿过了，真棒！",
+  "hint": "为衣物填写购买价格，即可查看闲置衣物的价值。",
+  "idleValue": "价值 {value} 的衣服闲置未穿。",
+  "reason": {
+    "neverWorn": "从未穿过 · {days} 天前添加",
+    "notWorn": "上次穿着是 {days} 天前"
+  },
+  "subtitle": "很久没穿的衣服：保留、捐赠或卖掉。",
+  "summary": "共 {total} 件，{count, plural, =0 {无需整理} other {# 件待整理}}",
+  "title": "衣橱整理",
+  "toast": {
+    "donated": "{name} 已作为捐赠归档。",
+    "error": "出了点问题，请重试。",
+    "kept": "已保留 {name}，{months, plural, other {# 个月}}内不会再出现在这里。",
+    "sold": "{name} 已作为出售归档。"
+  },
+  "window": "未穿时长",
+  "windowOption": "{months, plural, other {# 个月未穿}}"
+}
