@@ -45,7 +45,9 @@
     "subtitle": "옷 사진을 업로드하세요",
     "title": "아이템 추가",
     "typeLabel": "유형 (비워두면 AI가 감지해요)",
-    "uploading": "업로드 중..."
+    "uploading": "업로드 중...",
+    "removeBackground": "배경 자동 제거",
+    "removeBackgroundHint": "AI가 분류하기 전에 사진 배경을 지워요."
   },
   "ai": {
     "analysisFailed": "분석 실패",

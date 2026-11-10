@@ -45,7 +45,9 @@
     "subtitle": "上傳你的衣物照片",
     "title": "新增單品",
     "typeLabel": "類型（留空則由 AI 偵測）",
-    "uploading": "上傳中..."
+    "uploading": "上傳中...",
+    "removeBackground": "自動去除背景",
+    "removeBackgroundHint": "在 AI 分類之前先去掉照片背景。"
   },
   "ai": {
     "analysisFailed": "分析失敗",

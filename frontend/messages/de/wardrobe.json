@@ -45,7 +45,9 @@
     "subtitle": "Lade Fotos deiner Kleidungsstücke hoch",
     "title": "Stücke hinzufügen",
     "typeLabel": "Typ (die KI erkennt ihn, wenn leer)",
-    "uploading": "Wird hochgeladen..."
+    "uploading": "Wird hochgeladen...",
+    "removeBackground": "Hintergrund automatisch entfernen",
+    "removeBackgroundHint": "Das Foto wird bereinigt, bevor die KI es katalogisiert."
   },
   "ai": {
     "analysisFailed": "Analyse fehlgeschlagen",
