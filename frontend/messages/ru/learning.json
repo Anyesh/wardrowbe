@@ -1,0 +1,94 @@
+{
+  "bestCombinations": {
+    "description": "Пары предметов, которые вы всегда любите вместе",
+    "title": "Ваши лучшие комбинации"
+  },
+  "colorPreferences": {
+    "description": "Цвета, которые вы склонны принимать или отклонять",
+    "noData": "Пока недостаточно данных для определения цветовых предпочтений.",
+    "title": "Изученные цветовые предпочтения"
+  },
+  "confidence": "{percent}% уверенность",
+  "dismiss": "Отклонить",
+  "insightCategoryColor": "Цвет",
+  "insightCategoryOccasion": "Случай",
+  "insightCategoryOverall": "Общее",
+  "insightCategoryStyle": "Стиль",
+  "insightCategoryWeather": "Погода",
+  "insightColorAvoidedDescription": "Вы склонны отклонять наряды с цветом {color}. Мы предложим альтернативы.",
+  "insightColorAvoidedTitle": "Не фанат {color}",
+  "insightColorLovedDescription": "Ваши данные показывают сильную предпочтительность предметов цвета {color}. Мы будем приоритизировать их в ваших рекомендациях.",
+  "insightColorLovedTitle": "Вам нравится {color}!",
+  "insightGreatMatchDescription": "Вы принимаете {percent} наших предложений. Мы хорошо изучаем ваш стиль!",
+  "insightGreatMatchTitle": "Отличное совпадение!",
+  "insightHelpUsLearnDescription": "Вы отклонили много предложений. Попробуйте обновить свои предпочтения, чтобы мы могли улучшить рекомендации.",
+  "insightHelpUsLearnTitle": "Помогите нам изучить ваш стиль",
+  "insightStyleLeaningDescription": "Основываясь на ваших отзывах, вы склоняетесь к стилю {styles}.",
+  "insightStyleLeaningTitle": "Ваш стиль: {style}",
+  "interpretationDisliked": "не понравилось",
+  "interpretationLiked": "понравилось",
+  "interpretationNeutral": "нейтрально",
+  "interpretationStronglyDisliked": "сильно не понравилось",
+  "interpretationStronglyLiked": "очень понравилось",
+  "lastUpdated": "Профиль обучения обновлён: {date}",
+  "loadError": "Не удалось загрузить данные обучения. Попробуйте ещё раз.",
+  "noData": {
+    "alreadyGaveFeedback": "Уже оставили отзыв? Нажмите «Вычислить сейчас», чтобы обработать его.",
+    "computeNow": "Вычислить сейчас",
+    "computing": "Вычисление...",
+    "description": "Начните с принятия или отклонения рекомендаций по нарядам и их оценки.",
+    "getOutfitSuggestions": "Получить рекомендации по нарядам",
+    "title": "Данных для обучения пока нет"
+  },
+  "occasionPatterns": {
+    "description": "Что подходит для разных случаев",
+    "title": "Шаблоны случаев"
+  },
+  "percent": "{value}%",
+  "preferredColors": "Предпочитаемые цвета:",
+  "recompute": "Пересчитать",
+  "stats": {
+    "acceptanceRate": "Процент принятия",
+    "averageRating": "Средняя оценка",
+    "feedbackGiven": "Оставлено отзывов",
+    "notEnoughData": "Недостаточно данных",
+    "outOfStars": "из {max, plural, one {# звезды} few {# звёзд} many {# звёзд} other {# звёзд}}",
+    "outfitsRated": "{count, plural, one {{count} наряд оценён} few {{count} наряда оценено} many {{count} нарядов оценено} other {{count} нарядов оценено}}",
+    "rateMoreOutfits": "Оцените больше нарядов",
+    "rateOutfitStyles": "Оцените стили нарядов",
+    "styleRating": "Оценка стиля",
+    "styleSatisfaction": "удовлетворённость стилем",
+    "suggestionsAccepted": "из предложений принято"
+  },
+  "styleInsights": {
+    "description": "Что мы узнали о ваших предпочтениях",
+    "generate": "Новые выводы",
+    "title": "Стилистические выводы"
+  },
+  "stylePreferences": {
+    "description": "Стили, которые соответствуют вашему вкусу",
+    "noData": "Пока недостаточно данных для определения стилевых предпочтений.",
+    "title": "Изученные стилевые предпочтения"
+  },
+  "subtitle": "Как ИИ учится на ваших отзывах",
+  "subtitleEmpty": "Начните оценивать наряды, чтобы помочь ИИ изучить ваши предпочтения",
+  "successRate": "{percent}% успех",
+  "suggestedUpdates": {
+    "addToAvoid": "Добавить в цвета для избегания:",
+    "addToFavorites": "Добавить в любимые цвета:",
+    "description": "Основываясь на ваших отзывах, мы предлагаем обновить ваши предпочтения",
+    "title": "Предлагаемые обновления предпочтений",
+    "updatePreferences": "Обновить предпочтения"
+  },
+  "timesPaired": "{count}x в паре",
+  "title": "Обучение ИИ",
+  "weatherPreferences": {
+    "description": "Как вы одеваетесь при разных условиях",
+    "layers": "~{count} слоёв",
+    "title": "Предпочтения по погоде"
+  },
+  "weatherTypeCold": "Холодно",
+  "weatherTypeCool": "Прохлада",
+  "weatherTypeHot": "Жарко",
+  "weatherTypeMild": "Мягко"
+}
