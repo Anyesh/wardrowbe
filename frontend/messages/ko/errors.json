@@ -4,6 +4,7 @@
   "AI_ANALYSIS_FAILED": "이 사진을 분석하는 중에 문제가 발생했어요. 분석을 다시 시도해 주세요.",
   "AI_ENDPOINT_FAILED": "이 엔드포인트를 테스트하지 못했어요.",
   "AI_ENDPOINT_HTTP_ERROR": "서버가 HTTP {status}로 응답했어요.",
+  "AI_ENDPOINT_KEY_REJECTED": "서버가 API 키를 거부했어요(HTTP {status}).",
   "AI_ENDPOINT_REFUSED": "연결이 거부되었어요. 서버가 실행 중인가요?",
   "AI_ENDPOINT_TIMEOUT": "연결 시간이 초과되었어요.",
   "AI_HTTP_ERROR": "AI 서비스에서 오류가 발생했어요(HTTP {status}). 분석을 다시 시도하고, 계속 실패하면 모델 이름과 API 키를 확인해 주세요.",

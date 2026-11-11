@@ -4,6 +4,7 @@
   "AI_ANALYSIS_FAILED": "Beim Analysieren dieses Fotos ist etwas schiefgelaufen. Starte die Analyse erneut.",
   "AI_ENDPOINT_FAILED": "Dieser Endpunkt konnte nicht getestet werden.",
   "AI_ENDPOINT_HTTP_ERROR": "Der Server hat mit HTTP {status} geantwortet.",
+  "AI_ENDPOINT_KEY_REJECTED": "Der Server hat den API-Schlüssel abgelehnt (HTTP {status}).",
   "AI_ENDPOINT_REFUSED": "Verbindung abgelehnt. Läuft der Server?",
   "AI_ENDPOINT_TIMEOUT": "Zeitüberschreitung bei der Verbindung.",
   "AI_HTTP_ERROR": "Der KI-Dienst hat einen Fehler gemeldet (HTTP {status}). Starte die Analyse erneut und prüfe Modellname und API-Schlüssel, wenn es weiter fehlschlägt.",

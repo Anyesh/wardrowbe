@@ -8,25 +8,37 @@
   "aiEndpoints": {
     "active": "활성",
     "addEndpoint": "엔드포인트 추가",
+    "apiKeyHint": "서버에 저장되며 다시 표시되지 않습니다. 저장된 키를 유지하려면 비워 두세요. URL을 변경하면 다시 입력해야 합니다.",
     "connected": "연결됨",
     "description": "이미지 분석에 사용할 AI 엔드포인트를 설정하세요. 위에서 아래 순서로 시도해요.",
     "disabled": "비활성",
     "error": "오류",
     "fields": {
+      "apiKey": "API 키",
       "name": "이름",
       "textModel": "텍스트 모델",
       "url": "URL",
       "visionModel": "비전 모델"
     },
+    "modelNone": "없음 (이 서버를 사용하지 않음)",
+    "modelUnavailable": "{model} (서버 목록에 없음)",
     "modelsAvailable": "{count, plural, other {모델 {count}개 사용 가능}}",
+    "modelsOptionalHint": "이 서버에 해당 모델이 없으면 비워 두세요. 해당 요청(이미지 분석 또는 코디 추천)에서는 건너뜁니다.",
     "noEndpoints": "설정된 사용자 엔드포인트가 없어요. 기본 서버 설정을 사용해요.",
+    "pickAfterTest": "연결을 테스트하면 서버의 모델 중에서 선택할 수 있습니다.",
     "placeholders": {
+      "apiKey": "선택 사항, 예: vLLM 또는 OpenAI",
+      "apiKeySaved": "저장됨 (입력하면 교체)",
+      "apiKeyServer": "서버 키(AI_API_KEY) 사용",
       "name": "예: 로컬 Ollama"
     },
+    "removeKey": "키 삭제",
     "testConnection": "연결 테스트",
     "testFailed": "엔드포인트 테스트 실패",
+    "textGroup": "기타 모델",
     "textModels": "텍스트: {models}",
     "title": "AI 엔드포인트",
+    "visionGroup": "비전 모델",
     "visionModels": "비전: {models}"
   },
   "body": {

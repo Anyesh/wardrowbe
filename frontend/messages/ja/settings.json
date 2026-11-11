@@ -8,25 +8,37 @@
   "aiEndpoints": {
     "active": "有効",
     "addEndpoint": "エンドポイントを追加",
+    "apiKeyHint": "サーバーに保存され、再表示されません。保存済みのキーを使う場合は空欄のままにしてください。URL を変更した場合は再入力が必要です。",
     "connected": "接続済み",
     "description": "画像解析用のAIエンドポイントを設定します。エンドポイントは上から順に試行されます。",
     "disabled": "無効",
     "error": "エラー",
     "fields": {
+      "apiKey": "APIキー",
       "name": "名前",
       "textModel": "テキストモデル",
       "url": "URL",
       "visionModel": "ビジョンモデル"
     },
+    "modelNone": "なし（このサーバーを使用しない）",
+    "modelUnavailable": "{model}（サーバーに見つかりません）",
     "modelsAvailable": "{count, plural, one {{count} 個のモデルが利用可能} other {{count} 個のモデルが利用可能}}",
+    "modelsOptionalHint": "このサーバーにモデルがない場合は空欄にしてください。その種類のリクエスト（画像分析またはコーデ提案）ではスキップされます。",
     "noEndpoints": "カスタムエンドポイントは未設定です。デフォルトのサーバー設定を使用します。",
+    "pickAfterTest": "接続をテストすると、サーバーのモデルから選択できます。",
     "placeholders": {
+      "apiKey": "任意（vLLM や OpenAI など）",
+      "apiKeySaved": "保存済み（入力すると置き換え）",
+      "apiKeyServer": "サーバーのキー（AI_API_KEY）を使用",
       "name": "例：Local Ollama"
     },
+    "removeKey": "キーを削除",
     "testConnection": "接続テスト",
     "testFailed": "エンドポイントのテストに失敗しました",
+    "textGroup": "その他のモデル",
     "textModels": "テキスト：{models}",
     "title": "AIエンドポイント",
+    "visionGroup": "ビジョンモデル",
     "visionModels": "ビジョン：{models}"
   },
   "body": {

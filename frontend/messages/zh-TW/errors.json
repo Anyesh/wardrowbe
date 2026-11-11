@@ -4,6 +4,7 @@
   "AI_ANALYSIS_FAILED": "分析這張照片時發生問題，請重新分析。",
   "AI_ENDPOINT_FAILED": "無法測試此端點。",
   "AI_ENDPOINT_HTTP_ERROR": "伺服器回應了 HTTP {status}。",
+  "AI_ENDPOINT_KEY_REJECTED": "伺服器拒絕了 API 金鑰（HTTP {status}）。",
   "AI_ENDPOINT_REFUSED": "連線被拒絕。伺服器是否正在執行？",
   "AI_ENDPOINT_TIMEOUT": "連線逾時。",
   "AI_HTTP_ERROR": "AI 服務回傳錯誤（HTTP {status}）。請重新分析；如果仍然失敗，請檢查模型名稱和 API 金鑰。",

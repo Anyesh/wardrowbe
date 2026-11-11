@@ -8,25 +8,37 @@
   "aiEndpoints": {
     "active": "Active",
     "addEndpoint": "Add Endpoint",
+    "apiKeyHint": "Stored on the server and never shown again. Leave empty to keep the saved key; changing the URL requires entering it again.",
     "connected": "Connected",
     "description": "Configure AI endpoints for image analysis. Endpoints are tried in order from top to bottom.",
     "disabled": "Disabled",
     "error": "Error",
     "fields": {
+      "apiKey": "API key",
       "name": "Name",
       "textModel": "Text Model",
       "url": "URL",
       "visionModel": "Vision Model"
     },
+    "modelNone": "None (do not use this server for it)",
+    "modelUnavailable": "{model} (not listed by the server)",
     "modelsAvailable": "{count, plural, one {{count} model available} other {{count} models available}}",
+    "modelsOptionalHint": "Leave a model blank if this server does not host one: it is then skipped for that kind of request (image analysis or outfit suggestions).",
     "noEndpoints": "No custom endpoints configured. Using default server settings.",
+    "pickAfterTest": "Test the connection to pick from the server's models.",
     "placeholders": {
+      "apiKey": "Optional, e.g. for vLLM or OpenAI",
+      "apiKeySaved": "Saved (type to replace)",
+      "apiKeyServer": "Using the server key (AI_API_KEY)",
       "name": "e.g., Local Ollama"
     },
+    "removeKey": "Remove key",
     "testConnection": "Test Connection",
     "testFailed": "Failed to test endpoint",
+    "textGroup": "Other models",
     "textModels": "Text: {models}",
     "title": "AI Endpoints",
+    "visionGroup": "Vision models",
     "visionModels": "Vision: {models}"
   },
   "body": {

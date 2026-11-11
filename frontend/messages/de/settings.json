@@ -8,25 +8,37 @@
   "aiEndpoints": {
     "active": "Aktiv",
     "addEndpoint": "Endpunkt hinzufügen",
+    "apiKeyHint": "Wird auf dem Server gespeichert und nie wieder angezeigt. Leer lassen, um den gespeicherten Schlüssel zu behalten; nach einer URL-Änderung muss er neu eingegeben werden.",
     "connected": "Verbunden",
     "description": "Konfiguriere KI-Endpunkte für die Bildanalyse. Die Endpunkte werden der Reihe nach von oben nach unten ausprobiert.",
     "disabled": "Deaktiviert",
     "error": "Fehler",
     "fields": {
+      "apiKey": "API-Schlüssel",
       "name": "Name",
       "textModel": "Textmodell",
       "url": "URL",
       "visionModel": "Vision-Modell"
     },
+    "modelNone": "Keins (diesen Server dafür nicht verwenden)",
+    "modelUnavailable": "{model} (vom Server nicht aufgeführt)",
     "modelsAvailable": "{count, plural, one {{count} Modell verfügbar} other {{count} Modelle verfügbar}}",
+    "modelsOptionalHint": "Lass ein Modell leer, wenn dieser Server keins bereitstellt: Er wird dann für diese Art von Anfrage übersprungen (Bildanalyse oder Outfit-Vorschläge).",
     "noEndpoints": "Keine eigenen Endpunkte konfiguriert. Es werden die Standard-Servereinstellungen verwendet.",
+    "pickAfterTest": "Teste die Verbindung, um aus den Modellen des Servers zu wählen.",
     "placeholders": {
+      "apiKey": "Optional, z. B. für vLLM oder OpenAI",
+      "apiKeySaved": "Gespeichert (zum Ersetzen eingeben)",
+      "apiKeyServer": "Verwendet den Server-Schlüssel (AI_API_KEY)",
       "name": "z. B. Lokales Ollama"
     },
+    "removeKey": "Schlüssel entfernen",
     "testConnection": "Verbindung testen",
     "testFailed": "Endpunkt konnte nicht getestet werden",
+    "textGroup": "Weitere Modelle",
     "textModels": "Text: {models}",
     "title": "KI-Endpunkte",
+    "visionGroup": "Bildmodelle",
     "visionModels": "Vision: {models}"
   },
   "body": {

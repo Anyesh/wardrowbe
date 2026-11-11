@@ -62,9 +62,14 @@ export function useTestAIEndpoint() {
   const { data: session } = useSession();
 
   return useMutation({
-    mutationFn: (url: string) => {
+    // Without a typed key the server tests with the saved key of endpoint `id`, if the URL still matches.
+    mutationFn: ({ url, id, api_key }: { url: string; id?: string | null; api_key?: string }) => {
       applySessionToken(session);
-      return api.post<AITestResult>('/users/me/preferences/test-ai-endpoint', { url });
+      return api.post<AITestResult>('/users/me/preferences/test-ai-endpoint', {
+        url,
+        id: id ?? undefined,
+        api_key: api_key || undefined,
+      });
     },
   });
 }

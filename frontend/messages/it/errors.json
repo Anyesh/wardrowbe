@@ -4,6 +4,7 @@
   "AI_ANALYSIS_FAILED": "Si è verificato un problema durante l'analisi di questa foto. Riprova l'analisi.",
   "AI_ENDPOINT_FAILED": "Non è stato possibile testare questo endpoint.",
   "AI_ENDPOINT_HTTP_ERROR": "Il server ha risposto con HTTP {status}.",
+  "AI_ENDPOINT_KEY_REJECTED": "Il server ha rifiutato la chiave API (HTTP {status}).",
   "AI_ENDPOINT_REFUSED": "Connessione rifiutata. Il server è in esecuzione?",
   "AI_ENDPOINT_TIMEOUT": "La connessione è scaduta.",
   "AI_HTTP_ERROR": "Il servizio IA ha restituito un errore (HTTP {status}). Riprova l'analisi e, se il problema continua, controlla il nome del modello e la chiave API.",

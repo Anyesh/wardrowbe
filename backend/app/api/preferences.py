@@ -5,11 +5,13 @@ from uuid import UUID
 import httpx
 from fastapi import APIRouter, Depends, status
 
+from app.config import get_settings
 from app.database import DbSession
 from app.models.user import User
 from app.schemas.outfit import stored_occasion_or_default
 from app.schemas.preference import PreferenceResponse, PreferenceUpdate, StyleProfile
 from app.services.preference_service import PreferenceService
+from app.utils.ai_endpoints import endpoint_api_key, find_stored_endpoint, public_endpoint
 from app.utils.auth import get_current_user
 from app.utils.errors import CodedHTTPException
 from app.utils.preference_defaults import (
@@ -62,7 +64,9 @@ def _build_preference_response(preferences) -> PreferenceResponse:
         variety_level=preferences.variety_level
         if preferences.variety_level is not None
         else DEFAULT_VARIETY_LEVEL,
-        ai_endpoints=preferences.ai_endpoints if preferences.ai_endpoints is not None else [],
+        ai_endpoints=[
+            public_endpoint(ep) for ep in (preferences.ai_endpoints or []) if isinstance(ep, dict)
+        ],
     )
 
 
@@ -119,12 +123,27 @@ async def remove_excluded_item(
     return {"excluded_item_ids": [str(i) for i in preferences.excluded_item_ids]}
 
 
+# Names that mark a model as able to read images, for sorting a server's model list in Settings.
+VISION_MODEL_HINTS = ("moondream", "llava", "bakllava", "vision", "-vl", "pixtral")
+
+
+def _sorted_models(model_names: list[str]) -> dict:
+    vision_models = [m for m in model_names if any(v in m.lower() for v in VISION_MODEL_HINTS)]
+    return {
+        "status": "connected",
+        "available_models": model_names,
+        "vision_models": vision_models,
+        "text_models": [m for m in model_names if m not in vision_models],
+    }
+
+
 @router.post("/test-ai-endpoint", response_model=dict)
 async def test_ai_endpoint(
     data: dict,
+    db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
-    url = data.get("url", "").rstrip("/")
+    url = str(data.get("url") or "").rstrip("/")
     if not url:
         raise CodedHTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -140,38 +159,48 @@ async def test_ai_endpoint(
             "Only HTTP and HTTPS URLs are allowed",
         )
 
+    # A key typed into the form is tested as is; otherwise the saved endpoint's key is used, but
+    # only while the form still points at the URL that key was saved for.
+    api_key = str(data.get("api_key") or "").strip() or None
+    if api_key is None:
+        preferences = await PreferenceService(db).get_or_create_preferences(current_user.id)
+        stored = find_stored_endpoint(
+            preferences.ai_endpoints, endpoint_id=data.get("id") or None, url=url
+        )
+        if stored is not None:
+            api_key = endpoint_api_key(stored, get_settings().ai_api_key)
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            # Try Ollama-style health check
-            health_url = url.replace("/v1", "/api/tags")
-            response = await client.get(health_url)
-
-            if response.status_code == 200:
-                data = response.json()
-                models = data.get("models", [])
-                model_names = [m.get("name", "") for m in models]
-
-                # Categorize models
-                vision_models = [
-                    m
-                    for m in model_names
-                    if any(v in m.lower() for v in ["moondream", "llava", "bakllava", "vision"])
-                ]
-                text_models = [m for m in model_names if m not in vision_models]
-
-                return {
-                    "status": "connected",
-                    "available_models": model_names,
-                    "vision_models": vision_models,
-                    "text_models": text_models,
-                }
-            else:
+            # OpenAI-compatible servers (vLLM, LM Studio, OpenAI, recent Ollama) list models here.
+            response = await client.get(f"{url}/models", headers=headers)
+            if response.status_code in (401, 403):
                 return {
                     "status": "error",
-                    "error": f"HTTP {response.status_code}",
-                    "error_code": "AI_ENDPOINT_HTTP_ERROR",
+                    "error": f"HTTP {response.status_code} - check the API key",
+                    "error_code": "AI_ENDPOINT_KEY_REJECTED",
                     "params": {"status": response.status_code},
                 }
+            if response.status_code == 200:
+                try:
+                    models = response.json().get("data")
+                except ValueError:
+                    models = None
+                if isinstance(models, list):
+                    return _sorted_models([m.get("id", "") for m in models if isinstance(m, dict)])
+
+            # Older Ollama only lists its models on its own API.
+            response = await client.get(url.replace("/v1", "/api/tags"), headers=headers)
+            if response.status_code == 200:
+                models = response.json().get("models", [])
+                return _sorted_models([m.get("name", "") for m in models if isinstance(m, dict)])
+            return {
+                "status": "error",
+                "error": f"HTTP {response.status_code}",
+                "error_code": "AI_ENDPOINT_HTTP_ERROR",
+                "params": {"status": response.status_code},
+            }
     except httpx.ConnectError:
         return {
             "status": "error",
