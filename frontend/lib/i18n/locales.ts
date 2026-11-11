@@ -20,6 +20,7 @@ export const LOCALE_METADATA: Record<SupportedLocale, { name: string; nativeName
   fr: { name: 'French', nativeName: 'Français', dir: 'ltr' },
   de: { name: 'German', nativeName: 'Deutsch', dir: 'ltr' },
   it: { name: 'Italian', nativeName: 'Italiano', dir: 'ltr' },
+  ru: { name: 'Russian', nativeName: 'Русский', dir: 'ltr' },
 };
 
 export const NAMESPACES = [

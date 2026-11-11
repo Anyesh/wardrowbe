@@ -1,0 +1,41 @@
+{
+  "card": {
+    "accept": "Принять",
+    "acceptFailed": "Не удалось принять наряд",
+    "didntWearThis": "Не надевал это",
+    "dismiss": "Отклонить",
+    "dismissFailed": "Не удалось отклонить наряд",
+    "familyLabel": "Семья:",
+    "itemFallback": "Предмет",
+    "outfitAccepted": "Наряд принят",
+    "outfitDismissed": "Наряд отклонён",
+    "rate": "Оценить",
+    "tip": "Совет:",
+    "update": "Обновить",
+    "viewItemDetails": "Просмотреть детали предмета",
+    "woreInstead": "Надел вместо этого:"
+  },
+  "empty": {
+    "description": "История рекомендаций по нарядам появится здесь, когда вы начнёте получать предложения.",
+    "getFirstSuggestion": "Получите свою первую рекомендацию",
+    "title": "Нет истории рекомендаций"
+  },
+  "filters": {
+    "allOccasions": "Все случаи",
+    "allStatus": "Любой статус"
+  },
+  "loadError": "Не удалось загрузить историю. Попробуйте ещё раз.",
+  "noOutfitsForDate": "Нет нарядов на {date}",
+  "outfitCount": "{count, plural, one {# наряд} other {# нарядов}}",
+  "status": {
+    "accepted": "Принято",
+    "expired": "Истекло",
+    "pending": "Ожидает",
+    "rejected": "Отклонено",
+    "sent": "Отправлено",
+    "skipped": "Пропущено",
+    "viewed": "Просмотрено"
+  },
+  "subtitle": "Просмотрите предыдущие рекомендации по нарядам",
+  "title": "История"
+}
