@@ -12,6 +12,7 @@ from app.models.outfit import Outfit, OutfitStatus, UserFeedback
 from app.models.user import User
 from app.utils.auth import get_current_user
 from app.utils.clothing import WardrobeComposition, count_composition
+from app.utils.garment_vocabulary import color_family
 from app.utils.signed_urls import sign_optional
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
@@ -229,20 +230,24 @@ async def get_analytics(
             )
         )
         .group_by(ClothingItem.primary_color)
-        .order_by(func.count(ClothingItem.id).desc())
-        .limit(10)
     )
     color_result = await db.execute(color_query)
-    color_rows = color_result.all()
+    # Counted per family (blues, greens) rather than per shade, so a wardrobe of navy, sapphire
+    # and sky-blue reads as heavy on blue instead of as three small slices.
+    family_counts: dict[str, int] = {}
+    for row in color_result.all():
+        key = color_family(row.primary_color) or row.primary_color
+        family_counts[key] = family_counts.get(key, 0) + row.count
+    color_rows = sorted(family_counts.items(), key=lambda entry: (-entry[1], entry[0]))[:10]
 
     ready_items = items_by_status["ready"]
     color_distribution = [
         ColorDistribution(
-            color=row.primary_color,
-            count=row.count,
-            percentage=round(row.count / ready_items * 100, 1) if ready_items > 0 else 0,
+            color=color,
+            count=count,
+            percentage=round(count / ready_items * 100, 1) if ready_items > 0 else 0,
         )
-        for row in color_rows
+        for color, count in color_rows
     ]
 
     # === Type Distribution ===

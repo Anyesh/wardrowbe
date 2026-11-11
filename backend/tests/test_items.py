@@ -1778,7 +1778,7 @@ class TestItemColorNormalisation:
         response = await client.post(
             "/api/v1/items",
             files={"image": ("shirt.jpg", _make_test_image_bytes(), "image/jpeg")},
-            data={"colors": "Charcoal,gray", "primary_color": "Charcoal", "skip_ai": "true"},
+            data={"colors": "Grey,gray", "primary_color": "Grey", "skip_ai": "true"},
             headers=auth_headers,
         )
 
@@ -1789,7 +1789,7 @@ class TestItemColorNormalisation:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("primary_color", "stored_primary"), [("Khaki", "tan"), ("\u00a0\t", None)]
+        ("primary_color", "stored_primary"), [("Wine", "burgundy"), ("\u00a0\t", None)]
     )
     async def test_update_item_stores_canonical_colours(
         self,
@@ -1812,7 +1812,7 @@ class TestItemColorNormalisation:
 
         response = await client.patch(
             f"/api/v1/items/{item.id}",
-            json={"colors": ["Charcoal", "gray", "Chartreuse"], "primary_color": primary_color},
+            json={"colors": ["Grey", "gray", "Chartreuse"], "primary_color": primary_color},
             headers=auth_headers,
         )
 
@@ -1837,7 +1837,7 @@ class TestItemColorNormalisation:
 
         response = await client.patch(
             f"/api/v1/items/{item.id}",
-            json={"tags": {"colors": ["Charcoal", "gray"], "primary_color": "charcoal"}},
+            json={"tags": {"colors": ["Grey", "gray"], "primary_color": "grey"}},
             headers=auth_headers,
         )
 
@@ -1863,7 +1863,7 @@ class TestItemColorNormalisation:
         await db_session.refresh(item)
 
         response = await client.get(
-            "/api/v1/items", params={"colors": "Charcoal"}, headers=auth_headers
+            "/api/v1/items", params={"colors": "Grey"}, headers=auth_headers
         )
 
         assert response.status_code == 200, response.text

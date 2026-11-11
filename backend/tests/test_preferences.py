@@ -72,12 +72,15 @@ class TestPreferencesEndpoints:
     ):
         response = await client.patch(
             "/api/v1/users/me/preferences",
-            json={"color_favorites": ["Khaki", "tan", "navy"], "color_avoid": ["Charcoal"]},
+            json={
+                "color_favorites": ["Wine", "burgundy", "navy", "Blues"],
+                "color_avoid": ["Grey"],
+            },
             headers=auth_headers,
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["color_favorites"] == ["tan", "navy"]
+        assert data["color_favorites"] == ["burgundy", "navy", "blues"]
         assert data["color_avoid"] == ["gray"]
 
     @pytest.mark.asyncio

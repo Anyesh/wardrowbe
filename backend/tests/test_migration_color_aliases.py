@@ -7,13 +7,16 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import ClothingItem, User, UserPreference
-from app.utils.garment_vocabulary import canonical_color
 from tests.migration_helpers import migration_downgrade
 
 REVISION = "952169051179"
 PREVIOUS = "d5e6f7a8b9c0"
 TESTS = Path(__file__).parent
-COLOR_NAME_CASES = json.loads((TESTS / "fixtures" / "color_names.json").read_text())
+# The vocabulary these migrations froze (twenty colours, charcoal folded into gray), kept apart from
+# fixtures/color_names.json, which follows the live vocabulary and its shades.
+FROZEN_COLOR_NAME_CASES = json.loads(
+    (TESTS / "fixtures" / "color_names_952169051179.json").read_text()
+)
 
 
 def _migration(revision: str):
@@ -122,8 +125,7 @@ async def test_remaps_and_deduplicates_colours_idempotently(
 
 
 @pytest.mark.parametrize("revision", [REVISION, "6c1e8f2a9d47"])
-def test_frozen_colour_rule_matches_canonical_color(revision):
+def test_frozen_colour_rule_keeps_the_mapping_it_shipped_with(revision):
     rule = _migration(revision).canonical_color
-    expected = {case["name"]: case["canonical"] for case in COLOR_NAME_CASES}
+    expected = {case["name"]: case["canonical"] for case in FROZEN_COLOR_NAME_CASES}
     assert {name: rule(name) for name in expected} == expected
-    assert {name: canonical_color(name) for name in expected} == expected

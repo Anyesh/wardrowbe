@@ -91,6 +91,7 @@
     "rotating": "Wird gedreht…"
   },
   "allTypes": "Alle Typen",
+  "allColors": "Alle Farben",
   "bulkActions": {
     "cancelAllError": "Analyse konnte nicht abgebrochen werden",
     "cancelAllQueued": "{count, plural, one {# laufende Analyse abgebrochen} other {# laufende Analysen abgebrochen}}",

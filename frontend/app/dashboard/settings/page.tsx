@@ -30,7 +30,8 @@ import {
 } from '@/lib/location';
 import { translateCode, useDescribeError, type ErrorTranslator } from '@/lib/errors';
 import { Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
-import { useClothingColors, useOccasionOptions } from '@/lib/hooks/use-translated-constants';
+import { useColorFamilies, useColorLabel, useOccasionOptions } from '@/lib/hooks/use-translated-constants';
+import { colorFamily, colorSwatch, isLightSwatch } from '@/lib/colors';
 import { toF, toCelsius } from '@/lib/temperature';
 import { PREFERENCE_DEFAULTS } from '@/lib/generated/preference-defaults';
 import { AVOID_REPEAT_DAYS, STYLE_SCORE, TEMPERATURE_THRESHOLDS_CELSIUS } from '@/lib/generated/scales';
@@ -75,6 +76,8 @@ interface EndpointTestResult {
   error?: string;
 }
 
+// Preferences are stated per family (blues) and match every shade in it. Older preferences may
+// still name a shade (navy); it lights up its family and switching the family off removes it.
 function ColorPicker({
   selected,
   onChange,
@@ -84,13 +87,15 @@ function ColorPicker({
   onChange: (colors: string[]) => void;
   label: string;
 }) {
-  const clothingColors = useClothingColors();
+  const colorFamilies = useColorFamilies();
+  const colorLabel = useColorLabel();
 
-  const toggleColor = (color: string) => {
-    if (selected.includes(color)) {
-      onChange(selected.filter((c) => c !== color));
+  const toggleFamily = (family: string) => {
+    const inFamily = selected.filter((c) => colorFamily(c) === family);
+    if (inFamily.length > 0) {
+      onChange(selected.filter((c) => !inFamily.includes(c)));
     } else {
-      onChange([...selected, color]);
+      onChange([...selected, family]);
     }
   };
 
@@ -98,28 +103,26 @@ function ColorPicker({
     <div className="space-y-2">
       <Label>{label}</Label>
       <div className="flex flex-wrap gap-2">
-        {clothingColors.map((color) => {
-          const isSelected = selected.includes(color.value);
+        {colorFamilies.map((family) => {
+          const isSelected = selected.some((c) => colorFamily(c) === family.value);
           return (
             <button
-              key={color.value}
+              key={family.value}
               type="button"
-              onClick={() => toggleColor(color.value)}
+              onClick={() => toggleFamily(family.value)}
               className={`w-8 h-8 rounded-full border-2 transition-all ${
                 isSelected
                   ? 'border-primary ring-2 ring-primary/30 scale-110'
                   : 'border-muted-foreground/20 hover:border-muted-foreground/40'
               }`}
-              style={{ backgroundColor: color.hex }}
-              title={color.name}
+              style={{ backgroundColor: family.hex }}
+              title={family.name}
+              aria-label={family.name}
+              aria-pressed={isSelected}
             >
               {isSelected && (
                 <Check
-                  className={`h-4 w-4 mx-auto ${
-                    color.value === 'white' || color.value === 'yellow' || color.value === 'beige'
-                      ? 'text-black'
-                      : 'text-white'
-                  }`}
+                  className={`h-4 w-4 mx-auto ${isLightSwatch(family.hex) ? 'text-black' : 'text-white'}`}
                 />
               )}
             </button>
@@ -128,18 +131,12 @@ function ColorPicker({
       </div>
       {selected.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
-          {selected.map((color) => {
-            const colorInfo = clothingColors.find((c) => c.value === color);
-            return (
-              <Badge key={color} variant="secondary" className="gap-1">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: colorInfo?.hex }}
-                />
-                {colorInfo?.name}
-              </Badge>
-            );
-          })}
+          {selected.map((color) => (
+            <Badge key={color} variant="secondary" className="gap-1">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colorSwatch(color) }} />
+              {colorLabel(color)}
+            </Badge>
+          ))}
         </div>
       )}
     </div>

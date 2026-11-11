@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { OCCASION_VALUES } from '@/lib/generated/garment-vocabulary';
+import { COLOR_FAMILIES, OCCASION_VALUES } from '@/lib/generated/garment-vocabulary';
 import {
   CLOTHING_TYPES,
   CLOTHING_COLORS,
@@ -27,6 +27,15 @@ export function useClothingColors() {
   return useMemo(() => CLOTHING_COLORS.map((cc) => ({
     ...cc,
     name: t(cc.value),
+  })), [t]);
+}
+
+export function useColorFamilies() {
+  const t = useTranslations('constants.colorFamilies');
+
+  return useMemo(() => COLOR_FAMILIES.map((family) => ({
+    ...family,
+    name: t(family.value),
   })), [t]);
 }
 
@@ -111,8 +120,14 @@ export function useStyleLabel() {
   return useCatalogLabel(useTranslations('constants.styles'));
 }
 
+// Learned scores, analytics and preferences name families (blues) as well as shades (navy).
 export function useColorLabel() {
-  return useCatalogLabel(useTranslations('constants.colors'));
+  const shadeLabel = useCatalogLabel(useTranslations('constants.colors'));
+  const families = useTranslations('constants.colorFamilies');
+  return useCallback(
+    (value: string) => (families.has(value) ? families(value) : shadeLabel(value)),
+    [families, shadeLabel],
+  );
 }
 
 export function usePatternLabel() {

@@ -39,7 +39,8 @@ import { api } from '@/lib/api';
 import { LOCATION_NAME_MAX_LENGTH } from '@/lib/location';
 import { applySessionToken } from '@/lib/hooks/use-session-token';
 import { StyleProfile } from '@/lib/types';
-import { useClothingColors, useClothingTypes } from '@/lib/hooks/use-translated-constants';
+import { useColorFamilies, useClothingTypes } from '@/lib/hooks/use-translated-constants';
+import { isLightSwatch } from '@/lib/colors';
 import { useTranslations } from 'next-intl';
 import { queryKeys } from '@/lib/hooks/query-keys';
 import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
@@ -434,7 +435,8 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
   const t = useTranslations('onboarding');
   const tc = useTranslations('common');
   const tStyles = useTranslations('constants.styles');
-  const clothingColors = useClothingColors();
+  // Preferences are stated per family (blues), and match every shade in it.
+  const colorFamilies = useColorFamilies();
 
   const toggleColor = (color: string, list: 'favorite' | 'avoid') => {
     if (list === 'favorite') {
@@ -489,7 +491,7 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {clothingColors.map((color) => {
+            {colorFamilies.map((color) => {
               const isSelected = favoriteColors.includes(color.value);
               return (
                 <button
@@ -507,7 +509,7 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
                   {isSelected && (
                     <Check
                       className={`h-5 w-5 mx-auto ${
-                        ['white', 'yellow', 'beige'].includes(color.value)
+                        isLightSwatch(color.hex)
                           ? 'text-black'
                           : 'text-white'
                       }`}
@@ -527,7 +529,7 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {clothingColors.map((color) => {
+            {colorFamilies.map((color) => {
               const isSelected = avoidColors.includes(color.value);
               return (
                 <button
@@ -545,7 +547,7 @@ function PreferencesStep({ onNext, onSkip }: { onNext: () => void; onSkip: () =>
                   {isSelected && (
                     <span
                       className={`text-lg font-bold ${
-                        ['white', 'yellow', 'beige'].includes(color.value)
+                        isLightSwatch(color.hex)
                           ? 'text-black'
                           : 'text-white'
                       }`}

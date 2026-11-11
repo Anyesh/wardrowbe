@@ -91,6 +91,7 @@
     "rotating": "Rotazione in corso…"
   },
   "allTypes": "Tutti i tipi",
+  "allColors": "Tutti i colori",
   "bulkActions": {
     "cancelAllError": "Annullamento dell’analisi fallito",
     "cancelAllQueued": "{count, plural, one {Annullata # analisi in corso} other {Annullate # analisi in corso}}",

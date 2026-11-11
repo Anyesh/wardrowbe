@@ -91,6 +91,7 @@
     "rotating": "回転中…"
   },
   "allTypes": "すべてのタイプ",
+  "allColors": "すべての色",
   "bulkActions": {
     "cancelAllError": "分析のキャンセルに失敗しました",
     "cancelAllQueued": "{count, plural, one {実行中の分析を # 件キャンセルしました} other {実行中の分析を # 件キャンセルしました}}",

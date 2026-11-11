@@ -31,9 +31,10 @@ import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
 import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkItemFilters, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
 import { useUserTimezone } from '@/lib/hooks/use-user';
-import { colorSwatch, normalizeColor } from '@/lib/colors';
+import { colorSwatch, isColorFamily, normalizeColor, shadesOfFamily } from '@/lib/colors';
+import { ColorSwatch } from '@/components/color-select';
 import { Item } from '@/lib/types';
-import { useClothingTypes, useClothingColors, useSubtypeLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
+import { useClothingTypes, useClothingColors, useColorFamilies, useSubtypeLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { toast } from 'sonner';
 import { formatWornAgo, getWornAgoColorClass } from '@/lib/utils';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
@@ -330,6 +331,7 @@ export default function WardrobePage() {
   const t = useTranslations('wardrobe');
   const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();
+  const colorFamilies = useColorFamilies();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [queuePanelOpen, setQueuePanelOpen] = useState(false);
   const [selection, setSelection] = useState<BulkSelection>({
@@ -340,6 +342,11 @@ export default function WardrobePage() {
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [search, setSearch] = useState(() => searchParams.get('search') ?? '');
   const [typeFilter, setTypeFilter] = useState<string>(() => searchParams.get('type') ?? 'all');
+  // A colour family (blues), which lists every item with one of its shades among its colours.
+  const [colorFilter, setColorFilter] = useState<string>(() => {
+    const raw = searchParams.get('color');
+    return raw && isColorFamily(raw) ? raw : 'all';
+  });
   const [sortIndex, setSortIndex] = useState(() => {
     const raw = Number(searchParams.get('sort'));
     return Number.isInteger(raw) && raw >= 0 && raw < SORT_OPTIONS.length ? raw : 0;
@@ -394,6 +401,7 @@ export default function WardrobePage() {
 
     if (search) params.set('search', search); else params.delete('search');
     if (typeFilter !== 'all') params.set('type', typeFilter); else params.delete('type');
+    if (colorFilter !== 'all') params.set('color', colorFilter); else params.delete('color');
     if (sortIndex !== 0) params.set('sort', String(sortIndex)); else params.delete('sort');
     if (needsWash) params.set('needsWash', 'true'); else params.delete('needsWash');
     if (favoriteFilter) params.set('favorite', 'true'); else params.delete('favorite');
@@ -404,13 +412,14 @@ export default function WardrobePage() {
     if (next !== searchParams.toString()) {
       router.replace(next ? `/dashboard/wardrobe?${next}` : '/dashboard/wardrobe', { scroll: false });
     }
-  }, [search, typeFilter, sortIndex, needsWash, favoriteFilter, page, pageSize, searchParams, router]);
+  }, [search, typeFilter, colorFilter, sortIndex, needsWash, favoriteFilter, page, pageSize, searchParams, router]);
 
   const sortOption = SORT_OPTIONS[sortIndex];
 
   const listFilters: BulkItemFilters = {
     search: search || undefined,
     type: typeFilter !== 'all' ? typeFilter : undefined,
+    colors: colorFilter !== 'all' ? shadesOfFamily(colorFilter) : undefined,
     needs_wash: needsWash,
     favorite: favoriteFilter,
     is_archived: false,
@@ -421,6 +430,7 @@ export default function WardrobePage() {
     needsWash !== undefined,
     favoriteFilter !== undefined,
     typeFilter !== 'all',
+    colorFilter !== 'all',
   ].filter(Boolean).length;
 
   // Fetch items with automatic polling (faster when items are processing)
@@ -465,7 +475,7 @@ export default function WardrobePage() {
   // Clear selection when filters change (but not page - allow cross-page selection)
   useEffect(() => {
     setSelection({ mode: 'none', selectedIds: new Set(), excludedIds: new Set() });
-  }, [search, typeFilter, needsWash, favoriteFilter, sortIndex]);
+  }, [search, typeFilter, colorFilter, needsWash, favoriteFilter, sortIndex]);
 
   const handleRetry = (itemId: string) => {
     reanalyze.mutate(itemId, {
@@ -799,6 +809,29 @@ export default function WardrobePage() {
             </Select>
 
             <Select
+              value={colorFilter}
+              onValueChange={(value) => {
+                setColorFilter(value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[150px] h-8 text-xs" aria-label={t('allColors')}>
+                <SelectValue placeholder={t('allColors')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('allColors')}</SelectItem>
+                {colorFamilies.map((family) => (
+                  <SelectItem key={family.value} value={family.value}>
+                    <div className="flex items-center gap-2">
+                      <ColorSwatch color={family.value} />
+                      {family.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
               value={String(pageSize)}
               onValueChange={(value) => {
                 setPageSize(Number(value));
@@ -850,6 +883,7 @@ export default function WardrobePage() {
                 className="h-8 text-xs gap-1 ml-auto"
                 onClick={() => {
                   setTypeFilter('all');
+                  setColorFilter('all');
                   setNeedsWash(undefined);
                   setFavoriteFilter(undefined);
                   setPage(1);
@@ -883,7 +917,7 @@ export default function WardrobePage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        search || typeFilter !== 'all' || needsWash !== undefined || favoriteFilter !== undefined ? (
+        search || typeFilter !== 'all' || colorFilter !== 'all' || needsWash !== undefined || favoriteFilter !== undefined ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">
               {t('errors.noItemsFound')}
@@ -894,6 +928,7 @@ export default function WardrobePage() {
               onClick={() => {
                 setSearch('');
                 setTypeFilter('all');
+                setColorFilter('all');
                 setNeedsWash(undefined);
                 setFavoriteFilter(undefined);
                 setPage(1);

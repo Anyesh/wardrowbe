@@ -1,18 +1,18 @@
 [
   {
     "name": "charcoal",
-    "normalized": "gray",
-    "canonical": "gray"
+    "normalized": "charcoal",
+    "canonical": "charcoal"
   },
   {
     "name": "khaki",
-    "normalized": "tan",
-    "canonical": "tan"
+    "normalized": "khaki",
+    "canonical": "khaki"
   },
   {
     "name": "teal",
-    "normalized": "blue",
-    "canonical": "blue"
+    "normalized": "teal",
+    "canonical": "teal"
   },
   {
     "name": "army-green",
@@ -66,8 +66,8 @@
   },
   {
     "name": "light  grey",
-    "normalized": "gray",
-    "canonical": "gray"
+    "normalized": "light-gray",
+    "canonical": "light-gray"
   },
   {
     "name": "\tDark\u00a0Blue\n",
@@ -81,8 +81,8 @@
   },
   {
     "name": "Forest\t\tGreen",
-    "normalized": "green",
-    "canonical": "green"
+    "normalized": "forest-green",
+    "canonical": "forest-green"
   },
   {
     "name": "gold",
@@ -100,19 +100,19 @@
     "canonical": "sea foam"
   },
   {
-    "name": "İndigo",
+    "name": "\u0130ndigo",
     "normalized": null,
-    "canonical": "i̇ndigo"
+    "canonical": "i\u0307ndigo"
   },
   {
-    "name": "Ⓐ",
+    "name": "\u24b6",
     "normalized": null,
-    "canonical": "ⓐ"
+    "canonical": "\u24d0"
   },
   {
-    "name": "Ꟁ Blue",
+    "name": "\ua7c0 Blue",
     "normalized": null,
-    "canonical": "ꟁ blue"
+    "canonical": "\ua7c1 blue"
   },
   {
     "name": "",
@@ -153,5 +153,20 @@
     "name": "light\u2060 blue",
     "normalized": "light-blue",
     "canonical": "light-blue"
+  },
+  {
+    "name": "Sapphire",
+    "normalized": "sapphire",
+    "canonical": "sapphire"
+  },
+  {
+    "name": "Dark Grey",
+    "normalized": "charcoal",
+    "canonical": "charcoal"
+  },
+  {
+    "name": "Off-White",
+    "normalized": "off-white",
+    "canonical": "off-white"
   }
 ]

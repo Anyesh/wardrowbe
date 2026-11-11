@@ -11,6 +11,10 @@ import { ApiError, api } from '@/lib/api'
 import { createQueryClient } from '@/lib/query-client'
 import type { Item } from '@/lib/types'
 
+// The colour picker lists every shade (over 150), and opening it and querying its options by role
+// takes a few seconds in jsdom, well past the default timeout under a loaded test run.
+vi.setConfig({ testTimeout: 20_000 })
+
 vi.unmock('next-intl')
 vi.mock('@/lib/api', async () => ({
   ...(await vi.importActual('@/lib/api')),
