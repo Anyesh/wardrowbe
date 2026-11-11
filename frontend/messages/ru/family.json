@@ -28,7 +28,7 @@
       "title": "Пока нет нарядов"
     },
     "rateOutfit": "Оценить наряд {member}",
-    "ratingCount": "({count, plural, one {{count} оценка} other {{count} оценок}})",
+    "ratingCount": "({count, plural, one {{count} оценка} few {{count} оценки} many {{count} оценок} other {{count} оценок}})",
     "subtitle": "Просматривайте и оценивайте наряды членов вашей семьи",
     "title": "Лента семьи",
     "unknownMember": "Этот участник",

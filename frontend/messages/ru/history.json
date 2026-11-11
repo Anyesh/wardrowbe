@@ -26,7 +26,7 @@
   },
   "loadError": "Не удалось загрузить историю. Попробуйте ещё раз.",
   "noOutfitsForDate": "Нет нарядов на {date}",
-  "outfitCount": "{count, plural, one {# наряд} other {# нарядов}}",
+  "outfitCount": "{count, plural, one {# наряд} few {# наряда} many {# нарядов} other {# нарядов}}",
   "status": {
     "accepted": "Принято",
     "expired": "Истекло",

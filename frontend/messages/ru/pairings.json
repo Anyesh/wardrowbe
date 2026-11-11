@@ -30,7 +30,7 @@
   },
   "itemTypeOption": "{type} ({count})",
   "loadError": "Не удалось загрузить сочетания. Попробуйте ещё раз.",
-  "pairingCount": "{count, plural, one {{count} сочетание} other {{count} сочетаний}}",
+  "pairingCount": "{count, plural, one {{count} сочетание} few {{count} сочетания} many {{count} сочетаний} other {{count} сочетаний}}",
   "subtitle": "Сгенерированные ИИ комбинации нарядов, созданные вокруг ваших предметов",
   "title": "Сочетания"
 }

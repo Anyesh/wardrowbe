@@ -2,7 +2,7 @@
   "familyFeed": {
     "browse": "Просмотреть наряды семьи",
     "description": "Посмотрите, что носят ваши родственники, и оцените их наряды",
-    "memberCount": "{count, plural, one {{count} участник в {name}} other {{count} участников в {name}}}",
+    "memberCount": "{count, plural, one {{count} участник в {name}} few {{count} участника в {name}} many {{count} участников в {name}} other {{count} участников в {name}}}",
     "title": "Наряды семьи"
   },
   "insights": {
