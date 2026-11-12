@@ -50,6 +50,7 @@ def upgrade() -> None:
         sa.Column("cache_key", sa.String(length=64), nullable=False),
         sa.Column("image_path", sa.String(length=500), nullable=True),
         sa.Column("medium_path", sa.String(length=500), nullable=True),
+        sa.Column("job_token", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column(
             "started_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),

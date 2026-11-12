@@ -244,14 +244,15 @@ class ImageService:
                 if full_path.exists():
                     full_path.unlink()
 
-    def validate_image(self, image_data: bytes, content_type: str) -> bool:
-        """Validate image data and content type."""
+    def validate_image(
+        self, image_data: bytes, content_type: str, max_bytes: int = 20 * 1024 * 1024
+    ) -> bool:
+        """Validate image data and content type (max_bytes defaults to 20MB)."""
         # Check content type
         if content_type not in ALLOWED_MIME_TYPES:
             return False
 
-        # Check file size (max 20MB)
-        if len(image_data) > 20 * 1024 * 1024:
+        if len(image_data) > max_bytes:
             return False
 
         # Try to open as image

@@ -15,7 +15,7 @@ feature does not exist, the web app hides every try-on control, and the try-on e
 
 ## Enabling it
 
-Set all three variables on the backend (`docker-compose.yml` passes them to the API and the worker):
+Set the first three variables on the backend (`docker-compose.yml` passes them to the API and the workers):
 
 | Variable | Description |
 |----------|-------------|
@@ -23,7 +23,7 @@ Set all three variables on the backend (`docker-compose.yml` passes them to the 
 | `AI_IMAGE_API_KEY` | API key for that provider |
 | `AI_IMAGE_MODEL` | Image-generation model name |
 | `AI_IMAGE_DAILY_LIMIT` | Optional. Generations per user per day (default 20) |
-| `AI_IMAGE_TIMEOUT` | Optional. Seconds to wait for one image (default 180) |
+| `AI_IMAGE_TIMEOUT` | Optional. Seconds to wait for one image (default 180); the job's own deadline is this plus 60 |
 
 These are separate from the `AI_*` settings used for tagging and suggestions, so you can use a
 different provider for each.
@@ -39,9 +39,19 @@ AI_IMAGE_MODEL=google/gemini-nano-banana-2.1
 The request uses OpenRouter's image-generation format (`modalities: ["image", "text"]`, images read
 from `choices[0].message.images`). A provider that does not return images that way will not work.
 
+## Workers
+
+Try-on jobs run on the **image worker** (queue `arq:images`), not the tagging worker, so a slow
+provider call never holds up item tagging. They share that worker with rotation and background
+removal; with the default `IMAGE_WORKER_CONCURRENCY=1` those wait behind a running try-on, so
+consider setting it to 2. A job runs once (no automatic retry, since every call is paid); if one is
+lost, the outfit page offers **Retry** after 15 minutes.
+
+When a regeneration fails, the previous image is kept and shown with a note.
+
 ## Cost
 
-Every generation is a paid call and is never retried automatically. At the time of writing the model
+Every generation is a paid call and is never retried automatically (neither by the job queue nor by the app). At the time of writing the model
 above costs roughly US$0.03 per image; check your provider's pricing. `AI_IMAGE_DAILY_LIMIT` caps
 spending per user (regenerating counts), and requests are also limited to 5 per minute per user.
 

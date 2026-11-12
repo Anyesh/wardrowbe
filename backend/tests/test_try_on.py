@@ -69,6 +69,38 @@ def _response(payload: dict, status_code: int = 200) -> httpx.Response:
     return httpx.Response(status_code, json=payload, request=FAKE_REQUEST)
 
 
+def _provider(post: AsyncMock):
+    """Stand in for the provider: `post(url, headers=..., json=...)` returns the response.
+
+    The client streams the body (to cap its size), so the stream method is what gets replaced.
+    """
+
+    def stream(self, method, url, **kwargs):
+        class _Ctx:
+            async def __aenter__(_self):
+                _self.response = await post(url, **kwargs)
+                return _self.response
+
+            async def __aexit__(_self, *exc):
+                return False
+
+        return _Ctx()
+
+    return patch("httpx.AsyncClient.stream", stream)
+
+
+async def _run_job(session_maker, outfit, token=None):
+    """Run the worker for the outfit's current generation (or an explicit token)."""
+    if token is None:
+        async with session_maker() as session:
+            token = (
+                await session.execute(
+                    select(OutfitTryOn.job_token).where(OutfitTryOn.outfit_id == outfit.id)
+                )
+            ).scalar_one_or_none()
+    await generate_try_on({"db_session_factory": session_maker}, str(outfit.id), str(token))
+
+
 @pytest.fixture
 def try_on_on():
     settings = get_settings()
@@ -142,7 +174,7 @@ class TestGenerateClient:
     @pytest.mark.asyncio
     async def test_request_shape_and_result(self, try_on_on):
         post = AsyncMock(return_value=_response(_completion(_data_url(_png()))))
-        with patch("httpx.AsyncClient.post", post):
+        with _provider(post):
             image = await generate_try_on_image(b"person", [b"g1", b"g2"], GARMENTS)
         assert image.data == _png()
         url = post.call_args.args[0]
@@ -158,7 +190,7 @@ class TestGenerateClient:
 
     @pytest.mark.asyncio
     async def test_no_images_is_distinct_error(self, try_on_on):
-        with patch("httpx.AsyncClient.post", AsyncMock(return_value=_response(_completion()))):
+        with _provider(AsyncMock(return_value=_response(_completion()))):
             with pytest.raises(TryOnGenerationError) as exc:
                 await generate_try_on_image(b"p", [b"g"], GARMENTS)
         assert exc.value.error_code == ERROR_NO_IMAGE
@@ -167,7 +199,7 @@ class TestGenerateClient:
     async def test_http_error_not_retried_and_body_not_logged(self, try_on_on, caplog):
         caplog.set_level(logging.DEBUG)
         post = AsyncMock(return_value=_response({"error": {"message": SECRET_BODY}}, 500))
-        with patch("httpx.AsyncClient.post", post):
+        with _provider(post):
             with pytest.raises(TryOnGenerationError) as exc:
                 await generate_try_on_image(b"p", [b"g"], GARMENTS)
         assert exc.value.error_code == ERROR_FAILED
@@ -178,7 +210,7 @@ class TestGenerateClient:
     @pytest.mark.asyncio
     async def test_timeout_is_failed(self, try_on_on):
         post = AsyncMock(side_effect=httpx.ReadTimeout("slow", request=FAKE_REQUEST))
-        with patch("httpx.AsyncClient.post", post):
+        with _provider(post):
             with pytest.raises(TryOnGenerationError) as exc:
                 await generate_try_on_image(b"p", [b"g"], GARMENTS)
         assert exc.value.error_code == ERROR_FAILED
@@ -187,7 +219,7 @@ class TestGenerateClient:
     async def test_text_in_response_not_logged_when_no_image(self, try_on_on, caplog):
         caplog.set_level(logging.DEBUG)
         payload = _completion(text=SECRET_BODY)
-        with patch("httpx.AsyncClient.post", AsyncMock(return_value=_response(payload))):
+        with _provider(AsyncMock(return_value=_response(payload))):
             with pytest.raises(TryOnGenerationError):
                 await generate_try_on_image(b"p", [b"g"], GARMENTS)
         assert SECRET_BODY not in caplog.text
@@ -311,7 +343,6 @@ class TestPhotoEndpoints:
     @pytest.mark.asyncio
     async def test_disabled_is_503(self, client, auth_headers, outfit):
         for method, url in [
-            ("get", PHOTO),
             ("get", _try_on_url(outfit)),
             ("post", _try_on_url(outfit)),
         ]:
@@ -322,12 +353,45 @@ class TestPhotoEndpoints:
         assert response.status_code == 503
 
     @pytest.mark.asyncio
-    async def test_delete_still_works_when_disabled(self, client, auth_headers, outfit):
-        # People must be able to remove their photo after the operator turns try-on off.
-        for url in (PHOTO, _try_on_url(outfit)):
-            response = await client.delete(url, headers=auth_headers)
-            assert response.status_code in (204, 404), (url, response.status_code)
-            assert response.status_code != 503
+    async def test_photo_can_be_read_and_everything_deleted_when_disabled(
+        self, client, auth_headers, try_on_on, outfit, db_session, test_user
+    ):
+        # People must be able to see and remove their photo after the operator turns try-on off.
+        user_id, outfit_id = test_user.id, outfit.id
+        await _put_photo(client, auth_headers)
+        svc = ImageService()
+        photo = (
+            await db_session.execute(select(TryOnPhoto).where(TryOnPhoto.user_id == test_user.id))
+        ).scalar_one()
+        photo_files = [svc.get_image_path(p) for p in (photo.image_path, photo.medium_path)]
+        stored = await svc.process_and_store(test_user.id, _jpeg(), "a.jpg")
+        try_on = OutfitTryOn(
+            outfit_id=outfit.id,
+            user_id=test_user.id,
+            status=TryOnStatus.ready,
+            cache_key="k",
+            image_path=stored["image_path"],
+        )
+        db_session.add(try_on)
+        await db_session.commit()
+        try_on_file = svc.get_image_path(try_on.image_path)
+        assert all(f.exists() for f in photo_files) and try_on_file.exists()
+
+        try_on_on.ai_image_base_url = ""  # off
+        assert (await client.get(PHOTO, headers=auth_headers)).status_code == 200
+
+        response = await client.delete(_try_on_url(outfit), headers=auth_headers)
+        assert response.status_code == 204
+        assert not try_on_file.exists()
+        assert (await client.delete(PHOTO, headers=auth_headers)).status_code == 204
+        assert not any(f.exists() for f in photo_files)
+        db_session.expire_all()
+        assert (
+            await db_session.execute(select(TryOnPhoto).where(TryOnPhoto.user_id == user_id))
+        ).scalar_one_or_none() is None
+        assert (
+            await db_session.execute(select(OutfitTryOn).where(OutfitTryOn.outfit_id == outfit_id))
+        ).scalar_one_or_none() is None
 
     @pytest.mark.asyncio
     async def test_requires_auth(self, client, try_on_on):
@@ -458,7 +522,8 @@ class TestOutfitTryOnEndpoints:
         response = await client.post(_try_on_url(outfit), headers=auth_headers)
         assert response.status_code == 202
         assert response.json()["status"] == "pending"
-        enqueue.assert_awaited_once_with(outfit.id)
+        enqueue.assert_awaited_once()
+        assert enqueue.await_args.args[0] == outfit.id
         got = (await client.get(_try_on_url(outfit), headers=auth_headers)).json()
         assert got["status"] == "pending" and got["image_url"] is None and got["stale"] is False
 
@@ -492,11 +557,10 @@ class TestOutfitTryOnEndpoints:
     ):
         await _put_photo(client, auth_headers)
         await client.post(_try_on_url(outfit), headers=auth_headers)
-        with patch(
-            "httpx.AsyncClient.post",
+        with _provider(
             AsyncMock(return_value=_response(_completion(_data_url(_png())))),
         ):
-            await generate_try_on({"db_session_factory": session_maker}, str(outfit.id))
+            await _run_job(session_maker, outfit)
         enqueue.reset_mock()
 
         again = await client.post(_try_on_url(outfit), headers=auth_headers)
@@ -516,11 +580,10 @@ class TestOutfitTryOnEndpoints:
     ):
         await _put_photo(client, auth_headers)
         await client.post(_try_on_url(outfit), headers=auth_headers)
-        with patch(
-            "httpx.AsyncClient.post",
+        with _provider(
             AsyncMock(return_value=_response(_completion(_data_url(_png())))),
         ):
-            await generate_try_on({"db_session_factory": session_maker}, str(outfit.id))
+            await _run_job(session_maker, outfit)
         got = (await client.get(_try_on_url(outfit), headers=auth_headers)).json()
         assert got["status"] == "ready" and got["stale"] is False
 
@@ -598,11 +661,10 @@ class TestOutfitTryOnEndpoints:
     ):
         await _put_photo(client, auth_headers)
         await client.post(_try_on_url(outfit), headers=auth_headers)
-        with patch(
-            "httpx.AsyncClient.post",
+        with _provider(
             AsyncMock(return_value=_response(_completion(_data_url(_png())))),
         ):
-            await generate_try_on({"db_session_factory": session_maker}, str(outfit.id))
+            await _run_job(session_maker, outfit)
         row = (
             await db_session.execute(select(OutfitTryOn).where(OutfitTryOn.outfit_id == outfit.id))
         ).scalar_one()
@@ -619,11 +681,10 @@ class TestOutfitTryOnEndpoints:
     ):
         await _put_photo(client, auth_headers)
         await client.post(_try_on_url(outfit), headers=auth_headers)
-        with patch(
-            "httpx.AsyncClient.post",
+        with _provider(
             AsyncMock(return_value=_response(_completion(_data_url(_png())))),
         ):
-            await generate_try_on({"db_session_factory": session_maker}, str(outfit.id))
+            await _run_job(session_maker, outfit)
         row = (
             await db_session.execute(select(OutfitTryOn).where(OutfitTryOn.outfit_id == outfit.id))
         ).scalar_one()
@@ -650,8 +711,8 @@ class TestJob:
     ):
         await self._start(client, auth_headers, outfit)
         post = AsyncMock(return_value=_response(_completion(_data_url(_png()))))
-        with patch("httpx.AsyncClient.post", post):
-            await generate_try_on({"db_session_factory": session_maker}, str(outfit.id))
+        with _provider(post):
+            await _run_job(session_maker, outfit)
 
         # person + two garments after the text part
         content = post.call_args.kwargs["json"]["messages"][0]["content"]
@@ -673,10 +734,8 @@ class TestJob:
         self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session
     ):
         await self._start(client, auth_headers, outfit)
-        with patch(
-            "httpx.AsyncClient.post", AsyncMock(return_value=_response(_completion(text="no")))
-        ):
-            await generate_try_on({"db_session_factory": session_maker}, str(outfit.id))
+        with _provider(AsyncMock(return_value=_response(_completion(text="no")))):
+            await _run_job(session_maker, outfit)
         row = (
             await db_session.execute(select(OutfitTryOn).where(OutfitTryOn.outfit_id == outfit.id))
         ).scalar_one()
@@ -691,8 +750,8 @@ class TestJob:
         self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session
     ):
         await self._start(client, auth_headers, outfit)
-        with patch("httpx.AsyncClient.post", AsyncMock(return_value=_response({}, 502))):
-            await generate_try_on({"db_session_factory": session_maker}, str(outfit.id))
+        with _provider(AsyncMock(return_value=_response({}, 502))):
+            await _run_job(session_maker, outfit)
         row = (
             await db_session.execute(select(OutfitTryOn).where(OutfitTryOn.outfit_id == outfit.id))
         ).scalar_one()
@@ -707,7 +766,7 @@ class TestJob:
         with patch(
             "app.workers.try_on.generate_try_on_image", AsyncMock(side_effect=RuntimeError("boom"))
         ):
-            await generate_try_on({"db_session_factory": session_maker}, str(outfit.id))
+            await _run_job(session_maker, outfit)
         row = (
             await db_session.execute(select(OutfitTryOn).where(OutfitTryOn.outfit_id == outfit.id))
         ).scalar_one()
@@ -724,18 +783,477 @@ class TestJob:
             await client.delete(_try_on_url(outfit), headers=auth_headers)
             return _response(_completion(_data_url(_png())))
 
-        with patch("httpx.AsyncClient.post", delete_then_answer):
-            await generate_try_on({"db_session_factory": session_maker}, str(outfit.id))
+        with _provider(delete_then_answer):
+            await _run_job(session_maker, outfit)
         count = await db_session.execute(
             select(func.count()).select_from(OutfitTryOn).where(OutfitTryOn.user_id == test_user.id)
         )
         assert count.scalar_one() == 0
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("state", [TryOnStatus.ready, TryOnStatus.failed])
     async def test_non_pending_row_is_ignored(
-        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker
+        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session, state
     ):
+        await _put_photo(client, auth_headers)
+        token = uuid4()
+        db_session.add(
+            OutfitTryOn(
+                outfit_id=outfit.id,
+                user_id=outfit.user_id,
+                status=state,
+                error_code="TRY_ON_FAILED" if state == TryOnStatus.failed else None,
+                cache_key="old-key",
+                job_token=token,
+            )
+        )
+        await db_session.commit()
         post = AsyncMock()
-        with patch("httpx.AsyncClient.post", post):
-            await generate_try_on({"db_session_factory": session_maker}, str(outfit.id))
+        with _provider(post):
+            await _run_job(session_maker, outfit, token=token)
         post.assert_not_awaited()
+        row = (
+            await db_session.execute(select(OutfitTryOn).where(OutfitTryOn.outfit_id == outfit.id))
+        ).scalar_one()
+        await db_session.refresh(row)
+        assert row.status == state
+        assert row.cache_key == "old-key" and row.image_path is None
+        assert row.error_code == ("TRY_ON_FAILED" if state == TryOnStatus.failed else None)
+
+
+async def _row(db_session, outfit) -> OutfitTryOn:
+    row = (
+        await db_session.execute(select(OutfitTryOn).where(OutfitTryOn.outfit_id == outfit.id))
+    ).scalar_one()
+    await db_session.refresh(row)
+    return row
+
+
+def _ok_provider():
+    return _provider(AsyncMock(return_value=_response(_completion(_data_url(_png())))))
+
+
+class TestJobGuards:
+    """The worker rechecks everything right before the paid call."""
+
+    async def _start(self, client, auth_headers, outfit):
+        await _put_photo(client, auth_headers)
+        assert (await client.post(_try_on_url(outfit), headers=auth_headers)).status_code == 202
+
+    @pytest.mark.asyncio
+    async def test_disabled_before_the_job_runs_never_calls_the_provider(
+        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session
+    ):
+        await self._start(client, auth_headers, outfit)
+        try_on_on.ai_image_base_url = ""
+        post = AsyncMock()
+        with _provider(post):
+            await _run_job(session_maker, outfit)
+        post.assert_not_awaited()
+        row = await _row(db_session, outfit)
+        assert (row.status, row.error_code) == (TryOnStatus.failed, "TRY_ON_DISABLED")
+
+    @pytest.mark.asyncio
+    async def test_disabled_while_inputs_are_read_never_calls_the_provider(
+        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session
+    ):
+        await self._start(client, auth_headers, outfit)
+        from app.workers import try_on as worker
+
+        real = worker.read_model_inputs
+
+        def read_then_disable(*args):
+            result = real(*args)
+            try_on_on.ai_image_base_url = ""
+            return result
+
+        post = AsyncMock()
+        with patch.object(worker, "read_model_inputs", read_then_disable), _provider(post):
+            await _run_job(session_maker, outfit)
+        post.assert_not_awaited()
+        row = await _row(db_session, outfit)
+        assert (row.status, row.error_code) == (TryOnStatus.failed, "TRY_ON_DISABLED")
+
+    @pytest.mark.asyncio
+    async def test_photo_removed_while_inputs_are_read_never_calls_the_provider(
+        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session
+    ):
+        await self._start(client, auth_headers, outfit)
+        from app.workers import try_on as worker
+
+        real = worker.read_model_inputs
+        loop_client = client
+
+        def read_then_remove(*args):
+            return real(*args)
+
+        post = AsyncMock()
+
+        async def remove_photo_first(*a, **k):  # pragma: no cover - must not be reached
+            raise AssertionError("provider called")
+
+        # Remove the photo (cascading the try-on row) between reading and the paid call.
+        original_rollback = AsyncSession.rollback
+        state = {"done": False}
+
+        async def rollback_then_remove(self_):
+            await original_rollback(self_)
+            if not state["done"] and not self_.info.get("x"):
+                state["done"] = True
+                self_.info["x"] = True
+                assert (await loop_client.delete(PHOTO, headers=auth_headers)).status_code == 204
+
+        with (
+            patch.object(worker, "read_model_inputs", read_then_remove),
+            patch.object(AsyncSession, "rollback", rollback_then_remove),
+            _provider(post),
+        ):
+            await _run_job(session_maker, outfit)
+        post.assert_not_awaited()
+        outfit_id = outfit.id
+        db_session.expire_all()
+        assert (
+            await db_session.execute(
+                select(func.count())
+                .select_from(OutfitTryOn)
+                .where(OutfitTryOn.outfit_id == outfit_id)
+            )
+        ).scalar_one() == 0
+
+    @pytest.mark.asyncio
+    async def test_overtaken_job_does_not_call_or_write(
+        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session
+    ):
+        await self._start(client, auth_headers, outfit)
+        first = (await _row(db_session, outfit)).job_token
+        row = await _row(db_session, outfit)
+        row.started_at = datetime.now(UTC) - timedelta(minutes=16)
+        await db_session.commit()
+        assert (await client.post(_try_on_url(outfit), headers=auth_headers)).status_code == 202
+        second = (await _row(db_session, outfit)).job_token
+        assert first != second
+
+        post = AsyncMock()
+        with _provider(post):
+            await _run_job(session_maker, outfit, token=first)
+        post.assert_not_awaited()
+        row = await _row(db_session, outfit)
+        assert row.status == TryOnStatus.pending and row.job_token == second
+
+        with _ok_provider():
+            await _run_job(session_maker, outfit, token=second)
+        assert (await _row(db_session, outfit)).status == TryOnStatus.ready
+
+    @pytest.mark.asyncio
+    async def test_job_overtaken_while_running_discards_its_image(
+        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session, test_user
+    ):
+        await self._start(client, auth_headers, outfit)
+        first = (await _row(db_session, outfit)).job_token
+        newer = uuid4()
+
+        async def newer_request_then_answer(*args, **kwargs):
+            async with session_maker() as other:
+                row = (
+                    await other.execute(
+                        select(OutfitTryOn).where(OutfitTryOn.outfit_id == outfit.id)
+                    )
+                ).scalar_one()
+                row.job_token = newer
+                await other.commit()
+            return _response(_completion(_data_url(_png())))
+
+        with _provider(newer_request_then_answer):
+            await _run_job(session_maker, outfit, token=first)
+        row = await _row(db_session, outfit)
+        assert row.status == TryOnStatus.pending and row.job_token == newer
+        assert row.image_path is None
+        directory = ImageService().get_image_path(f"{test_user.id}/try-on")
+        # only the reference photo's two files remain
+        assert len(list(directory.iterdir())) == 2
+
+    @pytest.mark.asyncio
+    async def test_cancelled_job_records_failure_and_reraises(
+        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session
+    ):
+        # What arq's job timeout does to the running task.
+        import asyncio
+
+        await self._start(client, auth_headers, outfit)
+        with _provider(AsyncMock(side_effect=asyncio.CancelledError())):
+            with pytest.raises(asyncio.CancelledError):
+                await _run_job(session_maker, outfit)
+        row = await _row(db_session, outfit)
+        assert (row.status, row.error_code) == (TryOnStatus.failed, ERROR_FAILED)
+
+    def test_job_deadline_is_above_the_provider_timeout(self):
+        from app.workers.try_on import try_on_job_timeout_seconds
+
+        assert try_on_job_timeout_seconds() > get_settings().ai_image_timeout
+
+
+class TestFailedRegeneration:
+    @pytest.mark.asyncio
+    async def test_failure_keeps_the_previous_image(
+        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session
+    ):
+        await _put_photo(client, auth_headers)
+        await client.post(_try_on_url(outfit), headers=auth_headers)
+        with _ok_provider():
+            await _run_job(session_maker, outfit)
+        ready = await _row(db_session, outfit)
+        old_paths = (ready.image_path, ready.medium_path, ready.cache_key)
+        svc = ImageService()
+
+        again = await client.post(_try_on_url(outfit) + "?regenerate=true", headers=auth_headers)
+        assert again.status_code == 202
+        assert again.json()["image_url"] is None  # drawing: spinner, not the old picture
+        with _provider(AsyncMock(return_value=_response({}, 502))):
+            await _run_job(session_maker, outfit)
+
+        row = await _row(db_session, outfit)
+        assert (row.status, row.error_code) == (TryOnStatus.failed, ERROR_FAILED)
+        assert (row.image_path, row.medium_path, row.cache_key) == old_paths
+        assert svc.get_image_path(row.image_path).exists()
+        assert svc.get_image_path(row.medium_path).exists()
+        got = (await client.get(_try_on_url(outfit), headers=auth_headers)).json()
+        assert got["status"] == "failed" and got["error_code"] == ERROR_FAILED
+        assert got["image_url"] and got["medium_url"]
+
+    @pytest.mark.asyncio
+    async def test_success_after_failure_replaces_and_deletes_old_files(
+        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session
+    ):
+        await _put_photo(client, auth_headers)
+        await client.post(_try_on_url(outfit), headers=auth_headers)
+        with _ok_provider():
+            await _run_job(session_maker, outfit)
+        old = await _row(db_session, outfit)
+        old_path = old.image_path
+        old_file = ImageService().get_image_path(old_path)
+        await client.post(_try_on_url(outfit) + "?regenerate=true", headers=auth_headers)
+        with _ok_provider():
+            await _run_job(session_maker, outfit)
+        row = await _row(db_session, outfit)
+        assert row.status == TryOnStatus.ready and row.image_path != old_path
+        assert not old_file.exists()
+
+    @pytest.mark.asyncio
+    async def test_enqueue_failure_keeps_the_previous_image(
+        self, client, auth_headers, try_on_on, outfit, enqueue, session_maker, db_session
+    ):
+        await _put_photo(client, auth_headers)
+        await client.post(_try_on_url(outfit), headers=auth_headers)
+        with _ok_provider():
+            await _run_job(session_maker, outfit)
+        before = await _row(db_session, outfit)
+        kept = before.image_path
+        enqueue.side_effect = RuntimeError("redis down")
+        response = await client.post(_try_on_url(outfit) + "?regenerate=true", headers=auth_headers)
+        assert response.status_code == 503
+        row = await _row(db_session, outfit)
+        assert row.status == TryOnStatus.failed and row.image_path == kept
+
+
+class TestRetryable:
+    @pytest.mark.asyncio
+    async def test_only_an_old_pending_row_is_retryable(
+        self, client, auth_headers, try_on_on, outfit, enqueue, db_session
+    ):
+        await _put_photo(client, auth_headers)
+        fresh = (await client.post(_try_on_url(outfit), headers=auth_headers)).json()
+        assert fresh["retryable"] is False
+        row = await _row(db_session, outfit)
+        row.started_at = datetime.now(UTC) - timedelta(minutes=16)
+        await db_session.commit()
+        got = (await client.get(_try_on_url(outfit), headers=auth_headers)).json()
+        assert got["status"] == "pending" and got["retryable"] is True
+
+
+class TestEnqueue:
+    @pytest.mark.asyncio
+    async def test_goes_to_the_image_queue_with_the_token(self):
+        from app.api.try_on import enqueue_try_on
+        from app.workers.queues import IMAGE_QUEUE
+
+        redis = AsyncMock()
+        redis.enqueue_job.return_value = object()
+        token, outfit_id = uuid4(), uuid4()
+        with patch("app.api.try_on.create_pool", AsyncMock(return_value=redis)):
+            await enqueue_try_on(outfit_id, token)
+        redis.enqueue_job.assert_awaited_once_with(
+            "generate_try_on", str(outfit_id), str(token), _queue_name=IMAGE_QUEUE
+        )
+
+
+@pytest.fixture
+def per_request_db(client, session_maker):
+    """Each request gets its own session, so concurrent requests really are concurrent."""
+    from app.database import get_db
+    from app.main import app
+
+    async def override():
+        async with session_maker() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override
+    yield
+
+
+class TestConcurrency:
+    @pytest.mark.asyncio
+    async def test_two_first_posts_make_one_job_and_one_409(
+        self, client, auth_headers, try_on_on, outfit, enqueue, per_request_db
+    ):
+        await _put_photo(client, auth_headers)
+        import asyncio
+
+        responses = await asyncio.gather(
+            client.post(_try_on_url(outfit), headers=auth_headers),
+            client.post(_try_on_url(outfit), headers=auth_headers),
+        )
+        codes = sorted(r.status_code for r in responses)
+        assert codes == [202, 409], [r.text for r in responses]
+        loser = next(r for r in responses if r.status_code == 409)
+        assert loser.json()["detail"]["error_code"] == "TRY_ON_IN_PROGRESS"
+        assert enqueue.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_two_regenerations_of_a_ready_outfit_make_one_job(
+        self, client, auth_headers, try_on_on, outfit, enqueue, per_request_db, session_maker
+    ):
+        import asyncio
+
+        await _put_photo(client, auth_headers)
+        await client.post(_try_on_url(outfit), headers=auth_headers)
+        with _ok_provider():
+            await _run_job(session_maker, outfit)
+        enqueue.reset_mock()
+        url = _try_on_url(outfit) + "?regenerate=true"
+        responses = await asyncio.gather(
+            client.post(url, headers=auth_headers), client.post(url, headers=auth_headers)
+        )
+        assert sorted(r.status_code for r in responses) == [202, 409]
+        assert enqueue.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_concurrent_photo_uploads_leave_one_photo_and_no_orphans(
+        self, client, auth_headers, try_on_on, per_request_db, test_user, db_session
+    ):
+        import asyncio
+
+        responses = await asyncio.gather(
+            *[
+                client.put(
+                    PHOTO,
+                    files=_upload(_jpeg(color=(i * 40, 50, 60))),
+                    headers=auth_headers,
+                )
+                for i in range(3)
+            ]
+        )
+        assert [r.status_code for r in responses] == [200, 200, 200], [r.text for r in responses]
+        user_id = test_user.id
+        db_session.expire_all()
+        photos = (
+            (await db_session.execute(select(TryOnPhoto).where(TryOnPhoto.user_id == user_id)))
+            .scalars()
+            .all()
+        )
+        assert len(photos) == 1
+        svc = ImageService()
+        directory = svc.get_image_path(f"{user_id}/try-on")
+        assert {f.name for f in directory.iterdir()} == {
+            photos[0].image_path.rsplit("/", 1)[1],
+            photos[0].medium_path.rsplit("/", 1)[1],
+        }
+
+
+class TestUploadLimit:
+    @pytest.mark.asyncio
+    async def test_photo_above_20mb_but_within_the_configured_limit_is_accepted(
+        self, client, auth_headers, try_on_on
+    ):
+        big = _jpeg() + b"\0" * (21 * 1024 * 1024)
+        with patch.object(get_settings(), "max_upload_size_mb", 30):
+            response = await client.put(PHOTO, files=_upload(big), headers=auth_headers)
+        assert response.status_code == 200, response.text
+
+    def test_validate_image_limit_follows_the_argument(self):
+        svc = ImageService()
+        raw = _jpeg()
+        assert svc.validate_image(raw, "image/jpeg")
+        assert not svc.validate_image(raw, "image/jpeg", max_bytes=len(raw) - 1)
+        assert svc.validate_image(raw, "image/jpeg", max_bytes=len(raw))
+
+
+class TestProviderLimits:
+    @pytest.mark.asyncio
+    async def test_oversized_response_body_is_failed(self, try_on_on):
+        payload = _completion(_data_url(_png()))
+        with (
+            patch.object(image_generation, "MAX_RESPONSE_BYTES", 100),
+            _provider(AsyncMock(return_value=_response(payload))),
+        ):
+            with pytest.raises(TryOnGenerationError) as exc:
+                await generate_try_on_image(b"p", [b"g"], GARMENTS)
+        assert exc.value.error_code == ERROR_FAILED
+
+    def test_oversized_decoded_image_is_failed(self):
+        with patch.object(image_generation, "MAX_IMAGE_BYTES", 10):
+            with pytest.raises(TryOnGenerationError) as exc:
+                parse_generated_image(_completion(_data_url(_png())))
+        assert exc.value.error_code == ERROR_FAILED
+
+    @pytest.mark.asyncio
+    async def test_body_is_cut_off_while_streaming(self, try_on_on):
+        import asyncio
+
+        chunks = []
+
+        async def endless():
+            for _ in range(1000):
+                chunks.append(1)
+                yield b"x" * 1024
+
+        response = httpx.Response(200, content=endless(), request=FAKE_REQUEST)
+        with (
+            patch.object(image_generation, "MAX_RESPONSE_BYTES", 4096),
+            _provider(AsyncMock(return_value=response)),
+        ):
+            with pytest.raises(TryOnGenerationError) as exc:
+                await asyncio.wait_for(generate_try_on_image(b"p", [b"g"], GARMENTS), 5)
+        assert exc.value.error_code == ERROR_FAILED
+        assert len(chunks) < 10
+
+    @pytest.mark.asyncio
+    async def test_total_deadline_applies(self, try_on_on):
+        import asyncio
+
+        async def slow(*a, **k):
+            await asyncio.sleep(5)
+
+        with patch.object(get_settings(), "ai_image_timeout", 1), _provider(slow):
+            with pytest.raises(TryOnGenerationError) as exc:
+                await generate_try_on_image(b"p", [b"g"], GARMENTS)
+        assert exc.value.error_code == ERROR_FAILED
+
+
+class TestCacheKey:
+    @pytest.mark.asyncio
+    async def test_key_changes_with_the_image_endpoint(
+        self, client, auth_headers, try_on_on, outfit, db_session, test_user
+    ):
+        from app.services.try_on_service import compute_cache_key, load_outfit, outfit_garments
+
+        await _put_photo(client, auth_headers)
+        photo = (
+            await db_session.execute(select(TryOnPhoto).where(TryOnPhoto.user_id == test_user.id))
+        ).scalar_one()
+        loaded = await load_outfit(db_session, outfit.id, test_user.id)
+        garments = outfit_garments(loaded)
+        svc = ImageService()
+        one = compute_cache_key(photo, garments, svc)
+        assert compute_cache_key(photo, garments, svc) == one
+        try_on_on.ai_image_base_url = "https://other.example/v1"
+        assert compute_cache_key(photo, garments, svc) != one

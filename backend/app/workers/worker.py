@@ -25,7 +25,6 @@ from app.workers.queues import (
 )
 from app.workers.settings import get_redis_settings
 from app.workers.tagging import tag_item_image, worker_job_timeout_seconds
-from app.workers.try_on import generate_try_on
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +126,6 @@ async def shutdown(ctx: dict) -> None:
 class WorkerSettings:
     functions = [
         tag_item_image,
-        generate_try_on,
         retry_failed_notifications,
         check_scheduled_notifications,
         process_scheduled_notification,

@@ -61,6 +61,9 @@ class OutfitTryOn(Base):
     cache_key: Mapped[str] = mapped_column(String(64), nullable=False)
     image_path: Mapped[str | None] = mapped_column(String(500))
     medium_path: Mapped[str | None] = mapped_column(String(500))
+    # Set on every request; the job carries it and writes only while it still matches, so a
+    # job overtaken by a newer request cannot overwrite the newer generation.
+    job_token: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

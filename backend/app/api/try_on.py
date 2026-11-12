@@ -2,15 +2,16 @@ import asyncio
 import logging
 from datetime import UTC, datetime
 from typing import Annotated
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from arq import create_pool
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.config import get_settings
 from app.database import DbSession
+from app.models.outfit import Outfit
 from app.models.try_on import OutfitTryOn, TryOnPhoto, TryOnStatus
 from app.models.user import User
 from app.services.image_service import IMAGE_MIME_TYPES, ImageService
@@ -27,8 +28,8 @@ from app.services.try_on_service import (
 from app.utils.auth import get_current_user
 from app.utils.rate_limit import check_rate_limit, rate_limit_by_user
 from app.utils.signed_urls import sign_optional
-from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
-from app.workers.queues import TAGGING_QUEUE
+from app.utils.uploads import BYTES_PER_MB, UploadTooLargeError, read_upload_within_limit
+from app.workers.queues import IMAGE_QUEUE
 from app.workers.settings import get_redis_settings
 
 logger = logging.getLogger(__name__)
@@ -44,8 +45,8 @@ def require_try_on_enabled() -> None:
 
 
 router = APIRouter(tags=["Try-on"])
-# Deleting stays possible after an operator turns try-on off, so people can always remove
-# their photo and the pictures drawn from it.
+# Reading the photo and deleting stay possible after an operator turns try-on off, so people
+# can always see and remove their photo and the pictures drawn from it.
 ENABLED = [Depends(require_try_on_enabled)]
 
 
@@ -69,6 +70,8 @@ class TryOnResponse(BaseModel):
     error_code: str | None = None
     created_at: datetime
     stale: bool = False
+    # A pending try-on old enough that a new request would replace it: the job is lost.
+    retryable: bool = False
 
 
 def _photo_response(photo: TryOnPhoto) -> TryOnPhotoResponse:
@@ -81,14 +84,17 @@ def _photo_response(photo: TryOnPhoto) -> TryOnPhotoResponse:
 
 
 def _try_on_response(try_on: OutfitTryOn, stale: bool) -> TryOnResponse:
-    ready = try_on.status == TryOnStatus.ready
+    # A failed regeneration keeps the last good image next to its error.
+    has_image = try_on.status != TryOnStatus.pending and bool(try_on.image_path)
+    pending = try_on.status == TryOnStatus.pending
     return TryOnResponse(
         status=try_on.status,
-        image_url=sign_optional(try_on.image_path) if ready else None,
-        medium_url=sign_optional(try_on.medium_path, try_on.image_path) if ready else None,
+        image_url=sign_optional(try_on.image_path) if has_image else None,
+        medium_url=sign_optional(try_on.medium_path, try_on.image_path) if has_image else None,
         error_code=try_on.error_code,
         created_at=try_on.updated_at,
         stale=stale,
+        retryable=pending and not is_pending_fresh(try_on.started_at),
     )
 
 
@@ -99,7 +105,8 @@ async def _delete_all_try_ons(db: DbSession, user_id: UUID) -> None:
         await db.delete(try_on)
 
 
-@router.get("/users/me/try-on-photo", response_model=TryOnPhotoResponse, dependencies=ENABLED)
+# Not gated: with try-on off, the settings card still shows a saved photo so it can be removed.
+@router.get("/users/me/try-on-photo", response_model=TryOnPhotoResponse)
 async def get_try_on_photo(
     db: DbSession, current_user: Annotated[User, Depends(get_current_user)]
 ) -> TryOnPhotoResponse:
@@ -123,7 +130,7 @@ async def put_try_on_photo(
 
     image_service = ImageService()
     content_type = image.content_type or "application/octet-stream"
-    if not image_service.validate_image(content, content_type):
+    if not image_service.validate_image(content, content_type, max_bytes=max_mb * BYTES_PER_MB):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
@@ -139,9 +146,15 @@ async def put_try_on_photo(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
 
-    photo = await load_photo(db, current_user.id)
-    old_paths = [photo.image_path, photo.medium_path] if photo else []
     try:
+        # One replacement at a time per user: a second upload waits here, then replaces the
+        # first, whose files go as "old" paths. No photo is left orphaned and the first-upload
+        # insert cannot collide.
+        await db.execute(
+            select(User.id).where(User.id == current_user.id).with_for_update(key_share=True)
+        )
+        photo = await load_photo(db, current_user.id)
+        old_paths = [photo.image_path, photo.medium_path] if photo else []
         if photo:
             photo.image_path = paths["image_path"]
             photo.medium_path = paths["medium_path"]
@@ -188,10 +201,14 @@ async def _get_outfit_or_404(db: DbSession, outfit_id: UUID, user: User):
     return outfit
 
 
-async def enqueue_try_on(outfit_id: UUID) -> None:
+async def enqueue_try_on(outfit_id: UUID, job_token: UUID) -> None:
+    # The image worker's queue: a try-on waits minutes on a provider and must not hold up
+    # tagging. No arq-level dedup id: the token already makes an overtaken job harmless.
     redis = await create_pool(get_redis_settings())
     try:
-        job = await redis.enqueue_job("generate_try_on", str(outfit_id), _queue_name=TAGGING_QUEUE)
+        job = await redis.enqueue_job(
+            "generate_try_on", str(outfit_id), str(job_token), _queue_name=IMAGE_QUEUE
+        )
         if job is None:
             raise RuntimeError("enqueue_job returned None")
     finally:
@@ -243,6 +260,15 @@ async def create_outfit_try_on(
     current_user: Annotated[User, Depends(get_current_user)],
     regenerate: Annotated[bool, Query()] = False,
 ) -> TryOnResponse:
+    # Requests for one outfit go one at a time from here to the commit below: the second
+    # waits, then sees the first's pending row and gets 409 instead of enqueuing a second paid
+    # call or colliding on the row's primary key. (Locks the outfit row without blocking the
+    # try-on row's foreign key.)
+    await db.execute(
+        select(Outfit.id)
+        .where(Outfit.id == outfit_id, Outfit.user_id == current_user.id)
+        .with_for_update(key_share=True)
+    )
     outfit = await _get_outfit_or_404(db, outfit_id, current_user)
     photo = await load_photo(db, current_user.id)
     if not photo:
@@ -277,12 +303,17 @@ async def create_outfit_try_on(
     await _check_daily_limit(current_user.id)
 
     now = datetime.now(UTC)
+    job_token = uuid4()
     if not try_on:
         try_on = OutfitTryOn(outfit_id=outfit.id, user_id=current_user.id, cache_key=cache_key)
         db.add(try_on)
+    elif not try_on.image_path:
+        try_on.cache_key = cache_key
+    # else: the kept image still belongs to the old inputs, so its key stays (shown as out of
+    # date) until a new image replaces it.
     try_on.status = TryOnStatus.pending
     try_on.error_code = None
-    try_on.cache_key = cache_key
+    try_on.job_token = job_token
     try_on.started_at = now
     try_on.completed_at = None
     # Commit before enqueuing: the worker reads on its own connection.
@@ -290,12 +321,19 @@ async def create_outfit_try_on(
     await db.refresh(try_on)
 
     try:
-        await enqueue_try_on(outfit.id)
+        await enqueue_try_on(outfit.id, job_token)
     except Exception as e:
         logger.error("Failed to queue try-on job: %s", type(e).__name__)
-        try_on.status = TryOnStatus.failed
-        try_on.error_code = "TRY_ON_FAILED"
-        try_on.completed_at = datetime.now(UTC)
+        # Only if no newer request has taken the row over meanwhile.
+        await db.execute(
+            update(OutfitTryOn)
+            .where(OutfitTryOn.outfit_id == outfit.id, OutfitTryOn.job_token == job_token)
+            .values(
+                status=TryOnStatus.failed,
+                error_code="TRY_ON_FAILED",
+                completed_at=datetime.now(UTC),
+            )
+        )
         await db.commit()
         raise _error(
             status.HTTP_503_SERVICE_UNAVAILABLE, "Could not queue the try-on", "TRY_ON_FAILED"

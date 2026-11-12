@@ -5,6 +5,7 @@ returned message). Every call costs money, so nothing here retries. Provider res
 and any text they carry are never logged: they can echo the prompt or the user's photo.
 """
 
+import asyncio
 import base64
 import binascii
 import json
@@ -23,6 +24,11 @@ PROMPT_VERSION = "1"
 
 ERROR_NO_IMAGE = "TRY_ON_NO_IMAGE"
 ERROR_FAILED = "TRY_ON_FAILED"
+
+# Limits on what a provider may send back, so a broken or hostile one cannot exhaust memory:
+# the response body is cut off while streaming, and the decoded image has its own cap.
+MAX_RESPONSE_BYTES = 40 * 1024 * 1024
+MAX_IMAGE_BYTES = 30 * 1024 * 1024
 
 DATA_URL_PREFIXES = {
     "data:image/png;base64,": ".png",
@@ -100,8 +106,11 @@ def parse_generated_image(payload: object) -> GeneratedImage:
             continue
         for prefix, extension in DATA_URL_PREFIXES.items():
             if url.startswith(prefix):
+                encoded = url[len(prefix) :]
+                if len(encoded) > MAX_IMAGE_BYTES * 4 // 3 + 4:
+                    raise TryOnGenerationError(ERROR_FAILED)
                 try:
-                    data = base64.b64decode(url[len(prefix) :], validate=True)
+                    data = base64.b64decode(encoded, validate=True)
                 except (binascii.Error, ValueError):
                     break
                 if data:
@@ -131,17 +140,38 @@ async def generate_try_on_image(
     url = f"{settings.ai_image_base_url.rstrip('/')}/chat/completions"
 
     try:
-        async with httpx.AsyncClient(
-            timeout=settings.ai_image_timeout, follow_redirects=True
-        ) as client:
-            response = await client.post(url, headers=headers, json=body)
-            response.raise_for_status()
-            payload = response.json()
+        # httpx timeouts apply to each phase, so a total deadline bounds the whole exchange.
+        async with asyncio.timeout(settings.ai_image_timeout):
+            payload = await _post_json(url, headers, body, settings.ai_image_timeout)
     except httpx.HTTPStatusError as e:
         logger.warning("Try-on generation failed: HTTP %s", e.response.status_code)
         raise TryOnGenerationError(ERROR_FAILED) from None
-    except (httpx.HTTPError, ValueError) as e:
+    except _ResponseTooLargeError:
+        logger.warning("Try-on generation failed: response too large")
+        raise TryOnGenerationError(ERROR_FAILED) from None
+    except (httpx.HTTPError, ValueError, TimeoutError) as e:
         logger.warning("Try-on generation failed: %s", type(e).__name__)
         raise TryOnGenerationError(ERROR_FAILED) from None
 
     return parse_generated_image(payload)
+
+
+class _ResponseTooLargeError(Exception):
+    pass
+
+
+async def _post_json(url: str, headers: dict, body: dict, timeout: int) -> object:
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        async with client.stream("POST", url, headers=headers, json=body) as response:
+            response.raise_for_status()
+            declared = response.headers.get("content-length", "")
+            if declared.isdigit() and int(declared) > MAX_RESPONSE_BYTES:
+                raise _ResponseTooLargeError
+            chunks: list[bytes] = []
+            size = 0
+            async for chunk in response.aiter_bytes():
+                size += len(chunk)
+                if size > MAX_RESPONSE_BYTES:
+                    raise _ResponseTooLargeError
+                chunks.append(chunk)
+    return json.loads(b"".join(chunks))

@@ -25,6 +25,7 @@ GARMENT_MAX_PX = 800
 ERROR_NO_PHOTO = "TRY_ON_NO_PHOTO"
 ERROR_ITEM_IMAGE_MISSING = "TRY_ON_ITEM_IMAGE_MISSING"
 ERROR_DAILY_LIMIT = "TRY_ON_DAILY_LIMIT"
+ERROR_DISABLED = "TRY_ON_DISABLED"
 
 
 class ItemImageMissingError(Exception):
@@ -100,6 +101,7 @@ def compute_cache_key(
     payload = [
         PROMPT_VERSION,
         get_settings().ai_image_model,
+        get_settings().ai_image_base_url.strip().rstrip("/"),
         photo.content_hash,
         [
             [
