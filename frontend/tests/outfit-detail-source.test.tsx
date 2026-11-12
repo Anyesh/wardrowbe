@@ -33,6 +33,7 @@ vi.mock('@/lib/hooks/use-studio', () => ({
 }))
 vi.mock('@/lib/hooks/use-user', () => ({ useUserToday: () => () => '2026-10-05' }))
 vi.mock('@/components/shared/lineage-card', () => ({ LineageCard: () => null }))
+vi.mock('@/components/outfits/try-on-panel', () => ({ TryOnPanel: () => null }))
 vi.mock('@/components/shared/clone-to-lookbook-dialog', () => ({
   CloneToLookbookDialog: () => null,
 }))

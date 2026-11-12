@@ -168,6 +168,27 @@
   "subtitle": "您的造型、穿着记录和 AI 建议",
   "title": "穿搭",
   "totalCount": "共{count}组",
+  "tryOn": {
+    "addPhoto": "添加照片",
+    "delete": "删除",
+    "deleteError": "无法删除试穿图",
+    "drawing": "生成中…",
+    "errors": {
+      "dailyLimit": "你已达到今天的试穿次数上限，请明天再试。",
+      "generic": "生成这套穿搭时出了问题，请重试。",
+      "inProgress": "这套穿搭正在生成中。",
+      "itemImageMissing": "这套穿搭中的每件单品都需要有照片。",
+      "noImage": "模型没有返回图片（可能拒绝了请求），请重试。",
+      "noPhoto": "请先在设置中添加试穿照片。",
+      "rateLimited": "请求过于频繁，请等待一分钟后重试。"
+    },
+    "imageAlt": "你穿这套穿搭的效果",
+    "needsPhoto": "添加一张你的全身照，即可看到这套穿搭穿在你身上的效果。",
+    "regenerate": "重新生成",
+    "seeIt": "看看上身效果",
+    "stale": "生成这张图之后，穿搭或你的照片已发生变化。",
+    "title": "试穿"
+  },
   "viewCalendar": "日历",
   "viewList": "列表",
   "viewToggle": "切换视图"

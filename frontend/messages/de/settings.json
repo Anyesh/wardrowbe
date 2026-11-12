@@ -144,5 +144,30 @@
     "unit": "Temperatureinheit"
   },
   "title": "Einstellungen",
+  "tryOnPhoto": {
+    "description": "Ein Foto von dir, mit dem Outfits an dir gezeigt werden.",
+    "guidance": "Verwende ein Ganzkörperfoto, frontal zur Kamera, in eng anliegender Kleidung und bei gleichmäßigem Licht.",
+    "loadError": "Dein Foto konnte nicht geladen werden",
+    "photoAlt": "Dein Anprobe-Foto",
+    "privacy": "Das Foto bleibt auf diesem Server und wird nur dann an das konfigurierte Bildmodell gesendet, wenn du eine Anprobe erstellst.",
+    "remove": "Foto entfernen",
+    "removeConfirm": {
+      "confirm": "Foto entfernen",
+      "description": "Dadurch werden auch alle daraus erstellten Anprobe-Bilder gelöscht.",
+      "title": "Anprobe-Foto entfernen?"
+    },
+    "removeError": "Das Foto konnte nicht entfernt werden",
+    "removed": "Foto entfernt",
+    "replace": "Foto ersetzen",
+    "replaceConfirm": {
+      "confirm": "Foto ersetzen",
+      "description": "Dadurch werden alle aus dem aktuellen Foto erstellten Anprobe-Bilder gelöscht.",
+      "title": "Anprobe-Foto ersetzen?"
+    },
+    "saved": "Foto gespeichert",
+    "title": "Anprobe-Foto",
+    "upload": "Foto hochladen",
+    "uploadError": "Das Foto konnte nicht gespeichert werden"
+  },
   "unsavedChanges": "Du hast ungespeicherte Änderungen. Diese Seite verlassen?"
 }

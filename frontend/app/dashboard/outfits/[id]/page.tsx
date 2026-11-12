@@ -23,6 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SourceBadge } from '@/components/shared/source-badge';
 import { LineageCard } from '@/components/shared/lineage-card';
+import { TryOnPanel } from '@/components/outfits/try-on-panel';
 import { CloneToLookbookDialog } from '@/components/shared/clone-to-lookbook-dialog';
 import { useDeleteOutfit, useOutfit, useOutfits } from '@/lib/hooks/use-outfits';
 import { useWearToday } from '@/lib/hooks/use-studio';
@@ -188,6 +189,8 @@ export default function OutfitDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <TryOnPanel outfitId={outfit.id} />
 
       <div className="flex flex-wrap gap-2">
         {isTemplate && (

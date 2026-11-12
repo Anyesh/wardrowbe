@@ -144,5 +144,30 @@
     "unit": "Unità di temperatura"
   },
   "title": "Impostazioni",
+  "tryOnPhoto": {
+    "description": "Una tua foto, usata per mostrarti gli outfit addosso.",
+    "guidance": "Usa una sola foto a figura intera, frontale, con abiti aderenti e luce uniforme.",
+    "loadError": "Impossibile caricare la tua foto",
+    "photoAlt": "La tua foto per la prova",
+    "privacy": "La foto resta su questo server e viene inviata al modello di immagini configurato solo quando generi una prova.",
+    "remove": "Rimuovi foto",
+    "removeConfirm": {
+      "confirm": "Rimuovi foto",
+      "description": "Verranno eliminate anche tutte le immagini di prova generate da questa foto.",
+      "title": "Rimuovere la foto per la prova?"
+    },
+    "removeError": "Impossibile rimuovere la foto",
+    "removed": "Foto rimossa",
+    "replace": "Sostituisci foto",
+    "replaceConfirm": {
+      "confirm": "Sostituisci foto",
+      "description": "Verranno eliminate tutte le immagini di prova generate dalla foto attuale.",
+      "title": "Sostituire la foto per la prova?"
+    },
+    "saved": "Foto salvata",
+    "title": "Foto per la prova",
+    "upload": "Carica foto",
+    "uploadError": "Impossibile salvare la foto"
+  },
   "unsavedChanges": "Hai modifiche non salvate. Uscire da questa pagina?"
 }

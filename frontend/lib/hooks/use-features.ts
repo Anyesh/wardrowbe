@@ -12,6 +12,7 @@ interface Features {
   max_upload_size_mb: number;
   max_bulk_upload_count?: number;
   ai_ui_enabled?: boolean;
+  try_on_enabled?: boolean;
 }
 
 // An upload waits on this request before its first chunk, so a server that never answers
@@ -52,6 +53,14 @@ export function useAiUiEnabled(): boolean | undefined {
   const { data, isError } = useFeatures();
   if (data) return data.ai_ui_enabled !== false;
   return isError ? true : undefined;
+}
+
+// Opt-in outfit try-on: true only when the server explicitly says so, so loading, errors and
+// older backends all hide it. It also follows the AI UI switch.
+export function useTryOnEnabled(): boolean {
+  const { data } = useFeatures();
+  const aiUiEnabled = useAiUiEnabled();
+  return data?.try_on_enabled === true && aiUiEnabled === true;
 }
 
 // null means "unknown": callers fall back to learning the limit from the
