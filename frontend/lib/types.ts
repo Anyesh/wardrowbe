@@ -344,6 +344,19 @@ export type OutfitStatus = (typeof OUTFIT_STATUSES)[number];
 
 export type OutfitSource = 'scheduled' | 'on_demand' | 'manual' | 'pairing' | 'external';
 
+export interface OutfitExtraItem {
+  id: string;
+  type: string;
+  subtype: string | null;
+  name: string | null;
+  primary_color: string | null;
+  colors: string[];
+  image_path: string | null;
+  thumbnail_path: string | null;
+  image_url: string | null;
+  thumbnail_url: string | null;
+}
+
 export interface Outfit {
   id: string;
   occasion: string;
@@ -362,6 +375,8 @@ export interface Outfit {
   highlights: string[] | null;
   weather: WeatherData | null;
   items: OutfitItem[];
+  if_cooler?: OutfitExtraItem | null;
+  if_warmer?: OutfitExtraItem | null;
   feedback: FeedbackSummary | null;
   family_ratings: FamilyRating[] | null;
   family_rating_average: number | null;

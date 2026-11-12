@@ -25,6 +25,7 @@ from app.models.preference import UserPreference
 from app.models.user import User
 from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
 from app.services.item_scorer import (
+    REMOVABLE_LAYER_TYPES,
     footwear_weight,
     get_season,
     rain_likely,
@@ -42,6 +43,7 @@ from app.services.weather_service import (
     WeatherServiceError,
 )
 from app.utils.clothing import (
+    LAYER_ROLES,
     can_complete_outfit,
     canonical_item_order,
     deduplicate_by_body_slot,
@@ -50,7 +52,7 @@ from app.utils.clothing import (
     missing_regions,
     remove_legwear,
 )
-from app.utils.garment_vocabulary import render_outfit_prompt
+from app.utils.garment_vocabulary import ITEM_ROLE, render_outfit_prompt
 from app.utils.preference_defaults import (
     DEFAULT_LAYERING_PREFERENCE,
     DEFAULT_TEMPERATURE_SENSITIVITY,
@@ -71,7 +73,8 @@ SINGLE_OUTFIT_FORMAT = (
     '"highlights": ["One short sentence each — vary your reasoning across color, texture, '
     'proportion, occasion, weather, or time of day"], '
     '"styling_tip": "One specific, actionable styling detail — do not suggest rolling up '
-    'sleeves every time, vary your advice"}}'
+    'sleeves every time, vary your advice", '
+    '"if_cooler": item number or null, "if_warmer": item number or null}}'
 )
 
 WINDY_KMH = 25
@@ -109,6 +112,57 @@ def format_weather_details_text(weather: WeatherData) -> str:
     if weather.wind_speed >= WINDY_KMH:
         parts.append(f"windy ({weather.wind_speed:g} km/h)")
     return "- " + ", ".join(parts)
+
+
+def resolve_layer_extras(
+    outfit_data: dict,
+    number_map: dict[int, UUID],
+    item_type_map: dict[UUID, str],
+    item_ids: list[UUID],
+) -> tuple[UUID | None, UUID | None]:
+    """Validate the AI's if_cooler / if_warmer picks; an invalid one is dropped silently.
+
+    `item_type_map` holds only the candidates (ready, not archived, not excluded), so an item
+    outside it is never accepted. if_cooler must be a mid or outer layer that is not already in
+    the outfit; if_warmer must be a removable layer in the outfit, and the outfit must still be
+    complete without it.
+    """
+
+    def pick(key: str) -> UUID | None:
+        value = outfit_data.get(key)
+        if value is None:
+            return None
+        picked = picked_item_ids([value], number_map)
+        if len(picked) != 1 or picked[0] not in item_type_map:
+            logger.debug(f"Dropping {key}={value!r}: not an available item")
+            return None
+        return picked[0]
+
+    in_outfit = set(item_ids)
+    if_cooler = pick("if_cooler")
+    if if_cooler is not None and (
+        if_cooler in in_outfit or ITEM_ROLE.get(item_type_map[if_cooler]) not in LAYER_ROLES
+    ):
+        logger.debug(f"Dropping if_cooler {if_cooler}: in the outfit or not a mid/outer layer")
+        if_cooler = None
+
+    if_warmer = pick("if_warmer")
+    if if_warmer is not None:
+        item_type = item_type_map[if_warmer]
+        remaining = [iid for iid in item_ids if iid != if_warmer]
+        if (
+            if_warmer not in in_outfit
+            or (
+                item_type not in REMOVABLE_LAYER_TYPES
+                and ITEM_ROLE.get(item_type) not in LAYER_ROLES
+            )
+            or not has_wearable_piece(remaining, item_type_map)
+            or missing_regions(remaining, item_type_map)
+        ):
+            logger.debug(f"Dropping if_warmer {if_warmer}: not removable or outfit incomplete")
+            if_warmer = None
+
+    return if_cooler, if_warmer
 
 
 def suggestion_context(
@@ -724,8 +778,12 @@ class RecommendationService:
         occasion: str,
         source: OutfitSource,
         scheduled_date: date | None = None,
+        number_map: dict[int, UUID] | None = None,
     ) -> Outfit:
         valid_ids = canonical_item_order(item_ids, item_type_map)
+        if_cooler, if_warmer = resolve_layer_extras(
+            outfit_data, number_map or {}, item_type_map, valid_ids
+        )
         reasoning = outfit_data.get("headline") or outfit_data.get("reasoning")
         style_notes = outfit_data.get("styling_tip") or outfit_data.get("style_notes")
 
@@ -737,6 +795,8 @@ class RecommendationService:
             reasoning=reasoning,
             style_notes=style_notes,
             ai_raw_response=outfit_data,
+            if_cooler_item_id=if_cooler,
+            if_warmer_item_id=if_warmer,
             source=source,
             status=OutfitStatus.pending,
         )
@@ -930,7 +990,15 @@ class RecommendationService:
                     continue
                 logger.info(f"Using cached suggestion for user {user.id}, occasion: {occasion}")
                 outfit = await self._save_outfit(
-                    cached, item_ids, item_type_map, user, weather, occasion, source, scheduled_date
+                    cached,
+                    item_ids,
+                    item_type_map,
+                    user,
+                    weather,
+                    occasion,
+                    source,
+                    scheduled_date,
+                    number_map,
                 )
                 return [outfit]
 
@@ -1046,6 +1114,7 @@ class RecommendationService:
                     occasion,
                     source,
                     scheduled_date,
+                    number_map,
                 )
                 return [outfit]
 
@@ -1085,7 +1154,15 @@ class RecommendationService:
 
             outfits = [
                 await self._save_outfit(
-                    od, item_ids, item_type_map, user, weather, occasion, source, scheduled_date
+                    od,
+                    item_ids,
+                    item_type_map,
+                    user,
+                    weather,
+                    occasion,
+                    source,
+                    scheduled_date,
+                    number_map,
                 )
                 for od, item_ids in chosen
             ]

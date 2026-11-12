@@ -847,6 +847,8 @@ class TestIncludeItems:
                 o.notes = None
                 o.weather_data = None
                 o.items = []
+                o.if_cooler_item = None
+                o.if_warmer_item = None
                 o.feedback = []
                 o.family_ratings = []
                 o.created_at = datetime.utcnow()

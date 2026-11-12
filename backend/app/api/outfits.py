@@ -122,6 +122,27 @@ class OutfitItemResponse(BaseModel):
         return sign_optional(self.thumbnail_path)
 
 
+class OutfitExtraItemResponse(BaseModel):
+    id: UUID
+    type: str
+    subtype: str | None = None
+    name: str | None = None
+    primary_color: str | None = None
+    colors: list[str] = []
+    image_path: str | None = None
+    thumbnail_path: str | None = None
+
+    @computed_field
+    @property
+    def image_url(self) -> str | None:
+        return sign_optional(self.image_path)
+
+    @computed_field
+    @property
+    def thumbnail_url(self) -> str | None:
+        return sign_optional(self.thumbnail_path)
+
+
 class WoreInsteadItem(BaseModel):
     id: UUID
     type: str
@@ -175,6 +196,8 @@ class OutfitResponse(BaseModel):
     highlights: list[str] | None = None
     weather: dict | None = None
     items: list[OutfitItemResponse]
+    if_cooler: OutfitExtraItemResponse | None = None
+    if_warmer: OutfitExtraItemResponse | None = None
     feedback: FeedbackSummary | None = None
     family_ratings: list[FamilyRatingResponse] | None = None
     family_rating_average: float | None = None
@@ -341,6 +364,21 @@ async def fetch_wore_instead_items_map(
     return wore_instead_map
 
 
+def _extra_item_response(item: ClothingItem | None) -> OutfitExtraItemResponse | None:
+    if item is None:
+        return None
+    return OutfitExtraItemResponse(
+        id=item.id,
+        type=item.type,
+        subtype=item.subtype,
+        name=item.name,
+        primary_color=item.primary_color,
+        colors=item.colors or [],
+        image_path=item.image_path,
+        thumbnail_path=item.thumbnail_path,
+    )
+
+
 def outfit_to_response(
     outfit: Outfit,
     wore_instead_items_map: dict[str, list[WoreInsteadItem]] | None = None,
@@ -363,6 +401,16 @@ def outfit_to_response(
                 position=outfit_item.position,
             )
         )
+
+    # The outfit's items can change after the AI named its extras (studio edits), so an extra
+    # that no longer fits is hidden rather than shown wrongly.
+    outfit_item_ids = {outfit_item.item_id for outfit_item in outfit.items}
+    if_cooler = outfit.if_cooler_item
+    if if_cooler is not None and if_cooler.id in outfit_item_ids:
+        if_cooler = None
+    if_warmer = outfit.if_warmer_item
+    if if_warmer is not None and if_warmer.id not in outfit_item_ids:
+        if_warmer = None
 
     feedback_summary = None
     if outfit.feedback:
@@ -423,6 +471,8 @@ def outfit_to_response(
         highlights=highlights,
         weather=outfit.weather_data,
         items=items,
+        if_cooler=_extra_item_response(if_cooler),
+        if_warmer=_extra_item_response(if_warmer),
         feedback=feedback_summary,
         family_ratings=family_ratings_list,
         family_rating_average=family_rating_average,

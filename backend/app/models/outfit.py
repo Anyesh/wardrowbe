@@ -93,6 +93,19 @@ class Outfit(Base):
 
     name: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
+    # Weather-aware extras the AI may name: a wardrobe layer to add if it gets cooler, and one
+    # of the outfit's own layers to take off if it warms up. Both are validated before saving.
+    if_cooler_item_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clothing_items.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    if_warmer_item_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clothing_items.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     replaces_outfit_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("outfits.id", ondelete="SET NULL"),
@@ -128,6 +141,13 @@ class Outfit(Base):
     )
     source_item: Mapped[Optional["ClothingItem"]] = relationship(
         "ClothingItem", foreign_keys=[source_item_id]
+    )
+    # Loaded with the outfit, so every query that serializes one includes the extras.
+    if_cooler_item: Mapped[Optional["ClothingItem"]] = relationship(
+        "ClothingItem", foreign_keys=[if_cooler_item_id], lazy="selectin"
+    )
+    if_warmer_item: Mapped[Optional["ClothingItem"]] = relationship(
+        "ClothingItem", foreign_keys=[if_warmer_item_id], lazy="selectin"
     )
     replaces: Mapped[Optional["Outfit"]] = relationship(
         "Outfit",
