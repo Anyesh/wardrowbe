@@ -72,6 +72,10 @@ SENSITIVITY_SHIFT = 5
 # when a whole category scores below the TOP_N cut and would otherwise be sliced away.
 ESSENTIAL_ROLES = ("footwear", "bottom")
 MIN_CANDIDATES_PER_ESSENTIAL_ROLE = 4
+# Layers are not essential, but the stylist can only offer a layer for a cold spell (if_cooler)
+# from the numbered prompt list, so a few must survive the cut.
+LAYER_FLOOR_ROLES = ("mid_layer", "outer_layer")
+MIN_CANDIDATES_PER_LAYER_ROLE = 2
 
 TEMP_RANGE_MIN_SWING = 8.0
 REMOVABLE_LAYER_HOT_FLOOR = 0.6
@@ -554,6 +558,25 @@ def _sort_mandatory_first(
     return sorted(scored, key=lambda s: s.item.id not in mandatory_item_ids)
 
 
+def _reorder_footwear_by_weight(
+    scored: list[ScoredItem], weather: WeatherData, preferences: UserPreference | None
+) -> list[ScoredItem]:
+    """Small wardrobes are not scored, but shoes still go lightest-first on a warm day.
+
+    Only the footwear positions are rearranged (stable sort), every other item keeps its place.
+    """
+    light_available = has_light_footwear([s.item for s in scored])
+    slots = [i for i, s in enumerate(scored) if footwear_weight(s.item) is not None]
+    shoes = sorted(
+        (scored[i] for i in slots),
+        key=lambda s: -_footwear_weight_score(s.item, weather, preferences, light_available),
+    )
+    result = list(scored)
+    for i, shoe in zip(slots, shoes, strict=True):
+        result[i] = shoe
+    return result
+
+
 def _role_of(scored_item: ScoredItem) -> str | None:
     return ITEM_ROLE.get((scored_item.item.type or "").lower())
 
@@ -572,8 +595,11 @@ def _ensure_role_diversity(
     tail = scored[top_n:]
 
     promoted: list[ScoredItem] = []
-    for role in ESSENTIAL_ROLES:
-        missing = min_per_role - sum(1 for s in head if _role_of(s) == role)
+    floors = [(role, min_per_role) for role in ESSENTIAL_ROLES] + [
+        (role, MIN_CANDIDATES_PER_LAYER_ROLE) for role in LAYER_FLOOR_ROLES
+    ]
+    for role, floor in floors:
+        missing = floor - sum(1 for s in head if _role_of(s) == role)
         if missing > 0:
             promoted.extend([s for s in tail if _role_of(s) == role][:missing])
 
@@ -623,7 +649,9 @@ def score_items(
     mandatory_item_ids: set[UUID] | None = None,
 ) -> list[ScoredItem]:
     if len(items) < MIN_ITEMS_FOR_SCORING:
-        scored = [ScoredItem(item=item) for item in items]
+        scored = _reorder_footwear_by_weight(
+            [ScoredItem(item=item) for item in items], weather, preferences
+        )
         return _sort_mandatory_first(scored, mandatory_item_ids)
 
     avoid_days = DEFAULT_AVOID_REPEAT_DAYS

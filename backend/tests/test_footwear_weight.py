@@ -183,6 +183,47 @@ class TestFootwearScoring:
         order = [s.item.id for s in result]
         assert order.index(light.id) < order.index(heavy.id)
 
+    def test_small_wardrobe_reorders_only_the_shoes(self):
+        shirt, jeans, hat = _item(type="shirt"), _item(type="jeans"), _item(type="hat")
+        heavy = _shoe(ai_description="Chunky leather sneakers")
+        light = _shoe(material="knit")
+        items = [heavy, shirt, light, jeans, hat]
+        result = score_items(
+            items=items,
+            weather=_feels(22.6, 24),
+            occasion="casual",
+            preferences=None,
+            user_today=date(2026, 3, 8),
+            current_season="spring",
+            learned_prefs=None,
+            good_pairs={},
+            recently_worn_dates={},
+        )
+        assert [s.item.id for s in result] == [i.id for i in (light, shirt, heavy, jeans, hat)]
+
+    def test_small_wardrobe_keeps_order_on_a_mild_day_and_mandatory_stays_first(self):
+        heavy = _shoe(ai_description="Chunky leather sneakers")
+        light = _shoe(material="knit")
+        shirt = _item(type="shirt")
+        kwargs = {
+            "occasion": "casual",
+            "preferences": None,
+            "user_today": date(2026, 3, 8),
+            "current_season": "spring",
+            "learned_prefs": None,
+            "good_pairs": {},
+            "recently_worn_dates": {},
+        }
+        mild = score_items(items=[heavy, shirt, light], weather=_weather(temp=15), **kwargs)
+        assert [s.item.id for s in mild] == [heavy.id, shirt.id, light.id]
+        warm = score_items(
+            items=[heavy, shirt, light],
+            weather=_feels(22.6, 24),
+            mandatory_item_ids={heavy.id},
+            **kwargs,
+        )
+        assert warm[0].item.id == heavy.id
+
 
 class TestFootwearPrompt:
     def test_rule_in_prompt(self):
