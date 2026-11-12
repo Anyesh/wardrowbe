@@ -2,7 +2,8 @@
 
 Two nullable foreign keys to clothing_items. The AI may name one wardrobe layer to add if it
 gets cooler and one of the outfit's own layers to take off if it warms up. Deleting the item
-clears the pointer instead of the outfit. Existing rows stay NULL.
+clears the pointer instead of the outfit (both columns are indexed for that lookup).
+Existing rows stay NULL.
 
 Revision ID: b3d9f1a2c4e6
 Revises: a7d3c9e1f5b2
@@ -34,9 +35,12 @@ def upgrade() -> None:
             ["id"],
             ondelete="SET NULL",
         )
+        # Deleting an item looks up the outfits pointing at it (ON DELETE SET NULL).
+        op.create_index(f"ix_outfits_{column}", "outfits", [column])
 
 
 def downgrade() -> None:
     for column in ("if_warmer_item_id", "if_cooler_item_id"):
+        op.drop_index(f"ix_outfits_{column}", table_name="outfits")
         op.drop_constraint(f"fk_outfits_{column}", "outfits", type_="foreignkey")
         op.drop_column("outfits", column)

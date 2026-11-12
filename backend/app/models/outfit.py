@@ -99,11 +99,13 @@ class Outfit(Base):
         UUID(as_uuid=True),
         ForeignKey("clothing_items.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     if_warmer_item_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("clothing_items.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     replaces_outfit_id: Mapped[uuid.UUID | None] = mapped_column(

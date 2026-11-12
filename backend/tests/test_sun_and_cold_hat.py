@@ -3,7 +3,11 @@ from datetime import datetime
 from app.services.item_scorer import _fit_factors
 from app.services.recommendation_service import (
     RECOMMENDATION_PROMPT,
+    cached_suggestion_fits,
     format_weather_details_text,
+    suggestion_context,
+    uv_bucket,
+    wind_bucket,
 )
 from app.services.weather_service import WeatherData
 from tests.test_item_scorer import _item, _weather
@@ -66,3 +70,41 @@ def test_weather_data_round_trips_uv_max():
     assert (
         WeatherData(**{**weather.to_dict(), "timestamp": datetime(2026, 3, 8)}).uv_index_max == 7.5
     )
+
+
+class TestCacheContextSunAndWind:
+    def _context(self, **weather):
+        from app.models.outfit import TimeOfDay
+
+        return suggestion_context(_weather_with(**weather), TimeOfDay.morning, None, None)
+
+    def _fits(self, cached, now):
+        return cached_suggestion_fits(cached, now, None)
+
+    def test_uv_bucket_change_invalidates_the_cache(self):
+        assert not self._fits(self._context(uv_index=2), self._context(uv_index=7))
+        assert not self._fits(
+            self._context(uv_index=2, uv_index_max=3), self._context(uv_index=2, uv_index_max=9)
+        )
+
+    def test_uv_within_a_bucket_is_reused(self):
+        assert self._fits(self._context(uv_index=3.5), self._context(uv_index=5.5))
+
+    def test_wind_crossing_the_threshold_invalidates_the_cache(self):
+        assert not self._fits(self._context(wind_speed=10), self._context(wind_speed=30))
+        assert not self._fits(self._context(wind_speed=20), self._context(wind_speed=26))
+
+    def test_wind_within_a_bucket_is_reused(self):
+        assert self._fits(self._context(wind_speed=5), self._context(wind_speed=12))
+        assert self._fits(self._context(wind_speed=30), self._context(wind_speed=45))
+
+    def test_old_cache_entries_without_sun_and_wind_are_not_reused(self):
+        old = self._context()
+        del old["uv"], old["wind"]
+        assert not self._fits(old, self._context())
+
+    def test_buckets(self):
+        assert [uv_bucket(v) for v in (None, 0, 2.9, 3, 5.9, 6, 7.9, 8, 11)] == [
+            None, 0, 0, 1, 1, 2, 2, 3, 3,
+        ]  # fmt: skip
+        assert [wind_bucket(v) for v in (0, 14.9, 15, 24.9, 25, 60)] == [0, 0, 1, 1, 2, 2]
