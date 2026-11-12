@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 from sqlalchemy.orm.attributes import set_committed_value
 
 from app.models import UserPreference
@@ -102,3 +103,66 @@ class TestExcludedItemsSkippedByAI:
         )
 
         assert [item.id for item, _ in suggestions] == [shirt.id]
+
+    @pytest.mark.asyncio
+    async def test_excluded_pairs_do_not_crowd_out_eligible_ones(self, db_session, test_user):
+        # Excluded pairs rank higher than every eligible pair and fill the limit * 2 window.
+        source, *rest = await _wardrobe(
+            db_session, test_user.id, ["jacket", "socks", "socks", "socks", "shirt"]
+        )
+        *socks, shirt = rest
+        for other, score in [*((s, 0.9) for s in socks), (shirt, 0.5)]:
+            a, b = sorted([source.id, other.id])
+            db_session.add(
+                ItemPairScore(
+                    user_id=test_user.id, item1_id=a, item2_id=b, compatibility_score=score
+                )
+            )
+        await db_session.commit()
+        await _exclude(db_session, test_user, [s.id for s in socks])
+
+        suggestions = await LearningService(db_session).get_item_pair_suggestions(
+            test_user.id, source.id, limit=1
+        )
+
+        assert [item.id for item, _ in suggestions] == [shirt.id]
+
+
+class TestNullExcludedItems:
+    @pytest.mark.asyncio
+    async def test_toggle_works_when_the_stored_list_is_null(
+        self, client: AsyncClient, db_session, test_user, auth_headers
+    ):
+        (socks,) = await _wardrobe(db_session, test_user.id, ["socks"])
+        db_session.add(UserPreference(user_id=test_user.id))
+        await db_session.commit()
+        await db_session.execute(
+            text("UPDATE user_preferences SET excluded_item_ids = NULL WHERE user_id = :u"),
+            {"u": test_user.id},
+        )
+        await db_session.commit()
+
+        added = await client.post(
+            f"/api/v1/users/me/preferences/excluded-items/{socks.id}", headers=auth_headers
+        )
+        assert added.status_code == 200
+        assert added.json()["excluded_item_ids"] == [str(socks.id)]
+
+    @pytest.mark.asyncio
+    async def test_remove_works_when_the_stored_list_is_null(
+        self, client: AsyncClient, db_session, test_user, auth_headers
+    ):
+        (socks,) = await _wardrobe(db_session, test_user.id, ["socks"])
+        db_session.add(UserPreference(user_id=test_user.id))
+        await db_session.commit()
+        await db_session.execute(
+            text("UPDATE user_preferences SET excluded_item_ids = NULL WHERE user_id = :u"),
+            {"u": test_user.id},
+        )
+        await db_session.commit()
+
+        removed = await client.delete(
+            f"/api/v1/users/me/preferences/excluded-items/{socks.id}", headers=auth_headers
+        )
+        assert removed.status_code == 200
+        assert removed.json()["excluded_item_ids"] == []

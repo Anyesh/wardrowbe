@@ -60,8 +60,12 @@ export function useSetItemExcluded() {
         ? api.post<{ excluded_item_ids: string[] }>(path)
         : api.delete<{ excluded_item_ids: string[] }>(path);
     },
-    onSuccess: () => {
+    // Settled, not success: if the response is lost after the server saved the change, the
+    // switch must still reconcile with the stored state. Learned item pairs are recomputed
+    // because they may list the item that was just excluded.
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.preferences });
+      queryClient.invalidateQueries({ queryKey: queryKeys.learning.all });
     },
   });
 }

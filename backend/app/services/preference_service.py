@@ -125,8 +125,10 @@ class PreferenceService:
 
     async def add_excluded_item(self, user_id: uuid.UUID, item_id: uuid.UUID) -> UserPreference:
         preferences = await self.get_or_create_preferences(user_id)
-        if item_id not in preferences.excluded_item_ids:
-            preferences.excluded_item_ids = [*preferences.excluded_item_ids, item_id]
+        # A row created before the column had a default can hold NULL instead of an empty list.
+        current = preferences.excluded_item_ids or []
+        if item_id not in current:
+            preferences.excluded_item_ids = [*current, item_id]
             flag_modified(preferences, "excluded_item_ids")
             await self.db.commit()
             await self.db.refresh(preferences)
@@ -134,10 +136,11 @@ class PreferenceService:
 
     async def remove_excluded_item(self, user_id: uuid.UUID, item_id: uuid.UUID) -> UserPreference:
         preferences = await self.get_or_create_preferences(user_id)
-        if item_id in preferences.excluded_item_ids:
-            preferences.excluded_item_ids = [
-                i for i in preferences.excluded_item_ids if i != item_id
-            ]
+        current = preferences.excluded_item_ids or []
+        if preferences.excluded_item_ids is None:
+            preferences.excluded_item_ids = []
+        if item_id in current:
+            preferences.excluded_item_ids = [i for i in current if i != item_id]
             flag_modified(preferences, "excluded_item_ids")
             await self.db.commit()
             await self.db.refresh(preferences)
