@@ -183,10 +183,13 @@
       "rateLimited": "Trop de requêtes. Attendez une minute et réessayez."
     },
     "imageAlt": "Cette tenue sur vous",
+    "keptPrevious": "Voici la dernière image réussie.",
     "needsPhoto": "Ajoutez une photo en pied de vous pour voir cette tenue sur vous.",
     "regenerate": "Régénérer",
+    "retry": "Réessayer",
     "seeIt": "Voir sur moi",
     "stale": "La tenue ou votre photo ont changé depuis la création de cette image.",
+    "takingLonger": "Cela prend plus de temps que prévu.",
     "title": "Essayer"
   },
   "viewCalendar": "Calendrier",

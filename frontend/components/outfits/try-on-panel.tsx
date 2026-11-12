@@ -13,6 +13,7 @@ import {
   useDeleteTryOn,
   useGenerateTryOn,
   useOutfitTryOn,
+  useTakingLonger,
   useTryOnPhoto,
 } from '@/lib/hooks/use-try-on';
 import { ApiError } from '@/lib/api';
@@ -41,6 +42,7 @@ function TryOnPanelContent({ outfitId }: TryOnPanelProps) {
   const tryOn = useOutfitTryOn(outfitId);
   const generate = useGenerateTryOn();
   const remove = useDeleteTryOn();
+  const takingLonger = useTakingLonger(tryOn.data);
 
   const errorMessage = (code: string | null | undefined) =>
     t((ERROR_KEYS[code ?? ''] ?? 'errors.generic') as 'errors.generic');
@@ -97,15 +99,31 @@ function TryOnPanelContent({ outfitId }: TryOnPanelProps) {
             </Button>
           </div>
         ) : pending ? (
-          <div
-            role="status"
-            className="flex items-center gap-2 text-sm text-muted-foreground"
-          >
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            {t('drawing')}
-          </div>
-        ) : current?.status === 'ready' && current.image_url ? (
           <div className="space-y-3">
+            <div
+              role="status"
+              className="flex items-center gap-2 text-sm text-muted-foreground"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              {t('drawing')}
+            </div>
+            {takingLonger && !generate.isPending && (
+              <p className="text-sm text-muted-foreground">{t('takingLonger')}</p>
+            )}
+            {current?.retryable && !generate.isPending && (
+              <Button variant="outline" onClick={() => start(true)}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                {t('retry')}
+              </Button>
+            )}
+          </div>
+        ) : (current?.status === 'ready' || current?.status === 'failed') && current.image_url ? (
+          <div className="space-y-3">
+            {current.status === 'failed' && (
+              <p role="alert" className="text-sm text-destructive">
+                {errorMessage(current.error_code)} {t('keptPrevious')}
+              </p>
+            )}
             <div className="relative mx-auto aspect-[3/4] w-full max-w-xs overflow-hidden rounded-lg border bg-muted">
               <Image
                 src={(current.medium_url || current.image_url)!}

@@ -183,10 +183,13 @@
       "rateLimited": "请求过于频繁，请等待一分钟后重试。"
     },
     "imageAlt": "你穿这套穿搭的效果",
+    "keptPrevious": "这是上一次成功生成的图片。",
     "needsPhoto": "添加一张你的全身照，即可看到这套穿搭穿在你身上的效果。",
     "regenerate": "重新生成",
+    "retry": "重试",
     "seeIt": "看看上身效果",
     "stale": "生成这张图之后，穿搭或你的照片已发生变化。",
+    "takingLonger": "耗时比预期更长。",
     "title": "试穿"
   },
   "viewCalendar": "日历",

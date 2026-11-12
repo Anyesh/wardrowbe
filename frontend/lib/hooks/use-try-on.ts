@@ -1,11 +1,12 @@
 'use client';
 
+import { useEffect, useReducer } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { api, API_BASE_PATH, getAccessToken, ApiError } from '@/lib/api';
 import { applySessionToken } from '@/lib/hooks/use-session-token';
 import { queryKeys } from '@/lib/hooks/query-keys';
-import { useTryOnEnabled } from '@/lib/hooks/use-features';
+import { useFeatures, useTryOnEnabled } from '@/lib/hooks/use-features';
 
 export interface TryOnPhoto {
   image_url: string;
@@ -23,11 +24,17 @@ export interface TryOn {
   error_code: string | null;
   created_at: string;
   stale: boolean;
+  // Pending for so long that the server would accept a new request: the job is lost.
+  retryable?: boolean;
 }
 
 const POLL_INTERVAL_MS = 2000;
-// The server treats a pending try-on older than 15 minutes as lost; the page stops waiting sooner.
+// After this long a pending try-on is "taking longer than expected": the page says so and polls
+// more slowly. The server treats one older than 15 minutes as lost and then reports it as
+// retryable, so polling goes on until just past that, and then stops (focusing the tab refetches).
 const POLL_LIMIT_MS = 4 * 60 * 1000;
+const POLL_SLOW_INTERVAL_MS = 15 * 1000;
+const POLL_GIVE_UP_MS = 20 * 60 * 1000;
 
 export function tryOnErrorCode(error: unknown): string | null {
   if (!(error instanceof ApiError)) return null;
@@ -48,12 +55,34 @@ async function nullWhenMissing<T>(request: Promise<T>, code: string): Promise<T 
 
 export function pollInterval(data: TryOn | null | undefined, now = Date.now()): number | false {
   if (data?.status !== 'pending') return false;
-  return now - new Date(data.created_at).getTime() < POLL_LIMIT_MS ? POLL_INTERVAL_MS : false;
+  const age = now - new Date(data.created_at).getTime();
+  if (age < POLL_LIMIT_MS) return POLL_INTERVAL_MS;
+  return age < POLL_GIVE_UP_MS ? POLL_SLOW_INTERVAL_MS : false;
 }
 
-export function useTryOnPhoto() {
+export function isTakingLonger(data: TryOn | null | undefined, now = Date.now()): boolean {
+  return data?.status === 'pending' && now - new Date(data.created_at).getTime() >= POLL_LIMIT_MS;
+}
+
+// Re-renders when a pending try-on crosses the "taking longer" line, even if nothing else changes.
+export function useTakingLonger(data: TryOn | null | undefined): boolean {
+  const [, tick] = useReducer((n: number) => n + 1, 0);
+  const createdAt = data?.status === 'pending' ? new Date(data.created_at).getTime() : null;
+  useEffect(() => {
+    if (createdAt === null) return;
+    const remaining = createdAt + POLL_LIMIT_MS - Date.now();
+    if (remaining <= 0) return;
+    const id = setTimeout(tick, remaining);
+    return () => clearTimeout(id);
+  }, [createdAt]);
+  return isTakingLonger(data);
+}
+
+// whenDisabled: also read the photo with try-on switched off, so the settings page can still
+// offer to remove it (the server allows reading and deleting it then).
+export function useTryOnPhoto({ whenDisabled = false }: { whenDisabled?: boolean } = {}) {
   const { data: session, status } = useSession();
-  const enabled = useTryOnEnabled();
+  const enabled = useTryOnEnabled() || whenDisabled;
   applySessionToken(session);
 
   return useQuery({

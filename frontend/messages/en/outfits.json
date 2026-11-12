@@ -183,10 +183,13 @@
       "rateLimited": "Too many requests. Wait a minute and try again."
     },
     "imageAlt": "This outfit on you",
+    "keptPrevious": "This is the last image that worked.",
     "needsPhoto": "Add a full-length photo of yourself to see this outfit on you.",
     "regenerate": "Regenerate",
+    "retry": "Retry",
     "seeIt": "See it on me",
     "stale": "The outfit or your photo changed since this was drawn.",
+    "takingLonger": "This is taking longer than expected.",
     "title": "Try it on"
   },
   "viewCalendar": "Calendar",

@@ -183,10 +183,13 @@
       "rateLimited": "요청이 너무 많습니다. 1분 후에 다시 시도해 주세요."
     },
     "imageAlt": "이 코디를 입은 내 모습",
+    "keptPrevious": "마지막으로 성공한 이미지입니다.",
     "needsPhoto": "이 코디를 입어 보려면 전신 사진을 추가하세요.",
     "regenerate": "다시 생성",
+    "retry": "다시 시도",
     "seeIt": "내게 입혀 보기",
     "stale": "이 이미지를 생성한 뒤 코디 또는 사진이 변경되었습니다.",
+    "takingLonger": "예상보다 오래 걸리고 있습니다.",
     "title": "가상 착용"
   },
   "viewCalendar": "캘린더",

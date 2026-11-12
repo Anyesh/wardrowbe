@@ -7,7 +7,7 @@ import { TryOnPhotoCard } from '@/components/settings/try-on-photo-card'
 import { ApiError, api } from '@/lib/api'
 import { queryKeys } from '@/lib/hooks/query-keys'
 import { useTryOnEnabled } from '@/lib/hooks/use-features'
-import { pollInterval, tryOnErrorCode, type TryOn } from '@/lib/hooks/use-try-on'
+import { isTakingLonger, pollInterval, tryOnErrorCode, type TryOn } from '@/lib/hooks/use-try-on'
 
 vi.mock('@/lib/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/api')>()),
@@ -75,12 +75,23 @@ describe('try-on helpers', () => {
     stale: false,
   })
 
-  it('polls only while pending, and stops after four minutes', () => {
-    const now = Date.parse('2026-11-12T10:10:00Z')
-    expect(pollInterval(tryOn('pending', '2026-11-12T10:09:00Z'), now)).toBe(2000)
+  it('polls only while pending: fast, then slowly past four minutes, then gives up', () => {
+    const now = Date.parse('2026-11-12T10:30:00Z')
+    expect(pollInterval(tryOn('pending', '2026-11-12T10:29:00Z'), now)).toBe(2000)
+    expect(pollInterval(tryOn('pending', '2026-11-12T10:25:00Z'), now)).toBe(15000)
+    // still polled until the server reports it as retryable (15 minutes), then a bit longer
+    expect(pollInterval(tryOn('pending', '2026-11-12T10:14:00Z'), now)).toBe(15000)
     expect(pollInterval(tryOn('pending', '2026-11-12T10:05:00Z'), now)).toBe(false)
-    expect(pollInterval(tryOn('ready', '2026-11-12T10:09:00Z'), now)).toBe(false)
+    expect(pollInterval(tryOn('ready', '2026-11-12T10:29:00Z'), now)).toBe(false)
     expect(pollInterval(null, now)).toBe(false)
+  })
+
+  it('says a pending try-on is taking longer after four minutes', () => {
+    const now = Date.parse('2026-11-12T10:10:00Z')
+    expect(isTakingLonger(tryOn('pending', '2026-11-12T10:09:00Z'), now)).toBe(false)
+    expect(isTakingLonger(tryOn('pending', '2026-11-12T10:05:00Z'), now)).toBe(true)
+    expect(isTakingLonger(tryOn('ready', '2026-11-12T10:00:00Z'), now)).toBe(false)
+    expect(isTakingLonger(null, now)).toBe(false)
   })
 
   it('reads the error code out of an ApiError', () => {
@@ -178,6 +189,52 @@ describe('TryOnPanel', () => {
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/outfits/o1/try-on'))
   })
 
+  it('says it is taking longer and offers Retry once the server calls it retryable', async () => {
+    const old = new Date(Date.now() - 6 * 60 * 1000).toISOString()
+    mockApi(PHOTO, { status: 'pending', created_at: old, stale: false, retryable: false })
+    const { unmount } = render(<TryOnPanel outfitId="o1" />, { wrapper: wrapperFor(ON) })
+    expect(await screen.findByText('takingLonger')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'retry' })).not.toBeInTheDocument()
+    unmount()
+
+    const lost = new Date(Date.now() - 16 * 60 * 1000).toISOString()
+    mockApi(PHOTO, { status: 'pending', created_at: lost, stale: false, retryable: true })
+    vi.mocked(api.post).mockResolvedValue({ status: 'pending', created_at: new Date().toISOString() })
+    render(<TryOnPanel outfitId="o1" />, { wrapper: wrapperFor(ON) })
+    fireEvent.click(await screen.findByRole('button', { name: 'retry' }))
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith('/outfits/o1/try-on?regenerate=true')
+    )
+  })
+
+  it('does not nag about a fresh pending try-on', async () => {
+    mockApi(PHOTO, { status: 'pending', created_at: new Date().toISOString(), stale: false })
+    render(<TryOnPanel outfitId="o1" />, { wrapper: wrapperFor(ON) })
+    await screen.findByRole('status')
+    expect(screen.queryByText('takingLonger')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'retry' })).not.toBeInTheDocument()
+  })
+
+  it('keeps showing the previous image next to the error when a regeneration failed', async () => {
+    mockApi(PHOTO, {
+      status: 'failed',
+      error_code: 'TRY_ON_FAILED',
+      image_url: '/t.jpg',
+      medium_url: '/t-m.jpg',
+      created_at: new Date().toISOString(),
+      stale: true,
+    })
+    vi.mocked(api.post).mockResolvedValue({ status: 'pending', created_at: new Date().toISOString() })
+    render(<TryOnPanel outfitId="o1" />, { wrapper: wrapperFor(ON) })
+    expect(await screen.findByAltText('imageAlt')).toHaveAttribute('src', '/t-m.jpg')
+    expect(screen.getByRole('alert')).toHaveTextContent('errors.generic')
+    expect(screen.getByRole('alert')).toHaveTextContent('keptPrevious')
+    fireEvent.click(screen.getByRole('button', { name: 'regenerate' }))
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith('/outfits/o1/try-on?regenerate=true')
+    )
+  })
+
   it('shows the translated reason when the model returned no image', async () => {
     mockApi(PHOTO, {
       status: 'failed',
@@ -193,11 +250,44 @@ describe('TryOnPanel', () => {
 })
 
 describe('TryOnPhotoCard', () => {
-  it('is hidden when try-on is disabled', () => {
-    const { container } = render(<TryOnPhotoCard />, {
-      wrapper: wrapperFor({ ...BASE, try_on_enabled: false }),
-    })
+  const OFF = { ...BASE, try_on_enabled: false }
+
+  it('is hidden when try-on is disabled and there is no saved photo', async () => {
+    mockApi(null, null)
+    const { container } = render(<TryOnPhotoCard />, { wrapper: wrapperFor(OFF) })
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/users/me/try-on-photo'))
     expect(container).toBeEmptyDOMElement()
+  })
+
+  it('still lets people remove a saved photo when try-on is disabled, and nothing else', async () => {
+    mockApi(PHOTO, null)
+    vi.mocked(api.delete).mockResolvedValue(undefined)
+    render(<TryOnPhotoCard />, { wrapper: wrapperFor(OFF) })
+    expect(await screen.findByText('disabledNotice')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'upload' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'replace' })).not.toBeInTheDocument()
+    expect(screen.queryByText('privacy')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'remove' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'removeConfirm.confirm' }))
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/users/me/try-on-photo'))
+  })
+
+  it('does not read the photo while the features call is still loading', () => {
+    vi.mocked(api.get).mockReturnValue(new Promise(() => {}))
+    const { container } = render(<TryOnPhotoCard />, { wrapper: wrapperFor() })
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('cannot choose or replace a photo before the photo query has resolved', async () => {
+    vi.mocked(api.get).mockReturnValue(new Promise(() => {}))
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const { getByTestId } = render(<TryOnPhotoCard />, { wrapper: wrapperFor(ON) })
+    expect(screen.getByRole('button', { name: 'upload' })).toBeDisabled()
+    // Even a file that arrives anyway (drop, extension) must not skip the confirmation.
+    const file = new File(['x'], 'me.jpg', { type: 'image/jpeg' })
+    fireEvent.change(getByTestId('try-on-photo-input'), { target: { files: [file] } })
+    expect(fetchSpy).not.toHaveBeenCalled()
+    fetchSpy.mockRestore()
   })
 
   it('shows the upload action and the privacy line when enabled', async () => {

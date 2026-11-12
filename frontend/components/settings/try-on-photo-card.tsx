@@ -18,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
-import { useTryOnEnabled } from '@/lib/hooks/use-features';
+import { useFeatures, useTryOnEnabled } from '@/lib/hooks/use-features';
 import {
   useDeleteTryOnPhoto,
   useTryOnPhoto,
@@ -29,14 +29,17 @@ import {
 // card saves each change as it happens.
 export function TryOnPhotoCard() {
   const enabled = useTryOnEnabled();
-  if (!enabled) return null;
-  return <TryOnPhotoCardContent />;
+  const features = useFeatures();
+  if (enabled) return <TryOnPhotoCardContent />;
+  // Switched off by the operator: whoever still has a saved photo can see and remove it.
+  if (features.data) return <TryOnPhotoCardContent featureOff />;
+  return null;
 }
 
-function TryOnPhotoCardContent() {
+function TryOnPhotoCardContent({ featureOff = false }: { featureOff?: boolean }) {
   const t = useTranslations('settings.tryOnPhoto');
   const tc = useTranslations('common');
-  const photo = useTryOnPhoto();
+  const photo = useTryOnPhoto({ whenDisabled: featureOff });
   const upload = useUploadTryOnPhoto();
   const remove = useDeleteTryOnPhoto();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +54,7 @@ function TryOnPhotoCardContent() {
 
   const onFileChosen = (file: File | undefined) => {
     if (inputRef.current) inputRef.current.value = '';
-    if (!file) return;
+    if (!file || !photo.isSuccess) return;
     // Replacing deletes the try-ons drawn from the old photo, so it is confirmed.
     if (photo.data) setPendingFile(file);
     else save(file);
@@ -65,6 +68,9 @@ function TryOnPhotoCardContent() {
 
   const busy = upload.isPending || remove.isPending;
 
+  // Nothing to offer once try-on is off and there is no photo to remove.
+  if (featureOff && !photo.data) return null;
+
   return (
     <Card id="try-on-photo">
       <CardHeader>
@@ -72,11 +78,15 @@ function TryOnPhotoCardContent() {
           <Shirt className="h-5 w-5" />
           {t('title')}
         </CardTitle>
-        <CardDescription>{t('description')}</CardDescription>
+        <CardDescription>{featureOff ? t('disabledNotice') : t('description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">{t('guidance')}</p>
-        <p className="text-sm text-muted-foreground">{t('privacy')}</p>
+        {!featureOff && (
+          <>
+            <p className="text-sm text-muted-foreground">{t('guidance')}</p>
+            <p className="text-sm text-muted-foreground">{t('privacy')}</p>
+          </>
+        )}
 
         {photo.isError && (
           <p role="alert" className="text-sm text-destructive">
@@ -107,14 +117,21 @@ function TryOnPhotoCardContent() {
         />
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => inputRef.current?.click()} disabled={busy}>
-            {upload.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
-            {photo.data ? t('replace') : t('upload')}
-          </Button>
+          {!featureOff && (
+            // Until the photo is known, a replacement could skip its confirmation.
+            <Button
+              variant="outline"
+              onClick={() => inputRef.current?.click()}
+              disabled={busy || !photo.isSuccess}
+            >
+              {upload.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4 mr-2" />
+              )}
+              {photo.data ? t('replace') : t('upload')}
+            </Button>
+          )}
           {photo.data && (
             <Button variant="ghost" onClick={() => setConfirmRemove(true)} disabled={busy}>
               <Trash2 className="h-4 w-4 mr-2" />

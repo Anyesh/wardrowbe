@@ -146,6 +146,7 @@
   "title": "Paramètres",
   "tryOnPhoto": {
     "description": "Une photo de vous, utilisée pour afficher les tenues sur vous.",
+    "disabledNotice": "L'essayage de tenues est désactivé sur ce serveur. Vous pouvez toujours supprimer votre photo enregistrée et les images créées à partir d'elle.",
     "guidance": "Utilisez une seule photo en pied, de face, avec des vêtements ajustés et une lumière uniforme.",
     "loadError": "Impossible de charger votre photo",
     "photoAlt": "Votre photo d'essayage",

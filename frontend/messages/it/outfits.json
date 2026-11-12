@@ -183,10 +183,13 @@
       "rateLimited": "Troppe richieste. Aspetta un minuto e riprova."
     },
     "imageAlt": "Questo outfit su di te",
+    "keptPrevious": "Questa è l'ultima immagine riuscita.",
     "needsPhoto": "Aggiungi una tua foto a figura intera per vedere questo outfit addosso a te.",
     "regenerate": "Rigenera",
+    "retry": "Riprova",
     "seeIt": "Vedilo su di me",
     "stale": "L'outfit o la tua foto sono cambiati da quando è stata creata questa immagine.",
+    "takingLonger": "Sta richiedendo più tempo del previsto.",
     "title": "Provalo addosso"
   },
   "viewCalendar": "Calendario",

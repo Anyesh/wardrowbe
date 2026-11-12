@@ -146,6 +146,7 @@
   "title": "Impostazioni",
   "tryOnPhoto": {
     "description": "Una tua foto, usata per mostrarti gli outfit addosso.",
+    "disabledNotice": "La prova dei look è disattivata su questo server. Puoi comunque rimuovere la tua foto salvata e le immagini create da essa.",
     "guidance": "Usa una sola foto a figura intera, frontale, con abiti aderenti e luce uniforme.",
     "loadError": "Impossibile caricare la tua foto",
     "photoAlt": "La tua foto per la prova",
