@@ -72,6 +72,29 @@ class TestUserUpdate:
             assert data["location_lon"] == pytest.approx(lon, rel=1e-4)
 
     @pytest.mark.asyncio
+    async def test_update_location_from_ios_app_with_device_country_code(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        # Exact body the iOS app sends from "Detect My Location"
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={
+                "location_name": "Paris, France",
+                "location_lat": 48.85661400000001,
+                "location_lon": 2.3522219000000177,
+                "device_country_code": "FR",
+                "timezone": "Europe/Paris",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["location_name"] == "Paris, France"
+        assert data["location_lat"] == pytest.approx(48.8566, rel=1e-4)
+        assert data["timezone"] == "Europe/Paris"
+        assert "device_country_code" not in data
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "body",
         [
