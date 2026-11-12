@@ -178,6 +178,11 @@
     },
     "brand": "브랜드",
     "name": "이름",
+    "neverSuggest": {
+      "error": "설정을 업데이트하지 못했습니다",
+      "helper": "옷장에는 그대로 두되 AI 코디 추천이나 매칭에는 사용하지 않습니다. 속옷, 양말, 낡은 옷에 유용합니다.",
+      "label": "코디에 추천하지 않기"
+    },
     "notes": "메모",
     "placeholders": {
       "additionalNotes": "추가 메모...",
@@ -262,6 +267,7 @@
     "openInWardrobe": "옷장에서 열기"
   },
   "needsWash": "세탁 필요",
+  "neverSuggested": "추천 제외",
   "pageSize": "페이지당 {count}개",
   "search": "아이템 검색...",
   "sort": {

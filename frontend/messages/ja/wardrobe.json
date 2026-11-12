@@ -178,6 +178,11 @@
     },
     "brand": "ブランド",
     "name": "名前",
+    "neverSuggest": {
+      "error": "この設定を更新できませんでした",
+      "helper": "クローゼットには残しますが、AIのコーディネート提案や組み合わせには使われません。下着、靴下、着古したアイテムに便利です。",
+      "label": "コーディネートに提案しない"
+    },
     "notes": "メモ",
     "placeholders": {
       "additionalNotes": "メモ...",
@@ -262,6 +267,7 @@
     "openInWardrobe": "ワードローブで開く"
   },
   "needsWash": "洗濯が必要",
+  "neverSuggested": "提案しない",
   "pageSize": "{count} 件/ページ",
   "search": "アイテムを検索...",
   "sort": {

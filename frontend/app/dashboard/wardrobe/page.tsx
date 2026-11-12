@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Plus, Search, Heart, Grid3X3, Loader2, AlertCircle, RefreshCw, Droplets, ArrowUpDown, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Search, Heart, Grid3X3, Loader2, AlertCircle, RefreshCw, Droplets, EyeOff, ArrowUpDown, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,6 +30,7 @@ import { ItemDetailDialog } from '@/components/item-detail-dialog';
 import { BulkActionToolbar, BulkSelection } from '@/components/bulk-action-toolbar';
 import { useItems, useItem, useItemTypes, useReanalyzeItem, useCancelAnalysis, useBulkDeleteItems, useBulkReanalyzeItems, useBulkCancelAnalysis, useBulkRotateItems, useBulkRemoveBackgroundItems, useRemoveBackground, useTaggingProgress, BulkItemFilters, BulkOperationParams, tagProcessingLabel, formatAnalyzingElapsed, deriveQueueSummary } from '@/lib/hooks/use-items';
 import { useUserTimezone } from '@/lib/hooks/use-user';
+import { usePreferences } from '@/lib/hooks/use-preferences';
 import { colorSwatch, normalizeColor } from '@/lib/colors';
 import { Item } from '@/lib/types';
 import { useClothingTypes, useClothingColors, useSubtypeLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
@@ -67,6 +68,7 @@ function ItemCard({
   onDismissError,
   errorDismissed,
   userTimezone,
+  neverSuggested,
 }: {
   item: Item;
   selected: boolean;
@@ -78,6 +80,7 @@ function ItemCard({
   onDismissError?: (id: string) => void;
   errorDismissed?: boolean;
   userTimezone: string;
+  neverSuggested?: boolean;
 }) {
   const typeLabel = useTypeLabel();
   const t = useTranslations('wardrobe');
@@ -135,6 +138,13 @@ function ItemCard({
         {item.favorite && (
           <div className="absolute top-2 right-2 z-10">
             <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+          </div>
+        )}
+        {neverSuggested && (
+          <div className="absolute bottom-2 left-2 z-10">
+            <div className="bg-background/80 text-muted-foreground backdrop-blur-sm rounded-full p-1" title={t('neverSuggested')}>
+              <EyeOff className="h-3.5 w-3.5" />
+            </div>
           </div>
         )}
         {item.needs_wash && (
@@ -327,6 +337,8 @@ export default function WardrobePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const userTimezone = useUserTimezone();
+  const { data: preferences } = usePreferences();
+  const neverSuggestedIds = new Set(preferences?.excluded_item_ids ?? []);
   const t = useTranslations('wardrobe');
   const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();
@@ -925,6 +937,7 @@ export default function WardrobePage() {
                 onDismissError={handleDismissError}
                 errorDismissed={dismissedErrors.has(`${item.id}:${item.updated_at}`)}
                 userTimezone={userTimezone}
+                neverSuggested={neverSuggestedIds.has(item.id)}
               />
             );
           })}
