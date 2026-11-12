@@ -178,6 +178,11 @@
     },
     "brand": "Marque",
     "name": "Nom",
+    "neverSuggest": {
+      "error": "Impossible de mettre à jour ce réglage",
+      "helper": "Reste dans votre garde-robe, mais n'est jamais utilisé dans les suggestions de tenues ou les associations de l'IA. Utile pour les sous-vêtements, les chaussettes ou les pièces usées.",
+      "label": "Ne pas suggérer dans les tenues"
+    },
     "notes": "Notes",
     "placeholders": {
       "additionalNotes": "Notes supplémentaires...",
@@ -262,6 +267,7 @@
     "openInWardrobe": "Ouvrir dans la garde-robe"
   },
   "needsWash": "À laver",
+  "neverSuggested": "Jamais suggéré",
   "pageSize": "{count} par page",
   "search": "Rechercher des articles...",
   "sort": {

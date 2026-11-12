@@ -178,6 +178,11 @@
     },
     "brand": "Marca",
     "name": "Nome",
+    "neverSuggest": {
+      "error": "Impossibile aggiornare questa impostazione",
+      "helper": "Resta nel tuo guardaroba, ma non verrà mai usato nei suggerimenti di outfit o negli abbinamenti dell'AI. Utile per intimo, calze o capi consumati.",
+      "label": "Non suggerire negli outfit"
+    },
     "notes": "Note",
     "placeholders": {
       "additionalNotes": "Note aggiuntive...",
@@ -262,6 +267,7 @@
     "openInWardrobe": "Apri nel guardaroba"
   },
   "needsWash": "Da lavare",
+  "neverSuggested": "Mai suggerito",
   "pageSize": "{count} per pagina",
   "search": "Cerca capi...",
   "sort": {

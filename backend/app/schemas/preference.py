@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 from app.schemas.color import ColorList
@@ -155,5 +157,9 @@ class PreferenceUpdate(BaseModel):
 
 
 class PreferenceResponse(PreferenceBase):
+    excluded_item_ids: list[UUID] = Field(
+        default_factory=list, description="Items that must never be suggested in outfits"
+    )
+
     class Config:
         from_attributes = True

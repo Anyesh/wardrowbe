@@ -178,6 +178,11 @@
     },
     "brand": "品牌",
     "name": "名称",
+    "neverSuggest": {
+      "error": "无法更新此设置",
+      "helper": "保留在衣橱中，但不会用于 AI 搭配推荐或单品搭配。适用于内衣、袜子或穿旧的衣物。",
+      "label": "不在搭配中推荐"
+    },
     "notes": "备注",
     "placeholders": {
       "additionalNotes": "补充备注...",
@@ -262,6 +267,7 @@
     "openInWardrobe": "在衣橱中打开"
   },
   "needsWash": "需要清洗",
+  "neverSuggested": "不推荐",
   "pageSize": "每页 {count} 件",
   "search": "搜索单品...",
   "sort": {

@@ -30,6 +30,7 @@ import {
   Plus,
   Star,
   ImageIcon,
+  EyeOff,
 } from 'lucide-react';
 import {
   Dialog,
@@ -52,6 +53,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -64,6 +66,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { toast } from 'sonner';
 import { SplitPhotoDialog } from '@/components/split-photo-dialog';
 import { ApiError } from '@/lib/api';
+import { usePreferences, useSetItemExcluded } from '@/lib/hooks/use-preferences';
 import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
 import {
@@ -149,6 +152,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const tw = useTranslations('wardrobe');
   const locale = useLocale();
   const router = useRouter();
+  const { data: preferences } = usePreferences();
+  const setItemExcluded = useSetItemExcluded();
+  const neverSuggested = !!item && (preferences?.excluded_item_ids ?? []).includes(item.id);
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
   const subtypeLabel = useSubtypeLabel();
@@ -290,6 +296,15 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
       toast.error(t('actions.deleteError'), {
         description: t('actions.deleteErrorDescription'),
       });
+    }
+  };
+
+  const handleToggleNeverSuggest = async (excluded: boolean) => {
+    try {
+      await setItemExcluded.mutateAsync({ itemId: item.id, excluded });
+    } catch (error) {
+      console.error('Failed to update never-suggest flag:', error);
+      if (!isUnauthorized(error)) toast.error(t('neverSuggest.error'));
     }
   };
 
@@ -898,6 +913,23 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                         </span>
                       </div>
                     )}
+                  </div>
+
+                  {/* Never suggest */}
+                  <div className="flex items-start justify-between gap-4 pt-2 border-t">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="never-suggest" className="flex items-center gap-2 text-sm font-medium">
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        {t('neverSuggest.label')}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">{t('neverSuggest.helper')}</p>
+                    </div>
+                    <Switch
+                      id="never-suggest"
+                      checked={neverSuggested}
+                      disabled={setItemExcluded.isPending}
+                      onCheckedChange={handleToggleNeverSuggest}
+                    />
                   </div>
 
                   {/* Wash Status */}

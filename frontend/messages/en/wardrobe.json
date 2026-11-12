@@ -178,6 +178,11 @@
     },
     "brand": "Brand",
     "name": "Name",
+    "neverSuggest": {
+      "error": "Couldn't update this setting",
+      "helper": "Keep it in your wardrobe, but never use it in AI outfit suggestions or pairings. Useful for underwear, socks or worn-out pieces.",
+      "label": "Don't suggest in outfits"
+    },
     "notes": "Notes",
     "placeholders": {
       "additionalNotes": "Additional notes...",
@@ -262,6 +267,7 @@
     "openInWardrobe": "Open in Wardrobe"
   },
   "needsWash": "Needs wash",
+  "neverSuggested": "Never suggested",
   "pageSize": "{count} per page",
   "search": "Search items...",
   "sort": {

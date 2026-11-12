@@ -695,16 +695,27 @@ class LearningService:
 
         Returns list of (item, compatibility_score) tuples.
         """
+        # Items the user flagged "never suggest" must not be offered as pairings. They are
+        # filtered in the query, before the limit, so they cannot crowd out eligible pairs.
+        excluded_result = await self.db.execute(
+            select(UserPreference.excluded_item_ids).where(UserPreference.user_id == user_id)
+        )
+        excluded_ids = set(excluded_result.scalar_one_or_none() or [])
+        excluded_ids.discard(item_id)
+
+        conditions = [
+            ItemPairScore.user_id == user_id,
+            ItemPairScore.compatibility_score > 0,
+            (ItemPairScore.item1_id == item_id) | (ItemPairScore.item2_id == item_id),
+        ]
+        if excluded_ids:
+            conditions.append(ItemPairScore.item1_id.notin_(excluded_ids))
+            conditions.append(ItemPairScore.item2_id.notin_(excluded_ids))
+
         # Find pairs involving this item with positive scores
         result = await self.db.execute(
             select(ItemPairScore)
-            .where(
-                and_(
-                    ItemPairScore.user_id == user_id,
-                    ItemPairScore.compatibility_score > 0,
-                    (ItemPairScore.item1_id == item_id) | (ItemPairScore.item2_id == item_id),
-                )
-            )
+            .where(and_(*conditions))
             .order_by(ItemPairScore.compatibility_score.desc())
             .limit(limit * 2)  # Fetch extra in case some items are unavailable
         )

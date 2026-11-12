@@ -178,6 +178,11 @@
     },
     "brand": "Marke",
     "name": "Name",
+    "neverSuggest": {
+      "error": "Einstellung konnte nicht aktualisiert werden",
+      "helper": "Bleibt in deiner Garderobe, wird aber nie für KI-Outfitvorschläge oder Kombinationen verwendet. Praktisch für Unterwäsche, Socken oder abgetragene Teile.",
+      "label": "Nicht in Outfits vorschlagen"
+    },
     "notes": "Notizen",
     "placeholders": {
       "additionalNotes": "Zusätzliche Notizen...",
@@ -262,6 +267,7 @@
     "openInWardrobe": "Im Kleiderschrank öffnen"
   },
   "needsWash": "Muss gewaschen werden",
+  "neverSuggested": "Wird nie vorgeschlagen",
   "pageSize": "{count} pro Seite",
   "search": "Stücke suchen...",
   "sort": {

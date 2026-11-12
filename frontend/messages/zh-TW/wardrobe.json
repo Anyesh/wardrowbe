@@ -178,6 +178,11 @@
     },
     "brand": "品牌",
     "name": "名稱",
+    "neverSuggest": {
+      "error": "無法更新此設定",
+      "helper": "保留在衣櫥中，但不會用於 AI 搭配推薦或單品搭配。適用於內衣、襪子或穿舊的衣物。",
+      "label": "不在搭配中推薦"
+    },
     "notes": "備註",
     "placeholders": {
       "additionalNotes": "備註...",
@@ -262,6 +267,7 @@
     "openInWardrobe": "在衣櫥中開啟"
   },
   "needsWash": "需要洗滌",
+  "neverSuggested": "不推薦",
   "pageSize": "每頁 {count} 件",
   "search": "搜尋單品...",
   "sort": {
