@@ -21,6 +21,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.item import ClothingItem
+    from app.models.try_on import OutfitTryOn
     from app.models.user import User
 
 
@@ -125,6 +126,9 @@ class Outfit(Base):
     )
     family_ratings: Mapped[list["FamilyOutfitRating"]] = relationship(
         "FamilyOutfitRating", back_populates="outfit", cascade="all, delete-orphan"
+    )
+    try_on: Mapped[Optional["OutfitTryOn"]] = relationship(
+        "OutfitTryOn", back_populates="outfit", uselist=False, cascade="all, delete-orphan"
     )
     source_item: Mapped[Optional["ClothingItem"]] = relationship(
         "ClothingItem", foreign_keys=[source_item_id]

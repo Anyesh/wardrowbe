@@ -1,3 +1,4 @@
+import hashlib
 import shutil
 import uuid
 from dataclasses import dataclass
@@ -34,6 +35,7 @@ VARIANTS = (
     ImageVariant("thumbnail_path", "_thumb", 400, 88),
 )
 ORIGINAL = VARIANTS[0]
+TRY_ON_DIR = "try-on"
 
 # A split crop gets this much room around its box (of its longer side) so a box that clips a
 # sleeve or a shoe still includes it.
@@ -163,6 +165,44 @@ class ImageService:
 
         paths["image_hash"] = self._phash_of(image)
         return paths
+
+    def store_try_on_image(
+        self, user_id: uuid.UUID, image_data: bytes, extension: str = ".jpg"
+    ) -> dict[str, str]:
+        """Store a try-on image (reference photo or generated result) under `{user}/try-on/`.
+
+        Returns image_path (2400px), medium_path (800px) and content_hash, the sha256 of the
+        stored full-size file. `extension` tells HEIC/HEIF apart from the formats Pillow sniffs by itself.
+        """
+        try:
+            image = self._open_bounded(image_data, extension.lower())
+        except ImageTooLargeError:
+            raise
+        except Exception as e:
+            raise ValueError("Not a readable image") from e
+        image = ImageOps.exif_transpose(image)
+
+        directory = self._get_user_path(user_id) / TRY_ON_DIR
+        directory.mkdir(parents=True, exist_ok=True)
+        base_name = self._generate_filename(".jpg").rsplit(".", 1)[0]
+        paths: dict[str, str] = {}
+        for variant in (VARIANTS[0], VARIANTS[1]):
+            data = self.encode_variant(image, variant)
+            filename = f"{base_name}{variant.suffix}.jpg"
+            (directory / filename).write_bytes(data)
+            paths[variant.path_field] = f"{user_id}/{TRY_ON_DIR}/{filename}"
+            if variant is ORIGINAL:
+                paths["content_hash"] = hashlib.sha256(data).hexdigest()
+        return paths
+
+    def load_for_model(self, image_path: str, max_px: int, quality: int = 88) -> bytes:
+        """Re-encode a stored image as a JPEG whose longer side is at most max_px."""
+        source = self.storage_path / image_path
+        if not source.resolve().is_relative_to(self.storage_path.resolve()):
+            raise ValueError("Invalid path")
+        with Image.open(source) as opened:
+            image = ImageOps.exif_transpose(opened)
+            return self.encode_variant(image, ImageVariant("", "", max_px, quality))
 
     def crop_to_jpeg(
         self, image_path: str, left: float, top: float, width: float, height: float
