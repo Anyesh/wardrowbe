@@ -5,6 +5,7 @@ CONTEXT:
 - Time of day: {time_of_day}
 - Weather: {temperature}°C (feels like {feels_like}°C), {condition}, {precipitation_chance}% chance of rain
 {temp_range_text}
+{weather_details_text}
 - Items are pre-ranked by suitability. Higher-numbered items are less compatible — prefer items near the top of the list.
 {preferences_text}
 
@@ -52,7 +53,8 @@ RULES:
   - Suit: ONE top + ONE suit (<<SUIT_TYPES>>) + ONE footwear; the suit replaces the bottom
 - OPTIONAL: legwear (<<LEGWEAR_TYPES>>) under a skirt, dress or shorts in cool or cold weather; leave it out when it is warm, and put only thermal legwear under trousers or a jumpsuit, only when it is very cold. Legwear does not replace the bottom, the one-piece garment or footwear
 - OPTIONAL: ONE bag if appropriate for the occasion
-- OPTIONAL: accessories (belt, scarf, hat, watch, jewelry) that genuinely complement the outfit
+- OPTIONAL: accessories (belt, scarf, watch, jewelry) that genuinely complement the outfit
+- Add a hat only if it suits the outfit's style and the weather calls for it: a cap or sun hat when the UV index is 6 or higher, a warm hat (beanie, wool cap) when it is cold (about 8°C or below) or windy. Never add a hat just to complete the look
 - For cold or rainy weather, add outerwear (jacket/coat) if available
 - Every piece must earn its place — do not add items just to fill slots
 - Do NOT pick the same item number twice

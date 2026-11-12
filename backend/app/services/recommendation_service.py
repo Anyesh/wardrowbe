@@ -73,6 +73,8 @@ SINGLE_OUTFIT_FORMAT = (
     'sleeves every time, vary your advice"}}'
 )
 
+WINDY_KMH = 25
+
 
 def get_time_of_day(user: User) -> TimeOfDay:
     hour = get_user_now(user).hour
@@ -95,6 +97,17 @@ def format_temp_range_text(weather: WeatherData) -> str:
         f"- Temperature ahead ranges from {low:.1f}°C to {high:.1f}°C, a large swing, "
         "favour adaptable layers that work at both ends."
     )
+
+
+def format_weather_details_text(weather: WeatherData) -> str:
+    """UV index (now and the day's peak) and wind, so the prompt can judge hats and layers."""
+    uv_now = weather.uv_index
+    parts = [f"UV index {uv_now:g}"]
+    if weather.uv_index_max is not None and weather.uv_index_max != uv_now:
+        parts[0] += f" now, up to {weather.uv_index_max:g} today"
+    if weather.wind_speed >= WINDY_KMH:
+        parts.append(f"windy ({weather.wind_speed:g} km/h)")
+    return "- " + ", ".join(parts)
 
 
 def suggestion_context(
@@ -969,6 +982,7 @@ class RecommendationService:
             condition=weather.condition,
             precipitation_chance=weather.precipitation_chance,
             temp_range_text=format_temp_range_text(weather),
+            weather_details_text=format_weather_details_text(weather),
             preferences_text=preferences_text,
             items_text=items_text,
             mandatory_items_section=mandatory_items_section,
