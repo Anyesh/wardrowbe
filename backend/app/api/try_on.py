@@ -43,7 +43,10 @@ def require_try_on_enabled() -> None:
         )
 
 
-router = APIRouter(tags=["Try-on"], dependencies=[Depends(require_try_on_enabled)])
+router = APIRouter(tags=["Try-on"])
+# Deleting stays possible after an operator turns try-on off, so people can always remove
+# their photo and the pictures drawn from it.
+ENABLED = [Depends(require_try_on_enabled)]
 
 
 def _error(status_code: int, message: str, error_code: str) -> HTTPException:
@@ -96,7 +99,7 @@ async def _delete_all_try_ons(db: DbSession, user_id: UUID) -> None:
         await db.delete(try_on)
 
 
-@router.get("/users/me/try-on-photo", response_model=TryOnPhotoResponse)
+@router.get("/users/me/try-on-photo", response_model=TryOnPhotoResponse, dependencies=ENABLED)
 async def get_try_on_photo(
     db: DbSession, current_user: Annotated[User, Depends(get_current_user)]
 ) -> TryOnPhotoResponse:
@@ -106,7 +109,7 @@ async def get_try_on_photo(
     return _photo_response(photo)
 
 
-@router.put("/users/me/try-on-photo", response_model=TryOnPhotoResponse)
+@router.put("/users/me/try-on-photo", response_model=TryOnPhotoResponse, dependencies=ENABLED)
 async def put_try_on_photo(
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -210,7 +213,7 @@ async def _check_daily_limit(user_id: UUID) -> None:
         ) from None
 
 
-@router.get("/outfits/{outfit_id}/try-on", response_model=TryOnResponse)
+@router.get("/outfits/{outfit_id}/try-on", response_model=TryOnResponse, dependencies=ENABLED)
 async def get_outfit_try_on(
     outfit_id: UUID,
     db: DbSession,
@@ -232,6 +235,7 @@ async def get_outfit_try_on(
     "/outfits/{outfit_id}/try-on",
     response_model=TryOnResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=ENABLED,
 )
 async def create_outfit_try_on(
     outfit_id: UUID,

@@ -312,16 +312,22 @@ class TestPhotoEndpoints:
     async def test_disabled_is_503(self, client, auth_headers, outfit):
         for method, url in [
             ("get", PHOTO),
-            ("delete", PHOTO),
             ("get", _try_on_url(outfit)),
             ("post", _try_on_url(outfit)),
-            ("delete", _try_on_url(outfit)),
         ]:
             response = await client.request(method, url, headers=auth_headers)
             assert response.status_code == 503, (method, url)
             assert response.json()["detail"]["error_code"] == "TRY_ON_DISABLED"
         response = await client.put(PHOTO, files=_upload(), headers=auth_headers)
         assert response.status_code == 503
+
+    @pytest.mark.asyncio
+    async def test_delete_still_works_when_disabled(self, client, auth_headers, outfit):
+        # People must be able to remove their photo after the operator turns try-on off.
+        for url in (PHOTO, _try_on_url(outfit)):
+            response = await client.delete(url, headers=auth_headers)
+            assert response.status_code in (204, 404), (url, response.status_code)
+            assert response.status_code != 503
 
     @pytest.mark.asyncio
     async def test_requires_auth(self, client, try_on_on):
