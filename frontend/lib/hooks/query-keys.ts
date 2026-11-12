@@ -16,12 +16,17 @@ const PAIRINGS = ['pairings'] as const;
 const ITEM = ['item'] as const;
 const WEAR_STATS = ['wear-stats'] as const;
 const WEAR_HISTORY = ['wear-history'] as const;
+// Not under ITEMS or OUTFITS: those prefixes are reserved for list responses (see above).
+const TRY_ON = ['try-on'] as const;
 
 export const queryKeys = {
   authConfig: ['auth-config'] as const,
   authUser: ['auth-user'] as const,
   userProfile: ['user-profile'] as const,
   features: ['features'] as const,
+  tryOnPhoto: ['try-on-photo'] as const,
+  tryOnAll: TRY_ON,
+  tryOn: (outfitId: string) => [...TRY_ON, outfitId] as const,
   weather: ['weather'] as const,
   preferences: ['preferences'] as const,
   family: ['family'] as const,

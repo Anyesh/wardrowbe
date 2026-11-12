@@ -144,5 +144,31 @@
     "unit": "Unité de température"
   },
   "title": "Paramètres",
+  "tryOnPhoto": {
+    "description": "Une photo de vous, utilisée pour afficher les tenues sur vous.",
+    "disabledNotice": "L'essayage de tenues est désactivé sur ce serveur. Vous pouvez toujours supprimer votre photo enregistrée et les images créées à partir d'elle.",
+    "guidance": "Utilisez une seule photo en pied, de face, avec des vêtements ajustés et une lumière uniforme.",
+    "loadError": "Impossible de charger votre photo",
+    "photoAlt": "Votre photo d'essayage",
+    "privacy": "La photo reste sur ce serveur et n'est envoyée au modèle d'images configuré que lorsque vous générez un essayage.",
+    "remove": "Supprimer la photo",
+    "removeConfirm": {
+      "confirm": "Supprimer la photo",
+      "description": "Cela supprime aussi toutes les images d'essayage générées à partir de celle-ci.",
+      "title": "Supprimer votre photo d'essayage ?"
+    },
+    "removeError": "Impossible de supprimer la photo",
+    "removed": "Photo supprimée",
+    "replace": "Remplacer la photo",
+    "replaceConfirm": {
+      "confirm": "Remplacer la photo",
+      "description": "Cela supprime toutes les images d'essayage générées à partir de la photo actuelle.",
+      "title": "Remplacer votre photo d'essayage ?"
+    },
+    "saved": "Photo enregistrée",
+    "title": "Photo d'essayage",
+    "upload": "Importer une photo",
+    "uploadError": "Impossible d'enregistrer la photo"
+  },
   "unsavedChanges": "Vous avez des modifications non enregistrées. Quitter cette page ?"
 }

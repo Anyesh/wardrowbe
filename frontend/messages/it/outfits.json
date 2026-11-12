@@ -168,6 +168,30 @@
   "subtitle": "I tuoi look, outfit indossati e suggerimenti IA",
   "title": "Outfit",
   "totalCount": "{count} totali",
+  "tryOn": {
+    "addPhoto": "Aggiungi la tua foto",
+    "delete": "Elimina",
+    "deleteError": "Impossibile eliminare la prova",
+    "drawing": "Sto disegnando…",
+    "errors": {
+      "dailyLimit": "Hai raggiunto il limite di prove di oggi. Riprova domani.",
+      "generic": "Qualcosa è andato storto nel creare questo outfit. Riprova.",
+      "inProgress": "Questo outfit è già in corso di creazione.",
+      "itemImageMissing": "Ogni capo di questo outfit ha bisogno di una foto.",
+      "noImage": "Il modello non ha restituito alcuna immagine (potrebbe aver rifiutato). Riprova.",
+      "noPhoto": "Aggiungi prima la tua foto per la prova nelle Impostazioni.",
+      "rateLimited": "Troppe richieste. Aspetta un minuto e riprova."
+    },
+    "imageAlt": "Questo outfit su di te",
+    "keptPrevious": "Questa è l'ultima immagine riuscita.",
+    "needsPhoto": "Aggiungi una tua foto a figura intera per vedere questo outfit addosso a te.",
+    "regenerate": "Rigenera",
+    "retry": "Riprova",
+    "seeIt": "Vedilo su di me",
+    "stale": "L'outfit o la tua foto sono cambiati da quando è stata creata questa immagine.",
+    "takingLonger": "Sta richiedendo più tempo del previsto.",
+    "title": "Provalo addosso"
+  },
   "viewCalendar": "Calendario",
   "viewList": "Elenco",
   "viewToggle": "Cambia vista"

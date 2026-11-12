@@ -144,5 +144,31 @@
     "unit": "Temperature Unit"
   },
   "title": "Settings",
+  "tryOnPhoto": {
+    "description": "A photo of you, used to show outfits on you.",
+    "disabledNotice": "Outfit try-on is turned off on this server. You can still remove your saved photo and the images made from it.",
+    "guidance": "Use one full-length photo, facing the camera, in fitted clothes and even light.",
+    "loadError": "Could not load your photo",
+    "photoAlt": "Your try-on photo",
+    "privacy": "The photo stays on this server and is sent to the configured image model only when you generate a try-on.",
+    "remove": "Remove photo",
+    "removeConfirm": {
+      "confirm": "Remove photo",
+      "description": "This also deletes every try-on image generated from it.",
+      "title": "Remove your try-on photo?"
+    },
+    "removeError": "Could not remove the photo",
+    "removed": "Photo removed",
+    "replace": "Replace photo",
+    "replaceConfirm": {
+      "confirm": "Replace photo",
+      "description": "This deletes every try-on image generated from the current photo.",
+      "title": "Replace your try-on photo?"
+    },
+    "saved": "Photo saved",
+    "title": "Try-on photo",
+    "upload": "Upload photo",
+    "uploadError": "Could not save the photo"
+  },
   "unsavedChanges": "You have unsaved changes. Leave this page?"
 }

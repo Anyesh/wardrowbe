@@ -144,5 +144,31 @@
     "unit": "温度单位"
   },
   "title": "设置",
+  "tryOnPhoto": {
+    "description": "一张你的照片，用于展示穿搭上身的效果。",
+    "disabledNotice": "此服务器已关闭穿搭试穿功能。你仍可以删除已保存的照片及由其生成的图片。",
+    "guidance": "请使用一张正面朝向镜头的全身照，穿着合身的衣服，光线均匀。",
+    "loadError": "无法加载你的照片",
+    "photoAlt": "你的试穿照片",
+    "privacy": "照片保存在此服务器上，仅在你生成试穿图时才会发送给已配置的图像模型。",
+    "remove": "删除照片",
+    "removeConfirm": {
+      "confirm": "删除照片",
+      "description": "由这张照片生成的所有试穿图也会一并删除。",
+      "title": "删除试穿照片？"
+    },
+    "removeError": "无法删除照片",
+    "removed": "照片已删除",
+    "replace": "更换照片",
+    "replaceConfirm": {
+      "confirm": "更换照片",
+      "description": "由当前照片生成的所有试穿图都会被删除。",
+      "title": "更换试穿照片？"
+    },
+    "saved": "照片已保存",
+    "title": "试穿照片",
+    "upload": "上传照片",
+    "uploadError": "无法保存照片"
+  },
   "unsavedChanges": "您有未保存的更改。确定离开此页面？"
 }

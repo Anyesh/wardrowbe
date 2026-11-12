@@ -168,6 +168,30 @@
   "subtitle": "Deine Looks, getragenen Outfits und KI-Vorschläge",
   "title": "Outfits",
   "totalCount": "{count} insgesamt",
+  "tryOn": {
+    "addPhoto": "Foto hinzufügen",
+    "delete": "Löschen",
+    "deleteError": "Die Anprobe konnte nicht gelöscht werden",
+    "drawing": "Wird gezeichnet…",
+    "errors": {
+      "dailyLimit": "Du hast das heutige Anprobe-Limit erreicht. Versuche es morgen erneut.",
+      "generic": "Beim Zeichnen dieses Outfits ist etwas schiefgelaufen. Versuche es erneut.",
+      "inProgress": "Dieses Outfit wird bereits gezeichnet.",
+      "itemImageMissing": "Jedes Teil dieses Outfits braucht ein Foto.",
+      "noImage": "Das Modell hat kein Bild zurückgegeben (möglicherweise hat es abgelehnt). Versuche es erneut.",
+      "noPhoto": "Füge zuerst in den Einstellungen dein Anprobe-Foto hinzu.",
+      "rateLimited": "Zu viele Anfragen. Warte eine Minute und versuche es erneut."
+    },
+    "imageAlt": "Dieses Outfit an dir",
+    "keptPrevious": "Das ist das letzte Bild, das funktioniert hat.",
+    "needsPhoto": "Füge ein Ganzkörperfoto von dir hinzu, um dieses Outfit an dir zu sehen.",
+    "regenerate": "Neu erstellen",
+    "retry": "Erneut versuchen",
+    "seeIt": "An mir ansehen",
+    "stale": "Das Outfit oder dein Foto hat sich seit der Erstellung geändert.",
+    "takingLonger": "Das dauert länger als erwartet.",
+    "title": "Anprobe"
+  },
   "viewCalendar": "Kalender",
   "viewList": "Liste",
   "viewToggle": "Ansicht wechseln"
