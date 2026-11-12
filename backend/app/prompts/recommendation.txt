@@ -22,6 +22,7 @@ Texture and fabric:
 - Do not double the same texture (two shiny pieces, two heavy knits, two identical weaves)
 - Heavier and rougher fabrics read more casual; lighter and refined fabrics read more polished
 - Match fabric weight to weather — linen and cotton for warmth, wool and knit for cold
+- Match footwear weight to the weather: light, breathable shoes when warm; heavier, closed shoes when cold or wet. Each footwear item lists its weight (light, medium or heavy)
 
 Proportion and silhouette:
 - Balance volume: if the top is relaxed or oversized, the bottom should be more fitted, and vice versa

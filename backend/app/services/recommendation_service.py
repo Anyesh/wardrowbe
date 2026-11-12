@@ -25,6 +25,7 @@ from app.models.preference import UserPreference
 from app.models.user import User
 from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
 from app.services.item_scorer import (
+    footwear_weight,
     get_season,
     rain_likely,
     rank_by_fit,
@@ -380,6 +381,10 @@ class RecommendationService:
 
             if item.material:
                 parts.append(item.material)
+
+            weight = footwear_weight(item)
+            if weight:
+                parts.append(f"footwear weight: {weight}")
 
             if item.formality:
                 parts.append(item.formality)
