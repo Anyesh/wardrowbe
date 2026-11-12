@@ -1,7 +1,7 @@
 import logging
 from datetime import date, datetime
 from typing import Annotated
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, computed_field, field_validator
@@ -12,7 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.api.pagination import PaginationParams
 from app.config import get_settings
 from app.database import DbSession
-from app.models.item import ClothingItem
+from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import (
     FamilyOutfitRating,
     Outfit,
@@ -38,6 +38,7 @@ from app.services.recommendation_service import (
     AIRecommendationError,
     InsufficientWardrobeError,
     RecommendationService,
+    warmer_layer_can_come_off,
 )
 from app.services.studio_service import (
     ItemOwnershipError,
@@ -48,6 +49,7 @@ from app.services.studio_service import (
 from app.services.suggestion_cache import clear_suggestions
 from app.services.weather_service import WeatherData
 from app.utils.auth import get_current_user
+from app.utils.clothing import covered_regions
 from app.utils.rate_limit import rate_limit_by_user
 from app.utils.scales import RATING_MAX, RATING_MIN
 from app.utils.signed_urls import sign_optional
@@ -122,6 +124,27 @@ class OutfitItemResponse(BaseModel):
         return sign_optional(self.thumbnail_path)
 
 
+class OutfitExtraItemResponse(BaseModel):
+    id: UUID
+    type: str
+    subtype: str | None = None
+    name: str | None = None
+    primary_color: str | None = None
+    colors: list[str] = []
+    image_path: str | None = None
+    thumbnail_path: str | None = None
+
+    @computed_field
+    @property
+    def image_url(self) -> str | None:
+        return sign_optional(self.image_path)
+
+    @computed_field
+    @property
+    def thumbnail_url(self) -> str | None:
+        return sign_optional(self.thumbnail_path)
+
+
 class WoreInsteadItem(BaseModel):
     id: UUID
     type: str
@@ -175,6 +198,8 @@ class OutfitResponse(BaseModel):
     highlights: list[str] | None = None
     weather: dict | None = None
     items: list[OutfitItemResponse]
+    if_cooler: OutfitExtraItemResponse | None = None
+    if_warmer: OutfitExtraItemResponse | None = None
     feedback: FeedbackSummary | None = None
     family_ratings: list[FamilyRatingResponse] | None = None
     family_rating_average: float | None = None
@@ -341,6 +366,42 @@ async def fetch_wore_instead_items_map(
     return wore_instead_map
 
 
+def _extra_item_response(item: ClothingItem | None) -> OutfitExtraItemResponse | None:
+    if item is None:
+        return None
+    return OutfitExtraItemResponse(
+        id=item.id,
+        type=item.type,
+        subtype=item.subtype,
+        name=item.name,
+        primary_color=item.primary_color,
+        colors=item.colors or [],
+        image_path=item.image_path,
+        thumbnail_path=item.thumbnail_path,
+    )
+
+
+def _extra_is_available(item: ClothingItem) -> bool:
+    return item.status == ItemStatus.ready and not item.is_archived
+
+
+# Stand-ins for the wardrobe's pieces: the response has no candidate pool to ask which regions
+# the wardrobe can dress, so an outfit is held to covering the upper and lower body, and the
+# feet when it has shoes now.
+_REGION_STAND_INS = {"upper": "t-shirt", "lower": "jeans", "feet": "sneakers"}
+
+
+def _completeness_type_map(outfit: Outfit) -> dict[UUID, str]:
+    type_map = {
+        outfit_item.item_id: (outfit_item.item.type or "").lower() for outfit_item in outfit.items
+    }
+    worn = covered_regions(list(type_map), type_map)
+    for region, item_type in _REGION_STAND_INS.items():
+        if region != "feet" or "feet" in worn:
+            type_map[uuid4()] = item_type
+    return type_map
+
+
 def outfit_to_response(
     outfit: Outfit,
     wore_instead_items_map: dict[str, list[WoreInsteadItem]] | None = None,
@@ -363,6 +424,23 @@ def outfit_to_response(
                 position=outfit_item.position,
             )
         )
+
+    # The outfit's items can change after the AI named its extras (studio edits), so an extra
+    # that no longer fits is hidden rather than shown wrongly.
+    # Likewise an extra archived or not ready since, and a warmer layer the outfit now needs.
+    outfit_item_ids = [outfit_item.item_id for outfit_item in outfit.items]
+    if_cooler = outfit.if_cooler_item
+    if if_cooler is not None and (
+        if_cooler.id in outfit_item_ids or not _extra_is_available(if_cooler)
+    ):
+        if_cooler = None
+    if_warmer = outfit.if_warmer_item
+    if if_warmer is not None:
+        type_map = _completeness_type_map(outfit)
+        if not _extra_is_available(if_warmer) or not warmer_layer_can_come_off(
+            if_warmer.id, outfit_item_ids, type_map
+        ):
+            if_warmer = None
 
     feedback_summary = None
     if outfit.feedback:
@@ -423,6 +501,8 @@ def outfit_to_response(
         highlights=highlights,
         weather=outfit.weather_data,
         items=items,
+        if_cooler=_extra_item_response(if_cooler),
+        if_warmer=_extra_item_response(if_warmer),
         feedback=feedback_summary,
         family_ratings=family_ratings_list,
         family_rating_average=family_rating_average,

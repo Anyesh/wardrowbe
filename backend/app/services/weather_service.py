@@ -36,6 +36,8 @@ class WeatherData:
     # so that late-evening requests score against the current reading only.
     window_min: float | None = None
     window_max: float | None = None
+    # Today's (or the forecast day's) peak UV index; uv_index above is the reading right now.
+    uv_index_max: float | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -54,6 +56,7 @@ class WeatherData:
             "temp_max": self.temp_max,
             "window_min": self.window_min,
             "window_max": self.window_max,
+            "uv_index_max": self.uv_index_max,
         }
 
 
@@ -300,7 +303,7 @@ class WeatherService:
                 "uv_index",
             ],
             "hourly": ["precipitation_probability", "temperature_2m"],
-            "daily": ["temperature_2m_max", "temperature_2m_min"],
+            "daily": ["temperature_2m_max", "temperature_2m_min", "uv_index_max"],
             "forecast_hours": 24,
             "forecast_days": 1,
             "timezone": "auto",
@@ -328,6 +331,8 @@ class WeatherService:
         temp_mins = daily.get("temperature_2m_min") or []
         temp_max = temp_maxs[0] if temp_maxs and temp_maxs[0] is not None else None
         temp_min = temp_mins[0] if temp_mins and temp_mins[0] is not None else None
+        uv_maxs = daily.get("uv_index_max") or []
+        uv_index_max = uv_maxs[0] if uv_maxs and uv_maxs[0] is not None else None
         window = self._wearing_window(current, hourly)
 
         weather = WeatherData(
@@ -346,6 +351,7 @@ class WeatherService:
             temp_max=temp_max,
             window_min=window[0] if window else None,
             window_max=window[1] if window else None,
+            uv_index_max=uv_index_max,
         )
 
         await self._cache_set(latitude, longitude, weather)
@@ -506,6 +512,7 @@ class WeatherService:
             temp_max=tomorrow.temp_max,
             window_min=tomorrow.temp_min,
             window_max=tomorrow.temp_max,
+            uv_index_max=tomorrow.uv_index,
         )
 
     async def check_health(self) -> dict:

@@ -170,5 +170,9 @@
   "totalCount": "{count} totali",
   "viewCalendar": "Calendario",
   "viewList": "Elenco",
-  "viewToggle": "Cambia vista"
+  "viewToggle": "Cambia vista",
+  "weatherExtras": {
+    "ifCooler": "Se si rinfresca: aggiungi {item}",
+    "ifWarmer": "Se fa più caldo: togli {item}"
+  }
 }

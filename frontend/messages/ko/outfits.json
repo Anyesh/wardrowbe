@@ -170,5 +170,9 @@
   "totalCount": "총 {count}개",
   "viewCalendar": "캘린더",
   "viewList": "목록",
-  "viewToggle": "보기 전환"
+  "viewToggle": "보기 전환",
+  "weatherExtras": {
+    "ifCooler": "쌀쌀해지면: {item} 추가",
+    "ifWarmer": "따뜻해지면: {item} 벗기"
+  }
 }

@@ -50,6 +50,7 @@ import {
 } from '@/components/ui/collapsible';
 import { ItemPicker } from '@/components/shared/item-picker';
 import { OccasionChips } from '@/components/shared/occasion-chips';
+import { OutfitWeatherExtras } from '@/components/shared/outfit-weather-extras';
 import { useOccasionLabel, useWeatherConditionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { useItem } from '@/lib/hooks/use-items';
 import { api, ApiError } from '@/lib/api';
@@ -366,6 +367,8 @@ function OutfitCard({
             );
           })}
         </div>
+
+        <OutfitWeatherExtras ifCooler={outfit.if_cooler} ifWarmer={outfit.if_warmer} />
 
         {outfit.style_notes && (
           <div className="p-2.5 bg-muted/60 rounded-lg border text-xs text-muted-foreground">

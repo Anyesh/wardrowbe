@@ -5,6 +5,7 @@ CONTEXT:
 - Time of day: {time_of_day}
 - Weather: {temperature}°C (feels like {feels_like}°C), {condition}, {precipitation_chance}% chance of rain
 {temp_range_text}
+{weather_details_text}
 - Items are pre-ranked by suitability. Higher-numbered items are less compatible — prefer items near the top of the list.
 {preferences_text}
 
@@ -21,6 +22,7 @@ Texture and fabric:
 - Do not double the same texture (two shiny pieces, two heavy knits, two identical weaves)
 - Heavier and rougher fabrics read more casual; lighter and refined fabrics read more polished
 - Match fabric weight to weather — linen and cotton for warmth, wool and knit for cold
+- Match footwear weight to the weather: light, breathable shoes when warm; heavier, closed shoes when cold or wet. Each footwear item lists its weight (light, medium or heavy)
 
 Proportion and silhouette:
 - Balance volume: if the top is relaxed or oversized, the bottom should be more fitted, and vice versa
@@ -52,13 +54,21 @@ RULES:
   - Suit: ONE top + ONE suit (<<SUIT_TYPES>>) + ONE footwear; the suit replaces the bottom
 - OPTIONAL: legwear (<<LEGWEAR_TYPES>>) under a skirt, dress or shorts in cool or cold weather; leave it out when it is warm, and put only thermal legwear under trousers or a jumpsuit, only when it is very cold. Legwear does not replace the bottom, the one-piece garment or footwear
 - OPTIONAL: ONE bag if appropriate for the occasion
-- OPTIONAL: accessories (belt, scarf, hat, watch, jewelry) that genuinely complement the outfit
+- OPTIONAL: accessories (belt, scarf, watch, jewelry) that genuinely complement the outfit
+- Add a hat only if it suits the outfit's style and the weather calls for it: a cap or sun hat when the UV index is 6 or higher, a warm hat (beanie, wool cap) when it is cold (about 8°C or below) or windy. Never add a hat just to complete the look
 - For cold or rainy weather, add outerwear (jacket/coat) if available
 - Every piece must earn its place — do not add items just to fill slots
 - Do NOT pick the same item number twice
 - Return item NUMBERS only
 
+WEATHER EXTRAS (optional, per outfit):
+- "if_cooler": the number of ONE extra layer (<<MID_LAYER_TYPES>>, <<OUTER_LAYER_TYPES>>) from AVAILABLE ITEMS that is NOT in this outfit, to add if it gets cooler. It must match the outfit's style and colours and must not be an item already in the outfit
+- "if_warmer": the number of ONE layer that IS in this outfit (a jacket, coat, blazer, cardigan, hoodie or vest) that can come off if it warms up. The outfit must still be complete and look good without it
+- Suggest "if_cooler" for every outfit whenever a fitting layer exists, so the person always knows how to cover up if the weather turns; use null only on a clearly hot day (feels like about 26°C or more all day) or when no layer fits the style
+- Suggest "if_warmer" whenever the outfit has a removable layer and it could get warmer during the day; use null otherwise
+- Never invent an item to fill them
+
 Respond with valid JSON containing exactly 3 distinct outfit options. Each must be a complete look.
-{{"outfits": [{{"items": [item numbers], "headline": "Short catchy outfit title (max 5 words)", "highlights": ["One short sentence each — vary your reasoning across color, texture, proportion, occasion, weather, or time of day"], "styling_tip": "One specific, actionable styling detail — do not suggest rolling up sleeves every time, vary your advice"}}, ...]}}
+{{"outfits": [{{"items": [item numbers], "headline": "Short catchy outfit title (max 5 words)", "highlights": ["One short sentence each — vary your reasoning across color, texture, proportion, occasion, weather, or time of day"], "styling_tip": "One specific, actionable styling detail — do not suggest rolling up sleeves every time, vary your advice", "if_cooler": item number or null, "if_warmer": item number or null}}, ...]}}
 
 Each outfit MUST use different key pieces (different tops, bottoms, one-piece garments or suits). Vary color palettes and energy levels. First outfit = strongest recommendation.
