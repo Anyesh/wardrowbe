@@ -62,6 +62,9 @@ def _build_preference_response(preferences) -> PreferenceResponse:
         if preferences.variety_level is not None
         else DEFAULT_VARIETY_LEVEL,
         ai_endpoints=preferences.ai_endpoints if preferences.ai_endpoints is not None else [],
+        excluded_item_ids=preferences.excluded_item_ids
+        if preferences.excluded_item_ids is not None
+        else [],
     )
 
 

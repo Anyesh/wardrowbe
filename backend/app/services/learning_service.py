@@ -721,6 +721,15 @@ class LearningService:
         if not paired_ids:
             return []
 
+        # Items the user flagged "never suggest" must not be offered as pairings
+        excluded_result = await self.db.execute(
+            select(UserPreference.excluded_item_ids).where(UserPreference.user_id == user_id)
+        )
+        excluded_ids = set(excluded_result.scalar_one_or_none() or [])
+        paired_ids = [i for i in paired_ids if i not in excluded_ids]
+        if not paired_ids:
+            return []
+
         # Fetch the items
         result = await self.db.execute(
             select(ClothingItem).where(
