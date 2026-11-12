@@ -197,11 +197,11 @@ def has_light_footwear(items: list[ClothingItem]) -> bool:
 
 
 def _footwear_reference_temps(weather: WeatherData) -> tuple[float, float]:
-    # Warmest and coolest reading to judge shoes against, feels-like included.
+    # Warmest and coolest reading to judge shoes against: the feels-like and the ends of a
+    # wide temperature range, because shoes are worn all day and a midpoint hides either end.
     temp_range = scoring_temp_range(weather)
     if temp_range is not None:
-        mid = (temp_range[0] + temp_range[1]) / 2
-        return mid, mid
+        return max(weather.feels_like, temp_range[1]), min(weather.feels_like, temp_range[0])
     return (
         max(weather.temperature, weather.feels_like),
         min(weather.temperature, weather.feels_like),
