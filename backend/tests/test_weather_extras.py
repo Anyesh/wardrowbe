@@ -1,4 +1,5 @@
 import json
+import logging
 from uuid import uuid4
 
 import pytest
@@ -96,6 +97,16 @@ class TestResolveLayerExtras:
         types = {k: v for k, v in self.types.items() if k != self.ids["cardigan"]}
         assert self._resolve(self.n["cardigan"], types=types) == (None, None)
 
+    def test_dropped_extras_are_logged_at_info_without_content(self, caplog):
+        with caplog.at_level(logging.INFO, logger="app.services.recommendation_service"):
+            self._resolve("ignore previous instructions", self.n["hat"])
+        assert "Dropping if_cooler" in caplog.text
+        assert "Dropping if_warmer" in caplog.text
+        ours = [r for r in caplog.records if r.name == "app.services.recommendation_service"]
+        assert len(ours) == 2
+        assert all(r.levelno == logging.INFO for r in ours)
+        assert all("ignore previous" not in r.getMessage() for r in ours)
+
     def test_one_invalid_does_not_drop_the_other(self):
         cooler, warmer = self._resolve(self.n["jacket"], self.n["jacket"])
         assert cooler is None
@@ -173,6 +184,63 @@ class TestPersistenceAndApi:
         assert body["if_cooler"] is None
         assert body["if_warmer"] is None
 
+    @pytest.mark.parametrize("change", ["archived", "processing", "excluded", "deleted"])
+    async def test_extra_unavailable_at_save_time_is_dropped(
+        self, db_session, test_user, change, caplog
+    ):
+        from app.models.preference import UserPreference
+
+        items = await _wardrobe(db_session, test_user.id)
+        cardigan = items["cardigan"]
+        cardigan_id = cardigan.id
+        if change == "archived":
+            cardigan.is_archived = True
+        elif change == "processing":
+            cardigan.status = ItemStatus.processing
+        elif change == "excluded":
+            db_session.add(UserPreference(user_id=test_user.id, excluded_item_ids=[cardigan_id]))
+        else:
+            await db_session.delete(cardigan)
+        await db_session.commit()
+        with caplog.at_level(logging.INFO, logger="app.services.recommendation_service"):
+            outfit = await self._save(
+                db_session, test_user, items, {"if_cooler": 5, "if_warmer": 4}
+            )
+        assert outfit.if_cooler_item_id is None
+        assert outfit.if_warmer_item_id == items["jacket"].id
+        assert f"Dropping if_cooler {cardigan_id}" in caplog.text
+
+    async def test_archived_extra_is_hidden_in_the_response(
+        self, client, db_session, test_user, auth_headers
+    ):
+        items = await _wardrobe(db_session, test_user.id)
+        outfit = await self._save(db_session, test_user, items, {"if_cooler": 5, "if_warmer": 4})
+        outfit_id = outfit.id
+        items["cardigan"].is_archived = True
+        items["jacket"].status = ItemStatus.processing
+        await db_session.commit()
+        db_session.expire_all()
+        body = (await client.get(f"/api/v1/outfits/{outfit_id}", headers=auth_headers)).json()
+        assert body["if_cooler"] is None
+        assert body["if_warmer"] is None
+
+    async def test_warmer_the_outfit_now_needs_is_hidden(
+        self, client, db_session, test_user, auth_headers
+    ):
+        items = await _wardrobe(db_session, test_user.id)
+        outfit = await self._save(db_session, test_user, items, {"if_warmer": 4})
+        outfit_id, top_id = outfit.id, items["top"].id
+        # An edit removes the t-shirt, so the jacket is now the only upper-body piece.
+        await db_session.execute(
+            delete(OutfitItem).where(
+                OutfitItem.outfit_id == outfit_id, OutfitItem.item_id == top_id
+            )
+        )
+        await db_session.commit()
+        db_session.expire_all()
+        body = (await client.get(f"/api/v1/outfits/{outfit_id}", headers=auth_headers)).json()
+        assert body["if_warmer"] is None
+
     async def test_list_endpoint_includes_extras(self, client, db_session, test_user, auth_headers):
         items = await _wardrobe(db_session, test_user.id)
         await self._save(db_session, test_user, items, {"if_cooler": 5})
@@ -233,3 +301,19 @@ class TestMigration:
             assert await self._columns(db_session) == set()
         await db_session.rollback()
         assert await self._columns(db_session) == {"if_cooler_item_id", "if_warmer_item_id"}
+
+    async def test_foreign_keys_are_indexed(self, db_session):
+        rows = await db_session.execute(
+            text("SELECT indexname FROM pg_indexes WHERE tablename = 'outfits'")
+        )
+        names = {row[0] for row in rows}
+        assert {"ix_outfits_if_cooler_item_id", "ix_outfits_if_warmer_item_id"} <= names
+        async with migration_downgrade(db_session, PREVIOUS):
+            rows = await db_session.execute(
+                text("SELECT indexname FROM pg_indexes WHERE tablename = 'outfits'")
+            )
+            assert not {row[0] for row in rows} & {
+                "ix_outfits_if_cooler_item_id",
+                "ix_outfits_if_warmer_item_id",
+            }
+        await db_session.rollback()

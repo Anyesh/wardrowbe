@@ -1,7 +1,7 @@
 import logging
 from datetime import date, datetime
 from typing import Annotated
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, computed_field, field_validator
@@ -12,7 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.api.pagination import PaginationParams
 from app.config import get_settings
 from app.database import DbSession
-from app.models.item import ClothingItem
+from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import (
     FamilyOutfitRating,
     Outfit,
@@ -38,6 +38,7 @@ from app.services.recommendation_service import (
     AIRecommendationError,
     InsufficientWardrobeError,
     RecommendationService,
+    warmer_layer_can_come_off,
 )
 from app.services.studio_service import (
     ItemOwnershipError,
@@ -48,6 +49,7 @@ from app.services.studio_service import (
 from app.services.suggestion_cache import clear_suggestions
 from app.services.weather_service import WeatherData
 from app.utils.auth import get_current_user
+from app.utils.clothing import covered_regions
 from app.utils.rate_limit import rate_limit_by_user
 from app.utils.scales import RATING_MAX, RATING_MIN
 from app.utils.signed_urls import sign_optional
@@ -379,6 +381,27 @@ def _extra_item_response(item: ClothingItem | None) -> OutfitExtraItemResponse |
     )
 
 
+def _extra_is_available(item: ClothingItem) -> bool:
+    return item.status == ItemStatus.ready and not item.is_archived
+
+
+# Stand-ins for the wardrobe's pieces: the response has no candidate pool to ask which regions
+# the wardrobe can dress, so an outfit is held to covering the upper and lower body, and the
+# feet when it has shoes now.
+_REGION_STAND_INS = {"upper": "t-shirt", "lower": "jeans", "feet": "sneakers"}
+
+
+def _completeness_type_map(outfit: Outfit) -> dict[UUID, str]:
+    type_map = {
+        outfit_item.item_id: (outfit_item.item.type or "").lower() for outfit_item in outfit.items
+    }
+    worn = covered_regions(list(type_map), type_map)
+    for region, item_type in _REGION_STAND_INS.items():
+        if region != "feet" or "feet" in worn:
+            type_map[uuid4()] = item_type
+    return type_map
+
+
 def outfit_to_response(
     outfit: Outfit,
     wore_instead_items_map: dict[str, list[WoreInsteadItem]] | None = None,
@@ -404,13 +427,20 @@ def outfit_to_response(
 
     # The outfit's items can change after the AI named its extras (studio edits), so an extra
     # that no longer fits is hidden rather than shown wrongly.
-    outfit_item_ids = {outfit_item.item_id for outfit_item in outfit.items}
+    # Likewise an extra archived or not ready since, and a warmer layer the outfit now needs.
+    outfit_item_ids = [outfit_item.item_id for outfit_item in outfit.items]
     if_cooler = outfit.if_cooler_item
-    if if_cooler is not None and if_cooler.id in outfit_item_ids:
+    if if_cooler is not None and (
+        if_cooler.id in outfit_item_ids or not _extra_is_available(if_cooler)
+    ):
         if_cooler = None
     if_warmer = outfit.if_warmer_item
-    if if_warmer is not None and if_warmer.id not in outfit_item_ids:
-        if_warmer = None
+    if if_warmer is not None:
+        type_map = _completeness_type_map(outfit)
+        if not _extra_is_available(if_warmer) or not warmer_layer_can_come_off(
+            if_warmer.id, outfit_item_ids, type_map
+        ):
+            if_warmer = None
 
     feedback_summary = None
     if outfit.feedback:
