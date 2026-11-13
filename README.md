@@ -299,6 +299,7 @@ Upgrading from a release before sign-in identities (the `user_identities` table)
 | `OIDC_ISSUER_URL` | OIDC provider URL (enables SSO login) | No |
 | `OIDC_CLIENT_ID` | OIDC client ID | If OIDC |
 | `OIDC_CLIENT_SECRET` | OIDC client secret | If OIDC |
+| `OIDC_MOBILE_CLIENT_ID` | Separate public OIDC client ID (no secret) handed to the native mobile app. Falls back to `OIDC_CLIENT_ID` | No |
 | `OIDC_CA_BUNDLE` | Path inside the backend container to a PEM CA certificate the backend trusts for the OIDC provider (private CA or self-signed certs) | No |
 | `NODE_EXTRA_CA_CERTS` | Path inside the frontend container to a PEM CA certificate Node trusts on top of the system store, for the OIDC provider and an `https` `BACKEND_URL` | No |
 | `LOCAL_DNS` | Custom DNS server for container name resolution (e.g. local OIDC host) | No |
@@ -364,6 +365,12 @@ See [.env.example](.env.example) for all options.
 - **Forward-auth Mode**: An authenticating reverse proxy such as TinyAuth or Authelia signs people in. Setup, proxy snippets and the security notes are in [docs/forward-auth.md](docs/forward-auth.md)
 
 To enable OIDC, set `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET` in your `.env`, and register `{NEXTAUTH_URL}/api/auth/callback/oidc` as the callback/redirect URI in your provider (e.g. `http://localhost:8080/api/auth/callback/oidc`).
+
+**Mobile app and providers that require a public client (e.g. AWS Cognito):** the web app signs in with a confidential client (`OIDC_CLIENT_ID` + `OIDC_CLIENT_SECRET`), but the native app runs the Authorization Code flow with PKCE itself and has no secret. If it reuses the web client, the provider rejects the token exchange with `invalid_client_secret`. Create a second client in the same provider/user pool and set `OIDC_MOBILE_CLIENT_ID` to it:
+
+- Client type: public, no client secret. Flow: Authorization Code with PKCE. Scopes: `openid email profile`.
+- Redirect URI: `{public URL}/api/v1/auth/mobile-callback` (it forwards to the app's `wardrowbe://auth/callback`).
+- `OIDC_ISSUER_URL` stays the same. The backend accepts ID tokens issued to either client.
 
 <details>
 <summary>OIDC provider with a self-signed certificate or private CA</summary>

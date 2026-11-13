@@ -84,6 +84,7 @@ services:
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_MOBILE_CLIENT_ID: ${OIDC_MOBILE_CLIENT_ID:-}
       OIDC_CA_BUNDLE: ${OIDC_CA_BUNDLE:-}
       FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}
       # 0 because clients reach the frontend and API directly here, so any X-Forwarded-For is
