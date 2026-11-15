@@ -188,6 +188,12 @@
       "washIntervalDefault": "Predeterminado: {count}"
     },
     "primaryColor": "Color principal",
+    "replaceAnalysis": {
+      "alreadyQueued": "Esta prenda ya se está analizando, así que no se ha sustituido nada. Vuelve a intentarlo cuando termine.",
+      "confirm": "Volver a analizar y sustituir",
+      "description": "La IA vuelve a mirar la foto y sustituye lo que adivinó antes. Las etiquetas que has editado tú se conservan. Algunos cambios de versiones antiguas no quedaron registrados y también pueden sustituirse.",
+      "title": "¿Volver a analizar y sustituir las etiquetas de la IA?"
+    },
     "subtype": "Subtipo",
     "tagsEditor": {
       "fit": "Corte",
@@ -207,12 +213,14 @@
       "analysisInProgress": "Análisis en curso…",
       "deleteImage": "Eliminar imagen",
       "findMatchingOutfits": "Buscar conjuntos que combinen",
+      "reanalyzeAndReplace": "Volver a analizar y sustituir etiquetas de la IA",
       "reanalyzeWithAI": "Volver a analizar con la IA",
       "removeBackground": "Quitar el fondo",
       "replaceImage": "Sustituir imagen",
       "rotateLeft": "Girar a la izquierda",
       "rotateRight": "Girar a la derecha",
       "setAsPrimary": "Establecer como principal",
+      "splitPhoto": "Dividir la foto",
       "suggestOutfit": "Crear un conjunto con esta prenda",
       "toggleFavorite": "Marcar como favorita",
       "undoBackgroundRemoval": "Deshacer la eliminación del fondo"
@@ -266,6 +274,31 @@
     "oldestFirst": "Más antiguas primero",
     "recentlyWorn": "Usadas hace poco"
   },
+  "splitPhoto": {
+    "addBox": "Añadir un recuadro",
+    "archiveNote": "La foto original se conserva pero queda oculta en tu armario. No se elimina.",
+    "boxLabel": "Prenda {number}",
+    "create": "{count, plural, =0 {Crear prendas} one {Crear # prenda} other {Crear # prendas}}",
+    "createFailed": "No se ha podido dividir la foto",
+    "created": "{count, plural, one {Se ha creado # prenda a partir de esta foto} other {Se han creado # prendas a partir de esta foto}}",
+    "description": "Localiza cada prenda en esta foto y crea un elemento aparte para cada una.",
+    "detectFailed": "La IA no ha podido analizar esta foto.",
+    "detecting": "Buscando prendas…",
+    "errors": {
+      "aiUnreachable": "No se ha podido contactar con el servicio de IA. Vuelve a intentarlo o añade un recuadro por cada prenda.",
+      "imageNotFound": "No se ha encontrado la foto de esta prenda.",
+      "rateLimited": "Demasiados intentos en poco tiempo. Espera un minuto y vuelve a intentarlo.",
+      "sourceArchived": "Esta prenda ya está archivada, así que su foto no se puede volver a dividir.",
+      "sourceBusy": "Esta foto sigue girándose o quitándose el fondo. Vuelve a intentarlo cuando termine.",
+      "visionDisabled": "La detección automática de prendas está desactivada. Añade un recuadro por cada prenda."
+    },
+    "hint": "Arrastra un recuadro para moverlo o una esquina para cambiar su tamaño.",
+    "noneFound": "No se ha encontrado ninguna prenda. Añade un recuadro y arrástralo sobre una prenda.",
+    "photoAlt": "La foto a dividir",
+    "removeBox": "Quitar la prenda {number}",
+    "retry": "Volver a intentar",
+    "title": "Dividir la foto"
+  },
   "title": "Mi armario",
   "uploadQueue": {
     "remaining": "{count, plural, one {# foto subiendo en segundo plano} other {# fotos subiendo en segundo plano}}",
@@ -278,7 +311,6 @@
     "dismissAll": "Descartar todas",
     "retry": "Reintentar",
     "dismiss": "Descartar",
-    "unprotectedWarning": "{count, plural, one {No se ha podido proteger # archivo frente a una interrupción (almacenamiento lleno)} other {No se han podido proteger # archivos frente a una interrupción (almacenamiento lleno)}}. Mantén esta pestaña abierta hasta que termine la subida",
     "failure": {
       "tooLarge": "{name} supera los {limit} MB",
       "tooLargeForServer": "{name} es demasiado grande para que el servidor lo acepte",

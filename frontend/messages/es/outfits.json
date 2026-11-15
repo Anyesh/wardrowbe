@@ -81,7 +81,7 @@
     "required": "obligatorio",
     "occasion": "Ocasión",
     "pickOccasion": "Elige una ocasión antes de guardar.",
-    "skippedItem": "Se ha omitido {name}: {reason}",
+    "skippedItem": "Se ha omitido {name}: ese hueco ya lo ocupa {other}",
     "warnings": {
       "multipleBottoms": "Hay varias partes de abajo seleccionadas.",
       "noBottoms": "No hay partes de abajo seleccionadas.",
