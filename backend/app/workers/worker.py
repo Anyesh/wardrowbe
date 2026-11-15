@@ -17,9 +17,14 @@ from app.workers.notifications import (
     retry_failed_notifications,
     update_learning_profiles,
 )
-from app.workers.queues import IMAGE_PROCESSING_KINDS, TAGGING_QUEUE, queue_for_kind
+from app.workers.queues import (
+    IMAGE_PROCESSING_KINDS,
+    TAGGING_QUEUE,
+    WORKER_MAX_TRIES,
+    queue_for_kind,
+)
 from app.workers.settings import get_redis_settings
-from app.workers.tagging import TAGGING_MAX_TRIES, tag_item_image, worker_job_timeout_seconds
+from app.workers.tagging import tag_item_image, worker_job_timeout_seconds
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +151,7 @@ class WorkerSettings:
     # so during a large import they run after the backlog whatever this value is.
     max_jobs = get_settings().ai_tagging_concurrency
     job_timeout = worker_job_timeout_seconds()
-    max_tries = TAGGING_MAX_TRIES
+    max_tries = WORKER_MAX_TRIES
     health_check_interval = 30
     allow_abort_jobs = True
 

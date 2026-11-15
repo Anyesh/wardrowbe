@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { usePreferences, useUpdatePreferences, useResetPreferences, useTestAIEndpoint } from '@/lib/hooks/use-preferences';
 import { useUserProfile, useUpdateUserProfile } from '@/lib/hooks/use-user';
+import { useAiUiEnabled } from '@/lib/hooks/use-features';
 import {
   getNetworkLocationUrl,
   formatReverseGeocodedLocation,
@@ -171,6 +172,7 @@ function StyleSlider({
 
 export default function SettingsPage() {
   const t = useTranslations('settings');
+  const aiUiEnabled = useAiUiEnabled();
   const tc = useTranslations('common');
   const tConst = useTranslations('constants');
   const { data: session } = useSession();
@@ -1015,237 +1017,238 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* AI Endpoints */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Server className="h-5 w-5" />
-              {t('aiEndpoints.title')}
-            </CardTitle>
-            <CardDescription>
-              {t('aiEndpoints.description')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {(formData.ai_endpoints || []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {t('aiEndpoints.noEndpoints')}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {(formData.ai_endpoints || []).map((endpoint, index) => (
-                  <div
-                    key={index}
-                    className={`border rounded-lg p-4 space-y-3 ${
-                      !endpoint.enabled ? 'opacity-60 bg-muted/50' : ''
-                    }`}
-                  >
-                    <div className="space-y-2">
-                      {/* Header row */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="flex flex-col shrink-0">
+        {aiUiEnabled && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="h-5 w-5" />
+                {t('aiEndpoints.title')}
+              </CardTitle>
+              <CardDescription>
+                {t('aiEndpoints.description')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(formData.ai_endpoints || []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t('aiEndpoints.noEndpoints')}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {(formData.ai_endpoints || []).map((endpoint, index) => (
+                    <div
+                      key={index}
+                      className={`border rounded-lg p-4 space-y-3 ${
+                        !endpoint.enabled ? 'opacity-60 bg-muted/50' : ''
+                      }`}
+                    >
+                      <div className="space-y-2">
+                        {/* Header row */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex flex-col shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 p-0"
+                                disabled={index === 0}
+                                onClick={() => {
+                                  const updated = [...(formData.ai_endpoints || [])];
+                                  [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
+                                  updateField('ai_endpoints', updated);
+                                }}
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 p-0"
+                                disabled={index === (formData.ai_endpoints || []).length - 1}
+                                onClick={() => {
+                                  const updated = [...(formData.ai_endpoints || [])];
+                                  [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+                                  updateField('ai_endpoints', updated);
+                                }}
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <span className="font-medium text-sm truncate">
+                              {endpoint.name || `Endpoint ${index + 1}`}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Switch
+                              checked={endpoint.enabled}
+                              onCheckedChange={(checked) => {
+                                const updated = [...(formData.ai_endpoints || [])];
+                                updated[index] = { ...updated[index], enabled: checked };
+                                updateField('ai_endpoints', updated);
+                              }}
+                            />
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-5 w-5 p-0"
-                              disabled={index === 0}
+                              className="h-7 w-7 text-destructive"
                               onClick={() => {
-                                const updated = [...(formData.ai_endpoints || [])];
-                                [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
+                                const updated = (formData.ai_endpoints || []).filter((_, i) => i !== index);
                                 updateField('ai_endpoints', updated);
+                                setEndpointTests((prev) => {
+                                  const newTests = { ...prev };
+                                  delete newTests[index];
+                                  return newTests;
+                                });
                               }}
                             >
-                              <ChevronUp className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 p-0"
-                              disabled={index === (formData.ai_endpoints || []).length - 1}
-                              onClick={() => {
-                                const updated = [...(formData.ai_endpoints || [])];
-                                [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
-                                updateField('ai_endpoints', updated);
-                              }}
-                            >
-                              <ChevronDown className="h-3 w-3" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                          <span className="font-medium text-sm truncate">
-                            {endpoint.name || `Endpoint ${index + 1}`}
-                          </span>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Switch
-                            checked={endpoint.enabled}
-                            onCheckedChange={(checked) => {
-                              const updated = [...(formData.ai_endpoints || [])];
-                              updated[index] = { ...updated[index], enabled: checked };
-                              updateField('ai_endpoints', updated);
-                            }}
-                          />
+                        {/* Status badges and test button */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant={endpoint.enabled ? 'default' : 'secondary'} className="text-xs">
+                            {endpoint.enabled ? t('aiEndpoints.active') : t('aiEndpoints.disabled')}
+                          </Badge>
+                          {endpointTests[index]?.status === 'connected' && (
+                            <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                              {t('aiEndpoints.connected')}
+                            </Badge>
+                          )}
+                          {endpointTests[index]?.status === 'error' && (
+                            <Badge variant="outline" className="text-xs text-red-600 border-red-600">
+                              {t('aiEndpoints.error')}
+                            </Badge>
+                          )}
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive"
-                            onClick={() => {
-                              const updated = (formData.ai_endpoints || []).filter((_, i) => i !== index);
-                              updateField('ai_endpoints', updated);
-                              setEndpointTests((prev) => {
-                                const newTests = { ...prev };
-                                delete newTests[index];
-                                return newTests;
-                              });
-                            }}
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs ml-auto"
+                            onClick={() => handleTestEndpoint(index, endpoint.url)}
+                            disabled={endpointTests[index]?.status === 'testing' || !endpoint.url}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            {endpointTests[index]?.status === 'testing' ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            ) : null}
+                            {t('aiEndpoints.testConnection')}
                           </Button>
                         </div>
                       </div>
-                      {/* Status badges and test button */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant={endpoint.enabled ? 'default' : 'secondary'} className="text-xs">
-                          {endpoint.enabled ? t('aiEndpoints.active') : t('aiEndpoints.disabled')}
-                        </Badge>
-                        {endpointTests[index]?.status === 'connected' && (
-                          <Badge variant="outline" className="text-xs text-green-600 border-green-600">
-                            {t('aiEndpoints.connected')}
-                          </Badge>
-                        )}
-                        {endpointTests[index]?.status === 'error' && (
-                          <Badge variant="outline" className="text-xs text-red-600 border-red-600">
-                            {t('aiEndpoints.error')}
-                          </Badge>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-6 text-xs ml-auto"
-                          onClick={() => handleTestEndpoint(index, endpoint.url)}
-                          disabled={endpointTests[index]?.status === 'testing' || !endpoint.url}
-                        >
-                          {endpointTests[index]?.status === 'testing' ? (
-                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                          ) : null}
-                          {t('aiEndpoints.testConnection')}
-                        </Button>
+                      {/* Test Results */}
+                      {endpointTests[index]?.status === 'connected' && endpointTests[index]?.models && (
+                        <div className="text-xs space-y-1 p-2 bg-green-50 dark:bg-green-950 rounded overflow-hidden">
+                          <p className="font-medium text-green-700 dark:text-green-300">
+                            {t('aiEndpoints.modelsAvailable', { count: endpointTests[index].models?.length ?? 0 })}
+                          </p>
+                          {endpointTests[index].visionModels && endpointTests[index].visionModels!.length > 0 && (
+                            <p className="text-green-600 dark:text-green-400 truncate" title={endpointTests[index].visionModels?.join(', ')}>
+                              {t('aiEndpoints.visionModels', { models: endpointTests[index].visionModels?.slice(0, 3).join(', ') ?? '' })}
+                              {(endpointTests[index].visionModels?.length || 0) > 3 && '...'}
+                            </p>
+                          )}
+                          {endpointTests[index].textModels && endpointTests[index].textModels!.length > 0 && (
+                            <p className="text-green-600 dark:text-green-400 truncate" title={endpointTests[index].textModels?.join(', ')}>
+                              {t('aiEndpoints.textModels', { models: endpointTests[index].textModels?.slice(0, 3).join(', ') ?? '' })}
+                              {(endpointTests[index].textModels?.length || 0) > 3 && '...'}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {endpointTests[index]?.status === 'error' && (
+                        <div className="text-xs p-2 bg-red-50 dark:bg-red-950 rounded text-red-600 dark:text-red-400 break-words">
+                          {endpointTests[index].error}
+                        </div>
+                      )}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t('aiEndpoints.fields.name')}</Label>
+                          <Input
+                            value={endpoint.name}
+                            onChange={(e) => {
+                              const updated = [...(formData.ai_endpoints || [])];
+                              updated[index] = { ...updated[index], name: e.target.value };
+                              updateField('ai_endpoints', updated);
+                            }}
+                            placeholder={t('aiEndpoints.placeholders.name')}
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t('aiEndpoints.fields.url')}</Label>
+                          <Input
+                            value={endpoint.url}
+                            onChange={(e) => {
+                              const updated = [...(formData.ai_endpoints || [])];
+                              updated[index] = { ...updated[index], url: e.target.value };
+                              updateField('ai_endpoints', updated);
+                            }}
+                            placeholder="http://localhost:11434/v1"
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t('aiEndpoints.fields.visionModel')}</Label>
+                          <Input
+                            value={endpoint.vision_model}
+                            onChange={(e) => {
+                              const updated = [...(formData.ai_endpoints || [])];
+                              updated[index] = { ...updated[index], vision_model: e.target.value };
+                              updateField('ai_endpoints', updated);
+                            }}
+                            placeholder={EXAMPLE_VISION_MODEL}
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t('aiEndpoints.fields.textModel')}</Label>
+                          <Input
+                            value={endpoint.text_model}
+                            onChange={(e) => {
+                              const updated = [...(formData.ai_endpoints || [])];
+                              updated[index] = { ...updated[index], text_model: e.target.value };
+                              updateField('ai_endpoints', updated);
+                            }}
+                            placeholder={EXAMPLE_TEXT_MODEL}
+                            className="h-8"
+                          />
+                        </div>
                       </div>
                     </div>
-                    {/* Test Results */}
-                    {endpointTests[index]?.status === 'connected' && endpointTests[index]?.models && (
-                      <div className="text-xs space-y-1 p-2 bg-green-50 dark:bg-green-950 rounded overflow-hidden">
-                        <p className="font-medium text-green-700 dark:text-green-300">
-                          {t('aiEndpoints.modelsAvailable', { count: endpointTests[index].models?.length ?? 0 })}
-                        </p>
-                        {endpointTests[index].visionModels && endpointTests[index].visionModels!.length > 0 && (
-                          <p className="text-green-600 dark:text-green-400 truncate" title={endpointTests[index].visionModels?.join(', ')}>
-                            {t('aiEndpoints.visionModels', { models: endpointTests[index].visionModels?.slice(0, 3).join(', ') ?? '' })}
-                            {(endpointTests[index].visionModels?.length || 0) > 3 && '...'}
-                          </p>
-                        )}
-                        {endpointTests[index].textModels && endpointTests[index].textModels!.length > 0 && (
-                          <p className="text-green-600 dark:text-green-400 truncate" title={endpointTests[index].textModels?.join(', ')}>
-                            {t('aiEndpoints.textModels', { models: endpointTests[index].textModels?.slice(0, 3).join(', ') ?? '' })}
-                            {(endpointTests[index].textModels?.length || 0) > 3 && '...'}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {endpointTests[index]?.status === 'error' && (
-                      <div className="text-xs p-2 bg-red-50 dark:bg-red-950 rounded text-red-600 dark:text-red-400 break-words">
-                        {endpointTests[index].error}
-                      </div>
-                    )}
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs">{t('aiEndpoints.fields.name')}</Label>
-                        <Input
-                          value={endpoint.name}
-                          onChange={(e) => {
-                            const updated = [...(formData.ai_endpoints || [])];
-                            updated[index] = { ...updated[index], name: e.target.value };
-                            updateField('ai_endpoints', updated);
-                          }}
-                          placeholder={t('aiEndpoints.placeholders.name')}
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">{t('aiEndpoints.fields.url')}</Label>
-                        <Input
-                          value={endpoint.url}
-                          onChange={(e) => {
-                            const updated = [...(formData.ai_endpoints || [])];
-                            updated[index] = { ...updated[index], url: e.target.value };
-                            updateField('ai_endpoints', updated);
-                          }}
-                          placeholder="http://localhost:11434/v1"
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">{t('aiEndpoints.fields.visionModel')}</Label>
-                        <Input
-                          value={endpoint.vision_model}
-                          onChange={(e) => {
-                            const updated = [...(formData.ai_endpoints || [])];
-                            updated[index] = { ...updated[index], vision_model: e.target.value };
-                            updateField('ai_endpoints', updated);
-                          }}
-                          placeholder={EXAMPLE_VISION_MODEL}
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">{t('aiEndpoints.fields.textModel')}</Label>
-                        <Input
-                          value={endpoint.text_model}
-                          onChange={(e) => {
-                            const updated = [...(formData.ai_endpoints || [])];
-                            updated[index] = { ...updated[index], text_model: e.target.value };
-                            updateField('ai_endpoints', updated);
-                          }}
-                          placeholder={EXAMPLE_TEXT_MODEL}
-                          className="h-8"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  const newEndpoint: AIEndpoint = {
-                    name: `Endpoint ${(formData.ai_endpoints || []).length + 1}`,
-                    url: 'http://localhost:11434/v1',
-                    vision_model: 'moondream',
-                    text_model: 'phi3:mini',
-                    enabled: true,
-                  };
-                  updateField('ai_endpoints', [...(formData.ai_endpoints || []), newEndpoint]);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                {t('aiEndpoints.addEndpoint')}
-              </Button>
-              {hasChanges && (
-                <Button onClick={handleSave} disabled={updatePreferences.isPending}>
-                  {updatePreferences.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  {tc('save')}
-                </Button>
+                  ))}
+                </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    const newEndpoint: AIEndpoint = {
+                      name: `Endpoint ${(formData.ai_endpoints || []).length + 1}`,
+                      url: 'http://localhost:11434/v1',
+                      vision_model: 'moondream',
+                      text_model: 'phi3:mini',
+                      enabled: true,
+                    };
+                    updateField('ai_endpoints', [...(formData.ai_endpoints || []), newEndpoint]);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t('aiEndpoints.addEndpoint')}
+                </Button>
+                {hasChanges && (
+                  <Button onClick={handleSave} disabled={updatePreferences.isPending}>
+                    {updatePreferences.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {tc('save')}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

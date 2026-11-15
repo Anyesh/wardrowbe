@@ -35,6 +35,10 @@ VARIANTS = (
 )
 ORIGINAL = VARIANTS[0]
 
+# A split crop gets this much room around its box (of its longer side) so a box that clips a
+# sleeve or a shoe still includes it.
+SPLIT_CROP_PADDING = 0.02
+
 IMAGE_MIME_TYPES = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -159,6 +163,34 @@ class ImageService:
 
         paths["image_hash"] = self._phash_of(image)
         return paths
+
+    def crop_to_jpeg(
+        self, image_path: str, left: float, top: float, width: float, height: float
+    ) -> bytes:
+        """Cut a box (fractions 0-1 of the stored photo) out of it as full-quality JPEG bytes.
+
+        Stored photos are already upright, so a box drawn on one lines up with the pixels.
+        """
+        source = self.storage_path / image_path
+        if not source.exists():
+            raise ValueError(f"Image not found: {image_path}")
+        with Image.open(source) as opened:
+            image = _flatten_to_rgb(opened)
+            full_w, full_h = image.size
+            x0, y0 = left * full_w, top * full_h
+            x1, y1 = x0 + width * full_w, y0 + height * full_h
+            pad = SPLIT_CROP_PADDING * max(x1 - x0, y1 - y0)
+            box = (
+                max(int(x0 - pad), 0),
+                max(int(y0 - pad), 0),
+                min(int(x1 + pad) + 1, full_w),
+                min(int(y1 + pad) + 1, full_h),
+            )
+            if box[2] - box[0] < 1 or box[3] - box[1] < 1:
+                raise ValueError("The box is outside the photo")
+            output = BytesIO()
+            image.crop(box).save(output, format="JPEG", quality=VARIANTS[0].quality, optimize=True)
+            return output.getvalue()
 
     def get_image_path(self, relative_path: str) -> Path:
         """Get full path for an image."""

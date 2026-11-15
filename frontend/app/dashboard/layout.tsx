@@ -8,6 +8,7 @@ import { Sidebar } from '@/components/sidebar';
 import { MobileSidebar } from '@/components/mobile-sidebar';
 import { MobileNav } from '@/components/mobile-nav';
 import { Header } from '@/components/header';
+import { AiRouteGuard } from '@/components/ai-route-guard';
 import { OfflineIndicator } from '@/components/offline-indicator';
 import { UploadQueueIndicator } from '@/components/upload-queue-indicator';
 import { ImageLightbox } from '@/components/image-lightbox';
@@ -62,7 +63,7 @@ export default function DashboardLayout({
         <div className="lg:pl-72">
           <Header onMenuClick={() => setSidebarOpen(true)} />
           <main className="py-6 px-4 sm:px-6 lg:px-8 pb-20 lg:pb-6 overflow-x-hidden">
-            {children}
+            <AiRouteGuard>{children}</AiRouteGuard>
           </main>
         </div>
         <MobileNav />

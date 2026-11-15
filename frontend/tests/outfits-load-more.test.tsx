@@ -18,6 +18,7 @@ vi.mock('@/lib/api', () => ({
   api: { get: vi.fn(), post: vi.fn() },
   setAccessToken: vi.fn(),
 }))
+vi.mock('@/lib/hooks/use-features', () => ({ useAiUiEnabled: () => true }))
 vi.mock('@/components/outfits/outfit-card', () => ({
   OutfitCard: ({ outfit }: { outfit: { id: string } }) => <div>{outfit.id}</div>,
 }))

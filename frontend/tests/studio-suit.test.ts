@@ -32,7 +32,7 @@ describe('mergeAiAssist with multi-slot items', () => {
   it('skips trousers when a suit is already on the canvas', () => {
     const { merged, skipped } = mergeAiAssist([makeItem('1', 'suit')], [makeItem('2', 'pants')]);
     expect(merged).toHaveLength(1);
-    expect(skipped.map((s) => s.item.id)).toEqual(['2']);
+    expect(skipped.map((s) => [s.item.id, s.conflict.id])).toEqual([['2', '1']]);
   });
 
   it('skips a suit when the canvas already has trousers', () => {
@@ -41,13 +41,13 @@ describe('mergeAiAssist with multi-slot items', () => {
       [makeItem('3', 'suit')]
     );
     expect(merged).toHaveLength(2);
-    expect(skipped.map((s) => s.item.id)).toEqual(['3']);
+    expect(skipped.map((s) => [s.item.id, s.conflict.id])).toEqual([['3', '2']]);
   });
 
   it('skips a shirt when a dress is already on the canvas', () => {
     const { merged, skipped } = mergeAiAssist([makeItem('1', 'dress')], [makeItem('2', 'shirt')]);
     expect(merged).toHaveLength(1);
-    expect(skipped[0].reason).toContain('base top');
+    expect(skipped[0].conflict.id).toBe('1');
   });
 });
 

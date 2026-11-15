@@ -70,6 +70,10 @@ def test_compose_leaves_ai_timeout_default_to_settings(compose):
     assert compose["x-backend-env"]["AI_TIMEOUT"] == "${AI_TIMEOUT:-}"
 
 
+def test_compose_leaves_ai_ui_switch_to_follow_internal_ai(compose):
+    assert compose["x-backend-env"]["AI_UI_ENABLED"] == "${AI_UI_ENABLED:-}"
+
+
 def _k8s_container(filename):
     deployment = next(
         doc for doc in _load_repo_yaml(f"k8s/{filename}") if doc and doc["kind"] == "Deployment"
@@ -151,7 +155,7 @@ def test_k8s_frontend_takes_extra_ca_certs_from_the_configmap():
     }
 
 
-@pytest.mark.parametrize("key", ["AI_VISION_ENABLED", "AI_TEXT_ENABLED"])
+@pytest.mark.parametrize("key", ["AI_VISION_ENABLED", "AI_TEXT_ENABLED", "AI_UI_ENABLED"])
 def test_k8s_capability_switches_inherit_the_master_switch(key):
     (configmap,) = _load_repo_yaml("k8s/configmap.yaml")
     assert configmap["data"].get(key, "") == "", f"{key} must stay unset so it inherits"

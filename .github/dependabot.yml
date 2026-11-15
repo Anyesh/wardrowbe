@@ -32,6 +32,9 @@ updates:
         exclude-patterns:
           - "@radix-ui/*"
           - "@tanstack/*"
+        update-types:
+          - "minor"
+          - "patch"
       radix-ui:
         patterns:
           - "@radix-ui/*"

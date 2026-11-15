@@ -11,9 +11,9 @@
     "clearSelection": "Auswahl aufheben",
     "noneSelected": "Nichts ausgewählt",
     "reanalyze": "Erneut analysieren",
-    "removeBackground": "Remove background",
-    "rotateCcw": "Rotate left",
-    "rotateCw": "Rotate right",
+    "removeBackground": "Hintergrund entfernen",
+    "rotateCcw": "Nach links drehen",
+    "rotateCw": "Nach rechts drehen",
     "selectAllMatching": "Alle {count} Treffer auswählen"
   },
   "cancel": "Abbrechen",

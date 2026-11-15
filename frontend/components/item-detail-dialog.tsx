@@ -15,9 +15,11 @@ import {
   Shirt,
   Sparkles,
   RefreshCw,
+  Replace,
   RotateCcw,
   RotateCw,
   Eraser,
+  Scissors,
   Undo2,
   ImagePlus,
   Layers,
@@ -60,6 +62,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
+import { SplitPhotoDialog } from '@/components/split-photo-dialog';
 import { ApiError } from '@/lib/api';
 import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
@@ -81,6 +84,7 @@ import { ColorEyedropper } from '@/components/color-eyedropper';
 import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
 import { ItemTagsEditor } from '@/components/item-tags-editor';
+import { ReplaceAnalysisDialog } from '@/components/replace-analysis-dialog';
 import {
   diffTags,
   draftFromTags,
@@ -89,7 +93,7 @@ import {
   type ItemEdits,
   type TagDraft,
 } from '@/lib/tag-edits';
-import { useFeatures } from '@/lib/hooks/use-features';
+import { useAiUiEnabled, useFeatures } from '@/lib/hooks/use-features';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/lib/utils';
 
@@ -158,6 +162,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const fitLabel = useFitLabel();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
   const [showPairingsDialog, setShowPairingsDialog] = useState(false);
   const [imageKey, setImageKey] = useState(0);
   const [editForm, setEditForm] = useState<EditForm>({
@@ -178,6 +183,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   // item would send its new tags back as clears and resend untouched fields as edits.
   const [editBase, setEditBase] = useState<Item | null>(item);
   const [showWashHistory, setShowWashHistory] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
   const [showWearHistory, setShowWearHistory] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -190,6 +196,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const replaceImage = useReplaceItemImage();
   const replaceImageInputRef = useRef<HTMLInputElement>(null);
   const { data: features } = useFeatures();
+  const aiUiEnabled = useAiUiEnabled();
   const logWear = useLogWear();
   const logWash = useLogWash();
   const { data: washHistory } = useWashHistory(item?.id || '');
@@ -298,11 +305,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     }
   };
 
-  const handleReanalyze = async () => {
+  const handleReanalyze = async (replace = false) => {
     try {
-      const result = await reanalyzeItem.mutateAsync(item.id);
+      const result = await reanalyzeItem.mutateAsync({ id: item.id, replace });
       if (result.status === 'cooldown' && result.retry_after_seconds) {
         toast.info(tw('ai.retryCooldown', { seconds: result.retry_after_seconds }));
+      } else if (replace && result.status === 'already_queued') {
+        toast.info(t('replaceAnalysis.alreadyQueued'));
       }
       // Otherwise status will update to 'processing' and UI will reflect it
     } catch (error) {
@@ -405,38 +414,51 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     }`}
                   />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowPairingsDialog(true)}
-                  disabled={item.status !== 'ready'}
-                  title={t('titles.findMatchingOutfits')}
-                >
-                  <Layers className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    onOpenChange(false);
-                    router.push(`/dashboard/suggest?item=${item.id}`);
-                  }}
-                  disabled={item.status !== 'ready'}
-                  title={t('titles.suggestOutfit')}
-                >
-                  <Sparkles className="h-5 w-5 text-primary" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleReanalyze}
-                  disabled={isAnalyzing}
-                  title={isAnalyzing ? t('titles.analysisInProgress') : t('titles.reanalyzeWithAI')}
-                >
-                  <RefreshCw
-                    className={`h-5 w-5 ${isAnalyzing ? 'animate-spin text-primary' : ''}`}
-                  />
-                </Button>
+                {aiUiEnabled && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowPairingsDialog(true)}
+                      disabled={item.status !== 'ready'}
+                      title={t('titles.findMatchingOutfits')}
+                    >
+                      <Layers className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        onOpenChange(false);
+                        router.push(`/dashboard/suggest?item=${item.id}`);
+                      }}
+                      disabled={item.status !== 'ready'}
+                      title={t('titles.suggestOutfit')}
+                    >
+                      <Sparkles className="h-5 w-5 text-primary" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleReanalyze()}
+                      disabled={isAnalyzing}
+                      title={isAnalyzing ? t('titles.analysisInProgress') : t('titles.reanalyzeWithAI')}
+                    >
+                      <RefreshCw
+                        className={`h-5 w-5 ${isAnalyzing ? 'animate-spin text-primary' : ''}`}
+                      />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowReplaceConfirm(true)}
+                      disabled={isAnalyzing}
+                      title={t('titles.reanalyzeAndReplace')}
+                    >
+                      <Replace className="h-5 w-5" />
+                    </Button>
+                  </>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -506,6 +528,16 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     <ImagePlus className="h-5 w-5" />
                   )}
                 </Button>
+                {item.image_url && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowSplit(true)}
+                    title={t('titles.splitPhoto')}
+                  >
+                    <Scissors className="h-5 w-5" />
+                  </Button>
+                )}
                 <input
                   ref={replaceImageInputRef}
                   type="file"
@@ -1142,6 +1174,22 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
         </DialogContent>
       </Dialog>
 
+      {showSplit && item.image_url && (
+        <SplitPhotoDialog
+          itemId={item.id}
+          imageUrl={item.medium_url ?? item.image_url}
+          open
+          onClose={() => setShowSplit(false)}
+          onDone={() => onOpenChange(false)}
+        />
+      )}
+
+      <ReplaceAnalysisDialog
+        open={showReplaceConfirm}
+        onOpenChange={setShowReplaceConfirm}
+        onConfirm={() => handleReanalyze(true)}
+      />
+
       {/* Delete Confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
@@ -1167,12 +1215,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Generate Pairings Dialog */}
-      <GeneratePairingsDialog
-        item={item}
-        open={showPairingsDialog}
-        onOpenChange={setShowPairingsDialog}
-      />
+      {aiUiEnabled && (
+        <GeneratePairingsDialog
+          item={item}
+          open={showPairingsDialog}
+          onOpenChange={setShowPairingsDialog}
+        />
+      )}
     </>
   );
 }
