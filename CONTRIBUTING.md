@@ -71,7 +71,7 @@ python -m venv venv
 source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # Run tests
 pytest
@@ -79,6 +79,9 @@ pytest
 # Run linting
 ruff check .
 ruff format .
+
+# Type-check shared utilities (the initial ty scope)
+ty check
 ```
 
 ### Frontend Development
