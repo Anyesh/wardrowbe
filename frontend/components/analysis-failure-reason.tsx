@@ -19,7 +19,11 @@ export function AnalysisFailureReason({
   className,
 }: AnalysisFailureReasonProps) {
   const t = useTranslations('errors') as unknown as ErrorTranslator;
-  const reason = translateCode(code, params ?? undefined, t) ?? fallback;
-  if (reason === null) return null;
-  return <p className={className}>{reason}</p>;
+  const translated = translateCode(code, params ?? undefined, t);
+  if (translated === null && fallback === null) return null;
+  return (
+    <p className={className} title={translated ?? undefined}>
+      {translated ?? fallback}
+    </p>
+  );
 }

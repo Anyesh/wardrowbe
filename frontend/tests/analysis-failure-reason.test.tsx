@@ -63,6 +63,21 @@ describe('AnalysisFailureReason', () => {
     )
   })
 
+  it('offers the whole translated reason as a tooltip, since the card clamps it', () => {
+    renderReason('en', { code: 'AI_PROVIDER_ERROR', params: {} })
+
+    expect(screen.getByText(errorsFor('en').AI_PROVIDER_ERROR)).toHaveAttribute(
+      'title',
+      errorsFor('en').AI_PROVIDER_ERROR
+    )
+  })
+
+  it('gives the fallback no tooltip', () => {
+    renderReason('en', { code: null, params: null, fallback: 'No reason' })
+
+    expect(screen.getByText('No reason')).not.toHaveAttribute('title')
+  })
+
   it.each([
     ['a legacy failure with no code', null],
     ['a code the catalog does not know', 'SOMETHING_NEW'],
