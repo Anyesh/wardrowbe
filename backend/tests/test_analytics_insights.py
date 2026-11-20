@@ -19,6 +19,10 @@ def test_cardigan_heavy_wardrobe_asks_for_basics_not_shirts():
     assert _insights([("cardigan", 8), ("shirt", 1), ("skirt", 4)]) == [LAYERS]
 
 
+def test_hoodies_are_worn_alone_so_they_are_not_layers_needing_basics():
+    assert _insights([("hoodie", 6), ("t-shirt", 1), ("jeans", 1)]) == []
+
+
 def test_layers_with_enough_basics_are_fine():
     assert _insights([("cardigan", 4), ("t-shirt", 3), ("sweater", 1), ("jeans", 3)]) == []
 

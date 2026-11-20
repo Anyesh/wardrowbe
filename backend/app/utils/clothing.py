@@ -22,10 +22,15 @@ class WardrobeComposition:
 
 
 def count_composition(type_counts: list[tuple[str | None, int]]) -> WardrobeComposition:
-    """Bucket item counts by body role. Outer layers, footwear and accessories are ignored."""
+    """Bucket item counts by body role. Outer layers, layers worn alone, footwear and accessories
+    are ignored."""
     buckets = {"base_top": 0, "mid_layer": 0, "bottom": 0, "full_body": 0}
     for item_type, count in type_counts:
-        role = ITEM_ROLE.get((item_type or "").lower())
+        normalized = (item_type or "").lower()
+        role = ITEM_ROLE.get(normalized)
+        # A hoodie is a mid layer only so that it fits under a jacket; it needs nothing under it.
+        if role == "mid_layer" and normalized in WORN_ALONE_TYPES:
+            continue
         if role in buckets:
             buckets[role] += count
     return WardrobeComposition(
@@ -40,6 +45,10 @@ def _slots_for_type(item_type: str) -> frozenset[str]:
     role = ITEM_ROLE.get(item_type)
     if not role or role == "accessory":
         return frozenset()
+    # A hoodie goes under a jacket and over a shirt, and a vest or cardigan can go over it,
+    # so a garment worn alone only clashes with another of its own type.
+    if item_type in WORN_ALONE_TYPES:
+        return frozenset({item_type})
     return ROLE_SLOTS.get(role, frozenset({role}))
 
 
@@ -126,7 +135,7 @@ def _fill_options(
     claimed: frozenset[str],
 ) -> list[tuple[UUID, int]]:
     # A piece may only cover regions that are still missing and take free slots, so that
-    # a dress never lands on trousers and a hoodie never goes under a coat.
+    # a dress never lands on trousers and a layer never doubles a slot already taken.
     fits = [
         iid
         for iid in rank

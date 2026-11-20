@@ -191,7 +191,10 @@
     "turtleneck": "高領",
     "v-neck": "V領",
     "windbreaker": "防風外套",
-    "wrap": "裹身"
+    "wrap": "裹身",
+    "waistcoat": "西裝馬甲",
+    "sweater-vest": "毛衣馬甲",
+    "puffer": "麵包服"
   },
   "timezones": {
     "America/Chicago": "美國中部時間",

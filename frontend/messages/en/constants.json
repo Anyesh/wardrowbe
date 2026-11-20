@@ -191,7 +191,10 @@
     "turtleneck": "Turtleneck",
     "v-neck": "V-neck",
     "windbreaker": "Windbreaker",
-    "wrap": "Wrap"
+    "wrap": "Wrap",
+    "waistcoat": "Waistcoat",
+    "sweater-vest": "Sweater vest",
+    "puffer": "Puffer"
   },
   "timezones": {
     "America/Chicago": "Central Time (US)",
