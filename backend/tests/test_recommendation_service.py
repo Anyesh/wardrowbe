@@ -330,24 +330,22 @@ def test_a_cached_suggestion_without_context_does_not_fit():
 
 
 def test_fill_best_partial_prefers_an_option_the_fill_can_complete():
-    coat, jeans, boots, hoodie = uuid4(), uuid4(), uuid4(), uuid4()
-    types = {coat: "coat", jeans: "jeans", boots: "boots", hoodie: "hoodie"}
-    unfillable = ({"headline": "coat"}, [coat, jeans, boots])
-    fillable = ({"headline": "jeans"}, [jeans])
-    outfit_data, item_ids = fill_best_partial(
-        [unfillable, fillable], [hoodie, boots, coat, jeans], types
-    )
-    assert outfit_data["headline"] == "jeans"
-    assert set(item_ids) == {jeans, hoodie, boots}
-    assert outfit_data["_filled_item_ids"] == [str(hoodie), str(boots)]
+    jeans, boots, dress = uuid4(), uuid4(), uuid4()
+    types = {jeans: "jeans", boots: "boots", dress: "dress"}
+    unfillable = ({"headline": "jeans"}, [jeans, boots])
+    fillable = ({"headline": "boots"}, [boots])
+    outfit_data, item_ids = fill_best_partial([unfillable, fillable], [dress, boots, jeans], types)
+    assert outfit_data["headline"] == "boots"
+    assert set(item_ids) == {boots, dress}
+    assert outfit_data["_filled_item_ids"] == [str(dress)]
     assert "_filled_item_ids" not in unfillable[0]
 
 
 def test_fill_best_partial_gives_up_when_no_option_can_be_completed():
-    coat, jeans, boots, hoodie = uuid4(), uuid4(), uuid4(), uuid4()
-    types = {coat: "coat", jeans: "jeans", boots: "boots", hoodie: "hoodie"}
-    outfit_data = {"headline": "coat"}
-    assert fill_best_partial([(outfit_data, [coat, jeans, boots])], [hoodie], types) is None
+    jeans, boots, dress = uuid4(), uuid4(), uuid4()
+    types = {jeans: "jeans", boots: "boots", dress: "dress"}
+    outfit_data = {"headline": "jeans"}
+    assert fill_best_partial([(outfit_data, [jeans, boots])], [dress], types) is None
     assert "_filled_item_ids" not in outfit_data
 
 
