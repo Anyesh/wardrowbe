@@ -23,7 +23,7 @@
   "BACKGROUND_REMOVAL_FAILED": "背景の削除に失敗しました。写真は変更されていません。",
   "BACKGROUND_REMOVAL_UNAVAILABLE": "このサーバーでは背景除去が設定されていません。",
   "BOX_OUTSIDE_PHOTO": "選択した枠が写真の外にあります。アイテムの上に移動してください。",
-  "BULK_ACTION_LIMIT_EXCEEDED": "一度に変更できるアイテムは{limit}個までです。",
+  "BULK_ACTION_LIMIT_EXCEEDED": "一度に選択できるのは{limit}件までです。",
   "BULK_LIMIT_EXCEEDED": "一度にアップロードできる画像は{limit}枚までです。",
   "CANNOT_CHANGE_OWN_ROLE": "自分の役割は変更できません。",
   "CANNOT_RATE_OWN_OUTFIT": "自分のコーデは評価できません。",

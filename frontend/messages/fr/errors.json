@@ -23,7 +23,7 @@
   "BACKGROUND_REMOVAL_FAILED": "La suppression de l'arrière-plan a échoué. La photo n'a pas été modifiée.",
   "BACKGROUND_REMOVAL_UNAVAILABLE": "La suppression d'arrière-plan n'est pas configurée sur ce serveur.",
   "BOX_OUTSIDE_PHOTO": "Le cadre sélectionné est en dehors de la photo. Placez-le sur le vêtement.",
-  "BULK_ACTION_LIMIT_EXCEEDED": "Vous pouvez modifier jusqu'à {limit} articles à la fois.",
+  "BULK_ACTION_LIMIT_EXCEEDED": "Vous pouvez en sélectionner jusqu'à {limit} à la fois.",
   "BULK_LIMIT_EXCEEDED": "Vous pouvez envoyer jusqu'à {limit} images à la fois.",
   "CANNOT_CHANGE_OWN_ROLE": "Vous ne pouvez pas modifier votre propre rôle.",
   "CANNOT_RATE_OWN_OUTFIT": "Vous ne pouvez pas noter votre propre tenue.",

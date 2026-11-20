@@ -23,7 +23,7 @@
   "BACKGROUND_REMOVAL_FAILED": "抠图失败，照片保持不变。",
   "BACKGROUND_REMOVAL_UNAVAILABLE": "此服务器尚未设置背景移除功能。",
   "BOX_OUTSIDE_PHOTO": "所选方框超出了照片范围。请将它移到单品上。",
-  "BULK_ACTION_LIMIT_EXCEEDED": "一次最多可以处理 {limit} 件单品。",
+  "BULK_ACTION_LIMIT_EXCEEDED": "一次最多可以选择 {limit} 个。",
   "BULK_LIMIT_EXCEEDED": "一次最多可上传 {limit} 张图片。",
   "CANNOT_CHANGE_OWN_ROLE": "你不能更改自己的角色。",
   "CANNOT_RATE_OWN_OUTFIT": "你不能给自己的穿搭评分。",

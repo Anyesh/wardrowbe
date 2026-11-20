@@ -23,7 +23,7 @@
   "BACKGROUND_REMOVAL_FAILED": "Background removal failed. The photo is unchanged.",
   "BACKGROUND_REMOVAL_UNAVAILABLE": "Background removal is not set up on this server.",
   "BOX_OUTSIDE_PHOTO": "The selected box is outside the photo. Move it over the garment.",
-  "BULK_ACTION_LIMIT_EXCEEDED": "You can change up to {limit} items at a time.",
+  "BULK_ACTION_LIMIT_EXCEEDED": "You can select up to {limit} at a time.",
   "BULK_LIMIT_EXCEEDED": "You can upload up to {limit} images at a time.",
   "CANNOT_CHANGE_OWN_ROLE": "You can't change your own role.",
   "CANNOT_RATE_OWN_OUTFIT": "You can't rate your own outfit.",

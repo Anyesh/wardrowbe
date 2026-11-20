@@ -23,7 +23,7 @@
   "BACKGROUND_REMOVAL_FAILED": "배경 제거에 실패했어요. 사진은 그대로예요.",
   "BACKGROUND_REMOVAL_UNAVAILABLE": "이 서버에는 배경 제거 기능이 설정되어 있지 않아요.",
   "BOX_OUTSIDE_PHOTO": "선택한 상자가 사진 밖에 있어요. 아이템 위로 옮겨 주세요.",
-  "BULK_ACTION_LIMIT_EXCEEDED": "한 번에 최대 {limit}개의 아이템까지 처리할 수 있어요.",
+  "BULK_ACTION_LIMIT_EXCEEDED": "한 번에 최대 {limit}개까지 선택할 수 있어요.",
   "BULK_LIMIT_EXCEEDED": "한 번에 최대 {limit}장까지 업로드할 수 있어요.",
   "CANNOT_CHANGE_OWN_ROLE": "본인의 역할은 변경할 수 없어요.",
   "CANNOT_RATE_OWN_OUTFIT": "내 코디는 직접 평가할 수 없어요.",

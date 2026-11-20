@@ -23,7 +23,7 @@
   "BACKGROUND_REMOVAL_FAILED": "去背失敗，照片維持原樣。",
   "BACKGROUND_REMOVAL_UNAVAILABLE": "此伺服器尚未設定背景移除功能。",
   "BOX_OUTSIDE_PHOTO": "所選方框超出了照片範圍。請將它移到單品上。",
-  "BULK_ACTION_LIMIT_EXCEEDED": "一次最多可以處理 {limit} 件單品。",
+  "BULK_ACTION_LIMIT_EXCEEDED": "一次最多可以選擇 {limit} 個。",
   "BULK_LIMIT_EXCEEDED": "一次最多可上傳 {limit} 張圖片。",
   "CANNOT_CHANGE_OWN_ROLE": "你無法變更自己的角色。",
   "CANNOT_RATE_OWN_OUTFIT": "你無法為自己的穿搭評分。",

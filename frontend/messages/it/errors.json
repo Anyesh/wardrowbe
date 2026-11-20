@@ -23,7 +23,7 @@
   "BACKGROUND_REMOVAL_FAILED": "Rimozione dello sfondo non riuscita. La foto non è cambiata.",
   "BACKGROUND_REMOVAL_UNAVAILABLE": "La rimozione dello sfondo non è configurata su questo server.",
   "BOX_OUTSIDE_PHOTO": "Il riquadro selezionato è fuori dalla foto. Spostalo sul capo.",
-  "BULK_ACTION_LIMIT_EXCEEDED": "Puoi modificare fino a {limit} capi alla volta.",
+  "BULK_ACTION_LIMIT_EXCEEDED": "Puoi selezionarne fino a {limit} alla volta.",
   "BULK_LIMIT_EXCEEDED": "Puoi caricare fino a {limit} immagini alla volta.",
   "CANNOT_CHANGE_OWN_ROLE": "Non puoi cambiare il tuo ruolo.",
   "CANNOT_RATE_OWN_OUTFIT": "Non puoi valutare il tuo stesso outfit.",

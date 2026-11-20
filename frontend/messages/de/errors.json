@@ -23,7 +23,7 @@
   "BACKGROUND_REMOVAL_FAILED": "Der Hintergrund konnte nicht entfernt werden. Das Foto bleibt unverändert.",
   "BACKGROUND_REMOVAL_UNAVAILABLE": "Die Hintergrundentfernung ist auf diesem Server nicht eingerichtet.",
   "BOX_OUTSIDE_PHOTO": "Der gewählte Rahmen liegt außerhalb des Fotos. Schiebe ihn über das Kleidungsstück.",
-  "BULK_ACTION_LIMIT_EXCEEDED": "Du kannst bis zu {limit} Stücke auf einmal ändern.",
+  "BULK_ACTION_LIMIT_EXCEEDED": "Du kannst höchstens {limit} auf einmal auswählen.",
   "BULK_LIMIT_EXCEEDED": "Du kannst höchstens {limit} Bilder gleichzeitig hochladen.",
   "CANNOT_CHANGE_OWN_ROLE": "Du kannst deine eigene Rolle nicht ändern.",
   "CANNOT_RATE_OWN_OUTFIT": "Du kannst dein eigenes Outfit nicht bewerten.",
