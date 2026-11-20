@@ -1,12 +1,24 @@
 import pickle
+from io import BytesIO
+from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
+from PIL import Image
 
+from app.api import items as items_api
 from app.main import app as main_app
 from app.main import coded_http_exception_handler
+from app.models.item import ClothingItem, ItemStatus
+from app.models.user import User
+from app.services import image_service as image_service_module
+from app.services.image_service import ImageService, ImageTooLargeError
+from app.services.item_service import TagVocabularyError
 from app.utils.errors import Coded, CodedHTTPException, CodedValueError, http_error
+from app.utils.uploads import UploadTooLargeError
+from tests.identity_helpers import add_users_with_identities
 
 
 class _SampleError(Coded, Exception):
@@ -136,3 +148,189 @@ class TestHttpError:
 
 def test_main_app_registers_the_coded_handler():
     assert CodedHTTPException in main_app.exception_handlers
+
+
+def _png(size: tuple[int, int]) -> bytes:
+    buf = BytesIO()
+    Image.new("RGB", size, (120, 60, 200)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+async def _item_without_image(db_session, user, **overrides) -> ClothingItem:
+    item = ClothingItem(
+        user_id=user.id, type="shirt", image_path="", status=ItemStatus.ready, **overrides
+    )
+    db_session.add(item)
+    await db_session.commit()
+    await db_session.refresh(item)
+    return item
+
+
+class TestItemServiceErrors:
+    def test_pixel_limit_carries_megapixels_and_limit(self):
+        error = ImageTooLargeError(600_000, 100_000)
+
+        assert error.code == "IMAGE_TOO_MANY_PIXELS"
+        assert error.params == {"megapixels": 0.6, "limit": 0.1}
+        assert isinstance(error, ValueError)
+
+    def test_upload_limit_carries_the_limit(self):
+        error = UploadTooLargeError(7)
+
+        assert error.code == "IMAGE_TOO_LARGE"
+        assert error.params == {"limit": 7}
+        assert str(error) == "File exceeds the 7 MB upload limit"
+
+    def test_tag_vocabulary_error_is_coded_and_a_value_error(self):
+        error = TagVocabularyError("pattern 'x' is not one of: solid")
+
+        assert error.code == "INVALID_TAG_VALUE"
+        assert isinstance(error, ValueError)
+
+    def test_missing_file_is_coded(self):
+        with pytest.raises(ValueError) as caught:
+            ImageService().rotate_image("nobody/missing.jpg")
+
+        assert caught.value.code == "IMAGE_FILE_MISSING"
+
+
+class TestItemEndpointErrors:
+    @pytest.mark.asyncio
+    async def test_unknown_item(self, client: AsyncClient, auth_headers):
+        response = await client.get(f"/api/v1/items/{uuid4()}", headers=auth_headers)
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "ITEM_NOT_FOUND"
+        assert "params" not in response.json()
+
+    @pytest.mark.asyncio
+    async def test_bulk_upload_limit_names_the_limit(self, client: AsyncClient, auth_headers):
+        files = [("images", (f"i{n}.jpg", b"\xff\xd8", "image/jpeg")) for n in range(21)]
+
+        response = await client.post("/api/v1/items/bulk", files=files, headers=auth_headers)
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "BULK_LIMIT_EXCEEDED"
+        assert response.json()["params"] == {"limit": 20}
+
+    @pytest.mark.asyncio
+    async def test_bulk_action_limit_names_the_limit(
+        self, client: AsyncClient, auth_headers, monkeypatch
+    ):
+        monkeypatch.setattr(items_api.settings, "max_bulk_action_count", 2)
+
+        response = await client.post(
+            "/api/v1/items/bulk/delete",
+            headers=auth_headers,
+            json={"item_ids": [str(uuid4()) for _ in range(3)]},
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "BULK_ACTION_LIMIT_EXCEEDED"
+        assert response.json()["params"] == {"limit": 2}
+
+    @pytest.mark.asyncio
+    async def test_oversize_upload_names_the_byte_limit(self, client: AsyncClient, auth_headers):
+        with patch.object(items_api.settings, "max_upload_size_mb", 1):
+            response = await client.post(
+                "/api/v1/items",
+                files={"image": ("big.png", _png((50, 50)) + b"\0" * 1024 * 1024, "image/png")},
+                data={"skip_ai": "true"},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 413
+        assert response.json()["error_code"] == "IMAGE_TOO_LARGE"
+        assert response.json()["params"] == {"limit": 1}
+
+    @pytest.mark.asyncio
+    async def test_pixel_limit_names_both_numbers(
+        self, client: AsyncClient, auth_headers, monkeypatch
+    ):
+        monkeypatch.setattr(image_service_module.settings, "max_image_megapixels", 0.1)
+
+        response = await client.post(
+            "/api/v1/items",
+            files={"image": ("huge.png", _png((800, 800)), "image/png")},
+            data={"skip_ai": "true"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "IMAGE_TOO_MANY_PIXELS"
+        assert response.json()["params"] == {"megapixels": 0.6, "limit": 0.1}
+
+    @pytest.mark.asyncio
+    async def test_not_an_image(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            "/api/v1/items",
+            files={"image": ("note.txt", b"hello", "text/plain")},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "INVALID_IMAGE"
+
+    @pytest.mark.asyncio
+    async def test_rotate_item_without_image(
+        self, client: AsyncClient, auth_headers, test_user, db_session
+    ):
+        item = await _item_without_image(db_session, test_user)
+
+        response = await client.post(f"/api/v1/items/{item.id}/rotate", headers=auth_headers)
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "ITEM_HAS_NO_IMAGE"
+
+    @pytest.mark.asyncio
+    async def test_restore_without_original(
+        self, client: AsyncClient, auth_headers, test_user, db_session
+    ):
+        item = await _item_without_image(db_session, test_user)
+
+        response = await client.post(
+            f"/api/v1/items/{item.id}/restore-original", headers=auth_headers
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "NO_ORIGINAL_IMAGE"
+
+    @pytest.mark.asyncio
+    async def test_another_users_item_is_not_found(
+        self, client: AsyncClient, auth_headers, db_session
+    ):
+        other_id = uuid4()
+        other = User(
+            id=other_id,
+            external_id=f"other-{other_id}",
+            email=f"other-{other_id}@example.com",
+            display_name="Other",
+            timezone="UTC",
+            is_active=True,
+            onboarding_completed=False,
+            email_verified=True,
+        )
+        await add_users_with_identities(db_session, other)
+        await db_session.commit()
+        item = await _item_without_image(db_session, other)
+
+        response = await client.get(f"/api/v1/items/{item.id}", headers=auth_headers)
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "ITEM_NOT_FOUND"
+
+
+class TestImageEndpointErrors:
+    @pytest.mark.asyncio
+    async def test_bad_user_id(self, client: AsyncClient):
+        response = await client.get("/api/v1/images/not-a-uuid/a.jpg")
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "INVALID_IMAGE_PATH"
+
+    @pytest.mark.asyncio
+    async def test_unsigned_image_is_denied(self, client: AsyncClient):
+        response = await client.get(f"/api/v1/images/{uuid4()}/a.jpg")
+
+        assert response.status_code == 401
+        assert response.json()["error_code"] == "ACCESS_DENIED"

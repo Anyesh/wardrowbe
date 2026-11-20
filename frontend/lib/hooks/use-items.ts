@@ -8,10 +8,12 @@ import {
   API_BASE_PATH,
   getAccessToken,
   ApiError,
+  type ApiErrorParams,
   NetworkError,
   apiErrorFromBody,
   networkErrorNow,
 } from '@/lib/api';
+import { networkErrorCode } from '@/lib/errors';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
 import { applyItemEdits, type ItemEdits } from '@/lib/tag-edits';
@@ -611,11 +613,18 @@ export type BulkUploadErrorCode =
   | 'invalid_image'
   | 'processing_failed';
 
+// Set client-side when a whole request failed, so the dialog can translate it by code.
+export interface BulkUploadFailure {
+  code: string | null;
+  params?: ApiErrorParams;
+}
+
 export interface BulkUploadResult {
   filename: string;
   success: boolean;
   item?: Item;
   error?: string;
+  failure?: BulkUploadFailure;
   error_code?: BulkUploadErrorCode | null;
   duplicate?: boolean;
   existing_item_id?: string;
@@ -644,7 +653,10 @@ export interface BulkOperationParams {
   filters?: BulkItemFilters;
 }
 
-const BULK_ACTION_LIMIT_ERROR = /^Maximum (\d+) items per bulk action$/;
+function limitParam(params: Record<string, unknown>): number | null {
+  const { limit } = params;
+  return typeof limit === 'number' && Number.isFinite(limit) ? limit : null;
+}
 
 // The server's max_bulk_action_count is admin-tunable on a self-hosted install
 // and is not exposed to the client, so it is learned from the first rejection
@@ -652,9 +664,8 @@ const BULK_ACTION_LIMIT_ERROR = /^Maximum (\d+) items per bulk action$/;
 let learnedBulkActionLimit: number | null = null;
 
 function bulkActionLimitFrom(error: unknown): number | null {
-  if (!(error instanceof ApiError) || error.status !== 400) return null;
-  const match = error.message.match(BULK_ACTION_LIMIT_ERROR);
-  return match ? Number(match[1]) : null;
+  if (!(error instanceof ApiError) || error.code !== 'BULK_ACTION_LIMIT_EXCEEDED') return null;
+  return limitParam(error.params);
 }
 
 async function drainIdList<T extends BulkBatchResponse>(
@@ -1048,14 +1059,12 @@ function uploadBulkItemsChunk(
   });
 }
 
-// The backend's wording is matched verbatim; it is the fallback when
-// /health/features does not report the limit.
-const BULK_LIMIT_ERROR = /^Maximum (\d+) images per bulk upload$/;
-
-export function bulkUploadLimitFromDetail(detail: unknown): number | null {
-  if (typeof detail !== 'string') return null;
-  const match = detail.match(BULK_LIMIT_ERROR);
-  return match ? Number(match[1]) : null;
+// The fallback when /health/features does not report the limit.
+export function bulkUploadLimitFromBody(body: unknown): number | null {
+  if (!body || typeof body !== 'object') return null;
+  const { error_code: code, params } = body as { error_code?: unknown; params?: unknown };
+  if (code !== 'BULK_LIMIT_EXCEEDED' || !params || typeof params !== 'object') return null;
+  return limitParam(params as Record<string, unknown>);
 }
 
 // Same server-side cap upload-manager.ts's durable path works around: a
@@ -1073,8 +1082,8 @@ export async function uploadFilesWithinServerLimit(
     return await uploadBulkItemsChunk(files, skipAi, token, onProgress);
   } catch (error) {
     const limit =
-      error instanceof ApiError && error.status === 400
-        ? bulkUploadLimitFromDetail(error.message)
+      error instanceof ApiError && error.code === 'BULK_LIMIT_EXCEEDED'
+        ? limitParam(error.params)
         : null;
     if (limit && limit > 0 && limit < files.length) {
       const responses: BulkUploadResponse[] = [];
@@ -1158,11 +1167,14 @@ export function deriveQueueSummary(progress?: TaggingProgress): QueueSummary {
   };
 }
 
+function failureOf(error: unknown): BulkUploadFailure {
+  if (error instanceof ApiError) return { code: error.code, params: error.params };
+  if (error instanceof NetworkError) return { code: networkErrorCode(error.kind) };
+  return { code: null };
+}
+
 function failedChunkResponse(files: File[], error: unknown): BulkUploadResponse {
-  const message =
-    error instanceof ApiError || error instanceof NetworkError
-      ? error.message
-      : 'Failed to upload items';
+  const failure = failureOf(error);
   return {
     total: files.length,
     successful: 0,
@@ -1170,7 +1182,7 @@ function failedChunkResponse(files: File[], error: unknown): BulkUploadResponse 
     results: files.map((file) => ({
       filename: file.name,
       success: false,
-      error: message,
+      failure,
     })),
   };
 }

@@ -2,7 +2,7 @@ import re
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import FileResponse
 
 from app.database import DbSession
@@ -10,6 +10,7 @@ from app.models import User
 from app.services.family_service import FamilyService
 from app.services.image_service import IMAGE_MIME_TYPES, ImageService
 from app.utils.auth import get_current_user_optional
+from app.utils.errors import CodedHTTPException
 from app.utils.signed_urls import verify_signature
 
 router = APIRouter(prefix="/images", tags=["Images"])
@@ -29,15 +30,13 @@ async def get_image(
     try:
         UUID(user_id)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user ID format",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "INVALID_IMAGE_PATH", "Invalid user ID format"
         ) from e
 
     if not FILENAME_PATTERN.match(filename):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid filename format",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "INVALID_IMAGE_PATH", "Invalid filename format"
         )
 
     path = f"{user_id}/{filename}"
@@ -58,25 +57,16 @@ async def get_image(
                 can_access = user_id in family_user_ids
 
     if not can_access:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Access denied",
-        )
+        raise CodedHTTPException(status.HTTP_401_UNAUTHORIZED, "ACCESS_DENIED", "Access denied")
 
     image_service = ImageService()
     image_path = image_service.get_image_path(path)
 
     if not image_path.resolve().is_relative_to(image_service.storage_path.resolve()):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid path",
-        )
+        raise CodedHTTPException(status.HTTP_400_BAD_REQUEST, "INVALID_IMAGE_PATH", "Invalid path")
 
     if not image_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Image not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "IMAGE_NOT_FOUND", "Image not found")
 
     ext = filename.rsplit(".", 1)[-1].lower()
     content_type = IMAGE_MIME_TYPES.get(f".{ext}", "image/jpeg")

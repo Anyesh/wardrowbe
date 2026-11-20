@@ -199,7 +199,6 @@
       "fit": "Passform",
       "formality": "Formalität",
       "hint": "Korrigiere, was die KI falsch erkannt hat. Deine Änderungen bleiben erhalten, wenn das Teil erneut analysiert wird.",
-      "invalidValue": "Ein Tag hat einen Wert, der nicht in der Liste steht. Wähle ihn erneut aus und speichere.",
       "material": "Material",
       "none": "Keine",
       "pattern": "Muster",
@@ -286,10 +285,7 @@
     "detecting": "Kleidungsstücke werden gesucht…",
     "errors": {
       "aiUnreachable": "Der KI-Dienst ist nicht erreichbar. Versuche es erneut oder füge für jedes Kleidungsstück einen Rahmen hinzu.",
-      "imageNotFound": "Das Foto dieses Artikels wurde nicht gefunden.",
       "rateLimited": "Zu viele Versuche in kurzer Zeit. Warte eine Minute und versuche es dann erneut.",
-      "sourceArchived": "Dieser Artikel ist bereits archiviert, daher kann sein Foto nicht erneut aufgeteilt werden.",
-      "sourceBusy": "Dieses Foto wird noch gedreht oder sein Hintergrund wird entfernt. Versuche es erneut, sobald das fertig ist.",
       "visionDisabled": "Die automatische Erkennung von Kleidungsstücken ist ausgeschaltet. Füge für jedes Kleidungsstück einen Rahmen hinzu."
     },
     "hint": "Ziehe einen Rahmen, um ihn zu verschieben, oder eine Ecke, um die Größe zu ändern.",

@@ -169,7 +169,7 @@ class TestPatchTags:
         response = await _patch(client, auth_headers, item.id, {"tags": tags})
 
         assert response.status_code == 422
-        assert response.json()["detail"]["error_code"] == "INVALID_TAG_VALUE"
+        assert response.json()["error_code"] == "INVALID_TAG_VALUE"
         refreshed = await _reload(db_session, item.id)
         assert refreshed.tags == {"pattern": "solid"}
         assert refreshed.pattern == "solid"

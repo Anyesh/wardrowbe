@@ -352,7 +352,7 @@ class TestDetectGarmentsEndpoint:
             )
 
         assert response.status_code == 503
-        assert response.json()["detail"]["error_code"] == "AI_VISION_DISABLED"
+        assert response.json()["error_code"] == "AI_VISION_DISABLED"
         detect.assert_not_awaited()
         limiter.assert_not_awaited()
 
@@ -368,7 +368,7 @@ class TestDetectGarmentsEndpoint:
             )
 
         assert response.status_code == 502
-        assert response.json()["detail"]["error_code"] == "AI_UNREACHABLE"
+        assert response.json()["error_code"] == "AI_UNREACHABLE"
 
     @pytest.mark.asyncio
     async def test_uses_the_users_own_ai_endpoints(
@@ -687,7 +687,7 @@ class TestSplitEndpoint:
 
         assert response.status_code == expected_status
         if error_code is not None:
-            assert response.json()["detail"]["error_code"] == error_code
+            assert response.json()["error_code"] == error_code
             assert len(await _all_items(db_session, test_user)) == 1
 
     @pytest.mark.asyncio
@@ -717,7 +717,7 @@ class TestSplitEndpoint:
 
         assert sorted(r.status_code for r in responses) == [201, 409]
         [refused] = [r for r in responses if r.status_code == 409]
-        assert refused.json()["detail"]["error_code"] == "SOURCE_ARCHIVED"
+        assert refused.json()["error_code"] == "SOURCE_ARCHIVED"
         items = await _all_items(db_session, test_user)
         assert len([i for i in items if not i.is_archived]) == len(BOXES)
 
@@ -737,7 +737,7 @@ class TestSplitEndpoint:
             )
 
         assert response.status_code == 404
-        assert response.json()["detail"]["error_code"] == "IMAGE_NOT_FOUND"
+        assert response.json()["error_code"] == "IMAGE_NOT_FOUND"
         assert source.image_path not in response.text
         detect.assert_not_awaited()
         assert len(await _all_items(db_session, test_user)) == 1

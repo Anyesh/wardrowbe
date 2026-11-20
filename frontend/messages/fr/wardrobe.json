@@ -199,7 +199,6 @@
       "fit": "Coupe",
       "formality": "Formalité",
       "hint": "Corrigez ce que l'IA a mal identifié. Vos modifications sont conservées si l'article est analysé à nouveau.",
-      "invalidValue": "Une étiquette a une valeur absente de la liste. Choisissez-la à nouveau et enregistrez.",
       "material": "Matière",
       "none": "Aucune",
       "pattern": "Motif",
@@ -286,10 +285,7 @@
     "detecting": "Recherche des vêtements…",
     "errors": {
       "aiUnreachable": "Le service d'IA est injoignable. Réessayez, ou ajoutez un cadre pour chaque vêtement.",
-      "imageNotFound": "La photo de cet article est introuvable.",
       "rateLimited": "Trop d'essais en peu de temps. Attendez une minute, puis réessayez.",
-      "sourceArchived": "Cet article est déjà archivé, sa photo ne peut donc plus être divisée.",
-      "sourceBusy": "Cette photo est encore en cours de rotation ou de suppression de l'arrière-plan. Réessayez une fois l'opération terminée.",
       "visionDisabled": "La détection automatique des vêtements est désactivée. Ajoutez un cadre pour chaque vêtement."
     },
     "hint": "Faites glisser un cadre pour le déplacer, ou un coin pour le redimensionner.",

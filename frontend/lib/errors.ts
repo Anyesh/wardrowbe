@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { ApiError, NetworkError } from '@/lib/api';
+import { ApiError, NetworkError, type NetworkErrorKind } from '@/lib/api';
 
 export interface ErrorTranslator {
   (key: string, values?: Record<string, string | number>): string;
@@ -10,6 +10,10 @@ export interface ErrorTranslator {
 export const ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 
 const NETWORK_CODES = { offline: 'NETWORK_OFFLINE', unreachable: 'NETWORK_CONNECT_FAILED' } as const;
+
+export function networkErrorCode(kind: NetworkErrorKind): string {
+  return NETWORK_CODES[kind];
+}
 
 // next-intl reports a formatting failure through onError and returns the key path, so that
 // result counts as untranslated too.
