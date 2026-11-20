@@ -59,7 +59,11 @@ class TestRecoverStaleProcessingItems:
         result = await db_session.execute(select(ClothingItem).where(ClothingItem.id == item_id))
         updated = result.scalar_one()
         assert updated.status == ItemStatus.error
-        assert updated.ai_raw_response == {"error": "Job lost or timed out"}
+        assert updated.ai_raw_response == {
+            "error": "Job lost or timed out",
+            "error_code": "ANALYSIS_TIMED_OUT",
+            "error_params": {},
+        }
         # Drives the retry-cooldown gate (issue #153) - a stale-swept item is
         # exactly the kind of "just failed" item a user might immediately retry.
         assert updated.ai_failed_at is not None

@@ -282,7 +282,7 @@ async def test_tag_item_image_runs_ai_when_enabled(monkeypatch):
 
     monkeypatch.setattr(tagging, "AIService", _StubAI)
 
-    async def _err(ctx, item_id, msg):
+    async def _err(ctx, item_id, failure):
         return None
 
     monkeypatch.setattr(tagging, "update_item_status_to_error", _err)

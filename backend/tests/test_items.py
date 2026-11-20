@@ -14,7 +14,7 @@ from app.models.item import ClothingItem, ItemHistory, ItemStatus
 from app.models.user import User
 from app.schemas.item import ItemCreate, ItemFilter
 from app.services.item_service import ItemService
-from app.workers.tagging import update_item_status_to_error
+from app.workers.tagging import analysis_failure, update_item_status_to_error
 
 
 def _make_test_image_bytes() -> bytes:
@@ -1601,7 +1601,9 @@ class TestRetryCooldownEndpoint:
                 async_engine, class_=AsyncSession, expire_on_commit=False
             )
         }
-        await update_item_status_to_error(worker_ctx, str(item_id), "boom")
+        await update_item_status_to_error(
+            worker_ctx, str(item_id), analysis_failure(ValueError("boom"))
+        )
         # update_item_status_to_error writes through a separate session, so
         # db_session's identity map still holds the pre-failure `item` object
         # with its old (non-expired) status - expire it or the endpoint's

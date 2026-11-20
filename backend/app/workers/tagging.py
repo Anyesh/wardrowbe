@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+import httpx
 from arq import Retry
 from sqlalchemy import select, update
 
@@ -12,7 +13,13 @@ from app.config import get_settings
 from app.models.item import TAG_COLUMNS, ClothingItem, ItemStatus, TaggedBy, TaggingStatus
 from app.models.preference import UserPreference
 from app.models.user import User
-from app.services.ai_service import AIService, ClothingTags, repeats_identically
+from app.services.ai_service import (
+    AIDisabledError,
+    AIService,
+    ClothingTags,
+    repeats_identically,
+)
+from app.utils.errors import Coded
 from app.utils.locale import DEFAULT_LOCALE
 from app.workers.db import get_db_session
 from app.workers.queues import WORKER_MAX_TRIES
@@ -148,7 +155,38 @@ async def mark_item_tagging_skipped(ctx: dict, item_id: str) -> None:
         await db.close()
 
 
-async def update_item_status_to_error(ctx: dict, item_id: str, error_msg: str) -> None:
+MISSING_PHOTO_FAILURE = {
+    "error": "Image not found",
+    "error_code": "IMAGE_FILE_MISSING",
+    "error_params": {},
+}
+
+
+def _failure_code(exc: BaseException) -> dict[str, Any]:
+    if isinstance(exc, Coded):
+        return {"error_code": exc.code, "error_params": dict(exc.params)}
+    if isinstance(exc, httpx.HTTPStatusError):
+        return {"error_code": "AI_HTTP_ERROR", "error_params": {"status": exc.response.status_code}}
+    if isinstance(exc, httpx.TimeoutException):
+        return {"error_code": "AI_TIMEOUT", "error_params": {}}
+    if isinstance(exc, httpx.DecodingError):
+        return {"error_code": "AI_RESPONSE_UNUSABLE", "error_params": {}}
+    if isinstance(exc, httpx.RequestError):
+        return {"error_code": "AI_UNREACHABLE", "error_params": {}}
+    if isinstance(exc, TimeoutError):
+        return {"error_code": "ANALYSIS_TIMED_OUT", "error_params": {}}
+    if isinstance(exc, AIDisabledError):
+        return {"error_code": "AI_VISION_DISABLED", "error_params": {}}
+    return {"error_code": "AI_ANALYSIS_FAILED", "error_params": {}}
+
+
+def analysis_failure(exc: BaseException) -> dict[str, Any]:
+    if isinstance(exc, FileNotFoundError):
+        return dict(MISSING_PHOTO_FAILURE)
+    return {"error": str(exc) or type(exc).__name__, **_failure_code(exc)}
+
+
+async def update_item_status_to_error(ctx: dict, item_id: str, failure: dict[str, Any]) -> None:
     try:
         db = get_db_session(ctx)
         try:
@@ -162,7 +200,7 @@ async def update_item_status_to_error(ctx: dict, item_id: str, error_msg: str) -
                 )
                 .values(
                     status=ItemStatus.error,
-                    ai_raw_response={"error": error_msg},
+                    ai_raw_response=failure,
                     ai_failed_at=datetime.now(UTC),
                 )
             )
@@ -223,9 +261,8 @@ async def tag_item_image(
         # Verify image exists
         path = Path(image_path)
         if not path.exists():
-            error_msg = f"Image not found: {image_path}"
-            logger.error(error_msg)
-            await update_item_status_to_error(ctx, item_id, error_msg)
+            logger.error(f"Image not found for item {item_id}: {image_path}")
+            await update_item_status_to_error(ctx, item_id, dict(MISSING_PHOTO_FAILURE))
             return {"status": "error", "error": "Image not found"}
 
         # Get user's AI endpoints from preferences, and mark this attempt as started
@@ -406,13 +443,12 @@ async def tag_item_image(
         await clear_ai_started_at(ctx, item_id)
         raise
     except Exception as e:
-        error_msg = str(e)
-        logger.exception(f"Error tagging item {item_id}: {error_msg}")
+        logger.exception(f"Error tagging item {item_id}: {e}")
         # Returning normally here made max_tries dead: arq books a returned value
         # as success. arq only reschedules on Retry, so a plain re-raise would
         # surface the failure but still never retry.
         if _is_final_attempt(ctx) or repeats_identically(e):
-            await update_item_status_to_error(ctx, item_id, error_msg)
+            await update_item_status_to_error(ctx, item_id, analysis_failure(e))
             raise
         await clear_ai_started_at(ctx, item_id)
         raise Retry(defer=retry_delay_seconds(ctx)) from e

@@ -157,15 +157,19 @@ class TestWorkerFailsLoudly:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("job_try", "error"),
+        ("job_try", "error", "code"),
         [
-            (WorkerSettings.max_tries, RuntimeError("upstream 500")),
-            (1, AIResponseTruncatedError("upstream 500 cut off", retryable=False)),
+            (WorkerSettings.max_tries, RuntimeError("upstream 500"), "AI_ANALYSIS_FAILED"),
+            (
+                1,
+                AIResponseTruncatedError("upstream 500 cut off", retryable=False),
+                "AI_RESPONSE_EMPTY",
+            ),
         ],
         ids=["final-attempt", "deterministic-truncation"],
     )
     async def test_marks_error_on_final_attempt(
-        self, db_session: AsyncSession, test_user, job_try, error
+        self, db_session: AsyncSession, test_user, job_try, error, code
     ):
         item = ClothingItem(
             user_id=test_user.id,
@@ -188,6 +192,7 @@ class TestWorkerFailsLoudly:
         await db_session.refresh(item)
         assert item.status == ItemStatus.error
         assert "upstream 500" in item.ai_raw_response["error"]
+        assert item.ai_raw_response["error_code"] == code
 
 
 class TestAiStartedAtLifecycle:
