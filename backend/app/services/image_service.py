@@ -1,3 +1,4 @@
+import logging
 import shutil
 import uuid
 from dataclasses import dataclass
@@ -12,6 +13,8 @@ from pillow_heif import register_heif_opener
 from app.config import get_settings
 from app.services import background_removal
 from app.utils.errors import Coded, CodedValueError
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -62,6 +65,11 @@ def _flatten_to_rgb(image: Image.Image) -> Image.Image:
     if image.mode != "RGB":
         return image.convert("RGB")
     return image
+
+
+def _missing_image(image_path: str) -> CodedValueError:
+    logger.error("Image not found: %s", image_path)
+    return CodedValueError("Image not found", code="IMAGE_FILE_MISSING")
 
 
 class ImageTooLargeError(Coded, ValueError):
@@ -180,7 +188,7 @@ class ImageService:
         """
         source = self.storage_path / image_path
         if not source.exists():
-            raise CodedValueError(f"Image not found: {image_path}", code="IMAGE_FILE_MISSING")
+            raise _missing_image(image_path)
         with Image.open(source) as opened:
             image = _flatten_to_rgb(opened)
             full_w, full_h = image.size
@@ -295,7 +303,7 @@ class ImageService:
         original_full = self.storage_path / image_path
 
         if not original_full.exists():
-            raise CodedValueError(f"Image not found: {image_path}", code="IMAGE_FILE_MISSING")
+            raise _missing_image(image_path)
 
         backup_path = f"{base_path}_orig.jpg"
         backup_full = self.storage_path / backup_path
@@ -341,7 +349,7 @@ class ImageService:
         original_full = self.storage_path / image_path
 
         if not original_full.exists():
-            raise CodedValueError(f"Image not found: {image_path}", code="IMAGE_FILE_MISSING")
+            raise _missing_image(image_path)
 
         angle = -90 if direction == "cw" else 90  # PIL rotates counter-clockwise by default
 

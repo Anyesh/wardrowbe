@@ -212,11 +212,21 @@ class TestItemServiceErrors:
         assert error.code == "INVALID_TAG_VALUE"
         assert isinstance(error, ValueError)
 
-    def test_missing_file_is_coded(self):
+    @pytest.mark.parametrize(
+        "operation",
+        [
+            lambda svc: svc.rotate_image("nobody/missing.jpg"),
+            lambda svc: svc.remove_background("nobody/missing.jpg"),
+            lambda svc: svc.crop_to_jpeg("nobody/missing.jpg", 0, 0, 1, 1),
+        ],
+        ids=["rotate", "remove-background", "crop"],
+    )
+    def test_missing_file_is_coded_without_its_path(self, operation):
         with pytest.raises(ValueError) as caught:
-            ImageService().rotate_image("nobody/missing.jpg")
+            operation(ImageService())
 
         assert caught.value.code == "IMAGE_FILE_MISSING"
+        assert str(caught.value) == "Image not found"
 
 
 class TestItemEndpointErrors:

@@ -157,15 +157,19 @@ class TestWorkerFailsLoudly:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("job_try", "error"),
+        ("job_try", "error", "code"),
         [
-            (WorkerSettings.max_tries, RuntimeError("upstream 500")),
-            (1, AIResponseTruncatedError("upstream 500 cut off", retryable=False)),
+            (WorkerSettings.max_tries, RuntimeError("upstream 500"), "AI_ANALYSIS_FAILED"),
+            (
+                1,
+                AIResponseTruncatedError("upstream 500 cut off", retryable=False),
+                "AI_RESPONSE_EMPTY",
+            ),
         ],
         ids=["final-attempt", "deterministic-truncation"],
     )
     async def test_marks_error_on_final_attempt(
-        self, db_session: AsyncSession, test_user, job_try, error
+        self, db_session: AsyncSession, test_user, job_try, error, code
     ):
         item = ClothingItem(
             user_id=test_user.id,
@@ -188,6 +192,7 @@ class TestWorkerFailsLoudly:
         await db_session.refresh(item)
         assert item.status == ItemStatus.error
         assert "upstream 500" in item.ai_raw_response["error"]
+        assert item.ai_raw_response["error_code"] == code
 
 
 class TestAiStartedAtLifecycle:
@@ -357,6 +362,67 @@ class TestFailureReasonReachesTheApi:
         resp = await client.get(f"/api/v1/items/{item.id}", headers=auth_headers)
         assert resp.status_code == 200
         assert resp.json()["ai_error"] == "AI endpoint returned 404"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("raw", "error", "code", "params"),
+        [
+            (
+                {
+                    "error": "cut off",
+                    "error_code": "AI_RESPONSE_EMPTY",
+                    "error_params": {"max_tokens": 4096},
+                },
+                "cut off",
+                "AI_RESPONSE_EMPTY",
+                {"max_tokens": 4096},
+            ),
+            (
+                {"error": "", "error_code": "ANALYSIS_TIMED_OUT", "error_params": {}},
+                None,
+                "ANALYSIS_TIMED_OUT",
+                {},
+            ),
+            ({"error": "boom"}, "boom", None, None),
+        ],
+        ids=["coded", "coded-without-text", "legacy"],
+    )
+    async def test_failure_code_exposed_on_item_and_queue(
+        self,
+        client: AsyncClient,
+        auth_headers,
+        db_session: AsyncSession,
+        test_user,
+        raw,
+        error,
+        code,
+        params,
+    ):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="unknown",
+            image_path="t/coded.jpg",
+            status=ItemStatus.error,
+            ai_failed_at=datetime.now(UTC),
+            ai_raw_response=raw,
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        body = (await client.get(f"/api/v1/items/{item.id}", headers=auth_headers)).json()
+        progress = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+
+        assert (body["ai_error"], body["ai_error_code"], body["ai_error_params"]) == (
+            error,
+            code,
+            params,
+        )
+        [failure] = progress["failures"]
+        assert (failure["error"], failure["error_code"], failure["error_params"]) == (
+            error,
+            code,
+            params,
+        )
 
     @pytest.mark.asyncio
     async def test_unrecognized_type_exposed_on_item_response(

@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from app.config import get_settings
 from app.services.garment_detector import DETECTION_EXAMPLE, DetectedGarment, parse_detection
+from app.utils.errors import Coded
 from app.utils.garment_vocabulary import (
     COLORS,
     FITS,
@@ -34,8 +35,12 @@ logger = logging.getLogger(__name__)
 AI_RETRY_MAX_BACKOFF_S = 30
 
 
-class _AIProviderResponseError(RuntimeError):
-    pass
+class _AIProviderResponseError(Coded, RuntimeError):
+    code = "AI_PROVIDER_ERROR"
+
+
+class AIUnusableResponseError(Coded, RuntimeError):
+    code = "AI_RESPONSE_UNUSABLE"
 
 
 class TextGenerationResult(BaseModel):
@@ -137,6 +142,23 @@ def _message_rejects_logprobs(message: str) -> bool:
 
 def _response_rejects_logprobs(response: httpx.Response) -> bool:
     return response.status_code == 400 and _message_rejects_logprobs(response.text)
+
+
+def _response_body(response: httpx.Response) -> object:
+    try:
+        return response.json()
+    except ValueError as e:
+        raise AIUnusableResponseError("AI endpoint answered with a body that is not JSON") from e
+
+
+def _first_choice(data: object) -> dict:
+    try:
+        choice = data["choices"][0]
+    except (KeyError, IndexError, TypeError) as e:
+        raise AIUnusableResponseError("AI endpoint answered without a completion") from e
+    if not isinstance(choice, dict) or not isinstance(choice.get("message"), dict):
+        raise AIUnusableResponseError("AI endpoint answered with a completion that has no message")
+    return choice
 
 
 def _provider_error_message(data: object) -> str | None:
@@ -468,7 +490,7 @@ class AIService:
                         )
                         response.raise_for_status()
 
-                        data = response.json()
+                        data = _response_body(response)
                         provider_error = _provider_error_message(data)
                         if provider_error is not None:
                             if use_logprobs and _message_rejects_logprobs(provider_error):
@@ -488,7 +510,7 @@ class AIService:
                                 use_reasoning_effort = False
                                 continue
                             raise _AIProviderResponseError(provider_error)
-                        choice = data["choices"][0]
+                        choice = _first_choice(data)
                         content = choice["message"].get("content")
                         logprobs_content = None
                         if use_logprobs:
@@ -647,10 +669,10 @@ class AIService:
                 raise tags_error
             if tags_content:
                 reason = description_error or "empty description reply"
-                raise RuntimeError(
+                raise AIUnusableResponseError(
                     f"AI returned no usable tags and no description: {reason}"
                 ) from description_error
-            raise description_error or RuntimeError("AI returned nothing usable")
+            raise description_error or AIUnusableResponseError("AI returned nothing usable")
 
         return tags
 
@@ -675,7 +697,7 @@ class AIService:
         ]
         content, error, _ = await self._call_with_fallback(messages, "garment detection")
         if content is None:
-            raise error or RuntimeError("AI returned nothing usable")
+            raise error or AIUnusableResponseError("AI returned nothing usable")
         return parse_detection(content)
 
     async def check_health(self) -> dict:
@@ -786,7 +808,7 @@ class AIService:
                         )
                         response.raise_for_status()
 
-                        data = response.json()
+                        data = _response_body(response)
                         provider_error = _provider_error_message(data)
                         if provider_error is not None:
                             if use_reasoning_effort and _message_rejects_reasoning_effort(
@@ -799,8 +821,8 @@ class AIService:
                                 use_reasoning_effort = False
                                 continue
                             raise _AIProviderResponseError(provider_error)
+                        choice = _first_choice(data)
                         used_model = data.get("model", endpoint.text_model)
-                        choice = data["choices"][0]
                         message = choice["message"]
                         content = message.get("content")
 
@@ -865,7 +887,7 @@ class AIService:
         raise RuntimeError("Failed to generate text - no endpoints available")
 
 
-class AIResponseTruncatedError(RuntimeError):
+class AIResponseTruncatedError(Coded, RuntimeError):
     """Raised when a model's response was cut off before it produced any output content.
 
     Reasoning-capable models (e.g. Qwen3, DeepSeek-R1) return their chain-of-thought in a
@@ -880,8 +902,10 @@ class AIResponseTruncatedError(RuntimeError):
     budget is cut off again, so the tagging worker fails the job instead of rerunning it.
     """
 
+    code = "AI_RESPONSE_EMPTY"
+
     def __init__(self, message: str, *, retryable: bool = True, max_tokens: int = 0):
-        super().__init__(message)
+        super().__init__(message, max_tokens=max_tokens)
         self.retryable = retryable
         self.max_tokens = max_tokens
 

@@ -7,8 +7,10 @@ from app.services.ai_service import (
     DESCRIPTION_LANGUAGES,
     AIResponseTruncatedError,
     AIService,
+    AIUnusableResponseError,
     ClothingTags,
 )
+from app.utils.errors import Coded
 from app.utils.locale import SUPPORTED_LOCALES
 
 FAKE_REQUEST = httpx.Request("POST", "http://ai-endpoint.test/chat/completions")
@@ -560,9 +562,16 @@ class TestEmptyCompletion:
         [
             (1, "", "", AIResponseTruncatedError, "empty response", False),
             (1, "", 503, AIResponseTruncatedError, "empty response", True),
-            (1, "I cannot identify this garment.", 500, RuntimeError, "no usable tags", True),
-            (1, "{}", '""', RuntimeError, "empty description reply", True),
-            (0, "", "", RuntimeError, "nothing usable", True),
+            (
+                1,
+                "I cannot identify this garment.",
+                500,
+                AIUnusableResponseError,
+                "no usable tags",
+                True,
+            ),
+            (1, "{}", '""', AIUnusableResponseError, "empty description reply", True),
+            (0, "", "", AIUnusableResponseError, "nothing usable", True),
         ],
         ids=[
             "empty-completions",
@@ -973,3 +982,70 @@ class TestReasoningEffort:
                 await service.generate_text("suggest an outfit")
 
         assert mock_post.call_count == 1
+
+
+class TestCodedFailures:
+    """Every failure the tagging worker stores must carry a code the UI can translate."""
+
+    @staticmethod
+    def _service() -> AIService:
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 1})
+        return service
+
+    def test_truncated_error_carries_its_token_budget_as_a_param(self):
+        error = AIResponseTruncatedError("cut off", retryable=False, max_tokens=4096)
+
+        assert isinstance(error, Coded)
+        assert isinstance(error, RuntimeError)
+        assert error.code == "AI_RESPONSE_EMPTY"
+        assert error.params == {"max_tokens": 4096}
+        assert error.max_tokens == 4096
+        assert error.retryable is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("path", ["vision", "text"])
+    async def test_provider_error_envelope_is_coded(self, path):
+        envelope = _mock_response({"error": {"message": "model qwen2.5vl not found"}})
+
+        with patch("httpx.AsyncClient.post", return_value=envelope):
+            with pytest.raises(RuntimeError, match="model qwen2.5vl not found") as exc_info:
+                await _complete(self._service(), path)
+
+        assert isinstance(exc_info.value, Coded)
+        assert exc_info.value.code == "AI_PROVIDER_ERROR"
+        assert exc_info.value.params == {}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("path", ["vision", "text"])
+    @pytest.mark.parametrize(
+        ("body", "cause"),
+        [
+            (b"<html>Bad Gateway</html>", ValueError),
+            (b'{"object": "chat.completion"}', KeyError),
+            (b'{"choices": []}', IndexError),
+            (b"[1, 2]", TypeError),
+            (b'{"choices": [{"finish_reason": "stop"}]}', None),
+        ],
+        ids=["not-json", "no-choices", "empty-choices", "not-an-object", "no-message"],
+    )
+    async def test_unreadable_200_body_is_coded_and_keeps_its_cause(self, path, body, cause):
+        response = httpx.Response(200, content=body, request=FAKE_REQUEST)
+
+        with patch("httpx.AsyncClient.post", return_value=response):
+            with pytest.raises(AIUnusableResponseError) as exc_info:
+                await _complete(self._service(), path)
+
+        assert exc_info.value.code == "AI_RESPONSE_UNUSABLE"
+        assert isinstance(exc_info.value, RuntimeError)
+        if cause is not None:
+            assert isinstance(exc_info.value.__cause__, cause)
+
+    @pytest.mark.asyncio
+    async def test_detection_with_no_attempts_is_coded(self):
+        service = AIService()
+        service.settings = service.settings.model_copy(update={"ai_max_retries": 0})
+
+        with patch.object(AIService, "_preprocess_image", return_value="base64data"):
+            with pytest.raises(AIUnusableResponseError, match="nothing usable"):
+                await service.detect_garments("/fake/image.jpg")
