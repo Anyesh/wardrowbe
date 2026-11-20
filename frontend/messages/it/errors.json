@@ -6,6 +6,7 @@
   "AI_ENDPOINT_REFUSED": "Connessione rifiutata. Il server è in esecuzione?",
   "AI_ENDPOINT_TIMEOUT": "La connessione è scaduta.",
   "AI_PAIRINGS_DISABLED": "L'IA integrata è disattivata, gli abbinamenti arrivano dal tuo agente esterno.",
+  "AI_RESPONSE_EMPTY": "Il modello di IA ha restituito una risposta vuota. Aumenta AI_MAX_TOKENS (attualmente {max_tokens}) o disattiva la sua modalità di ragionamento.",
   "AI_SERVICE_UNAVAILABLE": "Il servizio IA non è al momento disponibile",
   "AI_SUGGESTIONS_DISABLED": "L'IA integrata è disattivata, i suggerimenti di outfit arrivano dal tuo agente esterno.",
   "AI_UNREACHABLE": "Impossibile raggiungere il servizio IA. Riprova.",

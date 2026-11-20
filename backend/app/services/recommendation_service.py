@@ -1108,7 +1108,9 @@ class RecommendationService:
             # below — the AI endpoint responded successfully, it just didn't produce
             # any output content (see AIResponseTruncatedError for why).
             logger.error(f"AI recommendation failed: {e}")
-            raise AIRecommendationError(str(e)) from e
+            raise AIRecommendationError(
+                str(e), code="AI_RESPONSE_EMPTY", max_tokens=e.max_tokens
+            ) from e
         except Exception as e:
             logger.error(f"AI recommendation failed: {e}")
             raise AIRecommendationError(

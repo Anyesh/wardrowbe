@@ -6,6 +6,7 @@
   "AI_ENDPOINT_REFUSED": "Connexion refusée. Le serveur est-il démarré ?",
   "AI_ENDPOINT_TIMEOUT": "La connexion a expiré.",
   "AI_PAIRINGS_DISABLED": "L'IA intégrée est désactivée, les combinaisons viennent de votre agent externe.",
+  "AI_RESPONSE_EMPTY": "Le modèle d'IA a renvoyé une réponse vide. Augmentez AI_MAX_TOKENS (actuellement {max_tokens}) ou désactivez son mode de raisonnement.",
   "AI_SERVICE_UNAVAILABLE": "Le service IA est actuellement indisponible",
   "AI_SUGGESTIONS_DISABLED": "L'IA intégrée est désactivée, les suggestions de tenues viennent de votre agent externe.",
   "AI_UNREACHABLE": "Le service d'IA est injoignable. Veuillez réessayer.",

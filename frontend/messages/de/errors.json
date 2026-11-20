@@ -6,6 +6,7 @@
   "AI_ENDPOINT_REFUSED": "Verbindung abgelehnt. Läuft der Server?",
   "AI_ENDPOINT_TIMEOUT": "Zeitüberschreitung bei der Verbindung.",
   "AI_PAIRINGS_DISABLED": "Die integrierte KI ist ausgeschaltet, Kombinationen kommen von deinem externen Agenten.",
+  "AI_RESPONSE_EMPTY": "Das KI-Modell hat eine leere Antwort geliefert. Erhöhe AI_MAX_TOKENS (derzeit {max_tokens}) oder schalte seinen Reasoning-Modus aus.",
   "AI_SERVICE_UNAVAILABLE": "KI-Dienst ist derzeit nicht verfügbar",
   "AI_SUGGESTIONS_DISABLED": "Die integrierte KI ist ausgeschaltet, Outfit-Vorschläge kommen von deinem externen Agenten.",
   "AI_UNREACHABLE": "Der KI-Dienst ist nicht erreichbar. Bitte versuche es erneut.",

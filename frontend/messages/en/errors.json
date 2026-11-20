@@ -6,6 +6,7 @@
   "AI_ENDPOINT_REFUSED": "Connection refused. Is the server running?",
   "AI_ENDPOINT_TIMEOUT": "The connection timed out.",
   "AI_PAIRINGS_DISABLED": "Built-in AI is turned off, so pairings come from your external agent.",
+  "AI_RESPONSE_EMPTY": "The AI model returned an empty answer. Try raising AI_MAX_TOKENS (currently {max_tokens}) or turning off its reasoning mode.",
   "AI_SERVICE_UNAVAILABLE": "AI service is currently unavailable",
   "AI_SUGGESTIONS_DISABLED": "Built-in AI is turned off, so outfit suggestions come from your external agent.",
   "AI_UNREACHABLE": "The AI service could not be reached. Please try again.",

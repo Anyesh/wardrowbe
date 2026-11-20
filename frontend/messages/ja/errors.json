@@ -6,6 +6,7 @@
   "AI_ENDPOINT_REFUSED": "接続が拒否されました。サーバーは起動していますか？",
   "AI_ENDPOINT_TIMEOUT": "接続がタイムアウトしました。",
   "AI_PAIRINGS_DISABLED": "内蔵AIがオフのため、ペアリングは外部エージェントから届きます。",
+  "AI_RESPONSE_EMPTY": "AIモデルが空の応答を返しました。AI_MAX_TOKENS（現在 {max_tokens}）を増やすか、推論モードをオフにしてください。",
   "AI_SERVICE_UNAVAILABLE": "AIサービスは現在利用できません",
   "AI_SUGGESTIONS_DISABLED": "内蔵AIがオフのため、コーデ提案は外部エージェントから届きます。",
   "AI_UNREACHABLE": "AIサービスに接続できませんでした。もう一度お試しください。",

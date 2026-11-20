@@ -234,7 +234,9 @@ class PairingService:
             # Preserve the specific, actionable cause: the endpoint responded
             # successfully but produced no content (see AIResponseTruncatedError).
             logger.error(f"AI pairing generation failed: {e}")
-            raise AIGenerationError(str(e)) from e
+            raise AIGenerationError(
+                str(e), code="AI_RESPONSE_EMPTY", max_tokens=e.max_tokens
+            ) from e
         except Exception as e:
             logger.error(f"AI pairing generation failed: {e}")
             raise AIGenerationError(
