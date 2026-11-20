@@ -139,6 +139,7 @@ async def test_capabilities_default_on(client: AsyncClient):
         "external_tagging": True,
         "external_suggestions": True,
         "external_pairings": True,
+        "try_on": False,
     }
     assert data["version"] == "1.0.0"
 

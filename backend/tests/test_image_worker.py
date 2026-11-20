@@ -7,6 +7,7 @@ from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.models.item import ClothingItem, ItemStatus
 from app.models.user import User
 from app.services.image_service import ImageService
@@ -14,6 +15,7 @@ from app.workers.background_removal import remove_item_background_job
 from app.workers.image_worker import ImageWorkerSettings
 from app.workers.queues import IMAGE_QUEUE, TAGGING_QUEUE, queue_for_kind
 from app.workers.rotation import rotate_item_image_job
+from app.workers.try_on import generate_try_on
 from app.workers.worker import WorkerSettings
 
 
@@ -76,10 +78,21 @@ class TestWorkerSplit:
         assert ImageWorkerSettings.queue_name == IMAGE_QUEUE
 
     def test_image_worker_carries_both_image_jobs(self):
-        assert set(ImageWorkerSettings.functions) == {
-            rotate_item_image_job,
-            remove_item_background_job,
-        }
+        plain = {f for f in ImageWorkerSettings.functions if not hasattr(f, "coroutine")}
+        assert plain == {rotate_item_image_job, remove_item_background_job}
+
+    def test_image_worker_carries_try_on_with_one_try_and_a_long_deadline(self):
+        # Paid provider call: no arq retry, and a deadline above the provider timeout.
+        (job,) = [f for f in ImageWorkerSettings.functions if hasattr(f, "coroutine")]
+        assert job.coroutine is generate_try_on
+        assert job.max_tries == 1
+        assert job.timeout_s == get_settings().ai_image_timeout + 60
+        assert job.timeout_s > get_settings().ai_image_timeout
+
+    def test_tagging_worker_does_not_run_try_on(self):
+        assert all(
+            getattr(f, "coroutine", f) is not generate_try_on for f in WorkerSettings.functions
+        )
 
     def test_tagging_worker_no_longer_runs_image_jobs(self):
         # Leaving these on arq:tagging is the starvation this split exists to

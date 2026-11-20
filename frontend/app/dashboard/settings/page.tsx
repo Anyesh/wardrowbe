@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePreferences, useUpdatePreferences, useResetPreferences, useTestAIEndpoint } from '@/lib/hooks/use-preferences';
 import { useUserProfile, useUpdateUserProfile } from '@/lib/hooks/use-user';
 import { useAiUiEnabled } from '@/lib/hooks/use-features';
+import { TryOnPhotoCard } from '@/components/settings/try-on-photo-card';
 import {
   getNetworkLocationUrl,
   formatReverseGeocodedLocation,
@@ -767,6 +768,9 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Try-on photo (opt-in) */}
+        <TryOnPhotoCard />
 
         {/* Color Preferences */}
         <Card>

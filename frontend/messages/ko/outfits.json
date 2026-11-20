@@ -168,6 +168,30 @@
   "subtitle": "내 룩, 착용한 코디, AI 추천",
   "title": "코디",
   "totalCount": "총 {count}개",
+  "tryOn": {
+    "addPhoto": "사진 추가",
+    "delete": "삭제",
+    "deleteError": "가상 착용 이미지를 삭제할 수 없습니다",
+    "drawing": "생성 중…",
+    "errors": {
+      "dailyLimit": "오늘의 가상 착용 한도에 도달했습니다. 내일 다시 시도해 주세요.",
+      "generic": "이 코디를 생성하는 중 문제가 발생했습니다. 다시 시도해 주세요.",
+      "inProgress": "이 코디는 이미 생성 중입니다.",
+      "itemImageMissing": "이 코디의 모든 아이템에 사진이 필요합니다.",
+      "noImage": "모델이 이미지를 반환하지 않았습니다(거부했을 수 있습니다). 다시 시도해 주세요.",
+      "noPhoto": "먼저 설정에서 가상 착용 사진을 추가하세요.",
+      "rateLimited": "요청이 너무 많습니다. 1분 후에 다시 시도해 주세요."
+    },
+    "imageAlt": "이 코디를 입은 내 모습",
+    "keptPrevious": "마지막으로 성공한 이미지입니다.",
+    "needsPhoto": "이 코디를 입어 보려면 전신 사진을 추가하세요.",
+    "regenerate": "다시 생성",
+    "retry": "다시 시도",
+    "seeIt": "내게 입혀 보기",
+    "stale": "이 이미지를 생성한 뒤 코디 또는 사진이 변경되었습니다.",
+    "takingLonger": "예상보다 오래 걸리고 있습니다.",
+    "title": "가상 착용"
+  },
   "viewCalendar": "캘린더",
   "viewList": "목록",
   "viewToggle": "보기 전환"

@@ -168,6 +168,30 @@
   "subtitle": "Vos looks, tenues portées et suggestions IA",
   "title": "Tenues",
   "totalCount": "{count} au total",
+  "tryOn": {
+    "addPhoto": "Ajouter votre photo",
+    "delete": "Supprimer",
+    "deleteError": "Impossible de supprimer l'essayage",
+    "drawing": "Dessin en cours…",
+    "errors": {
+      "dailyLimit": "Vous avez atteint la limite d'essayages du jour. Réessayez demain.",
+      "generic": "Un problème est survenu pendant le dessin de cette tenue. Réessayez.",
+      "inProgress": "Cette tenue est déjà en cours de dessin.",
+      "itemImageMissing": "Chaque pièce de cette tenue doit avoir une photo.",
+      "noImage": "Le modèle n'a renvoyé aucune image (il a peut-être refusé). Réessayez.",
+      "noPhoto": "Ajoutez d'abord votre photo d'essayage dans les paramètres.",
+      "rateLimited": "Trop de requêtes. Attendez une minute et réessayez."
+    },
+    "imageAlt": "Cette tenue sur vous",
+    "keptPrevious": "Voici la dernière image réussie.",
+    "needsPhoto": "Ajoutez une photo en pied de vous pour voir cette tenue sur vous.",
+    "regenerate": "Régénérer",
+    "retry": "Réessayer",
+    "seeIt": "Voir sur moi",
+    "stale": "La tenue ou votre photo ont changé depuis la création de cette image.",
+    "takingLonger": "Cela prend plus de temps que prévu.",
+    "title": "Essayer"
+  },
   "viewCalendar": "Calendrier",
   "viewList": "Liste",
   "viewToggle": "Changer de vue"

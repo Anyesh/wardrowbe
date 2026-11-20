@@ -36,6 +36,7 @@ async def capabilities() -> dict[str, Any]:
             "external_tagging": True,
             "external_suggestions": True,
             "external_pairings": True,
+            "try_on": settings.try_on_enabled,
         },
         "version": "1.0.0",
     }
@@ -67,6 +68,7 @@ async def feature_check() -> dict[str, Any]:
         "max_upload_size_mb": get_settings().max_upload_size_mb,
         "max_bulk_upload_count": get_settings().max_bulk_upload_count,
         "ai_ui_enabled": get_settings().effective_ai_ui_enabled,
+        "try_on_enabled": get_settings().try_on_enabled,
     }
     try:
         get_provider()

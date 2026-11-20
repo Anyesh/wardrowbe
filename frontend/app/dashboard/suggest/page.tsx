@@ -31,6 +31,7 @@ import {
   X,
   Layers,
 } from 'lucide-react';
+import { TryOnPanel } from '@/components/outfits/try-on-panel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -545,6 +546,8 @@ function OutfitResultsView({
             onReject={() => onReject(currentOutfit)}
             showActions={false}
           />
+
+          <TryOnPanel outfitId={currentOutfit.id} />
 
           {/* Action buttons */}
           <div className="flex gap-3 justify-center">

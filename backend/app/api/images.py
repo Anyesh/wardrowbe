@@ -14,10 +14,11 @@ from app.utils.signed_urls import verify_signature
 
 router = APIRouter(prefix="/images", tags=["Images"])
 
-FILENAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp)$")
+TRY_ON_DIR = "try-on"
+FILENAME_PATTERN = re.compile(rf"^({TRY_ON_DIR}/)?[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp)$")
 
 
-@router.get("/{user_id}/{filename}")
+@router.get("/{user_id}/{filename:path}")
 async def get_image(
     user_id: str,
     filename: str,
@@ -50,7 +51,7 @@ async def get_image(
     if not can_access and current_user:
         if str(current_user.id) == user_id:
             can_access = True
-        elif current_user.family_id:
+        elif current_user.family_id and not filename.startswith(f"{TRY_ON_DIR}/"):
             family_service = FamilyService(db)
             family = await family_service.get_by_id(current_user.family_id)
             if family:

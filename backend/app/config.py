@@ -118,6 +118,15 @@ class Settings(BaseSettings):
             return v_clean
         return v
 
+    # Outfit try-on (opt-in): an OpenAI-compatible image model that draws an outfit on a
+    # reference photo of the user. Separate from the text/vision AI above; off unless all of
+    # base URL, API key and model are set.
+    ai_image_base_url: str = Field(default="")
+    ai_image_api_key: str | None = Field(default=None)
+    ai_image_model: str = Field(default="")
+    ai_image_daily_limit: int = Field(default=20, ge=1)
+    ai_image_timeout: int = Field(default=180, ge=1)
+
     # arq max_jobs for the tagging worker, and deliberately the only AI
     # concurrency bound: excess jobs wait in Redis, where no clock runs. An
     # in-process gate (a semaphore in ai_service.py) must not be reintroduced,
@@ -204,6 +213,14 @@ class Settings(BaseSettings):
     @property
     def effective_ai_ui_enabled(self) -> bool:
         return self.ai_enabled if self.ai_ui_enabled is None else self.ai_ui_enabled
+
+    @property
+    def try_on_enabled(self) -> bool:
+        return bool(
+            self.ai_image_base_url.strip()
+            and (self.ai_image_api_key or "").strip()
+            and self.ai_image_model.strip()
+        )
 
     @property
     def oidc_configured(self) -> bool:

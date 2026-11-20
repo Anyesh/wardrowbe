@@ -182,6 +182,12 @@ rebuild is needed.
 
 </details>
 
+### Outfit try-on (optional)
+
+An opt-in "See it on me" button draws an outfit on a reference photo of you, using an
+OpenAI-compatible image model. It is off unless configured; see
+[docs/outfit-try-on.md](docs/outfit-try-on.md).
+
 ## Architecture
 
 ```
@@ -288,6 +294,7 @@ Upgrading from a release before sign-in identities (the `user_identities` table)
 | `NEXTAUTH_SECRET` | NextAuth session encryption. The frontend refuses to start with a value beginning `change-me-in-production` when `OIDC_ISSUER_URL` or `FORWARD_AUTH_SECRET` is set | Yes |
 | `AI_BASE_URL` | AI service URL | Yes |
 | `AI_API_KEY` | AI API key (if required) | Depends |
+| `AI_IMAGE_BASE_URL`, `AI_IMAGE_API_KEY`, `AI_IMAGE_MODEL` | Enable outfit try-on; all three are required, see [docs/outfit-try-on.md](docs/outfit-try-on.md) | No |
 | `APP_URL` | Public app URL used in notification and invite links (default: `http://localhost:3000`) | No |
 | `LOG_LEVEL` | Log level for the API and workers (default: INFO) | No |
 
