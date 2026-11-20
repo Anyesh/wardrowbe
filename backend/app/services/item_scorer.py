@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from datetime import date
 from math import prod
@@ -71,6 +72,10 @@ SENSITIVITY_SHIFT = 5
 # when a whole category scores below the TOP_N cut and would otherwise be sliced away.
 ESSENTIAL_ROLES = ("footwear", "bottom")
 MIN_CANDIDATES_PER_ESSENTIAL_ROLE = 4
+# Layers are not essential, but the stylist can only offer a layer for a cold spell (if_cooler)
+# from the numbered prompt list, so a few must survive the cut.
+LAYER_FLOOR_ROLES = ("mid_layer", "outer_layer")
+MIN_CANDIDATES_PER_LAYER_ROLE = 2
 
 TEMP_RANGE_MIN_SWING = 8.0
 REMOVABLE_LAYER_HOT_FLOOR = 0.6
@@ -93,6 +98,139 @@ HEAVY_LAYER_SUBTYPES = {
     "shearling",
     "down",
 }
+
+
+# Footwear weight: how warm and bulky a shoe is, so an "all-season" chunky leather sneaker
+# is not treated like a knit one. See footwear_weight for the precedence of the rules.
+FOOTWEAR_LIGHT = "light"
+FOOTWEAR_MEDIUM = "medium"
+FOOTWEAR_HEAVY = "heavy"
+
+# Matched against the lowercased subtype, name and ai_description as whole words or phrases.
+HEAVY_FOOTWEAR_KEYWORDS = (
+    "high-top",
+    "high top",
+    "hi-top",
+    "hi top",
+    "lined",
+    "shearling",
+    "sherpa",
+    "fur",
+    "fleece",
+    "wool",
+    "insulated",
+)
+LIGHT_FOOTWEAR_KEYWORDS = (
+    "sandal",
+    "espadrille",
+    "slide",
+    "slides",
+    "flip-flop",
+    "flip flop",
+    "canvas",
+    "knit",
+    "knitted",
+    "mesh",
+    "linen",
+    "breathable",
+)
+# Bulk alone is only "heavy" together with leather or suede; next to a light upper it just
+# keeps the shoe from counting as light.
+BULKY_FOOTWEAR_KEYWORDS = ("chunky", "platform", "thick sole", "lug sole")
+HEAVY_FOOTWEAR_MATERIALS = {"wool", "fleece", "shearling"}
+LIGHT_FOOTWEAR_MATERIALS = {"canvas", "linen", "knit"}
+BULKY_HEAVY_MATERIALS = {"leather", "suede"}
+LIGHT_FOOTWEAR_TYPES = {"sandals"}
+
+# Footwear is judged a few degrees below the clothing hot threshold, because feet overheat in
+# heavy shoes before the day counts as hot (a 22.6C day feeling like 24C is already warm).
+WARM_FOOTWEAR_MARGIN = 3
+HEAVY_FOOTWEAR_WARM_FACTOR = 0.4
+MEDIUM_FOOTWEAR_WARM_FACTOR = 0.85
+LIGHT_FOOTWEAR_COLD_FACTOR = 0.8
+
+
+def _has_keyword(text: str, keywords: tuple[str, ...]) -> bool:
+    return any(re.search(rf"(?<![\w-]){re.escape(k)}s?(?![\w-])", text) for k in keywords)
+
+
+def footwear_weight(item: ClothingItem) -> str | None:
+    """Classify a shoe as light, medium or heavy; None for anything that is not footwear.
+
+    Precedence: boots are always heavy; then heavy signals (high-top, lined, fur, wool,
+    fleece, seasons tagged winter only, chunky leather or suede); then light signals (sandals,
+    espadrilles, slides, canvas, knit, mesh, linen, seasons tagged summer and/or spring only). A light shoe that
+    is also chunky is medium. Everything else is medium.
+    """
+    item_type = (item.type or "").lower()
+    if ITEM_ROLE.get(item_type) != "footwear":
+        return None
+
+    material = (item.material or "").lower()
+    seasons = set(item.season or [])
+    text = " ".join(part.lower() for part in (item.subtype, item.name, item.ai_description) if part)
+    # "unlined" is the opposite of lined, so it must not match as a heavy signal.
+    text = re.sub(r"\bun-?lined\b", "", text)
+    bulky = _has_keyword(text, BULKY_FOOTWEAR_KEYWORDS)
+    leathery = material in BULKY_HEAVY_MATERIALS or _has_keyword(text, ("leather", "suede"))
+    winter_only = seasons == {"winter"}
+    summer_only = bool(seasons) and seasons <= {"summer", "spring"} and "summer" in seasons
+
+    if (
+        item_type == "boots"
+        or material in HEAVY_FOOTWEAR_MATERIALS
+        or winter_only
+        or _has_keyword(text, HEAVY_FOOTWEAR_KEYWORDS)
+        or (bulky and leathery)
+    ):
+        return FOOTWEAR_HEAVY
+
+    light = (
+        item_type in LIGHT_FOOTWEAR_TYPES
+        or material in LIGHT_FOOTWEAR_MATERIALS
+        or summer_only
+        or _has_keyword(text, LIGHT_FOOTWEAR_KEYWORDS)
+    )
+    if light and not bulky:
+        return FOOTWEAR_LIGHT
+    return FOOTWEAR_MEDIUM
+
+
+def has_light_footwear(items: list[ClothingItem]) -> bool:
+    return any(footwear_weight(i) == FOOTWEAR_LIGHT for i in items)
+
+
+def _footwear_reference_temps(weather: WeatherData) -> tuple[float, float]:
+    # Warmest and coolest reading to judge shoes against: the feels-like and the ends of a
+    # wide temperature range, because shoes are worn all day and a midpoint hides either end.
+    temp_range = scoring_temp_range(weather)
+    if temp_range is not None:
+        return max(weather.feels_like, temp_range[1]), min(weather.feels_like, temp_range[0])
+    return (
+        max(weather.temperature, weather.feels_like),
+        min(weather.temperature, weather.feels_like),
+    )
+
+
+def _footwear_weight_score(
+    item: ClothingItem,
+    weather: WeatherData,
+    preferences: UserPreference | None,
+    light_available: bool,
+) -> float:
+    weight = footwear_weight(item)
+    if weight is None:
+        return 1.0
+    cold_threshold, hot_threshold = _resolve_temp_thresholds(preferences)
+    warmest, coolest = _footwear_reference_temps(weather)
+    if warmest >= hot_threshold - WARM_FOOTWEAR_MARGIN:
+        if weight == FOOTWEAR_HEAVY:
+            return HEAVY_FOOTWEAR_WARM_FACTOR
+        if weight == FOOTWEAR_MEDIUM and light_available:
+            return MEDIUM_FOOTWEAR_WARM_FACTOR
+    elif coolest < cold_threshold and weight == FOOTWEAR_LIGHT:
+        return LIGHT_FOOTWEAR_COLD_FACTOR
+    return 1.0
 
 
 @dataclass
@@ -274,9 +412,11 @@ def _fit_factors(
     current_season: str,
     preferences: UserPreference | None,
     learned_prefs: dict | None,
+    light_footwear_available: bool = False,
 ) -> tuple[float, float, float, float]:
     return (
-        _weather_score(item, weather, preferences),
+        _weather_score(item, weather, preferences)
+        * _footwear_weight_score(item, weather, preferences, light_footwear_available),
         _formality_score(item, occasion),
         _season_score(item, current_season, weather, preferences),
         _preference_score(item, preferences, learned_prefs),
@@ -294,9 +434,19 @@ def rank_by_fit(
     # score_items leaves small wardrobes unscored, so filling a missing piece needs its own
     # ranking or it would fall back to database order. Most items tie on fit in mild
     # weather, so the least recently worn goes first to avoid adding the same piece every time.
+    light_available = has_light_footwear(items)
+
     def key(item: ClothingItem) -> tuple[float, date]:
         fit = prod(
-            _fit_factors(item, weather, occasion, current_season, preferences, learned_prefs)
+            _fit_factors(
+                item,
+                weather,
+                occasion,
+                current_season,
+                preferences,
+                learned_prefs,
+                light_available,
+            )
         )
         return -fit, item.last_worn_at or date.min
 
@@ -408,6 +558,25 @@ def _sort_mandatory_first(
     return sorted(scored, key=lambda s: s.item.id not in mandatory_item_ids)
 
 
+def _reorder_footwear_by_weight(
+    scored: list[ScoredItem], weather: WeatherData, preferences: UserPreference | None
+) -> list[ScoredItem]:
+    """Small wardrobes are not scored, but shoes still go lightest-first on a warm day.
+
+    Only the footwear positions are rearranged (stable sort), every other item keeps its place.
+    """
+    light_available = has_light_footwear([s.item for s in scored])
+    slots = [i for i, s in enumerate(scored) if footwear_weight(s.item) is not None]
+    shoes = sorted(
+        (scored[i] for i in slots),
+        key=lambda s: -_footwear_weight_score(s.item, weather, preferences, light_available),
+    )
+    result = list(scored)
+    for i, shoe in zip(slots, shoes, strict=True):
+        result[i] = shoe
+    return result
+
+
 def _role_of(scored_item: ScoredItem) -> str | None:
     return ITEM_ROLE.get((scored_item.item.type or "").lower())
 
@@ -426,8 +595,11 @@ def _ensure_role_diversity(
     tail = scored[top_n:]
 
     promoted: list[ScoredItem] = []
-    for role in ESSENTIAL_ROLES:
-        missing = min_per_role - sum(1 for s in head if _role_of(s) == role)
+    floors = [(role, min_per_role) for role in ESSENTIAL_ROLES] + [
+        (role, MIN_CANDIDATES_PER_LAYER_ROLE) for role in LAYER_FLOOR_ROLES
+    ]
+    for role, floor in floors:
+        missing = floor - sum(1 for s in head if _role_of(s) == role)
         if missing > 0:
             promoted.extend([s for s in tail if _role_of(s) == role][:missing])
 
@@ -477,7 +649,9 @@ def score_items(
     mandatory_item_ids: set[UUID] | None = None,
 ) -> list[ScoredItem]:
     if len(items) < MIN_ITEMS_FOR_SCORING:
-        scored = [ScoredItem(item=item) for item in items]
+        scored = _reorder_footwear_by_weight(
+            [ScoredItem(item=item) for item in items], weather, preferences
+        )
         return _sort_mandatory_first(scored, mandatory_item_ids)
 
     avoid_days = DEFAULT_AVOID_REPEAT_DAYS
@@ -495,10 +669,11 @@ def score_items(
     )
     median_wear = median([i.wear_count or 0 for i in items]) if use_underused and items else 0
 
+    light_available = has_light_footwear(items)
     scored = []
     for item in items:
         ws, fs, ss, ps = _fit_factors(
-            item, weather, occasion, current_season, preferences, learned_prefs
+            item, weather, occasion, current_season, preferences, learned_prefs, light_available
         )
         rs = _recency_score(item, user_today, avoid_days, recently_worn_dates)
         us = _usage_score(item, median_wear) if use_underused else 1.0

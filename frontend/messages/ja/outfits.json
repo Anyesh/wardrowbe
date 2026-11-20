@@ -170,5 +170,9 @@
   "totalCount": "合計 {count}",
   "viewCalendar": "カレンダー",
   "viewList": "リスト",
-  "viewToggle": "表示切替"
+  "viewToggle": "表示切替",
+  "weatherExtras": {
+    "ifCooler": "涼しくなったら：{item}を追加",
+    "ifWarmer": "暖かくなったら：{item}を脱ぐ"
+  }
 }

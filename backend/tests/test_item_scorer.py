@@ -688,6 +688,24 @@ class TestRoleDiversity:
         assert mandatory.id in result_ids
         assert {s.id for s in shoes} <= result_ids
 
+    def test_keeps_layers_for_if_cooler_in_a_big_wardrobe(self):
+        shirts, bottoms, shoes = self._wardrobe()
+        cardigans = [_item(type="cardigan") for _ in range(3)]
+        coats = [_item(type="coat") for _ in range(3)]
+        result = self._score(shirts + bottoms + shoes + cardigans + coats)
+        kept = [s.item for s in result]
+        assert len(kept) == 70
+        assert sum(1 for i in kept if i.type == "cardigan") >= 2
+        assert sum(1 for i in kept if i.type == "coat") >= 2
+
+    def test_layer_floor_leaves_a_wardrobe_with_enough_layers_alone(self):
+        shirts, bottoms, shoes = self._wardrobe()
+        coats = [_item(type="coat") for _ in range(2)]
+        cardigans = [_item(type="cardigan") for _ in range(2)]
+        # The layers are first in the input, so they are already in the cut.
+        result = self._score(coats + cardigans + shirts + bottoms + shoes)
+        assert {i.id for i in coats + cardigans} <= {s.item.id for s in result}
+
 
 @pytest.mark.parametrize(
     ("weather", "prefs", "expected"),

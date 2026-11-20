@@ -23,6 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SourceBadge } from '@/components/shared/source-badge';
 import { LineageCard } from '@/components/shared/lineage-card';
+import { OutfitWeatherExtras } from '@/components/shared/outfit-weather-extras';
 import { CloneToLookbookDialog } from '@/components/shared/clone-to-lookbook-dialog';
 import { useDeleteOutfit, useOutfit, useOutfits } from '@/lib/hooks/use-outfits';
 import { useWearToday } from '@/lib/hooks/use-studio';
@@ -150,6 +151,8 @@ export default function OutfitDetailPage() {
       </div>
 
       <LineageCard outfit={outfit} />
+
+      <OutfitWeatherExtras ifCooler={outfit.if_cooler} ifWarmer={outfit.if_warmer} />
 
       <Card>
         <CardContent className="p-4">

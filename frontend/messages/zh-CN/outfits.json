@@ -170,5 +170,9 @@
   "totalCount": "共{count}组",
   "viewCalendar": "日历",
   "viewList": "列表",
-  "viewToggle": "切换视图"
+  "viewToggle": "切换视图",
+  "weatherExtras": {
+    "ifCooler": "变凉时：加上{item}",
+    "ifWarmer": "变暖时：脱掉{item}"
+  }
 }
