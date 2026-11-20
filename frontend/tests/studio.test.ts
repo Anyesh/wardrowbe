@@ -231,6 +231,25 @@ describe('mergeAiAssist', () => {
   });
 });
 
+describe('computeWarnings with a layer worn alone', () => {
+  const t = (key: string) => key;
+
+  it('counts a hoodie as the top', () => {
+    const items = [makeItem('1', 'hoodie'), makeItem('2', 'jeans'), makeItem('3', 'sneakers')];
+    expect(computeWarnings(items, t)).toEqual([]);
+  });
+
+  it('asks for bottoms when a hoodie is the only piece', () => {
+    expect(computeWarnings([makeItem('1', 'hoodie')], t)).toContain('warnings.noBottoms');
+  });
+
+  it('still asks for a top under a coat', () => {
+    expect(computeWarnings([makeItem('1', 'coat'), makeItem('2', 'jeans')], t)).toContain(
+      'warnings.noTop'
+    );
+  });
+});
+
 describe('draft-storage', () => {
   let store: Record<string, string>;
 

@@ -1,3 +1,4 @@
+import { WORN_ALONE_TYPES } from '@/lib/generated/garment-vocabulary';
 import { slotsForType } from '@/lib/studio/canonical-order';
 import type { StudioItem } from '@/lib/studio/editor-state';
 
@@ -6,7 +7,7 @@ export function computeWarnings(items: StudioItem[], t: (key: string) => string)
   const slotsPerItem = items.map((i) => slotsForType(i.type));
   const covered = new Set(slotsPerItem.flat());
 
-  const hasTop = covered.has('base_top');
+  const hasTop = covered.has('base_top') || items.some((i) => WORN_ALONE_TYPES.includes(i.type));
   const hasBottom = covered.has('bottom');
   const hasFootwear = covered.has('footwear');
 
