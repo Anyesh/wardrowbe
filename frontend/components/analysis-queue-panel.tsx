@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { AnalysisFailureReason } from '@/components/analysis-failure-reason';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -196,9 +197,12 @@ export function AnalysisQueuePanel({
                       <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{describe(entry.name, entry.type)}</p>
-                        <p className="break-words text-xs text-muted-foreground">
-                          {entry.error || t('unknownError')}
-                        </p>
+                        <AnalysisFailureReason
+                          code={entry.error_code}
+                          params={entry.error_params}
+                          fallback={t('unknownError')}
+                          className="break-words text-xs text-muted-foreground"
+                        />
                       </div>
                       <Button
                         size="sm"

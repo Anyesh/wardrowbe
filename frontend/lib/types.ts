@@ -1,4 +1,5 @@
 import { CLOTHING_TYPE_VALUES, OCCASION_VALUES } from '@/lib/generated/garment-vocabulary';
+import type { ApiErrorParams } from '@/lib/api';
 
 // API response types matching backend schemas
 
@@ -45,7 +46,8 @@ export interface Item {
   ai_processed: boolean;
   ai_confidence?: number;
   ai_description?: string;
-  ai_error?: string | null;
+  ai_error_code?: string | null;
+  ai_error_params?: ApiErrorParams | null;
   ai_unrecognized_type?: string | null;
   ai_started_at?: string | null;
   processing_kind?: 'background_removal' | 'rotate' | null;
@@ -98,7 +100,8 @@ export interface AnalysisFailure {
   item_id: string;
   name?: string | null;
   type: string;
-  error?: string | null;
+  error_code?: string | null;
+  error_params?: ApiErrorParams | null;
   failed_at?: string | null;
 }
 
