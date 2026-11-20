@@ -1,13 +1,12 @@
 import { useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { ApiError, NetworkError, type NetworkErrorKind } from '@/lib/api';
+import { ERROR_CODE_PATTERN } from '@/lib/auth-errors';
 
 export interface ErrorTranslator {
   (key: string, values?: Record<string, string | number>): string;
   has(key: string): boolean;
 }
-
-export const ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 
 const NETWORK_CODES = { offline: 'NETWORK_OFFLINE', unreachable: 'NETWORK_CONNECT_FAILED' } as const;
 

@@ -3,9 +3,9 @@ import type { OAuthConfig } from 'next-auth/providers/oauth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { Provider } from 'next-auth/providers/index';
 import { API_BASE_PATH } from '@/lib/api';
-import { ERROR_CODE_PATTERN } from '@/lib/errors';
 import {
   BACKEND_UNREACHABLE,
+  ERROR_CODE_PATTERN,
   FORWARD_AUTH_ACCOUNT_CONFLICT,
   FORWARD_AUTH_SERVER_ERROR,
   FORWARD_AUTH_USERNAME_CONFLICT,
