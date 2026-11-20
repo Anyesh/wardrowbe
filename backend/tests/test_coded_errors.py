@@ -39,6 +39,7 @@ from app.services.studio_service import (
     OutfitNotTemplateError,
     OutfitWornImmutableError,
 )
+from app.services.user_service import UserEmailConflictError
 from app.services.weather_service import GeocodingServiceError, WeatherServiceError
 from app.utils.errors import Coded, CodedHTTPException, CodedValueError, http_error
 from app.utils.uploads import UploadTooLargeError
@@ -1190,3 +1191,146 @@ class TestNotificationTestSendErrors:
 
         assert isinstance(error, ValueError)
         assert (error.code, error.params) == ("EMAIL_SENDER_INVALID", {"sender": "a b c"})
+
+
+PROXY_SECRET = "s" * 32
+
+
+def _forward_auth_settings(**overrides) -> Settings:
+    return get_settings().model_copy(
+        update={"debug": False, "forward_auth_secret": PROXY_SECRET, **overrides}
+    )
+
+
+def _proxy_headers(user: str, email: str, secret: str = PROXY_SECRET) -> dict:
+    return {
+        "X-Forward-Auth-Secret": secret,
+        "Remote-User": user,
+        "Remote-Email": email,
+        "Remote-Name": "Proxy",
+    }
+
+
+class TestAuthEndpointErrors:
+    @pytest.mark.asyncio
+    async def test_a_request_without_a_token(self, client: AsyncClient):
+        response = await client.get("/api/v1/users/me")
+
+        assert response.status_code == 401
+        assert response.json()["error_code"] == "NOT_AUTHENTICATED"
+        assert response.headers["www-authenticate"] == "Bearer"
+
+    @pytest.mark.asyncio
+    async def test_a_malformed_token(self, client: AsyncClient):
+        response = await client.get(
+            "/api/v1/users/me", headers={"Authorization": "Bearer not-a-token"}
+        )
+
+        assert response.status_code == 401
+        assert response.json()["error_code"] == "AUTH_TOKEN_INVALID"
+        assert response.headers["www-authenticate"] == "Bearer"
+
+    @pytest.mark.asyncio
+    async def test_a_wrong_forward_auth_secret(self, client: AsyncClient):
+        with patch("app.api.auth.settings", _forward_auth_settings()):
+            response = await client.post(
+                "/api/v1/auth/sync", headers=_proxy_headers("alice", "a@example.com", "x" * 32)
+            )
+
+        assert response.status_code == 401
+        assert response.json()["error_code"] == "FORWARD_AUTH_SECRET_INVALID"
+
+    @pytest.mark.asyncio
+    async def test_missing_proxy_headers(self, client: AsyncClient):
+        with patch("app.api.auth.settings", _forward_auth_settings()):
+            response = await client.post(
+                "/api/v1/auth/sync", headers={"X-Forward-Auth-Secret": PROXY_SECRET}
+            )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "PROXY_HEADERS_MISSING"
+
+    @pytest.mark.asyncio
+    async def test_a_repeated_proxy_header_names_the_header(self, client: AsyncClient):
+        headers = [
+            (b"x-forward-auth-secret", PROXY_SECRET.encode()),
+            (b"remote-user", b"alice"),
+            (b"remote-user", b"bob"),
+            (b"remote-email", b"a@example.com"),
+        ]
+        with patch("app.api.auth.settings", _forward_auth_settings()):
+            response = await client.post("/api/v1/auth/sync", headers=headers)
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "PROXY_HEADER_REPEATED"
+        assert response.json()["params"] == {"header": "Remote-User"}
+
+    @pytest.mark.asyncio
+    async def test_a_forward_auth_email_conflict_keeps_the_legacy_detail(
+        self, client: AsyncClient, db_session
+    ):
+        subject = f"alice-{uuid4()}"
+        stored = User(
+            external_id=subject,
+            email=f"other-{uuid4()}@example.com",
+            display_name="Stored",
+            email_verified=True,
+        )
+        await add_users_with_identities(db_session, stored)
+        await db_session.commit()
+
+        with patch("app.api.auth.settings", _forward_auth_settings()):
+            response = await client.post(
+                "/api/v1/auth/sync",
+                headers=_proxy_headers(subject, f"proxy-{uuid4()}@example.com"),
+            )
+
+        assert response.status_code == 409
+        assert response.json() == {
+            "detail": "legacy_identity_conflict",
+            "error_code": "LEGACY_IDENTITY_CONFLICT",
+        }
+
+    @pytest.mark.parametrize(
+        ("message", "code"),
+        [
+            ("Email already in use by another account.", "EMAIL_IN_USE"),
+            (
+                "Email already associated with another account that is signing in concurrently.",
+                "CONCURRENT_SIGN_IN",
+            ),
+            ("legacy_identity_conflict", "LEGACY_IDENTITY_CONFLICT"),
+        ],
+    )
+    def test_every_sign_in_conflict_has_its_own_code(self, message, code):
+        error = UserEmailConflictError(message, code=code)
+
+        assert (str(error), error.code) == (message, code)
+        assert isinstance(error, Exception)
+
+    @pytest.mark.asyncio
+    async def test_the_rate_limit(self, client: AsyncClient):
+        bad = _proxy_headers("alice", "a@example.com", "x" * 32)
+        with (
+            patch("app.api.auth.settings", _forward_auth_settings()),
+            patch(
+                "app.utils.rate_limit.get_settings",
+                return_value=get_settings().model_copy(update={"trusted_proxy_count": 0}),
+            ),
+        ):
+            responses = [await client.post("/api/v1/auth/sync", headers=bad) for _ in range(11)]
+
+        assert [r.status_code for r in responses] == [401] * 10 + [429]
+        assert responses[-1].json() == {
+            "detail": "Too many requests. Please try again later.",
+            "error_code": "RATE_LIMITED",
+        }
+
+    @pytest.mark.asyncio
+    async def test_the_rate_limit_keeps_its_headers(self):
+        response = await _get(
+            CodedHTTPException(429, "RATE_LIMITED", "Slow down", headers={"Retry-After": "30"})
+        )
+
+        assert response.headers["retry-after"] == "30"
+        assert response.json()["error_code"] == "RATE_LIMITED"

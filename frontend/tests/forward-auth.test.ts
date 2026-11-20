@@ -173,10 +173,13 @@ describe('forward-auth authorize', () => {
   })
 
   it.each([
-    ['Email already in use by another account.', FORWARD_AUTH_ACCOUNT_CONFLICT],
-    ['legacy_identity_conflict', FORWARD_AUTH_USERNAME_CONFLICT],
-  ])('fails with the matching conflict when the backend answers 409 %s', async (detail, code) => {
-    mockFetch(new Response(JSON.stringify({ detail }), { status: 409 }))
+    ['EMAIL_IN_USE', 'Email already in use by another account.', FORWARD_AUTH_ACCOUNT_CONFLICT],
+    ['CONCURRENT_SIGN_IN', 'Anything', FORWARD_AUTH_ACCOUNT_CONFLICT],
+    ['LEGACY_IDENTITY_CONFLICT', 'Anything', FORWARD_AUTH_USERNAME_CONFLICT],
+    ['LEGACY_IDENTITY_CONFLICT', 'legacy_identity_conflict', FORWARD_AUTH_USERNAME_CONFLICT],
+    [undefined, 'legacy_identity_conflict', FORWARD_AUTH_ACCOUNT_CONFLICT],
+  ])('fails with the matching conflict when the backend answers 409 %s (%s)', async (error_code, detail, code) => {
+    mockFetch(new Response(JSON.stringify({ detail, error_code }), { status: 409 }))
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     await expect(authorizeForwardAuth(proxyHeaders())).rejects.toThrow(new Error(code))
@@ -294,7 +297,28 @@ describe('jwt callback', () => {
     })
     expire()
 
-    expect(((await result) as JWT).syncError).toBe('Unable to connect to backend server')
+    expect(((await result) as JWT).syncError).toBe('BACKEND_UNREACHABLE')
     expect(AbortSignal.timeout).toHaveBeenCalledWith(SYNC_TIMEOUT_MS)
+  })
+
+  it.each([
+    [{ detail: 'Email already in use by another account.', error_code: 'EMAIL_IN_USE' }, 'EMAIL_IN_USE'],
+    [{ detail: 'Some English text' }, 'SIGN_IN_FAILED'],
+    [{ detail: 'Not found', error_code: 'not a code' }, 'SIGN_IN_FAILED'],
+    [null, 'SIGN_IN_FAILED'],
+  ])('stores the error code of a failed sync %j as %s, never the English detail', async (body, expected) => {
+    mockFetch(new Response(body ? JSON.stringify(body) : 'not json', { status: 409 }))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const account = { provider: 'dev-credentials', type: 'credentials', providerAccountId: 'dev' } as Account
+
+    const token = (await jwt({
+      token: { sub: 'dev' } as JWT,
+      user: { id: 'dev', email: 'dev@example.com', name: 'Dev' } as User,
+      account,
+      trigger: 'signIn',
+    })) as JWT
+
+    expect(token.syncError).toBe(expected)
+    expect(token.accessToken).toBeUndefined()
   })
 })

@@ -12,6 +12,7 @@ import {
   FORWARD_AUTH_SERVER_ERROR,
   FORWARD_AUTH_USERNAME_CONFLICT,
 } from '@/lib/auth-errors';
+import { type ErrorTranslator, translateCode } from '@/lib/errors';
 import { useAuthConfig } from '@/lib/hooks/use-auth-config';
 
 function OIDCLoginButton({ getCallbackUrl }: { getCallbackUrl: () => string }) {
@@ -215,6 +216,7 @@ function LoginContent() {
   );
   const [backendError, setBackendError] = useState<string | null>(null);
   const t = useTranslations('auth');
+  const tErrors = useTranslations('errors') as unknown as ErrorTranslator;
 
   useEffect(() => {
     if (status === 'authenticated' && session?.accessToken) {
@@ -228,15 +230,20 @@ function LoginContent() {
       .then((res) => res.json())
       .then((data) => {
         if (!data.configured && data.error) {
-          setBackendError(data.error);
+          setBackendError(
+            translateCode(data.error_code, undefined, tErrors) ?? tErrors('AUTH_NOT_CONFIGURED')
+          );
         }
       })
       .catch(() => {
         setBackendError(t('backendError.description'));
       });
-  }, [t]);
+  }, [t, tErrors]);
 
-  const syncError = syncErrorParam || session?.syncError;
+  const syncErrorCode = syncErrorParam || session?.syncError;
+  const syncError = syncErrorCode
+    ? (translateCode(syncErrorCode, undefined, tErrors) ?? tErrors('SIGN_IN_FAILED'))
+    : null;
 
   const [providerMode, setProviderMode] = useState<'loading' | 'oidc' | 'dev' | 'unconfigured'>('loading');
   const authConfig = useAuthConfig();

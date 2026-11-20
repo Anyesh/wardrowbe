@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from uuid import UUID
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
 
@@ -25,6 +25,7 @@ from app.schemas.user import (
 )
 from app.services.user_service import FORWARD_AUTH, UserEmailConflictError, UserService
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException, http_error
 from app.utils.forward_auth import (
     FORWARD_AUTH_SECRET_HEADER,
     forward_auth_secret_matches,
@@ -101,14 +102,16 @@ async def auth_status() -> AuthStatusResponse:
             configured=False,
             mode=mode,
             error=NO_AUTH_CONFIGURED_MESSAGE,
+            error_code="AUTH_NOT_CONFIGURED",
         )
     return AuthStatusResponse(configured=True, mode=mode)
 
 
-def _invalid_email_claim() -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="The OIDC provider sent an email claim that is not a valid email address",
+def _invalid_email_claim() -> CodedHTTPException:
+    return CodedHTTPException(
+        status.HTTP_400_BAD_REQUEST,
+        "OIDC_EMAIL_CLAIM_INVALID",
+        "The OIDC provider sent an email claim that is not a valid email address",
     )
 
 
@@ -124,33 +127,42 @@ def _claims_email(oidc_claims: dict) -> str | None:
         raise _invalid_email_claim() from None
 
 
-async def _refuse_forgery(request: Request, detail: str) -> NoReturn:
+async def _refuse_forgery(request: Request, error: CodedHTTPException) -> NoReturn:
     # Only forged credentials count, because browser sign-ins can all arrive from the frontend
     # container's IP, and counting successes or a user's own account problems would lock every
     # user out together.
     await rate_limit_by_ip(request, *SYNC_RATE_LIMIT)
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+    raise error
 
 
 async def _forward_auth_identity(
     request: Request, presented_secret: str
 ) -> tuple[UserSyncRequest, str, bool]:
     if not forward_auth_secret_matches(presented_secret, settings.forward_auth_secret):
-        await _refuse_forgery(request, "Invalid forward-auth secret")
+        await _refuse_forgery(
+            request,
+            CodedHTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                "FORWARD_AUTH_SECRET_INVALID",
+                "Invalid forward-auth secret",
+            ),
+        )
 
     remote_user = proxy_header(request.headers, "Remote-User")
     remote_email = proxy_header(request.headers, "Remote-Email")
     if is_blank(remote_user) or not remote_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The auth proxy must send Remote-User and Remote-Email headers",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "PROXY_HEADERS_MISSING",
+            "The auth proxy must send Remote-User and Remote-Email headers",
         )
     # Node joins a repeated header into one comma-separated line, so a duplicate relayed by the
     # frontend arrives looking like a single Remote-User.
     if "," in remote_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The auth proxy sent a Remote-User containing a comma",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "PROXY_USER_HAS_COMMA",
+            "The auth proxy sent a Remote-User containing a comma",
         )
 
     # A name that fits to blank would otherwise fall back to the email's local part.
@@ -163,10 +175,17 @@ async def _forward_auth_identity(
         )
     except ValidationError as e:
         if any(error["loc"] == ("external_id",) for error in e.errors()):
-            detail = "The auth proxy sent a Remote-User longer than 255 characters"
-        else:
-            detail = "The auth proxy sent a Remote-Email that is not a valid email address"
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail) from None
+            raise CodedHTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "PROXY_USER_TOO_LONG",
+                "The auth proxy sent a Remote-User longer than 255 characters",
+                {"limit": 255},
+            ) from None
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "PROXY_EMAIL_INVALID",
+            "The auth proxy sent a Remote-Email that is not a valid email address",
+        ) from None
     return sync_data, FORWARD_AUTH, True
 
 
@@ -174,7 +193,14 @@ async def _oidc_identity(
     request: Request, sync_data: UserSyncRequest
 ) -> tuple[UserSyncRequest, str, bool]:
     if not sync_data.id_token:
-        await _refuse_forgery(request, "OIDC id_token is required for authentication")
+        await _refuse_forgery(
+            request,
+            CodedHTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                "AUTH_TOKEN_REQUIRED",
+                "OIDC id_token is required for authentication",
+            ),
+        )
 
     valid_audiences = [settings.oidc_client_id]
     if settings.oidc_mobile_client_id and settings.oidc_mobile_client_id != settings.oidc_client_id:
@@ -187,23 +213,40 @@ async def _oidc_identity(
             valid_audiences,
         )
     except ValueError as e:
-        await _refuse_forgery(request, str(e))
+        await _refuse_forgery(
+            request, http_error(status.HTTP_401_UNAUTHORIZED, e, "AUTH_TOKEN_INVALID")
+        )
 
     if oidc_claims.get("sub") != sync_data.external_id:
-        await _refuse_forgery(request, "Token subject does not match external_id")
+        await _refuse_forgery(
+            request,
+            CodedHTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                "AUTH_TOKEN_MISMATCH",
+                "Token subject does not match external_id",
+            ),
+        )
 
     claims_email = _claims_email(oidc_claims)
     if sync_data.email:
         request_email = sync_data.email
         if claims_email and claims_email != request_email:
-            await _refuse_forgery(request, "Token email does not match request email")
+            await _refuse_forgery(
+                request,
+                CodedHTTPException(
+                    status.HTTP_401_UNAUTHORIZED,
+                    "AUTH_TOKEN_MISMATCH",
+                    "Token email does not match request email",
+                ),
+            )
         effective_email = request_email
     elif claims_email:
         effective_email = claims_email
     else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No email provided by OIDC provider. Configure your provider to include the email claim.",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "AUTH_EMAIL_REQUIRED",
+            "No email provided by OIDC provider. Configure your provider to include the email claim.",
         )
 
     # Validated again rather than copied so the blank-name fallback sees the token's email.
@@ -222,27 +265,29 @@ async def _body_identity(
     request: Request, sync_data: UserSyncRequest | None
 ) -> tuple[UserSyncRequest, str, bool]:
     if sync_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Request body is required",
+        raise CodedHTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "REQUEST_BODY_REQUIRED",
+            "Request body is required",
         )
     if settings.dev_mode:
         if not sync_data.email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="email is required",
+            raise CodedHTTPException(
+                status.HTTP_400_BAD_REQUEST, "DEV_EMAIL_REQUIRED", "email is required"
             )
         return sync_data, "dev", True
     if settings.oidc_configured:
         return await _oidc_identity(request, sync_data)
     if settings.forward_auth_configured:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Sign in through the forward-auth proxy",
+        raise CodedHTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "FORWARD_AUTH_REQUIRED",
+            "Sign in through the forward-auth proxy",
         )
-    raise HTTPException(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail="No authentication method configured",
+    raise CodedHTTPException(
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        "AUTH_NOT_CONFIGURED",
+        "No authentication method configured",
     )
 
 
@@ -273,10 +318,7 @@ async def sync_user(
             sync_data, provider=provider, email_verified=email_verified
         )
     except UserEmailConflictError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_409_CONFLICT, e, "EMAIL_IN_USE") from None
 
     return UserSyncResponse(
         id=user.id,

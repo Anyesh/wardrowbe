@@ -111,6 +111,7 @@ class AuthStatusResponse(BaseModel):
     configured: bool
     mode: str
     error: str | None = None
+    error_code: str | None = None
 
 
 class AuthConfigOIDC(BaseModel):

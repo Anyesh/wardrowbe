@@ -14,6 +14,7 @@ from app.models.user import User
 from app.schemas.auth import IDENTITY_TOKEN, TokenPayload
 from app.schemas.email import normalise_email
 from app.schemas.user import UserSyncRequest
+from app.utils.errors import Coded
 
 # Reserved by RFC 2606, so a detached address can never be delivered to or claimed by a sign-in.
 DETACHED_EMAIL_DOMAIN = "detached.invalid"
@@ -189,7 +190,7 @@ class UserService:
             except _RowChanged:
                 continue
             return signed_in
-        raise UserEmailConflictError(CONCURRENT_SIGN_IN)
+        raise UserEmailConflictError(CONCURRENT_SIGN_IN, code="CONCURRENT_SIGN_IN")
 
     async def _sync_once(
         self, sync_data: UserSyncRequest, provider: str, email_verified: bool
@@ -224,7 +225,9 @@ class UserService:
                         legacy_subject=legacy.subject,
                     )
                 if not (legacy.holds_proxy_identity and legacy.user.email == sync_data.email):
-                    raise UserEmailConflictError(LEGACY_IDENTITY_CONFLICT)
+                    raise UserEmailConflictError(
+                        LEGACY_IDENTITY_CONFLICT, code="LEGACY_IDENTITY_CONFLICT"
+                    )
                 expected_holder_id = legacy.user.id
         holder = await self.get_by_email(sync_data.email)
         if expected_holder_id is not None and (holder is None or holder.id != expected_holder_id):
@@ -238,7 +241,7 @@ class UserService:
             # identity lookup and this one: not an adoption.
             return await self._sign_in_existing(holder, sync_data, provider, email_verified)
         if not email_verified:
-            raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE)
+            raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE, code="UNVERIFIED_EMAIL_IN_USE")
         # Commit order decides a reclaim racing the holder's own verifying sign-in. If the holder
         # verified first, this caller adopts it here. If the reclaim commits first, the holder
         # stays detached and its sync gets EMAIL_IN_USE, because two verified accounts are never
@@ -268,7 +271,9 @@ class UserService:
             if holder is not None and holder.email_verified:
                 raise UserEmailConflictError(EMAIL_IN_USE)
             if holder is not None and not email_verified:
-                raise UserEmailConflictError(UNVERIFIED_EMAIL_IN_USE)
+                raise UserEmailConflictError(
+                    UNVERIFIED_EMAIL_IN_USE, code="UNVERIFIED_EMAIL_IN_USE"
+                )
 
         values = {"display_name": sync_data.display_name, "last_login_at": datetime.now(UTC)}
         if sync_data.avatar_url:
@@ -503,8 +508,8 @@ def _lost_sign_in_race(error: IntegrityError) -> bool:
     )
 
 
-class UserEmailConflictError(Exception):
-    pass
+class UserEmailConflictError(Coded, Exception):
+    code = "EMAIL_IN_USE"
 
 
 class _RowChanged(Exception):

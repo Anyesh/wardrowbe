@@ -933,7 +933,12 @@ class TestForwardAuthConfigAndStatus:
         with patch("app.api.auth.settings", _forward_auth_only()):
             response = await client.get("/api/v1/auth/status")
 
-        assert response.json() == {"configured": True, "mode": "forward-auth", "error": None}
+        assert response.json() == {
+            "configured": True,
+            "mode": "forward-auth",
+            "error": None,
+            "error_code": None,
+        }
 
     @pytest.mark.asyncio
     async def test_status_unconfigured_mentions_forward_auth(self, client: AsyncClient):
@@ -943,6 +948,7 @@ class TestForwardAuthConfigAndStatus:
         data = response.json()
         assert data["configured"] is False
         assert "FORWARD_AUTH_SECRET" in data["error"]
+        assert data["error_code"] == "AUTH_NOT_CONFIGURED"
 
 
 class TestRequestsAfterSignIn:
