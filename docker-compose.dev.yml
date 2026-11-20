@@ -7,6 +7,11 @@
 #
 # Hot reload is enabled for both frontend and backend - no rebuilds needed.
 #
+# Built services get their own local image tags (wardrowbe-*:dev, never pulled) instead of
+# the ghcr.io names they would inherit from docker-compose.yml. Otherwise a pulled production
+# image can stand in for the dev build and seed the frontend_node_modules volume with its
+# trimmed standalone copy, which breaks `next dev` (Module not found: react-dom/client).
+#
 # Optional HTTPS (via Caddy):
 #   1. Add to /etc/hosts: 127.0.0.1 wardrobe.local
 #   2. Change NEXTAUTH_URL below to https://wardrobe.local
@@ -30,6 +35,8 @@ services:
     restart: unless-stopped
 
   backend:
+    image: wardrowbe-backend:dev
+    pull_policy: build
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -43,6 +50,8 @@ services:
       TEST_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD:-wardrobe}@postgres:5432/wardrobe_test
 
   frontend:
+    image: wardrowbe-frontend:dev
+    pull_policy: build
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
@@ -57,6 +66,8 @@ services:
       WATCHPACK_POLLING: "true"
 
   worker:
+    image: wardrowbe-backend:dev
+    pull_policy: build
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -69,6 +80,8 @@ services:
       DATABASE_ECHO: "false"
 
   image-worker:
+    image: wardrowbe-backend:dev
+    pull_policy: build
     build:
       context: ./backend
       dockerfile: Dockerfile
