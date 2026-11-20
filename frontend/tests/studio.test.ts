@@ -191,6 +191,21 @@ describe('mergeAiAssist', () => {
     expect(skipped.map((s) => [s.item.id, s.conflict.id])).toEqual([['3', '2']]);
   });
 
+  it('layers a coat or cardigan from the AI over a hoodie on the canvas', () => {
+    const canvas = [makeItem('1', 'hoodie'), makeItem('2', 'jeans')];
+    const aiItems = [makeItem('3', 'coat'), makeItem('4', 'cardigan')];
+    const { merged, skipped } = mergeAiAssist(canvas, aiItems);
+    expect(merged.map((item) => item.id).sort()).toEqual(['1', '2', '3', '4']);
+    expect(skipped).toHaveLength(0);
+  });
+
+  it('skips a second hoodie from the AI', () => {
+    const canvas = [makeItem('1', 'hoodie')];
+    const { merged, skipped } = mergeAiAssist(canvas, [makeItem('2', 'hoodie')]);
+    expect(merged.map((item) => item.id)).toEqual(['1']);
+    expect(skipped.map((s) => [s.item.id, s.conflict.id])).toEqual([['2', '1']]);
+  });
+
   it('skips items already on canvas', () => {
     const canvas = [makeItem('1', 'shirt')];
     const aiItems = [makeItem('1', 'shirt')];

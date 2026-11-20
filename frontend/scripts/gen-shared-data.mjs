@@ -48,6 +48,7 @@ function renderVocabulary({
     `export const FIT_VALUES = ${list(fits)};`,
     `export const OCCASION_VALUES = ${list(occasions.map((o) => o.value))};`,
     `export const ROLE_VALUES = ${list(roleOrder)};`,
+    `export const WORN_ALONE_TYPES: readonly string[] = ${list(types.filter((t) => t.worn_alone).map((t) => t.value))};`,
     '',
     'export const ITEM_ROLE: Record<string, string> = {',
     roles,
