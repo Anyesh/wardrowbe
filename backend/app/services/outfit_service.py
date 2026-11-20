@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import TypeVar
 from uuid import UUID
 
-from fastapi import HTTPException, status
+from fastapi import status
 from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -19,6 +19,7 @@ from app.models.outfit import (
     UserFeedback,
 )
 from app.models.user import User
+from app.utils.errors import CodedHTTPException
 
 
 @dataclass
@@ -72,9 +73,8 @@ class OutfitService:
         outfit = result.scalar_one_or_none()
 
         if not outfit:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={"message": "Outfit not found", "error_code": "OUTFIT_NOT_FOUND"},
+            raise CodedHTTPException(
+                status.HTTP_404_NOT_FOUND, "OUTFIT_NOT_FOUND", "Outfit not found"
             )
 
         outfit.status = new_status
@@ -214,20 +214,17 @@ class OutfitService:
 
     async def verify_family_access(self, current_user: User, family_member_id: UUID) -> UUID:
         if not current_user.family_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "message": "You must be in a family to view family member outfits",
-                    "error_code": "NOT_IN_FAMILY",
-                },
+            raise CodedHTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "NOT_IN_FAMILY",
+                "You must be in a family to view family member outfits",
             )
         member_result = await self.db.execute(
             select(User).where(User.id == family_member_id, User.is_active == True)  # noqa: E712
         )
         member = member_result.scalar_one_or_none()
         if not member or member.family_id != current_user.family_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not in your family",
+            raise CodedHTTPException(
+                status.HTTP_403_FORBIDDEN, "MEMBER_NOT_IN_FAMILY", "User is not in your family"
             )
         return family_member_id

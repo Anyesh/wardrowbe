@@ -1,6 +1,6 @@
 import pickle
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -9,6 +9,7 @@ from httpx import ASGITransport, AsyncClient
 from PIL import Image
 
 from app.api import items as items_api
+from app.config import get_settings
 from app.main import app as main_app
 from app.main import coded_http_exception_handler
 from app.models.item import ClothingItem, ItemStatus
@@ -16,6 +17,21 @@ from app.models.user import User
 from app.services import image_service as image_service_module
 from app.services.image_service import ImageService, ImageTooLargeError
 from app.services.item_service import TagVocabularyError
+from app.services.pairing_service import (
+    AIGenerationError,
+    InsufficientItemsError,
+)
+from app.services.recommendation_service import (
+    AIRecommendationError,
+    InsufficientWardrobeError,
+    RecommendationService,
+)
+from app.services.studio_service import (
+    ItemOwnershipError,
+    OutfitNotTemplateError,
+    OutfitWornImmutableError,
+)
+from app.services.weather_service import GeocodingServiceError, WeatherServiceError
 from app.utils.errors import Coded, CodedHTTPException, CodedValueError, http_error
 from app.utils.uploads import UploadTooLargeError
 from tests.identity_helpers import add_users_with_identities
@@ -334,3 +350,199 @@ class TestImageEndpointErrors:
 
         assert response.status_code == 401
         assert response.json()["error_code"] == "ACCESS_DENIED"
+
+
+class TestOutfitServiceErrors:
+    @pytest.mark.parametrize(
+        ("error", "code"),
+        [
+            (InsufficientWardrobeError, "INSUFFICIENT_WARDROBE"),
+            (AIRecommendationError, "AI_SERVICE_UNAVAILABLE"),
+            (InsufficientItemsError, "INSUFFICIENT_ITEMS_FOR_PAIRING"),
+            (AIGenerationError, "AI_SERVICE_UNAVAILABLE"),
+            (ItemOwnershipError, "OUTFIT_ITEM_OWNERSHIP"),
+            (OutfitWornImmutableError, "OUTFIT_WORN_IMMUTABLE"),
+            (OutfitNotTemplateError, "OUTFIT_NOT_TEMPLATE"),
+        ],
+    )
+    def test_service_errors_carry_their_code_and_keep_their_base(self, error, code):
+        raised = error("message")
+
+        assert isinstance(raised, Coded)
+        assert raised.code == code
+        assert not isinstance(raised, ValueError)
+        assert http_error(400, raised, "OTHER").error_code == code
+
+    @pytest.mark.asyncio
+    async def test_unset_location_is_coded_and_still_a_value_error(self, db_session, test_user):
+        test_user.location_lat = None
+        test_user.location_lon = None
+        test_user.location_name = None
+
+        with pytest.raises(ValueError) as raised:
+            await RecommendationService(db_session).generate_recommendation(
+                user=test_user, occasion="casual"
+            )
+
+        assert raised.value.code == "LOCATION_NOT_SET"
+
+    @pytest.mark.asyncio
+    async def test_unresolvable_location_name_is_coded(self, db_session, test_user):
+        test_user.location_lat = None
+        test_user.location_lon = None
+        test_user.location_name = "Nowhere"
+        service = RecommendationService(db_session)
+        service.weather_service = AsyncMock()
+        service.weather_service.geocode_location_name.side_effect = GeocodingServiceError("down")
+
+        with pytest.raises(ValueError) as raised:
+            await service.generate_recommendation(user=test_user, occasion="casual")
+
+        assert raised.value.code == "LOCATION_UNRESOLVED"
+
+    @pytest.mark.asyncio
+    async def test_weather_failure_is_coded(self, db_session, test_user):
+        test_user.location_lat = 10
+        test_user.location_lon = 10
+        service = RecommendationService(db_session)
+        service.weather_service = AsyncMock()
+        service.weather_service.get_current_weather.side_effect = WeatherServiceError("down")
+
+        with pytest.raises(ValueError) as raised:
+            await service.generate_recommendation(user=test_user, occasion="casual")
+
+        assert raised.value.code == "WEATHER_UNAVAILABLE"
+
+
+class TestOutfitEndpointErrors:
+    @pytest.mark.asyncio
+    async def test_unknown_outfit(self, client: AsyncClient, auth_headers):
+        response = await client.get(f"/api/v1/outfits/{uuid4()}", headers=auth_headers)
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "OUTFIT_NOT_FOUND"
+        assert "params" not in response.json()
+
+    @pytest.mark.asyncio
+    async def test_family_rating_of_unknown_outfit(self, client: AsyncClient, auth_headers):
+        response = await client.get(
+            f"/api/v1/outfits/{uuid4()}/family-ratings", headers=auth_headers
+        )
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "OUTFIT_NOT_FOUND"
+
+    @pytest.mark.asyncio
+    async def test_bulk_delete_limit_names_the_limit(self, client: AsyncClient, auth_headers):
+        limit = get_settings().max_bulk_action_count
+
+        response = await client.post(
+            "/api/v1/outfits/bulk/delete",
+            json={"outfit_ids": [str(uuid4()) for _ in range(limit + 1)]},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "BULK_ACTION_LIMIT_EXCEEDED"
+        assert response.json()["params"] == {"limit": limit}
+
+    @pytest.mark.asyncio
+    async def test_empty_patch(self, client: AsyncClient, auth_headers):
+        response = await client.patch(f"/api/v1/outfits/{uuid4()}", json={}, headers=auth_headers)
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "PATCH_EMPTY"
+
+    @pytest.mark.asyncio
+    async def test_studio_kill_switch(self, client: AsyncClient, auth_headers, monkeypatch):
+        monkeypatch.setattr(get_settings(), "studio_disabled", True, raising=False)
+
+        response = await client.patch(
+            f"/api/v1/outfits/{uuid4()}", json={"name": "x"}, headers=auth_headers
+        )
+
+        assert response.status_code == 503
+        assert response.json()["error_code"] == "STUDIO_UNAVAILABLE"
+
+    @pytest.mark.asyncio
+    async def test_suggest_without_enough_items_is_coded(self, client: AsyncClient, auth_headers):
+        with patch.object(
+            RecommendationService,
+            "generate_recommendation",
+            AsyncMock(side_effect=InsufficientWardrobeError("Not enough items")),
+        ):
+            response = await client.post(
+                "/api/v1/outfits/suggest", json={"occasion": "casual"}, headers=auth_headers
+            )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "INSUFFICIENT_WARDROBE"
+        assert response.json()["detail"] == "Not enough items"
+
+    @pytest.mark.asyncio
+    async def test_suggest_with_unset_location_keeps_the_service_code(
+        self, client: AsyncClient, auth_headers
+    ):
+        with patch.object(
+            RecommendationService,
+            "generate_recommendation",
+            AsyncMock(side_effect=CodedValueError("No location", code="LOCATION_NOT_SET")),
+        ):
+            response = await client.post(
+                "/api/v1/outfits/suggest", json={"occasion": "casual"}, headers=auth_headers
+            )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "LOCATION_NOT_SET"
+
+    @pytest.mark.asyncio
+    async def test_suggest_with_a_failing_ai_is_coded(self, client: AsyncClient, auth_headers):
+        with patch.object(
+            RecommendationService,
+            "generate_recommendation",
+            AsyncMock(side_effect=AIRecommendationError("AI service is not available")),
+        ):
+            response = await client.post(
+                "/api/v1/outfits/suggest", json={"occasion": "casual"}, headers=auth_headers
+            )
+
+        assert response.status_code == 503
+        assert response.json()["error_code"] == "AI_SERVICE_UNAVAILABLE"
+
+    @pytest.mark.asyncio
+    async def test_plain_value_error_falls_back_to_invalid_input(
+        self, client: AsyncClient, auth_headers
+    ):
+        with patch.object(
+            RecommendationService,
+            "generate_recommendation",
+            AsyncMock(side_effect=ValueError("odd")),
+        ):
+            response = await client.post(
+                "/api/v1/outfits/suggest", json={"occasion": "casual"}, headers=auth_headers
+            )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "INVALID_INPUT"
+
+
+class TestPairingEndpointErrors:
+    @pytest.mark.asyncio
+    async def test_unknown_pairing(self, client: AsyncClient, auth_headers):
+        response = await client.delete(f"/api/v1/pairings/{uuid4()}", headers=auth_headers)
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "PAIRING_NOT_FOUND"
+
+    @pytest.mark.asyncio
+    async def test_generating_for_an_unavailable_source_item(
+        self, client: AsyncClient, auth_headers
+    ):
+        response = await client.post(
+            f"/api/v1/pairings/generate/{uuid4()}",
+            json={"num_pairings": 1},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "SOURCE_ITEM_UNAVAILABLE"

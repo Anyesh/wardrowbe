@@ -12,6 +12,7 @@ from app.models.outfit import FamilyOutfitRating, Outfit, OutfitItem, OutfitSour
 from app.models.user import User
 from app.services.ai_service import AIResponseTruncatedError, AIService, require_internal_ai
 from app.utils.clothing import covered_regions, deduplicate_by_body_slot
+from app.utils.errors import Coded, CodedValueError
 from app.utils.garment_vocabulary import render_outfit_prompt
 from app.utils.prompts import load_prompt, picked_item_ids
 from app.utils.timezone import get_user_today
@@ -187,7 +188,9 @@ class PairingService:
         # Get source item
         source_item = await self.get_source_item(user.id, source_item_id)
         if not source_item:
-            raise ValueError("Source item not found or not available")
+            raise CodedValueError(
+                "Source item not found or not available", code="SOURCE_ITEM_UNAVAILABLE"
+            )
 
         # Get available items
         available_items = await self.get_available_items(user, source_item_id)
@@ -407,9 +410,9 @@ class PairingService:
         return outfits, total
 
 
-class InsufficientItemsError(Exception):
-    pass
+class InsufficientItemsError(Coded, Exception):
+    code = "INSUFFICIENT_ITEMS_FOR_PAIRING"
 
 
-class AIGenerationError(Exception):
-    pass
+class AIGenerationError(Coded, Exception):
+    code = "AI_SERVICE_UNAVAILABLE"

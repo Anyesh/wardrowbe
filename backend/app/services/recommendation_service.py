@@ -49,6 +49,7 @@ from app.utils.clothing import (
     missing_regions,
     remove_legwear,
 )
+from app.utils.errors import Coded, CodedValueError
 from app.utils.garment_vocabulary import render_outfit_prompt
 from app.utils.preference_defaults import (
     DEFAULT_LAYERING_PREFERENCE,
@@ -801,20 +802,25 @@ class RecommendationService:
                     geocoded = await self.weather_service.geocode_location_name(user.location_name)
                 except GeocodingServiceError as e:
                     logger.error(f"Geocoding failed for outfit generation: {e}")
-                    raise ValueError(
-                        "Could not resolve location. Please update your location in settings."
+                    raise CodedValueError(
+                        "Could not resolve location. Please update your location in settings.",
+                        code="LOCATION_UNRESOLVED",
                     ) from e
                 if geocoded:
                     lat, lon, _ = geocoded
 
             if lat is None or lon is None:
-                raise ValueError("User location not set. Please set location in settings.")
+                raise CodedValueError(
+                    "User location not set. Please set location in settings.",
+                    code="LOCATION_NOT_SET",
+                )
             try:
                 weather = await self.weather_service.get_current_weather(lat, lon)
             except WeatherServiceError as e:
                 logger.error(f"Weather service failed: {e}")
-                raise ValueError(
-                    "Could not fetch weather data. Please try again or provide weather manually."
+                raise CodedValueError(
+                    "Could not fetch weather data. Please try again or provide weather manually.",
+                    code="WEATHER_UNAVAILABLE",
                 ) from e
 
         preferences = user.preferences
@@ -860,7 +866,10 @@ class RecommendationService:
 
             unresolved = include_set - {item.id for item in candidates}
             if unresolved:
-                raise ValueError("One or more selected items could not be found or are not ready.")
+                raise CodedValueError(
+                    "One or more selected items could not be found or are not ready.",
+                    code="ITEMS_NOT_FOUND",
+                )
 
         if len(candidates) < 2:
             raise InsufficientWardrobeError(
@@ -875,9 +884,10 @@ class RecommendationService:
                 list(include_items), item_type_map, mandatory_item_ids=mandatory_ids
             )
             if not can_complete_outfit(requested, item_type_map):
-                raise ValueError(
+                raise CodedValueError(
                     "The selected items cannot make a complete outfit with the rest of your "
-                    "wardrobe."
+                    "wardrobe.",
+                    code="SELECTED_ITEMS_INCOMPLETE",
                 )
 
         # Check cache for pre-generated suggestions (used when count is 1)
@@ -1009,14 +1019,18 @@ class RecommendationService:
                 # An answer with nothing usable fails rather than being built from scratch
                 # under a headline the AI wrote for other pieces.
                 if not has_wearable_piece(item_ids, item_type_map):
-                    raise AIRecommendationError("AI did not select any valid items")
+                    raise AIRecommendationError(
+                        "AI did not select any valid items", code="RECOMMENDATION_EMPTY"
+                    )
                 if missing_regions(item_ids, item_type_map):
                     ranking = rank_by_fit(
                         candidates, weather, occasion, current_season, preferences, learned_prefs
                     )
                     completed = fill_best_partial([(outfit_data, item_ids)], ranking, item_type_map)
                     if completed is None:
-                        raise AIRecommendationError(INCOMPLETE_OUTFIT_ERROR)
+                        raise AIRecommendationError(
+                            INCOMPLETE_OUTFIT_ERROR, code="OUTFIT_INCOMPLETE"
+                        )
                     outfit_data, item_ids = completed
                 outfit = await self._save_outfit(
                     outfit_data,
@@ -1059,10 +1073,12 @@ class RecommendationService:
                 )
                 completed = fill_best_partial(partials, ranking, item_type_map)
                 if completed is None:
-                    raise AIRecommendationError(INCOMPLETE_OUTFIT_ERROR)
+                    raise AIRecommendationError(INCOMPLETE_OUTFIT_ERROR, code="OUTFIT_INCOMPLETE")
                 chosen = [completed]
             if not chosen:
-                raise AIRecommendationError("AI did not select any valid items")
+                raise AIRecommendationError(
+                    "AI did not select any valid items", code="RECOMMENDATION_EMPTY"
+                )
 
             outfits = [
                 await self._save_outfit(
@@ -1126,9 +1142,9 @@ class RecommendationService:
         return outfits[0]
 
 
-class InsufficientWardrobeError(Exception):
-    pass
+class InsufficientWardrobeError(Coded, Exception):
+    code = "INSUFFICIENT_WARDROBE"
 
 
-class AIRecommendationError(Exception):
-    pass
+class AIRecommendationError(Coded, Exception):
+    code = "AI_SERVICE_UNAVAILABLE"

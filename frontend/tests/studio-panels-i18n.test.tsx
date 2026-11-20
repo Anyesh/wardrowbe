@@ -7,7 +7,6 @@ const toast = vi.hoisted(() => ({ info: vi.fn(), success: vi.fn(), error: vi.fn(
 vi.mock('@/lib/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/api')>()),
   api: { post },
-  getErrorMessage: (_: unknown, fallback: string) => fallback,
 }))
 vi.mock('sonner', () => ({ toast }))
 vi.mock('@/lib/hooks/use-features', () => ({ useAiUiEnabled: () => true }))

@@ -15,7 +15,6 @@ vi.mock('@/lib/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/api')>()),
   api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
   setAccessToken: vi.fn(),
-  getErrorMessage: (error: unknown) => String(error),
 }))
 vi.mock('@/components/outfits/outfit-card', () => ({ OutfitCard: () => null }))
 
