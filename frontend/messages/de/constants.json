@@ -191,7 +191,10 @@
     "turtleneck": "Rollkragen",
     "v-neck": "V-Ausschnitt",
     "windbreaker": "Windjacke",
-    "wrap": "Wickel"
+    "wrap": "Wickel",
+    "waistcoat": "Anzugweste",
+    "sweater-vest": "Pullunder",
+    "puffer": "Puffer"
   },
   "timezones": {
     "America/Chicago": "Central Time (USA)",

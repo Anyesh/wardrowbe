@@ -191,7 +191,10 @@
     "turtleneck": "タートルネック",
     "v-neck": "Vネック",
     "windbreaker": "ウインドブレーカー",
-    "wrap": "ラップ"
+    "wrap": "ラップ",
+    "waistcoat": "スーツベスト",
+    "sweater-vest": "ニットベスト",
+    "puffer": "パファー"
   },
   "timezones": {
     "America/Chicago": "中部標準時（米国）",

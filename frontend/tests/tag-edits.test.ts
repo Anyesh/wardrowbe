@@ -232,6 +232,17 @@ describe('subtypeAfterTypeChange', () => {
     expect(subtypeAfterTypeChange('socks', 'dress')).toBe('dress')
   })
 
+  it('keeps puffer across the outerwear types that offer it', () => {
+    expect(subtypeAfterTypeChange('jacket', 'puffer')).toBe('puffer')
+    expect(subtypeAfterTypeChange('coat', 'puffer')).toBe('puffer')
+    expect(subtypeAfterTypeChange('vest', 'puffer')).toBe('puffer')
+  })
+
+  it('drops a vest subtype when the vest becomes a coat', () => {
+    expect(subtypeAfterTypeChange('coat', 'waistcoat')).toBe('')
+    expect(subtypeAfterTypeChange('cardigan', 'Sweater vest')).toBe('')
+  })
+
   it('keeps free text the app has no list for', () => {
     expect(subtypeAfterTypeChange('shirt', 'Italian collar')).toBe('Italian collar')
   })
