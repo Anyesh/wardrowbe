@@ -11,15 +11,20 @@ from httpx import ASGITransport, AsyncClient
 from PIL import Image
 
 from app.api import items as items_api
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.main import app as main_app
 from app.main import coded_http_exception_handler
 from app.models.family import Family, FamilyInvite, FamilyRole
 from app.models.item import ClothingItem, ItemStatus
+from app.models.notification import NotificationSettings
 from app.models.user import User
 from app.services import image_service as image_service_module
 from app.services.image_service import ImageService, ImageTooLargeError
 from app.services.item_service import TagVocabularyError
+from app.services.notification_providers import (
+    InvalidSenderError,
+    channel_config_error_code,
+)
 from app.services.pairing_service import (
     AIGenerationError,
     InsufficientItemsError,
@@ -869,3 +874,319 @@ class TestWeatherEndpointErrors:
     def test_service_errors_carry_their_default_codes(self):
         assert WeatherServiceError("x").code == "WEATHER_UNAVAILABLE"
         assert GeocodingServiceError("x").code == "LOCATION_UNRESOLVED"
+
+
+NTFY_CONFIG = {"server": "https://ntfy.sh", "topic": "my-outfits"}
+
+
+async def _stored_setting(db_session, user, channel="ntfy", config=None) -> NotificationSettings:
+    setting = NotificationSettings(
+        user_id=user.id, channel=channel, priority=1, config=config or NTFY_CONFIG
+    )
+    db_session.add(setting)
+    await db_session.commit()
+    await db_session.refresh(setting)
+    return setting
+
+
+class TestNotificationEndpointErrors:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("channel", "config", "code", "params"),
+        [
+            ("ntfy", {"server": "ftp://x", "topic": "outfits"}, "NTFY_SERVER_URL_SCHEME", None),
+            (
+                "ntfy",
+                {"server": "https://" + "a" * 500, "topic": "outfits"},
+                "NTFY_SERVER_URL_TOO_LONG",
+                {"max_length": 500},
+            ),
+            ("ntfy", {"topic": "ab"}, "NTFY_TOPIC_TOO_SHORT", {"min_length": 3}),
+            ("ntfy", {"topic": "bad topic!"}, "NTFY_TOPIC_INVALID_CHARACTERS", None),
+            (
+                "mattermost",
+                {"webhook_url": "http://x/hooks/a"},
+                "MATTERMOST_WEBHOOK_NOT_HTTPS",
+                None,
+            ),
+            ("mattermost", {"webhook_url": "https://x/a"}, "MATTERMOST_WEBHOOK_INVALID", None),
+            ("expo_push", {"push_token": "abc"}, "EXPO_PUSH_TOKEN_INVALID", None),
+            ("email", {"address": "a..b@example.com"}, "INVALID_CHANNEL_CONFIG", None),
+            ("email", {"email": "a@example.com"}, "INVALID_CHANNEL_CONFIG", None),
+            ("ntfy", {}, "INVALID_CHANNEL_CONFIG", None),
+        ],
+    )
+    async def test_a_bad_channel_config_returns_its_code(
+        self, client: AsyncClient, auth_headers, channel, config, code, params
+    ):
+        response = await client.post(
+            "/api/v1/notifications/settings",
+            json={"channel": channel, "config": config},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        body = response.json()
+        assert body["error_code"] == code
+        assert body.get("params") == params
+
+    @pytest.mark.asyncio
+    async def test_a_bad_config_update_returns_its_code(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        setting = await _stored_setting(db_session, test_user)
+
+        response = await client.patch(
+            f"/api/v1/notifications/settings/{setting.id}",
+            json={"config": {"topic": "ab"}},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "NTFY_TOPIC_TOO_SHORT"
+        assert response.json()["params"] == {"min_length": 3}
+
+    @pytest.mark.asyncio
+    async def test_a_duplicate_channel(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        await _stored_setting(db_session, test_user)
+
+        response = await client.post(
+            "/api/v1/notifications/settings",
+            json={"channel": "ntfy", "config": NTFY_CONFIG},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "DUPLICATE_CHANNEL"
+        assert response.json()["params"] == {"channel": "ntfy"}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("method", "suffix", "body"),
+        [
+            ("GET", "", None),
+            ("PATCH", "", {"enabled": False}),
+            ("PATCH", "", {"config": NTFY_CONFIG}),
+            ("DELETE", "", None),
+            ("POST", "/test", None),
+        ],
+    )
+    async def test_a_missing_channel(self, client: AsyncClient, auth_headers, method, suffix, body):
+        response = await client.request(
+            method,
+            f"/api/v1/notifications/settings/{uuid4()}{suffix}",
+            json=body,
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "CHANNEL_NOT_FOUND"
+
+    @pytest.mark.asyncio
+    async def test_a_stored_config_this_version_rejects_cannot_be_tested(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        setting = await _stored_setting(db_session, test_user, config={"topic": "ab"})
+
+        response = await client.post(
+            f"/api/v1/notifications/settings/{setting.id}/test", headers=auth_headers
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "NTFY_TOPIC_TOO_SHORT"
+
+    @pytest.mark.asyncio
+    async def test_the_channel_response_carries_the_config_error_code(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        setting = await _stored_setting(db_session, test_user, config={"topic": "ab"})
+        healthy = await _stored_setting(
+            db_session, test_user, "mattermost", {"webhook_url": "https://mm.example.com/hooks/abc"}
+        )
+
+        listed = await client.get("/api/v1/notifications/settings", headers=auth_headers)
+        single = await client.get(
+            f"/api/v1/notifications/settings/{setting.id}", headers=auth_headers
+        )
+
+        rows = {row["id"]: row for row in listed.json()}
+        assert rows[str(setting.id)]["config_error_code"] == "NTFY_TOPIC_TOO_SHORT"
+        assert rows[str(setting.id)]["config_error_params"] == {"min_length": 3}
+        assert rows[str(setting.id)]["config_error"].endswith("Topic must be at least 3 characters")
+        assert rows[str(healthy.id)]["config_error_code"] is None
+        assert rows[str(healthy.id)]["config_error_params"] is None
+        assert single.json()["config_error_code"] == "NTFY_TOPIC_TOO_SHORT"
+
+    def test_config_error_code_of_a_plain_value_error_and_a_wrong_shape(self):
+        assert channel_config_error_code("email", {"address": "a..b@example.com"}) == (
+            "INVALID_CHANNEL_CONFIG"
+        )
+        assert channel_config_error_code("email", None) == "INVALID_CHANNEL_CONFIG"
+        assert channel_config_error_code("ntfy", NTFY_CONFIG) is None
+
+    @pytest.mark.asyncio
+    async def test_an_invalid_push_token(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            "/api/v1/notifications/push-token", json={"push_token": "nope"}, headers=auth_headers
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "INVALID_PUSH_TOKEN"
+
+    @pytest.mark.asyncio
+    async def test_a_missing_schedule(self, client: AsyncClient, auth_headers):
+        responses = [
+            await client.get(f"/api/v1/notifications/schedules/{uuid4()}", headers=auth_headers),
+            await client.patch(
+                f"/api/v1/notifications/schedules/{uuid4()}",
+                json={"enabled": False},
+                headers=auth_headers,
+            ),
+            await client.delete(f"/api/v1/notifications/schedules/{uuid4()}", headers=auth_headers),
+        ]
+
+        assert [r.status_code for r in responses] == [404, 404, 404]
+        assert {r.json()["error_code"] for r in responses} == {"SCHEDULE_NOT_FOUND"}
+
+    @pytest.mark.asyncio
+    async def test_a_duplicate_schedule(self, client: AsyncClient, auth_headers):
+        body = {"day_of_week": 1, "notification_time": "08:00", "occasion": "casual"}
+        first = await client.post(
+            "/api/v1/notifications/schedules", json=body, headers=auth_headers
+        )
+        second = await client.post(
+            "/api/v1/notifications/schedules", json=body, headers=auth_headers
+        )
+
+        assert first.status_code == 201
+        assert second.status_code == 409
+        assert second.json()["error_code"] == "DUPLICATE_SCHEDULE"
+
+    @pytest.mark.asyncio
+    async def test_schedule_validators_stay_plain_validation_errors(
+        self, client: AsyncClient, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/notifications/schedules",
+            json={"day_of_week": 9, "notification_time": "08:00"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert response.json()["error_code"] == "VALIDATION_ERROR"
+
+
+class TestNotificationTestSendErrors:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("channel", "config"),
+        [
+            ("ntfy", NTFY_CONFIG),
+            ("mattermost", {"webhook_url": "https://mm.example.com/hooks/abc"}),
+            ("expo_push", {"push_token": "ExponentPushToken[abc]"}),
+        ],
+    )
+    async def test_an_http_failure_carries_the_status(
+        self, client: AsyncClient, test_user, auth_headers, db_session, channel, config
+    ):
+        setting = await _stored_setting(db_session, test_user, channel, config)
+
+        with patch(
+            "httpx.AsyncClient.post", AsyncMock(return_value=httpx.Response(502, text="bad"))
+        ):
+            response = await client.request(
+                "POST",
+                f"/api/v1/notifications/settings/{setting.id}/test",
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 400
+        body = response.json()
+        assert body["error_code"] == "NOTIFICATION_HTTP_ERROR"
+        assert body["params"] == {"status": 502}
+        assert body["detail"].startswith("HTTP 502")
+
+    @pytest.mark.asyncio
+    async def test_a_connection_failure_is_a_generic_coded_error(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        setting = await _stored_setting(db_session, test_user)
+
+        with patch("httpx.AsyncClient.post", AsyncMock(side_effect=httpx.ConnectError("down"))):
+            response = await client.request(
+                "POST",
+                f"/api/v1/notifications/settings/{setting.id}/test",
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "NOTIFICATION_TEST_FAILED"
+        assert "params" not in response.json()
+
+    @pytest.mark.asyncio
+    async def test_email_without_smtp(
+        self, client: AsyncClient, test_user, auth_headers, db_session, monkeypatch
+    ):
+        monkeypatch.setattr(
+            "app.services.notification_providers.get_settings",
+            lambda: Settings(_env_file=None),
+        )
+        setting = await _stored_setting(
+            db_session, test_user, "email", {"address": "to@example.com"}
+        )
+
+        response = await client.request(
+            "POST",
+            f"/api/v1/notifications/settings/{setting.id}/test",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "SMTP_NOT_CONFIGURED"
+
+    @pytest.mark.asyncio
+    async def test_email_with_an_unusable_sender(
+        self, client: AsyncClient, test_user, auth_headers, db_session, monkeypatch
+    ):
+        settings = Settings(_env_file=None, smtp_host="smtp.example.com", smtp_from_email="a b c")
+        monkeypatch.setattr("app.services.notification_providers.get_settings", lambda: settings)
+        setting = await _stored_setting(
+            db_session, test_user, "email", {"address": "to@example.com"}
+        )
+
+        response = await client.request(
+            "POST",
+            f"/api/v1/notifications/settings/{setting.id}/test",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "EMAIL_SENDER_INVALID"
+        assert response.json()["params"] == {"sender": "a b c"}
+
+    @pytest.mark.asyncio
+    async def test_a_successful_test_send_stays_a_200(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        setting = await _stored_setting(db_session, test_user)
+
+        with patch(
+            "httpx.AsyncClient.post",
+            AsyncMock(return_value=httpx.Response(200, json={"id": "x"})),
+        ):
+            response = await client.request(
+                "POST",
+                f"/api/v1/notifications/settings/{setting.id}/test",
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+    def test_the_invalid_sender_error_is_still_a_value_error_with_a_code(self):
+        error = InvalidSenderError("x", sender="a b c")
+
+        assert isinstance(error, ValueError)
+        assert (error.code, error.params) == ("EMAIL_SENDER_INVALID", {"sender": "a b c"})

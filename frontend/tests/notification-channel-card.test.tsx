@@ -14,8 +14,11 @@ function renderCard(locale: string, setting: NotificationSettings) {
   const notifications = JSON.parse(
     readFileSync(resolve(__dirname, '..', 'messages', locale, 'notifications.json'), 'utf8'),
   )
+  const errors = JSON.parse(
+    readFileSync(resolve(__dirname, '..', 'messages', locale, 'errors.json'), 'utf8'),
+  )
   return render(
-    <NextIntlClientProvider locale={locale} messages={{ notifications }}>
+    <NextIntlClientProvider locale={locale} messages={{ notifications, errors }}>
       <ChannelCard
         setting={setting}
         onTest={() => {}}
@@ -37,6 +40,8 @@ const expoSetting: NotificationSettings = {
   created_at: '2026-10-05T00:00:00Z',
   updated_at: '2026-10-05T00:00:00Z',
   config_error: null,
+  config_error_code: null,
+  config_error_params: null,
 }
 
 const rejectedEmailSetting: NotificationSettings = {
@@ -45,6 +50,17 @@ const rejectedEmailSetting: NotificationSettings = {
   channel: 'email',
   config: { address: 'a..b@example.com' },
   config_error: 'Value error, An email address cannot have two periods in a row.',
+  config_error_code: 'INVALID_CHANNEL_CONFIG',
+}
+
+const shortTopicSetting: NotificationSettings = {
+  ...expoSetting,
+  id: 'ntfy-1',
+  channel: 'ntfy',
+  config: { topic: 'ab' },
+  config_error: 'Value error, Topic must be at least 3 characters',
+  config_error_code: 'NTFY_TOPIC_TOO_SHORT',
+  config_error_params: { min_length: 3 },
 }
 
 describe('ChannelCard', () => {
@@ -57,18 +73,29 @@ describe('ChannelCard', () => {
 
   it.each([
     ['a valid channel', expoSetting, []],
-    ['a channel this version rejects', rejectedEmailSetting, ['Invalid settings', 'These settings are no longer accepted, so nothing is sent through this channel. Delete it and add it again.']],
+    ['a channel this version rejects', rejectedEmailSetting, ['Invalid settings', "These channel settings aren't valid.", 'These settings are no longer accepted, so nothing is sent through this channel. Delete it and add it again.']],
   ] as const)('flags %s', (_case, setting, shown) => {
     const { container } = renderCard('en', setting)
     for (const text of shown) expect(screen.getByText(text)).toBeInTheDocument()
     expect(container.textContent?.includes('Invalid settings')).toBe(shown.length > 0)
   })
 
-  it.each(SUPPORTED_LOCALES.flatMap((locale) => [[locale, expoSetting], [locale, rejectedEmailSetting]] as const))(
+  it('translates the rejection reason with its params, never the English message', () => {
+    const { container } = renderCard('en', shortTopicSetting)
+    expect(screen.getByText('The topic must be at least 3 characters.')).toBeInTheDocument()
+    expect(container.textContent).not.toMatch(/Value error/)
+  })
+
+  it('falls back to the generic reason for a code it cannot translate', () => {
+    renderCard('en', { ...rejectedEmailSetting, config_error_code: 'SOMETHING_NEW' })
+    expect(screen.getByText("These channel settings aren't valid.")).toBeInTheDocument()
+  })
+
+  it.each(SUPPORTED_LOCALES.flatMap((locale) => [[locale, expoSetting], [locale, rejectedEmailSetting], [locale, shortTopicSetting]] as const))(
     'labels every card text in %s',
     (locale, setting) => {
       const { container } = renderCard(locale, setting)
-      expect(container.textContent).not.toMatch(/notifications\.channels/)
+      expect(container.textContent).not.toMatch(/notifications\.channels|errors\.|[{]min_length[}]/)
     },
   )
 })

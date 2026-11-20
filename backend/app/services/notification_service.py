@@ -14,13 +14,16 @@ from app.models.schedule import Schedule
 from app.models.user import User
 from app.schemas.notification import NotificationChannel
 from app.services.notification_providers import (
+    ConnectionTestResult,
     NotificationMessage,
     NotificationResult,
     WeatherSummary,
     build_provider,
+    failed_test_result,
     format_temperature,
     send_via_channel,
 )
+from app.utils.errors import CodedValueError
 from app.utils.timezone import get_user_today
 
 logger = logging.getLogger(__name__)
@@ -89,7 +92,11 @@ class NotificationService:
             )
         )
         if existing.scalar_one_or_none():
-            raise ValueError(f"Channel {channel} already configured")
+            raise CodedValueError(
+                f"Channel {channel} already configured",
+                code="DUPLICATE_CHANNEL",
+                channel=str(channel),
+            )
 
         setting = NotificationSettings(
             user_id=user_id,
@@ -135,11 +142,11 @@ class NotificationService:
         await self.db.flush()
         return True
 
-    async def test_setting(self, setting: NotificationSettings) -> tuple[bool, str]:
+    async def test_setting(self, setting: NotificationSettings) -> ConnectionTestResult:
         try:
             return await build_provider(setting.channel, setting.config).test_connection()
         except Exception as e:
-            return False, str(e)
+            return failed_test_result(str(e))
 
     async def get_user_schedules(self, user_id: UUID) -> list[Schedule]:
         result = await self.db.execute(select(Schedule).where(Schedule.user_id == user_id))
@@ -172,7 +179,7 @@ class NotificationService:
             )
         )
         if existing.scalar_one_or_none() is not None:
-            raise ValueError("An identical schedule already exists")
+            raise CodedValueError("An identical schedule already exists", code="DUPLICATE_SCHEDULE")
 
         schedule = Schedule(
             user_id=user_id,
