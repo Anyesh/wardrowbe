@@ -79,7 +79,6 @@
     "detected": "Standort erkannt. Überprüfe ihn und speichere dann.",
     "errors": {
       "geolocationDenied": "Der Zugriff auf den Standort wurde verweigert.",
-      "geolocationFailed": "Genauer Standort konnte nicht ermittelt werden: {message}",
       "geolocationFailedGeneric": "Genauer Standort konnte nicht ermittelt werden.",
       "geolocationTimeout": "Zeitüberschreitung bei der Standortabfrage.",
       "geolocationUnavailable": "Der Standort ist derzeit nicht verfügbar.",
@@ -87,7 +86,6 @@
       "invalidCoordinates": "Bitte gib gültige Werte für Breiten- und Längengrad ein",
       "latitudeRange": "Der Breitengrad muss zwischen -90 und 90 liegen",
       "longitudeRange": "Der Längengrad muss zwischen -180 und 180 liegen",
-      "networkLookupFailed": "Netzwerkbasierte Standortermittlung fehlgeschlagen ({status})",
       "saveFailed": "Standort konnte nicht gespeichert werden. Bitte versuche es erneut.",
       "unableToDetect": "Dein Standort konnte nicht ermittelt werden."
     },

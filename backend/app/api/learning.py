@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
 
@@ -18,6 +18,7 @@ from app.services.learning_service import (
     score_interpretation,
 )
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -298,9 +299,10 @@ async def acknowledge_insight(
     success = await learning_service.acknowledge_insight(current_user.id, insight_id)
 
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Insight not found",
+        raise CodedHTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "INSIGHT_NOT_FOUND",
+            "Insight not found",
         )
 
     return {"acknowledged": True}

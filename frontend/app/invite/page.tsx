@@ -9,21 +9,8 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useJoinFamilyByToken } from '@/lib/hooks/use-family';
-import { ApiError } from '@/lib/api';
+import { useDescribeError } from '@/lib/errors';
 import { useTranslations } from 'next-intl';
-
-function getErrorMessage(error: unknown, t: (key: string) => string): string {
-  if (error instanceof ApiError) {
-    if (error.status === 404) return t('invite.invalidLink');
-    if (error.status === 403) {
-      const data = error.data as { detail?: { error_code?: string } } | undefined;
-      if (data?.detail?.error_code === 'EMAIL_NOT_VERIFIED') return t('invite.emailNotVerified');
-      return t('invite.wrongEmail');
-    }
-    if (error.status === 409) return t('invite.alreadyInFamily');
-  }
-  return t('default');
-}
 
 function InviteContent() {
   const searchParams = useSearchParams();
@@ -32,7 +19,7 @@ function InviteContent() {
   const token = searchParams.get('token');
   const joinByToken = useJoinFamilyByToken();
   const t = useTranslations('auth');
-  const te = useTranslations('errors');
+  const describeError = useDescribeError();
 
   useEffect(() => {
     if (!token) {
@@ -78,7 +65,7 @@ function InviteContent() {
         </CardHeader>
         <CardContent className="space-y-4">
           {joinByToken.isError && (
-            <p className="text-sm text-destructive">{getErrorMessage(joinByToken.error, te)}</p>
+            <p className="text-sm text-destructive">{describeError(joinByToken.error)}</p>
           )}
           <Button
             onClick={handleAccept}

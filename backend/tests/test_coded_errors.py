@@ -1,8 +1,10 @@
 import pickle
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
+import httpx
 import pytest
 from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
@@ -12,6 +14,7 @@ from app.api import items as items_api
 from app.config import get_settings
 from app.main import app as main_app
 from app.main import coded_http_exception_handler
+from app.models.family import Family, FamilyInvite, FamilyRole
 from app.models.item import ClothingItem, ItemStatus
 from app.models.user import User
 from app.services import image_service as image_service_module
@@ -546,3 +549,323 @@ class TestPairingEndpointErrors:
 
         assert response.status_code == 400
         assert response.json()["error_code"] == "SOURCE_ITEM_UNAVAILABLE"
+
+
+class TestFamilyEndpointErrors:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("method", "path", "body"),
+        [
+            ("get", "/api/v1/families/me", None),
+            ("post", "/api/v1/families/me/leave", None),
+        ],
+    )
+    async def test_without_a_family(self, client: AsyncClient, auth_headers, method, path, body):
+        response = await getattr(client, method)(path, headers=auth_headers)
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "NOT_IN_ANY_FAMILY"
+
+    @pytest.mark.asyncio
+    async def test_creating_a_second_family(self, client: AsyncClient, auth_headers):
+        await client.post("/api/v1/families", json={"name": "One"}, headers=auth_headers)
+
+        response = await client.post("/api/v1/families", json={"name": "Two"}, headers=auth_headers)
+
+        assert response.status_code == 409
+        assert response.json()["error_code"] == "ALREADY_IN_FAMILY"
+
+    @pytest.mark.asyncio
+    async def test_joining_with_an_unknown_code(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            "/api/v1/families/join", json={"invite_code": "ZZZZZZZZ"}, headers=auth_headers
+        )
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "INVALID_INVITE_CODE"
+
+    @pytest.mark.asyncio
+    async def test_joining_with_an_unknown_token(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            "/api/v1/families/join-by-token", json={"token": "nope"}, headers=auth_headers
+        )
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "INVITE_LINK_INVALID"
+
+    @pytest.mark.asyncio
+    async def test_the_only_admin_cannot_leave(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        await client.post("/api/v1/families", json={"name": "One"}, headers=auth_headers)
+        await db_session.refresh(test_user)
+        db_session.add(
+            User(
+                external_id=f"member-{uuid4().hex}",
+                email=f"member-{uuid4().hex}@example.com",
+                display_name="Member",
+                family_id=test_user.family_id,
+                role=FamilyRole.member,
+            )
+        )
+        await db_session.commit()
+
+        response = await client.post("/api/v1/families/me/leave", headers=auth_headers)
+
+        assert response.status_code == 409
+        assert response.json()["error_code"] == "LAST_ADMIN_CANNOT_LEAVE"
+
+    @pytest.mark.asyncio
+    async def test_changing_your_own_role(self, client: AsyncClient, test_user, auth_headers):
+        await client.post("/api/v1/families", json={"name": "One"}, headers=auth_headers)
+
+        response = await client.patch(
+            f"/api/v1/families/me/members/{test_user.id}",
+            json={"role": "member"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "CANNOT_CHANGE_OWN_ROLE"
+
+    @pytest.mark.asyncio
+    async def test_removing_yourself(self, client: AsyncClient, test_user, auth_headers):
+        await client.post("/api/v1/families", json={"name": "One"}, headers=auth_headers)
+
+        response = await client.delete(
+            f"/api/v1/families/me/members/{test_user.id}", headers=auth_headers
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "CANNOT_REMOVE_SELF"
+
+    @pytest.mark.asyncio
+    async def test_unknown_member(self, client: AsyncClient, auth_headers):
+        await client.post("/api/v1/families", json={"name": "One"}, headers=auth_headers)
+
+        response = await client.delete(
+            f"/api/v1/families/me/members/{uuid4()}", headers=auth_headers
+        )
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "MEMBER_NOT_IN_FAMILY"
+
+    @pytest.mark.asyncio
+    async def test_unknown_invite(self, client: AsyncClient, auth_headers):
+        await client.post("/api/v1/families", json={"name": "One"}, headers=auth_headers)
+
+        response = await client.delete(
+            f"/api/v1/families/me/invites/{uuid4()}", headers=auth_headers
+        )
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "INVITE_NOT_FOUND"
+
+    @pytest.mark.asyncio
+    async def test_non_admin_is_refused(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        await client.post("/api/v1/families", json={"name": "One"}, headers=auth_headers)
+        test_user.role = FamilyRole.member
+        await db_session.commit()
+
+        response = await client.post(
+            "/api/v1/families/me/invite", json={"email": "g@example.com"}, headers=auth_headers
+        )
+
+        assert response.status_code == 403
+        assert response.json()["error_code"] == "FAMILY_ADMIN_REQUIRED"
+
+    @pytest.mark.asyncio
+    async def test_token_for_another_email_and_unverified_email(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        token = f"tok-{uuid4().hex}"
+        family = Family(name="Other", created_by=test_user.id, invite_code=uuid4().hex[:8].upper())
+        db_session.add(family)
+        await db_session.flush()
+        invite = FamilyInvite(
+            family_id=family.id,
+            email="someone-else@example.com",
+            token=token,
+            invited_by=test_user.id,
+            expires_at=datetime.now(UTC) + timedelta(days=1),
+        )
+        db_session.add(invite)
+        await db_session.commit()
+
+        response = await client.post(
+            "/api/v1/families/join-by-token", json={"token": token}, headers=auth_headers
+        )
+        assert response.status_code == 403
+        assert response.json()["error_code"] == "INVITE_EMAIL_MISMATCH"
+
+        invite.email = test_user.email
+        test_user.email_verified = False
+        await db_session.commit()
+
+        response = await client.post(
+            "/api/v1/families/join-by-token", json={"token": token}, headers=auth_headers
+        )
+        assert response.status_code == 403
+        assert response.json()["error_code"] == "EMAIL_NOT_VERIFIED"
+
+
+class TestUserEndpointErrors:
+    @pytest.mark.asyncio
+    async def test_unsupported_locale(self, client: AsyncClient, auth_headers):
+        response = await client.patch(
+            "/api/v1/users/me", json={"locale": "xx"}, headers=auth_headers
+        )
+
+        assert response.status_code == 422
+        assert response.json()["error_code"] == "UNSUPPORTED_LOCALE"
+
+    @pytest.mark.asyncio
+    async def test_invalid_timezone(self, client: AsyncClient, auth_headers):
+        response = await client.patch(
+            "/api/v1/users/me", json={"timezone": "Mars/Base"}, headers=auth_headers
+        )
+
+        assert response.status_code == 422
+        assert response.json()["error_code"] == "INVALID_TIMEZONE"
+
+    @pytest.mark.asyncio
+    async def test_non_positive_measurement(self, client: AsyncClient, auth_headers):
+        response = await client.patch(
+            "/api/v1/users/me", json={"body_measurements": {"chest": 0}}, headers=auth_headers
+        )
+
+        assert response.status_code == 422
+        assert response.json()["error_code"] == "INVALID_BODY_MEASUREMENT"
+
+
+class TestPreferenceEndpointErrors:
+    @pytest.mark.asyncio
+    async def test_ai_endpoint_test_without_url(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            "/api/v1/users/me/preferences/test-ai-endpoint", json={}, headers=auth_headers
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "URL_REQUIRED"
+
+    @pytest.mark.asyncio
+    async def test_ai_endpoint_test_with_a_non_http_url(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            "/api/v1/users/me/preferences/test-ai-endpoint",
+            json={"url": "ftp://host"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "URL_SCHEME_UNSUPPORTED"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("failure", "code", "params"),
+        [
+            (httpx.ConnectError("refused"), "AI_ENDPOINT_REFUSED", None),
+            (httpx.ReadTimeout("slow"), "AI_ENDPOINT_TIMEOUT", None),
+            (RuntimeError("boom"), "AI_ENDPOINT_FAILED", None),
+        ],
+    )
+    async def test_ai_endpoint_test_reports_a_code_for_each_failure(
+        self, client: AsyncClient, auth_headers, failure, code, params
+    ):
+        with patch("httpx.AsyncClient.get", AsyncMock(side_effect=failure)):
+            response = await client.post(
+                "/api/v1/users/me/preferences/test-ai-endpoint",
+                json={"url": "http://localhost:11434/v1"},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "error"
+        assert body["error_code"] == code
+        assert "params" not in body or body["params"] is None
+
+    @pytest.mark.asyncio
+    async def test_ai_endpoint_test_reports_the_http_status(
+        self, client: AsyncClient, auth_headers
+    ):
+        reply = httpx.Response(503, request=httpx.Request("GET", "http://localhost/api/tags"))
+        with patch("httpx.AsyncClient.get", AsyncMock(return_value=reply)):
+            response = await client.post(
+                "/api/v1/users/me/preferences/test-ai-endpoint",
+                json={"url": "http://localhost:11434/v1"},
+                headers=auth_headers,
+            )
+
+        body = response.json()
+        assert body["error_code"] == "AI_ENDPOINT_HTTP_ERROR"
+        assert body["params"] == {"status": 503}
+
+
+class TestLearningEndpointErrors:
+    @pytest.mark.asyncio
+    async def test_unknown_insight(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            f"/api/v1/learning/insights/{uuid4()}/acknowledge", headers=auth_headers
+        )
+
+        assert response.status_code == 404
+        assert response.json()["error_code"] == "INSIGHT_NOT_FOUND"
+
+
+class TestWeatherEndpointErrors:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("path", ["/api/v1/weather/current", "/api/v1/weather/forecast"])
+    async def test_location_not_set(
+        self, client: AsyncClient, test_user, auth_headers, db_session, path
+    ):
+        test_user.location_name = None
+        test_user.location_lat = None
+        test_user.location_lon = None
+        await db_session.commit()
+
+        response = await client.get(path, headers=auth_headers)
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "LOCATION_NOT_SET"
+
+    @pytest.mark.asyncio
+    async def test_geocoding_failure(
+        self, client: AsyncClient, test_user, auth_headers, db_session
+    ):
+        test_user.location_name = "Nowhere"
+        test_user.location_lat = None
+        test_user.location_lon = None
+        await db_session.commit()
+
+        with patch(
+            "app.api.weather.WeatherService.geocode_location_name",
+            AsyncMock(side_effect=GeocodingServiceError("down")),
+        ):
+            response = await client.get("/api/v1/weather/current", headers=auth_headers)
+
+        assert response.status_code == 503
+        assert response.json()["error_code"] == "LOCATION_UNRESOLVED"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("path", "method"),
+        [
+            ("/api/v1/weather/current", "get_current_weather"),
+            ("/api/v1/weather/forecast", "get_daily_forecast"),
+        ],
+    )
+    async def test_weather_failure(self, client: AsyncClient, auth_headers, path, method):
+        with patch(
+            f"app.api.weather.WeatherService.{method}",
+            AsyncMock(side_effect=WeatherServiceError("down")),
+        ):
+            response = await client.get(f"{path}?latitude=10&longitude=10", headers=auth_headers)
+
+        assert response.status_code == 503
+        assert response.json()["error_code"] == "WEATHER_UNAVAILABLE"
+
+    def test_service_errors_carry_their_default_codes(self):
+        assert WeatherServiceError("x").code == "WEATHER_UNAVAILABLE"
+        assert GeocodingServiceError("x").code == "LOCATION_UNRESOLVED"
