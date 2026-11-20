@@ -675,11 +675,6 @@ def channel_config_error(channel: str, config: object) -> str | None:
     return failure.message if failure else None
 
 
-def channel_config_error_code(channel: str, config: object) -> str | None:
-    failure = channel_config_failure(channel, config)
-    return failure.code if failure else None
-
-
 def build_provider(channel: str, config: object) -> NotificationProvider:
     return _channel_spec(channel).provider(parse_channel_config(channel, config))
 

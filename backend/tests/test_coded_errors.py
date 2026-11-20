@@ -23,7 +23,7 @@ from app.services.image_service import ImageService, ImageTooLargeError
 from app.services.item_service import TagVocabularyError
 from app.services.notification_providers import (
     InvalidSenderError,
-    channel_config_error_code,
+    channel_config_failure,
 )
 from app.services.pairing_service import (
     AIGenerationError,
@@ -1021,11 +1021,14 @@ class TestNotificationEndpointErrors:
         assert single.json()["config_error_code"] == "NTFY_TOPIC_TOO_SHORT"
 
     def test_config_error_code_of_a_plain_value_error_and_a_wrong_shape(self):
-        assert channel_config_error_code("email", {"address": "a..b@example.com"}) == (
-            "INVALID_CHANNEL_CONFIG"
+        plain = channel_config_failure("email", {"address": "a..b@example.com"})
+        wrong_shape = channel_config_failure("email", None)
+
+        assert (plain.code, wrong_shape.code) == (
+            "INVALID_CHANNEL_CONFIG",
+            "INVALID_CHANNEL_CONFIG",
         )
-        assert channel_config_error_code("email", None) == "INVALID_CHANNEL_CONFIG"
-        assert channel_config_error_code("ntfy", NTFY_CONFIG) is None
+        assert channel_config_failure("ntfy", NTFY_CONFIG) is None
 
     @pytest.mark.asyncio
     async def test_an_invalid_push_token(self, client: AsyncClient, auth_headers):
