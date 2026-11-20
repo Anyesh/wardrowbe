@@ -1,0 +1,66 @@
+{
+  "familyFeed": {
+    "browse": "Ver conjuntos de la familia",
+    "description": "Mira lo que lleva tu familia y valora sus conjuntos",
+    "memberCount": "{count, plural, one {{count} miembro en {name}} other {{count} miembros en {name}}}",
+    "title": "Conjuntos de la familia"
+  },
+  "insights": {
+    "empty": "Añade más prendas y genera conjuntos para ver ideas personalizadas.",
+    "title": "Ideas"
+  },
+  "layout": {
+    "loading": "Cargando tu armario…"
+  },
+  "nextScheduled": {
+    "comingUp": "Próximamente",
+    "dayAtTime": "{day} a las {time}",
+    "noSchedules": "No hay horarios configurados",
+    "occasionOutfit": "Conjunto de {occasion}",
+    "setUpSchedule": "Configurar horario",
+    "title": "Siguiente programado",
+    "today": "Hoy",
+    "tomorrow": "Mañana"
+  },
+  "notifications": {
+    "activeCount": "{active} de {total} activos",
+    "addChannel": "Añadir canal",
+    "configure": "Configurar",
+    "noChannels": "No hay canales configurados",
+    "title": "Avisos"
+  },
+  "pendingOutfits": {
+    "acceptFailed": "No se ha podido aceptar el conjunto",
+    "accepted": "Conjunto aceptado",
+    "allCaughtUp": "Estás al día",
+    "dismissFailed": "No se ha podido descartar el conjunto",
+    "dismissLabel": "Descartar conjunto",
+    "dismissed": "Conjunto descartado",
+    "lookbook": "Lookbook",
+    "noPending": "No hay conjuntos esperando tu respuesta",
+    "title": "Conjuntos pendientes"
+  },
+  "quickActions": {
+    "addNewItem": "Añadir prenda",
+    "description": "Tareas habituales para empezar",
+    "getOutfitSuggestion": "Pedir un conjunto",
+    "title": "Accesos rápidos"
+  },
+  "subtitle": "Esto es lo que pasa en tu armario",
+  "userFallback": "Usuario",
+  "weather": {
+    "feelsLike": "sensación {temp}",
+    "getOutfitSuggestion": "Pedir un conjunto",
+    "locationNotSet": "Ubicación sin definir",
+    "rainChance": "{percent} % de probabilidad de lluvia",
+    "setLocation": "Definir ubicación",
+    "title": "Tiempo de hoy"
+  },
+  "weeklySummary": {
+    "accepted": "aceptados",
+    "avgRatingValue": "Valoración media: {rating}/5",
+    "outfits": "conjuntos",
+    "title": "Esta semana"
+  },
+  "welcomeBack": "Hola de nuevo, {name}"
+}

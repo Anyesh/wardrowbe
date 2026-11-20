@@ -1,0 +1,36 @@
+{
+  "allItemTypes": "Todos los tipos de prenda",
+  "card": {
+    "badge": "Combinación",
+    "builtAround": "Creada a partir de:",
+    "deleteError": "No se ha podido eliminar la combinación",
+    "deleted": "Combinación eliminada",
+    "externalBadge": "Externa",
+    "rateThisPairing": "Valorar esta combinación",
+    "tip": "Consejo:",
+    "updateRating": "Actualizar valoración"
+  },
+  "empty": {
+    "description": "Elige una prenda del armario y usa «Buscar combinaciones» para descubrir conjuntos que funcionan bien juntos.",
+    "goToWardrobe": "Ir al armario",
+    "title": "Todavía no hay combinaciones"
+  },
+  "generate": {
+    "colorAndType": "{color} {type}",
+    "description": "La IA creará conjuntos completos con esta prenda",
+    "failed": "No se han podido generar las combinaciones",
+    "generate": "Generar conjuntos",
+    "generating": "Generando…",
+    "numOutfits": "Número de conjuntos",
+    "numOutfitsDesc": "Más conjuntos dan más variedad, pero tardan más en generarse",
+    "success": "{count, plural, one {¡{count} conjunto creado!} other {¡{count} conjuntos creados!}}",
+    "successDesc": "Los verás en la sección Combinaciones",
+    "title": "Buscar conjuntos que combinen",
+    "viewPairings": "Ver combinaciones"
+  },
+  "itemTypeOption": "{type} ({count})",
+  "loadError": "No se han podido cargar las combinaciones. Inténtalo de nuevo.",
+  "pairingCount": "{count, plural, one {{count} combinación} other {{count} combinaciones}}",
+  "subtitle": "Combinaciones de conjuntos generadas por la IA a partir de tus prendas",
+  "title": "Combinaciones"
+}
