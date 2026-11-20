@@ -1,5 +1,7 @@
 import ast
 import json
+import re
+import textwrap
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -10,6 +12,7 @@ APP = BACKEND / "app"
 ERRORS_EN = BACKEND.parent / "frontend" / "messages" / "en" / "errors.json"
 ERRORS_MODULE = APP / "utils" / "errors.py"
 CODED_ROOTS = {"Coded"}
+UPPER_SNAKE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
 
 @dataclass
@@ -120,8 +123,18 @@ def _is_super_init(call: ast.Call) -> bool:
     )
 
 
-def scan() -> Scan:
-    modules = _modules()
+def _body_code(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Dict):
+        for key, value in zip(node.keys, node.values, strict=True):
+            if key is not None and _literal(key) == "error_code":
+                return _literal(value)
+    if isinstance(node, ast.Call):
+        return _literal(_kwarg(node, "error_code"))
+    return None
+
+
+def scan(modules: dict[Path, ast.Module] | None = None) -> Scan:
+    modules = _modules() if modules is None else modules
     coded = _coded_classes(modules)
     own_init = {
         node.name
@@ -146,6 +159,9 @@ def scan() -> Scan:
         rel = path.relative_to(BACKEND)
         owners = _enclosing_classes(tree)
         for node in ast.walk(tree):
+            body_code = _body_code(node)
+            if body_code and UPPER_SNAKE.match(body_code):
+                result.uses.append(CodeUse(f"{rel}:{node.lineno}", body_code))
             if not isinstance(node, ast.Call):
                 continue
             where = f"{rel}:{node.lineno}"
@@ -160,7 +176,9 @@ def scan() -> Scan:
             elif callee == "http_error" and path != ERRORS_MODULE:
                 result.uses.append(CodeUse(where, _literal(_arg(node, 2, "fallback_code"))))
             elif (callee in coded and callee not in CODED_ROOTS) or (
-                _is_super_init(node) and owners.get(node) in coded
+                _is_super_init(node)
+                and owners.get(node) in coded
+                and owners.get(node) not in CODED_ROOTS
             ):
                 code_node = _kwarg(node, "code")
                 params = {k.arg for k in node.keywords if k.arg not in (None, "code")}
@@ -170,6 +188,9 @@ def scan() -> Scan:
                     result.uses.append(CodeUse(where, _literal(code_node), params))
                 elif callee in coded:
                     result.uses.append(CodeUse(where, _default_code(callee, coded), params))
+                else:
+                    owner = owners[node]
+                    result.uses.append(CodeUse(where, _default_code(owner, coded), params))
     return result
 
 
@@ -211,6 +232,39 @@ def test_icu_arguments_skip_plural_branch_text():
     message = "{count, plural, one {# item over {limit}} other {# items}} in {place}"
 
     assert icu_arguments(message) == {"count", "limit", "place"}
+
+
+def _scan_source(source: str) -> Scan:
+    path = APP / "sample.py"
+    return scan({path: ast.parse(textwrap.dedent(source))})
+
+
+def test_params_passed_through_super_init_take_the_class_default():
+    found = _scan_source(
+        """
+        class TooBig(Coded, Exception):
+            code = "IMAGE_TOO_LARGE"
+
+            def __init__(self, size):
+                super().__init__("too big", size=size)
+        """
+    )
+
+    assert [(u.code, u.params) for u in found.uses if u.params is not None] == [
+        ("IMAGE_TOO_LARGE", {"size"})
+    ]
+
+
+def test_codes_in_200_bodies_are_collected_but_lowercase_ones_are_not():
+    found = _scan_source(
+        """
+        ok = {"status": "error", "error_code": "AI_ENDPOINT_FAILED"}
+        status = AuthStatus(error_code="AUTH_NOT_CONFIGURED")
+        row = BulkUploadResult(error_code="duplicate")
+        """
+    )
+
+    assert sorted(u.code for u in found.uses) == ["AI_ENDPOINT_FAILED", "AUTH_NOT_CONFIGURED"]
 
 
 def test_no_uncoded_http_exception(scanned: Scan):
