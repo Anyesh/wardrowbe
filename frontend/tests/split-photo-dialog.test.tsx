@@ -39,7 +39,7 @@ function renderDialog(props: Partial<React.ComponentProps<typeof SplitPhotoDialo
   const onClose = vi.fn()
   const onDone = vi.fn()
   // The app's client, so the global error toast is live and a second toast would show.
-  const client = createQueryClient()
+  const client = createQueryClient(() => 'error')
   const dialog = (
     <QueryClientProvider client={client}>
       <SplitPhotoDialog itemId="item-1" imageUrl="/p.jpg" open onClose={onClose} onDone={onDone} {...props} />
@@ -184,7 +184,7 @@ describe('SplitPhotoDialog', () => {
     { name: 'a source with a job running', error: coded(409, 'SOURCE_BUSY'), text: 'errors.sourceBusy' },
     { name: 'a missing photo', error: coded(404, 'IMAGE_NOT_FOUND'), text: 'errors.imageNotFound' },
     { name: 'an uncoded 404', error: new ApiError('Item not found', 404, { detail: 'Item not found' }), text: 'createFailed' },
-    { name: 'no connection', error: new NetworkError(), text: 'createFailed' },
+    { name: 'no connection', error: new NetworkError('unreachable'), text: 'createFailed' },
     { name: 'an unexpected error', error: new Error('boom'), text: 'createFailed' },
     { name: 'a signed-out session', error: new ApiError('Not authenticated', 401, {}), text: null },
   ])('keeps the dialog open and shows one translated toast when creating fails ($name)', async ({ error, text }) => {

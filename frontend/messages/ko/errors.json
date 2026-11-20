@@ -1,4 +1,8 @@
 {
+  "BACKEND_UNREACHABLE": "서버가 응답하지 않아요. 잠시 후 다시 시도해 주세요.",
+  "NETWORK_CONNECT_FAILED": "서버에 연결할 수 없어요. 다시 시도해 주세요.",
+  "NETWORK_OFFLINE": "오프라인 상태인 것 같아요. 연결을 확인해 주세요.",
+  "VALIDATION_ERROR": "입력이 올바르지 않아요. 데이터를 확인해 주세요.",
   "default": "문제가 발생했어요. 다시 시도해 주세요.",
   "invite": {
     "alreadyInFamily": "이미 가족에 속해 있어요.",

@@ -3,7 +3,15 @@
 import { useState } from 'react';
 import { useQueries, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { api, API_BASE_PATH, getAccessToken, ApiError, NetworkError } from '@/lib/api';
+import {
+  api,
+  API_BASE_PATH,
+  getAccessToken,
+  ApiError,
+  NetworkError,
+  apiErrorFromBody,
+  networkErrorNow,
+} from '@/lib/api';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
 import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
 import { applyItemEdits, type ItemEdits } from '@/lib/tag-edits';
@@ -141,19 +149,12 @@ export function useCreateItem() {
           headers,
         });
       } catch {
-        if (!navigator.onLine) {
-          throw new NetworkError('You appear to be offline. Please check your connection.');
-        }
-        throw new NetworkError('Unable to connect to server. Please try again.');
+        throw networkErrorNow();
       }
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new ApiError(
-          data.detail || 'Failed to create item',
-          response.status,
-          data
-        );
+        throw apiErrorFromBody(response.status, data);
       }
 
       return response.json();
@@ -273,11 +274,13 @@ export function useReplaceItemImage() {
         body: formData,
         credentials: 'include',
         headers,
+      }).catch(() => {
+        throw networkErrorNow();
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new ApiError(data.detail || 'Failed to replace image', response.status, data);
+        throw apiErrorFromBody(response.status, data);
       }
 
       return response.json() as Promise<Item>;
@@ -476,11 +479,13 @@ export function useAddItemImage() {
         body: formData,
         credentials: 'include',
         headers,
+      }).catch(() => {
+        throw networkErrorNow();
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new ApiError(data.detail || 'Failed to upload image', response.status, data);
+        throw apiErrorFromBody(response.status, data);
       }
 
       return response.json() as Promise<ItemImage>;
@@ -1018,31 +1023,21 @@ function uploadBulkItemsChunk(
           const response = JSON.parse(xhr.responseText) as BulkUploadResponse;
           resolve(response);
         } catch {
-          reject(new ApiError('Invalid response from server', xhr.status, {}));
+          reject(apiErrorFromBody(xhr.status, {}));
         }
       } else {
-        let errorMessage = 'Failed to upload items';
+        let errorData: unknown = {};
         try {
-          const errorData = JSON.parse(xhr.responseText);
-          errorMessage = errorData.detail || errorMessage;
-          reject(new ApiError(errorMessage, xhr.status, errorData));
+          errorData = JSON.parse(xhr.responseText);
         } catch {
-          reject(new ApiError(errorMessage, xhr.status, {}));
+          errorData = {};
         }
+        reject(apiErrorFromBody(xhr.status, errorData));
       }
     });
 
-    xhr.addEventListener('error', () => {
-      if (!navigator.onLine) {
-        reject(new NetworkError('You appear to be offline. Please check your connection.'));
-      } else {
-        reject(new NetworkError('Unable to connect to server. Please try again.'));
-      }
-    });
-
-    xhr.addEventListener('abort', () => {
-      reject(new NetworkError('Upload was cancelled.'));
-    });
+    xhr.addEventListener('error', () => reject(networkErrorNow()));
+    xhr.addEventListener('abort', () => reject(new NetworkError('unreachable')));
 
     xhr.open('POST', `${API_BASE_PATH}/items/bulk`);
     xhr.withCredentials = true;

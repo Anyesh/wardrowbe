@@ -27,7 +27,7 @@ const labels = wardrobe.itemDetail
 
 function Wrapper({ children }: { children: ReactNode }) {
   // The app's client, so the global error toast is live and a second toast would show.
-  const client = createQueryClient()
+  const client = createQueryClient(() => 'error')
   const all = Object.fromEntries(['wardrobe', 'constants', 'common'].map((ns) => [ns, catalog(ns)]))
   return (
     <QueryClientProvider client={client}>

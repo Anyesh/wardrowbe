@@ -1,4 +1,8 @@
 {
+  "BACKEND_UNREACHABLE": "サーバーが応答していません。しばらくしてからもう一度お試しください。",
+  "NETWORK_CONNECT_FAILED": "サーバーに接続できません。もう一度お試しください。",
+  "NETWORK_OFFLINE": "オフラインのようです。接続を確認してください。",
+  "VALIDATION_ERROR": "入力が無効です。データを確認してください。",
   "default": "エラーが発生しました。もう一度お試しください。",
   "invite": {
     "alreadyInFamily": "すでにファミリーに参加しています。",

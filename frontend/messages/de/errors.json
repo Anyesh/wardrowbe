@@ -1,4 +1,8 @@
 {
+  "BACKEND_UNREACHABLE": "Der Server antwortet nicht. Bitte versuche es gleich noch einmal.",
+  "NETWORK_CONNECT_FAILED": "Verbindung zum Server nicht möglich. Bitte versuche es erneut.",
+  "NETWORK_OFFLINE": "Du scheinst offline zu sein. Bitte überprüfe deine Verbindung.",
+  "VALIDATION_ERROR": "Ungültige Eingabe. Bitte überprüfe deine Daten.",
   "default": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
   "invite": {
     "alreadyInFamily": "Du bist bereits in einer Familie.",

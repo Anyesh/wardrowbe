@@ -3,25 +3,24 @@ import { toast } from 'sonner';
 import { ApiError, NetworkError } from '@/lib/api';
 import { DEFAULT_STALE_TIME } from '@/lib/hooks/query-timing';
 
-function handleError(error: unknown) {
+export type DescribeError = (error: unknown) => string;
+
+function handleError(error: unknown, describe: DescribeError) {
   if (error instanceof NetworkError) {
-    toast.error(error.message);
+    toast.error(describe(error));
   } else if (error instanceof ApiError) {
-    // Don't show toast for 401 (handled by auth redirect)
     if (error.status === 401) return;
-    // Show descriptive message for configuration/service errors
     if (error.status === 503) {
-      toast.error(error.message, { duration: 8000 });
+      toast.error(describe(error), { duration: 8000 });
     } else {
-      toast.error(error.message);
+      toast.error(describe(error));
     }
   }
-  // Let other errors bubble up to error boundary
 }
 
 // A caller that shows its own translated toast (or handles the failure silently) sets
-// meta.toastsOwnErrors, so that the raw server message does not appear beside it.
-export function createQueryClient(): QueryClient {
+// meta.toastsOwnErrors, so that a second, generic toast does not appear beside it.
+export function createQueryClient(describe: DescribeError): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {
@@ -45,13 +44,13 @@ export function createQueryClient(): QueryClient {
     queryCache: new QueryCache({
       onError: (error, query) => {
         if (query.meta?.toastsOwnErrors) return;
-        handleError(error);
+        handleError(error, describe);
       },
     }),
     mutationCache: new MutationCache({
       onError: (error, _variables, _context, mutation) => {
         if (mutation.meta?.toastsOwnErrors) return;
-        handleError(error);
+        handleError(error, describe);
       },
     }),
   });

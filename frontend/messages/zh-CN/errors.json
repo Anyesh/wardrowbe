@@ -1,4 +1,8 @@
 {
+  "BACKEND_UNREACHABLE": "服务器没有响应，请稍后重试。",
+  "NETWORK_CONNECT_FAILED": "无法连接到服务器，请重试。",
+  "NETWORK_OFFLINE": "你似乎已离线，请检查网络连接。",
+  "VALIDATION_ERROR": "输入无效，请检查你的数据。",
   "default": "出了点问题，请重试。",
   "invite": {
     "alreadyInFamily": "您已在一个家庭中。",

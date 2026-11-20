@@ -20,7 +20,7 @@ vi.mock('@/lib/api', async (importOriginal) => ({
 }))
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return React.createElement(QueryClientProvider, { client: createQueryClient() }, children)
+  return React.createElement(QueryClientProvider, { client: createQueryClient(() => 'translated error') }, children)
 }
 
 describe('useFamily', () => {
@@ -44,6 +44,6 @@ describe('useFamily', () => {
     const { result } = renderHook(() => useFamily(), { wrapper })
 
     await waitFor(() => expect(result.current.isError).toBe(true))
-    expect(toast.error).toHaveBeenCalledWith('Validation error')
+    expect(toast.error).toHaveBeenCalledWith('translated error')
   })
 })

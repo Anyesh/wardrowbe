@@ -237,6 +237,7 @@ describe('/api/v1 catch-all proxy', () => {
       expect(res.status).toBe(502)
       const body = await res.json()
       expect(body.detail).toContain('http://backend:8000')
+      expect(body.error_code).toBe('BACKEND_UNREACHABLE')
     })
   })
 })
