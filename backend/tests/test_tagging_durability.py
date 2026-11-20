@@ -364,6 +364,67 @@ class TestFailureReasonReachesTheApi:
         assert resp.json()["ai_error"] == "AI endpoint returned 404"
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("raw", "error", "code", "params"),
+        [
+            (
+                {
+                    "error": "cut off",
+                    "error_code": "AI_RESPONSE_EMPTY",
+                    "error_params": {"max_tokens": 4096},
+                },
+                "cut off",
+                "AI_RESPONSE_EMPTY",
+                {"max_tokens": 4096},
+            ),
+            (
+                {"error": "", "error_code": "ANALYSIS_TIMED_OUT", "error_params": {}},
+                None,
+                "ANALYSIS_TIMED_OUT",
+                {},
+            ),
+            ({"error": "boom"}, "boom", None, None),
+        ],
+        ids=["coded", "coded-without-text", "legacy"],
+    )
+    async def test_failure_code_exposed_on_item_and_queue(
+        self,
+        client: AsyncClient,
+        auth_headers,
+        db_session: AsyncSession,
+        test_user,
+        raw,
+        error,
+        code,
+        params,
+    ):
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="unknown",
+            image_path="t/coded.jpg",
+            status=ItemStatus.error,
+            ai_failed_at=datetime.now(UTC),
+            ai_raw_response=raw,
+        )
+        db_session.add(item)
+        await db_session.commit()
+
+        body = (await client.get(f"/api/v1/items/{item.id}", headers=auth_headers)).json()
+        progress = (await client.get("/api/v1/items/tagging-progress", headers=auth_headers)).json()
+
+        assert (body["ai_error"], body["ai_error_code"], body["ai_error_params"]) == (
+            error,
+            code,
+            params,
+        )
+        [failure] = progress["failures"]
+        assert (failure["error"], failure["error_code"], failure["error_params"]) == (
+            error,
+            code,
+            params,
+        )
+
+    @pytest.mark.asyncio
     async def test_unrecognized_type_exposed_on_item_response(
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):

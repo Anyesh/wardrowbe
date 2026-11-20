@@ -57,6 +57,7 @@ from app.schemas.item import (
     ReorderImagesRequest,
     TaggingProgressResponse,
     WashHistoryResponse,
+    failure_reason,
 )
 from app.services.image_service import ImageService
 from app.services.item_service import ItemService, TagVocabularyError
@@ -1170,13 +1171,15 @@ async def _recent_failures(db: AsyncSession, user_id: UUID) -> list[AnalysisFail
     )
     failures = []
     for row in result:
-        raw = row.ai_raw_response if isinstance(row.ai_raw_response, dict) else {}
+        reason = failure_reason(row.ai_raw_response)
         failures.append(
             AnalysisFailure(
                 item_id=row.id,
                 name=row.name,
                 type=row.type,
-                error=raw.get("error"),
+                error=reason.error,
+                error_code=reason.code,
+                error_params=reason.params,
                 failed_at=row.ai_failed_at,
             )
         )
