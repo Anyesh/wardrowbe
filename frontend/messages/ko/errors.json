@@ -13,7 +13,7 @@
   "AI_RESPONSE_UNUSABLE": "AI 서비스의 응답을 읽을 수 없어요. 분석을 다시 시도하고, 계속 실패하면 다른 모델을 사용해 보세요.",
   "AI_SERVICE_UNAVAILABLE": "현재 AI 서비스를 이용할 수 없어요",
   "AI_SUGGESTIONS_DISABLED": "내장 AI가 꺼져 있어서 코디 추천은 외부 에이전트에서 가져와요.",
-  "AI_TIMEOUT": "AI 서비스 응답이 지연되고 있어요. 분석을 다시 시도해 주세요.",
+  "AI_TIMEOUT": "AI 서비스 응답 시간이 초과되었어요. 분석을 다시 시도해 주세요.",
   "AI_UNREACHABLE": "AI 서비스에 연결할 수 없어요. 다시 시도해 주세요.",
   "AI_VISION_DISABLED": "AI 사진 분석이 꺼져 있어요.",
   "ALREADY_IN_FAMILY": "이미 가족에 속해 있어요.",
