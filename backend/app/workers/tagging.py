@@ -180,8 +180,12 @@ def _failure_code(exc: BaseException) -> dict[str, Any]:
     return {"error_code": "AI_ANALYSIS_FAILED", "error_params": {}}
 
 
-def analysis_failure(exc: BaseException) -> dict[str, Any]:
-    if isinstance(exc, FileNotFoundError):
+def analysis_failure(exc: BaseException, photo: Path) -> dict[str, Any]:
+    if (
+        isinstance(exc, FileNotFoundError)
+        and exc.filename is not None
+        and Path(exc.filename) == photo
+    ):
         return dict(MISSING_PHOTO_FAILURE)
     return {"error": str(exc) or type(exc).__name__, **_failure_code(exc)}
 
@@ -448,7 +452,7 @@ async def tag_item_image(
         # as success. arq only reschedules on Retry, so a plain re-raise would
         # surface the failure but still never retry.
         if _is_final_attempt(ctx) or repeats_identically(e):
-            await update_item_status_to_error(ctx, item_id, analysis_failure(e))
+            await update_item_status_to_error(ctx, item_id, analysis_failure(e, Path(image_path)))
             raise
         await clear_ai_started_at(ctx, item_id)
         raise Retry(defer=retry_delay_seconds(ctx)) from e

@@ -1,6 +1,7 @@
 import asyncio
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
@@ -1602,7 +1603,7 @@ class TestRetryCooldownEndpoint:
             )
         }
         await update_item_status_to_error(
-            worker_ctx, str(item_id), analysis_failure(ValueError("boom"))
+            worker_ctx, str(item_id), analysis_failure(ValueError("boom"), Path("t/x.jpg"))
         )
         # update_item_status_to_error writes through a separate session, so
         # db_session's identity map still holds the pre-failure `item` object

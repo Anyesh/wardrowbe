@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -18,6 +19,7 @@ from tests.test_error_codes import ERRORS_EN, icu_arguments
 
 FAILURE = {"error": "boom", "error_code": "AI_ANALYSIS_FAILED", "error_params": {}}
 AI_REQUEST = httpx.Request("POST", "http://ai.test/v1/chat/completions")
+PHOTO = Path("/data/images/u/x.jpg")
 
 
 async def _get_item(db_session: AsyncSession, item_id) -> ClothingItem:
@@ -93,7 +95,7 @@ FAILURES = [
     (httpx.ConnectError("refused", request=AI_REQUEST), "AI_UNREACHABLE", {}),
     (TimeoutError(), "ANALYSIS_TIMED_OUT", {}),
     (
-        FileNotFoundError(2, "No such file or directory", "/data/images/u/x.jpg"),
+        FileNotFoundError(2, "No such file or directory", str(PHOTO)),
         "IMAGE_FILE_MISSING",
         {},
     ),
@@ -109,7 +111,7 @@ class TestAnalysisFailure:
     def test_each_failure_gets_a_code_with_its_message_arguments(self, exc, code, params):
         catalog = json.loads(ERRORS_EN.read_text())
 
-        failure = analysis_failure(exc)
+        failure = analysis_failure(exc, PHOTO)
 
         assert failure["error_code"] == code
         assert failure["error_params"] == params
@@ -117,21 +119,28 @@ class TestAnalysisFailure:
         assert failure["error"]
 
     def test_provider_reply_stays_in_the_english_text(self):
-        failure = analysis_failure(_AIProviderResponseError("model qwen2.5vl not found"))
+        failure = analysis_failure(_AIProviderResponseError("model qwen2.5vl not found"), PHOTO)
 
         assert failure["error"] == "model qwen2.5vl not found"
 
     def test_empty_message_falls_back_to_the_exception_name(self):
-        assert analysis_failure(TimeoutError())["error"] == "TimeoutError"
+        assert analysis_failure(TimeoutError(), PHOTO)["error"] == "TimeoutError"
 
     def test_missing_photo_does_not_store_its_path(self):
-        failure = analysis_failure(FileNotFoundError(2, "No such file", "/data/images/u/x.jpg"))
+        failure = analysis_failure(FileNotFoundError(2, "No such file", str(PHOTO)), PHOTO)
 
         assert failure["error"] == "Image not found"
 
+    def test_another_missing_file_is_not_reported_as_the_photo(self):
+        failure = analysis_failure(
+            FileNotFoundError(2, "No such file", "/etc/ssl/missing-ca.pem"), PHOTO
+        )
+
+        assert failure["error_code"] == "AI_ANALYSIS_FAILED"
+
     def test_result_is_json_serializable(self):
         for exc, _, _ in FAILURES:
-            json.dumps(analysis_failure(exc))
+            json.dumps(analysis_failure(exc, PHOTO))
 
 
 class TestMissingPhoto:
