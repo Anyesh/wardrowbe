@@ -880,9 +880,10 @@ class AIResponseTruncatedError(RuntimeError):
     budget is cut off again, so the tagging worker fails the job instead of rerunning it.
     """
 
-    def __init__(self, message: str, *, retryable: bool = True):
+    def __init__(self, message: str, *, retryable: bool = True, max_tokens: int = 0):
         super().__init__(message)
         self.retryable = retryable
+        self.max_tokens = max_tokens
 
 
 def repeats_identically(error: BaseException | None) -> bool:
@@ -932,6 +933,7 @@ def _empty_response_error(
         f"Try raising AI_MAX_TOKENS (currently {max_tokens}) or disabling extended "
         "thinking/reasoning mode for this model.",
         retryable=finish_reason != "length",
+        max_tokens=max_tokens,
     )
 
 

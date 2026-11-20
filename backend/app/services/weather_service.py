@@ -7,6 +7,7 @@ import httpx
 import redis.asyncio as aioredis
 
 from app.config import get_settings
+from app.utils.errors import Coded
 from app.utils.redis_lock import get_redis
 
 logger = logging.getLogger(__name__)
@@ -525,9 +526,9 @@ class WeatherService:
         return {"status": "unhealthy", "error": "Unknown error"}
 
 
-class WeatherServiceError(Exception):
-    pass
+class WeatherServiceError(Coded, Exception):
+    code = "WEATHER_UNAVAILABLE"
 
 
 class GeocodingServiceError(WeatherServiceError):
-    pass
+    code = "LOCATION_UNRESOLVED"

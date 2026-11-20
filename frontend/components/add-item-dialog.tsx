@@ -35,7 +35,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateItem, useBulkCreateItems, BulkUploadResponse } from '@/lib/hooks/use-items';
+import {
+  useCreateItem,
+  useBulkCreateItems,
+  BulkUploadResponse,
+  type BulkUploadResult,
+} from '@/lib/hooks/use-items';
+import { translateCode, type ErrorTranslator } from '@/lib/errors';
 import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
 import { ACCEPTED_IMAGE_TYPES } from '@/lib/image-types';
 import { useTranslations } from 'next-intl';
@@ -55,6 +61,8 @@ interface FileWithPreview {
 export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const t = useTranslations('wardrobe.addItem');
   const tc = useTranslations('common');
+  const tq = useTranslations('wardrobe.uploadQueue');
+  const te = useTranslations('errors') as unknown as ErrorTranslator;
   const tDetail = useTranslations('wardrobe.itemDetail');
   const clothingTypes = useClothingTypes();
   const clothingColors = useClothingColors();
@@ -148,6 +156,21 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
       handleClose();
     } catch (error) {
       console.error('Failed to create item:', error);
+    }
+  };
+
+  const failureText = (result: BulkUploadResult): string => {
+    const name = result.filename;
+    if (result.failure) {
+      return translateCode(result.failure.code, result.failure.params, te) ?? tq('failure.generic', { name });
+    }
+    switch (result.error_code) {
+      case 'duplicate':
+        return tq('failure.duplicate', { name });
+      case 'unsupported_format':
+        return tq('failure.unsupportedFormat', { name });
+      default:
+        return tq('failure.generic', { name });
     }
   };
 
@@ -562,8 +585,8 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{result.filename}</p>
-                          {result.error && (
-                            <p className="text-xs text-destructive">{result.error}</p>
+                          {!result.success && (
+                            <p className="text-xs text-destructive">{failureText(result)}</p>
                           )}
                         </div>
                         {result.item && (

@@ -1,12 +1,16 @@
 from fastapi import UploadFile
 
+from app.utils.errors import Coded
+
 BYTES_PER_MB = 1024 * 1024
 
 
-class UploadTooLargeError(Exception):
+class UploadTooLargeError(Coded, Exception):
+    code = "IMAGE_TOO_LARGE"
+
     def __init__(self, max_size_mb: int):
         self.max_size_mb = max_size_mb
-        super().__init__(f"File exceeds the {max_size_mb} MB upload limit")
+        super().__init__(f"File exceeds the {max_size_mb} MB upload limit", limit=max_size_mb)
 
 
 async def read_upload_within_limit(upload: UploadFile, max_size_mb: int) -> bytes:

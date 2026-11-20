@@ -7,6 +7,10 @@ from pydantic import BaseModel, field_validator
 
 from app.schemas.email import EmailAddress
 from app.schemas.outfit import Occasion
+from app.utils.errors import CodedValueError
+
+NTFY_SERVER_MAX_LENGTH = 500
+NTFY_TOPIC_MIN_LENGTH = 3
 
 
 class NotificationChannel(StrEnum):
@@ -25,18 +29,31 @@ class NtfyConfig(BaseModel):
     @classmethod
     def validate_server(cls, v: str) -> str:
         if not v.startswith("http://") and not v.startswith("https://"):
-            raise ValueError("Server URL must start with http:// or https://")
-        if len(v) > 500:
-            raise ValueError("Server URL must be 500 characters or fewer")
+            raise CodedValueError(
+                "Server URL must start with http:// or https://", code="NTFY_SERVER_URL_SCHEME"
+            )
+        if len(v) > NTFY_SERVER_MAX_LENGTH:
+            raise CodedValueError(
+                f"Server URL must be {NTFY_SERVER_MAX_LENGTH} characters or fewer",
+                code="NTFY_SERVER_URL_TOO_LONG",
+                max_length=NTFY_SERVER_MAX_LENGTH,
+            )
         return v.rstrip("/")
 
     @field_validator("topic")
     @classmethod
     def validate_topic(cls, v: str) -> str:
-        if not v or len(v) < 3:
-            raise ValueError("Topic must be at least 3 characters")
+        if not v or len(v) < NTFY_TOPIC_MIN_LENGTH:
+            raise CodedValueError(
+                f"Topic must be at least {NTFY_TOPIC_MIN_LENGTH} characters",
+                code="NTFY_TOPIC_TOO_SHORT",
+                min_length=NTFY_TOPIC_MIN_LENGTH,
+            )
         if not v.replace("-", "").replace("_", "").isalnum():
-            raise ValueError("Topic can only contain letters, numbers, - and _")
+            raise CodedValueError(
+                "Topic can only contain letters, numbers, - and _",
+                code="NTFY_TOPIC_INVALID_CHARACTERS",
+            )
         return v
 
 
@@ -47,9 +64,11 @@ class MattermostConfig(BaseModel):
     @classmethod
     def validate_webhook(cls, v: str) -> str:
         if not v.startswith("https://"):
-            raise ValueError("Webhook URL must use HTTPS")
+            raise CodedValueError("Webhook URL must use HTTPS", code="MATTERMOST_WEBHOOK_NOT_HTTPS")
         if "/hooks/" not in v:
-            raise ValueError("Invalid Mattermost webhook URL format")
+            raise CodedValueError(
+                "Invalid Mattermost webhook URL format", code="MATTERMOST_WEBHOOK_INVALID"
+            )
         return v
 
 
@@ -64,7 +83,7 @@ class ExpoPushConfig(BaseModel):
     @classmethod
     def validate_token(cls, v: str) -> str:
         if not v.startswith("ExponentPushToken[") and not v.startswith("ExpoPushToken["):
-            raise ValueError("Invalid Expo push token format")
+            raise CodedValueError("Invalid Expo push token format", code="EXPO_PUSH_TOKEN_INVALID")
         return v
 
 
@@ -92,6 +111,8 @@ class NotificationSettingsResponse(NotificationSettingsBase):
     created_at: datetime
     updated_at: datetime
     config_error: str | None = None
+    config_error_code: str | None = None
+    config_error_params: dict[str, str | int | float] | None = None
 
     # A stored config that is not an object is reported through config_error, and showing it as
     # empty keeps the rest of the user's channels listable so the broken one can be deleted.

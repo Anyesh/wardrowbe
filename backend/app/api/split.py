@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from arq import create_pool
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
@@ -18,6 +18,7 @@ from app.services.ai_service import AIDisabledError, AIService, require_internal
 from app.services.image_service import ImageService
 from app.services.item_service import ItemService
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException, http_error
 from app.utils.rate_limit import rate_limit_by_user
 from app.workers.queues import TAGGING_QUEUE
 from app.workers.settings import get_redis_settings
@@ -69,15 +70,12 @@ class SplitResponse(BaseModel):
 async def _owned_item(item_service: ItemService, item_id: UUID, user: User) -> ClothingItem:
     item = await item_service.get_by_id(item_id, user.id)
     if item is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
     return item
 
 
-def _image_not_found() -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail={"message": "Image not found", "error_code": "IMAGE_NOT_FOUND"},
-    )
+def _image_not_found() -> CodedHTTPException:
+    return CodedHTTPException(status.HTTP_404_NOT_FOUND, "IMAGE_NOT_FOUND", "Image not found")
 
 
 @router.post("/{item_id}/detect-garments", response_model=DetectGarmentsResponse)
@@ -91,9 +89,8 @@ async def detect_garments(
     try:
         require_internal_ai("vision")
     except AIDisabledError as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"message": "AI vision is disabled", "error_code": "AI_VISION_DISABLED"},
+        raise CodedHTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "AI_VISION_DISABLED", "AI vision is disabled"
         ) from e
     await rate_limit_by_user(current_user.id, "detect-garments", max_requests=10, window_seconds=60)
 
@@ -110,12 +107,8 @@ async def detect_garments(
         garments = await AIService(endpoints=ai_endpoints).detect_garments(image_path)
     except Exception as e:
         logger.error(f"Garment detection failed for item {item_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={
-                "message": "The AI service could not be reached",
-                "error_code": "AI_UNREACHABLE",
-            },
+        raise CodedHTTPException(
+            status.HTTP_502_BAD_GATEWAY, "AI_UNREACHABLE", "The AI service could not be reached"
         ) from e
 
     return DetectGarmentsResponse(
@@ -161,19 +154,12 @@ async def split_item(
         )
     ).one_or_none()
     if locked is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
     if locked.is_archived:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"message": "Item is archived", "error_code": "SOURCE_ARCHIVED"},
-        )
+        raise CodedHTTPException(status.HTTP_409_CONFLICT, "SOURCE_ARCHIVED", "Item is archived")
     if locked.status == ItemStatus.processing and locked.processing_kind is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "message": "The photo is still being edited",
-                "error_code": "SOURCE_BUSY",
-            },
+        raise CodedHTTPException(
+            status.HTTP_409_CONFLICT, "SOURCE_BUSY", "The photo is still being edited"
         )
 
     image_service = ImageService()
@@ -199,7 +185,7 @@ async def split_item(
                     user_id=current_user.id, image_data=crop, original_filename="split.jpg"
                 )
             except ValueError as e:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+                raise http_error(status.HTTP_400_BAD_REQUEST, e, "IMAGE_PROCESSING_FAILED") from e
             stored.append(paths)
             created.append(
                 await item_service.create(

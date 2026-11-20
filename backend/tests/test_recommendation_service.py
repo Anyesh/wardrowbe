@@ -10,6 +10,7 @@ from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus, TimeOfDay
 from app.models.preference import UserPreference
 from app.models.user import User
+from app.services.ai_service import AIResponseTruncatedError
 from app.services.item_scorer import ScoredItem
 from app.services.recommendation_service import (
     RECOMMENDATION_PROMPT,
@@ -905,6 +906,7 @@ class TestHotDayLegwear:
         extras=(),
         single_outfit=False,
         kinds=("tights", "skirt", "t-shirt", "sneakers"),
+        ai_error=None,
     ):
         # Extras come first among the candidates and are numbered last, so that neither
         # candidate order nor prompt order can stand in for the fill ranking.
@@ -946,7 +948,8 @@ class TestHotDayLegwear:
                 content=json.dumps(options[0] if single_outfit else {"outfits": options}),
                 model="m",
                 endpoint="e",
-            )
+            ),
+            side_effect=ai_error,
         )
         self.ai = ai
         weather = _weather(temp=35)
@@ -1122,6 +1125,21 @@ class TestHotDayLegwear:
         )
         assert outfits == [{items[1].id, items[2].id, items[3].id}]
         assert self.raw_responses[0]["_filled_item_ids"] == [str(items[2].id)]
+
+    @pytest.mark.asyncio
+    async def test_a_truncated_answer_keeps_its_cause(self, db_session, test_user):
+        with pytest.raises(AIRecommendationError) as caught:
+            await self._hot_day_outfits(
+                db_session,
+                test_user,
+                [[2, 4]],
+                ai_error=AIResponseTruncatedError("cut off", max_tokens=4096),
+            )
+
+        assert (caught.value.code, caught.value.params) == (
+            "AI_RESPONSE_EMPTY",
+            {"max_tokens": 4096},
+        )
 
     # The only piece for the top is a dress, which cannot go over the skirt the AI chose.
     @pytest.mark.asyncio

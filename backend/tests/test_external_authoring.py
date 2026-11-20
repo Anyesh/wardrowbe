@@ -153,7 +153,7 @@ async def test_create_suggestion_rejects_foreign_item(
         headers=auth_headers,
     )
     assert resp.status_code == 403, resp.text
-    assert resp.json()["detail"]["error_code"] == "OUTFIT_ITEM_OWNERSHIP"
+    assert resp.json()["error_code"] == "OUTFIT_ITEM_OWNERSHIP"
 
 
 @pytest.mark.asyncio
@@ -359,7 +359,7 @@ async def test_create_pairing_rejects_foreign_partner(
         headers=auth_headers,
     )
     assert resp.status_code == 403, resp.text
-    assert resp.json()["detail"]["error_code"] == "OUTFIT_ITEM_OWNERSHIP"
+    assert resp.json()["error_code"] == "OUTFIT_ITEM_OWNERSHIP"
 
 
 @pytest.mark.asyncio

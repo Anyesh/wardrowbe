@@ -199,7 +199,6 @@
       "fit": "Fit",
       "formality": "Formality",
       "hint": "Fix anything the AI got wrong. Your changes are kept if the item is analyzed again.",
-      "invalidValue": "A tag has a value that isn't on the list. Pick it again and save.",
       "material": "Material",
       "none": "None",
       "pattern": "Pattern",
@@ -286,10 +285,7 @@
     "detecting": "Looking for garments…",
     "errors": {
       "aiUnreachable": "The AI service could not be reached. Try again, or add a box for each garment.",
-      "imageNotFound": "The photo for this item could not be found.",
       "rateLimited": "Too many tries in a short time. Wait a minute, then try again.",
-      "sourceArchived": "This item is already archived, so its photo cannot be split again.",
-      "sourceBusy": "This photo is still being rotated or having its background removed. Try again when that finishes.",
       "visionDisabled": "Automatic garment detection is turned off. Add a box for each garment."
     },
     "hint": "Drag a box to move it, or drag a corner to resize it.",

@@ -79,7 +79,6 @@
     "detected": "已偵測到位置。請確認後儲存。",
     "errors": {
       "geolocationDenied": "位置存取被拒絕。",
-      "geolocationFailed": "取得精確位置失敗：{message}",
       "geolocationFailedGeneric": "取得精確位置失敗。",
       "geolocationTimeout": "位置請求逾時。",
       "geolocationUnavailable": "目前無法取得位置。",
@@ -87,7 +86,6 @@
       "invalidCoordinates": "請輸入有效的緯度與經度值",
       "latitudeRange": "緯度必須介於 -90 到 90 之間",
       "longitudeRange": "經度必須介於 -180 到 180 之間",
-      "networkLookupFailed": "透過網路查詢位置失敗（{status}）",
       "saveFailed": "儲存位置失敗，請重試。",
       "unableToDetect": "無法偵測你的位置。"
     },

@@ -57,10 +57,12 @@ import {
 } from '@/lib/hooks/use-family';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
+import { useDescribeError } from '@/lib/errors';
 import { formatDate } from '@/lib/utils';
 
 function NoFamilyView() {
   const t = useTranslations('family');
+  const describeError = useDescribeError();
   const tc = useTranslations('common');
   const [mode, setMode] = useState<'create' | 'join' | null>(null);
   const [familyName, setFamilyName] = useState('');
@@ -77,7 +79,7 @@ function NoFamilyView() {
       setFamilyName('');
       setMode(null);
     } catch (error) {
-      toast.error(t('toasts.createFailed'));
+      toast.error(describeError(error, t('toasts.createFailed')));
     }
   };
 
@@ -89,7 +91,7 @@ function NoFamilyView() {
       setInviteCode('');
       setMode(null);
     } catch (error) {
-      toast.error(t('invalidInviteCode'));
+      toast.error(describeError(error, t('invalidInviteCode')));
     }
   };
 
@@ -199,6 +201,7 @@ function NoFamilyView() {
 
 function FamilyView() {
   const t = useTranslations('family');
+  const describeError = useDescribeError();
   const tc = useTranslations('common');
   const te = useTranslations('errors');
   const locale = useLocale();
@@ -252,7 +255,7 @@ function FamilyView() {
       await regenerateCode.mutateAsync();
       toast.success(t('toasts.codeRegenerated'));
     } catch (error) {
-      toast.error(t('toasts.codeRegenerateFailed'));
+      toast.error(describeError(error, t('toasts.codeRegenerateFailed')));
     }
   };
 
@@ -267,7 +270,7 @@ function FamilyView() {
       }
       setInviteEmail('');
     } catch (error) {
-      toast.error(t('toasts.inviteFailed'));
+      toast.error(describeError(error, t('toasts.inviteFailed')));
     }
   };
 
@@ -279,7 +282,7 @@ function FamilyView() {
       setEditingName(false);
       setNewName('');
     } catch (error) {
-      toast.error(t('toasts.nameUpdateFailed'));
+      toast.error(describeError(error, t('toasts.nameUpdateFailed')));
     }
   };
 

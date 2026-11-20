@@ -1,7 +1,9 @@
 import hmac
 
-from fastapi import HTTPException, status
+from fastapi import status
 from starlette.datastructures import Headers
+
+from app.utils.errors import CodedHTTPException
 
 FORWARD_AUTH_SECRET_HEADER = "X-Forward-Auth-Secret"
 
@@ -15,9 +17,11 @@ def single_header(headers: Headers, name: str) -> str | None:
     # Headers.get returns the first line, so when a proxy appends its header instead of replacing
     # the one the client sent, the client's line would be the one believed.
     if len(values) > 1:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"The auth proxy sent {name} more than once",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "PROXY_HEADER_REPEATED",
+            f"The auth proxy sent {name} more than once",
+            {"header": name},
         )
     return values[0] if values else None
 

@@ -26,7 +26,9 @@ import {
   isNetworkLocationFallbackEnabled,
   LOCATION_NAME_MAX_LENGTH,
   resolveNetworkLocation,
+  geolocationFailureKey,
 } from '@/lib/location';
+import { translateCode, useDescribeError, type ErrorTranslator } from '@/lib/errors';
 import { Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
 import { useClothingColors, useOccasionOptions } from '@/lib/hooks/use-translated-constants';
 import { toF, toCelsius } from '@/lib/temperature';
@@ -175,6 +177,8 @@ export default function SettingsPage() {
   const aiUiEnabled = useAiUiEnabled();
   const tc = useTranslations('common');
   const tConst = useTranslations('constants');
+  const te = useTranslations('errors') as unknown as ErrorTranslator;
+  const describeError = useDescribeError();
   const { data: session } = useSession();
   const { data: preferences, isLoading } = usePreferences();
   const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
@@ -240,11 +244,7 @@ export default function SettingsPage() {
     });
 
     if (!response.ok) {
-      throw new Error(
-        t('location.errors.networkLookupFailed', {
-          status: `${response.status}${response.statusText ? ` ${response.statusText}` : ''}`,
-        })
-      );
+      throw new Error(`Network location lookup failed (${response.status})`);
     }
 
     const data = await response.json();
@@ -260,20 +260,8 @@ export default function SettingsPage() {
     return resolved;
   };
 
-  const describeGeolocationFailure = (error: GeolocationPositionError): string => {
-    switch (error.code) {
-      case error.PERMISSION_DENIED:
-        return t('location.errors.geolocationDenied');
-      case error.POSITION_UNAVAILABLE:
-        return t('location.errors.geolocationUnavailable');
-      case error.TIMEOUT:
-        return t('location.errors.geolocationTimeout');
-      default:
-        return error.message
-          ? t('location.errors.geolocationFailed', { message: error.message })
-          : t('location.errors.geolocationFailedGeneric');
-    }
-  };
+  const describeGeolocationFailure = (error: GeolocationPositionError): string =>
+    t(`location.errors.${geolocationFailureKey(error.code)}`);
 
   const handleGetCurrentLocation = () => {
     setIsGettingLocation(true);
@@ -312,11 +300,8 @@ export default function SettingsPage() {
             ? t('location.approximateDetectedWithReason', { reason })
             : t('location.approximateDetected')
         );
-      } catch (fallbackError) {
-        const fallbackMessage = fallbackError instanceof Error
-          ? fallbackError.message
-          : t('location.errors.unableToDetect');
-        toast.error(fallbackMessage);
+      } catch {
+        toast.error(t('location.errors.unableToDetect'));
       } finally {
         setIsGettingLocation(false);
       }
@@ -371,8 +356,8 @@ export default function SettingsPage() {
         timezone: timezone,
       });
       toast.success(t('location.saved'));
-    } catch {
-      toast.error(t('location.errors.saveFailed'));
+    } catch (error) {
+      toast.error(describeError(error, t('location.errors.saveFailed')));
     }
   };
 
@@ -451,8 +436,8 @@ export default function SettingsPage() {
       });
       setMeasurementsDirty(false);
       toast.success(t('body.saved'));
-    } catch {
-      toast.error(t('body.saveError'));
+    } catch (error) {
+      toast.error(describeError(error, t('body.saveError')));
     }
   };
 
@@ -467,13 +452,15 @@ export default function SettingsPage() {
           models: result.available_models,
           visionModels: result.vision_models,
           textModels: result.text_models,
-          error: result.error,
+          error: result.error_code
+            ? (translateCode(result.error_code, result.params, te) ?? t('aiEndpoints.testFailed'))
+            : undefined,
         },
       }));
     } catch (error) {
       setEndpointTests((prev) => ({
         ...prev,
-        [index]: { status: 'error', error: t('aiEndpoints.testFailed') },
+        [index]: { status: 'error', error: describeError(error, t('aiEndpoints.testFailed')) },
       }));
     }
   };

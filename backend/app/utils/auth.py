@@ -9,6 +9,7 @@ from app.database import DbSession
 from app.models.user import User
 from app.schemas.auth import AuthSession, TokenPayload
 from app.services.user_service import FORWARD_AUTH, UserService
+from app.utils.errors import CodedHTTPException
 from app.utils.forward_auth import (
     FORWARD_AUTH_SECRET_HEADER,
     forward_auth_secret_matches,
@@ -19,6 +20,7 @@ from app.utils.forward_auth import (
 settings = get_settings()
 
 bearer_scheme = HTTPBearer(auto_error=False)
+BEARER_CHALLENGE = {"WWW-Authenticate": "Bearer"}
 
 
 def decode_token(token: str) -> TokenPayload:
@@ -31,16 +33,18 @@ def decode_token(token: str) -> TokenPayload:
         )
         return TokenPayload(**payload)
     except jwt.PyJWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
+        raise CodedHTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "AUTH_TOKEN_INVALID",
+            "Invalid or expired token",
+            headers=BEARER_CHALLENGE,
         ) from None
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
+        raise CodedHTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "AUTH_TOKEN_INVALID",
+            "Invalid or expired token",
+            headers=BEARER_CHALLENGE,
         ) from None
 
 
@@ -92,23 +96,24 @@ async def get_current_user(
         user = await user_service.get_by_token(token_data)
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
+        raise CodedHTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "NOT_AUTHENTICATED",
+            "Not authenticated",
+            headers=BEARER_CHALLENGE,
         )
 
     if await _proxy_user_switched(request, user, user_service):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="The signed-in user changed at the proxy. Sign in again.",
-            headers={"WWW-Authenticate": "Bearer"},
+        raise CodedHTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "PROXY_USER_CHANGED",
+            "The signed-in user changed at the proxy. Sign in again.",
+            headers=BEARER_CHALLENGE,
         )
 
     if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive",
+        raise CodedHTTPException(
+            status.HTTP_403_FORBIDDEN, "ACCOUNT_INACTIVE", "User account is inactive"
         )
 
     return user

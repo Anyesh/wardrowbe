@@ -3,8 +3,8 @@ from datetime import time
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import and_, select
 
 from app.api.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
@@ -25,9 +25,10 @@ from app.schemas.notification import (
     ScheduleUpdate,
     TestNotificationResponse,
 )
-from app.services.notification_providers import channel_config_error
+from app.services.notification_providers import ChannelConfigFailure, channel_config_failure
 from app.services.notification_service import NotificationService
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException, http_error
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +36,26 @@ router = APIRouter()
 
 
 def _setting_response(setting: NotificationSettings) -> NotificationSettingsResponse:
+    failure = channel_config_failure(setting.channel, setting.config)
     return NotificationSettingsResponse.model_validate(setting).model_copy(
-        update={"config_error": channel_config_error(setting.channel, setting.config)}
+        update={
+            "config_error": failure.message if failure else None,
+            "config_error_code": failure.code if failure else None,
+            "config_error_params": failure.params if failure else None,
+        }
     )
+
+
+def _config_http_error(failure: ChannelConfigFailure) -> CodedHTTPException:
+    return http_error(400, failure.cause, "INVALID_CHANNEL_CONFIG")
+
+
+def _setting_not_found() -> CodedHTTPException:
+    return CodedHTTPException(404, "CHANNEL_NOT_FOUND", "Setting not found")
+
+
+def _schedule_not_found() -> CodedHTTPException:
+    return CodedHTTPException(404, "SCHEDULE_NOT_FOUND", "Schedule not found")
 
 
 def _parse_local_time(time_str: str) -> time:
@@ -76,8 +94,8 @@ async def create_notification_setting(
     current_user: Annotated[User, Depends(get_current_user)],
     db: DbSession,
 ):
-    if error := channel_config_error(data.channel, data.config):
-        raise HTTPException(status_code=400, detail=error)
+    if failure := channel_config_failure(data.channel, data.config):
+        raise _config_http_error(failure)
 
     service = NotificationService(db)
     try:
@@ -91,7 +109,7 @@ async def create_notification_setting(
         await db.commit()
         return setting
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
+        raise http_error(400, e, "DUPLICATE_CHANNEL") from None
 
 
 @router.get("/settings/{setting_id}", response_model=NotificationSettingsResponse)
@@ -103,7 +121,7 @@ async def get_notification_setting(
     service = NotificationService(db)
     setting = await service.get_setting_by_id(setting_id, current_user.id)
     if not setting:
-        raise HTTPException(status_code=404, detail="Setting not found")
+        raise _setting_not_found()
     return _setting_response(setting)
 
 
@@ -120,10 +138,10 @@ async def update_notification_setting(
     if data.config is not None:
         existing = await service.get_setting_by_id(setting_id, current_user.id)
         if not existing:
-            raise HTTPException(status_code=404, detail="Setting not found")
+            raise _setting_not_found()
 
-        if error := channel_config_error(existing.channel, data.config):
-            raise HTTPException(status_code=400, detail=error)
+        if failure := channel_config_failure(existing.channel, data.config):
+            raise _config_http_error(failure)
 
     setting = await service.update_setting(
         setting_id=setting_id,
@@ -133,7 +151,7 @@ async def update_notification_setting(
         config=data.config,
     )
     if not setting:
-        raise HTTPException(status_code=404, detail="Setting not found")
+        raise _setting_not_found()
     await db.commit()
     return _setting_response(setting)
 
@@ -147,7 +165,7 @@ async def delete_notification_setting(
     service = NotificationService(db)
     success = await service.delete_setting(setting_id, current_user.id)
     if not success:
-        raise HTTPException(status_code=404, detail="Setting not found")
+        raise _setting_not_found()
     await db.commit()
     return MessageResponse(message="Notification setting deleted")
 
@@ -161,13 +179,13 @@ async def test_notification_setting(
     service = NotificationService(db)
     setting = await service.get_setting_by_id(setting_id, current_user.id)
     if not setting:
-        raise HTTPException(status_code=404, detail="Setting not found")
-    if error := channel_config_error(setting.channel, setting.config):
-        raise HTTPException(status_code=400, detail=error)
-    success, message = await service.test_setting(setting)
-    if not success:
-        raise HTTPException(status_code=400, detail=message)
-    return TestNotificationResponse(success=True, message=message)
+        raise _setting_not_found()
+    if failure := channel_config_failure(setting.channel, setting.config):
+        raise _config_http_error(failure)
+    result = await service.test_setting(setting)
+    if result.failure is not None:
+        raise http_error(400, result.failure, "NOTIFICATION_TEST_FAILED")
+    return TestNotificationResponse(success=True, message=result.message)
 
 
 # ============= Push Token Registration =============
@@ -185,8 +203,8 @@ async def register_push_token(
 ):
     try:
         ExpoPushConfig(push_token=data.push_token)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid push token format") from None
+    except ValidationError:
+        raise CodedHTTPException(400, "INVALID_PUSH_TOKEN", "Invalid push token format") from None
 
     # Check if expo_push channel already exists
     existing = await db.execute(
@@ -248,10 +266,7 @@ async def create_schedule(
             notify_day_before=data.notify_day_before,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=409,
-            detail=str(e),
-        ) from None
+        raise http_error(409, e, "DUPLICATE_SCHEDULE") from None
 
     await db.commit()
     return schedule
@@ -266,7 +281,7 @@ async def get_schedule(
     service = NotificationService(db)
     schedule = await service.get_schedule_by_id(schedule_id, current_user.id)
     if not schedule:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        raise _schedule_not_found()
     return schedule
 
 
@@ -292,7 +307,7 @@ async def update_schedule(
         notify_day_before=patch.get("notify_day_before"),
     )
     if not schedule:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        raise _schedule_not_found()
 
     await db.commit()
     return schedule
@@ -307,7 +322,7 @@ async def delete_schedule(
     service = NotificationService(db)
     success = await service.delete_schedule(schedule_id, current_user.id)
     if not success:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        raise _schedule_not_found()
 
     await db.commit()
     return MessageResponse(message="Schedule deleted")

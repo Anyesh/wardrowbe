@@ -52,7 +52,8 @@ import { ItemPicker } from '@/components/shared/item-picker';
 import { OccasionChips } from '@/components/shared/occasion-chips';
 import { useOccasionLabel, useWeatherConditionLabel, useTypeLabel } from '@/lib/hooks/use-translated-constants';
 import { useItem } from '@/lib/hooks/use-items';
-import { api, ApiError } from '@/lib/api';
+import { api } from '@/lib/api';
+import { useDescribeError } from '@/lib/errors';
 import { applySessionToken } from '@/lib/hooks/use-session-token';
 import { ClothingTypeValue, CurrentWeather, Item, Outfit, SuggestRequest } from '@/lib/types';
 import { useWeather } from '@/lib/hooks/use-weather';
@@ -585,6 +586,7 @@ function SuggestContent() {
   const t = useTranslations('suggest');
   const tCommon = useTranslations('common');
   const tTypes = useTranslations('constants.types');
+  const describeError = useDescribeError();
   const searchParams = useSearchParams();
   const preselectedItemId = searchParams.get('item');
   const { data: preselectedItem } = useItem(preselectedItemId || '');
@@ -645,11 +647,7 @@ function SuggestContent() {
       setOutfits(result);
       setActiveOptionIndex(0);
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError(t('error'));
-      }
+      setError(describeError(err, t('error')));
       console.error('Suggestion error:', err);
     } finally {
       setIsGenerating(false);

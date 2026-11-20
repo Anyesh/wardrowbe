@@ -79,7 +79,6 @@
     "detected": "位置情報を検出しました。確認して保存してください。",
     "errors": {
       "geolocationDenied": "位置情報へのアクセスが拒否されました。",
-      "geolocationFailed": "正確な位置情報の取得に失敗しました：{message}",
       "geolocationFailedGeneric": "正確な位置情報の取得に失敗しました。",
       "geolocationTimeout": "位置情報のリクエストがタイムアウトしました。",
       "geolocationUnavailable": "現在、位置情報を利用できません。",
@@ -87,7 +86,6 @@
       "invalidCoordinates": "有効な緯度と経度を入力してください",
       "latitudeRange": "緯度は-90から90の間で入力してください",
       "longitudeRange": "経度は-180から180の間で入力してください",
-      "networkLookupFailed": "ネットワークによる位置情報の取得に失敗しました（{status}）",
       "saveFailed": "位置情報の保存に失敗しました。もう一度お試しください。",
       "unableToDetect": "位置情報を検出できませんでした。"
     },

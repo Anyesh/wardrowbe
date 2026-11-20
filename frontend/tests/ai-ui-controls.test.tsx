@@ -11,10 +11,10 @@ import { queryKeys } from '@/lib/hooks/query-keys'
 import type { StudioItem } from '@/lib/studio/editor-state'
 import type { Item } from '@/lib/types'
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/api')>()),
   api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
   setAccessToken: vi.fn(),
-  getErrorMessage: (error: unknown) => String(error),
 }))
 vi.mock('@/components/outfits/outfit-card', () => ({ OutfitCard: () => null }))
 

@@ -103,21 +103,12 @@ export function formatReverseGeocodedLocation(
   return undefined;
 }
 
-export function getGeolocationFailureMessage(error: {
-  code?: number;
-  message?: string;
-}): string {
-  const reasons: Record<number, string> = {
-    1: 'Location access was denied.',
-    2: 'Location is currently unavailable.',
-    3: 'Location request timed out.',
-  };
+const GEOLOCATION_FAILURE_KEYS: Record<number, string> = {
+  1: 'geolocationDenied',
+  2: 'geolocationUnavailable',
+  3: 'geolocationTimeout',
+};
 
-  if (typeof error.code === 'number' && reasons[error.code]) {
-    return reasons[error.code];
-  }
-  if (error.message) {
-    return `Failed to get exact location: ${error.message}`;
-  }
-  return 'Failed to get exact location.';
+export function geolocationFailureKey(code: number | undefined): string {
+  return (code !== undefined && GEOLOCATION_FAILURE_KEYS[code]) || 'geolocationFailedGeneric';
 }

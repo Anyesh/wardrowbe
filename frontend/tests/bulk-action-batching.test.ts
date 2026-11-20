@@ -68,7 +68,7 @@ describe('drainBulkAction with an explicit id list', () => {
     const drain = await freshDrain()
     fetchMock
       .mockResolvedValueOnce(
-        jsonResponse({ detail: 'Maximum 2 items per bulk action' }, 400)
+        jsonResponse({ detail: 'Maximum 2 items per bulk action', error_code: 'BULK_ACTION_LIMIT_EXCEEDED', params: { limit: 2 } }, 400)
       )
       .mockResolvedValueOnce(
         jsonResponse({ queued: 2, failed: 0, errors: [], has_more: false, next_cursor: null })
@@ -92,7 +92,7 @@ describe('drainBulkAction with an explicit id list', () => {
   it('reuses the learned limit on a later action instead of failing again', async () => {
     const drain = await freshDrain()
     fetchMock
-      .mockResolvedValueOnce(jsonResponse({ detail: 'Maximum 2 items per bulk action' }, 400))
+      .mockResolvedValueOnce(jsonResponse({ detail: 'Maximum 2 items per bulk action', error_code: 'BULK_ACTION_LIMIT_EXCEEDED', params: { limit: 2 } }, 400))
       .mockResolvedValue(
         jsonResponse({ queued: 1, failed: 0, errors: [], has_more: false, next_cursor: null })
       )
@@ -104,6 +104,16 @@ describe('drainBulkAction with an explicit id list', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(bodyOf(fetchMock.mock.calls[0]).item_ids).toEqual(['d', 'e'])
     expect(bodyOf(fetchMock.mock.calls[1]).item_ids).toEqual(['f'])
+  })
+
+  it('does not read the limit out of English text without the code', async () => {
+    const drain = await freshDrain()
+    fetchMock.mockResolvedValueOnce(jsonResponse({ detail: 'Maximum 2 items per bulk action' }, 400))
+
+    await expect(
+      drain<RotateResponse>('/items/bulk/rotate', { item_ids: ['a', 'b', 'c'] }, SUM_KEYS)
+    ).rejects.toThrow()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it('propagates a 400 that is not the bulk limit', async () => {
@@ -118,7 +128,7 @@ describe('drainBulkAction with an explicit id list', () => {
   it('sums counts and concatenates errors across chunks', async () => {
     const drain = await freshDrain()
     fetchMock
-      .mockResolvedValueOnce(jsonResponse({ detail: 'Maximum 2 items per bulk action' }, 400))
+      .mockResolvedValueOnce(jsonResponse({ detail: 'Maximum 2 items per bulk action', error_code: 'BULK_ACTION_LIMIT_EXCEEDED', params: { limit: 2 } }, 400))
       .mockResolvedValueOnce(
         jsonResponse({ queued: 1, failed: 1, errors: ['bad a'], has_more: false, next_cursor: null })
       )

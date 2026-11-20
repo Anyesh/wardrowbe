@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { translateCode, type ErrorTranslator } from '@/lib/errors';
 import type { NotificationChannel, NotificationSettings } from '@/lib/hooks/use-notifications';
 
 const CHANNEL_ICONS: Record<NotificationChannel, ReactNode> = {
@@ -30,6 +31,11 @@ export function ChannelCard({
   testing: boolean;
 }) {
   const t = useTranslations('notifications');
+  const te = useTranslations('errors') as unknown as ErrorTranslator;
+  const configProblem = setting.config_error
+    ? (translateCode(setting.config_error_code, setting.config_error_params ?? undefined, te) ??
+      te('INVALID_CHANNEL_CONFIG'))
+    : null;
   const details: Record<NotificationChannel, ReactNode> = {
     ntfy: setting.config.topic,
     mattermost: t('channels.webhookConfigured'),
@@ -47,8 +53,11 @@ export function ChannelCard({
             <div>
               <p className="font-medium">{t(`channels.types.${setting.channel}`)}</p>
               <p className="text-sm text-muted-foreground">{details[setting.channel]}</p>
-              {setting.config_error && (
-                <p className="text-sm text-destructive">{t('channels.invalidConfigHint')}</p>
+              {configProblem && (
+                <>
+                  <p className="text-sm text-destructive">{configProblem}</p>
+                  <p className="text-sm text-destructive">{t('channels.invalidConfigHint')}</p>
+                </>
               )}
             </div>
           </div>

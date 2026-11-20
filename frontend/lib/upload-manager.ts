@@ -13,7 +13,7 @@ import {
   type QueuedUpload,
 } from '@/lib/upload-queue';
 import {
-  bulkUploadLimitFromDetail,
+  bulkUploadLimitFromBody,
   mergeBulkUploadResponses,
   type BulkUploadErrorCode,
   type BulkUploadResponse,
@@ -24,8 +24,8 @@ import { queryKeys } from '@/lib/hooks/query-keys';
 // A flat file-count chunk (previously 20) doesn't account for file size: 20
 // modern phone photos routinely exceed nginx's default 50MB
 // client_max_body_size, producing a 413 that isn't recognized as the known
-// "Maximum N images" case (that regex only matches the backend's own
-// count-based 400), so the whole chunk lands in retry backoff. Chunking by a
+// BULK_LIMIT_EXCEEDED case (which only the backend's own count-based 400
+// carries), so the whole chunk lands in retry backoff. Chunking by a
 // byte budget well under that cap avoids the 413 in the common case and
 // shrinks the retry/close-window blast radius regardless.
 const BULK_UPLOAD_CHUNK_SIZE = 8;
@@ -165,7 +165,7 @@ async function uploadChunk(chunk: QueuedUpload[]): Promise<BulkUploadResponse> {
     }
     if (response.status === 400) {
       const body = await response.json().catch(() => null);
-      const limit = bulkUploadLimitFromDetail(body?.detail);
+      const limit = bulkUploadLimitFromBody(body);
       if (limit !== null) {
         throw new BulkLimitExceededError(limit);
       }

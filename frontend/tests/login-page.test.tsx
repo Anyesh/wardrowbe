@@ -2,6 +2,7 @@ import React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import enErrors from '@/messages/en/errors.json'
 import LoginPage from '@/app/login/page'
 import {
   FORWARD_AUTH_ACCOUNT_CONFLICT,
@@ -23,8 +24,20 @@ const auth = vi.hoisted(() => ({
   getSession: vi.fn(),
   getProviders: vi.fn(),
   status: 'unauthenticated' as 'loading' | 'authenticated' | 'unauthenticated',
-  session: null as { accessToken: string } | null,
+  session: null as { accessToken?: string; syncError?: string } | null,
 }))
+
+vi.mock('next-intl', async () => {
+  const errors = (await import('@/messages/en/errors.json')).default as unknown as Record<string, string>
+  return {
+    useLocale: () => 'en',
+    useTranslations: (namespace?: string) => {
+      const t = (key: string) => (namespace === 'errors' ? (errors[key] ?? key) : key)
+      t.has = (key: string) => namespace !== 'errors' || key in errors
+      return t
+    },
+  }
+})
 
 vi.mock('next/navigation', () => ({
   useRouter: () => nav.router,
@@ -40,12 +53,12 @@ vi.mock('next-auth/react', () => ({
   getProviders: auth.getProviders,
 }))
 
-function mockBackend(config: { forward_auth: boolean }) {
+function mockBackend(config: { forward_auth: boolean }, status: object = {}) {
   global.fetch = vi.fn((input: RequestInfo | URL) => {
     const url = String(input)
     const body = url.endsWith('/auth/config')
       ? { oidc: { enabled: false, issuer_url: null, client_id: null }, dev_mode: false, mobile_notice: null, ...config }
-      : { configured: true, mode: 'forward-auth', error: null }
+      : { configured: true, mode: 'forward-auth', error: null, ...status }
     return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }))
   }) as unknown as typeof fetch
 }
@@ -226,5 +239,59 @@ describe('login page without forward-auth', () => {
 
     expect(await screen.findByText('devMode')).toBeInTheDocument()
     expect(auth.signIn).not.toHaveBeenCalled()
+  })
+})
+
+describe('login page sign-in errors', () => {
+  const errors = enErrors as unknown as Record<string, string>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    nav.params = new URLSearchParams()
+    auth.status = 'unauthenticated'
+    auth.session = null
+    auth.getProviders.mockResolvedValue({ oidc: { id: 'oidc', type: 'oauth' } })
+    mockBackend({ forward_auth: false })
+  })
+
+  it('translates a known error code from the syncError parameter', async () => {
+    nav.params = new URLSearchParams({ syncError: 'EMAIL_IN_USE' })
+
+    renderLogin()
+
+    expect(await screen.findByText(errors.EMAIL_IN_USE)).toBeInTheDocument()
+  })
+
+  it('translates the error code carried by the session', async () => {
+    auth.session = { syncError: 'AUTH_TOKEN_MISMATCH' }
+
+    renderLogin()
+
+    expect(await screen.findByText(errors.AUTH_TOKEN_MISMATCH)).toBeInTheDocument()
+  })
+
+  it.each([
+    ['English text', 'Email already in use by another account.'],
+    ['an unknown code', 'NO_SUCH_CODE_ANYWHERE'],
+    ['markup', '<b>Boom</b>'],
+  ])('shows the generic failure instead of %s in the syncError parameter', async (_name, value) => {
+    nav.params = new URLSearchParams({ syncError: value })
+
+    renderLogin()
+
+    expect(await screen.findByText(errors.SIGN_IN_FAILED)).toBeInTheDocument()
+    expect(screen.queryByText(value)).not.toBeInTheDocument()
+  })
+
+  it('translates the code the backend reports when no sign-in method is configured', async () => {
+    mockBackend(
+      { forward_auth: false },
+      { configured: false, mode: 'unknown', error: 'Raw English from the server', error_code: 'AUTH_NOT_CONFIGURED' }
+    )
+
+    renderLogin()
+
+    expect(await screen.findByText(errors.AUTH_NOT_CONFIGURED)).toBeInTheDocument()
+    expect(screen.queryByText('Raw English from the server')).not.toBeInTheDocument()
   })
 })
