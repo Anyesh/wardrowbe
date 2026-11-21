@@ -1,0 +1,17 @@
+{
+  "_comment": "British English differs from en mostly by spelling, which scripts/gen-en-gb.mjs applies to every string. These keys need more than a spelling change. Keys are <namespace>.<path>; run `npm run i18n:en-gb` after editing.",
+  "analytics.insightMoreTopsThanBottoms": "You have many more tops than bottoms. Consider adding trousers or skirts!",
+  "analytics.insightMostlyLayers": "Most of your tops are layers like cardigans and waistcoats. Add a few basics to wear under them!",
+  "constants.colors.gray": "Grey",
+  "constants.seasons.fall": "Autumn",
+  "constants.subtypes.sweatpants": "Tracksuit bottoms",
+  "constants.subtypes.trousers": "Smart trousers",
+  "constants.subtypes.turtleneck": "Polo neck",
+  "constants.subtypes.windbreaker": "Windcheater",
+  "constants.types.pants": "Trousers",
+  "constants.types.sneakers": "Trainers",
+  "constants.types.sweater": "Jumper",
+  "constants.types.tank-top": "Vest Top",
+  "constants.types.vest": "Waistcoat",
+  "settings.body.sizeFields.pantsSize": "Trouser Size"
+}
