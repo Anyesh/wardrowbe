@@ -1,0 +1,44 @@
+A person put together an outfit from their own wardrobe and wants your honest opinion of it for where they are going.
+
+WHERE THEY ARE GOING:
+{destination}
+
+OCCASION: {occasion}
+WEATHER: {weather}
+THEIR PREFERENCES: {preferences}
+
+THE OUTFIT:
+{outfit_items}
+
+OTHER ITEMS IN THEIR WARDROBE (best fits for the occasion and weather first):
+{alternative_items}
+
+Judge the outfit for that destination: whether it suits the place, dress code and weather, and how the colors, proportions, textures and formality work together. Say what works and what could be better. When a piece from their wardrobe would improve the look, suggest it by its number. If the outfit already works, rate it highly and keep any suggestions to small styling touches such as tucking in, rolling sleeves or an accessory.
+
+Rules:
+- Only suggest items from the lists above, by their [number]. Never invent items.
+- "replace" swaps target_item_num (from THE OUTFIT) for replacement_item_num (from OTHER ITEMS).
+- "add" adds replacement_item_num (from OTHER ITEMS); target_item_num is null.
+- "remove" drops target_item_num (from THE OUTFIT); replacement_item_num is null.
+- "styling_tip" changes how a piece is worn; both numbers are null.
+- At most 4 suggestions.
+- Write every text field in {language}.
+
+Answer with only this JSON:
+{{
+  "rating": <integer from 1 to 10>,
+  "verdict": "<at most five words, e.g. 'Great base, needs polish'>",
+  "opinion": "<one or two short paragraphs>",
+  "strengths": ["<short sentence>", "..."],
+  "improvements": ["<short sentence>", "..."],
+  "suggestions": [
+    {{
+      "action": "replace" | "add" | "remove" | "styling_tip",
+      "title": "<short title>",
+      "target_item_num": <number or null>,
+      "replacement_item_num": <number or null>,
+      "description": "<what to change>",
+      "reason": "<why it helps for this destination>"
+    }}
+  ]
+}}

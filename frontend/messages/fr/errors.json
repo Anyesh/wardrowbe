@@ -12,6 +12,7 @@
   "AI_RESPONSE_EMPTY": "Le modèle d'IA a renvoyé une réponse vide. Augmentez AI_MAX_TOKENS (actuellement {max_tokens}) ou désactivez son mode de raisonnement.",
   "AI_RESPONSE_UNUSABLE": "La réponse du service d'IA est illisible. Relancez l'analyse, ou essayez un autre modèle si le problème persiste.",
   "AI_SERVICE_UNAVAILABLE": "Le service IA est actuellement indisponible",
+  "AI_STYLIST_DISABLED": "L'IA intégrée est désactivée, les tenues ne peuvent donc pas être évaluées.",
   "AI_SUGGESTIONS_DISABLED": "L'IA intégrée est désactivée, les suggestions de tenues viennent de votre agent externe.",
   "AI_TIMEOUT": "Le service d'IA a mis trop de temps à répondre. Relancez l'analyse.",
   "AI_UNREACHABLE": "Le service d'IA est injoignable. Veuillez réessayer.",

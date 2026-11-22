@@ -87,7 +87,13 @@
       "noBottoms": "하의가 선택되지 않았어요.",
       "noFootwear": "신발이 선택되지 않았어요.",
       "noTop": "상의가 선택되지 않았어요."
-    }
+    },
+    "destination": "어디에 가세요?",
+    "destinationPlaceholder": "예: 루프톱 저녁 식사, 면접, 해변 바",
+    "destinationHelp": "AI 스타일리스트가 가는 곳에 맞춰 이 코디를 평가하고 옷장 속 아이템으로 바꿀 것을 제안해요.",
+    "checkOutfit": "AI 스타일리스트에게 확인받기",
+    "checking": "코디를 확인하는 중...",
+    "checkFailed": "이 코디를 확인하지 못했어요. 다시 시도해 주세요."
   },
   "empty": {
     "ai": "아직 AI 추천이 없어요.",
@@ -164,6 +170,27 @@
     }
   },
   "newOutfit": "새 코디",
+  "review": {
+    "actions": {
+      "add": "추가",
+      "remove": "빼기",
+      "replace": "교체",
+      "styling_tip": "스타일링 팁"
+    },
+    "applied": "적용됨",
+    "apply": {
+      "add": "코디에 추가",
+      "remove": "코디에서 빼기",
+      "replace": "바꾸기"
+    },
+    "done": "닫기",
+    "improvements": "개선할 점",
+    "ratingLabel": "10점 만점에 {rating}점",
+    "recheck": "다시 확인",
+    "strengths": "잘된 점",
+    "suggestions": "제안",
+    "title": "스타일리스트 리뷰"
+  },
   "search": "룩북 검색...",
   "subtitle": "내 룩, 착용한 코디, AI 추천",
   "title": "코디",

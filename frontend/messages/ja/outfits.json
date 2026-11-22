@@ -87,7 +87,13 @@
       "noBottoms": "ボトムスが選択されていません。",
       "noFootwear": "靴が選択されていません。",
       "noTop": "トップスが選択されていません。"
-    }
+    },
+    "destination": "どこへ行きますか？",
+    "destinationPlaceholder": "例：ルーフトップでのディナー、面接、ビーチバー",
+    "destinationHelp": "AIスタイリストが行き先に合わせてこのコーディネートを評価し、ワードローブから入れ替え案を提案します。",
+    "checkOutfit": "AIスタイリストにチェックしてもらう",
+    "checking": "コーディネートをチェック中...",
+    "checkFailed": "このコーディネートをチェックできませんでした。もう一度お試しください。"
   },
   "empty": {
     "ai": "AIの提案はまだありません。",
@@ -164,6 +170,27 @@
     }
   },
   "newOutfit": "新しいコーデ",
+  "review": {
+    "actions": {
+      "add": "追加",
+      "remove": "外す",
+      "replace": "入れ替え",
+      "styling_tip": "着こなしのコツ"
+    },
+    "applied": "適用済み",
+    "apply": {
+      "add": "コーディネートに追加",
+      "remove": "コーディネートから外す",
+      "replace": "入れ替える"
+    },
+    "done": "閉じる",
+    "improvements": "改善できる点",
+    "ratingLabel": "10点中{rating}点",
+    "recheck": "もう一度チェック",
+    "strengths": "良い点",
+    "suggestions": "提案",
+    "title": "スタイリストの評価"
+  },
   "search": "ルックブックを検索...",
   "subtitle": "あなたのコーデ、着用履歴、AIの提案",
   "title": "コーデ",

@@ -12,6 +12,7 @@
   "AI_RESPONSE_EMPTY": "AI 模型傳回了空白回答。請調高 AI_MAX_TOKENS（目前為 {max_tokens}）或關閉其推理模式。",
   "AI_RESPONSE_UNUSABLE": "無法讀取 AI 服務的回答。請重新分析；如果仍然失敗，請改用其他模型。",
   "AI_SERVICE_UNAVAILABLE": "AI 服務暫時無法使用",
+  "AI_STYLIST_DISABLED": "內建 AI 已關閉，因此無法點評搭配。",
   "AI_SUGGESTIONS_DISABLED": "內建 AI 已關閉，穿搭建議將由你的外部代理提供。",
   "AI_TIMEOUT": "AI 服務逾時，請重新分析。",
   "AI_UNREACHABLE": "無法連線到 AI 服務。請再試一次。",

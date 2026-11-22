@@ -87,7 +87,13 @@
       "noBottoms": "No bottoms selected.",
       "noFootwear": "No footwear selected.",
       "noTop": "No top selected."
-    }
+    },
+    "destination": "Where are you going?",
+    "destinationPlaceholder": "e.g. rooftop dinner, job interview, beach bar",
+    "destinationHelp": "The AI stylist rates this outfit for where you're going and suggests swaps from your wardrobe.",
+    "checkOutfit": "Check with the AI stylist",
+    "checking": "Checking outfit...",
+    "checkFailed": "Couldn't check this outfit. Please try again."
   },
   "empty": {
     "ai": "No AI suggestions yet.",
@@ -164,6 +170,27 @@
     }
   },
   "newOutfit": "New Outfit",
+  "review": {
+    "actions": {
+      "add": "Add",
+      "remove": "Remove",
+      "replace": "Swap",
+      "styling_tip": "Styling tip"
+    },
+    "applied": "Done",
+    "apply": {
+      "add": "Add to outfit",
+      "remove": "Remove from outfit",
+      "replace": "Swap in"
+    },
+    "done": "Close",
+    "improvements": "What could be better",
+    "ratingLabel": "Rated {rating} out of 10",
+    "recheck": "Check again",
+    "strengths": "What works",
+    "suggestions": "Suggestions",
+    "title": "Stylist review"
+  },
   "search": "Search lookbook...",
   "subtitle": "Your looks, worn outfits, and AI suggestions",
   "title": "Outfits",

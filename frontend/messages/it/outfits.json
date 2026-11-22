@@ -87,7 +87,13 @@
       "noBottoms": "Nessun basso selezionato.",
       "noFootwear": "Nessuna calzatura selezionata.",
       "noTop": "Nessun alto selezionato."
-    }
+    },
+    "destination": "Dove stai andando?",
+    "destinationPlaceholder": "es. cena in terrazza, colloquio di lavoro, beach bar",
+    "destinationHelp": "Lo stylist IA valuta questo outfit per dove stai andando e suggerisce scambi dal tuo guardaroba.",
+    "checkOutfit": "Fai valutare allo stylist IA",
+    "checking": "Valutazione dell'outfit...",
+    "checkFailed": "Impossibile valutare questo outfit. Riprova."
   },
   "empty": {
     "ai": "Nessun suggerimento IA ancora.",
@@ -164,6 +170,27 @@
     }
   },
   "newOutfit": "Nuovo outfit",
+  "review": {
+    "actions": {
+      "add": "Aggiungi",
+      "remove": "Togli",
+      "replace": "Scambia",
+      "styling_tip": "Consiglio di stile"
+    },
+    "applied": "Fatto",
+    "apply": {
+      "add": "Aggiungi all'outfit",
+      "remove": "Togli dall'outfit",
+      "replace": "Sostituisci"
+    },
+    "done": "Chiudi",
+    "improvements": "Cosa si può migliorare",
+    "ratingLabel": "Voto {rating} su 10",
+    "recheck": "Valuta di nuovo",
+    "strengths": "Cosa funziona",
+    "suggestions": "Suggerimenti",
+    "title": "Parere dello stylist"
+  },
   "search": "Cerca nel lookbook...",
   "subtitle": "I tuoi look, outfit indossati e suggerimenti IA",
   "title": "Outfit",
