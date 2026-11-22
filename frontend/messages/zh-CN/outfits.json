@@ -93,7 +93,8 @@
     "destinationHelp": "AI 造型师会根据你要去的地方为这套搭配打分，并从你的衣柜中推荐替换单品。",
     "checkOutfit": "让 AI 造型师点评",
     "checking": "正在点评搭配...",
-    "checkFailed": "无法点评这套搭配，请重试。"
+    "checkFailed": "无法点评这套搭配，请重试。",
+    "checkOutdated": "点评期间搭配有变化，请重新点评以获取最新结果。"
   },
   "empty": {
     "ai": "还没有 AI 建议。",

@@ -93,7 +93,8 @@
     "destinationHelp": "Lo stylist IA valuta questo outfit per dove stai andando e suggerisce scambi dal tuo guardaroba.",
     "checkOutfit": "Fai valutare allo stylist IA",
     "checking": "Valutazione dell'outfit...",
-    "checkFailed": "Impossibile valutare questo outfit. Riprova."
+    "checkFailed": "Impossibile valutare questo outfit. Riprova.",
+    "checkOutdated": "L'outfit è cambiato durante la valutazione. Valutalo di nuovo per un parere aggiornato."
   },
   "empty": {
     "ai": "Nessun suggerimento IA ancora.",

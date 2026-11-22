@@ -93,7 +93,8 @@
     "destinationHelp": "Le styliste IA évalue cette tenue pour votre sortie et propose des échanges tirés de votre garde-robe.",
     "checkOutfit": "Faire évaluer par le styliste IA",
     "checking": "Évaluation de la tenue...",
-    "checkFailed": "Impossible d'évaluer cette tenue. Veuillez réessayer."
+    "checkFailed": "Impossible d'évaluer cette tenue. Veuillez réessayer.",
+    "checkOutdated": "La tenue a changé pendant l'évaluation. Relancez-la pour un avis à jour."
   },
   "empty": {
     "ai": "Pas encore de suggestions IA.",

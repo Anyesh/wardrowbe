@@ -93,7 +93,8 @@
     "destinationHelp": "The AI stylist rates this outfit for where you're going and suggests swaps from your wardrobe.",
     "checkOutfit": "Check with the AI stylist",
     "checking": "Checking outfit...",
-    "checkFailed": "Couldn't check this outfit. Please try again."
+    "checkFailed": "Couldn't check this outfit. Please try again.",
+    "checkOutdated": "The outfit changed while it was being checked. Check it again for an up-to-date review."
   },
   "empty": {
     "ai": "No AI suggestions yet.",

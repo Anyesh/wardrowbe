@@ -37,13 +37,19 @@ export interface OutfitCheckPayload {
 }
 
 // Whether the canvas still has what a suggestion acts on: a swap or removal of a piece the
-// user already took off, or an addition already on the canvas, has nothing left to do.
+// user already took off, or a piece that is already on the canvas, has nothing left to do.
 export function canApplySuggestion(items: StudioItem[], suggestion: OutfitCheckSuggestion): boolean {
   const ids = new Set(items.map((i) => i.id));
   switch (suggestion.action) {
     case 'remove':
       return suggestion.target_item_id !== null && ids.has(suggestion.target_item_id);
     case 'replace':
+      return (
+        suggestion.target_item_id !== null &&
+        ids.has(suggestion.target_item_id) &&
+        suggestion.replacement_item !== null &&
+        !ids.has(suggestion.replacement_item.id)
+      );
     case 'add':
       return suggestion.replacement_item !== null && !ids.has(suggestion.replacement_item.id);
     default:

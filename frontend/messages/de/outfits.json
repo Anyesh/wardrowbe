@@ -93,7 +93,8 @@
     "destinationHelp": "Der KI-Stylist bewertet dieses Outfit für deinen Anlass und schlägt Alternativen aus deinem Kleiderschrank vor.",
     "checkOutfit": "Vom KI-Stylisten prüfen lassen",
     "checking": "Outfit wird geprüft...",
-    "checkFailed": "Das Outfit konnte nicht geprüft werden. Bitte versuch es noch einmal."
+    "checkFailed": "Das Outfit konnte nicht geprüft werden. Bitte versuch es noch einmal.",
+    "checkOutdated": "Das Outfit hat sich während der Prüfung geändert. Prüfe es erneut für eine aktuelle Bewertung."
   },
   "empty": {
     "ai": "Noch keine KI-Vorschläge.",

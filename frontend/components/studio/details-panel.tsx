@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Loader2, MessageSquareText, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -66,17 +66,30 @@ export function DetailsPanel({
   const [review, setReview] = useState<OutfitCheckResult | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const canCheck = items.length > 0 && !!occasion && destination.trim().length >= 2;
+  // What the outfit, occasion and destination are now, so an answer that comes back after the
+  // user changed any of them is dropped rather than shown against a different outfit.
+  const contextKey = JSON.stringify([items.map((i) => i.id), occasion, destination.trim()]);
+  const latestContext = useRef(contextKey);
+  useEffect(() => {
+    latestContext.current = contextKey;
+  }, [contextKey]);
 
   const handleCheck = async () => {
     if (!canCheck || !occasion) return;
     setChecking(true);
+    const requested = contextKey;
     try {
       const payload: OutfitCheckPayload = {
         items: items.map((i) => i.id),
         destination: destination.trim(),
         occasion,
       };
-      setReview(await api.post<OutfitCheckResult>('/outfits/check', payload));
+      const result = await api.post<OutfitCheckResult>('/outfits/check', payload);
+      if (latestContext.current !== requested) {
+        toast.info(t('checkOutdated'));
+        return;
+      }
+      setReview(result);
       setReviewOpen(true);
     } catch (error) {
       toast.error(describeError(error, t('checkFailed')));

@@ -20,7 +20,7 @@ from app.models.item import ClothingItem, ItemStatus
 from app.models.user import User
 from app.services.ai_service import DESCRIPTION_LANGUAGES, AIService, require_internal_ai
 from app.services.item_scorer import get_season, rank_by_fit
-from app.services.studio_service import ItemOwnershipError
+from app.services.studio_service import validate_item_ownership
 from app.services.weather_service import WeatherData, WeatherService, WeatherServiceError
 from app.utils.ai_json import parse_ai_json
 from app.utils.errors import Coded
@@ -157,6 +157,9 @@ def _suggestion(
     # client can apply every replace, add or remove it is given.
     if action == "replace" and not replacement:
         action = "styling_tip"
+    elif action == "replace" and not target:
+        # Without the piece it replaces, a swap can only be offered as an addition.
+        action = "add"
     elif action == "add" and not replacement:
         action = "styling_tip"
     elif action == "remove" and not target:
@@ -218,9 +221,13 @@ class OutfitCheckService:
         self.db = db
         self.weather_service = WeatherService()
 
-    async def _weather(self, user: User) -> WeatherData | None:
-        # Weather sharpens the advice but is not needed for it, so a missing location or a
-        # weather outage leaves it out rather than failing the check.
+    async def _weather(self, user: User) -> tuple[WeatherData | None, float | None]:
+        """The current weather and the latitude it was read at, which decides the season.
+
+        Weather sharpens the advice but is not needed for it, so a missing location or a
+        weather or geocoding outage (GeocodingServiceError is a WeatherServiceError) leaves
+        it out rather than failing the check.
+        """
         lat = float(user.location_lat) if user.location_lat is not None else None
         lon = float(user.location_lon) if user.location_lon is not None else None
         try:
@@ -229,21 +236,16 @@ class OutfitCheckService:
                 if geocoded:
                     lat, lon, _ = geocoded
             if lat is None or lon is None:
-                return None
-            return await self.weather_service.get_current_weather(lat, lon)
+                return None, lat
+            return await self.weather_service.get_current_weather(lat, lon), lat
         except WeatherServiceError as e:
             logger.info("outfit check without weather: %s", e)
-            return None
+            return None, lat
 
     async def _outfit_items(self, user: User, item_ids: list[UUID]) -> list[ClothingItem]:
-        result = await self.db.execute(
-            select(ClothingItem).where(
-                ClothingItem.user_id == user.id, ClothingItem.id.in_(item_ids)
-            )
-        )
-        by_id = {item.id: item for item in result.scalars().all()}
-        if len(by_id) != len(set(item_ids)):
-            raise ItemOwnershipError("One or more items do not belong to you")
+        # The same rule the studio saves outfits with: the caller's own, analysed items.
+        items = await validate_item_ownership(self.db, user.id, item_ids)
+        by_id = {item.id: item for item in items}
         return [by_id[item_id] for item_id in dict.fromkeys(item_ids)]
 
     async def _alternatives(
@@ -251,8 +253,12 @@ class OutfitCheckService:
         user: User,
         exclude: list[UUID],
         weather: WeatherData | None,
+        latitude: float | None,
         occasion: str,
     ) -> list[ClothingItem]:
+        # Items the user excluded from suggestions stay out of the stylist's suggestions too.
+        prefs = user.preferences
+        exclude = [*exclude, *((prefs.excluded_item_ids or []) if prefs else [])]
         result = await self.db.execute(
             select(ClothingItem).where(
                 ClothingItem.user_id == user.id,
@@ -264,10 +270,7 @@ class OutfitCheckService:
         )
         items = list(result.scalars().all())
         if weather is not None:
-            season = get_season(
-                get_user_today(user).month,
-                float(user.location_lat) if user.location_lat is not None else None,
-            )
+            season = get_season(get_user_today(user).month, latitude)
             order = rank_by_fit(items, weather, occasion, season, user.preferences, None)
             by_id = {item.id: item for item in items}
             items = [by_id[item_id] for item_id in order]
@@ -285,8 +288,11 @@ class OutfitCheckService:
         require_internal_ai("text")
 
         outfit_items = await self._outfit_items(user, item_ids)
-        weather = await self._weather(user)
-        alternative_items = await self._alternatives(user, item_ids, weather, occasion)
+        weather, latitude = await self._weather(user)
+        alternative_items = await self._alternatives(user, item_ids, weather, latitude, occasion)
+        # The model call can take a minute; ending the read-only transaction returns the
+        # connection to the pool meanwhile. Sessions keep loaded objects on commit.
+        await self.db.commit()
 
         outfit = dict(enumerate(outfit_items, start=1))
         alternatives = dict(enumerate(alternative_items, start=ALTERNATIVE_OFFSET))

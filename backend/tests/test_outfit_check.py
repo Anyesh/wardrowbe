@@ -1,5 +1,6 @@
 import json
 from unittest.mock import AsyncMock, patch
+from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import pytest
@@ -7,6 +8,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.item import ClothingItem, ItemStatus
+from app.models.preference import UserPreference
 from app.models.user import User
 from app.services.ai_service import AIDisabledError
 from app.services.outfit_check_service import (
@@ -14,6 +16,7 @@ from app.services.outfit_check_service import (
     OutfitCheckError,
     parse_check,
 )
+from app.utils.signed_urls import verify_signature
 
 URL = "/api/v1/outfits/check"
 
@@ -24,8 +27,7 @@ def _item(user: User | None = None, type_: str = "shirt", **fields) -> ClothingI
         user_id=user.id if user else uuid4(),
         type=type_,
         image_path=f"test/{uuid4()}.jpg",
-        status=ItemStatus.ready,
-        **fields,
+        **{"status": ItemStatus.ready, **fields},
     )
 
 
@@ -102,6 +104,21 @@ class TestParseCheck:
         )
         assert [s.action for s in check.suggestions] == ["styling_tip"] * 4
         assert all(s.target is None and s.replacement is None for s in check.suggestions)
+
+    def test_a_swap_without_its_target_is_offered_as_an_addition(self):
+        [s] = self.parse(
+            {
+                "suggestions": [
+                    {
+                        "action": "replace",
+                        "title": "Chinos",
+                        "target_item_num": 99,
+                        "replacement_item_num": ALTERNATIVE_OFFSET,
+                    }
+                ]
+            }
+        ).suggestions
+        assert (s.action, s.target, s.replacement) == ("add", None, self.chinos)
 
     def test_item_numbers_echoed_as_labels_still_resolve(self):
         check = self.parse(
@@ -207,7 +224,10 @@ class TestCheckEndpoint:
         assert suggestion["action"] == "replace"
         assert suggestion["target_item_id"] == str(tee.id)
         assert suggestion["replacement_item"]["id"] == str(shirt.id)
-        assert "thumbs/oxford.jpg" in suggestion["replacement_item"]["thumbnail_url"]
+        thumbnail = urlsplit(suggestion["replacement_item"]["thumbnail_url"])
+        query = parse_qs(thumbnail.query)
+        assert thumbnail.path == "/api/v1/images/thumbs/oxford.jpg"
+        assert verify_signature("thumbs/oxford.jpg", query["expires"][0], query["sig"][0])
 
         prompt = ai.generate_text.call_args.kwargs["prompt"]
         assert "Rooftop dinner\n" in prompt
@@ -239,6 +259,43 @@ class TestCheckEndpoint:
         assert response.status_code == 403
         assert response.json()["error_code"] == "OUTFIT_ITEM_OWNERSHIP"
         ai.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rejects_items_that_are_not_analysed_yet(
+        self, client: AsyncClient, test_user: User, auth_headers, db_session: AsyncSession
+    ):
+        [pending] = await _add(db_session, _item(test_user, status=ItemStatus.processing))
+        response = await client.post(
+            URL,
+            json={"items": [str(pending.id)], "destination": "Office", "occasion": "office"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 403
+        assert response.json()["error_code"] == "OUTFIT_ITEM_OWNERSHIP"
+
+    @pytest.mark.asyncio
+    async def test_items_excluded_from_suggestions_are_not_offered(
+        self, client: AsyncClient, test_user: User, auth_headers, db_session: AsyncSession
+    ):
+        tee, excluded = await _add(
+            db_session,
+            _item(test_user, "t-shirt", name="Grey tee"),
+            _item(test_user, "shirt", name="Never suggest me"),
+        )
+        db_session.add(UserPreference(user_id=test_user.id, excluded_item_ids=[excluded.id]))
+        await db_session.commit()
+        await db_session.refresh(test_user)
+        ai = AsyncMock()
+        ai.generate_text.return_value = _answer()
+        with patch("app.services.outfit_check_service.AIService", return_value=ai):
+            response = await client.post(
+                URL,
+                json={"items": [str(tee.id)], "destination": "Park", "occasion": "casual"},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        assert "Never suggest me" not in ai.generate_text.call_args.kwargs["prompt"]
 
     @pytest.mark.asyncio
     async def test_reports_disabled_ai_with_its_own_code(

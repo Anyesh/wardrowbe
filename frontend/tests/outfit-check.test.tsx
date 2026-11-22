@@ -101,10 +101,15 @@ describe('applySuggestion', () => {
 
   it('leaves the canvas alone once a suggestion no longer applies', () => {
     const canvas = [tee, jeans]
+    const swapGone = suggestion({
+      action: 'replace',
+      target_item_id: 'sneakers',
+      replacement_item: wardrobeItem('boots', 'boots', 'Boots'),
+    })
     const add = suggestion({ action: 'add', replacement_item: wardrobeItem('tee', 't-shirt', 'Tee') })
     const remove = suggestion({ action: 'remove', target_item_id: 'gone' })
     const tip = suggestion({ action: 'styling_tip' })
-    for (const s of [add, remove, tip]) {
+    for (const s of [swapGone, add, remove, tip]) {
       expect(canApplySuggestion(canvas, s)).toBe(false)
       expect(applySuggestion(canvas, s)).toBe(canvas)
     }
@@ -190,7 +195,7 @@ describe('DetailsPanel outfit check', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'outfits.details.checkOutfit' }))
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalled())
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('outfits.details.checkFailed'))
     expect(screen.queryByText('outfits.review.title')).toBeNull()
   })
 
@@ -198,5 +203,30 @@ describe('DetailsPanel outfit check', () => {
     aiUi.enabled = false
     renderPanel()
     expect(screen.queryByLabelText('outfits.details.destination')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'outfits.details.checkOutfit' })).toBeNull()
+  })
+
+  it('drops an answer that arrives after the outfit changed', async () => {
+    let answer: (value: OutfitCheckResult) => void = () => {}
+    post.mockReturnValue(new Promise((resolve) => (answer = resolve)))
+    const onAiMerge = vi.fn()
+    const props = {
+      name: '',
+      occasion: 'date',
+      onNameChange: vi.fn(),
+      onOccasionChange: vi.fn(),
+      onAiMerge,
+    }
+    const { rerender } = render(<DetailsPanel items={[tee, jeans]} {...props} />)
+
+    fireEvent.change(screen.getByLabelText('outfits.details.destination'), {
+      target: { value: 'Rooftop dinner' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'outfits.details.checkOutfit' }))
+    rerender(<DetailsPanel items={[tee, sneakers]} {...props} />)
+    answer(review)
+
+    await waitFor(() => expect(toast.info).toHaveBeenCalledWith('outfits.details.checkOutdated'))
+    expect(screen.queryByText('The rooftop is dressier than this.')).toBeNull()
   })
 })
