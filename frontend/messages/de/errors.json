@@ -45,6 +45,7 @@
   "EMAIL_SENDER_INVALID": "Die Absenderadresse {sender} des Servers ist weder eine E-Mail-Adresse noch ein SMTP-Login.",
   "EMAIL_SMTPUTF8_UNSUPPORTED": "Der Mailserver unterstützt SMTPUTF8 nicht, das {address} benötigt.",
   "EMAIL_SMTP_REJECTED": "Der Mailserver hat mit dem Code {status} geantwortet.",
+  "EXPORT_TOO_LARGE": "Du kannst höchstens {limit} Stücke auf einmal exportieren.",
   "EXPO_PUSH_TOKEN_INVALID": "Das ist kein gültiges Expo-Push-Token.",
   "FAMILY_ADMIN_REQUIRED": "Nur Familien-Admins können diese Aktion ausführen",
   "FAMILY_NOT_FOUND": "Familie nicht gefunden",

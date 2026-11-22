@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Plus, Search, Heart, Grid3X3, Loader2, AlertCircle, RefreshCw, Droplets, ArrowUpDown, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Search, Heart, Grid3X3, Loader2, AlertCircle, RefreshCw, Droplets, ArrowUpDown, SlidersHorizontal, X, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { AddItemDialog } from '@/components/add-item-dialog';
+import { ExportDialog } from '@/components/export-dialog';
 import { AnalysisFailureReason } from '@/components/analysis-failure-reason';
 import { AnalysisQueuePanel } from '@/components/analysis-queue-panel';
 import { useAiUiEnabled } from '@/lib/hooks/use-features';
@@ -331,6 +332,7 @@ export default function WardrobePage() {
   const tc = useTranslations('common');
   const clothingTypes = useClothingTypes();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [queuePanelOpen, setQueuePanelOpen] = useState(false);
   const [selection, setSelection] = useState<BulkSelection>({
     mode: 'none',
@@ -658,14 +660,23 @@ export default function WardrobePage() {
         <div className="min-w-0">
           <div className="flex items-center justify-between sm:justify-start gap-3">
             <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-            <Button
-              onClick={() => setAddDialogOpen(true)}
-              className="sm:hidden"
-              size="sm"
-              aria-label={t('actions.addItem')}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1.5 sm:hidden">
+              <Button
+                onClick={() => setExportDialogOpen(true)}
+                variant="outline"
+                size="sm"
+                aria-label={t('actions.export')}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={() => setAddDialogOpen(true)}
+                size="sm"
+                aria-label={t('actions.addItem')}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             {t('itemCount', { count: total })}
@@ -718,10 +729,16 @@ export default function WardrobePage() {
             </div>
           )}
         </div>
-        <Button onClick={() => setAddDialogOpen(true)} className="hidden sm:flex">
-          <Plus className="mr-2 h-4 w-4" />
-          {t('actions.addItem')}
-        </Button>
+        <div className="hidden sm:flex items-center gap-2">
+          <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
+            <Download className="mr-2 h-4 w-4" />
+            {t('actions.export')}
+          </Button>
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t('actions.addItem')}
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -942,6 +959,7 @@ export default function WardrobePage() {
         onReanalyze={aiUiEnabled ? handleBulkReanalyze : undefined}
         onRotate={handleBulkRotate}
         onRemoveBackground={handleBulkRemoveBackground}
+        onExport={() => setExportDialogOpen(true)}
         isDeleting={bulkDelete.isPending}
         isReanalyzing={bulkReanalyze.isPending}
         isRotating={bulkRotate.isPending}
@@ -950,6 +968,17 @@ export default function WardrobePage() {
         pagination={{ page, pageSize, onPageChange: handlePageChange }}
       />
 
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        totalCount={total}
+        selection={selection.mode === 'none' ? null : getBulkParams()}
+        selectedCount={
+          selection.mode === 'all'
+            ? Math.max(0, total - selection.excludedIds.size)
+            : selection.selectedIds.size
+        }
+      />
       <AddItemDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
       {aiUiEnabled && (
         <AnalysisQueuePanel

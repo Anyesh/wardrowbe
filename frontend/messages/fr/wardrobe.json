@@ -1,6 +1,7 @@
 {
   "actions": {
-    "addItem": "Ajouter un article"
+    "addItem": "Ajouter un article",
+    "export": "Exporter"
   },
   "addItem": {
     "brandInputPlaceholder": "ex. J.Crew",
@@ -145,6 +146,39 @@
     "clearFilters": "Effacer les filtres",
     "loadFailed": "Échec du chargement des articles. Veuillez réessayer.",
     "noItemsFound": "Aucun article trouvé correspondant à vos filtres."
+  },
+  "exportDialog": {
+    "copied": "Copié dans le presse-papiers",
+    "copy": "Copier",
+    "description": "Téléchargez vos vêtements sous forme de fichier, ou de skill qu'un assistant IA peut utiliser pour vous conseiller.",
+    "download": "Télécharger",
+    "downloaded": "{filename} téléchargé",
+    "failed": "Impossible d'exporter votre garde-robe. Veuillez réessayer.",
+    "format": "Format",
+    "formats": {
+      "json": {
+        "description": "Tous les attributs, pour des scripts et d'autres applications.",
+        "name": "Données JSON"
+      },
+      "markdown": {
+        "description": "Vos vêtements regroupés par catégorie, faciles à lire ou à coller n'importe où.",
+        "name": "Catalogue Markdown"
+      },
+      "skill": {
+        "description": "Votre garde-robe et des règles de style, prêtes à ajouter comme skill dans un assistant comme Gemini ou Claude.",
+        "name": "Skill pour assistant IA (SKILL.md)"
+      },
+      "text": {
+        "description": "Une ligne par article.",
+        "name": "Texte brut"
+      }
+    },
+    "includeProfile": "Inclure mes préférences de style et mes tailles",
+    "scope": "Articles",
+    "scopeAll": "Toute la garde-robe ({count})",
+    "scopeSelected": "{count, plural, one {# article sélectionné} other {# articles sélectionnés}}",
+    "skillHowTo": "Ajoutez SKILL.md comme skill dans un assistant IA qui les prend en charge, comme Gemini ou Claude, puis demandez-lui quoi porter aujourd'hui.",
+    "title": "Exporter la garde-robe"
   },
   "favorites": "Favoris",
   "itemCount": "{count, plural, one {# article dans votre garde-robe} other {# articles dans votre garde-robe}}",

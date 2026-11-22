@@ -45,6 +45,7 @@
   "EMAIL_SENDER_INVALID": "服务器的发件地址 {sender} 既不是邮箱地址，也不是 SMTP 登录名。",
   "EMAIL_SMTPUTF8_UNSUPPORTED": "邮件服务器不支持 {address} 所需的 SMTPUTF8。",
   "EMAIL_SMTP_REJECTED": "邮件服务器返回了代码 {status}。",
+  "EXPORT_TOO_LARGE": "一次最多可以导出 {limit} 件单品。",
   "EXPO_PUSH_TOKEN_INVALID": "这不是有效的 Expo 推送令牌。",
   "FAMILY_ADMIN_REQUIRED": "只有家庭管理员才能执行此操作",
   "FAMILY_NOT_FOUND": "未找到该家庭",

@@ -6,7 +6,7 @@ from uuid import UUID
 
 from arq import create_pool
 from arq.jobs import Job
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
 from sqlalchemy import case, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,6 +46,7 @@ from app.schemas.item import (
     BulkUploadResponse,
     BulkUploadResult,
     ItemCreate,
+    ItemExportRequest,
     ItemFilter,
     ItemImageResponse,
     ItemListResponse,
@@ -59,10 +60,12 @@ from app.schemas.item import (
     WashHistoryResponse,
     failure_reason,
 )
+from app.services.export_service import ExportService, ExportTooLargeError
 from app.services.image_service import ImageService
 from app.services.item_service import ItemService, TagVocabularyError
 from app.utils.auth import get_current_user
 from app.utils.errors import CodedHTTPException, http_error
+from app.utils.rate_limit import rate_limit_by_user
 from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
 from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
@@ -922,6 +925,34 @@ async def bulk_rotate_items(
         errors=errors,
         next_cursor=next_cursor,
         has_more=has_more,
+    )
+
+
+@router.post("/export")
+async def export_items(
+    request: ItemExportRequest,
+    db: DbSession,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> Response:
+    await rate_limit_by_user(str(current_user.id), "export", max_requests=20, window_seconds=60)
+    try:
+        exported = await ExportService(db).export(
+            current_user,
+            request.format,
+            item_ids=request.item_ids,
+            filters=request.filters,
+            excluded_ids=request.excluded_ids,
+            include_profile=request.include_profile,
+        )
+    except ExportTooLargeError as e:
+        raise http_error(status.HTTP_400_BAD_REQUEST, e, "EXPORT_TOO_LARGE") from e
+    return Response(
+        content=exported.content,
+        media_type=exported.media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{exported.filename}"',
+            "Cache-Control": "no-store",
+        },
     )
 
 

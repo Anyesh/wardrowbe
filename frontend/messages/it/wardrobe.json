@@ -1,6 +1,7 @@
 {
   "actions": {
-    "addItem": "Aggiungi capo"
+    "addItem": "Aggiungi capo",
+    "export": "Esporta"
   },
   "addItem": {
     "brandInputPlaceholder": "es., J.Crew",
@@ -145,6 +146,39 @@
     "clearFilters": "Cancella filtri",
     "loadFailed": "Caricamento capi fallito. Riprova.",
     "noItemsFound": "Nessun capo trovato con i filtri selezionati."
+  },
+  "exportDialog": {
+    "copied": "Copiato negli appunti",
+    "copy": "Copia",
+    "description": "Scarica i tuoi capi come file, oppure come skill che un assistente IA può usare per consigliarti.",
+    "download": "Scarica",
+    "downloaded": "{filename} scaricato",
+    "failed": "Impossibile esportare il guardaroba. Riprova.",
+    "format": "Formato",
+    "formats": {
+      "json": {
+        "description": "Tutti gli attributi, per script e altre app.",
+        "name": "Dati JSON"
+      },
+      "markdown": {
+        "description": "I tuoi capi raggruppati per categoria, facili da leggere o da incollare ovunque.",
+        "name": "Catalogo Markdown"
+      },
+      "skill": {
+        "description": "Il tuo guardaroba con regole di stile, pronto da aggiungere come skill in un assistente come Gemini o Claude.",
+        "name": "Skill per assistente IA (SKILL.md)"
+      },
+      "text": {
+        "description": "Una riga per capo.",
+        "name": "Testo semplice"
+      }
+    },
+    "includeProfile": "Includi le mie preferenze di stile e le mie taglie",
+    "scope": "Capi",
+    "scopeAll": "Tutto il guardaroba ({count})",
+    "scopeSelected": "{count, plural, one {# capo selezionato} other {# capi selezionati}}",
+    "skillHowTo": "Aggiungi SKILL.md come skill in un assistente IA che le supporta, come Gemini o Claude, poi chiedigli cosa indossare oggi.",
+    "title": "Esporta il guardaroba"
   },
   "favorites": "Preferiti",
   "itemCount": "{count, plural, one {# capo nel tuo guardaroba} other {# capi nel tuo guardaroba}}",

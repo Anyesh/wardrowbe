@@ -1,6 +1,7 @@
 {
   "actions": {
-    "addItem": "新增單品"
+    "addItem": "新增單品",
+    "export": "匯出"
   },
   "addItem": {
     "brandInputPlaceholder": "例如：UNIQLO",
@@ -145,6 +146,39 @@
     "clearFilters": "清除篩選",
     "loadFailed": "載入單品失敗，請重試。",
     "noItemsFound": "找不到符合篩選條件的單品。"
+  },
+  "exportDialog": {
+    "copied": "已複製到剪貼簿",
+    "copy": "複製",
+    "description": "將你的衣物下載為檔案，或下載為 AI 助理可用來為你搭配的技能。",
+    "download": "下載",
+    "downloaded": "已下載 {filename}",
+    "failed": "無法匯出你的衣櫥，請再試一次。",
+    "format": "格式",
+    "formats": {
+      "json": {
+        "description": "包含所有屬性，適用於指令碼和其他應用程式。",
+        "name": "JSON 資料"
+      },
+      "markdown": {
+        "description": "依類別分組的衣物清單，方便閱讀或貼到任何地方。",
+        "name": "Markdown 目錄"
+      },
+      "skill": {
+        "description": "包含你的衣櫥和搭配規則，可作為技能加入 Gemini 或 Claude 等助理中。",
+        "name": "AI 助理技能（SKILL.md）"
+      },
+      "text": {
+        "description": "每件單品一行。",
+        "name": "純文字"
+      }
+    },
+    "includeProfile": "包含我的風格偏好和尺寸",
+    "scope": "單品",
+    "scopeAll": "整個衣櫥（{count}）",
+    "scopeSelected": "{count, plural, other {已選 # 件}}",
+    "skillHowTo": "在支援技能的 AI 助理（如 Gemini 或 Claude）中將 SKILL.md 加入為技能，然後問它今天穿什麼。",
+    "title": "匯出衣櫥"
   },
   "favorites": "收藏",
   "itemCount": "{count, plural, one {衣櫥中有 # 件單品} other {衣櫥中有 # 件單品}}",

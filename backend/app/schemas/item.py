@@ -315,6 +315,26 @@ class BulkSelectionRequest(BaseModel):
             raise ValueError("Cannot use both item_ids and select_all")
 
 
+# A wardrobe is a few hundred items; the cap only stops a runaway request.
+MAX_EXPORT_ITEMS = 2000
+
+
+class ItemExportRequest(BaseModel):
+    """Which items to export, chosen the way the wardrobe page selects them.
+
+    item_ids exports exactly those items. Without it, every item matching filters is
+    exported, less excluded_ids, which is how "select all" on a filtered page is sent.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    format: Literal["skill", "markdown", "text", "json"] = "skill"
+    include_profile: bool = True
+    item_ids: list[UUID] | None = Field(default=None, min_length=1, max_length=MAX_EXPORT_ITEMS)
+    filters: BulkFilters | None = None
+    excluded_ids: list[UUID] | None = None
+
+
 class BulkBatchResponse(BaseModel):
     # Set when a select_all walk stopped at the per-request cap; the client
     # repeats the request with after_id=next_cursor until has_more is false.

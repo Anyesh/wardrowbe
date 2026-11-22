@@ -1,6 +1,7 @@
 {
   "actions": {
-    "addItem": "添加单品"
+    "addItem": "添加单品",
+    "export": "导出"
   },
   "addItem": {
     "brandInputPlaceholder": "例如：优衣库",
@@ -145,6 +146,39 @@
     "clearFilters": "清除筛选",
     "loadFailed": "加载单品失败，请重试。",
     "noItemsFound": "没有找到符合筛选条件的单品。"
+  },
+  "exportDialog": {
+    "copied": "已复制到剪贴板",
+    "copy": "复制",
+    "description": "将你的衣物下载为文件，或下载为 AI 助手可用来为你搭配的技能。",
+    "download": "下载",
+    "downloaded": "已下载 {filename}",
+    "failed": "无法导出你的衣柜，请重试。",
+    "format": "格式",
+    "formats": {
+      "json": {
+        "description": "包含所有属性，适用于脚本和其他应用。",
+        "name": "JSON 数据"
+      },
+      "markdown": {
+        "description": "按类别分组的衣物清单，便于阅读或粘贴到任何地方。",
+        "name": "Markdown 目录"
+      },
+      "skill": {
+        "description": "包含你的衣柜和搭配规则，可作为技能添加到 Gemini 或 Claude 等助手中。",
+        "name": "AI 助手技能（SKILL.md）"
+      },
+      "text": {
+        "description": "每件单品一行。",
+        "name": "纯文本"
+      }
+    },
+    "includeProfile": "包含我的风格偏好和尺码",
+    "scope": "单品",
+    "scopeAll": "整个衣柜（{count}）",
+    "scopeSelected": "{count, plural, other {已选 # 件}}",
+    "skillHowTo": "在支持技能的 AI 助手（如 Gemini 或 Claude）中将 SKILL.md 添加为技能，然后问它今天穿什么。",
+    "title": "导出衣柜"
   },
   "favorites": "收藏",
   "itemCount": "{count, plural, one {衣柜中有 # 件单品} other {衣柜中有 # 件单品}}",

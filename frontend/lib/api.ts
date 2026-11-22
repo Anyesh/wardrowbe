@@ -73,6 +73,14 @@ export function getAccessToken(): string | null {
 }
 
 async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+  const response = await send(endpoint, options);
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  return response.json();
+}
+
+async function send(endpoint: string, options: FetchOptions): Promise<Response> {
   const { params, ...fetchOptions } = options;
 
   let url = `${API_BASE_PATH}${endpoint}`;
@@ -106,11 +114,7 @@ async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promis
     throw apiErrorFromBody(response.status, data);
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
+  return response;
 }
 
 export const api = {
@@ -133,6 +137,16 @@ export const api = {
 
   delete: <T>(endpoint: string, options?: FetchOptions) =>
     fetchApi<T>(endpoint, { ...options, method: 'DELETE' }),
+
+  // For endpoints that answer with a file body instead of JSON.
+  postForText: async (endpoint: string, data?: unknown, options?: FetchOptions) => {
+    const response = await send(endpoint, {
+      ...options,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    return response.text();
+  },
 };
 
 export { ApiError, NetworkError };

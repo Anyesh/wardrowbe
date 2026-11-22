@@ -45,6 +45,7 @@
   "EMAIL_SENDER_INVALID": "サーバーの送信元 {sender} は、メールアドレスでも SMTP ログインでもありません。",
   "EMAIL_SMTPUTF8_UNSUPPORTED": "{address} に必要な SMTPUTF8 にメールサーバーが対応していません。",
   "EMAIL_SMTP_REJECTED": "メールサーバーがコード {status} を返しました。",
+  "EXPORT_TOO_LARGE": "一度にエクスポートできるのは{limit}件までです。",
   "EXPO_PUSH_TOKEN_INVALID": "有効な Expo プッシュトークンではありません。",
   "FAMILY_ADMIN_REQUIRED": "この操作はファミリー管理者のみ実行できます",
   "FAMILY_NOT_FOUND": "ファミリーが見つかりません",

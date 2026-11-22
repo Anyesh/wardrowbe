@@ -45,6 +45,7 @@
   "EMAIL_SENDER_INVALID": "L'adresse d'expéditeur du serveur {sender} n'est ni une adresse e-mail ni un identifiant SMTP.",
   "EMAIL_SMTPUTF8_UNSUPPORTED": "Le serveur de messagerie ne prend pas en charge SMTPUTF8, dont {address} a besoin.",
   "EMAIL_SMTP_REJECTED": "Le serveur de messagerie a répondu avec le code {status}.",
+  "EXPORT_TOO_LARGE": "Vous pouvez exporter jusqu'à {limit} articles à la fois.",
   "EXPO_PUSH_TOKEN_INVALID": "Ce n'est pas un jeton push Expo valide.",
   "FAMILY_ADMIN_REQUIRED": "Seuls les administrateurs de la famille peuvent effectuer cette action",
   "FAMILY_NOT_FOUND": "Famille introuvable",

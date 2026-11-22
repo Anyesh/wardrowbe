@@ -1,6 +1,7 @@
 {
   "actions": {
-    "addItem": "아이템 추가"
+    "addItem": "아이템 추가",
+    "export": "내보내기"
   },
   "addItem": {
     "brandInputPlaceholder": "예: 유니클로",
@@ -145,6 +146,39 @@
     "clearFilters": "필터 초기화",
     "loadFailed": "아이템을 불러오지 못했어요. 다시 시도해 주세요.",
     "noItemsFound": "필터 조건에 맞는 아이템이 없어요."
+  },
+  "exportDialog": {
+    "copied": "클립보드에 복사했어요",
+    "copy": "복사",
+    "description": "옷을 파일로, 또는 AI 어시스턴트가 코디에 활용할 수 있는 스킬로 내려받으세요.",
+    "download": "다운로드",
+    "downloaded": "{filename}을(를) 내려받았어요",
+    "failed": "옷장을 내보내지 못했어요. 다시 시도해 주세요.",
+    "format": "형식",
+    "formats": {
+      "json": {
+        "description": "모든 속성을 담아 스크립트나 다른 앱에서 쓸 수 있어요.",
+        "name": "JSON 데이터"
+      },
+      "markdown": {
+        "description": "옷을 카테고리별로 묶어 읽기 쉽고 어디에나 붙여 넣을 수 있어요.",
+        "name": "마크다운 카탈로그"
+      },
+      "skill": {
+        "description": "옷장과 스타일링 규칙을 담았어요. Gemini나 Claude 같은 어시스턴트에 스킬로 추가할 수 있어요.",
+        "name": "AI 어시스턴트 스킬 (SKILL.md)"
+      },
+      "text": {
+        "description": "아이템마다 한 줄씩.",
+        "name": "일반 텍스트"
+      }
+    },
+    "includeProfile": "내 스타일 취향과 사이즈 포함",
+    "scope": "아이템",
+    "scopeAll": "옷장 전체 ({count})",
+    "scopeSelected": "{count, plural, other {선택한 아이템 #개}}",
+    "skillHowTo": "Gemini나 Claude처럼 스킬을 지원하는 AI 어시스턴트에 SKILL.md를 스킬로 추가한 뒤, 오늘 뭘 입을지 물어보세요.",
+    "title": "옷장 내보내기"
   },
   "favorites": "즐겨찾기",
   "itemCount": "{count, plural, other {옷장에 아이템 #개}}",

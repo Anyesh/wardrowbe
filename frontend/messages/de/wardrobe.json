@@ -1,6 +1,7 @@
 {
   "actions": {
-    "addItem": "Stück hinzufügen"
+    "addItem": "Stück hinzufügen",
+    "export": "Exportieren"
   },
   "addItem": {
     "brandInputPlaceholder": "z. B. Hugo Boss",
@@ -145,6 +146,39 @@
     "clearFilters": "Filter zurücksetzen",
     "loadFailed": "Stücke konnten nicht geladen werden. Bitte versuche es erneut.",
     "noItemsFound": "Keine Stücke zu deinen Filtern gefunden."
+  },
+  "exportDialog": {
+    "copied": "In die Zwischenablage kopiert",
+    "copy": "Kopieren",
+    "description": "Lade deine Kleidung als Datei herunter oder als Skill, mit dem dich ein KI-Assistent stylen kann.",
+    "download": "Herunterladen",
+    "downloaded": "{filename} heruntergeladen",
+    "failed": "Dein Kleiderschrank konnte nicht exportiert werden. Bitte versuch es noch einmal.",
+    "format": "Format",
+    "formats": {
+      "json": {
+        "description": "Alle Eigenschaften, für Skripte und andere Apps.",
+        "name": "JSON-Daten"
+      },
+      "markdown": {
+        "description": "Deine Kleidung nach Kategorie gruppiert, leicht zu lesen und überall einzufügen.",
+        "name": "Markdown-Katalog"
+      },
+      "skill": {
+        "description": "Dein Kleiderschrank samt Styling-Regeln, bereit als Skill für einen Assistenten wie Gemini oder Claude.",
+        "name": "KI-Assistent-Skill (SKILL.md)"
+      },
+      "text": {
+        "description": "Eine Zeile pro Stück.",
+        "name": "Reiner Text"
+      }
+    },
+    "includeProfile": "Meine Stilvorlieben und Größen einbeziehen",
+    "scope": "Stücke",
+    "scopeAll": "Ganzer Kleiderschrank ({count})",
+    "scopeSelected": "{count, plural, one {# ausgewähltes Stück} other {# ausgewählte Stücke}}",
+    "skillHowTo": "Füge SKILL.md als Skill in einem KI-Assistenten hinzu, der Skills unterstützt, etwa Gemini oder Claude, und frag ihn, was du heute anziehen sollst.",
+    "title": "Kleiderschrank exportieren"
   },
   "favorites": "Favoriten",
   "itemCount": "{count, plural, one {# Stück in deinem Kleiderschrank} other {# Stücke in deinem Kleiderschrank}}",

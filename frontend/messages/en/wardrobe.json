@@ -1,6 +1,7 @@
 {
   "actions": {
-    "addItem": "Add Item"
+    "addItem": "Add Item",
+    "export": "Export"
   },
   "addItem": {
     "brandInputPlaceholder": "e.g., J.Crew",
@@ -145,6 +146,39 @@
     "clearFilters": "Clear Filters",
     "loadFailed": "Failed to load items. Please try again.",
     "noItemsFound": "No items found matching your filters."
+  },
+  "exportDialog": {
+    "copied": "Copied to clipboard",
+    "copy": "Copy",
+    "description": "Download your clothes as a file, or as a skill an AI assistant can use to style you.",
+    "download": "Download",
+    "downloaded": "Downloaded {filename}",
+    "failed": "Couldn't export your wardrobe. Please try again.",
+    "format": "Format",
+    "formats": {
+      "json": {
+        "description": "Every attribute, for scripts and other apps.",
+        "name": "JSON data"
+      },
+      "markdown": {
+        "description": "Your clothes grouped by category, easy to read or paste anywhere.",
+        "name": "Markdown catalog"
+      },
+      "skill": {
+        "description": "Your wardrobe plus styling rules, ready to add as a skill in an assistant such as Gemini or Claude.",
+        "name": "AI assistant skill (SKILL.md)"
+      },
+      "text": {
+        "description": "One line per item.",
+        "name": "Plain text"
+      }
+    },
+    "includeProfile": "Include my style preferences and sizes",
+    "scope": "Items",
+    "scopeAll": "Whole wardrobe ({count})",
+    "scopeSelected": "{count, plural, one {# selected item} other {# selected items}}",
+    "skillHowTo": "Add SKILL.md as a skill in an AI assistant that supports skills, such as Gemini or Claude, then ask it what to wear today.",
+    "title": "Export wardrobe"
   },
   "favorites": "Favorites",
   "itemCount": "{count, plural, one {# item in your wardrobe} other {# items in your wardrobe}}",
