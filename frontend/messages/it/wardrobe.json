@@ -175,7 +175,7 @@
     },
     "includeProfile": "Includi le mie preferenze di stile e le mie taglie",
     "scope": "Capi",
-    "scopeAll": "Tutto il guardaroba ({count})",
+    "scopeAll": "Tutto ciò che è mostrato ({count})",
     "scopeSelected": "{count, plural, one {# capo selezionato} other {# capi selezionati}}",
     "skillHowTo": "Aggiungi SKILL.md come skill in un assistente IA che le supporta, come Gemini o Claude, poi chiedigli cosa indossare oggi.",
     "title": "Esporta il guardaroba"

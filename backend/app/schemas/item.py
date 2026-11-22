@@ -315,10 +315,6 @@ class BulkSelectionRequest(BaseModel):
             raise ValueError("Cannot use both item_ids and select_all")
 
 
-# A wardrobe is a few hundred items; the cap only stops a runaway request.
-MAX_EXPORT_ITEMS = 2000
-
-
 class ItemExportRequest(BaseModel):
     """Which items to export, chosen the way the wardrobe page selects them.
 
@@ -330,9 +326,17 @@ class ItemExportRequest(BaseModel):
 
     format: Literal["skill", "markdown", "text", "json"] = "skill"
     include_profile: bool = True
-    item_ids: list[UUID] | None = Field(default=None, min_length=1, max_length=MAX_EXPORT_ITEMS)
+    # The export cap is enforced by the service, so an oversized list gets the coded
+    # EXPORT_TOO_LARGE error rather than a bare validation error.
+    item_ids: list[UUID] | None = Field(default=None, min_length=1)
     filters: BulkFilters | None = None
     excluded_ids: list[UUID] | None = None
+
+    @model_validator(mode="after")
+    def _one_selection_mode(self) -> "ItemExportRequest":
+        if self.item_ids is not None and (self.filters is not None or self.excluded_ids):
+            raise ValueError("Send either item_ids, or filters with excluded_ids, not both")
+        return self
 
 
 class BulkBatchResponse(BaseModel):

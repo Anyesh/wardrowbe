@@ -971,6 +971,7 @@ export default function WardrobePage() {
       <ExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
+        viewFilters={listFilters}
         totalCount={total}
         selection={selection.mode === 'none' ? null : getBulkParams()}
         selectedCount={

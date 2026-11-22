@@ -175,7 +175,7 @@
     },
     "includeProfile": "包含我的風格偏好和尺寸",
     "scope": "單品",
-    "scopeAll": "整個衣櫥（{count}）",
+    "scopeAll": "目前顯示的全部（{count}）",
     "scopeSelected": "{count, plural, other {已選 # 件}}",
     "skillHowTo": "在支援技能的 AI 助理（如 Gemini 或 Claude）中將 SKILL.md 加入為技能，然後問它今天穿什麼。",
     "title": "匯出衣櫥"

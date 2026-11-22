@@ -175,7 +175,7 @@
     },
     "includeProfile": "Meine Stilvorlieben und Größen einbeziehen",
     "scope": "Stücke",
-    "scopeAll": "Ganzer Kleiderschrank ({count})",
+    "scopeAll": "Alles Angezeigte ({count})",
     "scopeSelected": "{count, plural, one {# ausgewähltes Stück} other {# ausgewählte Stücke}}",
     "skillHowTo": "Füge SKILL.md als Skill in einem KI-Assistenten hinzu, der Skills unterstützt, etwa Gemini oder Claude, und frag ihn, was du heute anziehen sollst.",
     "title": "Kleiderschrank exportieren"

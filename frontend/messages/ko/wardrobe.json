@@ -175,7 +175,7 @@
     },
     "includeProfile": "내 스타일 취향과 사이즈 포함",
     "scope": "아이템",
-    "scopeAll": "옷장 전체 ({count})",
+    "scopeAll": "표시된 전체 ({count})",
     "scopeSelected": "{count, plural, other {선택한 아이템 #개}}",
     "skillHowTo": "Gemini나 Claude처럼 스킬을 지원하는 AI 어시스턴트에 SKILL.md를 스킬로 추가한 뒤, 오늘 뭘 입을지 물어보세요.",
     "title": "옷장 내보내기"

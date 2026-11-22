@@ -175,7 +175,7 @@
     },
     "includeProfile": "スタイルの好みとサイズを含める",
     "scope": "アイテム",
-    "scopeAll": "ワードローブ全体（{count}）",
+    "scopeAll": "表示中のすべて（{count}）",
     "scopeSelected": "{count, plural, other {選択した#件}}",
     "skillHowTo": "スキルに対応したAIアシスタント（GeminiやClaudeなど）にSKILL.mdをスキルとして追加し、今日何を着るか聞いてみましょう。",
     "title": "ワードローブをエクスポート"

@@ -175,7 +175,7 @@
     },
     "includeProfile": "Include my style preferences and sizes",
     "scope": "Items",
-    "scopeAll": "Whole wardrobe ({count})",
+    "scopeAll": "Everything shown ({count})",
     "scopeSelected": "{count, plural, one {# selected item} other {# selected items}}",
     "skillHowTo": "Add SKILL.md as a skill in an AI assistant that supports skills, such as Gemini or Claude, then ask it what to wear today.",
     "title": "Export wardrobe"

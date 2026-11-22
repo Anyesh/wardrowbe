@@ -18,7 +18,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
 import { useDescribeError } from '@/lib/errors';
-import type { BulkOperationParams } from '@/lib/hooks/use-items';
+import type { BulkItemFilters, BulkOperationParams } from '@/lib/hooks/use-items';
 import { cn } from '@/lib/utils';
 
 export type ExportFormat = 'skill' | 'markdown' | 'text' | 'json';
@@ -40,6 +40,8 @@ const FORMATS: { id: ExportFormat; icon: typeof Sparkles }[] = [
 interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // The items the wardrobe page is showing: its filters and how many match them.
+  viewFilters: BulkItemFilters;
   totalCount: number;
   // The wardrobe page's current bulk selection, or null when nothing is selected.
   selection: BulkOperationParams | null;
@@ -49,10 +51,11 @@ interface ExportDialogProps {
 function exportRequest(
   format: ExportFormat,
   includeProfile: boolean,
-  selection: BulkOperationParams | null
+  selection: BulkOperationParams | null,
+  viewFilters: BulkItemFilters
 ) {
   const body = { format, include_profile: includeProfile };
-  if (!selection) return body;
+  if (!selection) return { ...body, filters: viewFilters };
   if (selection.select_all) {
     return { ...body, filters: selection.filters, excluded_ids: selection.excluded_ids };
   }
@@ -62,6 +65,7 @@ function exportRequest(
 export function ExportDialog({
   open,
   onOpenChange,
+  viewFilters,
   totalCount,
   selection,
   selectedCount,
@@ -83,7 +87,7 @@ export function ExportDialog({
   const fetchExport = () =>
     api.postForText(
       '/items/export',
-      exportRequest(format, includeProfile, onlySelected ? selection : null)
+      exportRequest(format, includeProfile, onlySelected ? selection : null, viewFilters)
     );
 
   const handleDownload = async () => {
@@ -96,7 +100,8 @@ export function ExportDialog({
       link.href = url;
       link.download = filename;
       link.click();
-      URL.revokeObjectURL(url);
+      // Some browsers resolve the blob URL after click() returns, so it is freed a moment later.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast.success(t('downloaded', { filename }));
     } catch (error) {
       toast.error(describeError(error, t('failed')));
