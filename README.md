@@ -53,7 +53,7 @@ Self-hosted wardrobe management with AI-powered outfit recommendations. Take pho
 - **Analytics** - See what you wear, what you don't, color distribution
 - **Fully self-hosted** - Your data stays on your hardware
 - **Works with any AI** - OpenAI, Ollama, LocalAI, or any OpenAI-compatible API
-- **8 languages** - English, Chinese (Simplified & Traditional), Korean, Japanese, French, German, Italian. Pick one in Settings or let it follow your browser; to add or improve a translation, see [Internationalization](CONTRIBUTING.md#internationalization)
+- **9 languages** - English, Chinese (Simplified & Traditional), Korean, Japanese, French, German, Italian, Spanish. Pick one in Settings or let it follow your browser; to add or improve a translation, see [Internationalization](CONTRIBUTING.md#internationalization)
 
 ## Screenshots
 

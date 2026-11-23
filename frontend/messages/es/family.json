@@ -1,0 +1,97 @@
+{
+  "createFamily": "Crear familia",
+  "createFamilyDesc": "Crea una familia nueva e invita a gente",
+  "editName": "Editar nombre",
+  "familyName": "Nombre de la familia",
+  "familyNameExample": "p. ej., Familia García",
+  "familyNamePlaceholder": "Nombre de la familia",
+  "familyOutfits": {
+    "description": "Explora y valora los conjuntos de tu familia",
+    "openFeed": "Abrir el muro familiar",
+    "title": "Conjuntos de la familia"
+  },
+  "feed": {
+    "lookbook": "Lookbook",
+    "noFamily": {
+      "description": "Crea o únete a una familia para ver y valorar los conjuntos de los demás.",
+      "setUpFamily": "Configurar familia",
+      "title": "Primero únete a una familia"
+    },
+    "noMembers": {
+      "description": "Invita a tu familia para empezar a ver y valorar los conjuntos de cada uno.",
+      "inviteMembers": "Invitar miembros",
+      "manageFamily": "Gestionar familia",
+      "title": "Todavía no hay más miembros"
+    },
+    "noOutfits": {
+      "description": "{member} todavía no ha recibido recomendaciones de conjuntos. Vuelve más tarde.",
+      "title": "Todavía no hay conjuntos"
+    },
+    "rateOutfit": "Valorar el conjunto de {member}",
+    "ratingCount": "({count, plural, one {{count} valoración} other {{count} valoraciones}})",
+    "subtitle": "Explora y valora los conjuntos de tu familia",
+    "title": "Muro familiar",
+    "unknownMember": "Esta persona",
+    "unknownMemberShort": "su"
+  },
+  "invalidInviteCode": "El código de invitación no es válido. Revísalo e inténtalo de nuevo.",
+  "inviteCode": "Código de invitación",
+  "inviteCodeExample": "p. ej., ABC123XY",
+  "inviteCodeSection": {
+    "description": "Comparte este código para que otras personas se unan a la familia",
+    "title": "Código de invitación"
+  },
+  "inviteEmailPlaceholder": "correo@ejemplo.com",
+  "joinFamily": "Unirme a una familia",
+  "joinFamilyDesc": "Únete a una familia existente con un código de invitación",
+  "leaveConfirm": {
+    "description": "¿Seguro que quieres salir de {name}? Puedes volver a unirte más tarde con un código de invitación.",
+    "title": "¿Salir de la familia?"
+  },
+  "leaveFamily": "Salir de la familia",
+  "members": {
+    "description": "Personas de tu familia",
+    "removeConfirm": {
+      "description": "¿Seguro que quieres quitar a {name} de la familia?",
+      "title": "¿Quitar a este miembro?"
+    },
+    "title": "Miembros"
+  },
+  "pendingInvites": {
+    "description": "Invitaciones que todavía no se han aceptado",
+    "expires": "Caduca el {date}",
+    "title": "Invitaciones pendientes"
+  },
+  "ratings": {
+    "addComment": "Añadir un comentario (opcional)",
+    "ratingRemoved": "Valoración eliminada",
+    "ratingSubmitted": "¡Valoración enviada!",
+    "ratingUpdated": "¡Valoración actualizada!",
+    "removeError": "No se ha podido eliminar la valoración",
+    "selectRating": "Elige una valoración",
+    "submitError": "No se ha podido enviar la valoración",
+    "submitRating": "Enviar valoración",
+    "updateRating": "Actualizar valoración",
+    "yourRating": "Tu valoración:"
+  },
+  "roles": {
+    "admin": "Admin",
+    "member": "Miembro"
+  },
+  "sendInvite": "Enviar invitación",
+  "sendInviteDesc": "Invita a alguien por correo",
+  "subtitle": "Crea o únete a una familia para compartir la experiencia del armario",
+  "title": "Familia",
+  "toasts": {
+    "codeRegenerateFailed": "No se ha podido generar un código nuevo. Inténtalo de nuevo.",
+    "codeRegenerated": "¡Nuevo código de invitación generado!",
+    "createFailed": "No se ha podido crear la familia. Inténtalo de nuevo.",
+    "created": "¡Familia creada!",
+    "inviteFailed": "No se ha podido enviar la invitación",
+    "inviteNotEmailed": "La invitación se ha guardado, pero no se ha podido enviar el correo. Comparte el código con esa persona.",
+    "inviteSent": "¡Invitación enviada!",
+    "joined": "¡Te has unido a la familia!",
+    "nameUpdateFailed": "No se ha podido actualizar el nombre de la familia",
+    "nameUpdated": "Nombre de la familia actualizado"
+  }
+}
