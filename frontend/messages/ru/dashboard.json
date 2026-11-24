@@ -1,0 +1,66 @@
+{
+  "familyFeed": {
+    "browse": "Просмотреть наряды семьи",
+    "description": "Посмотрите, что носят ваши родственники, и оцените их наряды",
+    "memberCount": "{count, plural, one {{count} участник в {name}} few {{count} участника в {name}} many {{count} участников в {name}} other {{count} участников в {name}}}",
+    "title": "Наряды семьи"
+  },
+  "insights": {
+    "empty": "Добавьте больше предметов и создавайте наряды, чтобы получить персональные рекомендации!",
+    "title": "Рекомендации"
+  },
+  "layout": {
+    "loading": "Загрузка вашего гардероба..."
+  },
+  "nextScheduled": {
+    "comingUp": "Скоро",
+    "dayAtTime": "{day} в {time}",
+    "noSchedules": "Расписание не настроено",
+    "occasionOutfit": "наряд для {occasion}",
+    "setUpSchedule": "Настроить расписание",
+    "title": "Следующее запланированное",
+    "today": "Сегодня",
+    "tomorrow": "Завтра"
+  },
+  "notifications": {
+    "activeCount": "{active} из {total} активно",
+    "addChannel": "Добавить канал",
+    "configure": "Настроить",
+    "noChannels": "Каналы не настроены",
+    "title": "Уведомления"
+  },
+  "pendingOutfits": {
+    "acceptFailed": "Не удалось принять наряд",
+    "accepted": "Наряд принят",
+    "allCaughtUp": "Всё обработано",
+    "dismissFailed": "Не удалось отклонить наряд",
+    "dismissLabel": "Отклонить наряд",
+    "dismissed": "Наряд отклонён",
+    "lookbook": "Лукбук",
+    "noPending": "Нет нарядов, ожидающих вашего ответа",
+    "title": "Ожидающие наряды"
+  },
+  "quickActions": {
+    "addNewItem": "Добавить новый предмет",
+    "description": "Основные задачи для начала",
+    "getOutfitSuggestion": "Получить рекомендацию наряда",
+    "title": "Быстрые действия"
+  },
+  "subtitle": "Что происходит с вашим гардеробом",
+  "userFallback": "Пользователь",
+  "weather": {
+    "feelsLike": "ощущается как {temp}",
+    "getOutfitSuggestion": "Получить рекомендацию наряда",
+    "locationNotSet": "Местоположение не указано",
+    "rainChance": "{percent}% вероятность дождя",
+    "setLocation": "Указать местоположение",
+    "title": "Погода на сегодня"
+  },
+  "weeklySummary": {
+    "accepted": "принято",
+    "avgRatingValue": "Средняя оценка: {rating}/5",
+    "outfits": "наряды",
+    "title": "На этой неделе"
+  },
+  "welcomeBack": "С возвращением, {name}"
+}

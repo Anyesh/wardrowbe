@@ -1,0 +1,174 @@
+{
+  "bulkActions": {
+    "deleteError": "Не удалось удалить наряды",
+    "deletePartialFailed": "Не удалось удалить {count, plural, one {# наряд} other {# нарядов}}",
+    "deleteSuccess": "Удалено {count, plural, one {# наряд} other {# нарядов}}",
+    "select": "Выбрать"
+  },
+  "bulkDelete": {
+    "confirmDescription": "Это навсегда удалит выбранные наряды. Это действие невозможно отменить.",
+    "confirmTitle": "Удалить {count, plural, one {# наряд} other {# нарядов}}?",
+    "confirmTitleAll": "Удалить все {count, plural, one {# наряд} other {# нарядов}}?"
+  },
+  "calendar": {
+    "legendOnDemand": "По запросу",
+    "legendScheduled": "Запланировано",
+    "monthlyCount": "{count, plural, one {# наряд} other {# нарядов}} в этом месяце",
+    "noOutfitsOnDay": "Нет нарядов в этот день",
+    "outfitCount": "{count, plural, one {# наряд} other {# нарядов}}",
+    "weekDays": {
+      "fri": "Пт",
+      "mon": "Пн",
+      "sat": "Сб",
+      "sun": "Вс",
+      "thu": "Чт",
+      "tue": "Вт",
+      "wed": "Ср"
+    }
+  },
+  "canvas": {
+    "empty": "Нажмите на предметы ниже, чтобы начать создавать наряд",
+    "removeItem": "Удалить {name}"
+  },
+  "cards": {
+    "ai": "ИИ",
+    "external": "Внешний",
+    "lookbookTemplate": "Шаблон лукбука",
+    "outfitFallback": "наряд для {occasion}",
+    "pairing": "Сочетание",
+    "replacement": "Замена",
+    "studio": "Студия",
+    "woreInsteadFallback": "{occasion} (надел другое)",
+    "worn": "Надето"
+  },
+  "cloneToLookbook": {
+    "defaultName": "{occasion} · {date}",
+    "description": "Дайте этому образу название, чтобы найти его позже и надеть снова.",
+    "errorEmpty": "Пожалуйста, введите название",
+    "name": "Название",
+    "namePlaceholder": "Пятничный бранч",
+    "saveError": "Не удалось сохранить в лукбук",
+    "saved": "Сохранено в лукбук",
+    "title": "Сохранить в лукбук"
+  },
+  "detail": {
+    "addedToToday": "Добавлено на сегодня",
+    "backToOutfits": "Назад к нарядам",
+    "deleteConfirm": "Удалить этот наряд? Это невозможно отменить.",
+    "deleteError": "Не удалось удалить",
+    "deleted": "Наряд удалён",
+    "items": "Предметы ({count})",
+    "lookbookTemplate": "Шаблон лукбука",
+    "notWornYet": "Этот образ ещё не был надет. Нажмите «Надеть сегодня», чтобы записать это.",
+    "saveToLookbook": "Сохранить в лукбук",
+    "seeAll": "Посмотреть все",
+    "stylingTip": "Совет:",
+    "undated": "Без даты",
+    "wearToday": "Надеть сегодня",
+    "wearTodayError": "Не удалось надеть сегодня",
+    "wornCount": "Надето {count, plural, one {# раз} other {# раз}}"
+  },
+  "details": {
+    "addedItems": "Добавлено {count, plural, one {# предмет} other {# предметов}} от ИИ",
+    "aiAssistError": "Сначала выберите хотя бы один предмет и случай",
+    "aiFailed": "Помощь ИИ не удалась",
+    "aiNoSuggestions": "ИИ не нашёл новых предметов для предложения",
+    "aiThinking": "ИИ думает...",
+    "letAiFinish": "Пусть ИИ закончит",
+    "name": "Название",
+    "namePlaceholder": "Пятничный бранч",
+    "nameRequired": "(обязательно для лукбука)",
+    "required": "обязательно",
+    "occasion": "Случай",
+    "pickOccasion": "Выберите случай перед сохранением.",
+    "skippedItem": "Пропущен {name}: это место уже занято {other}",
+    "warnings": {
+      "multipleBottoms": "Выбрано несколько нижних предметов.",
+      "noBottoms": "Нижние предметы не выбраны.",
+      "noFootwear": "Обувь не выбрана.",
+      "noTop": "Верхний предмет не выбран."
+    }
+  },
+  "empty": {
+    "ai": "Пока нет предложений ИИ.",
+    "all": "Пока нет нарядов. Создайте свой первый образ!",
+    "myLooks": "Пока нет шаблонов лукбука.",
+    "pairings": "Пока нет сочетаний.",
+    "replacements": "Пока нет нарядов-замен.",
+    "worn": "Пока нет надетых нарядов."
+  },
+  "filters": {
+    "ai": "ИИ",
+    "all": "Все",
+    "lookbook": "Лукбук",
+    "pairings": "Сочетания",
+    "replacements": "Замены",
+    "worn": "Надетые"
+  },
+  "itemPicker": {
+    "loadingMore": "Загрузка ещё...",
+    "noItems": "Предметы не найдены",
+    "noMatch": "Нет предметов, соответствующих вашему поиску",
+    "search": "Поиск по гардеробу...",
+    "showingAll": "Показаны все {count, plural, one {# предмет} other {# предметов}}"
+  },
+  "lineage": {
+    "fromLookbook": "Из вашего {name} в лукбуке",
+    "replaces": "Заменяет предложение для {occasion}",
+    "replacesWithDate": "Заменяет предложение для {occasion} от {date}"
+  },
+  "loadError": "Не удалось загрузить наряды",
+  "loadMore": "Загрузить ещё",
+  "new": {
+    "discardChanges": "Отменить изменения",
+    "draft": {
+      "found": "У вас есть несохранённый черновик из предыдущей сессии. Продолжить?",
+      "resume": "Продолжить",
+      "startFresh": "Начать заново"
+    },
+    "editOutfit": "Редактировать наряд",
+    "errors": {
+      "backToOutfits": "Назад к нарядам",
+      "cannotEdit": "Вы не можете редактировать этот наряд",
+      "couldNotLoad": "Не удалось загрузить этот наряд",
+      "couldNotLoadDesc": "Ваша сессия могла истечь или этот наряд принадлежит другому аккаунту.",
+      "genericError": "Что-то пошло не так при загрузке этого наряда. Проверьте соединение и попробуйте ещё раз.",
+      "notFound": "Наряд не найден",
+      "notFoundDesc": "Этот наряд больше не существует. Он мог быть удалён в другой вкладке или на другом устройстве."
+    },
+    "nameRequired": "Дайте название вашему образу в лукбуке перед сохранением",
+    "outfitUpdated": "Наряд обновлён",
+    "saveChanges": "Сохранить изменения",
+    "saveError": "Не удалось сохранить наряд",
+    "saveToLookbook": "Сохранить в лукбук",
+    "savedAndMarkedWorn": "Сохранено и отмечено как надетое",
+    "savedToLookbook": "Сохранено в лукбук",
+    "studio": "Студия",
+    "tabs": {
+      "canvas": "Холст",
+      "details": "Подробности",
+      "emptyWardrobe": "В вашем гардеробе пока нет предметов. Сначала добавьте предметы.",
+      "yourWardrobe": "Ваш гардероб"
+    },
+    "validation": {
+      "needItem": "Выберите хотя бы один предмет",
+      "needItemAndOccasion": "Выберите хотя бы один предмет и случай",
+      "needOccasion": "Выберите случай"
+    },
+    "wearToday": "Надеть сегодня",
+    "worn": {
+      "backToOutfit": "Назад к наряду",
+      "description": "Надетые наряды нельзя редактировать, так как они являются частью вашей истории носки.",
+      "saveAsNew": "Сохранить как новый",
+      "title": "Этот наряд был надет"
+    }
+  },
+  "newOutfit": "Новый наряд",
+  "search": "Поиск в лукбуке...",
+  "subtitle": "Ваши образы, надетые наряды и предложения ИИ",
+  "title": "Наряды",
+  "totalCount": "{count} всего",
+  "viewCalendar": "Календарь",
+  "viewList": "Список",
+  "viewToggle": "Переключатель вида"
+}

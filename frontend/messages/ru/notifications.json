@@ -1,0 +1,99 @@
+{
+  "channels": {
+    "addChannel": "Добавить канал",
+    "addFailed": "Не удалось добавить канал",
+    "channelAdded": "Канал добавлен",
+    "channelDeleted": "Канал удалён",
+    "channelDisabled": "Канал отключён",
+    "channelEnabled": "Канал включён",
+    "channelType": "Тип канала",
+    "deleteConfirm": {
+      "description": "Это удалит данный канал уведомлений и остановит все уведомления, отправляемые через него.",
+      "title": "Удалить канал уведомлений?"
+    },
+    "description": "Добавьте каналы для получения ежедневных рекомендаций по нарядам",
+    "dialog": {
+      "description": "Настройте новый способ получения рекомендаций по нарядам.",
+      "title": "Канал уведомлений"
+    },
+    "fields": {
+      "accessToken": "Токен доступа",
+      "emailAddress": "Адрес электронной почты *",
+      "serverUrl": "URL сервера",
+      "topic": "Тема *",
+      "webhookUrl": "URL веб-хука *"
+    },
+    "helpers": {
+      "accessTokenOptional": "Требуется, если ваш сервер ntfy использует аутентификацию",
+      "accessTokenServerDefault": "Оставьте пустым, чтобы использовать токен доступа, настроенный на этом сервере",
+      "mattermostWebhook": "Создайте входящий веб-хук в настройках Mattermost",
+      "topicSubscribe": "Подпишитесь на эту тему в вашем приложении ntfy"
+    },
+    "invalidConfig": "Недействительные настройки",
+    "invalidConfigHint": "Эти настройки больше не принимаются, поэтому через этот канал ничего не отправляется. Удалите его и добавьте заново.",
+    "mobileAppRegistered": "Зарегистрировано из мобильного приложения",
+    "noChannels": "Каналы уведомлений не настроены",
+    "noChannelsDesc": "Добавьте канал, чтобы начать получать предложения по нарядам",
+    "placeholders": {
+      "accessToken": "tk_...",
+      "emailAddress": "you@example.com"
+    },
+    "priority": "Приоритет {level}",
+    "test": "Тест",
+    "testFailed": "Не удалось отправить тестовое уведомление",
+    "testSent": "Тестовое уведомление отправлено",
+    "title": "Каналы уведомлений",
+    "types": {
+      "email": "Электронная почта",
+      "expo_push": "Push-уведомления мобильного приложения",
+      "mattermost": "Mattermost",
+      "ntfy": "Push-уведомления ntfy"
+    },
+    "validation": {
+      "emailRequired": "Адрес электронной почты обязателен",
+      "topicRequired": "Тема обязательна для ntfy",
+      "webhookRequired": "URL веб-хука обязателен для Mattermost"
+    },
+    "webhookConfigured": "Веб-хук настроен"
+  },
+  "days": {
+    "friday": "Пятница",
+    "monday": "Понедельник",
+    "saturday": "Суббота",
+    "sunday": "Воскресенье",
+    "thursday": "Четверг",
+    "tuesday": "Вторник",
+    "wednesday": "Среда"
+  },
+  "deleteFailed": "Не удалось удалить",
+  "schedule": {
+    "addFailed": "Не удалось добавить расписание",
+    "addSchedule": "Добавить расписание",
+    "dayLabel": "День",
+    "deleteConfirm": {
+      "description": "Это удалит данное расписание доставки.",
+      "title": "Удалить расписание?"
+    },
+    "description": "Установите, когда вы хотите получать рекомендации по нарядам каждый день",
+    "dialogDescription": "Настройте, когда вы хотите получать рекомендации по нарядам.",
+    "noSchedules": "Расписания не настроены",
+    "noSchedulesDesc": "Добавьте расписание, чтобы получать ежедневные предложения по нарядам",
+    "notifyDayBefore": "Уведомлять за день",
+    "notifyDayBeforeDesc": "Получайте вечером уведомление с завтрашним прогнозом погоды",
+    "notifyDayBeforeInfo": "Вы получите уведомление в {notifyDay} в {time} для вашего наряда на {outfitDay}.",
+    "notifyDayEvening": "вечер {day}",
+    "occasionLabel": "Случай",
+    "scheduleAdded": "Расписание добавлено",
+    "scheduleDeleted": "Расписание удалено",
+    "scheduleDisabled": "Расписание отключено",
+    "scheduleEnabled": "Расписание включено",
+    "summary": "{time} — {occasion}",
+    "timeLabel": "Время",
+    "title": "Расписание доставки",
+    "willNotifyDayBefore": "Уведомление будет за день",
+    "willNotifySameDay": "Уведомление будет в тот же день"
+  },
+  "subtitle": "Настройте, как и когда вы получаете рекомендации по нарядам",
+  "title": "Уведомления",
+  "updateFailed": "Не удалось обновить"
+}
