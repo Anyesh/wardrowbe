@@ -2,10 +2,11 @@ name: Label PRs by changed path
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, edited]
 
 permissions:
   contents: read
+  issues: write
   pull-requests: write
 
 jobs:
@@ -15,3 +16,4 @@ jobs:
       - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          sync-labels: true
