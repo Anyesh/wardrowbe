@@ -31,6 +31,7 @@ import {
 import { translateCode, useDescribeError, type ErrorTranslator } from '@/lib/errors';
 import { Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
 import { AIModelSelect } from '@/components/ai-model-select';
+import { moveByIndex, testStillApplies, type TestedWith } from '@/lib/ai-endpoint-tests';
 import { useClothingColors, useOccasionOptions } from '@/lib/hooks/use-translated-constants';
 import { toF, toCelsius } from '@/lib/temperature';
 import { PREFERENCE_DEFAULTS } from '@/lib/generated/preference-defaults';
@@ -68,7 +69,7 @@ const BODY_MEASUREMENT_FIELDS = [
 
 const NUMERIC_MEASUREMENT_KEYS: readonly string[] = BODY_MEASUREMENT_FIELDS.map((f) => f.key);
 
-interface EndpointTestResult {
+interface EndpointTestResult extends TestedWith {
   status: 'connected' | 'error' | 'testing' | null;
   models?: string[];
   visionModels?: string[];
@@ -442,11 +443,30 @@ export default function SettingsPage() {
     }
   };
 
-  // The models a successful connection test listed for this endpoint, offered in a dropdown.
-  const listedModels = (index: number) => {
+  // The test result for the endpoint now at this position, if it still describes its URL and key,
+  // so a result that arrives after either changed is never shown.
+  const endpointTest = (index: number, endpoint: AIEndpoint) => {
     const test = endpointTests[index];
+    return test && testStillApplies(test, endpoint) ? test : undefined;
+  };
+
+  // The models a successful connection test listed for this endpoint, offered in a dropdown.
+  const listedModels = (index: number, endpoint: AIEndpoint) => {
+    const test = endpointTest(index, endpoint);
     if (test?.status !== 'connected' || !test.models?.length) return null;
     return { vision: test.visionModels ?? [], text: test.textModels ?? [] };
+  };
+
+  // Results are kept by list position, so they move with their endpoint when the list changes.
+  const moveEndpointTests = (newIndex: (oldIndex: number) => number | null) => {
+    setEndpointTests((prev) => moveByIndex(prev, newIndex));
+  };
+
+  const swapEndpoints = (a: number, b: number) => {
+    const updated = [...(formData.ai_endpoints || [])];
+    [updated[a], updated[b]] = [updated[b], updated[a]];
+    updateField('ai_endpoints', updated);
+    moveEndpointTests((i) => (i === a ? b : i === b ? a : i));
   };
 
   // A test result describes the URL and key it ran with; once either changes it no longer applies.
@@ -466,7 +486,8 @@ export default function SettingsPage() {
   };
 
   const handleTestEndpoint = async (index: number, endpoint: AIEndpoint) => {
-    setEndpointTests((prev) => ({ ...prev, [index]: { status: 'testing' } }));
+    const testedWith = { url: endpoint.url, apiKey: endpoint.api_key };
+    setEndpointTests((prev) => ({ ...prev, [index]: { ...testedWith, status: 'testing' } }));
     try {
       const result = await testEndpoint.mutateAsync({
         url: endpoint.url,
@@ -476,6 +497,7 @@ export default function SettingsPage() {
       setEndpointTests((prev) => ({
         ...prev,
         [index]: {
+          ...testedWith,
           status: result.status,
           models: result.available_models,
           visionModels: result.vision_models,
@@ -488,7 +510,7 @@ export default function SettingsPage() {
     } catch (error) {
       setEndpointTests((prev) => ({
         ...prev,
-        [index]: { status: 'error', error: describeError(error, t('aiEndpoints.testFailed')) },
+        [index]: { ...testedWith, status: 'error', error: describeError(error, t('aiEndpoints.testFailed')) },
       }));
     }
   };
@@ -1050,7 +1072,9 @@ export default function SettingsPage() {
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {(formData.ai_endpoints || []).map((endpoint, index) => (
+                  {(formData.ai_endpoints || []).map((endpoint, index) => {
+                    const test = endpointTest(index, endpoint);
+                    return (
                     <div
                       key={index}
                       className={`border rounded-lg p-4 space-y-3 ${
@@ -1067,11 +1091,7 @@ export default function SettingsPage() {
                                 size="icon"
                                 className="h-5 w-5 p-0"
                                 disabled={index === 0}
-                                onClick={() => {
-                                  const updated = [...(formData.ai_endpoints || [])];
-                                  [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
-                                  updateField('ai_endpoints', updated);
-                                }}
+                                onClick={() => swapEndpoints(index - 1, index)}
                               >
                                 <ChevronUp className="h-3 w-3" />
                               </Button>
@@ -1080,11 +1100,7 @@ export default function SettingsPage() {
                                 size="icon"
                                 className="h-5 w-5 p-0"
                                 disabled={index === (formData.ai_endpoints || []).length - 1}
-                                onClick={() => {
-                                  const updated = [...(formData.ai_endpoints || [])];
-                                  [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
-                                  updateField('ai_endpoints', updated);
-                                }}
+                                onClick={() => swapEndpoints(index, index + 1)}
                               >
                                 <ChevronDown className="h-3 w-3" />
                               </Button>
@@ -1109,11 +1125,7 @@ export default function SettingsPage() {
                               onClick={() => {
                                 const updated = (formData.ai_endpoints || []).filter((_, i) => i !== index);
                                 updateField('ai_endpoints', updated);
-                                setEndpointTests((prev) => {
-                                  const newTests = { ...prev };
-                                  delete newTests[index];
-                                  return newTests;
-                                });
+                                moveEndpointTests((i) => (i === index ? null : i > index ? i - 1 : i));
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1125,12 +1137,12 @@ export default function SettingsPage() {
                           <Badge variant={endpoint.enabled ? 'default' : 'secondary'} className="text-xs">
                             {endpoint.enabled ? t('aiEndpoints.active') : t('aiEndpoints.disabled')}
                           </Badge>
-                          {endpointTests[index]?.status === 'connected' && (
+                          {test?.status === 'connected' && (
                             <Badge variant="outline" className="text-xs text-green-600 border-green-600">
                               {t('aiEndpoints.connected')}
                             </Badge>
                           )}
-                          {endpointTests[index]?.status === 'error' && (
+                          {test?.status === 'error' && (
                             <Badge variant="outline" className="text-xs text-red-600 border-red-600">
                               {t('aiEndpoints.error')}
                             </Badge>
@@ -1140,9 +1152,9 @@ export default function SettingsPage() {
                             size="sm"
                             className="h-6 text-xs ml-auto"
                             onClick={() => handleTestEndpoint(index, endpoint)}
-                            disabled={endpointTests[index]?.status === 'testing' || !endpoint.url}
+                            disabled={test?.status === 'testing' || !endpoint.url}
                           >
-                            {endpointTests[index]?.status === 'testing' ? (
+                            {test?.status === 'testing' ? (
                               <Loader2 className="h-3 w-3 animate-spin mr-1" />
                             ) : null}
                             {t('aiEndpoints.testConnection')}
@@ -1150,28 +1162,28 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       {/* Test Results */}
-                      {endpointTests[index]?.status === 'connected' && endpointTests[index]?.models && (
+                      {test?.status === 'connected' && test?.models && (
                         <div className="text-xs space-y-1 p-2 bg-green-50 dark:bg-green-950 rounded overflow-hidden">
                           <p className="font-medium text-green-700 dark:text-green-300">
-                            {t('aiEndpoints.modelsAvailable', { count: endpointTests[index].models?.length ?? 0 })}
+                            {t('aiEndpoints.modelsAvailable', { count: test.models?.length ?? 0 })}
                           </p>
-                          {endpointTests[index].visionModels && endpointTests[index].visionModels!.length > 0 && (
-                            <p className="text-green-600 dark:text-green-400 truncate" title={endpointTests[index].visionModels?.join(', ')}>
-                              {t('aiEndpoints.visionModels', { models: endpointTests[index].visionModels?.slice(0, 3).join(', ') ?? '' })}
-                              {(endpointTests[index].visionModels?.length || 0) > 3 && '...'}
+                          {test.visionModels && test.visionModels!.length > 0 && (
+                            <p className="text-green-600 dark:text-green-400 truncate" title={test.visionModels?.join(', ')}>
+                              {t('aiEndpoints.visionModels', { models: test.visionModels?.slice(0, 3).join(', ') ?? '' })}
+                              {(test.visionModels?.length || 0) > 3 && '...'}
                             </p>
                           )}
-                          {endpointTests[index].textModels && endpointTests[index].textModels!.length > 0 && (
-                            <p className="text-green-600 dark:text-green-400 truncate" title={endpointTests[index].textModels?.join(', ')}>
-                              {t('aiEndpoints.textModels', { models: endpointTests[index].textModels?.slice(0, 3).join(', ') ?? '' })}
-                              {(endpointTests[index].textModels?.length || 0) > 3 && '...'}
+                          {test.textModels && test.textModels!.length > 0 && (
+                            <p className="text-green-600 dark:text-green-400 truncate" title={test.textModels?.join(', ')}>
+                              {t('aiEndpoints.textModels', { models: test.textModels?.slice(0, 3).join(', ') ?? '' })}
+                              {(test.textModels?.length || 0) > 3 && '...'}
                             </p>
                           )}
                         </div>
                       )}
-                      {endpointTests[index]?.status === 'error' && (
+                      {test?.status === 'error' && (
                         <div className="text-xs p-2 bg-red-50 dark:bg-red-950 rounded text-red-600 dark:text-red-400 break-words">
-                          {endpointTests[index].error}
+                          {test.error}
                         </div>
                       )}
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -1243,6 +1255,7 @@ export default function SettingsPage() {
                                   const updated = [...(formData.ai_endpoints || [])];
                                   updated[index] = { ...updated[index], api_key: '', has_api_key: false };
                                   updateField('ai_endpoints', updated);
+                                  forgetEndpointTest(index);
                                 }}
                               >
                                 {t('aiEndpoints.removeKey')}
@@ -1255,13 +1268,13 @@ export default function SettingsPage() {
                           <Label className="text-xs" htmlFor={`ai-endpoint-vision-${index}`}>
                             {t('aiEndpoints.fields.visionModel')}
                           </Label>
-                          {listedModels(index) ? (
+                          {listedModels(index, endpoint) ? (
                             <AIModelSelect
                               id={`ai-endpoint-vision-${index}`}
                               kind="vision"
                               value={endpoint.vision_model}
-                              visionModels={listedModels(index)!.vision}
-                              textModels={listedModels(index)!.text}
+                              visionModels={listedModels(index, endpoint)!.vision}
+                              textModels={listedModels(index, endpoint)!.text}
                               onChange={(model) => setEndpointModel(index, 'vision_model', model)}
                             />
                           ) : (
@@ -1278,13 +1291,13 @@ export default function SettingsPage() {
                           <Label className="text-xs" htmlFor={`ai-endpoint-text-${index}`}>
                             {t('aiEndpoints.fields.textModel')}
                           </Label>
-                          {listedModels(index) ? (
+                          {listedModels(index, endpoint) ? (
                             <AIModelSelect
                               id={`ai-endpoint-text-${index}`}
                               kind="text"
                               value={endpoint.text_model}
-                              visionModels={listedModels(index)!.vision}
-                              textModels={listedModels(index)!.text}
+                              visionModels={listedModels(index, endpoint)!.vision}
+                              textModels={listedModels(index, endpoint)!.text}
                               onChange={(model) => setEndpointModel(index, 'text_model', model)}
                             />
                           ) : (
@@ -1299,11 +1312,12 @@ export default function SettingsPage() {
                         </div>
                         <p className="text-xs text-muted-foreground sm:col-span-2">
                           {t('aiEndpoints.modelsOptionalHint')}
-                          {!listedModels(index) && ` ${t('aiEndpoints.pickAfterTest')}`}
+                          {!listedModels(index, endpoint) && ` ${t('aiEndpoints.pickAfterTest')}`}
                         </p>
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
               <div className="flex gap-2">

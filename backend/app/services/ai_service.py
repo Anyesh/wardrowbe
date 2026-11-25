@@ -739,7 +739,10 @@ class AIService:
                         continue
 
                     # Fallback: Try Ollama-specific endpoint
-                    response = await client.get(endpoint.url.replace("/v1", "/api/tags"))
+                    response = await client.get(
+                        endpoint.url.replace("/v1", "/api/tags"),
+                        headers=self._get_headers(endpoint),
+                    )
                     if response.status_code == 200:
                         models = response.json().get("models", [])
                         model_names = [m.get("name", "") for m in models]

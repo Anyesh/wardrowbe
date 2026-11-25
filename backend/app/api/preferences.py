@@ -137,6 +137,18 @@ def _sorted_models(model_names: list[str]) -> dict:
     }
 
 
+KEY_REJECTED_STATUSES = (401, 403)
+
+
+def _key_rejected(status_code: int) -> dict:
+    return {
+        "status": "error",
+        "error": f"HTTP {status_code} - check the API key",
+        "error_code": "AI_ENDPOINT_KEY_REJECTED",
+        "params": {"status": status_code},
+    }
+
+
 @router.post("/test-ai-endpoint", response_model=dict)
 async def test_ai_endpoint(
     data: dict,
@@ -159,10 +171,12 @@ async def test_ai_endpoint(
             "Only HTTP and HTTPS URLs are allowed",
         )
 
-    # A key typed into the form is tested as is; otherwise the saved endpoint's key is used, but
-    # only while the form still points at the URL that key was saved for.
-    api_key = str(data.get("api_key") or "").strip() or None
-    if api_key is None:
+    # A key typed into the form is tested as is, and an empty one (the saved key was removed in the
+    # form) tests without a key. Otherwise the saved endpoint's key is used, but only while the form
+    # still points at the URL that key was saved for.
+    typed_key = data.get("api_key")
+    api_key = (str(typed_key).strip() or None) if typed_key is not None else None
+    if typed_key is None:
         preferences = await PreferenceService(db).get_or_create_preferences(current_user.id)
         stored = find_stored_endpoint(
             preferences.ai_endpoints, endpoint_id=data.get("id") or None, url=url
@@ -175,13 +189,8 @@ async def test_ai_endpoint(
         async with httpx.AsyncClient(timeout=10) as client:
             # OpenAI-compatible servers (vLLM, LM Studio, OpenAI, recent Ollama) list models here.
             response = await client.get(f"{url}/models", headers=headers)
-            if response.status_code in (401, 403):
-                return {
-                    "status": "error",
-                    "error": f"HTTP {response.status_code} - check the API key",
-                    "error_code": "AI_ENDPOINT_KEY_REJECTED",
-                    "params": {"status": response.status_code},
-                }
+            if response.status_code in KEY_REJECTED_STATUSES:
+                return _key_rejected(response.status_code)
             if response.status_code == 200:
                 try:
                     models = response.json().get("data")
@@ -195,6 +204,8 @@ async def test_ai_endpoint(
             if response.status_code == 200:
                 models = response.json().get("models", [])
                 return _sorted_models([m.get("name", "") for m in models if isinstance(m, dict)])
+            if response.status_code in KEY_REJECTED_STATUSES:
+                return _key_rejected(response.status_code)
             return {
                 "status": "error",
                 "error": f"HTTP {response.status_code}",

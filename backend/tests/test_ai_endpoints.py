@@ -188,6 +188,24 @@ class TestAIServiceEndpoints:
         ]
         assert post.await_args.kwargs["json"]["model"] == "qwen2.5-vl"
 
+    @pytest.mark.asyncio
+    async def test_the_health_check_sends_the_key_to_the_ollama_fallback_too(self, server_key):
+        service = AIService(endpoints=[{"url": "http://ollama.lan/v1", "api_key": "own-key"}])
+        not_found = httpx.Response(404, request=FAKE_REQUEST)
+        tags = httpx.Response(200, json={"models": [{"name": "llava"}]}, request=FAKE_REQUEST)
+        # The server's default endpoint comes after it and is not checked here.
+        replies = [not_found, tags, not_found, not_found]
+        with patch("httpx.AsyncClient.get", autospec=True, side_effect=replies) as get:
+            health = await service.check_health()
+        own_calls = get.await_args_list[:2]
+        assert [call.args[1] for call in own_calls] == [
+            "http://ollama.lan/v1/models",
+            "http://ollama.lan/api/tags",
+        ]
+        for call in own_calls:
+            assert call.kwargs["headers"]["Authorization"] == "Bearer own-key"
+        assert health["endpoints"][0]["status"] == "healthy"
+
 
 class TestPreferencesApi:
     @pytest.mark.asyncio
@@ -274,3 +292,41 @@ class TestPreferencesApi:
             "error_code": "AI_ENDPOINT_KEY_REJECTED",
             "params": {"status": 401},
         }
+
+    @pytest.mark.asyncio
+    async def test_a_key_rejected_by_the_ollama_fallback_is_reported_as_such(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        not_found = httpx.Response(404, request=FAKE_REQUEST)
+        rejected = httpx.Response(403, request=FAKE_REQUEST)
+        with patch("httpx.AsyncClient.get", autospec=True, side_effect=[not_found, rejected]):
+            response = await client.post(
+                "/api/v1/users/me/preferences/test-ai-endpoint",
+                json={"url": "http://ollama.lan/v1", "api_key": "wrong"},
+                headers=auth_headers,
+            )
+        body = response.json()
+        assert body["error_code"] == "AI_ENDPOINT_KEY_REJECTED"
+        assert body["params"] == {"status": 403}
+
+    @pytest.mark.asyncio
+    async def test_a_removed_key_is_tested_without_the_saved_one(
+        self, client: AsyncClient, db_session: AsyncSession, test_user, auth_headers
+    ):
+        db_session.add(
+            UserPreference(
+                user_id=test_user.id,
+                ai_endpoints=[{"id": "ep1", "name": "vllm", "url": VLLM, "api_key": "secret"}],
+            )
+        )
+        await db_session.commit()
+        models = httpx.Response(200, json={"data": [{"id": "qwen2.5"}]}, request=FAKE_REQUEST)
+
+        with patch("httpx.AsyncClient.get", autospec=True, return_value=models) as get:
+            # "Remove key" in the form, then a test before saving.
+            await client.post(
+                "/api/v1/users/me/preferences/test-ai-endpoint",
+                json={"url": VLLM, "id": "ep1", "api_key": ""},
+                headers=auth_headers,
+            )
+        assert get.await_args.kwargs["headers"] == {}
