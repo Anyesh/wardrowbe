@@ -31,7 +31,7 @@ import {
 import { translateCode, useDescribeError, type ErrorTranslator } from '@/lib/errors';
 import { Preferences, StyleProfile, AIEndpoint } from '@/lib/types';
 import { useColorFamilies, useColorLabel, useOccasionOptions } from '@/lib/hooks/use-translated-constants';
-import { colorFamily, colorSwatch, isLightSwatch } from '@/lib/colors';
+import { colorFamily, colorSwatch, isLightSwatch, withoutColorOverlaps } from '@/lib/colors';
 import { toF, toCelsius } from '@/lib/temperature';
 import { PREFERENCE_DEFAULTS } from '@/lib/generated/preference-defaults';
 import { AVOID_REPEAT_DAYS, STYLE_SCORE, TEMPERATURE_THRESHOLDS_CELSIUS } from '@/lib/generated/scales';
@@ -473,13 +473,9 @@ export default function SettingsPage() {
     setFormData((prev) => {
       const next = { ...prev, [key]: value };
       if (key === 'color_favorites' && Array.isArray(value)) {
-        next.color_avoid = (prev.color_avoid || []).filter(
-          (c) => !(value as string[]).includes(c)
-        );
+        next.color_avoid = withoutColorOverlaps(prev.color_avoid || [], value as string[]);
       } else if (key === 'color_avoid' && Array.isArray(value)) {
-        next.color_favorites = (prev.color_favorites || []).filter(
-          (c) => !(value as string[]).includes(c)
-        );
+        next.color_favorites = withoutColorOverlaps(prev.color_favorites || [], value as string[]);
       }
       return next;
     });

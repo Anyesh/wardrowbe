@@ -84,6 +84,42 @@ class TestPreferencesEndpoints:
         assert data["color_avoid"] == ["gray"]
 
     @pytest.mark.asyncio
+    async def test_avoiding_a_family_drops_its_shades_from_the_favourites(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        await client.patch(
+            "/api/v1/users/me/preferences",
+            json={"color_favorites": ["navy", "sapphire", "burgundy"]},
+            headers=auth_headers,
+        )
+
+        response = await client.patch(
+            "/api/v1/users/me/preferences",
+            json={"color_avoid": ["blues"]},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["color_favorites"] == ["burgundy"]
+        assert data["color_avoid"] == ["blues"]
+
+    @pytest.mark.asyncio
+    async def test_a_favourite_family_wins_over_an_avoided_shade_sent_with_it(
+        self, client: AsyncClient, test_user, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/users/me/preferences",
+            json={"color_favorites": ["blues"], "color_avoid": ["navy", "gray"]},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["color_favorites"] == ["blues"]
+        assert data["color_avoid"] == ["gray"]
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         ("stored", "read"), [("banana", "casual"), (" Wedding ", "wedding"), ("", "casual")]
     )

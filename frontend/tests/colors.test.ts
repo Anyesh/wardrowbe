@@ -8,6 +8,7 @@ import {
   isLightSwatch,
   normalizeColor,
   shadesOfFamily,
+  withoutColorOverlaps,
 } from '@/lib/colors';
 
 describe('colour swatches', () => {
@@ -69,5 +70,19 @@ describe('colour families', () => {
     ['#4A7DB8', false],
   ])('reads %s as light: %s', (hex, light) => {
     expect(isLightSwatch(hex)).toBe(light);
+  });
+});
+
+describe('withoutColorOverlaps', () => {
+  it('drops shades of a family chosen on the other side', () => {
+    expect(withoutColorOverlaps(['navy', 'sapphire', 'burgundy'], ['blues'])).toEqual(['burgundy']);
+  });
+
+  it('drops a family when one of its shades is chosen on the other side', () => {
+    expect(withoutColorOverlaps(['blues', 'gray'], ['navy'])).toEqual(['gray']);
+  });
+
+  it('matches names outside the vocabulary only by themselves', () => {
+    expect(withoutColorOverlaps(['chartreuse', 'gray'], ['Chartreuse'])).toEqual(['gray']);
   });
 });

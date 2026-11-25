@@ -46,6 +46,15 @@ export function colorFamily(name: string): string | null {
   return (color && FAMILY_OF.get(color)) ?? null;
 }
 
+// Mirrors the backend's overlap stripping: scoring matches a colour by name or family, so
+// "navy" kept as a favourite would fight "blues" chosen to avoid. Drops from `colors` every
+// colour that shares a name or family with one of `winners`.
+export function withoutColorOverlaps(colors: string[], winners: string[]): string[] {
+  const keys = (name: string) => [colorKey(name), colorFamily(name)].filter(Boolean);
+  const taken = new Set(winners.flatMap(keys));
+  return colors.filter((c) => !keys(c).some((key) => taken.has(key)));
+}
+
 export function isColorFamily(name: string): boolean {
   return FAMILY_SWATCHES.has(name);
 }

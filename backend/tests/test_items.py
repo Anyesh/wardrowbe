@@ -1868,3 +1868,37 @@ class TestItemColorNormalisation:
 
         assert response.status_code == 200, response.text
         assert [i["id"] for i in response.json()["items"]] == [str(item.id)]
+
+    @pytest.mark.asyncio
+    async def test_filter_by_colour_matches_the_primary_colour_alone(
+        self, client: AsyncClient, test_user, auth_headers, db_session: AsyncSession
+    ):
+        # Saved without AI tagging, so the primary colour never made it into `colors`.
+        item = ClothingItem(
+            user_id=test_user.id,
+            type="shirt",
+            image_path="test/navy.jpg",
+            primary_color="navy",
+            colors=[],
+            status=ItemStatus.ready,
+        )
+        db_session.add(item)
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="shirt",
+                image_path="test/red.jpg",
+                primary_color="red",
+                colors=["red"],
+                status=ItemStatus.ready,
+            )
+        )
+        await db_session.commit()
+        await db_session.refresh(item)
+
+        response = await client.get(
+            "/api/v1/items", params={"colors": "navy,sapphire"}, headers=auth_headers
+        )
+
+        assert response.status_code == 200, response.text
+        assert [i["id"] for i in response.json()["items"]] == [str(item.id)]
