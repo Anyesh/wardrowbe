@@ -1,6 +1,7 @@
 {
   "actions": {
-    "addItem": "Stück hinzufügen"
+    "addItem": "Stück hinzufügen",
+    "export": "Exportieren"
   },
   "addItem": {
     "brandInputPlaceholder": "z. B. Hugo Boss",
@@ -145,6 +146,69 @@
     "clearFilters": "Filter zurücksetzen",
     "loadFailed": "Stücke konnten nicht geladen werden. Bitte versuche es erneut.",
     "noItemsFound": "Keine Stücke zu deinen Filtern gefunden."
+  },
+  "exportDialog": {
+    "copied": "In die Zwischenablage kopiert",
+    "copy": "Kopieren",
+    "description": "Lade deine Kleidung als Datei herunter oder als Skill, mit dem dich ein KI-Assistent stylen kann.",
+    "download": "Herunterladen",
+    "downloaded": "{filename} heruntergeladen",
+    "failed": "Dein Kleiderschrank konnte nicht exportiert werden. Bitte versuch es noch einmal.",
+    "format": "Format",
+    "formats": {
+      "json": {
+        "description": "Alle Eigenschaften, für Skripte und andere Apps.",
+        "name": "JSON-Daten"
+      },
+      "markdown": {
+        "description": "Deine Kleidung nach Kategorie gruppiert, leicht zu lesen und überall einzufügen.",
+        "name": "Markdown-Katalog"
+      },
+      "skill": {
+        "description": "Dein Kleiderschrank samt Styling-Regeln, bereit als Skill für einen KI-Assistenten.",
+        "name": "KI-Assistent-Skill (SKILL.md)"
+      },
+      "text": {
+        "description": "Eine Zeile pro Stück.",
+        "name": "Reiner Text"
+      }
+    },
+    "includeProfile": "Meine Stilvorlieben und Größen einbeziehen",
+    "scope": "Stücke",
+    "scopeAll": "Alles Angezeigte ({count})",
+    "scopeSelected": "{count, plural, one {# ausgewähltes Stück} other {# ausgewählte Stücke}}",
+    "skillHowTo": "Füge SKILL.md als Skill in einem KI-Assistenten hinzu, der Skills unterstützt, und frag ihn, was du heute anziehen sollst.",
+    "title": "Kleiderschrank exportieren"
+  },
+  "exportFile": {
+    "byBrand": "von {brand}",
+    "kind": "{subtype} ({type})",
+    "labels": {
+      "color": "Farbe: {value}",
+      "description": "Beschreibung: {value}",
+      "details": "Details: {value}",
+      "fit": "Passform: {value}",
+      "formality": "Formalität: {value}",
+      "material": "Material: {value}",
+      "notes": "Notizen: {value}",
+      "pattern": "Muster: {value}",
+      "season": "Saison: {value}",
+      "style": "Stil: {value}"
+    },
+    "named": "„{name}“",
+    "sections": {
+      "accessories": "Accessoires ({count})",
+      "bottoms": "Unterteile ({count})",
+      "footwear": "Schuhe & Socken ({count})",
+      "fullBody": "Einteiler & Anzüge ({count})",
+      "other": "Sonstiges ({count})",
+      "outerwear": "Jacken & Mäntel ({count})",
+      "tops": "Oberteile ({count})"
+    },
+    "summary": "{count, plural, one {# Stück} other {# Stücke}}, exportiert am {date}",
+    "textLine": "{title}: {description}",
+    "title": "Kleiderschrank",
+    "withColors": "{primary} (mit {others})"
   },
   "favorites": "Favoriten",
   "itemCount": "{count, plural, one {# Stück in deinem Kleiderschrank} other {# Stücke in deinem Kleiderschrank}}",

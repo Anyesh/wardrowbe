@@ -4,14 +4,13 @@ import httpx
 import pytest
 
 from app.services.ai_service import (
-    DESCRIPTION_LANGUAGES,
     AIResponseTruncatedError,
     AIService,
     AIUnusableResponseError,
     ClothingTags,
 )
 from app.utils.errors import Coded
-from app.utils.locale import SUPPORTED_LOCALES
+from app.utils.locale import LANGUAGE_NAMES, SUPPORTED_LOCALES
 
 FAKE_REQUEST = httpx.Request("POST", "http://ai-endpoint.test/chat/completions")
 
@@ -70,7 +69,7 @@ class TestLocalizedDescription:
         assert tags.description == "A shirt"
 
     def test_every_supported_locale_has_a_description_language(self):
-        assert set(DESCRIPTION_LANGUAGES) == set(SUPPORTED_LOCALES)
+        assert set(LANGUAGE_NAMES) == set(SUPPORTED_LOCALES)
 
     @pytest.mark.asyncio
     async def test_unexpected_stored_locale_falls_back_to_english(self):

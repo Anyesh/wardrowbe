@@ -1,6 +1,7 @@
 {
   "actions": {
-    "addItem": "アイテムを追加"
+    "addItem": "アイテムを追加",
+    "export": "エクスポート"
   },
   "addItem": {
     "brandInputPlaceholder": "例：ユニクロ",
@@ -145,6 +146,69 @@
     "clearFilters": "フィルターをクリア",
     "loadFailed": "アイテムの読み込みに失敗しました。もう一度お試しください。",
     "noItemsFound": "フィルターに一致するアイテムが見つかりません。"
+  },
+  "exportDialog": {
+    "copied": "クリップボードにコピーしました",
+    "copy": "コピー",
+    "description": "服をファイルとして、またはAIアシスタントがコーディネートに使えるスキルとしてダウンロードします。",
+    "download": "ダウンロード",
+    "downloaded": "{filename}をダウンロードしました",
+    "failed": "ワードローブをエクスポートできませんでした。もう一度お試しください。",
+    "format": "形式",
+    "formats": {
+      "json": {
+        "description": "すべての属性。スクリプトや他のアプリ向けです。",
+        "name": "JSONデータ"
+      },
+      "markdown": {
+        "description": "服をカテゴリ別にまとめた一覧。読みやすく、どこにでも貼り付けられます。",
+        "name": "Markdownカタログ"
+      },
+      "skill": {
+        "description": "ワードローブとスタイリングのルールをまとめたもの。AIアシスタントにスキルとして追加できます。",
+        "name": "AIアシスタント用スキル（SKILL.md）"
+      },
+      "text": {
+        "description": "アイテムごとに1行。",
+        "name": "プレーンテキスト"
+      }
+    },
+    "includeProfile": "スタイルの好みとサイズを含める",
+    "scope": "アイテム",
+    "scopeAll": "表示中のすべて（{count}）",
+    "scopeSelected": "{count, plural, other {選択した#件}}",
+    "skillHowTo": "スキルに対応したAIアシスタントにSKILL.mdをスキルとして追加し、今日何を着るか聞いてみましょう。",
+    "title": "ワードローブをエクスポート"
+  },
+  "exportFile": {
+    "byBrand": "ブランド：{brand}",
+    "kind": "{subtype}（{type}）",
+    "labels": {
+      "color": "色：{value}",
+      "description": "説明：{value}",
+      "details": "詳細：{value}",
+      "fit": "フィット：{value}",
+      "formality": "フォーマル度：{value}",
+      "material": "素材：{value}",
+      "notes": "メモ：{value}",
+      "pattern": "柄：{value}",
+      "season": "季節：{value}",
+      "style": "スタイル：{value}"
+    },
+    "named": "「{name}」",
+    "sections": {
+      "accessories": "アクセサリー（{count}）",
+      "bottoms": "ボトムス（{count}）",
+      "footwear": "シューズ・ソックス（{count}）",
+      "fullBody": "ワンピース・スーツ（{count}）",
+      "other": "その他（{count}）",
+      "outerwear": "アウター（{count}）",
+      "tops": "トップス（{count}）"
+    },
+    "summary": "{count, plural, other {#点}}、{date}にエクスポート",
+    "textLine": "{title}：{description}",
+    "title": "ワードローブ",
+    "withColors": "{primary}（{others}を含む）"
   },
   "favorites": "お気に入り",
   "itemCount": "{count, plural, one {ワードローブに# 件のアイテム} other {ワードローブに# 件のアイテム}}",

@@ -45,6 +45,7 @@
   "EMAIL_SENDER_INVALID": "서버의 발신 주소 {sender}은(는) 이메일 주소도 SMTP 로그인도 아니에요.",
   "EMAIL_SMTPUTF8_UNSUPPORTED": "메일 서버가 {address}에 필요한 SMTPUTF8을 지원하지 않아요.",
   "EMAIL_SMTP_REJECTED": "메일 서버가 코드 {status}(으)로 응답했어요.",
+  "EXPORT_TOO_LARGE": "한 번에 최대 {limit}개까지 내보낼 수 있어요.",
   "EXPO_PUSH_TOKEN_INVALID": "올바른 Expo 푸시 토큰이 아니에요.",
   "FAMILY_ADMIN_REQUIRED": "가족 관리자만 이 작업을 수행할 수 있어요",
   "FAMILY_NOT_FOUND": "가족을 찾을 수 없어요",

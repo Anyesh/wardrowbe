@@ -42,6 +42,7 @@ vi.mock('@/components/add-item-dialog', () => ({ AddItemDialog: () => null }))
 vi.mock('@/components/analysis-queue-panel', () => ({ AnalysisQueuePanel: () => null }))
 vi.mock('@/components/item-detail-dialog', () => ({ ItemDetailDialog: () => null }))
 vi.mock('@/components/bulk-action-toolbar', () => ({ BulkActionToolbar: () => null }))
+vi.mock('@/components/export-dialog', () => ({ ExportDialog: () => null }))
 
 describe('WardrobePage add buttons', () => {
   it('names both the phone and desktop add buttons', () => {

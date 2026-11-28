@@ -57,19 +57,23 @@ export function useWeatherConditions() {
   })), [t]);
 }
 
-type CatalogTranslator = ((key: string) => string) & { has: (key: string) => boolean };
+export type CatalogTranslator = ((key: string) => string) & { has: (key: string) => boolean };
 
 // Subtypes, materials and formalities can hold values outside the catalog (free text, or rows
 // tagged before the vocabulary changed), so an unknown value falls back to the raw value made
 // readable ("slip-dress" -> "Slip dress") instead of a key path. Keys are hyphenated because the
 // backend sends some values with spaces ("partly cloudy"); this matches the cloud repo's termKey.
-function useCatalogLabel(t: CatalogTranslator) {
-  return useCallback((value: string) => {
+export function catalogLabel(t: CatalogTranslator) {
+  return (value: string) => {
     const key = value.trim().toLowerCase().replace(/\s+/g, '-');
     if (t.has(key)) return t(key);
     const spaced = value.replace(/[-_\s]+/g, ' ').trim();
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-  }, [t]);
+  };
+}
+
+function useCatalogLabel(t: CatalogTranslator) {
+  return useMemo(() => catalogLabel(t), [t]);
 }
 
 export function useTypeLabel() {

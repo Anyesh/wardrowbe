@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Trash2, RefreshCw, Loader2, CheckSquare, Square, MinusSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RotateCcw, RotateCw, Eraser } from 'lucide-react';
+import { X, Trash2, RefreshCw, Loader2, CheckSquare, Square, MinusSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RotateCcw, RotateCw, Eraser, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -34,6 +34,7 @@ interface BulkActionToolbarProps {
   onReanalyze?: () => void;
   onRotate?: (direction: 'cw' | 'ccw') => void;
   onRemoveBackground?: () => void;
+  onExport?: () => void;
   isDeleting?: boolean;
   isReanalyzing?: boolean;
   isRotating?: boolean;
@@ -59,6 +60,7 @@ export function BulkActionToolbar({
   onReanalyze,
   onRotate,
   onRemoveBackground,
+  onExport,
   isDeleting = false,
   isReanalyzing = false,
   isRotating = false,
@@ -240,6 +242,17 @@ export function BulkActionToolbar({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+          )}
+          {onExport && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={onExport}
+              aria-label={tWardrobe('actions.export')}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
           )}
           <AlertDialog>
             <AlertDialogTrigger asChild>

@@ -27,7 +27,7 @@ from app.utils.garment_vocabulary import (
     normalize_color,
     render_tagging_prompt,
 )
-from app.utils.locale import DEFAULT_LOCALE
+from app.utils.locale import language_name
 from app.utils.prompts import load_prompt
 
 logger = logging.getLogger(__name__)
@@ -90,16 +90,6 @@ DESCRIPTION_PROMPT = load_prompt("clothing_description")
 DETECTION_PROMPT = render_tagging_prompt(load_prompt("garment_detection")).replace(
     "<<EXAMPLE>>", json.dumps(DETECTION_EXAMPLE)
 )
-DESCRIPTION_LANGUAGES = {
-    "en": "English",
-    "zh-CN": "Simplified Chinese",
-    "zh-TW": "Traditional Chinese",
-    "ko": "Korean",
-    "ja": "Japanese",
-    "fr": "French",
-    "de": "German",
-    "it": "Italian",
-}
 # Localized replies wrap the sentence in their own script's quotes, which would otherwise
 # show inside the quotes the item dialog already draws around the description.
 DESCRIPTION_QUOTES = (('"', '"'), ("“", "”"), ("「", "」"), ("『", "』"), ("«", "»"))
@@ -612,11 +602,7 @@ class AIService:
         messages_desc = [
             {
                 "role": "system",
-                "content": DESCRIPTION_PROMPT.format(
-                    language=DESCRIPTION_LANGUAGES.get(
-                        locale, DESCRIPTION_LANGUAGES[DEFAULT_LOCALE]
-                    )
-                ),
+                "content": DESCRIPTION_PROMPT.format(language=language_name(locale)),
             },
             {
                 "role": "user",

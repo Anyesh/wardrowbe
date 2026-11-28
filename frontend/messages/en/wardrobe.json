@@ -1,6 +1,7 @@
 {
   "actions": {
-    "addItem": "Add Item"
+    "addItem": "Add Item",
+    "export": "Export"
   },
   "addItem": {
     "brandInputPlaceholder": "e.g., J.Crew",
@@ -145,6 +146,69 @@
     "clearFilters": "Clear Filters",
     "loadFailed": "Failed to load items. Please try again.",
     "noItemsFound": "No items found matching your filters."
+  },
+  "exportDialog": {
+    "copied": "Copied to clipboard",
+    "copy": "Copy",
+    "description": "Download your clothes as a file, or as a skill an AI assistant can use to style you.",
+    "download": "Download",
+    "downloaded": "Downloaded {filename}",
+    "failed": "Couldn't export your wardrobe. Please try again.",
+    "format": "Format",
+    "formats": {
+      "json": {
+        "description": "Every attribute, for scripts and other apps.",
+        "name": "JSON data"
+      },
+      "markdown": {
+        "description": "Your clothes grouped by category, easy to read or paste anywhere.",
+        "name": "Markdown catalog"
+      },
+      "skill": {
+        "description": "Your wardrobe plus styling rules, ready to add as a skill in an AI assistant.",
+        "name": "AI assistant skill (SKILL.md)"
+      },
+      "text": {
+        "description": "One line per item.",
+        "name": "Plain text"
+      }
+    },
+    "includeProfile": "Include my style preferences and sizes",
+    "scope": "Items",
+    "scopeAll": "Everything shown ({count})",
+    "scopeSelected": "{count, plural, one {# selected item} other {# selected items}}",
+    "skillHowTo": "Add SKILL.md as a skill in an AI assistant that supports skills, then ask it what to wear today.",
+    "title": "Export wardrobe"
+  },
+  "exportFile": {
+    "byBrand": "by {brand}",
+    "kind": "{subtype} ({type})",
+    "labels": {
+      "color": "color: {value}",
+      "description": "Description: {value}",
+      "details": "Details: {value}",
+      "fit": "fit: {value}",
+      "formality": "formality: {value}",
+      "material": "material: {value}",
+      "notes": "Notes: {value}",
+      "pattern": "pattern: {value}",
+      "season": "season: {value}",
+      "style": "style: {value}"
+    },
+    "named": "\"{name}\"",
+    "sections": {
+      "accessories": "Accessories ({count})",
+      "bottoms": "Bottoms ({count})",
+      "footwear": "Footwear ({count})",
+      "fullBody": "Full body & suits ({count})",
+      "other": "Other ({count})",
+      "outerwear": "Outerwear ({count})",
+      "tops": "Tops ({count})"
+    },
+    "summary": "{count, plural, one {# item} other {# items}}, exported on {date}",
+    "textLine": "{title}: {description}",
+    "title": "Wardrobe",
+    "withColors": "{primary} (with {others})"
   },
   "favorites": "Favorites",
   "itemCount": "{count, plural, one {# item in your wardrobe} other {# items in your wardrobe}}",
