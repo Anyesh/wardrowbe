@@ -87,7 +87,14 @@
       "noBottoms": "Aucun bas sélectionné.",
       "noFootwear": "Aucune chaussure sélectionnée.",
       "noTop": "Aucun haut sélectionné."
-    }
+    },
+    "destination": "Où allez-vous ?",
+    "destinationPlaceholder": "p. ex. dîner sur un rooftop, entretien d'embauche, bar de plage",
+    "destinationHelp": "Le styliste IA évalue cette tenue pour votre sortie et propose des échanges tirés de votre garde-robe.",
+    "checkOutfit": "Faire évaluer par le styliste IA",
+    "checking": "Évaluation de la tenue...",
+    "checkFailed": "Impossible d'évaluer cette tenue. Veuillez réessayer.",
+    "checkOutdated": "La tenue a changé pendant l'évaluation. Relancez-la pour un avis à jour."
   },
   "empty": {
     "ai": "Pas encore de suggestions IA.",
@@ -164,6 +171,27 @@
     }
   },
   "newOutfit": "Nouvelle tenue",
+  "review": {
+    "actions": {
+      "add": "Ajouter",
+      "remove": "Retirer",
+      "replace": "Échanger",
+      "styling_tip": "Conseil de style"
+    },
+    "applied": "Fait",
+    "apply": {
+      "add": "Ajouter à la tenue",
+      "remove": "Retirer de la tenue",
+      "replace": "Remplacer"
+    },
+    "done": "Fermer",
+    "improvements": "Ce qui pourrait être mieux",
+    "ratingLabel": "Noté {rating} sur 10",
+    "recheck": "Réévaluer",
+    "strengths": "Ce qui fonctionne",
+    "suggestions": "Suggestions",
+    "title": "Avis du styliste"
+  },
   "search": "Rechercher dans le lookbook...",
   "subtitle": "Vos looks, tenues portées et suggestions IA",
   "title": "Tenues",

@@ -12,6 +12,7 @@
   "AI_RESPONSE_EMPTY": "Das KI-Modell hat eine leere Antwort geliefert. Erhöhe AI_MAX_TOKENS (derzeit {max_tokens}) oder schalte seinen Reasoning-Modus aus.",
   "AI_RESPONSE_UNUSABLE": "Die Antwort des KI-Dienstes war nicht lesbar. Starte die Analyse erneut oder probiere ein anderes Modell, wenn es weiter fehlschlägt.",
   "AI_SERVICE_UNAVAILABLE": "KI-Dienst ist derzeit nicht verfügbar",
+  "AI_STYLIST_DISABLED": "Die integrierte KI ist ausgeschaltet, daher können Outfits nicht geprüft werden.",
   "AI_SUGGESTIONS_DISABLED": "Die integrierte KI ist ausgeschaltet, Outfit-Vorschläge kommen von deinem externen Agenten.",
   "AI_TIMEOUT": "Der KI-Dienst hat zu lange gebraucht. Starte die Analyse erneut.",
   "AI_UNREACHABLE": "Der KI-Dienst ist nicht erreichbar. Bitte versuche es erneut.",

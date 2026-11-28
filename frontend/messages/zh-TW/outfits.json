@@ -87,7 +87,14 @@
       "noBottoms": "未選擇下身單品。",
       "noFootwear": "未選擇鞋類。",
       "noTop": "未選擇上衣。"
-    }
+    },
+    "destination": "你要去哪裡？",
+    "destinationPlaceholder": "例如：屋頂晚餐、求職面試、海灘酒吧",
+    "destinationHelp": "AI 造型師會依你要去的地方為這套搭配評分，並從你的衣櫥中推薦替換單品。",
+    "checkOutfit": "讓 AI 造型師點評",
+    "checking": "正在點評搭配...",
+    "checkFailed": "無法點評這套搭配，請再試一次。",
+    "checkOutdated": "點評期間搭配有變動，請重新點評以取得最新結果。"
   },
   "empty": {
     "ai": "還沒有 AI 建議。",
@@ -164,6 +171,27 @@
     }
   },
   "newOutfit": "新增穿搭",
+  "review": {
+    "actions": {
+      "add": "新增",
+      "remove": "拿掉",
+      "replace": "替換",
+      "styling_tip": "穿搭小提示"
+    },
+    "applied": "已套用",
+    "apply": {
+      "add": "加入搭配",
+      "remove": "從搭配中拿掉",
+      "replace": "換上"
+    },
+    "done": "關閉",
+    "improvements": "可以改進的地方",
+    "ratingLabel": "評分 {rating}/10",
+    "recheck": "重新點評",
+    "strengths": "亮點",
+    "suggestions": "建議",
+    "title": "造型師點評"
+  },
   "search": "搜尋造型冊...",
   "subtitle": "你的造型、穿著紀錄與 AI 建議",
   "title": "穿搭",

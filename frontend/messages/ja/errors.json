@@ -12,6 +12,7 @@
   "AI_RESPONSE_EMPTY": "AIモデルが空の応答を返しました。AI_MAX_TOKENS（現在 {max_tokens}）を増やすか、推論モードをオフにしてください。",
   "AI_RESPONSE_UNUSABLE": "AIサービスの応答を読み取れませんでした。もう一度分析し、失敗が続く場合は別のモデルをお試しください。",
   "AI_SERVICE_UNAVAILABLE": "AIサービスは現在利用できません",
+  "AI_STYLIST_DISABLED": "内蔵AIがオフのため、コーディネートをチェックできません。",
   "AI_SUGGESTIONS_DISABLED": "内蔵AIがオフのため、コーデ提案は外部エージェントから届きます。",
   "AI_TIMEOUT": "AIサービスがタイムアウトしました。もう一度分析してください。",
   "AI_UNREACHABLE": "AIサービスに接続できませんでした。もう一度お試しください。",

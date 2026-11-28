@@ -1,10 +1,18 @@
 import logging
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, computed_field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationInfo,
+    computed_field,
+    field_validator,
+)
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -33,6 +41,7 @@ from app.services.ai_service import AIDisabledError
 from app.services.external_outfit_service import ExternalOutfitService
 from app.services.item_service import ItemService
 from app.services.learning_service import LearningService
+from app.services.outfit_check_service import OutfitCheck, OutfitCheckService
 from app.services.outfit_service import OutfitListFilters, OutfitService, parse_enum_csv
 from app.services.recommendation_service import (
     AIRecommendationError,
@@ -1202,6 +1211,111 @@ async def create_studio_outfit(
 
     full = await service.get_full_outfit(outfit.id)
     return outfit_to_response(full)
+
+
+class OutfitCheckRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[UUID] = Field(min_length=1, max_length=20)
+    destination: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)
+    ]
+    occasion: Occasion
+
+
+class OutfitCheckItem(BaseModel):
+    id: UUID
+    type: str
+    name: str | None = None
+    primary_color: str | None = None
+    image_url: str | None = None
+    thumbnail_url: str | None = None
+
+    @classmethod
+    def of(cls, item: ClothingItem | None) -> "OutfitCheckItem | None":
+        if item is None:
+            return None
+        return cls(
+            id=item.id,
+            type=item.type,
+            name=item.name,
+            primary_color=item.primary_color,
+            image_url=sign_optional(item.image_path),
+            thumbnail_url=sign_optional(item.thumbnail_path, item.image_path),
+        )
+
+
+class OutfitCheckSuggestion(BaseModel):
+    action: Literal["replace", "add", "remove", "styling_tip"]
+    title: str
+    description: str
+    reason: str
+    target_item_id: UUID | None = None
+    replacement_item: OutfitCheckItem | None = None
+
+
+class OutfitCheckResponse(BaseModel):
+    rating: int = Field(ge=1, le=10)
+    verdict: str
+    opinion: str
+    strengths: list[str]
+    improvements: list[str]
+    suggestions: list[OutfitCheckSuggestion]
+
+    @classmethod
+    def of(cls, check: OutfitCheck) -> "OutfitCheckResponse":
+        return cls(
+            rating=check.rating,
+            verdict=check.verdict,
+            opinion=check.opinion,
+            strengths=check.strengths,
+            improvements=check.improvements,
+            suggestions=[
+                OutfitCheckSuggestion(
+                    action=s.action,
+                    title=s.title,
+                    description=s.description,
+                    reason=s.reason,
+                    target_item_id=s.target.id if s.target else None,
+                    replacement_item=OutfitCheckItem.of(s.replacement),
+                )
+                for s in check.suggestions
+            ],
+        )
+
+
+@router.post("/check", response_model=OutfitCheckResponse)
+async def check_outfit(
+    request: OutfitCheckRequest,
+    db: DbSession,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> OutfitCheckResponse:
+    """Have the AI stylist review a studio outfit for where the user is going."""
+    _check_studio_kill_switch()
+    await rate_limit_by_user(
+        str(current_user.id), "outfit_check", max_requests=10, window_seconds=60
+    )
+    try:
+        check = await OutfitCheckService(db).check(
+            current_user, request.items, request.destination, request.occasion
+        )
+    except AIDisabledError:
+        raise CodedHTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "AI_STYLIST_DISABLED",
+            "Internal AI is disabled, so outfits cannot be checked.",
+        ) from None
+    except ItemOwnershipError:
+        raise CodedHTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "OUTFIT_ITEM_OWNERSHIP",
+            "One or more items do not belong to you",
+        ) from None
+    except RuntimeError as e:
+        # OutfitCheckError and the AI client's coded errors carry their own code.
+        logger.warning("outfit check failed: %s", e)
+        raise http_error(status.HTTP_503_SERVICE_UNAVAILABLE, e, "AI_SERVICE_UNAVAILABLE") from e
+    return OutfitCheckResponse.of(check)
 
 
 @router.post("/{outfit_id}/wore-instead", response_model=OutfitResponse)
