@@ -55,6 +55,11 @@ def parallel():
     return _load("docker-compose.parallel.yml")["services"]
 
 
+@pytest.fixture(scope="module")
+def remote():
+    return _load("docker-compose.remote.yml")["services"]
+
+
 def test_every_fixed_container_name_is_reset(stack_services, parallel):
     for name, service in stack_services.items():
         if "container_name" not in service:
@@ -81,8 +86,9 @@ def test_every_service_carries_the_stack_labels(stack_services, parallel):
         assert {OWNER_LABEL, PROJECT_LABEL} <= set(labels), f"{name} has no stack labels"
 
 
-def test_every_built_service_labels_its_image(stack_services, parallel):
+def test_every_built_service_labels_its_image(stack_services, parallel, remote):
     built = {name for name, service in stack_services.items() if "build" in service}
+    built |= {name for name, service in remote.items() if "build" in service}
 
     for name in built:
         service = parallel.get(name, {})
@@ -92,6 +98,15 @@ def test_every_built_service_labels_its_image(stack_services, parallel):
         )
         assert service.get("pull_policy") == "never", f"{name} would build or pull on its own"
         assert "STACK_" in _untag(service.get("image", "")), f"{name} shares the main dev tag"
+
+
+def test_every_published_image_is_built_from_source_remotely(remote):
+    base = _load("docker-compose.yml")["services"]
+
+    for name, service in base.items():
+        if not service.get("image", "").startswith("ghcr.io/"):
+            continue
+        assert "build" in remote.get(name, {}), f"{name} would run the published image remotely"
 
 
 def test_every_volume_and_the_network_carry_the_stack_labels():

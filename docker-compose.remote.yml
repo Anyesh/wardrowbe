@@ -1,0 +1,21 @@
+# Used by `scripts/stack up --host` in place of docker-compose.dev.yml: a remote Docker host
+# cannot bind-mount the worktree, so the code is baked into production builds.
+
+x-backend-build: &backend-build
+  context: ./backend
+  dockerfile: Dockerfile
+
+services:
+  backend:
+    build: *backend-build
+
+  worker:
+    build: *backend-build
+
+  image-worker:
+    build: *backend-build
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
