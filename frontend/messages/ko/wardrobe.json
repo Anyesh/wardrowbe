@@ -180,6 +180,36 @@
     "skillHowTo": "Gemini나 Claude처럼 스킬을 지원하는 AI 어시스턴트에 SKILL.md를 스킬로 추가한 뒤, 오늘 뭘 입을지 물어보세요.",
     "title": "옷장 내보내기"
   },
+  "exportFile": {
+    "byBrand": "브랜드: {brand}",
+    "kind": "{subtype} ({type})",
+    "labels": {
+      "color": "색상: {value}",
+      "description": "설명: {value}",
+      "details": "세부 정보: {value}",
+      "fit": "핏: {value}",
+      "formality": "격식: {value}",
+      "material": "소재: {value}",
+      "notes": "메모: {value}",
+      "pattern": "패턴: {value}",
+      "season": "계절: {value}",
+      "style": "스타일: {value}"
+    },
+    "named": "“{name}”",
+    "sections": {
+      "accessories": "액세서리 ({count})",
+      "bottoms": "하의 ({count})",
+      "footwear": "신발 및 양말 ({count})",
+      "fullBody": "원피스 및 정장 ({count})",
+      "other": "기타 ({count})",
+      "outerwear": "아우터 ({count})",
+      "tops": "상의 ({count})"
+    },
+    "summary": "{count, plural, other {아이템 #개}}, {date} 내보냄",
+    "textLine": "{title}: {description}",
+    "title": "옷장",
+    "withColors": "{primary} ({others} 포함)"
+  },
   "favorites": "즐겨찾기",
   "itemCount": "{count, plural, other {옷장에 아이템 #개}}",
   "itemDetail": {

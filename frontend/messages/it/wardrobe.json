@@ -180,6 +180,36 @@
     "skillHowTo": "Aggiungi SKILL.md come skill in un assistente IA che le supporta, come Gemini o Claude, poi chiedigli cosa indossare oggi.",
     "title": "Esporta il guardaroba"
   },
+  "exportFile": {
+    "byBrand": "di {brand}",
+    "kind": "{subtype} ({type})",
+    "labels": {
+      "color": "colore: {value}",
+      "description": "Descrizione: {value}",
+      "details": "Dettagli: {value}",
+      "fit": "vestibilità: {value}",
+      "formality": "formalità: {value}",
+      "material": "materiale: {value}",
+      "notes": "Note: {value}",
+      "pattern": "motivo: {value}",
+      "season": "stagione: {value}",
+      "style": "stile: {value}"
+    },
+    "named": "«{name}»",
+    "sections": {
+      "accessories": "Accessori ({count})",
+      "bottoms": "Parti inferiori ({count})",
+      "footwear": "Calzature e calzini ({count})",
+      "fullBody": "Capi interi e completi ({count})",
+      "other": "Altro ({count})",
+      "outerwear": "Capispalla ({count})",
+      "tops": "Parti superiori ({count})"
+    },
+    "summary": "{count, plural, one {# capo, esportato il {date}} other {# capi, esportati il {date}}}",
+    "textLine": "{title}: {description}",
+    "title": "Guardaroba",
+    "withColors": "{primary} (con {others})"
+  },
   "favorites": "Preferiti",
   "itemCount": "{count, plural, one {# capo nel tuo guardaroba} other {# capi nel tuo guardaroba}}",
   "itemDetail": {

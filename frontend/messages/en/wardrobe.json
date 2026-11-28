@@ -180,6 +180,36 @@
     "skillHowTo": "Add SKILL.md as a skill in an AI assistant that supports skills, such as Gemini or Claude, then ask it what to wear today.",
     "title": "Export wardrobe"
   },
+  "exportFile": {
+    "byBrand": "by {brand}",
+    "kind": "{subtype} ({type})",
+    "labels": {
+      "color": "color: {value}",
+      "description": "Description: {value}",
+      "details": "Details: {value}",
+      "fit": "fit: {value}",
+      "formality": "formality: {value}",
+      "material": "material: {value}",
+      "notes": "Notes: {value}",
+      "pattern": "pattern: {value}",
+      "season": "season: {value}",
+      "style": "style: {value}"
+    },
+    "named": "\"{name}\"",
+    "sections": {
+      "accessories": "Accessories ({count})",
+      "bottoms": "Bottoms ({count})",
+      "footwear": "Footwear ({count})",
+      "fullBody": "Full body & suits ({count})",
+      "other": "Other ({count})",
+      "outerwear": "Outerwear ({count})",
+      "tops": "Tops ({count})"
+    },
+    "summary": "{count, plural, one {# item} other {# items}}, exported on {date}",
+    "textLine": "{title}: {description}",
+    "title": "Wardrobe",
+    "withColors": "{primary} (with {others})"
+  },
   "favorites": "Favorites",
   "itemCount": "{count, plural, one {# item in your wardrobe} other {# items in your wardrobe}}",
   "itemDetail": {

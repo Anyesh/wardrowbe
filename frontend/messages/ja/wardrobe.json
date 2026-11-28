@@ -180,6 +180,36 @@
     "skillHowTo": "スキルに対応したAIアシスタント（GeminiやClaudeなど）にSKILL.mdをスキルとして追加し、今日何を着るか聞いてみましょう。",
     "title": "ワードローブをエクスポート"
   },
+  "exportFile": {
+    "byBrand": "ブランド：{brand}",
+    "kind": "{subtype}（{type}）",
+    "labels": {
+      "color": "色：{value}",
+      "description": "説明：{value}",
+      "details": "詳細：{value}",
+      "fit": "フィット：{value}",
+      "formality": "フォーマル度：{value}",
+      "material": "素材：{value}",
+      "notes": "メモ：{value}",
+      "pattern": "柄：{value}",
+      "season": "季節：{value}",
+      "style": "スタイル：{value}"
+    },
+    "named": "「{name}」",
+    "sections": {
+      "accessories": "アクセサリー（{count}）",
+      "bottoms": "ボトムス（{count}）",
+      "footwear": "シューズ・ソックス（{count}）",
+      "fullBody": "ワンピース・スーツ（{count}）",
+      "other": "その他（{count}）",
+      "outerwear": "アウター（{count}）",
+      "tops": "トップス（{count}）"
+    },
+    "summary": "{count, plural, other {#点}}、{date}にエクスポート",
+    "textLine": "{title}：{description}",
+    "title": "ワードローブ",
+    "withColors": "{primary}（{others}を含む）"
+  },
   "favorites": "お気に入り",
   "itemCount": "{count, plural, one {ワードローブに# 件のアイテム} other {ワードローブに# 件のアイテム}}",
   "itemDetail": {

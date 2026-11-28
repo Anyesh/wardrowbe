@@ -180,6 +180,36 @@
     "skillHowTo": "Füge SKILL.md als Skill in einem KI-Assistenten hinzu, der Skills unterstützt, etwa Gemini oder Claude, und frag ihn, was du heute anziehen sollst.",
     "title": "Kleiderschrank exportieren"
   },
+  "exportFile": {
+    "byBrand": "von {brand}",
+    "kind": "{subtype} ({type})",
+    "labels": {
+      "color": "Farbe: {value}",
+      "description": "Beschreibung: {value}",
+      "details": "Details: {value}",
+      "fit": "Passform: {value}",
+      "formality": "Formalität: {value}",
+      "material": "Material: {value}",
+      "notes": "Notizen: {value}",
+      "pattern": "Muster: {value}",
+      "season": "Saison: {value}",
+      "style": "Stil: {value}"
+    },
+    "named": "„{name}“",
+    "sections": {
+      "accessories": "Accessoires ({count})",
+      "bottoms": "Unterteile ({count})",
+      "footwear": "Schuhe & Socken ({count})",
+      "fullBody": "Einteiler & Anzüge ({count})",
+      "other": "Sonstiges ({count})",
+      "outerwear": "Jacken & Mäntel ({count})",
+      "tops": "Oberteile ({count})"
+    },
+    "summary": "{count, plural, one {# Stück} other {# Stücke}}, exportiert am {date}",
+    "textLine": "{title}: {description}",
+    "title": "Kleiderschrank",
+    "withColors": "{primary} (mit {others})"
+  },
   "favorites": "Favoriten",
   "itemCount": "{count, plural, one {# Stück in deinem Kleiderschrank} other {# Stücke in deinem Kleiderschrank}}",
   "itemDetail": {

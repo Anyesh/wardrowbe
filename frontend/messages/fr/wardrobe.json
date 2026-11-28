@@ -180,6 +180,36 @@
     "skillHowTo": "Ajoutez SKILL.md comme skill dans un assistant IA qui les prend en charge, comme Gemini ou Claude, puis demandez-lui quoi porter aujourd'hui.",
     "title": "Exporter la garde-robe"
   },
+  "exportFile": {
+    "byBrand": "marque : {brand}",
+    "kind": "{subtype} ({type})",
+    "labels": {
+      "color": "couleur : {value}",
+      "description": "Description : {value}",
+      "details": "Détails : {value}",
+      "fit": "coupe : {value}",
+      "formality": "formalité : {value}",
+      "material": "matière : {value}",
+      "notes": "Notes : {value}",
+      "pattern": "motif : {value}",
+      "season": "saison : {value}",
+      "style": "style : {value}"
+    },
+    "named": "« {name} »",
+    "sections": {
+      "accessories": "Accessoires ({count})",
+      "bottoms": "Bas ({count})",
+      "footwear": "Chaussures & chaussettes ({count})",
+      "fullBody": "Une pièce & costumes ({count})",
+      "other": "Autres ({count})",
+      "outerwear": "Vêtements d’extérieur ({count})",
+      "tops": "Hauts ({count})"
+    },
+    "summary": "{count, plural, one {# article, exporté le {date}} other {# articles, exportés le {date}}}",
+    "textLine": "{title} : {description}",
+    "title": "Garde-robe",
+    "withColors": "{primary} (avec {others})"
+  },
   "favorites": "Favoris",
   "itemCount": "{count, plural, one {# article dans votre garde-robe} other {# articles dans votre garde-robe}}",
   "itemDetail": {

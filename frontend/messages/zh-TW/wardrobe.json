@@ -180,6 +180,36 @@
     "skillHowTo": "在支援技能的 AI 助理（如 Gemini 或 Claude）中將 SKILL.md 加入為技能，然後問它今天穿什麼。",
     "title": "匯出衣櫥"
   },
+  "exportFile": {
+    "byBrand": "品牌：{brand}",
+    "kind": "{subtype}（{type}）",
+    "labels": {
+      "color": "顏色：{value}",
+      "description": "描述：{value}",
+      "details": "詳情：{value}",
+      "fit": "版型：{value}",
+      "formality": "正式程度：{value}",
+      "material": "材質：{value}",
+      "notes": "備註：{value}",
+      "pattern": "圖案：{value}",
+      "season": "季節：{value}",
+      "style": "風格：{value}"
+    },
+    "named": "「{name}」",
+    "sections": {
+      "accessories": "配件（{count}）",
+      "bottoms": "下身（{count}）",
+      "footwear": "鞋襪（{count}）",
+      "fullBody": "連身裝與套裝（{count}）",
+      "other": "其他（{count}）",
+      "outerwear": "外套（{count}）",
+      "tops": "上衣（{count}）"
+    },
+    "summary": "{count, plural, other {# 件單品}}，匯出於 {date}",
+    "textLine": "{title}：{description}",
+    "title": "衣櫥",
+    "withColors": "{primary}（含{others}）"
+  },
   "favorites": "收藏",
   "itemCount": "{count, plural, one {衣櫥中有 # 件單品} other {衣櫥中有 # 件單品}}",
   "itemDetail": {
