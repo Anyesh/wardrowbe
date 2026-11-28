@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.14.0...wardrowbe-v1.14.1) (2026-11-28)
+
+
+### 🔧 Maintenance
+
+* **deps:** bump @tanstack/react-query ([#349](https://github.com/Anyesh/wardrowbe/issues/349)) ([6aa47bc](https://github.com/Anyesh/wardrowbe/commit/6aa47bc5d4b7443ab11aaec2c9f0e51a9c952fa1))
+* **deps:** bump the python-dependencies group ([#350](https://github.com/Anyesh/wardrowbe/issues/350)) ([5fde617](https://github.com/Anyesh/wardrowbe/commit/5fde6172cb21c2006b5aace61bc3d4d4d44d667f))
+* **deps:** drop zustand, which nothing imports ([#359](https://github.com/Anyesh/wardrowbe/issues/359)) ([b89ea32](https://github.com/Anyesh/wardrowbe/commit/b89ea32d9bc30240cb26b44b05bc31d3f6b2c26e))
+
 ## [1.14.0](https://github.com/Anyesh/wardrowbe/compare/wardrowbe-v1.13.0...wardrowbe-v1.14.0) (2026-11-20)
 
 
