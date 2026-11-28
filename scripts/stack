@@ -1,0 +1,710 @@
+#!/usr/bin/env bash
+# Runs one disposable wardrowbe stack per git worktree, locally or on a remote Docker host.
+# Usage: scripts/stack up [--host H] | down [--worktree P] | ls | reap | purge [--host H]
+#        | exec <service> <cmd...> | fix-perms [path]
+set -euo pipefail
+
+SLOT_MAX=49
+FRONTEND_BASE=3100
+BACKEND_BASE=8100
+MEM_GUARD_KIB=$((3 * 1024 * 1024))
+HEALTH_TIMEOUT=300
+OWNER_LABEL=wardrowbe.stack.owner
+PROJECT_LABEL=wardrowbe.stack.project
+SCOPE_LABEL=wardrowbe.stack.scope
+PROJECT_PREFIX=wardrowbe-stack-
+PERMS_IMAGE=postgres:15-alpine
+SSH_OPTS=(-o ConnectTimeout=5 -o BatchMode=yes)
+
+STACK_FILES_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
+COMMON=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || {
+    echo "stack: run inside a wardrowbe git checkout" >&2
+    exit 2
+}
+MAIN_CHECKOUT=$(dirname "$COMMON")
+REG="$COMMON/wardrowbe-stacks"
+OWNER=$(printf '%s@%s' "$COMMON" "$(hostname)" | sha256sum | cut -c1-12)
+OWNER_TAG=${OWNER:0:8}
+LOCKED=0
+
+die() {
+    echo "stack: $*" >&2
+    exit 1
+}
+warn() { echo "stack: warning: $*" >&2; }
+say() { echo "stack: $*"; }
+
+lock() {
+    [ "$LOCKED" = 1 ] && return 0
+    mkdir -p "$REG"
+    exec 9>"$REG/.lock"
+    flock 9
+    LOCKED=1
+}
+
+unlock() {
+    [ "$LOCKED" = 1 ] || return 0
+    flock -u 9
+    LOCKED=0
+}
+
+on_host() {
+    local host="$1"
+    shift
+    if [ -n "$host" ]; then
+        DOCKER_HOST="ssh://$host" "$@"
+    else
+        "$@"
+    fi
+}
+
+ssh_reachable() {
+    ssh "${SSH_OPTS[@]}" "$1" exit >/dev/null 2>&1
+}
+
+host_reachable() {
+    local host="$1"
+    [ -z "$host" ] && return 0
+    ssh_reachable "$host" && DOCKER_HOST="ssh://$host" timeout 30 docker version >/dev/null 2>&1
+}
+
+entry_dirs() {
+    local dir
+    for dir in "$REG"/"$PROJECT_PREFIX"*/; do
+        [ -d "$dir" ] && printf '%s\n' "${dir%/}"
+    done
+    return 0
+}
+
+entry_value() {
+    sed -n "s/^$2=//p" "$1/env"
+}
+
+entry_host() { cat "$1/host"; }
+entry_worktree() { cat "$1/worktree"; }
+
+worktree_root() {
+    git -C "${1:-.}" rev-parse --show-toplevel 2>/dev/null || die "${1:-.} is not inside a git worktree"
+}
+
+slug_for() {
+    basename "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/^-+//; s/-+$//' | cut -c1-40 | sed -E 's/-+$//'
+}
+
+project_for() {
+    printf '%s%s-%s\n' "$PROJECT_PREFIX" "$OWNER_TAG" "$(slug_for "$1")"
+}
+
+entry_for_worktree() {
+    local wt="$1" dir
+    while IFS= read -r dir; do
+        [ "$(entry_worktree "$dir")" = "$wt" ] && {
+            printf '%s\n' "$dir"
+            return 0
+        }
+    done < <(entry_dirs)
+    return 1
+}
+
+port_listening_locally() {
+    [ -n "$(ss -Hltn "sport = :$1")" ]
+}
+
+remote_listening_ports() {
+    ssh "${SSH_OPTS[@]}" "$1" "ss -ltn || netstat -an" 2>/dev/null | tr -d '\r' |
+        awk '/LISTEN/ { for (i = 1; i <= NF; i++) if ($i ~ /[:.][0-9]+$/) { print $i; next } }' |
+        sed -E 's/.*[:.]([0-9]+)$/\1/' | sort -u
+}
+
+claimed_slots() {
+    local dir
+    while IFS= read -r dir; do
+        entry_value "$dir" STACK_SLOT
+    done < <(entry_dirs)
+}
+
+pick_slot() {
+    local host="$1" n fp bp claimed remote_ports=""
+    claimed=$(claimed_slots)
+    if [ -n "$host" ]; then
+        remote_ports=$(remote_listening_ports "$host") || die "cannot list listening ports on $host"
+    fi
+    for ((n = 1; n <= SLOT_MAX; n++)); do
+        grep -qx "$n" <<<"$claimed" && continue
+        fp=$((FRONTEND_BASE + n))
+        bp=$((BACKEND_BASE + n))
+        port_listening_locally "$fp" && continue
+        port_listening_locally "$bp" && continue
+        if [ -n "$host" ] && grep -qxE "$fp|$bp" <<<"$remote_ports"; then
+            continue
+        fi
+        echo "$n"
+        return 0
+    done
+    die "no free slot between 1 and $SLOT_MAX"
+}
+
+hash_files() {
+    local dir="$1" f
+    shift
+    for f in "$@"; do
+        printf '%s\n' "$f"
+        [ -f "$dir/$f" ] && cat "$dir/$f"
+    done | sha256sum | cut -c1-12
+}
+
+image_tags() {
+    local wt="$1" host="$2" slug="$3"
+    if [ -n "$host" ]; then
+        echo "wardrowbe-backend:src-$OWNER_TAG-$slug wardrowbe-frontend:src-$OWNER_TAG-$slug stack"
+        return 0
+    fi
+    local be fe
+    be=$(hash_files "$wt/backend" Dockerfile .dockerignore requirements.txt requirements-extras.txt docker-entrypoint.sh)
+    fe=$(hash_files "$wt/frontend" Dockerfile.dev .dockerignore package.json package-lock.json docker-entrypoint.dev.sh)
+    echo "wardrowbe-backend:dev-$be wardrowbe-frontend:dev-$fe host"
+}
+
+write_entry() {
+    local dir="$1" wt="$2" host="$3" slug="$4" slot="$5" project
+    project=$(basename "$dir")
+    local fp=$((FRONTEND_BASE + slot)) bp=$((BACKEND_BASE + slot))
+    local tags
+    read -r -a tags <<<"$(image_tags "$wt" "$host" "$slug")"
+    mkdir -p "$dir"
+    cat >"$dir/env" <<EOF
+COMPOSE_PROJECT_NAME=$project
+STACK_OWNER=$OWNER
+STACK_SLOT=$slot
+STACK_SLUG=$slug
+FRONTEND_PORT=$fp
+BACKEND_PORT=$bp
+STACK_ORIGIN=http://$slug.localhost:$fp
+STACK_BACKEND_IMAGE=${tags[0]}
+STACK_FRONTEND_IMAGE=${tags[1]}
+STACK_IMAGE_SCOPE=${tags[2]}
+PUID=$(id -u)
+PGID=$(id -g)
+DEBUG=true
+SECRET_KEY=$(openssl rand -hex 32)
+NEXTAUTH_SECRET=$(openssl rand -hex 32)
+OIDC_ISSUER_URL=
+OIDC_CLIENT_ID=
+OIDC_CLIENT_SECRET=
+OIDC_MOBILE_CLIENT_ID=
+OIDC_END_SESSION_URL=
+FORWARD_AUTH_SECRET=
+FORWARD_AUTH_LOGOUT_URL=
+TINYAUTH_URL=
+COMPOSE_PROFILES=
+EOF
+    printf '%s\n' "$wt" >"$dir/worktree"
+    printf '%s\n' "$host" >"$dir/host"
+    date +%s >"$dir/created"
+}
+
+refresh_image_tags() {
+    local dir="$1" wt host slug tags
+    wt=$(entry_worktree "$dir")
+    host=$(entry_host "$dir")
+    slug=$(entry_value "$dir" STACK_SLUG)
+    read -r -a tags <<<"$(image_tags "$wt" "$host" "$slug")"
+    sed -i -E "s|^STACK_BACKEND_IMAGE=.*|STACK_BACKEND_IMAGE=${tags[0]}|; s|^STACK_FRONTEND_IMAGE=.*|STACK_FRONTEND_IMAGE=${tags[1]}|" "$dir/env"
+}
+
+compose_files() {
+    local dir="$1" wt host
+    wt=$(entry_worktree "$dir")
+    host=$(entry_host "$dir")
+    printf '%s\n' -f "$wt/docker-compose.yml"
+    if [ -n "$host" ]; then
+        printf '%s\n' -f "$STACK_FILES_DIR/docker-compose.remote.yml"
+    else
+        printf '%s\n' -f "$wt/docker-compose.dev.yml"
+    fi
+    printf '%s\n' -f "$STACK_FILES_DIR/docker-compose.parallel.yml"
+}
+
+stack_compose() {
+    local dir="$1" host key
+    shift
+    host=$(entry_host "$dir")
+    local unset_args=() env_args=() files=()
+    while IFS= read -r key; do
+        unset_args+=(-u "$key")
+    done < <(sed -n 's/=.*//p' "$dir/env")
+    [ -f "$MAIN_CHECKOUT/.env" ] && env_args+=(--env-file "$MAIN_CHECKOUT/.env")
+    env_args+=(--env-file "$dir/env")
+    mapfile -t files < <(compose_files "$dir")
+    on_host "$host" env "${unset_args[@]}" docker compose -p "$(basename "$dir")" "${env_args[@]}" "${files[@]}" "$@"
+}
+
+service_container() {
+    local host="$1" project="$2" service="$3"
+    on_host "$host" docker ps -q \
+        --filter "label=com.docker.compose.project=$project" \
+        --filter "label=com.docker.compose.service=$service" | head -1
+}
+
+tunnel_pid_alive() {
+    local dir="$1" pid fp
+    [ -f "$dir/tunnel.pid" ] || return 1
+    pid=$(cat "$dir/tunnel.pid")
+    fp=$(entry_value "$dir" FRONTEND_PORT)
+    [ -r "/proc/$pid/cmdline" ] || return 1
+    tr '\0' ' ' <"/proc/$pid/cmdline" | grep -q "^ssh .*-N .*-L 127.0.0.1:$fp:"
+}
+
+start_tunnel() {
+    local dir="$1" host fp bp pid
+    tunnel_pid_alive "$dir" && return 0
+    host=$(entry_host "$dir")
+    fp=$(entry_value "$dir" FRONTEND_PORT)
+    bp=$(entry_value "$dir" BACKEND_PORT)
+    nohup ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o BatchMode=yes \
+        -L "127.0.0.1:$fp:127.0.0.1:$fp" -L "127.0.0.1:$bp:127.0.0.1:$bp" "$host" \
+        >"$dir/tunnel.log" 2>&1 </dev/null 9>&- &
+    pid=$!
+    printf '%s\n' "$pid" >"$dir/tunnel.pid"
+    for _ in $(seq 1 20); do
+        if ! kill -0 "$pid" 2>/dev/null; then
+            die "tunnel to $host exited: $(tail -3 "$dir/tunnel.log")"
+        fi
+        port_listening_locally "$fp" && port_listening_locally "$bp" && return 0
+        sleep 0.5
+    done
+    die "tunnel to $host did not open ports $fp and $bp"
+}
+
+stop_tunnel() {
+    local dir="$1"
+    if tunnel_pid_alive "$dir"; then
+        kill "$(cat "$dir/tunnel.pid")"
+    fi
+    rm -f "$dir/tunnel.pid" "$dir/tunnel.log"
+}
+
+preflight_remote() {
+    local host="$1" os
+    ssh_reachable "$host" || die "cannot ssh to $host"
+    os=$(DOCKER_HOST="ssh://$host" docker version --format '{{.Server.Os}}' 2>&1) ||
+        die "Docker on $host is not answering over ssh (is the engine running?): $os"
+    [ "$os" = linux ] || die "Docker on $host runs $os containers; switch it to Linux containers"
+}
+
+check_remote_ai() {
+    local dir="$1" host image url code
+    host=$(entry_host "$dir")
+    image=$(entry_value "$dir" STACK_BACKEND_IMAGE)
+    url=$(sed -n 's/^AI_BASE_URL=//p' "$MAIN_CHECKOUT/.env" 2>/dev/null | tail -1)
+    [ -n "$url" ] || return 0
+    code=$(DOCKER_HOST="ssh://$host" docker run --rm --entrypoint curl --add-host host.docker.internal:host-gateway \
+        "$image" -sS -o /dev/null -m 10 -w '%{http_code}' "$url/models" 2>&1) ||
+        die "a container on $host cannot reach AI_BASE_URL $url: $code"
+    say "AI endpoint reachable from $host (HTTP $code)"
+}
+
+check_memory() {
+    local avail
+    avail=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$avail" -lt "$MEM_GUARD_KIB" ]; then
+        die "only $((avail / 1024)) MiB of memory available; free some or run it elsewhere with --host"
+    fi
+}
+
+build_images() {
+    local dir="$1" host image
+    host=$(entry_host "$dir")
+    if [ -n "$host" ]; then
+        say "building images on $host"
+        stack_compose "$dir" build backend frontend
+        return 0
+    fi
+    for image in "$(entry_value "$dir" STACK_BACKEND_IMAGE)" "$(entry_value "$dir" STACK_FRONTEND_IMAGE)"; do
+        if ! docker image inspect "$image" >/dev/null 2>&1; then
+            say "building $image"
+            case "$image" in
+                wardrowbe-backend:*) stack_compose "$dir" build backend ;;
+                *) stack_compose "$dir" build frontend ;;
+            esac
+        fi
+    done
+}
+
+wait_for_backend() {
+    local dir="$1" bp waited=0
+    bp=$(entry_value "$dir" BACKEND_PORT)
+    until curl -fsS -m 3 -o /dev/null "http://127.0.0.1:$bp/api/v1/health"; do
+        [ "$waited" -ge "$HEALTH_TIMEOUT" ] && die "backend not healthy on port $bp after ${HEALTH_TIMEOUT}s"
+        sleep 3
+        waited=$((waited + 3))
+    done
+}
+
+exec_user() {
+    local host="$1" service="$2"
+    case "$service" in
+        backend | worker | image-worker) echo appuser ;;
+        frontend) if [ -n "$host" ]; then echo nextjs; else echo node; fi ;;
+        *) echo "" ;;
+    esac
+}
+
+container_exec() {
+    local dir="$1" service="$2" host project container user
+    shift 2
+    host=$(entry_host "$dir")
+    project=$(basename "$dir")
+    container=$(service_container "$host" "$project" "$service")
+    [ -n "$container" ] || die "$service is not running in $project"
+    user=$(exec_user "$host" "$service")
+    local args=(-i)
+    [ -t 0 ] && [ -t 1 ] && args=(-it)
+    [ -n "$user" ] && args+=(-u "$user")
+    on_host "$host" docker exec "${args[@]}" "$container" "$@"
+}
+
+remove_listed() {
+    local host="$1" out ids remove
+    read -r -a remove <<<"$2"
+    shift 2
+    out=$(on_host "$host" docker "$@") || return 1
+    mapfile -t ids < <(grep . <<<"$out" | sort -u)
+    [ "${#ids[@]}" -eq 0 ] && return 0
+    on_host "$host" docker "${remove[@]}" "${ids[@]}" >/dev/null
+}
+
+remove_labelled() {
+    local host="$1" project="$2"
+    local filters=(--filter "label=$OWNER_LABEL=$OWNER" --filter "label=$PROJECT_LABEL=$project")
+    remove_listed "$host" "rm -f" ps -aq "${filters[@]}" &&
+        remove_listed "$host" "volume rm" volume ls -q "${filters[@]}" &&
+        remove_listed "$host" "network rm" network ls -q "${filters[@]}" &&
+        remove_listed "$host" "rmi -f" image ls -q "${filters[@]}" --filter "label=$SCOPE_LABEL=stack"
+}
+
+# Callers use `teardown_project || ...`, which turns off set -e in here, so every failure is returned by hand.
+teardown_project() {
+    local host="$1" project="$2" empty rc=0
+    empty=$(mktemp -d)
+    on_host "$host" docker compose -p "$project" --project-directory "$empty" \
+        down -v --remove-orphans || rc=$?
+    rmdir "$empty"
+    [ "$rc" -eq 0 ] || return "$rc"
+    remove_labelled "$host" "$project"
+}
+
+down_entry() {
+    local dir="$1" host project wt
+    host=$(entry_host "$dir")
+    project=$(basename "$dir")
+    wt=$(entry_worktree "$dir")
+    say "removing $project${host:+ on $host}"
+    host_reachable "$host" || {
+        warn "$host is unreachable; $project stays registered"
+        return 1
+    }
+    teardown_project "$host" "$project" || {
+        warn "teardown of $project failed; it stays registered"
+        return 1
+    }
+    stop_tunnel "$dir"
+    [ -d "$wt" ] && fix_perms "$wt"
+    rm -rf "$dir"
+}
+
+registered_hosts() {
+    [ -f "$REG/hosts" ] && cat "$REG/hosts"
+    return 0
+}
+
+register_host() {
+    grep -qx "$1" "$REG/hosts" 2>/dev/null || printf '%s\n' "$1" >>"$REG/hosts"
+}
+
+labelled_projects() {
+    local host="$1"
+    {
+        on_host "$host" docker ps -a --filter "label=$OWNER_LABEL=$OWNER" --format "{{.Label \"$PROJECT_LABEL\"}}"
+        on_host "$host" docker volume ls --filter "label=$OWNER_LABEL=$OWNER" --format "{{.Label \"$PROJECT_LABEL\"}}"
+        on_host "$host" docker network ls --filter "label=$OWNER_LABEL=$OWNER" --format "{{.Label \"$PROJECT_LABEL\"}}"
+    } | grep -v '^$' | sort -u
+}
+
+reap_orphans_on() {
+    local host="$1" project
+    while IFS= read -r project; do
+        [ -d "$REG/$project" ] && continue
+        say "removing orphan $project${host:+ on $host}"
+        teardown_project "$host" "$project" || warn "could not remove orphan $project${host:+ on $host}"
+    done < <(labelled_projects "$host")
+}
+
+images_in_use() {
+    local ids
+    mapfile -t ids < <(docker ps -aq)
+    [ "${#ids[@]}" -eq 0 ] || docker inspect --format '{{.Image}}' "${ids[@]}" | sort -u
+}
+
+registered_local_images() {
+    local dir
+    while IFS= read -r dir; do
+        [ -z "$(entry_host "$dir")" ] || continue
+        entry_value "$dir" STACK_BACKEND_IMAGE
+        entry_value "$dir" STACK_FRONTEND_IMAGE
+    done < <(entry_dirs)
+}
+
+prune_host_images() {
+    local keep used id ref
+    keep=$(registered_local_images)
+    used=$(images_in_use)
+    while IFS= read -r id; do
+        [ -n "$id" ] || continue
+        grep -qx "$id" <<<"$used" && continue
+        ref=$(docker image inspect --format '{{join .RepoTags " "}}' "$id") || continue
+        tr ' ' '\n' <<<"$ref" | grep -qxF -f <(grep . <<<"$keep") && continue
+        say "removing unused image ${ref:-$id}"
+        docker rmi "$id" >/dev/null || warn "could not remove ${ref:-$id}; a stack may be starting on it"
+    done < <(docker image ls -q --no-trunc --filter "label=$OWNER_LABEL=$OWNER" --filter "label=$SCOPE_LABEL=host" | sort -u)
+}
+
+reap() {
+    local dir host wt
+    lock
+    while IFS= read -r dir; do
+        wt=$(entry_worktree "$dir")
+        [ -d "$wt" ] && continue
+        down_entry "$dir" || true
+    done < <(entry_dirs)
+    reap_orphans_on ""
+    while IFS= read -r host; do
+        [ -n "$host" ] || continue
+        if host_reachable "$host"; then
+            reap_orphans_on "$host"
+        else
+            warn "$host is unreachable; its stacks were not checked"
+        fi
+    done < <(registered_hosts)
+    prune_host_images
+}
+
+cmd_up() {
+    local host=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --host)
+                host="${2:?--host needs a value}"
+                shift
+                ;;
+            *) die "unknown argument to up: $1" ;;
+        esac
+        shift
+    done
+    local wt slug project dir
+    wt=$(worktree_root .)
+    slug=$(slug_for "$wt")
+    [ -n "$slug" ] || die "cannot derive a name from $wt"
+    project=$(project_for "$wt")
+    dir="$REG/$project"
+
+    if [ -n "$host" ]; then
+        preflight_remote "$host"
+    else
+        check_memory
+    fi
+
+    lock
+    if [ -d "$dir" ]; then
+        [ "$(entry_worktree "$dir")" = "$wt" ] ||
+            die "$project already belongs to $(entry_worktree "$dir"); rename this worktree"
+        [ "$(entry_host "$dir")" = "$host" ] ||
+            die "$project runs on '$(entry_host "$dir")'; run down before moving it"
+        refresh_image_tags "$dir"
+    else
+        local slot
+        slot=$(pick_slot "$host")
+        write_entry "$dir" "$wt" "$host" "$slug" "$slot"
+    fi
+    [ -n "$host" ] && register_host "$host"
+    reap
+    unlock
+
+    build_images "$dir"
+    [ -n "$host" ] && check_remote_ai "$dir"
+    [ -n "$host" ] && start_tunnel "$dir"
+    stack_compose "$dir" up -d --no-build postgres redis backend
+    say "waiting for the backend"
+    wait_for_backend "$dir"
+    container_exec "$dir" backend alembic upgrade head
+    stack_compose "$dir" up -d --no-build worker image-worker frontend
+    say "$project is up: $(entry_value "$dir" STACK_ORIGIN) (dev login)"
+}
+
+resolve_entry() {
+    local wt="$1" dir
+    dir=$(entry_for_worktree "$wt") || die "no stack registered for $wt"
+    printf '%s\n' "$dir"
+}
+
+cmd_down() {
+    local wt=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --worktree)
+                wt="${2:?--worktree needs a path}"
+                shift
+                ;;
+            *) die "unknown argument to down: $1" ;;
+        esac
+        shift
+    done
+    if [ -z "$wt" ]; then
+        wt=$(worktree_root .)
+    else
+        wt=$(realpath -m "$wt")
+    fi
+    lock
+    local dir
+    dir=$(resolve_entry "$wt")
+    down_entry "$dir"
+}
+
+human_age() {
+    local secs=$(($(date +%s) - $1))
+    if [ "$secs" -ge 86400 ]; then
+        echo "$((secs / 86400))d"
+    elif [ "$secs" -ge 3600 ]; then
+        echo "$((secs / 3600))h"
+    else
+        echo "$((secs / 60))m"
+    fi
+}
+
+stack_memory() {
+    local host="$1" project="$2" ids
+    mapfile -t ids < <(on_host "$host" docker ps -q --filter "label=com.docker.compose.project=$project")
+    [ "${#ids[@]}" -gt 0 ] || {
+        echo -
+        return 0
+    }
+    on_host "$host" docker stats --no-stream --format '{{.MemUsage}}' "${ids[@]}" | awk '
+        { split($1, a, /[A-Za-z]+/); v = a[1]; u = $1; gsub(/[0-9.]/, "", u)
+          if (u == "GiB") v *= 1024; else if (u == "KiB") v /= 1024; else if (u == "B") v /= 1048576
+          total += v }
+        END { printf "%.0fMiB\n", total }'
+}
+
+cmd_ls() {
+    local dir found=0
+    printf '%-48s %-10s %-11s %-6s %-18s %-8s %-9s %s\n' PROJECT HOST PORTS AGE CONTAINERS TUNNEL MEMORY WORKTREE
+    while IFS= read -r dir; do
+        found=1
+        local project host wt fp bp age state tunnel mem flag=""
+        project=$(basename "$dir")
+        host=$(entry_host "$dir")
+        wt=$(entry_worktree "$dir")
+        fp=$(entry_value "$dir" FRONTEND_PORT)
+        bp=$(entry_value "$dir" BACKEND_PORT)
+        age=$(cat "$dir/created")
+        [ $(($(date +%s) - age)) -ge 86400 ] && flag=" (older than 24h)"
+        [ -d "$wt" ] || wt="$wt (missing)"
+        if host_reachable "$host"; then
+            state=$(on_host "$host" docker ps -a --filter "label=com.docker.compose.project=$project" \
+                --format '{{.State}}' | sort | uniq -c | awk '{printf "%s%s:%s", sep, $2, $1; sep=","}')
+            mem=$(stack_memory "$host" "$project")
+        else
+            state=unreachable
+            mem=-
+        fi
+        tunnel=-
+        if [ -n "$host" ]; then
+            if tunnel_pid_alive "$dir"; then tunnel=up; else tunnel=down; fi
+        fi
+        printf '%-48s %-10s %-11s %-6s %-18s %-8s %-9s %s\n' "$project" "${host:-local}" "$fp/$bp" \
+            "$(human_age "$age")$flag" "${state:-none}" "$tunnel" "$mem" "$wt"
+    done < <(entry_dirs)
+    [ "$found" = 1 ] || say "no stacks registered"
+}
+
+cmd_purge() {
+    local host=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --host)
+                host="${2:?--host needs a value}"
+                shift
+                ;;
+            *) die "unknown argument to purge: $1" ;;
+        esac
+        shift
+    done
+    reap
+    local dir
+    while IFS= read -r dir; do
+        [ "$(entry_host "$dir")" = "$host" ] &&
+            die "$(basename "$dir") still runs on ${host:-this machine}; run down first"
+    done < <(entry_dirs)
+    host_reachable "$host" || die "$host is unreachable"
+    local ids
+    mapfile -t ids < <(on_host "$host" docker image ls -q --filter "label=$OWNER_LABEL=$OWNER" | sort -u)
+    if [ "${#ids[@]}" -gt 0 ]; then
+        say "removing ${#ids[@]} stack images${host:+ on $host}"
+        on_host "$host" docker rmi -f "${ids[@]}" >/dev/null
+    fi
+    on_host "$host" docker builder prune -f >/dev/null
+    if [ -n "$host" ]; then
+        grep -vxF "$host" "$REG/hosts" >"$REG/hosts.new" || true
+        mv "$REG/hosts.new" "$REG/hosts"
+    fi
+    say "purged ${host:-this machine}"
+}
+
+cmd_exec() {
+    [ $# -ge 2 ] || die "usage: stack exec <service> <command...>"
+    local dir
+    dir=$(resolve_entry "$(worktree_root .)")
+    container_exec "$dir" "$@"
+}
+
+fix_perms() {
+    local path uid gid
+    path=$(realpath "$1")
+    uid=$(id -u)
+    gid=$(id -g)
+    [ -n "$(find "$path" ! -user "$uid" -print -quit)" ] || return 0
+    say "handing files under $path back to uid $uid"
+    docker run --rm --network none -v "$path:/target" --entrypoint sh "$PERMS_IMAGE" \
+        -c "find /target ! -user $uid -exec chown -h $uid:$gid {} +"
+}
+
+cmd_fix_perms() {
+    fix_perms "${1:-$(worktree_root .)}"
+}
+
+usage() {
+    sed -n '2,4p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+main() {
+    local cmd="${1:-}"
+    [ $# -gt 0 ] && shift
+    case "$cmd" in
+        up) cmd_up "$@" ;;
+        down) cmd_down "$@" ;;
+        ls) cmd_ls ;;
+        reap) reap ;;
+        purge) cmd_purge "$@" ;;
+        exec) cmd_exec "$@" ;;
+        fix-perms) cmd_fix_perms "$@" ;;
+        -h | --help | help) usage ;;
+        *)
+            usage >&2
+            exit 2
+            ;;
+    esac
+}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main "$@"
+fi
