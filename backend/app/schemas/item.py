@@ -324,7 +324,7 @@ class ItemExportRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    format: Literal["skill", "markdown", "text", "json"] = "skill"
+    format: Literal["skill", "json"] = "skill"
     include_profile: bool = True
     # The export cap is enforced by the service, so an oversized list gets the coded
     # EXPORT_TOO_LARGE error rather than a bare validation error.

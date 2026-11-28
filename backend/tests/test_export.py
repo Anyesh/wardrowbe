@@ -70,7 +70,6 @@ async def test_skill_groups_items_by_role_and_numbers_them(
     body = response.text
     assert body.startswith("---\nname: wardrobe-stylist\ndescription: ")
     assert "3 items" in body
-    # Sections follow the order a person dresses, and numbering runs across them.
     tops, bottoms, footwear = (
         body.index("### Tops (1)"),
         body.index("### Bottoms (1)"),
@@ -95,10 +94,10 @@ async def test_never_exports_another_users_items(
         _item(other, "shirt", name="Theirs"),
     )
 
-    by_filter = await client.post(URL, json={"format": "text"}, headers=auth_headers)
+    by_filter = await client.post(URL, json={"format": "json"}, headers=auth_headers)
     by_id = await client.post(
         URL,
-        json={"format": "text", "item_ids": [str(mine.id), str(theirs.id)]},
+        json={"format": "json", "item_ids": [str(mine.id), str(theirs.id)]},
         headers=auth_headers,
     )
 
@@ -123,7 +122,7 @@ async def test_follows_filters_and_exclusions_like_select_all(
     response = await client.post(
         URL,
         json={
-            "format": "text",
+            "format": "json",
             "filters": {"type": "shirt"},
             "excluded_ids": [str(excluded.id)],
         },
@@ -177,9 +176,44 @@ async def test_json_lists_every_item_without_account_details(
 
 
 @pytest.mark.asyncio
-async def test_rejects_unknown_formats(client: AsyncClient, test_user: User, auth_headers):
-    response = await client.post(URL, json={"format": "pdf"}, headers=auth_headers)
+@pytest.mark.parametrize("format_", ["pdf", "markdown", "text"])
+async def test_rejects_formats_the_api_does_not_render(
+    client: AsyncClient, test_user: User, auth_headers, format_: str
+):
+    response = await client.post(URL, json={"format": format_}, headers=auth_headers)
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_json_items_carry_their_section_in_dressing_order(
+    client: AsyncClient, test_user: User, auth_headers, db_session: AsyncSession
+):
+    await _add(
+        db_session,
+        _item(test_user, "scarf"),
+        _item(test_user, "sneakers"),
+        _item(test_user, "dress"),
+        _item(test_user, "jacket"),
+        _item(test_user, "jeans"),
+        _item(test_user, "shirt", tags={"fit": "slim"}),
+        _item(test_user, "mystery-thing", tags={"fit": 3}),
+    )
+
+    payload = json.loads(
+        (await client.post(URL, json={"format": "json"}, headers=auth_headers)).text
+    )
+
+    assert [item["section"] for item in payload["items"]] == [
+        "tops",
+        "bottoms",
+        "full_body",
+        "outerwear",
+        "footwear",
+        "accessories",
+        "other",
+    ]
+    assert [item["fit"] for item in payload["items"]][0] == "slim"
+    assert payload["items"][-1]["fit"] is None
 
 
 @pytest.mark.asyncio
