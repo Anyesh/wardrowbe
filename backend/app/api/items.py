@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
@@ -60,7 +61,7 @@ from app.schemas.item import (
     failure_reason,
 )
 from app.services.image_service import ImageService
-from app.services.item_service import ItemService, TagVocabularyError
+from app.services.item_service import ImageJobClaim, ItemService, TagVocabularyError
 from app.utils.auth import get_current_user
 from app.utils.errors import CodedHTTPException, http_error
 from app.utils.signed_urls import sign_optional
@@ -832,6 +833,75 @@ async def bulk_cancel_analysis(
     )
 
 
+@dataclass
+class _ImageJobOutcome:
+    queued: int = 0
+    failed: int = 0
+    refused: int = 0
+    errors: list[str] = field(default_factory=list)
+
+
+async def _queue_image_jobs(
+    db: AsyncSession,
+    item_service: ItemService,
+    user_id: UUID,
+    item_ids: list[UUID],
+    kind: ProcessingKind,
+    job_name: str,
+    job_args: tuple,
+    label: str,
+) -> _ImageJobOutcome:
+    outcome = _ImageJobOutcome()
+    claims: list[tuple[UUID, ImageJobClaim]] = []
+    for item_id in item_ids:
+        claim = await item_service.claim_for_image_job(item_id, user_id, kind)
+        if claim is None:
+            outcome.refused += 1
+        else:
+            claims.append((item_id, claim))
+    await db.commit()
+    if not claims:
+        return outcome
+
+    redis = None
+    try:
+        redis = await create_pool(get_redis_settings())
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis for bulk {job_name}: {e}")
+        for item_id, claim in claims:
+            await item_service.release_image_job_claim(item_id, claim)
+        await db.commit()
+        raise CodedHTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "JOB_QUEUE_UNAVAILABLE",
+            "Failed to connect to job queue",
+        ) from None
+
+    try:
+        for item_id, claim in claims:
+            try:
+                job = await redis.enqueue_job(
+                    job_name,
+                    str(item_id),
+                    *job_args,
+                    _job_id=claim.job_id,
+                    _queue_name=IMAGE_QUEUE,
+                    final_status=claim.final_status.value,
+                )
+                if job is None:
+                    raise RuntimeError("enqueue_job returned None")
+                outcome.queued += 1
+            except Exception as e:
+                logger.error(f"Failed to queue {job_name} for {item_id}: {e}")
+                outcome.errors.append(f"Failed to queue {label} for item {item_id}")
+                await item_service.release_image_job_claim(item_id, claim)
+                outcome.failed += 1
+        await db.commit()
+    finally:
+        await redis.aclose()
+    return outcome
+
+
 @router.post("/bulk/rotate", response_model=BulkRotateResponse)
 async def bulk_rotate_items(
     request: BulkRotateRequest,
@@ -839,7 +909,6 @@ async def bulk_rotate_items(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkRotateResponse:
     item_service = ItemService(db)
-    queued = 0
     failed = 0
     errors: list[str] = []
 
@@ -865,60 +934,24 @@ async def bulk_rotate_items(
     # rotating it now would interleave two _save_all_sizes passes over the same
     # three files, so skip rather than queue.
     already_processing = [item for item in items_to_process if item.status == ItemStatus.processing]
-    skipped = len(already_processing)
     to_queue = [item for item in items_to_process if item not in already_processing]
 
-    for item in to_queue:
-        item.status = ItemStatus.processing
-        item.processing_kind = ProcessingKind.rotate
-        # Clear any stale ai_started_at from a prior tagging run, otherwise the
-        # frontend reads it as this job's elapsed time and shows a wildly wrong
-        # duration for what is a sub-second rotation.
-        item.ai_started_at = None
-    await db.commit()
-
-    redis = None
-    try:
-        redis = await create_pool(get_redis_settings())
-    except Exception as e:
-        logger.error(f"Failed to connect to Redis for bulk rotate: {e}")
-        for item in to_queue:
-            item.status = ItemStatus.error
-            item.processing_kind = None
-        await db.commit()
-        raise CodedHTTPException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "JOB_QUEUE_UNAVAILABLE",
-            "Failed to connect to job queue",
-        ) from None
-
-    try:
-        for item in to_queue:
-            try:
-                job = await redis.enqueue_job(
-                    "rotate_item_image_job",
-                    str(item.id),
-                    request.direction,
-                    _queue_name=IMAGE_QUEUE,
-                )
-                if job is None:
-                    raise RuntimeError("enqueue_job returned None")
-                item.ai_job_id = job.job_id
-                queued += 1
-            except Exception as e:
-                logger.error(f"Failed to queue rotation for {item.id}: {e}")
-                errors.append(f"Failed to queue rotation for item {item.id}")
-                item.status = ItemStatus.error
-                item.processing_kind = None
-                failed += 1
-        await db.commit()
-    finally:
-        await redis.aclose()
+    outcome = await _queue_image_jobs(
+        db,
+        item_service,
+        current_user.id,
+        [item.id for item in to_queue],
+        ProcessingKind.rotate,
+        "rotate_item_image_job",
+        (request.direction,),
+        "rotation",
+    )
+    errors.extend(outcome.errors)
 
     return BulkRotateResponse(
-        queued=queued,
-        failed=failed,
-        skipped=skipped,
+        queued=outcome.queued,
+        failed=failed + outcome.failed,
+        skipped=len(already_processing) + outcome.refused,
         errors=errors,
         next_cursor=next_cursor,
         has_more=has_more,
@@ -932,7 +965,6 @@ async def bulk_remove_background_items(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BulkRemoveBackgroundResponse:
     item_service = ItemService(db)
-    queued = 0
     failed = 0
     errors: list[str] = []
 
@@ -955,13 +987,11 @@ async def bulk_remove_background_items(
 
     # Items already processing with a live job are skipped, not re-queued - a
     # second job racing the first would stomp each other's original-backup
-    # write. An item stuck `processing` with no job (a previously-failed
-    # enqueue) is not considered "already processing" and gets a fresh job,
-    # mirroring bulk_analyze_items's skip check.
+    # write. An image job stuck `processing` with no job id (a previously-failed
+    # enqueue) gets a fresh job; the claim refuses a stuck tagging row.
     already_processing = [
         item for item in items_to_process if item.status == ItemStatus.processing and item.ai_job_id
     ]
-    skipped = len(already_processing)
     # original_image_path set means a previous run already flattened this
     # item's background - re-running the provider would stomp the existing
     # backup with a background-removed image of a background-removed image.
@@ -977,59 +1007,22 @@ async def bulk_remove_background_items(
         if item not in already_processing and item not in already_done
     ]
 
-    for item in to_queue:
-        item.status = ItemStatus.processing
-        item.processing_kind = ProcessingKind.background_removal
-        # Clear any stale ai_started_at left over from a prior tagging run -
-        # otherwise the frontend reads it as this job's elapsed "analyzing"
-        # time, showing a wildly wrong duration for what is actually a
-        # few-second background-removal job.
-        item.ai_started_at = None
-    await db.commit()
-
-    redis = None
-    try:
-        redis = await create_pool(get_redis_settings())
-    except Exception as e:
-        logger.error(f"Failed to connect to Redis for bulk remove-background: {e}")
-        for item in to_queue:
-            item.status = ItemStatus.error
-            item.processing_kind = None
-        await db.commit()
-        raise CodedHTTPException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "JOB_QUEUE_UNAVAILABLE",
-            "Failed to connect to job queue",
-        ) from None
-
-    try:
-        for item in to_queue:
-            try:
-                job = await redis.enqueue_job(
-                    "remove_item_background_job",
-                    str(item.id),
-                    request.bg_color,
-                    _queue_name=IMAGE_QUEUE,
-                )
-                if job is None:
-                    raise RuntimeError("enqueue_job returned None")
-                item.ai_job_id = job.job_id
-                queued += 1
-            except Exception as e:
-                logger.error(f"Failed to queue background removal for {item.id}: {e}")
-                errors.append(f"Failed to queue background removal for item {item.id}")
-                item.status = ItemStatus.error
-                item.processing_kind = None
-                failed += 1
-        await db.commit()
-    finally:
-        if redis:
-            await redis.aclose()
+    outcome = await _queue_image_jobs(
+        db,
+        item_service,
+        current_user.id,
+        [item.id for item in to_queue],
+        ProcessingKind.background_removal,
+        "remove_item_background_job",
+        (request.bg_color,),
+        "background removal",
+    )
+    errors.extend(outcome.errors)
 
     return BulkRemoveBackgroundResponse(
-        queued=queued,
-        failed=failed,
-        skipped=skipped,
+        queued=outcome.queued,
+        failed=failed + outcome.failed,
+        skipped=len(already_processing) + outcome.refused,
         already_done=already_done_count,
         errors=errors,
         next_cursor=next_cursor,

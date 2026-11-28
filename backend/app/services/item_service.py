@@ -1,8 +1,9 @@
 from collections import Counter
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy import and_, func, or_, select, text, update
+from sqlalchemy import and_, case, func, literal, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
@@ -11,6 +12,7 @@ from app.models.item import (
     ClothingItem,
     ItemHistory,
     ItemStatus,
+    ProcessingKind,
     TaggingStatus,
     WashHistory,
 )
@@ -24,9 +26,26 @@ from app.schemas.item import (
 )
 from app.utils.errors import Coded
 from app.utils.tag_validation import normalize_tag_edits
+from app.workers.queues import IMAGE_PROCESSING_KINDS
 
 # Values the AI fills in that can also be changed on the item itself rather than inside tags.
 _EDITABLE_ITEM_FIELDS = ("type", "subtype", "primary_color", "colors")
+
+
+def status_unless_archived(status: ItemStatus):
+    status_type = ClothingItem.__table__.c.status.type
+    return case(
+        (ClothingItem.is_archived.is_(True), literal(ItemStatus.archived, status_type)),
+        else_=literal(status, status_type),
+    )
+
+
+@dataclass(frozen=True)
+class ImageJobClaim:
+    job_id: str
+    prior_status: ItemStatus
+    prior_kind: str | None
+    final_status: ItemStatus
 
 
 class TagVocabularyError(Coded, ValueError):
@@ -463,6 +482,70 @@ class ItemService:
                 ClothingItem.ai_job_id == job_id,
             )
             .values(status=ItemStatus.error)
+        )
+
+    async def claim_for_image_job(
+        self, item_id: UUID, user_id: UUID, kind: ProcessingKind
+    ) -> ImageJobClaim | None:
+        """Claim an idle item for a rotate or background-removal job.
+
+        Idle means ready, failed, or left `processing` by an image job that never
+        got queued. The status the job finishes on is decided here: a tagging
+        failure (`error` with no kind) stays `error` so its retry is not lost.
+        The caller commits before enqueueing and releases the claim if that fails.
+        """
+        row = (
+            await self.db.execute(
+                select(ClothingItem.status, ClothingItem.processing_kind)
+                .where(
+                    ClothingItem.id == item_id,
+                    ClothingItem.user_id == user_id,
+                    ClothingItem.is_archived.is_(False),
+                    or_(
+                        ClothingItem.status.in_([ItemStatus.ready, ItemStatus.error]),
+                        and_(
+                            ClothingItem.status == ItemStatus.processing,
+                            ClothingItem.ai_job_id.is_(None),
+                            ClothingItem.processing_kind.in_(IMAGE_PROCESSING_KINDS),
+                        ),
+                    ),
+                )
+                .with_for_update()
+            )
+        ).first()
+        if row is None:
+            return None
+
+        tagging_failed = row.status == ItemStatus.error and row.processing_kind is None
+        claim = ImageJobClaim(
+            job_id=str(uuid4()),
+            prior_status=row.status,
+            prior_kind=row.processing_kind,
+            final_status=ItemStatus.error if tagging_failed else ItemStatus.ready,
+        )
+        await self.db.execute(
+            update(ClothingItem)
+            .where(ClothingItem.id == item_id)
+            .values(
+                status=ItemStatus.processing,
+                processing_kind=kind,
+                ai_started_at=None,
+                ai_job_id=claim.job_id,
+            )
+        )
+        return claim
+
+    async def release_image_job_claim(self, item_id: UUID, claim: ImageJobClaim) -> None:
+        await self.db.execute(
+            update(ClothingItem)
+            .where(ClothingItem.id == item_id, ClothingItem.ai_job_id == claim.job_id)
+            .values(
+                status=status_unless_archived(claim.prior_status),
+                processing_kind=case(
+                    (ClothingItem.is_archived.is_(True), None), else_=claim.prior_kind
+                ),
+                ai_job_id=None,
+            )
         )
 
     async def claim_error_items_for_retry(

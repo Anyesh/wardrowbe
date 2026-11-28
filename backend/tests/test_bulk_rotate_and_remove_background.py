@@ -4,7 +4,7 @@ and the remove_item_background_job worker function.
 
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -94,8 +94,11 @@ class TestBulkRotate:
             "rotate_item_image_job",
             str(item_id),
             "cw",
+            _job_id=ANY,
             _queue_name="arq:images",
+            final_status="ready",
         )
+        job_id = mock_redis.enqueue_job.call_args.kwargs["_job_id"]
         # The request itself must not touch the image; that is the worker's job.
         assert Image.open(svc.get_image_path(item.image_path)).size == before_size
 
@@ -103,7 +106,7 @@ class TestBulkRotate:
         refreshed = await _get_item(db_session, item_id)
         assert refreshed.status == ItemStatus.processing
         assert refreshed.processing_kind == "rotate"
-        assert refreshed.ai_job_id == "rotate-job-id"
+        assert refreshed.ai_job_id == job_id
 
     @pytest.mark.asyncio
     async def test_clears_stale_ai_started_at_when_queueing(
@@ -256,7 +259,7 @@ class TestBulkRotate:
         assert body["failed"] == 0
 
     @pytest.mark.asyncio
-    async def test_redis_failure_marks_touched_items_error(
+    async def test_redis_failure_puts_touched_items_back(
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
         item = await _make_item(db_session, test_user)
@@ -274,8 +277,9 @@ class TestBulkRotate:
         assert response.status_code == 500
         db_session.expire_all()
         refreshed = await _get_item(db_session, item_id)
-        assert refreshed.status == ItemStatus.error
+        assert refreshed.status == ItemStatus.ready
         assert refreshed.processing_kind is None
+        assert refreshed.ai_job_id is None
 
 
 class TestBulkRemoveBackground:
@@ -319,14 +323,17 @@ class TestBulkRemoveBackground:
             "remove_item_background_job",
             str(item_id),
             "#FFFFFF",
+            _job_id=ANY,
             _queue_name="arq:images",
+            final_status="ready",
         )
+        job_id = mock_redis.enqueue_job.call_args.kwargs["_job_id"]
 
         db_session.expire_all()
         refreshed = await _get_item(db_session, item_id)
         assert refreshed.status == ItemStatus.processing
         assert refreshed.ai_started_at is None
-        assert refreshed.ai_job_id == "fake-job-id"
+        assert refreshed.ai_job_id == job_id
         assert refreshed.processing_kind == "background_removal"
 
     @pytest.mark.asyncio
@@ -358,12 +365,14 @@ class TestBulkRemoveBackground:
         mock_redis.enqueue_job.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_stuck_processing_item_with_no_job_is_retried(
+    async def test_stuck_image_job_with_no_job_id_is_retried(
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
         # status=processing with no ai_job_id - a previously-failed enqueue, not
         # a live job - must be retried rather than skipped forever.
-        stuck = await _make_item(db_session, test_user, status=ItemStatus.processing)
+        stuck = await _make_item(
+            db_session, test_user, status=ItemStatus.processing, processing_kind="rotate"
+        )
 
         with patch("app.api.items.create_pool", new_callable=AsyncMock) as mock_create_pool:
             mock_redis = AsyncMock()
@@ -383,7 +392,7 @@ class TestBulkRemoveBackground:
         mock_redis.enqueue_job.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_redis_failure_marks_touched_items_error(
+    async def test_redis_failure_puts_touched_items_back(
         self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user
     ):
         item = await _make_item(db_session, test_user)
@@ -400,7 +409,9 @@ class TestBulkRemoveBackground:
         assert response.status_code == 500
         db_session.expire_all()
         refreshed = await _get_item(db_session, item_id)
-        assert refreshed.status == ItemStatus.error
+        assert refreshed.status == ItemStatus.ready
+        assert refreshed.processing_kind is None
+        assert refreshed.ai_job_id is None
 
     @pytest.mark.asyncio
     async def test_already_done_items_are_skipped_and_reported(
@@ -432,7 +443,9 @@ class TestBulkRemoveBackground:
             "remove_item_background_job",
             str(fresh.id),
             "#FFFFFF",
+            _job_id=ANY,
             _queue_name="arq:images",
+            final_status="ready",
         )
 
     @pytest.mark.asyncio
@@ -525,8 +538,104 @@ class TestBulkRemoveBackground:
             "remove_item_background_job",
             str(item.id),
             "#000000",
+            _job_id=ANY,
             _queue_name="arq:images",
+            final_status="ready",
         )
+
+
+BULK_ACTIONS = [
+    ("/api/v1/items/bulk/rotate", "rotate"),
+    ("/api/v1/items/bulk/remove-background", "background_removal"),
+]
+
+
+def _bulk_redis(enqueue_result=True) -> AsyncMock:
+    redis = AsyncMock()
+    if enqueue_result:
+        redis.enqueue_job.side_effect = lambda *a, **kw: MagicMock(job_id=kw["_job_id"])
+    else:
+        redis.enqueue_job.return_value = None
+    return redis
+
+
+class TestBulkImageClaims:
+    @pytest.mark.parametrize(("path", "kind"), BULK_ACTIONS)
+    @pytest.mark.parametrize(
+        "state",
+        [
+            {"status": ItemStatus.processing, "processing_kind": None},
+            {"status": ItemStatus.archived, "is_archived": True},
+            {"status": ItemStatus.error, "is_archived": True},
+        ],
+        ids=["orphaned tagging", "archived", "archived failure"],
+    )
+    @pytest.mark.asyncio
+    async def test_items_the_claim_refuses_count_as_skipped(
+        self,
+        client: AsyncClient,
+        auth_headers,
+        db_session: AsyncSession,
+        test_user,
+        path,
+        kind,
+        state,
+    ):
+        refused = await _make_item(db_session, test_user, **state)
+        refused_id = refused.id
+        redis = _bulk_redis()
+
+        with patch("app.api.items.create_pool", AsyncMock(return_value=redis)):
+            response = await client.post(
+                path, headers=auth_headers, json={"item_ids": [str(refused_id)]}
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert (body["queued"], body["skipped"], body["failed"]) == (0, 1, 0)
+        redis.enqueue_job.assert_not_awaited()
+        db_session.expire_all()
+        refreshed = await _get_item(db_session, refused_id)
+        assert refreshed.status == state["status"]
+        assert refreshed.processing_kind is None
+
+    @pytest.mark.parametrize(("path", "kind"), BULK_ACTIONS)
+    @pytest.mark.asyncio
+    async def test_a_tagging_failure_is_queued_to_finish_as_error(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user, path, kind
+    ):
+        failed = await _make_item(db_session, test_user, status=ItemStatus.error)
+        redis = _bulk_redis()
+
+        with patch("app.api.items.create_pool", AsyncMock(return_value=redis)):
+            response = await client.post(
+                path, headers=auth_headers, json={"item_ids": [str(failed.id)]}
+            )
+
+        assert response.json()["queued"] == 1
+        assert redis.enqueue_job.await_args.kwargs["final_status"] == "error"
+
+    @pytest.mark.parametrize(("path", "kind"), BULK_ACTIONS)
+    @pytest.mark.asyncio
+    async def test_a_refused_enqueue_puts_the_item_back(
+        self, client: AsyncClient, auth_headers, db_session: AsyncSession, test_user, path, kind
+    ):
+        item = await _make_item(db_session, test_user)
+        item_id = item.id
+
+        with patch("app.api.items.create_pool", AsyncMock(return_value=_bulk_redis(False))):
+            response = await client.post(
+                path, headers=auth_headers, json={"item_ids": [str(item_id)]}
+            )
+
+        body = response.json()
+        assert (body["queued"], body["failed"]) == (0, 1)
+        assert len(body["errors"]) == 1
+        db_session.expire_all()
+        refreshed = await _get_item(db_session, item_id)
+        assert refreshed.status == ItemStatus.ready
+        assert refreshed.processing_kind is None
+        assert refreshed.ai_job_id is None
 
 
 class TestRemoveItemBackgroundJob:
@@ -545,7 +654,9 @@ class TestRemoveItemBackgroundJob:
             patch.object(db_session, "close", new_callable=AsyncMock),
             patch("app.services.background_removal.get_provider", return_value=_mock_provider()),
         ):
-            result = await remove_item_background_job({}, str(item.id), "#FFFFFF")
+            result = await remove_item_background_job(
+                {"job_id": "live-job-id"}, str(item.id), "#FFFFFF"
+            )
 
         assert result["status"] == "success"
         refreshed = await _get_item(db_session, item.id)
@@ -583,7 +694,7 @@ class TestRemoveItemBackgroundJob:
             patch.object(db_session, "close", new_callable=AsyncMock),
             patch("app.services.background_removal.get_provider", return_value=provider),
         ):
-            await remove_item_background_job({}, str(item.id), "#FFFFFF")
+            await remove_item_background_job({"job_id": "live-job-id"}, str(item.id), "#FFFFFF")
 
         assert seen["ai_started_at"] is not None
 
@@ -608,7 +719,9 @@ class TestRemoveItemBackgroundJob:
             patch.object(db_session, "close", new_callable=AsyncMock),
             patch("app.services.background_removal.get_provider", return_value=failing_provider),
         ):
-            result = await remove_item_background_job({}, str(item.id), "#FFFFFF")
+            result = await remove_item_background_job(
+                {"job_id": "live-job-id"}, str(item.id), "#FFFFFF"
+            )
 
         assert result["status"] == "error"
         refreshed = await _get_item(db_session, item.id)
@@ -628,7 +741,9 @@ class TestRemoveItemBackgroundJob:
             patch("app.workers.background_removal.get_db_session", return_value=db_session),
             patch.object(db_session, "close", new_callable=AsyncMock),
         ):
-            result = await remove_item_background_job({}, str(uuid4()), "#FFFFFF")
+            result = await remove_item_background_job(
+                {"job_id": "live-job-id"}, str(uuid4()), "#FFFFFF"
+            )
 
         assert result == {"status": "error", "error": "Item not found"}
 
