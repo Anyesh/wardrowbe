@@ -92,6 +92,7 @@ DETECTION_PROMPT = render_tagging_prompt(load_prompt("garment_detection")).repla
 )
 DESCRIPTION_LANGUAGES = {
     "en": "English",
+    "en-GB": "British English",
     "zh-CN": "Simplified Chinese",
     "zh-TW": "Traditional Chinese",
     "ko": "Korean",

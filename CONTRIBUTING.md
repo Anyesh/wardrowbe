@@ -207,6 +207,11 @@ Adding a language: add its code to `backend/app/data/locales.json`, run
 `cd frontend && npm run vocab:gen`, add its entry to `LOCALE_METADATA` in
 `frontend/lib/i18n/locales.ts` (tsc fails until you do), and create `frontend/messages/<locale>/`.
 
+`frontend/messages/en-GB/` is generated, so don't edit it by hand. `npm run i18n:en-gb` derives it from `en`, applying British
+spelling (colour, favourite, analyse, ...) and the whole-string replacements in
+`frontend/i18n/en-GB-overrides.json` (Pants → Trousers, Fall → Autumn, ...). Run it after changing
+any `en` file; `i18n:check` fails while it is stale.
+
 ### Garment vocabulary
 
 Clothing types, their outfit role and default wash interval, the outfit roles in the order an
