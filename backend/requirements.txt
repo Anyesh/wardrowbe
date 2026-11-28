@@ -1,17 +1,17 @@
 # FastAPI and web framework
-fastapi>=0.162.0
+fastapi>=0.163.1
 uvicorn[standard]>=0.54.0
-python-multipart>=0.0.33
+python-multipart>=0.0.34
 
 # Database
-sqlalchemy[asyncio]>=2.1.6
+sqlalchemy[asyncio]>=2.1.9
 asyncpg>=0.32.0
 alembic>=1.20.1
 
 # Configuration and validation
-pydantic>=2.14.2
-pydantic-settings>=2.16.2
-email-validator>=2.3.0
+pydantic>=2.14.3
+pydantic-settings>=2.16.3
+email-validator>=2.4.0
 
 # Authentication
 PyJWT[crypto]>=2.15.1
@@ -41,7 +41,7 @@ imagehash>=4.3.2
 
 # Testing
 pytest>=9.2.0
-pytest-asyncio>=1.4.1.post1
+pytest-asyncio>=1.5.0
 pytest-cov>=7.1.0
 pyyaml>=6.0.3
 aiosqlite>=0.22.1
