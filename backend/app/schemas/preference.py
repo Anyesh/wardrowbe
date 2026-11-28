@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.color import ColorList
 from app.schemas.outfit import Occasion
@@ -26,12 +26,42 @@ from app.utils.scales import (
 )
 
 
-class AIEndpoint(BaseModel):
+class AIEndpointBase(BaseModel):
+    id: str | None = Field(default=None, max_length=64, description="Stable id assigned on save")
     name: str = Field(description="Display name for this endpoint")
     url: str = Field(description="Base URL for the AI API (e.g., http://localhost:11434/v1)")
-    vision_model: str = Field(default="moondream", description="Model for image analysis")
-    text_model: str = Field(default="phi3:mini", description="Model for text generation")
+    # A blank model means the endpoint does not serve that kind of request: a server that only
+    # hosts a vision model is then skipped for outfit text, and vice versa.
+    vision_model: str | None = Field(
+        default="moondream", description="Model for image analysis; blank to skip"
+    )
+    text_model: str | None = Field(
+        default="phi3:mini", description="Model for text generation; blank to skip"
+    )
     enabled: bool = Field(default=True, description="Whether this endpoint is active")
+
+    @field_validator("vision_model", "text_model", mode="before")
+    @classmethod
+    def _blank_model_is_none(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
+
+
+class AIEndpoint(AIEndpointBase):
+    api_key: str | None = Field(
+        default=None,
+        max_length=4096,
+        description="Write-only. Omit or null to keep the stored key, empty to remove it.",
+    )
+
+
+class AIEndpointPublic(AIEndpointBase):
+    has_api_key: bool = Field(default=False, description="Whether a key is stored")
+    uses_server_key: bool = Field(
+        default=False,
+        description="Saved before endpoints had keys of their own, so the server key is sent",
+    )
 
 
 class StyleProfile(BaseModel):
@@ -155,5 +185,7 @@ class PreferenceUpdate(BaseModel):
 
 
 class PreferenceResponse(PreferenceBase):
+    ai_endpoints: list[AIEndpointPublic] = Field(default_factory=list)
+
     class Config:
         from_attributes = True

@@ -8,25 +8,37 @@
   "aiEndpoints": {
     "active": "Attivo",
     "addEndpoint": "Aggiungi endpoint",
+    "apiKeyHint": "Viene salvata sul server e non viene più mostrata. Lascia vuoto per mantenere la chiave salvata; se cambi l'URL devi inserirla di nuovo.",
     "connected": "Connesso",
     "description": "Configura gli endpoint IA per l'analisi delle immagini. Gli endpoint vengono provati in ordine dall'alto verso il basso.",
     "disabled": "Disattivato",
     "error": "Errore",
     "fields": {
+      "apiKey": "API key",
       "name": "Nome",
       "textModel": "Modello di testo",
       "url": "URL",
       "visionModel": "Modello di visione"
     },
+    "modelNone": "Nessuno (non usare questo server)",
+    "modelUnavailable": "{model} (non presente sul server)",
     "modelsAvailable": "{count, plural, one {{count} modello disponibile} other {{count} modelli disponibili}}",
+    "modelsOptionalHint": "Lascia vuoto un modello se questo server non lo ospita: verrà saltato per quel tipo di richiesta (analisi delle immagini o suggerimenti di outfit).",
     "noEndpoints": "Nessun endpoint personalizzato configurato. Utilizzo delle impostazioni server predefinite.",
+    "pickAfterTest": "Testa la connessione per scegliere tra i modelli del server.",
     "placeholders": {
+      "apiKey": "Facoltativa, es. per vLLM o OpenAI",
+      "apiKeySaved": "Salvata (scrivi per sostituirla)",
+      "apiKeyServer": "Usa la chiave del server (AI_API_KEY)",
       "name": "es., Ollama locale"
     },
+    "removeKey": "Rimuovi chiave",
     "testConnection": "Testa connessione",
     "testFailed": "Test dell'endpoint fallito",
+    "textGroup": "Altri modelli",
     "textModels": "Testo: {models}",
     "title": "Endpoint IA",
+    "visionGroup": "Modelli di visione",
     "visionModels": "Visione: {models}"
   },
   "body": {

@@ -4,6 +4,7 @@
   "AI_ANALYSIS_FAILED": "Something went wrong while analyzing this photo. Retry the analysis.",
   "AI_ENDPOINT_FAILED": "We couldn't test this endpoint.",
   "AI_ENDPOINT_HTTP_ERROR": "The server answered with HTTP {status}.",
+  "AI_ENDPOINT_KEY_REJECTED": "The server rejected the API key (HTTP {status}).",
   "AI_ENDPOINT_REFUSED": "Connection refused. Is the server running?",
   "AI_ENDPOINT_TIMEOUT": "The connection timed out.",
   "AI_HTTP_ERROR": "The AI service returned an error (HTTP {status}). Retry the analysis, and check the model name and API key if it keeps failing.",

@@ -6,6 +6,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.preference import UserPreference
 from app.schemas.preference import PreferenceUpdate, StyleProfile
+from app.utils.ai_endpoints import merge_endpoints
 from app.utils.preference_defaults import (
     DEFAULT_LAYERING_PREFERENCE,
     DEFAULT_OCCASION,
@@ -74,6 +75,12 @@ class PreferenceService:
                 current_profile.update(update_value)
                 preferences.style_profile = current_profile
                 flag_modified(preferences, "style_profile")
+            elif field == "ai_endpoints" and value is not None:
+                # Keys are write-only, so an endpoint sent back without one keeps the stored key.
+                preferences.ai_endpoints = merge_endpoints(
+                    data.ai_endpoints, preferences.ai_endpoints
+                )
+                flag_modified(preferences, "ai_endpoints")
             elif field in (
                 "color_favorites",
                 "color_avoid",

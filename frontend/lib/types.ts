@@ -148,11 +148,19 @@ export interface StyleProfile {
 }
 
 export interface AIEndpoint {
+  // Assigned by the server on save; ties the edited copy to the stored endpoint and its key.
+  id?: string | null;
   name: string;
   url: string;
-  vision_model: string;
-  text_model: string;
+  // Blank (null) when this server does not host that kind of model, so it is skipped for it.
+  vision_model: string | null;
+  text_model: string | null;
   enabled: boolean;
+  // Write-only: sent only when the user types a new key ('' removes the saved one).
+  api_key?: string;
+  has_api_key?: boolean;
+  // Saved before endpoints had keys of their own, so the server's AI_API_KEY is still sent.
+  uses_server_key?: boolean;
 }
 
 export interface Preferences {

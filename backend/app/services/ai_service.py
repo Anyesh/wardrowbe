@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from app.config import get_settings
 from app.services.garment_detector import DETECTION_EXAMPLE, DetectedGarment, parse_detection
+from app.utils.ai_endpoints import endpoint_api_key
 from app.utils.errors import Coded
 from app.utils.garment_vocabulary import (
     COLORS,
@@ -266,16 +267,20 @@ class AIEndpointConfig:
     def __init__(
         self,
         url: str,
-        vision_model: str = "moondream",
-        text_model: str = "phi3:mini",
+        vision_model: str | None = "moondream",
+        text_model: str | None = "phi3:mini",
         name: str = "default",
         enabled: bool = True,
+        api_key: str | None = None,
     ):
         self.url = url
+        # None when the endpoint does not serve that kind of request, so a server hosting only a
+        # vision model is skipped for text generation and vice versa.
         self.vision_model = vision_model
         self.text_model = text_model
         self.name = name
         self.enabled = enabled
+        self.api_key = api_key
 
 
 class AIService:
@@ -308,10 +313,11 @@ class AIService:
                     self._endpoints.append(
                         AIEndpointConfig(
                             url=ep["url"],
-                            vision_model=ep.get("vision_model", "moondream"),
-                            text_model=ep.get("text_model", "phi3:mini"),
+                            vision_model=ep.get("vision_model", "moondream") or None,
+                            text_model=ep.get("text_model", "phi3:mini") or None,
                             name=ep.get("name", "custom"),
                             enabled=True,
+                            api_key=endpoint_api_key(ep, self.api_key),
                         )
                     )
 
@@ -323,6 +329,7 @@ class AIService:
                 vision_model=self.settings.ai_vision_model,
                 text_model=self.settings.ai_text_model,
                 name="default",
+                api_key=self.api_key,
             )
         )
 
@@ -331,11 +338,12 @@ class AIService:
         self.vision_model = self._endpoints[0].vision_model
         self.text_model = self._endpoints[0].text_model
 
-    def _get_headers(self) -> dict:
-        """Get headers for AI API requests, including auth if configured."""
+    @staticmethod
+    def _get_headers(endpoint: AIEndpointConfig) -> dict:
+        """Headers for a request to this endpoint, with its own key when it has one."""
         headers = {"Content-Type": "application/json"}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+        if endpoint.api_key:
+            headers["Authorization"] = f"Bearer {endpoint.api_key}"
         return headers
 
     def _preprocess_image(self, image_path: str | Path) -> str:
@@ -461,8 +469,10 @@ class AIService:
         every_endpoint_repeats = True
 
         for endpoint in self._endpoints:
-            logger.info(f"Trying AI endpoint for {task_name}: {endpoint.name}")
             model = endpoint.vision_model if use_vision_model else endpoint.text_model
+            if not model:
+                continue
+            logger.info(f"Trying AI endpoint for {task_name}: {endpoint.name}")
             use_logprobs = request_logprobs
             use_reasoning_effort = bool(self.settings.ai_reasoning_effort)
             current_reasoning_effort = self.settings.ai_reasoning_effort
@@ -485,7 +495,7 @@ class AIService:
 
                         response = await client.post(
                             f"{endpoint.url}/chat/completions",
-                            headers=self._get_headers(),
+                            headers=self._get_headers(endpoint),
                             json=request_body,
                         )
                         response.raise_for_status()
@@ -709,7 +719,7 @@ class AIService:
                 async with httpx.AsyncClient(timeout=5, follow_redirects=True) as client:
                     # Try OpenAI-compatible /v1/models endpoint first
                     response = await client.get(
-                        f"{endpoint.url}/models", headers=self._get_headers()
+                        f"{endpoint.url}/models", headers=self._get_headers(endpoint)
                     )
                     if response.status_code == 200:
                         data = response.json()
@@ -729,7 +739,10 @@ class AIService:
                         continue
 
                     # Fallback: Try Ollama-specific endpoint
-                    response = await client.get(endpoint.url.replace("/v1", "/api/tags"))
+                    response = await client.get(
+                        endpoint.url.replace("/v1", "/api/tags"),
+                        headers=self._get_headers(endpoint),
+                    )
                     if response.status_code == 200:
                         models = response.json().get("models", [])
                         model_names = [m.get("name", "") for m in models]
@@ -783,6 +796,8 @@ class AIService:
         last_error = None
 
         for endpoint in self._endpoints:
+            if not endpoint.text_model:
+                continue
             logger.info(f"Trying text generation via {endpoint.name}")
 
             use_reasoning_effort = bool(self.settings.ai_reasoning_effort)
@@ -803,7 +818,7 @@ class AIService:
 
                         response = await client.post(
                             f"{endpoint.url}/chat/completions",
-                            headers=self._get_headers(),
+                            headers=self._get_headers(endpoint),
                             json=request_body,
                         )
                         response.raise_for_status()

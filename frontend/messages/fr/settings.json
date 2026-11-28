@@ -8,25 +8,37 @@
   "aiEndpoints": {
     "active": "Actif",
     "addEndpoint": "Ajouter un point de terminaison",
+    "apiKeyHint": "Enregistrée sur le serveur et jamais réaffichée. Laissez vide pour conserver la clé enregistrée ; si vous changez l'URL, saisissez-la à nouveau.",
     "connected": "Connecté",
     "description": "Configurez les points de terminaison IA pour l'analyse d'images. Les points de terminaison sont essayés dans l'ordre, de haut en bas.",
     "disabled": "Désactivé",
     "error": "Erreur",
     "fields": {
+      "apiKey": "Clé API",
       "name": "Nom",
       "textModel": "Modèle de texte",
       "url": "URL",
       "visionModel": "Modèle de vision"
     },
+    "modelNone": "Aucun (ne pas utiliser ce serveur pour cela)",
+    "modelUnavailable": "{model} (non listé par le serveur)",
     "modelsAvailable": "{count, plural, one {{count} modèle disponible} other {{count} modèles disponibles}}",
+    "modelsOptionalHint": "Laissez un modèle vide si ce serveur n'en héberge pas : il sera alors ignoré pour ce type de requête (analyse d'images ou suggestions de tenues).",
     "noEndpoints": "Aucun point de terminaison personnalisé configuré. Utilisation des paramètres serveur par défaut.",
+    "pickAfterTest": "Testez la connexion pour choisir parmi les modèles du serveur.",
     "placeholders": {
+      "apiKey": "Facultative, p. ex. pour vLLM ou OpenAI",
+      "apiKeySaved": "Enregistrée (saisir pour la remplacer)",
+      "apiKeyServer": "Utilise la clé du serveur (AI_API_KEY)",
       "name": "ex. Ollama local"
     },
+    "removeKey": "Supprimer la clé",
     "testConnection": "Tester la connexion",
     "testFailed": "Échec du test du point de terminaison",
+    "textGroup": "Autres modèles",
     "textModels": "Texte : {models}",
     "title": "Points de terminaison IA",
+    "visionGroup": "Modèles de vision",
     "visionModels": "Vision : {models}"
   },
   "body": {

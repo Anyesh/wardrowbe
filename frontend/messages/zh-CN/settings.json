@@ -8,25 +8,37 @@
   "aiEndpoints": {
     "active": "活跃",
     "addEndpoint": "添加端点",
+    "apiKeyHint": "保存在服务器上，不会再次显示。留空则保留已保存的密钥；更改 URL 后需要重新输入。",
     "connected": "已连接",
     "description": "配置用于图像分析的 AI 端点。端点按从上到下的顺序依次尝试。",
     "disabled": "已禁用",
     "error": "错误",
     "fields": {
+      "apiKey": "API 密钥",
       "name": "名称",
       "textModel": "文本模型",
       "url": "URL",
       "visionModel": "视觉模型"
     },
+    "modelNone": "无（此类请求不使用该服务器）",
+    "modelUnavailable": "{model}（服务器未列出）",
     "modelsAvailable": "{count, plural, one {{count} 个可用模型} other {{count} 个可用模型}}",
+    "modelsOptionalHint": "如果该服务器没有某个模型，请留空：该类请求（图片分析或穿搭建议）将跳过此服务器。",
     "noEndpoints": "未配置自定义端点。使用默认服务器设置。",
+    "pickAfterTest": "测试连接后即可从服务器的模型中选择。",
     "placeholders": {
+      "apiKey": "可选，例如用于 vLLM 或 OpenAI",
+      "apiKeySaved": "已保存（输入以替换）",
+      "apiKeyServer": "使用服务器密钥（AI_API_KEY）",
       "name": "例如：本地 Ollama"
     },
+    "removeKey": "删除密钥",
     "testConnection": "测试连接",
     "testFailed": "测试端点失败",
+    "textGroup": "其他模型",
     "textModels": "文本：{models}",
     "title": "AI 端点",
+    "visionGroup": "视觉模型",
     "visionModels": "视觉：{models}"
   },
   "body": {
