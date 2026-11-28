@@ -1,0 +1,99 @@
+# Applied last by scripts/stack so several stacks run side by side; not meant for direct use.
+# Every value comes from the stack's registry env file, which scripts/stack writes.
+
+x-stack-labels: &stack-labels
+  wardrowbe.stack.owner: ${STACK_OWNER:?}
+  wardrowbe.stack.project: ${COMPOSE_PROJECT_NAME:?}
+
+# host: an image shared by every stack on this machine (local dev builds), kept until purge.
+# stack: an image only this stack uses (remote source builds), removed by down.
+x-stack-build-labels: &stack-build-labels
+  <<: *stack-labels
+  wardrowbe.stack.scope: ${STACK_IMAGE_SCOPE:?}
+
+x-stack-backend-env: &stack-backend-env
+  APP_URL: ${STACK_ORIGIN:?}
+  SECRET_KEY: ${SECRET_KEY:?}
+
+services:
+  caddy:
+    container_name: !reset null
+    profiles: ["https"]
+    ports: !reset []
+    labels: *stack-labels
+
+  postgres:
+    container_name: !reset null
+    ports: !reset []
+    labels: *stack-labels
+
+  redis:
+    container_name: !reset null
+    ports: !reset []
+    labels: *stack-labels
+
+  backend:
+    container_name: !reset null
+    image: ${STACK_BACKEND_IMAGE:?}
+    pull_policy: never
+    build:
+      labels: *stack-build-labels
+    ports: !override
+      - "127.0.0.1:${BACKEND_PORT:?}:8000"
+    environment:
+      <<: *stack-backend-env
+      CORS_ORIGINS: '["${STACK_ORIGIN}", "http://frontend:3000"]'
+    labels: *stack-labels
+
+  worker:
+    container_name: !reset null
+    image: ${STACK_BACKEND_IMAGE:?}
+    pull_policy: never
+    build:
+      labels: *stack-build-labels
+    environment:
+      <<: *stack-backend-env
+    labels: *stack-labels
+
+  image-worker:
+    container_name: !reset null
+    image: ${STACK_BACKEND_IMAGE:?}
+    pull_policy: never
+    build:
+      labels: *stack-build-labels
+    environment:
+      <<: *stack-backend-env
+    labels: *stack-labels
+
+  frontend:
+    container_name: !reset null
+    image: ${STACK_FRONTEND_IMAGE:?}
+    pull_policy: never
+    build:
+      labels: *stack-build-labels
+    ports: !override
+      - "127.0.0.1:${FRONTEND_PORT:?}:3000"
+    environment:
+      NEXTAUTH_URL: ${STACK_ORIGIN:?}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?}
+    labels: *stack-labels
+
+volumes:
+  postgres_data:
+    labels: *stack-labels
+  redis_data:
+    labels: *stack-labels
+  wardrobe_data:
+    labels: *stack-labels
+  rembg_models:
+    labels: *stack-labels
+  frontend_node_modules:
+    labels: *stack-labels
+  caddy_data:
+    labels: *stack-labels
+  caddy_config:
+    labels: *stack-labels
+
+networks:
+  default:
+    labels: *stack-labels
