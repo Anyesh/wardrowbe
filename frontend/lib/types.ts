@@ -169,6 +169,7 @@ export interface Preferences {
   prefer_underused_items: boolean;
   variety_level: 'low' | 'moderate' | 'high';
   ai_endpoints: AIEndpoint[];
+  excluded_item_ids: string[];
 }
 
 export { CLOTHING_COLORS, CLOTHING_SUBTYPES } from '@/lib/generated/garment-vocabulary';

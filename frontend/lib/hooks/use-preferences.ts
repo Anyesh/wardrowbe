@@ -48,6 +48,26 @@ export function useResetPreferences() {
   });
 }
 
+export function useSetItemExcluded() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: ({ itemId, excluded }: { itemId: string; excluded: boolean }) => {
+      applySessionToken(session);
+      const path = `/users/me/preferences/excluded-items/${itemId}`;
+      return excluded
+        ? api.post<{ excluded_item_ids: string[] }>(path)
+        : api.delete<{ excluded_item_ids: string[] }>(path);
+    },
+    // Settled, so a lost response after a saved change still reconciles the switch.
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences });
+      queryClient.invalidateQueries({ queryKey: queryKeys.learning.all });
+    },
+  });
+}
+
 interface AITestResult {
   status: 'connected' | 'error';
   available_models?: string[];

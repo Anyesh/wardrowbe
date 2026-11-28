@@ -52,12 +52,16 @@ class PairingService:
         return result.scalar_one_or_none()
 
     async def get_available_items(self, user: User, exclude_item_id: UUID) -> list[ClothingItem]:
+        # An excluded source item is still allowed, because choosing it is an explicit action.
+        skip_ids = {exclude_item_id}
+        if user.preferences and user.preferences.excluded_item_ids:
+            skip_ids.update(user.preferences.excluded_item_ids)
         query = select(ClothingItem).where(
             and_(
                 ClothingItem.user_id == user.id,
                 ClothingItem.status == ItemStatus.ready,
                 ClothingItem.is_archived.is_(False),
-                ClothingItem.id != exclude_item_id,
+                ClothingItem.id.notin_(skip_ids),
             )
         )
         result = await self.db.execute(query)

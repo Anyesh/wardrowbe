@@ -21,6 +21,7 @@ DEFAULT_PREFERENCES_RESPONSE = {
     "prefer_underused_items": True,
     "variety_level": "moderate",
     "ai_endpoints": [],
+    "excluded_item_ids": [],
 }
 
 
