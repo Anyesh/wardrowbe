@@ -138,7 +138,6 @@ export const api = {
   delete: <T>(endpoint: string, options?: FetchOptions) =>
     fetchApi<T>(endpoint, { ...options, method: 'DELETE' }),
 
-  // For endpoints that answer with a file body instead of JSON.
   postForText: async (endpoint: string, data?: unknown, options?: FetchOptions) => {
     const response = await send(endpoint, {
       ...options,
