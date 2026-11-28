@@ -61,6 +61,13 @@ def test_background_removal_settings_are_shared_and_its_key_stays_on_the_image_w
         assert ("BG_REMOVAL_API_KEY" in env) == (name == "image-worker"), name
 
 
+def test_every_backend_service_can_reach_services_on_the_host(compose):
+    # AI_BASE_URL and BG_REMOVAL_URL may point at host.docker.internal.
+    for name in BACKEND_SERVICES:
+        extra_hosts = compose["services"][name].get("extra_hosts", [])
+        assert "host.docker.internal:host-gateway" in extra_hosts, name
+
+
 def test_notification_settings_reach_the_worker(compose):
     worker_env = compose["services"]["worker"]["environment"]
 

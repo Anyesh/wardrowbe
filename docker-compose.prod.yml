@@ -149,6 +149,8 @@ services:
     container_name: wardrobe_image_worker
     restart: unless-stopped
     command: arq app.workers.image_worker.ImageWorkerSettings
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       <<: *backend-env
       IMAGE_WORKER_CONCURRENCY: ${IMAGE_WORKER_CONCURRENCY:-1}
