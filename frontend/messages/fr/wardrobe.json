@@ -165,7 +165,7 @@
         "name": "Catalogue Markdown"
       },
       "skill": {
-        "description": "Votre garde-robe et des règles de style, prêtes à ajouter comme skill dans un assistant comme Gemini ou Claude.",
+        "description": "Votre garde-robe et des règles de style, prêtes à ajouter comme skill dans un assistant IA.",
         "name": "Skill pour assistant IA (SKILL.md)"
       },
       "text": {
@@ -177,7 +177,7 @@
     "scope": "Articles",
     "scopeAll": "Tout ce qui est affiché ({count})",
     "scopeSelected": "{count, plural, one {# article sélectionné} other {# articles sélectionnés}}",
-    "skillHowTo": "Ajoutez SKILL.md comme skill dans un assistant IA qui les prend en charge, comme Gemini ou Claude, puis demandez-lui quoi porter aujourd'hui.",
+    "skillHowTo": "Ajoutez SKILL.md comme skill dans un assistant IA qui les prend en charge, puis demandez-lui quoi porter aujourd'hui.",
     "title": "Exporter la garde-robe"
   },
   "exportFile": {

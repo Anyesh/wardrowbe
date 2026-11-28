@@ -165,7 +165,7 @@
         "name": "Markdown 目錄"
       },
       "skill": {
-        "description": "包含你的衣櫥和搭配規則，可作為技能加入 Gemini 或 Claude 等助理中。",
+        "description": "包含你的衣櫥和搭配規則，可作為技能加入 AI 助理中。",
         "name": "AI 助理技能（SKILL.md）"
       },
       "text": {
@@ -177,7 +177,7 @@
     "scope": "單品",
     "scopeAll": "目前顯示的全部（{count}）",
     "scopeSelected": "{count, plural, other {已選 # 件}}",
-    "skillHowTo": "在支援技能的 AI 助理（如 Gemini 或 Claude）中將 SKILL.md 加入為技能，然後問它今天穿什麼。",
+    "skillHowTo": "在支援技能的 AI 助理中將 SKILL.md 加入為技能，然後問它今天穿什麼。",
     "title": "匯出衣櫥"
   },
   "exportFile": {

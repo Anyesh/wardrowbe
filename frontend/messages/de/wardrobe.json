@@ -165,7 +165,7 @@
         "name": "Markdown-Katalog"
       },
       "skill": {
-        "description": "Dein Kleiderschrank samt Styling-Regeln, bereit als Skill für einen Assistenten wie Gemini oder Claude.",
+        "description": "Dein Kleiderschrank samt Styling-Regeln, bereit als Skill für einen KI-Assistenten.",
         "name": "KI-Assistent-Skill (SKILL.md)"
       },
       "text": {
@@ -177,7 +177,7 @@
     "scope": "Stücke",
     "scopeAll": "Alles Angezeigte ({count})",
     "scopeSelected": "{count, plural, one {# ausgewähltes Stück} other {# ausgewählte Stücke}}",
-    "skillHowTo": "Füge SKILL.md als Skill in einem KI-Assistenten hinzu, der Skills unterstützt, etwa Gemini oder Claude, und frag ihn, was du heute anziehen sollst.",
+    "skillHowTo": "Füge SKILL.md als Skill in einem KI-Assistenten hinzu, der Skills unterstützt, und frag ihn, was du heute anziehen sollst.",
     "title": "Kleiderschrank exportieren"
   },
   "exportFile": {

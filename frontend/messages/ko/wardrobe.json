@@ -165,7 +165,7 @@
         "name": "마크다운 카탈로그"
       },
       "skill": {
-        "description": "옷장과 스타일링 규칙을 담았어요. Gemini나 Claude 같은 어시스턴트에 스킬로 추가할 수 있어요.",
+        "description": "옷장과 스타일링 규칙을 담았어요. AI 어시스턴트에 스킬로 추가할 수 있어요.",
         "name": "AI 어시스턴트 스킬 (SKILL.md)"
       },
       "text": {
@@ -177,7 +177,7 @@
     "scope": "아이템",
     "scopeAll": "표시된 전체 ({count})",
     "scopeSelected": "{count, plural, other {선택한 아이템 #개}}",
-    "skillHowTo": "Gemini나 Claude처럼 스킬을 지원하는 AI 어시스턴트에 SKILL.md를 스킬로 추가한 뒤, 오늘 뭘 입을지 물어보세요.",
+    "skillHowTo": "스킬을 지원하는 AI 어시스턴트에 SKILL.md를 스킬로 추가한 뒤, 오늘 뭘 입을지 물어보세요.",
     "title": "옷장 내보내기"
   },
   "exportFile": {

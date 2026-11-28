@@ -165,7 +165,7 @@
         "name": "Markdownカタログ"
       },
       "skill": {
-        "description": "ワードローブとスタイリングのルールをまとめたもの。GeminiやClaudeなどのアシスタントにスキルとして追加できます。",
+        "description": "ワードローブとスタイリングのルールをまとめたもの。AIアシスタントにスキルとして追加できます。",
         "name": "AIアシスタント用スキル（SKILL.md）"
       },
       "text": {
@@ -177,7 +177,7 @@
     "scope": "アイテム",
     "scopeAll": "表示中のすべて（{count}）",
     "scopeSelected": "{count, plural, other {選択した#件}}",
-    "skillHowTo": "スキルに対応したAIアシスタント（GeminiやClaudeなど）にSKILL.mdをスキルとして追加し、今日何を着るか聞いてみましょう。",
+    "skillHowTo": "スキルに対応したAIアシスタントにSKILL.mdをスキルとして追加し、今日何を着るか聞いてみましょう。",
     "title": "ワードローブをエクスポート"
   },
   "exportFile": {

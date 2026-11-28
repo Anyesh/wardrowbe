@@ -165,7 +165,7 @@
         "name": "Markdown catalog"
       },
       "skill": {
-        "description": "Your wardrobe plus styling rules, ready to add as a skill in an assistant such as Gemini or Claude.",
+        "description": "Your wardrobe plus styling rules, ready to add as a skill in an AI assistant.",
         "name": "AI assistant skill (SKILL.md)"
       },
       "text": {
@@ -177,7 +177,7 @@
     "scope": "Items",
     "scopeAll": "Everything shown ({count})",
     "scopeSelected": "{count, plural, one {# selected item} other {# selected items}}",
-    "skillHowTo": "Add SKILL.md as a skill in an AI assistant that supports skills, such as Gemini or Claude, then ask it what to wear today.",
+    "skillHowTo": "Add SKILL.md as a skill in an AI assistant that supports skills, then ask it what to wear today.",
     "title": "Export wardrobe"
   },
   "exportFile": {
