@@ -9,6 +9,10 @@ import { PATTERN_VALUES } from '@/lib/generated/garment-vocabulary'
 import { draftFromTags, type TagDraft } from '@/lib/tag-edits'
 import type { ItemTags } from '@/lib/types'
 
+// The colour picker lists every shade (over 150), and opening it and querying its options by role
+// takes a few seconds in jsdom, well past the default timeout under a loaded test run.
+vi.setConfig({ testTimeout: 20_000 })
+
 // tests/setup.ts stubs next-intl to echo keys; these assertions need the real catalog.
 vi.unmock('next-intl')
 
@@ -131,6 +135,14 @@ describe('ItemTagsEditor', () => {
     const options = screen.getAllByRole('option').map((o) => o.textContent)
     expect(options).not.toContain('Navy')
     expect(options).toContain('White')
+  })
+
+  it('lists the shades under their colour family', () => {
+    renderEditor({ ...tags, colors: ['navy'] })
+    fireEvent.keyDown(screen.getByLabelText('Secondary color'), { key: 'Enter' })
+    const blues = screen.getByRole('group', { name: 'Navies & Blues' })
+    expect(within(blues).getByRole('option', { name: 'Sapphire' })).toBeInTheDocument()
+    expect(within(blues).queryByRole('option', { name: 'Teal' })).not.toBeInTheDocument()
   })
 
   it('asks for a tertiary colour only once there is a secondary one', () => {

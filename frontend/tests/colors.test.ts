@@ -1,16 +1,27 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { UNKNOWN_COLOR_SWATCH, colorSwatch, normalizeColor } from '@/lib/colors';
+import {
+  UNKNOWN_COLOR_SWATCH,
+  colorFamily,
+  colorSwatch,
+  isLightSwatch,
+  normalizeColor,
+  shadesOfFamily,
+  withoutColorOverlaps,
+} from '@/lib/colors';
 
 describe('colour swatches', () => {
   it.each([
     ['light-blue', '#9CBFE0'],
     ['gold', '#B08D3C'],
     ['silver', '#BFC1C2'],
-    ['charcoal', '#808080'],
-    ['Khaki', '#C9B896'],
-    ['maroon', '#722F37'],
+    ['charcoal', '#3C4142'],
+    ['Khaki', '#F0E68C'],
+    ['maroon', '#800000'],
+    ['wine', '#722F37'],
+    ['Sapphire', '#37527D'],
+    ['blues', '#4A7DB8'],
     ['Light Blue', '#9CBFE0'],
     [' NAVY ', '#1B2A4A'],
     ['Army Green', '#707B52'],
@@ -18,7 +29,7 @@ describe('colour swatches', () => {
     expect(colorSwatch(name)).toBe(hex);
   });
 
-  it.each(['salmon', ''])('falls back to a neutral swatch for %j', (name) => {
+  it.each(['chartreuse', ''])('falls back to a neutral swatch for %j', (name) => {
     expect(colorSwatch(name)).toBe(UNKNOWN_COLOR_SWATCH);
   });
 });
@@ -32,5 +43,46 @@ const COLOR_NAME_CASES = JSON.parse(
 describe('normalizeColor', () => {
   it.each(COLOR_NAME_CASES.map((c) => [c.name, c.normalized]))('reads %j as %j', (name, stored) => {
     expect(normalizeColor(name)).toBe(stored);
+  });
+});
+
+describe('colour families', () => {
+  it.each([
+    ['navy', 'blues'],
+    ['Sapphire', 'blues'],
+    ['dark grey', 'blacks-grays'],
+    ['blues', 'blues'],
+    ['chartreuse', null],
+    ['', null],
+  ])('puts %j in %j', (name, family) => {
+    expect(colorFamily(name)).toBe(family);
+  });
+
+  it('lists the shades of a family, which include the original colours', () => {
+    expect(shadesOfFamily('blues')).toEqual(expect.arrayContaining(['navy', 'blue', 'light-blue', 'sapphire']));
+    expect(shadesOfFamily('blues')).not.toContain('teal');
+  });
+
+  it.each([
+    ['#FAFAFA', true],
+    ['#F0E68C', true],
+    ['#1a1a1a', false],
+    ['#4A7DB8', false],
+  ])('reads %s as light: %s', (hex, light) => {
+    expect(isLightSwatch(hex)).toBe(light);
+  });
+});
+
+describe('withoutColorOverlaps', () => {
+  it('drops shades of a family chosen on the other side', () => {
+    expect(withoutColorOverlaps(['navy', 'sapphire', 'burgundy'], ['blues'])).toEqual(['burgundy']);
+  });
+
+  it('drops a family when one of its shades is chosen on the other side', () => {
+    expect(withoutColorOverlaps(['blues', 'gray'], ['navy'])).toEqual(['gray']);
+  });
+
+  it('matches names outside the vocabulary only by themselves', () => {
+    expect(withoutColorOverlaps(['chartreuse', 'gray'], ['Chartreuse'])).toEqual(['gray']);
   });
 });

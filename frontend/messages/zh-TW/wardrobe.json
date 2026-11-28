@@ -91,6 +91,7 @@
     "rotating": "旋轉中…"
   },
   "allTypes": "所有類型",
+  "allColors": "所有顏色",
   "bulkActions": {
     "cancelAllError": "取消分析失敗",
     "cancelAllQueued": "{count, plural, one {已取消 # 個進行中的分析} other {已取消 # 個進行中的分析}}",

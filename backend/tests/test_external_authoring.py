@@ -192,12 +192,12 @@ async def test_create_suggestion_stores_canonical_palette(
 
     resp = await client.post(
         "/api/v1/outfits/suggestions",
-        json={"items": [str(shirt.id)], "occasion": "casual", "palette": ["Khaki", "tan"]},
+        json={"items": [str(shirt.id)], "occasion": "casual", "palette": ["Wine", "burgundy"]},
         headers=auth_headers,
     )
 
     assert resp.status_code == 201, resp.text
-    assert resp.json()["palette"] == ["tan"]
+    assert resp.json()["palette"] == ["burgundy"]
 
 
 @pytest.mark.asyncio

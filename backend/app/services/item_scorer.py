@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 from math import prod
@@ -8,7 +9,7 @@ from app.models.item import ClothingItem
 from app.models.preference import UserPreference
 from app.services.weather_service import WeatherData
 from app.utils.clothing import ITEM_ROLE
-from app.utils.garment_vocabulary import FORMALITY, OCCASION_FORMALITY
+from app.utils.garment_vocabulary import FORMALITY, OCCASION_FORMALITY, color_family
 from app.utils.preference_defaults import DEFAULT_PREFER_UNDERUSED_ITEMS
 from app.utils.scales import (
     DEFAULT_AVOID_REPEAT_DAYS,
@@ -347,6 +348,20 @@ def _recency_score(
     return min(1.0, 0.1 + 0.9 * (days_since / avoid_days))
 
 
+# A colour matches by its own name or by its family, so "love navy" also lifts a sapphire shirt
+# while names outside the vocabulary still match themselves.
+def _color_keys(names: Iterable[str | None]) -> set[str]:
+    keys = set()
+    for name in names:
+        if not name:
+            continue
+        keys.add(name.lower())
+        family = color_family(name)
+        if family:
+            keys.add(family)
+    return keys
+
+
 def _preference_score(
     item: ClothingItem,
     preferences: UserPreference | None,
@@ -355,11 +370,11 @@ def _preference_score(
     score = 1.0
     # Every colour on the item counts, not just the primary: a navy jumper with white
     # stripes should react to "avoid white" and to "love navy" alike.
-    colors = {c.lower() for c in [item.primary_color, *(item.colors or [])] if c}
+    colors = _color_keys([item.primary_color, *(item.colors or [])])
 
     if preferences:
-        fav_colors = {c.lower() for c in (preferences.color_favorites or [])}
-        avoid_colors = {c.lower() for c in (preferences.color_avoid or [])}
+        fav_colors = _color_keys(preferences.color_favorites or [])
+        avoid_colors = _color_keys(preferences.color_avoid or [])
 
         if colors & fav_colors:
             score += 0.1
@@ -367,8 +382,8 @@ def _preference_score(
             score -= 0.3
 
     if learned:
-        learned_favs = {c.lower() for c in learned.get("learned_favorite_colors", [])}
-        learned_avoids = {c.lower() for c in learned.get("learned_avoid_colors", [])}
+        learned_favs = _color_keys(learned.get("learned_favorite_colors", []))
+        learned_avoids = _color_keys(learned.get("learned_avoid_colors", []))
 
         if colors & learned_favs:
             score += 0.05

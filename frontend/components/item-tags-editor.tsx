@@ -14,7 +14,6 @@ import {
   SEASON_VALUES,
 } from '@/lib/generated/garment-vocabulary';
 import {
-  useClothingColors,
   useFitLabel,
   useFormalityLabel,
   useMaterialLabel,
@@ -23,6 +22,7 @@ import {
   useStyleLabel,
 } from '@/lib/hooks/use-translated-constants';
 import type { TagDraft } from '@/lib/tag-edits';
+import { ColorSelect } from '@/components/color-select';
 
 // Radix Select cannot have an empty item value, so "no value" is this placeholder.
 const NONE = '__none__';
@@ -30,7 +30,6 @@ const NONE = '__none__';
 interface Option {
   value: string;
   label: string;
-  hex?: string;
 }
 
 interface TagSelectProps {
@@ -45,7 +44,7 @@ interface TagSelectProps {
 
 function TagSelect({ label, noneLabel, value, options, onChange, describe, disabled }: TagSelectProps) {
   const id = useId();
-  // A value the list does not offer (an older row, or a colour name from an API client) stays visible.
+  // A value the list does not offer (an older row tagged before the vocabulary changed) stays visible.
   const shown =
     value && !options.some((option) => option.value === value)
       ? [...options, { value, label: describe ? describe(value) : value }]
@@ -66,18 +65,29 @@ function TagSelect({ label, noneLabel, value, options, onChange, describe, disab
           <SelectItem value={NONE}>{noneLabel}</SelectItem>
           {shown.map((option) => (
             <SelectItem key={option.value} value={option.value}>
-              {option.hex ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: option.hex }} />
-                  {option.label}
-                </div>
-              ) : (
-                option.label
-              )}
+              {option.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
+    </div>
+  );
+}
+
+interface ColorFieldProps {
+  label: string;
+  noneLabel: string;
+  value: string | null;
+  exclude: readonly (string | null | undefined)[];
+  onChange: (value: string | null) => void;
+}
+
+function ColorField({ label, noneLabel, value, exclude, onChange }: ColorFieldProps) {
+  const id = useId();
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <ColorSelect id={id} value={value} onChange={onChange} noneLabel={noneLabel} exclude={exclude} />
     </div>
   );
 }
@@ -132,17 +142,11 @@ export function ItemTagsEditor({ draft, onChange, primaryColor }: ItemTagsEditor
   const fitLabel = useFitLabel();
   const styleLabel = useStyleLabel();
   const seasonLabel = useSeasonLabel();
-  const clothingColors = useClothingColors();
 
   const labelled = (values: readonly string[], labelFor: (value: string) => string): Option[] =>
     values.map((value) => ({ value, label: labelFor(value) }));
 
   const [secondary = null, tertiary = null] = draft.extraColors;
-  const colorOptions = (taken: (string | null | undefined)[]): Option[] =>
-    clothingColors
-      .filter((color) => !taken.includes(color.value))
-      .map((color) => ({ value: color.value, label: color.name, hex: color.hex }));
-  const colorName = (value: string) => clothingColors.find((c) => c.value === value)?.name ?? value;
 
   // Picking "None" for the secondary colour moves the tertiary colour up, so there is never a gap.
   const setExtraColor = (index: number, value: string | null) => {
@@ -207,21 +211,19 @@ export function ItemTagsEditor({ draft, onChange, primaryColor }: ItemTagsEditor
         onChange={(season) => onChange({ ...draft, season })}
       />
 
-      <TagSelect
+      <ColorField
         label={t('secondaryColor')}
         noneLabel={t('none')}
         value={secondary}
-        options={colorOptions([primaryColor, tertiary])}
-        describe={colorName}
+        exclude={[primaryColor, tertiary]}
         onChange={(value) => setExtraColor(0, value)}
       />
       {secondary && (
-        <TagSelect
+        <ColorField
           label={t('tertiaryColor')}
           noneLabel={t('none')}
           value={tertiary}
-          options={colorOptions([primaryColor, secondary])}
-          describe={colorName}
+          exclude={[primaryColor, secondary]}
           onChange={(value) => setExtraColor(1, value)}
         />
       )}

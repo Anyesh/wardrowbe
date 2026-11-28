@@ -42,7 +42,8 @@ import {
   type BulkUploadResult,
 } from '@/lib/hooks/use-items';
 import { translateCode, type ErrorTranslator } from '@/lib/errors';
-import { useClothingTypes, useClothingColors } from '@/lib/hooks/use-translated-constants';
+import { useClothingTypes } from '@/lib/hooks/use-translated-constants';
+import { ColorSelect } from '@/components/color-select';
 import { ACCEPTED_IMAGE_TYPES } from '@/lib/image-types';
 import { useTranslations } from 'next-intl';
 import { useAiUiEnabled } from '@/lib/hooks/use-features';
@@ -65,7 +66,6 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const te = useTranslations('errors') as unknown as ErrorTranslator;
   const tDetail = useTranslations('wardrobe.itemDetail');
   const clothingTypes = useClothingTypes();
-  const clothingColors = useClothingColors();
   const aiUiEnabled = useAiUiEnabled();
   // Single upload state
   const [file, setFile] = useState<File | null>(null);
@@ -372,24 +372,12 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
                   <div className="space-y-2">
                     <Label htmlFor="color">{t('primaryColor')}</Label>
-                    <Select value={primaryColor} onValueChange={setPrimaryColor}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('selectPlaceholder')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clothingColors.map((c) => (
-                          <SelectItem key={c.value} value={c.value}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full border"
-                                style={{ backgroundColor: c.hex }}
-                              />
-                              {c.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <ColorSelect
+                      id="color"
+                      value={primaryColor}
+                      onChange={(value) => setPrimaryColor(value ?? '')}
+                      placeholder={t('selectPlaceholder')}
+                    />
                   </div>
                 </div>
 

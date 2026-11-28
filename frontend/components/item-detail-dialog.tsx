@@ -82,6 +82,7 @@ import {
   useTypeLabel,
 } from '@/lib/hooks/use-translated-constants';
 import { ColorEyedropper } from '@/components/color-eyedropper';
+import { ColorSelect } from '@/components/color-select';
 import { ACCEPTED_IMAGE_INPUT } from '@/lib/image-types';
 import { GeneratePairingsDialog } from '@/components/generate-pairings-dialog';
 import { ItemTagsEditor } from '@/components/item-tags-editor';
@@ -773,27 +774,12 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                   <div className="space-y-2">
                     <Label>{t('primaryColor')}</Label>
                     <div className="flex gap-2">
-                      <Select
+                      <ColorSelect
+                        className="flex-1"
                         value={editForm.primary_color}
-                        onValueChange={(v) => setEditForm({ ...editForm, primary_color: v })}
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder={t('placeholders.selectColor')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {clothingColors.map((c) => (
-                            <SelectItem key={c.value} value={c.value}>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full border"
-                                  style={{ backgroundColor: c.hex }}
-                                />
-                                {c.name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onChange={(v) => setEditForm({ ...editForm, primary_color: v ?? '' })}
+                        placeholder={t('placeholders.selectColor')}
+                      />
                       <ColorEyedropper
                         imageUrl={imageUrl}
                         onColorSelect={(color) => setEditForm({ ...editForm, primary_color: color })}

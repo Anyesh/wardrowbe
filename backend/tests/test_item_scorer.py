@@ -454,6 +454,26 @@ class TestPreferenceScore:
         prefs = _prefs(color_favorites=["navy", "blue"])
         assert _preference_score(item, prefs, None) == 1.1
 
+    def test_a_favourite_shade_lifts_other_shades_of_its_family(self):
+        item = _item(primary_color="sapphire", colors=["sapphire"])
+        assert _preference_score(item, _prefs(color_favorites=["navy"]), None) == 1.1
+
+    def test_a_favourite_family_lifts_its_shades(self):
+        item = _item(primary_color="sapphire", colors=["sapphire"])
+        assert _preference_score(item, _prefs(color_favorites=["blues"]), None) == 1.1
+
+    def test_an_avoided_family_does_not_touch_other_families(self):
+        item = _item(primary_color="sapphire", colors=["sapphire"])
+        assert _preference_score(item, _prefs(color_avoid=["reds-oranges"]), None) == 1.0
+
+    def test_learned_shades_match_by_family(self):
+        item = _item(primary_color="sky-blue", colors=["sky-blue"])
+        assert _preference_score(item, None, {"learned_avoid_colors": ["navy"]}) == 0.85
+
+    def test_names_outside_the_vocabulary_still_match_themselves(self):
+        item = _item(primary_color="chartreuse", colors=["chartreuse"])
+        assert _preference_score(item, _prefs(color_favorites=["Chartreuse"]), None) == 1.1
+
     def test_colour_names_match_regardless_of_case(self):
         item = _item(primary_color="Navy", colors=["White"])
         prefs = _prefs(color_favorites=["navy"], color_avoid=["WHITE"])

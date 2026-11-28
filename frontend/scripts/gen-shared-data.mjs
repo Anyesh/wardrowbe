@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Writes lib/generated/*.ts from the JSON files in backend/app/data, which are the only places
-// garment vocabulary (types, roles, subtypes, materials, formality, occasions, colours and colour aliases),
+// garment vocabulary (types, roles, subtypes, materials, formality, occasions, colour families, colours and colour aliases),
 // locale codes, the rating, temperature threshold, repeat-avoidance and style score scales, and the
 // preference defaults are edited by hand. Run with --check to fail when any committed output is stale. It reads ../backend, which
 // is outside the frontend Docker build context, so it must never run from build or prebuild.
@@ -30,6 +30,7 @@ function renderVocabulary({
   seasons,
   fits,
   occasions,
+  color_families: colorFamilies,
   colors,
   color_aliases: colorAliases,
 }) {
@@ -38,7 +39,12 @@ function renderVocabulary({
     .filter((type) => type.subtypes)
     .map(({ value, subtypes: values }) => `  ${key(value)}: [${values.map(quote).join(', ')}],`)
     .join('\n');
-  const swatches = colors.map(({ value, hex }) => `  { value: ${quote(value)}, hex: ${quote(hex)} },`).join('\n');
+  const familySwatches = colorFamilies
+    .map(({ value, hex }) => `  { value: ${quote(value)}, hex: ${quote(hex)} },`)
+    .join('\n');
+  const swatches = colors
+    .map(({ value, hex, family }) => `  { value: ${quote(value)}, hex: ${quote(hex)}, family: ${quote(family)} },`)
+    .join('\n');
   const aliases = Object.entries(colorAliases)
     .map(([alias, color]) => `  ${key(alias)}: ${quote(color)},`)
     .join('\n');
@@ -62,6 +68,10 @@ function renderVocabulary({
     'export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {',
     subtypes,
     '};',
+    '',
+    'export const COLOR_FAMILIES = [',
+    familySwatches,
+    '] as const;',
     '',
     'export const CLOTHING_COLORS = [',
     swatches,

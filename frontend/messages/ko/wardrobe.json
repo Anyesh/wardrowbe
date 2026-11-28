@@ -91,6 +91,7 @@
     "rotating": "회전 중…"
   },
   "allTypes": "전체 유형",
+  "allColors": "모든 색상",
   "bulkActions": {
     "cancelAllError": "분석 취소 실패",
     "cancelAllQueued": "{count, plural, other {진행 중인 분석 #개를 취소했어요}}",

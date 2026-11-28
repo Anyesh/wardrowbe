@@ -31,7 +31,11 @@ OCCASIONS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["occasions"
 OCCASION_FORMALITY: dict[str, tuple[str, ...]] = {
     entry["value"]: tuple(entry["formality"]) for entry in _DATA["occasions"]
 }
+# Items store a shade (navy, sapphire); each shade belongs to one family (blues), the coarser
+# grouping that preferences, learned scores and analytics compare on.
+COLOR_FAMILIES: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["color_families"])
 COLORS: tuple[str, ...] = tuple(entry["value"] for entry in _DATA["colors"])
+COLOR_FAMILY: dict[str, str] = {entry["value"]: entry["family"] for entry in _DATA["colors"]}
 COLOR_ALIASES: dict[str, str] = dict(_DATA["color_aliases"])
 
 
@@ -67,6 +71,17 @@ def normalize_color(name: str) -> str | None:
 def canonical_color(name: str) -> str:
     key = _color_key(name)
     return normalize_color(key) or key
+
+
+# The family of a shade, an alias of one, or a family name itself, so that a preference stated on
+# one shade (navy) also matches its neighbours (sapphire). None for names outside the vocabulary.
+def color_family(name: str) -> str | None:
+    key = _color_key(name)
+    for candidate in (key, key.replace(" ", "-")):
+        if candidate in COLOR_FAMILIES:
+            return candidate
+    color = normalize_color(key)
+    return COLOR_FAMILY[color] if color else None
 
 
 def canonical_primary_color(name: str) -> str | None:

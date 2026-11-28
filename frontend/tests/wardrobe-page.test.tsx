@@ -34,6 +34,7 @@ vi.mock('@/lib/hooks/use-features', () => ({ useAiUiEnabled: () => true }))
 vi.mock('@/lib/hooks/use-translated-constants', () => ({
   useClothingTypes: () => [],
   useClothingColors: () => [],
+  useColorFamilies: () => [],
   useSubtypeLabel: () => (value: string) => value,
   useTypeLabel: () => (value: string) => value,
 }))

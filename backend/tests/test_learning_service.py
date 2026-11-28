@@ -130,7 +130,7 @@ class TestProcessFeedbackProfile:
             )
         )
         await db_session.commit()
-        outfit_id = await _seed_outfit(db_session, user_id, ["Charcoal"])
+        outfit_id = await _seed_outfit(db_session, user_id, ["Grey"])
 
         await LearningService(db_session).process_feedback(outfit_id, user_id)
 
@@ -418,13 +418,13 @@ class TestLearnedColoursAreCanonical:
     @pytest.mark.asyncio
     async def test_recompute_stores_canonical_colours(self, db_session, test_user_for_learning):
         user_id = test_user_for_learning.id
-        await _seed_outfit(db_session, user_id, ["charcoal", "Khaki"], day=1)
+        await _seed_outfit(db_session, user_id, ["grey", "Wine"], day=1)
         await _seed_outfit(db_session, user_id, ["gray"], day=2)
 
         profile = await LearningService(db_session).recompute_learning_profile(user_id)
 
-        assert set(profile.learned_color_scores) == {"gray", "tan"}
-        assert profile.learned_occasion_patterns["work"]["preferred_colors"] == ["gray", "tan"]
+        assert set(profile.learned_color_scores) == {"gray", "burgundy"}
+        assert profile.learned_occasion_patterns["work"]["preferred_colors"] == ["gray", "burgundy"]
 
 
 READABLE_PROFILE = {

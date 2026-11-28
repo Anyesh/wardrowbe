@@ -163,3 +163,28 @@ async def test_never_worn_insight_counts_every_unworn_item_not_the_capped_list(
     body = response.json()
     assert len(body["never_worn"]) == 5
     assert {"key": "insightNeverWorn", "params": {"count": 7}} in body["insight_items"]
+
+
+@pytest.mark.asyncio
+async def test_colour_distribution_counts_shades_by_family(
+    client: AsyncClient, db_session, test_user, auth_headers
+):
+    colours = ["navy", "sapphire", "sky-blue", "black", "charcoal", "chartreuse"]
+    for i, colour in enumerate(colours):
+        db_session.add(
+            ClothingItem(
+                user_id=test_user.id,
+                type="shirt",
+                status=ItemStatus.ready,
+                image_path=f"test/colour-{i}.jpg",
+                primary_color=colour,
+            )
+        )
+    await db_session.commit()
+
+    response = await client.get("/api/v1/analytics", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert [
+        (entry["color"], entry["count"]) for entry in response.json()["color_distribution"]
+    ] == [("blues", 3), ("blacks-grays", 2), ("chartreuse", 1)]

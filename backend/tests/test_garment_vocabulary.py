@@ -29,6 +29,8 @@ from app.services.item_scorer import (
 from app.services.pairing_service import PAIRING_OCCASION
 from app.utils.garment_vocabulary import (
     COLOR_ALIASES,
+    COLOR_FAMILIES,
+    COLOR_FAMILY,
     COLORS,
     FITS,
     FORMALITY,
@@ -43,6 +45,7 @@ from app.utils.garment_vocabulary import (
     TYPES,
     canonical_color,
     canonical_colors,
+    color_family,
     normalize_color,
     render_outfit_prompt,
     render_tagging_prompt,
@@ -261,21 +264,46 @@ def test_scorer_occasion_formality_comes_from_the_vocabulary(occasion, formaliti
 
 # The colours the tagger validated before the vocabulary owned them. Dropping one would orphan the
 # items already stored with it, so a removal needs a data migration, not just a vocabulary edit.
+# The shades added since sit beside them.
 PRE_VOCABULARY_COLORS = {
     "black", "white", "gray", "navy", "blue", "light-blue", "red", "burgundy", "pink", "green",
     "olive", "yellow", "orange", "purple", "brown", "tan", "beige", "cream", "gold", "silver",
 }  # fmt: skip
 
 
-def test_stored_colors_are_the_set_the_tagger_validated():
-    assert set(COLORS) == PRE_VOCABULARY_COLORS
+def test_stored_colors_keep_every_colour_the_tagger_validated():
+    assert PRE_VOCABULARY_COLORS <= set(COLORS)
+
+
+def test_every_shade_belongs_to_a_family_and_every_family_has_shades():
+    assert set(COLOR_FAMILY) == set(COLORS)
+    assert set(COLOR_FAMILY.values()) == set(COLOR_FAMILIES)
+    assert len(set(COLOR_FAMILIES)) == len(COLOR_FAMILIES)
+    assert not set(COLOR_FAMILIES) & set(COLORS)
+
+
+@pytest.mark.parametrize(
+    ("name", "family"),
+    [
+        ("navy", "blues"),
+        ("Sapphire", "blues"),
+        ("light blue", "blues"),
+        ("dark grey", "blacks-grays"),
+        ("blues", "blues"),
+        ("Whites Creams", "whites-creams"),
+        ("chartreuse", None),
+        ("", None),
+    ],
+)
+def test_color_family(name, family):
+    assert color_family(name) == family
 
 
 @pytest.mark.parametrize("alias", sorted(COLOR_ALIASES))
 def test_color_alias_is_a_lowercase_name_for_a_stored_color(alias):
     assert alias == alias.strip().lower()
-    assert alias not in PRE_VOCABULARY_COLORS
-    assert normalize_color(alias) in PRE_VOCABULARY_COLORS
+    assert alias not in COLORS
+    assert normalize_color(alias) in COLORS
 
 
 @pytest.mark.parametrize(
@@ -300,4 +328,4 @@ def test_canonical_colors_aliases_dedupes_and_keeps_unknowns_in_order():
             "dark\u00a0 blue",
             "navy",
         ]
-    ) == ["gray", "chartreuse", "tan", "navy"]
+    ) == ["charcoal", "gray", "chartreuse", "khaki", "tan", "navy"]

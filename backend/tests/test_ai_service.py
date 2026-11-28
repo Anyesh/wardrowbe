@@ -231,14 +231,14 @@ class TestTagParsing:
         tags = service._parse_tags_from_response(response)
         assert tags.primary_color == "gray"
 
-    def test_frontend_only_names_normalise_to_stored_colors(self):
+    def test_shades_and_aliases_normalise_to_stored_colors(self):
         service = AIService()
         tags = service._parse_tags_from_response(
             '{"type": "pants", "primary_color": "Charcoal", '
-            '"colors": ["charcoal", "gray", "khaki", "teal", "army green", "light-blue"]}'
+            '"colors": ["charcoal", "gray", "Dark Grey", "khaki", "army green", "Light Blue"]}'
         )
-        assert tags.primary_color == "gray"
-        assert tags.colors == ["gray", "tan", "blue", "olive", "light-blue"]
+        assert tags.primary_color == "charcoal"
+        assert tags.colors == ["charcoal", "gray", "khaki", "olive", "light-blue"]
 
     def test_gold_and_silver_are_stored_not_aliased(self):
         service = AIService()

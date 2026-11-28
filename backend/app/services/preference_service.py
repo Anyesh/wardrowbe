@@ -6,6 +6,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.preference import UserPreference
 from app.schemas.preference import PreferenceUpdate, StyleProfile
+from app.utils.garment_vocabulary import color_family
 from app.utils.preference_defaults import (
     DEFAULT_LAYERING_PREFERENCE,
     DEFAULT_OCCASION,
@@ -19,6 +20,19 @@ from app.utils.scales import (
     DEFAULT_COLD_THRESHOLD,
     DEFAULT_HOT_THRESHOLD,
 )
+
+
+# Scoring matches a colour by its name or its family, so a favourite and an avoided colour that
+# share a family ("navy" and "blues") would pull the same items both ways. The newly chosen list
+# wins and the other one drops every colour that overlaps it.
+def _color_keys(name: str) -> set[str]:
+    family = color_family(name)
+    return {name.lower(), family} if family else {name.lower()}
+
+
+def _without_overlaps(colors: list[str], winners: list[str]) -> list[str]:
+    taken = set().union(*(_color_keys(c) for c in winners))
+    return [c for c in colors if not _color_keys(c) & taken]
 
 
 class PreferenceService:
@@ -95,21 +109,17 @@ class PreferenceService:
         has_avoid = "color_avoid" in update_data
 
         if has_favorites and has_avoid:
-            overlap = set(update_data["color_favorites"]) & set(update_data["color_avoid"])
-            if overlap:
-                update_data["color_avoid"] = [
-                    c for c in update_data["color_avoid"] if c not in overlap
-                ]
+            update_data["color_avoid"] = _without_overlaps(
+                update_data["color_avoid"], update_data["color_favorites"]
+            )
         elif has_favorites:
-            new_favorites = set(update_data["color_favorites"])
             saved_avoid = list(preferences.color_avoid or [])
-            stripped = [c for c in saved_avoid if c not in new_favorites]
+            stripped = _without_overlaps(saved_avoid, update_data["color_favorites"])
             if stripped != saved_avoid:
                 update_data["color_avoid"] = stripped
         elif has_avoid:
-            new_avoid = set(update_data["color_avoid"])
             saved_favorites = list(preferences.color_favorites or [])
-            stripped = [c for c in saved_favorites if c not in new_avoid]
+            stripped = _without_overlaps(saved_favorites, update_data["color_avoid"])
             if stripped != saved_favorites:
                 update_data["color_favorites"] = stripped
 

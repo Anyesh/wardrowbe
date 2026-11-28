@@ -130,7 +130,14 @@ class ItemService:
         if filters.favorite is not None:
             clauses.append(ClothingItem.favorite == filters.favorite)
         if filters.colors:
-            clauses.append(ClothingItem.colors.overlap(filters.colors))
+            # The primary colour counts too: an item saved with only a primary colour (no AI
+            # tagging to copy it into `colors`) still belongs to its colour family.
+            clauses.append(
+                or_(
+                    ClothingItem.colors.overlap(filters.colors),
+                    ClothingItem.primary_color.in_(filters.colors),
+                )
+            )
         if filters.needs_wash is not None:
             clauses.append(ClothingItem.needs_wash == filters.needs_wash)
         if filters.search:
