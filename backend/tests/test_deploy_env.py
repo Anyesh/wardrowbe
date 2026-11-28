@@ -52,6 +52,15 @@ def test_every_backend_service_merges_the_shared_env(compose):
         assert env.items() >= shared.items(), f"{name} must merge <<: *backend-env unchanged"
 
 
+def test_background_removal_settings_are_shared_and_its_key_stays_on_the_image_worker(compose):
+    shared = {"BG_REMOVAL_PROVIDER", "BG_REMOVAL_MODEL", "BG_REMOVAL_URL"}
+    assert shared <= set(compose["x-backend-env"])
+
+    for name in BACKEND_SERVICES:
+        env = compose["services"][name]["environment"]
+        assert ("BG_REMOVAL_API_KEY" in env) == (name == "image-worker"), name
+
+
 def test_notification_settings_reach_the_worker(compose):
     worker_env = compose["services"]["worker"]["environment"]
 
