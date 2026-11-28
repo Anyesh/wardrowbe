@@ -217,6 +217,25 @@ async def test_json_items_carry_their_section_in_dressing_order(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(("locale", "language"), [("de", "German"), ("xx", "English")])
+async def test_skill_tells_the_assistant_to_answer_in_the_users_language(
+    client: AsyncClient,
+    test_user: User,
+    auth_headers,
+    db_session: AsyncSession,
+    locale: str,
+    language: str,
+):
+    test_user.locale = locale
+    await _add(db_session, _item(test_user, "shirt"))
+
+    body = (await client.post(URL, json={"format": "skill"}, headers=auth_headers)).text
+
+    assert f"Answer in {language}." in body
+    assert "### Tops (1)" in body
+
+
+@pytest.mark.asyncio
 async def test_requires_authentication(client: AsyncClient):
     response = await client.post(URL, json={"format": "skill"})
     assert response.status_code == 401
