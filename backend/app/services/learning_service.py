@@ -695,8 +695,7 @@ class LearningService:
 
         Returns list of (item, compatibility_score) tuples.
         """
-        # Items the user flagged "never suggest" must not be offered as pairings. They are
-        # filtered in the query, before the limit, so they cannot crowd out eligible pairs.
+        # Filtered before the limit so excluded pairs cannot crowd out eligible ones.
         excluded_result = await self.db.execute(
             select(UserPreference.excluded_item_ids).where(UserPreference.user_id == user_id)
         )

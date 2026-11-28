@@ -911,7 +911,6 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     )}
                   </div>
 
-                  {/* Never suggest */}
                   <div className="flex items-start justify-between gap-4 pt-2 border-t">
                     <div className="space-y-0.5">
                       <Label htmlFor="never-suggest" className="flex items-center gap-2 text-sm font-medium">
