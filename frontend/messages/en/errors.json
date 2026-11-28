@@ -77,6 +77,7 @@
   "ITEMS_NOT_FOUND": "One or more of the selected items could not be found or aren't ready yet.",
   "ITEMS_REQUIRED": "Choose at least one item.",
   "ITEM_ALREADY_CLEAN": "This item is already clean. It hasn't been worn since its last wash.",
+  "ITEM_ARCHIVED": "This item is archived, so its photo can't be changed.",
   "ITEM_BUSY": "This item is still being processed. Wait a moment and try again.",
   "ITEM_HAS_NO_IMAGE": "This item doesn't have a photo yet. Add one first.",
   "ITEM_NOT_FOUND": "Item not found",

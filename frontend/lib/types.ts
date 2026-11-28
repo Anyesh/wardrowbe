@@ -72,6 +72,11 @@ export interface Item {
   updated_at: string;
 }
 
+export interface RemoveBackgroundQueuedResponse {
+  status: 'queued';
+  job_id: string;
+}
+
 export interface ItemListResponse {
   items: Item[];
   total: number;

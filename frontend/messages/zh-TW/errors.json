@@ -77,6 +77,7 @@
   "ITEMS_NOT_FOUND": "所選單品中有的找不到，或尚未準備好。",
   "ITEMS_REQUIRED": "請至少選擇一件單品。",
   "ITEM_ALREADY_CLEAN": "此單品已是乾淨的，上次清洗後尚未穿過。",
+  "ITEM_ARCHIVED": "此單品已封存，無法變更它的照片。",
   "ITEM_BUSY": "此單品仍在處理中，請稍候再試。",
   "ITEM_HAS_NO_IMAGE": "此單品還沒有照片，請先新增一張。",
   "ITEM_NOT_FOUND": "找不到項目",

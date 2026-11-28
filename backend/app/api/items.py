@@ -54,6 +54,7 @@ from app.schemas.item import (
     ItemUpdate,
     LogWashRequest,
     LogWearRequest,
+    RemoveBackgroundQueuedResponse,
     RemoveBackgroundRequest,
     ReorderImagesRequest,
     TaggingProgressResponse,
@@ -1722,13 +1723,13 @@ async def rotate_item_image(
         ) from None
 
 
-@router.post("/{item_id}/remove-background", response_model=ItemResponse)
+@router.post("/{item_id}/remove-background", response_model=RemoveBackgroundQueuedResponse)
 async def remove_item_background(
     item_id: UUID,
     request: RemoveBackgroundRequest,
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-) -> ItemResponse:
+) -> RemoveBackgroundQueuedResponse:
     item_service = ItemService(db)
     item = await item_service.get_by_id(item_id, current_user.id)
 
@@ -1740,59 +1741,45 @@ async def remove_item_background(
             status.HTTP_400_BAD_REQUEST, "ITEM_HAS_NO_IMAGE", "Item has no image"
         )
 
-    if item.status == ItemStatus.processing and item.ai_job_id:
-        # A queued or running job (tagging or another background-removal run)
-        # owns image_path/medium_path/thumbnail_path - racing it here would
-        # stomp whichever write lands last.
+    if item.is_archived:
+        raise CodedHTTPException(status.HTTP_409_CONFLICT, "ITEM_ARCHIVED", "Item is archived")
+
+    claim = await item_service.claim_for_image_job(
+        item.id, current_user.id, ProcessingKind.background_removal
+    )
+    if claim is None:
         raise CodedHTTPException(
             status.HTTP_409_CONFLICT, "ITEM_BUSY", "Item has a background job in progress"
         )
+    await db.commit()
 
-    recovering_from_error = (
-        item.status == ItemStatus.error
-        and item.processing_kind == ProcessingKind.background_removal
-    )
-
-    hex_color = request.bg_color.lstrip("#")
-    bg_color = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
-
+    redis = None
     try:
-        image_service = ImageService()
-        result = await asyncio.to_thread(image_service.remove_background, item.image_path, bg_color)
-        item.original_image_path = result["original_backup_path"]
-        if recovering_from_error:
-            item.status = ItemStatus.ready
-            item.processing_kind = None
-            item.ai_started_at = None
-        await db.commit()
-        await db.refresh(
-            item,
-            attribute_names=[
-                "original_image_path",
-                "status",
-                "processing_kind",
-                "ai_started_at",
-                "updated_at",
-            ],
+        redis = await create_pool(get_redis_settings())
+        job = await redis.enqueue_job(
+            "remove_item_background_job",
+            str(item.id),
+            request.bg_color,
+            _job_id=claim.job_id,
+            _queue_name=IMAGE_QUEUE,
+            final_status=claim.final_status.value,
         )
-        return ItemResponse.model_validate(item)
-    except ImportError:
-        raise CodedHTTPException(
-            status.HTTP_501_NOT_IMPLEMENTED,
-            "BACKGROUND_REMOVAL_UNAVAILABLE",
-            "Background removal provider not available. "
-            "For rembg: pip install rembg[cpu]. "
-            "For HTTP provider: set BG_REMOVAL_PROVIDER=http and BG_REMOVAL_URL.",
-        ) from None
-    except ValueError as e:
-        raise http_error(status.HTTP_400_BAD_REQUEST, e, "BACKGROUND_REMOVAL_FAILED") from None
+        if job is None:
+            raise RuntimeError("enqueue_job returned None")
     except Exception as e:
-        logger.error(f"Failed to remove background: {e}")
+        logger.error(f"Failed to queue background removal for {item.id}: {e}")
+        await item_service.release_image_job_claim(item.id, claim)
+        await db.commit()
         raise CodedHTTPException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "BACKGROUND_REMOVAL_FAILED",
-            "Failed to remove background",
+            "JOB_QUEUE_UNAVAILABLE",
+            "Failed to queue background removal",
         ) from None
+    finally:
+        if redis:
+            await redis.aclose()
+
+    return RemoveBackgroundQueuedResponse(job_id=claim.job_id)
 
 
 @router.post("/{item_id}/restore-original", response_model=ItemResponse)

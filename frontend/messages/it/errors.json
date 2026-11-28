@@ -77,6 +77,7 @@
   "ITEMS_NOT_FOUND": "Uno o più dei capi selezionati non sono stati trovati o non sono ancora pronti.",
   "ITEMS_REQUIRED": "Scegli almeno un capo.",
   "ITEM_ALREADY_CLEAN": "Questo capo è già pulito. Non è stato indossato dall'ultimo lavaggio.",
+  "ITEM_ARCHIVED": "Questo capo è archiviato, quindi la sua foto non può essere modificata.",
   "ITEM_BUSY": "Questo capo è ancora in elaborazione. Attendi un momento e riprova.",
   "ITEM_HAS_NO_IMAGE": "Questo capo non ha ancora una foto. Aggiungine una prima.",
   "ITEM_NOT_FOUND": "Capo non trovato.",

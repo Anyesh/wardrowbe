@@ -4,7 +4,6 @@ import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
 import {
-  useRemoveBackground,
   useReplaceItemImage,
   useRestoreOriginal,
   useRotateImage,
@@ -58,7 +57,6 @@ describe('mutations that change an item primary image', () => {
         mutate(() => useSetPrimaryImage(), wrapper, { itemId: 'item-1', imageId: 'img-2' }),
     ],
     ['rotate', (wrapper) => mutate(() => useRotateImage(), wrapper, { id: 'item-1', direction: 'cw' })],
-    ['remove background', (wrapper) => mutate(() => useRemoveBackground(), wrapper, { id: 'item-1' })],
     ['restore original', (wrapper) => mutate(() => useRestoreOriginal(), wrapper, 'item-1')],
     [
       'replace image',

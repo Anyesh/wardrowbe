@@ -89,7 +89,7 @@ describe('mutation cache invalidation', () => {
     [
       'useRemoveBackground',
       () => invalidatedKeys(useRemoveBackground, { id: 'i1' }),
-      ITEM_AND_OUTFITS,
+      [['items']],
     ],
     ['useRestoreOriginal', () => invalidatedKeys(useRestoreOriginal, 'i1'), ITEM_AND_OUTFITS],
     [

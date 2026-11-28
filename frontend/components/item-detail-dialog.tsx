@@ -61,11 +61,13 @@ import {
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { SplitPhotoDialog } from '@/components/split-photo-dialog';
 import { ApiError } from '@/lib/api';
 import { useDescribeError } from '@/lib/errors';
-import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
+import { invalidatePrimaryImageQueries } from '@/lib/hooks/cache-invalidation';
+import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage, tagProcessingLabel } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
 import {
   useClothingTypes,
@@ -201,6 +203,31 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const addImage = useAddItemImage();
   const deleteImage = useDeleteItemImage();
   const setPrimary = useSetPrimaryImage();
+  const queryClient = useQueryClient();
+  const removalStartedFor = useRef<{ id: string; running: boolean } | null>(null);
+  const itemId = item?.id;
+  const itemStatus = item?.status;
+  const itemKind = item?.processing_kind;
+
+  useEffect(() => {
+    removalStartedFor.current = null;
+  }, [itemId, open]);
+
+  useEffect(() => {
+    const removal = removalStartedFor.current;
+    if (!itemId || removal?.id !== itemId) return;
+    if (itemStatus === 'processing') {
+      removal.running = true;
+      return;
+    }
+    if (!removal.running) return;
+    removalStartedFor.current = null;
+    invalidatePrimaryImageQueries(queryClient, itemId);
+    setImageKey((k) => k + 1);
+    if (itemStatus === 'error' && itemKind === 'background_removal') {
+      toast.error(t('actions.backgroundRemoveError'));
+    }
+  }, [itemId, itemStatus, itemKind, queryClient, t]);
 
   useEffect(() => {
     if (item) {
@@ -327,13 +354,14 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   };
 
   const handleRemoveBackground = async () => {
+    removalStartedFor.current = { id: item.id, running: false };
     try {
       await removeBackground.mutateAsync({ id: item.id });
-      setImageKey((k) => k + 1);
-      toast.success(t('actions.backgroundRemoved'));
+      toast.success(tw('ai.removeBackgroundQueued'));
     } catch (error) {
+      removalStartedFor.current = null;
       console.error('Failed to remove background:', error);
-      toast.error(t('actions.backgroundRemoveError'));
+      toast.error(describeError(error, t('actions.backgroundRemoveError')));
     }
   };
 
@@ -361,6 +389,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   };
 
   const isAnalyzing = reanalyzeItem.isPending || item.status === 'processing';
+  const processingLabel = item.status === 'processing' ? tagProcessingLabel(item) : null;
 
   // Use signed URL from backend for better quality in detail view
   const imageUrl = item.image_url || item.image_path;
@@ -486,7 +515,9 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                     variant="ghost"
                     size="icon"
                     onClick={handleRemoveBackground}
-                    disabled={removeBackground.isPending || !item.image_url}
+                    disabled={
+                      removeBackground.isPending || !item.image_url || item.status === 'processing'
+                    }
                     title={t('titles.removeBackground')}
                   >
                     {removeBackground.isPending ? (
@@ -634,7 +665,13 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
                 {isAnalyzing && (
                   <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
                     <Loader2 className="h-8 w-8 text-white animate-spin" />
-                    <span className="text-white text-sm font-medium">{t('view.aiAnalyzing')}</span>
+                    <span className="text-white text-sm font-medium">
+                      {processingLabel === 'removing_background'
+                        ? tw('ai.removingBackground')
+                        : processingLabel === 'rotating'
+                          ? tw('ai.rotating')
+                          : t('view.aiAnalyzing')}
+                    </span>
                   </div>
                 )}
               </div>

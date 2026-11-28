@@ -425,6 +425,11 @@ class RemoveBackgroundRequest(BaseModel):
     )
 
 
+class RemoveBackgroundQueuedResponse(BaseModel):
+    status: Literal["queued"] = "queued"
+    job_id: str
+
+
 class LogWashRequest(BaseModel):
     washed_at: date | None = None  # If None, use user's timezone to determine today
     method: str | None = Field(None, max_length=50)

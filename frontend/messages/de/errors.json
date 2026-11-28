@@ -77,6 +77,7 @@
   "ITEMS_NOT_FOUND": "Eines oder mehrere der ausgewählten Stücke wurden nicht gefunden oder sind noch nicht bereit.",
   "ITEMS_REQUIRED": "Wähle mindestens ein Stück aus.",
   "ITEM_ALREADY_CLEAN": "Dieses Stück ist bereits sauber. Es wurde seit der letzten Wäsche nicht getragen.",
+  "ITEM_ARCHIVED": "Dieses Stück ist archiviert, daher kann sein Foto nicht geändert werden.",
   "ITEM_BUSY": "Dieses Stück wird noch verarbeitet. Warte einen Moment und versuche es erneut.",
   "ITEM_HAS_NO_IMAGE": "Dieses Stück hat noch kein Foto. Füge zuerst eines hinzu.",
   "ITEM_NOT_FOUND": "Stück nicht gefunden",

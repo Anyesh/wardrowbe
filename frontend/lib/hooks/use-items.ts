@@ -15,7 +15,15 @@ import {
 } from '@/lib/api';
 import { networkErrorCode } from '@/lib/errors';
 import { useSetTokenIfAvailable, applySessionToken } from '@/lib/hooks/use-session-token';
-import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, TaggingProgress } from '@/lib/types';
+import {
+  Item,
+  ItemListResponse,
+  ItemFilter,
+  WashHistoryEntry,
+  ItemImage,
+  RemoveBackgroundQueuedResponse,
+  TaggingProgress,
+} from '@/lib/types';
 import { applyItemEdits, type ItemEdits } from '@/lib/tag-edits';
 import { chunkArray } from '@/lib/utils';
 import { enqueueFiles } from '@/lib/upload-queue';
@@ -126,6 +134,8 @@ export function useItem(itemId: string) {
     queryKey: queryKeys.item(itemId),
     queryFn: () => api.get<Item>(`/items/${itemId}`),
     enabled: !!itemId && status !== 'loading',
+    refetchInterval: (query) =>
+      query.state.data?.status === 'processing' ? processingPollInterval(true) : false,
   });
 }
 
@@ -233,10 +243,21 @@ export function useRemoveBackground() {
   return useMutation({
     mutationFn: async ({ id, bg_color }: { id: string; bg_color?: string }) => {
       applySessionToken(session);
-      return api.post<Item>(`/items/${id}/remove-background`, { bg_color: bg_color ?? '#FFFFFF' });
+      return api.post<RemoveBackgroundQueuedResponse>(`/items/${id}/remove-background`, {
+        bg_color: bg_color ?? '#FFFFFF',
+      });
     },
-    onSuccess: (_, variables) => {
-      invalidatePrimaryImageQueries(queryClient, variables.id);
+    // The photo only changes when the image worker finishes; the caller refreshes image queries then.
+    onSuccess: (_, { id }) => {
+      const markQueued = (item: Item): Item =>
+        item.id === id
+          ? { ...item, status: 'processing', processing_kind: 'background_removal' }
+          : item;
+      queryClient.setQueriesData({ queryKey: queryKeys.items.all }, (old: ItemListResponse | undefined) =>
+        old?.items ? { ...old, items: old.items.map(markQueued) } : old
+      );
+      queryClient.setQueryData<Item>(queryKeys.item(id), (old) => old && markQueued(old));
+      queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
     },
   });
 }
