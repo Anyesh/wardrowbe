@@ -11,13 +11,17 @@ import type { BulkItemFilters, BulkOperationParams } from '@/lib/hooks/use-items
 vi.unmock('next-intl')
 vi.mock('@/lib/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/api')>()),
-  api: { postForText: vi.fn() },
+  api: { postForText: vi.fn(), post: vi.fn() },
 }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const catalog = (namespace: string) =>
   JSON.parse(readFileSync(resolve(__dirname, '..', 'messages', 'en', `${namespace}.json`), 'utf8'))
-const messages = { wardrobe: catalog('wardrobe'), errors: catalog('errors') }
+const messages = {
+  wardrobe: catalog('wardrobe'),
+  errors: catalog('errors'),
+  constants: catalog('constants'),
+}
 
 function renderDialog(
   selection: BulkOperationParams | null = null,
@@ -38,7 +42,25 @@ function renderDialog(
   )
 }
 
+function readBlob(blob: Blob) {
+  return new Promise<string>((resolve) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.readAsText(blob)
+  })
+}
+
 const postForText = vi.mocked(api.postForText)
+const post = vi.mocked(api.post)
+
+const jsonExport = {
+  exported_at: '2026-11-28T12:00:00+00:00',
+  item_count: 2,
+  items: [
+    { section: 'tops', type: 'shirt', name: 'Linen shirt', primary_color: 'navy', colors: [], style: [], season: [], description: 'Loose fit.' },
+    { section: 'footwear', type: 'sneakers', name: null, primary_color: null, colors: [], style: [], season: [], description: null },
+  ],
+}
 
 describe('ExportDialog', () => {
   beforeEach(() => {
@@ -107,6 +129,45 @@ describe('ExportDialog', () => {
         filters: { type: 'shirt' },
         excluded_ids: ['x'],
       }),
+    )
+  })
+
+  it('renders the Markdown catalogue from the JSON export and downloads it', async () => {
+    post.mockResolvedValue(jsonExport)
+    const createObjectURL = vi.fn((_blob: Blob) => 'blob:export')
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    renderDialog(null, 0, { type: 'shirt' })
+
+    fireEvent.click(screen.getByRole('button', { name: /Markdown catalog/ }))
+    expect(screen.queryByLabelText('Include my style preferences and sizes')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Downloaded wardrobe.md'))
+    expect(postForText).not.toHaveBeenCalled()
+    expect(post).toHaveBeenCalledWith('/items/export', {
+      format: 'json',
+      include_profile: false,
+      filters: { type: 'shirt' },
+    })
+    const file = await readBlob(createObjectURL.mock.calls[0][0])
+    expect(file).toContain('# Wardrobe\n')
+    expect(file).toContain('## Tops (1)\n- **[1] "Linen shirt" - Shirt**')
+    expect(file).toContain('  - Description: Loose fit.')
+    expect(file).toContain('## Footwear (1)\n- **[2] Sneakers**')
+  })
+
+  it('copies plain text as one line per item', async () => {
+    post.mockResolvedValue(jsonExport)
+    renderDialog()
+
+    fireEvent.click(screen.getByRole('button', { name: /Plain text/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }))
+
+    await waitFor(() =>
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        '1. "Linen shirt" - Shirt [Navy]: Loose fit.\n2. Sneakers\n',
+      ),
     )
   })
 

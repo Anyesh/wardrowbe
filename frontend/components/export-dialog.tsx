@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Check, Code2, Copy, Download, FileText, Layers, Loader2, Sparkles } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -19,9 +19,28 @@ import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
 import { useDescribeError } from '@/lib/errors';
 import type { BulkItemFilters, BulkOperationParams } from '@/lib/hooks/use-items';
+import {
+  useColorLabel,
+  useFitLabel,
+  useFormalityLabel,
+  useMaterialLabel,
+  usePatternLabel,
+  useSeasonLabel,
+  useStyleLabel,
+  useSubtypeLabel,
+  useTypeLabel,
+} from '@/lib/hooks/use-translated-constants';
 import { cn } from '@/lib/utils';
+import {
+  type CatalogueFormat,
+  type CatalogueLabels,
+  type ExportFileTranslator,
+  renderCatalogue,
+  type WardrobeExport,
+} from '@/lib/wardrobe-export';
 
-export type ExportFormat = 'skill' | 'markdown' | 'text' | 'json';
+type ServerFormat = 'skill' | 'json';
+export type ExportFormat = ServerFormat | CatalogueFormat;
 
 const FILES: Record<ExportFormat, { filename: string; type: string }> = {
   skill: { filename: 'SKILL.md', type: 'text/markdown;charset=utf-8' },
@@ -40,16 +59,18 @@ const FORMATS: { id: ExportFormat; icon: typeof Sparkles }[] = [
 interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // The items the wardrobe page is showing: its filters and how many match them.
   viewFilters: BulkItemFilters;
   totalCount: number;
-  // The wardrobe page's current bulk selection, or null when nothing is selected.
   selection: BulkOperationParams | null;
   selectedCount: number;
 }
 
+function isCatalogue(format: ExportFormat): format is CatalogueFormat {
+  return format === 'markdown' || format === 'text';
+}
+
 function exportRequest(
-  format: ExportFormat,
+  format: ServerFormat,
   includeProfile: boolean,
   selection: BulkOperationParams | null,
   viewFilters: BulkItemFilters
@@ -62,6 +83,21 @@ function exportRequest(
   return { ...body, item_ids: selection.item_ids };
 }
 
+function useCatalogueLabels(): CatalogueLabels {
+  const t: ExportFileTranslator = useTranslations('wardrobe.exportFile');
+  const locale = useLocale();
+  const type = useTypeLabel();
+  const subtype = useSubtypeLabel();
+  const color = useColorLabel();
+  const material = useMaterialLabel();
+  const pattern = usePatternLabel();
+  const formality = useFormalityLabel();
+  const style = useStyleLabel();
+  const season = useSeasonLabel();
+  const fit = useFitLabel();
+  return { t, locale, type, subtype, color, material, pattern, formality, style, season, fit };
+}
+
 export function ExportDialog({
   open,
   onOpenChange,
@@ -72,23 +108,29 @@ export function ExportDialog({
 }: ExportDialogProps) {
   const t = useTranslations('wardrobe.exportDialog');
   const describeError = useDescribeError();
+  const catalogueLabels = useCatalogueLabels();
   const [format, setFormat] = useState<ExportFormat>('skill');
   const [onlySelected, setOnlySelected] = useState(false);
   const [includeProfile, setIncludeProfile] = useState(true);
   const [busy, setBusy] = useState<'download' | 'copy' | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Each time the dialog opens, default to the selection the user just made, if any.
   const hasSelection = selection !== null;
   useEffect(() => {
     if (open) setOnlySelected(hasSelection);
   }, [open, hasSelection]);
 
-  const fetchExport = () =>
-    api.postForText(
-      '/items/export',
-      exportRequest(format, includeProfile, onlySelected ? selection : null, viewFilters)
-    );
+  const fetchExport = async () => {
+    const scope = onlySelected ? selection : null;
+    if (isCatalogue(format)) {
+      const data = await api.post<WardrobeExport>(
+        '/items/export',
+        exportRequest('json', false, scope, viewFilters)
+      );
+      return renderCatalogue(data, format, catalogueLabels);
+    }
+    return api.postForText('/items/export', exportRequest(format, includeProfile, scope, viewFilters));
+  };
 
   const handleDownload = async () => {
     setBusy('download');
@@ -124,7 +166,7 @@ export function ExportDialog({
     }
   };
 
-  const profileApplies = format === 'skill' || format === 'json';
+  const profileApplies = !isCatalogue(format);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
