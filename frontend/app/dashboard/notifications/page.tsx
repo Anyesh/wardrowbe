@@ -59,6 +59,7 @@ import { ChannelCard } from '@/components/notifications/channel-card';
 import { useUserProfile } from '@/lib/hooks/use-user';
 import { useOccasionLabel, useOccasions } from '@/lib/hooks/use-translated-constants';
 import { useTranslations } from 'next-intl';
+import { useDescribeError } from '@/lib/errors';
 import { AddChannelDialog, ChannelFormData } from '@/components/notifications/add-channel-dialog';
 
 const DAY_KEYS = [
@@ -296,6 +297,7 @@ function AddScheduleDialog({
 export default function NotificationsPage() {
   const t = useTranslations('notifications');
   const tc = useTranslations('common');
+  const describe = useDescribeError();
   const { data: settings, isLoading: loadingSettings } = useNotificationSettings();
   const { data: schedules, isLoading: loadingSchedules } = useSchedules();
   const { data: userProfile } = useUserProfile();
@@ -317,8 +319,7 @@ export default function NotificationsPage() {
       await createSetting.mutateAsync(data);
       toast.success(t('channels.channelAdded'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('channels.addFailed');
-      toast.error(message);
+      toast.error(describe(error, t('channels.addFailed')));
       throw error; // Re-throw so dialog knows it failed
     }
   };
@@ -328,8 +329,7 @@ export default function NotificationsPage() {
       await createSchedule.mutateAsync(data);
       toast.success(t('schedule.scheduleAdded'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('schedule.addFailed');
-      toast.error(message);
+      toast.error(describe(error, t('schedule.addFailed')));
       throw error; // Re-throw so dialog knows it failed
     }
   };
@@ -337,11 +337,10 @@ export default function NotificationsPage() {
   const handleTest = async (id: string) => {
     setTestingId(id);
     try {
-      const result = await testSetting.mutateAsync(id);
-      toast.success(result.message || t('channels.testSent'));
+      await testSetting.mutateAsync(id);
+      toast.success(t('channels.testSent'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('channels.testFailed');
-      toast.error(message);
+      toast.error(describe(error, t('channels.testFailed')));
     } finally {
       setTestingId(null);
     }
@@ -352,8 +351,7 @@ export default function NotificationsPage() {
       await updateSetting.mutateAsync({ id, data: { enabled } });
       toast.success(enabled ? t('channels.channelEnabled') : t('channels.channelDisabled'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('updateFailed');
-      toast.error(message);
+      toast.error(describe(error, t('updateFailed')));
     }
   };
 
@@ -362,8 +360,7 @@ export default function NotificationsPage() {
       await updateSchedule.mutateAsync({ id, data: { enabled } });
       toast.success(enabled ? t('schedule.scheduleEnabled') : t('schedule.scheduleDisabled'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('updateFailed');
-      toast.error(message);
+      toast.error(describe(error, t('updateFailed')));
     }
   };
 
@@ -372,8 +369,7 @@ export default function NotificationsPage() {
       await updateSchedule.mutateAsync({ id, data: { notify_day_before } });
       toast.success(notify_day_before ? t('schedule.willNotifyDayBefore') : t('schedule.willNotifySameDay'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('updateFailed');
-      toast.error(message);
+      toast.error(describe(error, t('updateFailed')));
     }
   };
 
@@ -389,8 +385,7 @@ export default function NotificationsPage() {
         toast.success(t('schedule.scheduleDeleted'));
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('deleteFailed');
-      toast.error(message);
+      toast.error(describe(error, t('deleteFailed')));
     } finally {
       setDeleteConfirm(null);
     }

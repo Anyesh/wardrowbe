@@ -6,7 +6,7 @@ from uuid import UUID
 
 from arq import create_pool
 from arq.jobs import Job
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from sqlalchemy import case, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -57,10 +57,12 @@ from app.schemas.item import (
     ReorderImagesRequest,
     TaggingProgressResponse,
     WashHistoryResponse,
+    failure_reason,
 )
 from app.services.image_service import ImageService
 from app.services.item_service import ItemService, TagVocabularyError
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException, http_error
 from app.utils.signed_urls import sign_optional
 from app.utils.timezone import get_user_today
 from app.utils.uploads import UploadTooLargeError, read_upload_within_limit
@@ -69,6 +71,8 @@ from app.workers.settings import get_redis_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+MAX_ADDITIONAL_IMAGES = 4
 
 router = APIRouter(prefix="/items", tags=["Items"])
 
@@ -102,9 +106,11 @@ async def _resolve_bulk_item_ids(
     if not request.select_all:
         item_ids = request.item_ids or []
         if len(item_ids) > limit:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Maximum {limit} items per bulk action",
+            raise CodedHTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "BULK_ACTION_LIMIT_EXCEEDED",
+                f"Maximum {limit} items per bulk action",
+                {"limit": limit},
             )
         return item_ids, None, False
 
@@ -127,10 +133,7 @@ async def _read_image_or_413(image: UploadFile) -> bytes:
     try:
         return await read_upload_within_limit(image, settings.max_upload_size_mb)
     except UploadTooLargeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_413_CONTENT_TOO_LARGE, e, "IMAGE_TOO_LARGE") from None
 
 
 @router.get("", response_model=ItemListResponse)
@@ -206,9 +209,10 @@ async def create_item(
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service.validate_image(content, content_type):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "INVALID_IMAGE",
+            "Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
         )
 
     # Compute hash and check for duplicates BEFORE storing
@@ -216,11 +220,12 @@ async def create_item(
         image_hash = image_service.compute_phash(content, image.filename or "upload.jpg")
         existing = await item_service.find_duplicate_by_hash(current_user.id, image_hash)
         if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Duplicate image detected. This item already exists in your wardrobe (ID: {existing.id})",
+            raise CodedHTTPException(
+                status.HTTP_409_CONFLICT,
+                "DUPLICATE_ITEM",
+                f"Duplicate image detected. This item already exists in your wardrobe (ID: {existing.id})",
             )
-    except HTTPException:
+    except CodedHTTPException:
         raise
     except Exception as e:
         logger.warning(f"Failed to compute image hash: {e}")
@@ -234,10 +239,7 @@ async def create_item(
             original_filename=image.filename or "upload.jpg",
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_400_BAD_REQUEST, e, "INVALID_IMAGE") from None
 
     # Parse colors from comma-separated string
     color_list = colors.split(",") if colors else None
@@ -305,21 +307,23 @@ async def bulk_create_items(
     ),
 ) -> BulkUploadResponse:
     if len(images) > settings.max_bulk_upload_count:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Maximum {settings.max_bulk_upload_count} images per bulk upload",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "BULK_LIMIT_EXCEEDED",
+            f"Maximum {settings.max_bulk_upload_count} images per bulk upload",
+            {"limit": settings.max_bulk_upload_count},
         )
 
     if len(images) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="At least one image is required",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "IMAGE_REQUIRED", "At least one image is required"
         )
 
     if upload_keys is not None and len(upload_keys) != len(images):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="upload_keys must have the same length as images",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "UPLOAD_KEYS_MISMATCH",
+            "upload_keys must have the same length as images",
         )
 
     image_service = ImageService()
@@ -690,9 +694,10 @@ async def bulk_analyze_items(
                 # fresh cooldown (mirrors the single-item retry endpoint).
                 await item_service.release_failed_claim(item.id, job_id)
         await db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to connect to job queue",
+        raise CodedHTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "JOB_QUEUE_UNAVAILABLE",
+            "Failed to connect to job queue",
         ) from None
 
     image_service = ImageService()
@@ -881,9 +886,10 @@ async def bulk_rotate_items(
             item.status = ItemStatus.error
             item.processing_kind = None
         await db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to connect to job queue",
+        raise CodedHTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "JOB_QUEUE_UNAVAILABLE",
+            "Failed to connect to job queue",
         ) from None
 
     try:
@@ -990,9 +996,10 @@ async def bulk_remove_background_items(
             item.status = ItemStatus.error
             item.processing_kind = None
         await db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to connect to job queue",
+        raise CodedHTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "JOB_QUEUE_UNAVAILABLE",
+            "Failed to connect to job queue",
         ) from None
 
     try:
@@ -1164,13 +1171,15 @@ async def _recent_failures(db: AsyncSession, user_id: UUID) -> list[AnalysisFail
     )
     failures = []
     for row in result:
-        raw = row.ai_raw_response if isinstance(row.ai_raw_response, dict) else {}
+        reason = failure_reason(row.ai_raw_response)
         failures.append(
             AnalysisFailure(
                 item_id=row.id,
                 name=row.name,
                 type=row.type,
-                error=raw.get("error"),
+                error=reason.error,
+                error_code=reason.code,
+                error_params=reason.params,
                 failed_at=row.ai_failed_at,
             )
         )
@@ -1261,10 +1270,7 @@ async def get_item(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     return ItemResponse.model_validate(item)
 
@@ -1280,10 +1286,7 @@ async def update_item(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     update_data = item_data.model_dump(exclude_unset=True)
     if any(_has_tag_content(f, update_data.get(f)) for f in TAG_WRITEBACK_FIELDS):
@@ -1294,10 +1297,7 @@ async def update_item(
     try:
         item = await item_service.update(item, item_data)
     except TagVocabularyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"message": str(e), "error_code": "INVALID_TAG_VALUE"},
-        ) from e
+        raise http_error(status.HTTP_422_UNPROCESSABLE_ENTITY, e, "INVALID_TAG_VALUE") from e
     return ItemResponse.model_validate(item)
 
 
@@ -1311,10 +1311,7 @@ async def delete_item(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     image_service = ImageService()
     image_service.delete_images(
@@ -1340,10 +1337,7 @@ async def archive_item(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     item = await item_service.archive(item, request.reason)
     return ItemResponse.model_validate(item)
@@ -1359,10 +1353,7 @@ async def restore_item(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     item = await item_service.restore(item)
     return ItemResponse.model_validate(item)
@@ -1379,10 +1370,7 @@ async def log_item_wear(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     # Use user's timezone to determine today if worn_at not provided
     if request.worn_at is None:
@@ -1413,10 +1401,7 @@ async def get_item_history(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     # Eagerly load outfit and its items for context
     result = await db.execute(
@@ -1469,10 +1454,7 @@ async def get_item_wear_stats(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     return await item_service.get_wear_stats(item, get_user_today(current_user))
 
@@ -1488,15 +1470,13 @@ async def log_item_wash(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     if item.wears_since_wash == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Item is already clean (0 wears since last wash)",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "ITEM_ALREADY_CLEAN",
+            "Item is already clean (0 wears since last wash)",
         )
 
     # Use user's timezone to determine today if washed_at not provided
@@ -1527,10 +1507,7 @@ async def get_item_wash_history(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     history = await item_service.get_wash_history(item_id, limit)
     return [WashHistoryResponse.model_validate(h) for h in history]
@@ -1551,10 +1528,7 @@ async def trigger_ai_analysis(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     if not settings.effective_ai_vision_enabled:
         await item_service.mark_pending(item, set_ready=True)
@@ -1615,9 +1589,10 @@ async def trigger_ai_analysis(
             logger.error(f"Failed to queue AI analysis job: {e}")
             await item_service.release_failed_claim(item_id, job_id)
             await db.commit()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to queue AI analysis",
+            raise CodedHTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "ANALYSIS_QUEUE_FAILED",
+                "Failed to queue AI analysis",
             ) from None
 
     try:
@@ -1644,9 +1619,10 @@ async def trigger_ai_analysis(
             await redis.aclose()
     except Exception as e:
         logger.error(f"Failed to queue AI analysis job: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to queue AI analysis",
+        raise CodedHTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "ANALYSIS_QUEUE_FAILED",
+            "Failed to queue AI analysis",
         ) from None
 
 
@@ -1660,10 +1636,7 @@ async def retag_item(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     item = await item_service.mark_pending(item)
     return ItemResponse.model_validate(item)
@@ -1679,10 +1652,7 @@ async def cancel_item_analysis(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     if item.status != ItemStatus.processing:
         return ItemResponse.model_validate(item)
@@ -1734,15 +1704,11 @@ async def rotate_item_image(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     if not item.image_path:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Item has no image",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "ITEM_HAS_NO_IMAGE", "Item has no image"
         )
 
     try:
@@ -1755,15 +1721,11 @@ async def rotate_item_image(
         await db.refresh(item)
         return ItemResponse.model_validate(item)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_400_BAD_REQUEST, e, "IMAGE_ROTATE_FAILED") from None
     except Exception as e:
         logger.error(f"Failed to rotate image: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to rotate image",
+        raise CodedHTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, "IMAGE_ROTATE_FAILED", "Failed to rotate image"
         ) from None
 
 
@@ -1778,24 +1740,19 @@ async def remove_item_background(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     if not item.image_path:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Item has no image",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "ITEM_HAS_NO_IMAGE", "Item has no image"
         )
 
     if item.status == ItemStatus.processing and item.ai_job_id:
         # A queued or running job (tagging or another background-removal run)
         # owns image_path/medium_path/thumbnail_path - racing it here would
         # stomp whichever write lands last.
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Item has a background job in progress",
+        raise CodedHTTPException(
+            status.HTTP_409_CONFLICT, "ITEM_BUSY", "Item has a background job in progress"
         )
 
     recovering_from_error = (
@@ -1827,22 +1784,21 @@ async def remove_item_background(
         )
         return ItemResponse.model_validate(item)
     except ImportError:
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Background removal provider not available. "
+        raise CodedHTTPException(
+            status.HTTP_501_NOT_IMPLEMENTED,
+            "BACKGROUND_REMOVAL_UNAVAILABLE",
+            "Background removal provider not available. "
             "For rembg: pip install rembg[cpu]. "
             "For HTTP provider: set BG_REMOVAL_PROVIDER=http and BG_REMOVAL_URL.",
         ) from None
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_400_BAD_REQUEST, e, "BACKGROUND_REMOVAL_FAILED") from None
     except Exception as e:
         logger.error(f"Failed to remove background: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to remove background",
+        raise CodedHTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "BACKGROUND_REMOVAL_FAILED",
+            "Failed to remove background",
         ) from None
 
 
@@ -1856,15 +1812,11 @@ async def restore_item_original(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     if not item.original_image_path:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No original image to restore",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST, "NO_ORIGINAL_IMAGE", "No original image to restore"
         )
 
     try:
@@ -1873,15 +1825,13 @@ async def restore_item_original(
             image_service.restore_original, item.image_path, item.original_image_path
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_400_BAD_REQUEST, e, "IMAGE_RESTORE_FAILED") from None
     except Exception as e:
         logger.error(f"Failed to restore original image: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to restore original image",
+        raise CodedHTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "IMAGE_RESTORE_FAILED",
+            "Failed to restore original image",
         ) from None
 
     item.original_image_path = None
@@ -1901,19 +1851,17 @@ async def replace_item_image(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     image_service = ImageService()
     content = await _read_image_or_413(image)
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service.validate_image(content, content_type):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "INVALID_IMAGE",
+            "Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
         )
 
     try:
@@ -1923,10 +1871,7 @@ async def replace_item_image(
             original_filename=image.filename or "upload.jpg",
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_400_BAD_REQUEST, e, "INVALID_IMAGE") from None
 
     old_paths = {
         "image_path": item.image_path,
@@ -1973,18 +1918,17 @@ async def add_item_image(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     # Check max images limit
     count_result = await db.execute(select(func.count()).where(ItemImage.item_id == item_id))
     current_count = count_result.scalar() or 0
-    if current_count >= 4:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Maximum of 4 additional images per item",
+    if current_count >= MAX_ADDITIONAL_IMAGES:
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "MAX_ADDITIONAL_IMAGES",
+            f"Maximum of {MAX_ADDITIONAL_IMAGES} additional images per item",
+            {"limit": MAX_ADDITIONAL_IMAGES},
         )
 
     # Process image
@@ -1993,9 +1937,10 @@ async def add_item_image(
     content_type = image.content_type or "application/octet-stream"
 
     if not image_service_inst.validate_image(content, content_type):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
+        raise CodedHTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "INVALID_IMAGE",
+            "Invalid image file. Supported formats: JPEG, PNG, WebP, HEIC",
         )
 
     try:
@@ -2005,10 +1950,7 @@ async def add_item_image(
             original_filename=image.filename or "upload.jpg",
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_400_BAD_REQUEST, e, "INVALID_IMAGE") from None
 
     item_image = ItemImage(
         item_id=item_id,
@@ -2035,10 +1977,7 @@ async def delete_item_image(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     result = await db.execute(
         select(ItemImage).where(ItemImage.id == image_id, ItemImage.item_id == item_id)
@@ -2046,10 +1985,7 @@ async def delete_item_image(
     item_image = result.scalar_one_or_none()
 
     if not item_image:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Image not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "IMAGE_NOT_FOUND", "Image not found")
 
     # Delete image files
     image_service_inst = ImageService()
@@ -2076,10 +2012,7 @@ async def reorder_item_images(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     result = await db.execute(select(ItemImage).where(ItemImage.item_id == item_id))
     images = {img.id: img for img in result.scalars().all()}
@@ -2106,10 +2039,7 @@ async def set_primary_image(
     item = await item_service.get_by_id(item_id, current_user.id)
 
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Item not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "ITEM_NOT_FOUND", "Item not found")
 
     result = await db.execute(
         select(ItemImage).where(ItemImage.id == image_id, ItemImage.item_id == item_id)
@@ -2117,10 +2047,7 @@ async def set_primary_image(
     item_image = result.scalar_one_or_none()
 
     if not item_image:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Image not found",
-        )
+        raise CodedHTTPException(status.HTTP_404_NOT_FOUND, "IMAGE_NOT_FOUND", "Image not found")
 
     # Swap paths: current primary -> additional, additional -> primary
     old_primary = {

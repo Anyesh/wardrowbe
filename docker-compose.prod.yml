@@ -90,6 +90,7 @@ services:
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_MOBILE_CLIENT_ID: ${OIDC_MOBILE_CLIENT_ID:-}
       OIDC_CA_BUNDLE: ${OIDC_CA_BUNDLE:-}
       # The authenticating proxy must send this as X-Forward-Auth-Secret (docs/forward-auth.md)
       FORWARD_AUTH_SECRET: ${FORWARD_AUTH_SECRET:-}

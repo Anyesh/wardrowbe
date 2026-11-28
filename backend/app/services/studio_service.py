@@ -19,19 +19,20 @@ from app.models.user import User
 from app.services.item_service import ItemService
 from app.services.learning_service import LearningService
 from app.utils.clothing import canonical_item_order
+from app.utils.errors import Coded, CodedValueError
 from app.utils.timezone import get_user_today
 
 
-class ItemOwnershipError(Exception):
-    pass
+class ItemOwnershipError(Coded, Exception):
+    code = "OUTFIT_ITEM_OWNERSHIP"
 
 
-class OutfitWornImmutableError(Exception):
-    pass
+class OutfitWornImmutableError(Coded, Exception):
+    code = "OUTFIT_WORN_IMMUTABLE"
 
 
-class OutfitNotTemplateError(Exception):
-    pass
+class OutfitNotTemplateError(Coded, Exception):
+    code = "OUTFIT_NOT_TEMPLATE"
 
 
 async def load_full_outfit(db: AsyncSession, outfit_id: UUID) -> Outfit:
@@ -52,7 +53,7 @@ async def validate_item_ownership(
     db: AsyncSession, user_id: UUID, item_ids: list[UUID]
 ) -> list[ClothingItem]:
     if not item_ids:
-        raise ValueError("items required")
+        raise CodedValueError("items required", code="ITEMS_REQUIRED")
 
     result = await db.execute(
         select(ClothingItem).where(

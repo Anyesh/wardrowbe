@@ -55,8 +55,7 @@ export function useAiUiEnabled(): boolean | undefined {
 }
 
 // null means "unknown": callers fall back to learning the limit from the
-// server's "Maximum N images per bulk upload" 400, so a failed features
-// request must not block an upload.
+// server's BULK_LIMIT_EXCEEDED 400, so a failed features request must not block an upload.
 export async function fetchBulkUploadLimit(queryClient: QueryClient): Promise<number | null> {
   try {
     const features = await queryClient.fetchQuery({

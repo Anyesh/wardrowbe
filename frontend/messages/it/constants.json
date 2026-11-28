@@ -191,7 +191,10 @@
     "turtleneck": "Dolcevita",
     "v-neck": "Scollo a V",
     "windbreaker": "Giacca a vento",
-    "wrap": "Portafoglio"
+    "wrap": "Portafoglio",
+    "waistcoat": "Panciotto",
+    "sweater-vest": "Gilet in maglia",
+    "puffer": "Piumino"
   },
   "timezones": {
     "America/Chicago": "Ora centrale (USA)",

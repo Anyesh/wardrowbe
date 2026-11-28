@@ -24,11 +24,12 @@ function catalog(namespace: string) {
 }
 const wardrobe = catalog('wardrobe')
 const labels = wardrobe.itemDetail
+const errorLabels = catalog('errors')
 
 function Wrapper({ children }: { children: ReactNode }) {
   // The app's client, so the global error toast is live and a second toast would show.
-  const client = createQueryClient()
-  const all = Object.fromEntries(['wardrobe', 'constants', 'common'].map((ns) => [ns, catalog(ns)]))
+  const client = createQueryClient(() => 'error')
+  const all = Object.fromEntries(['wardrobe', 'constants', 'common', 'errors'].map((ns) => [ns, catalog(ns)]))
   return (
     <QueryClientProvider client={client}>
       <NextIntlClientProvider locale="en" messages={all} onError={() => {}}>
@@ -308,8 +309,8 @@ describe('editing an item with the tag editor', () => {
     [
       'a value off the list',
       422,
-      { detail: { message: 'x', error_code: 'INVALID_TAG_VALUE' } },
-      labels.tagsEditor.invalidValue,
+      { detail: 'x', error_code: 'INVALID_TAG_VALUE' },
+      errorLabels.INVALID_TAG_VALUE,
     ],
     ['any other failure', 500, { detail: 'Internal Server Error' }, labels.actions.saveError],
   ])('shows one translated toast when a save fails with %s', async (_case, status, data, message) => {

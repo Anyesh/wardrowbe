@@ -4,9 +4,12 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import type { Provider } from 'next-auth/providers/index';
 import { API_BASE_PATH } from '@/lib/api';
 import {
+  BACKEND_UNREACHABLE,
+  ERROR_CODE_PATTERN,
   FORWARD_AUTH_ACCOUNT_CONFLICT,
   FORWARD_AUTH_SERVER_ERROR,
   FORWARD_AUTH_USERNAME_CONFLICT,
+  SIGN_IN_FAILED,
 } from '@/lib/auth-errors';
 import { decodeProxyHeader, proxySecretMatches } from '@/lib/proxy-headers';
 
@@ -113,7 +116,7 @@ function headerValue(headers: IncomingHeaders, name: string): string | undefined
 
 // The backend answers 400 or 401 only when the proxy's headers or shared secret are wrong.
 const PROXY_HEADER_REJECTIONS = new Set([400, 401]);
-const LEGACY_IDENTITY_CONFLICT = 'legacy_identity_conflict';
+const LEGACY_IDENTITY_CONFLICT = 'LEGACY_IDENTITY_CONFLICT';
 
 // Undici waits 300 s for response headers, so a backend that accepts the connection and never
 // answers would leave the login page on "Signing in" for five minutes without this bound.
@@ -181,7 +184,7 @@ export async function authorizeForwardAuth(headers: IncomingHeaders): Promise<Us
     const errorData = await response.json().catch(() => ({}));
     console.error('Forward-auth sync conflict:', errorData.detail || response.status);
     throw new Error(
-      errorData.detail === LEGACY_IDENTITY_CONFLICT
+      errorData.error_code === LEGACY_IDENTITY_CONFLICT
         ? FORWARD_AUTH_USERNAME_CONFLICT
         : FORWARD_AUTH_ACCOUNT_CONFLICT
     );
@@ -296,8 +299,15 @@ export const authOptions: NextAuthOptions = {
           }
 
           const errorData = await response.json().catch(() => ({}));
-          const syncError = errorData.detail || `Backend sync failed (${response.status})`;
-          console.error('Failed to sync user to backend:', syncError);
+          const syncError =
+            typeof errorData.error_code === 'string' && ERROR_CODE_PATTERN.test(errorData.error_code)
+              ? errorData.error_code
+              : SIGN_IN_FAILED;
+          console.error(
+            'Failed to sync user to backend:',
+            errorData.detail || response.status,
+            syncError
+          );
           return {
             ...token,
             sub: user.id,
@@ -310,7 +320,7 @@ export const authOptions: NextAuthOptions = {
         return {
           ...token,
           sub: user.id,
-          syncError: 'Unable to connect to backend server',
+          syncError: BACKEND_UNREACHABLE,
         };
       }
       return token;

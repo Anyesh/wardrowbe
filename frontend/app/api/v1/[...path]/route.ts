@@ -96,6 +96,7 @@ async function proxy(request: NextRequest): Promise<NextResponse> {
         detail:
           `Unable to reach the backend at ${backend} (${reason}). ` +
           `Set BACKEND_URL if the backend service is not named "backend".`,
+        error_code: 'BACKEND_UNREACHABLE',
       },
       { status: 502 }
     );

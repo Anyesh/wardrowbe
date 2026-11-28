@@ -18,7 +18,8 @@ from app.models.outfit import (
     OutfitStatus,
 )
 from app.models.user import User
-from app.services.pairing_service import PairingService
+from app.services.ai_service import AIResponseTruncatedError
+from app.services.pairing_service import AIGenerationError, PairingService
 from tests.identity_helpers import add_users_with_identities
 
 
@@ -474,3 +475,34 @@ class TestGeneratePairingsPreservesSource:
             assert [oi.item_id for oi in sorted(outfits[0].items, key=lambda oi: oi.position)] == [
                 items[name].id for name in expected
             ]
+
+
+class TestGeneratePairingsTruncatedAnswer:
+    @pytest.mark.asyncio
+    async def test_a_truncated_answer_keeps_its_cause(self, db_session: AsyncSession, test_user):
+        source = _make_item(test_user.id, "shirt")
+        others = [_make_item(test_user.id, t) for t in ("pants", "dress", "suit", "sneakers")]
+        db_session.add_all([source, *others])
+        await db_session.commit()
+        ai = MagicMock()
+        ai.generate_text = AsyncMock(
+            side_effect=AIResponseTruncatedError("cut off", max_tokens=4096)
+        )
+        service = PairingService(db_session)
+        test_user.preferences = None
+
+        with (
+            patch("app.services.pairing_service.AIService", return_value=ai),
+            patch.object(
+                service, "_format_items_for_prompt", return_value=("source", "", 1, {1: source.id})
+            ),
+            pytest.raises(AIGenerationError) as caught,
+        ):
+            await service.generate_pairings(
+                user=test_user, source_item_id=source.id, num_pairings=1
+            )
+
+        assert (caught.value.code, caught.value.params) == (
+            "AI_RESPONSE_EMPTY",
+            {"max_tokens": 4096},
+        )

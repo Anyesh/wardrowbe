@@ -79,7 +79,6 @@
     "detected": "Posizione rilevata. Verificala, poi salva.",
     "errors": {
       "geolocationDenied": "Accesso alla posizione negato.",
-      "geolocationFailed": "Impossibile ottenere la posizione esatta: {message}",
       "geolocationFailedGeneric": "Impossibile ottenere la posizione esatta.",
       "geolocationTimeout": "Richiesta di posizione scaduta.",
       "geolocationUnavailable": "Posizione attualmente non disponibile.",
@@ -87,7 +86,6 @@
       "invalidCoordinates": "Inserisci valori di latitudine e longitudine validi",
       "latitudeRange": "La latitudine deve essere compresa tra -90 e 90",
       "longitudeRange": "La longitudine deve essere compresa tra -180 e 180",
-      "networkLookupFailed": "Ricerca della posizione tramite rete fallita ({status})",
       "saveFailed": "Salvataggio posizione fallito. Riprova.",
       "unableToDetect": "Impossibile rilevare la tua posizione."
     },

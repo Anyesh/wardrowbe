@@ -6,6 +6,7 @@ import { SplitPhotoDialog } from '@/components/split-photo-dialog'
 import { ApiError, NetworkError, api } from '@/lib/api'
 import { createQueryClient } from '@/lib/query-client'
 import { MAX_BOXES } from '@/lib/split-boxes'
+import enErrors from '@/messages/en/errors.json'
 
 vi.mock('@/lib/api', async () => ({
   ...(await vi.importActual('@/lib/api')),
@@ -14,6 +15,19 @@ vi.mock('@/lib/api', async () => ({
 }))
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('sonner', () => ({ toast }))
+vi.mock('next-intl', async () => {
+  const errors = (await import('@/messages/en/errors.json')).default as unknown as Record<string, string>
+  return {
+    useLocale: () => 'en',
+    useTranslations: (namespace?: string) => {
+      const t = (key: string) => (namespace === 'errors' ? (errors[key] ?? key) : key)
+      t.has = (key: string) => namespace !== 'errors' || key in errors
+      return t
+    },
+  }
+})
+
+const errors = enErrors as unknown as Record<string, string>
 
 const garment = (left: number, top: number, type = 'shirt') => ({
   type,
@@ -25,7 +39,7 @@ const garment = (left: number, top: number, type = 'shirt') => ({
 })
 
 const coded = (status: number, error_code: string, message = 'Raw server text') =>
-  new ApiError(message, status, { detail: { message, error_code } })
+  new ApiError(message, status, { detail: message, error_code })
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -39,7 +53,7 @@ function renderDialog(props: Partial<React.ComponentProps<typeof SplitPhotoDialo
   const onClose = vi.fn()
   const onDone = vi.fn()
   // The app's client, so the global error toast is live and a second toast would show.
-  const client = createQueryClient()
+  const client = createQueryClient(() => 'error')
   const dialog = (
     <QueryClientProvider client={client}>
       <SplitPhotoDialog itemId="item-1" imageUrl="/p.jpg" open onClose={onClose} onDone={onDone} {...props} />
@@ -180,11 +194,11 @@ describe('SplitPhotoDialog', () => {
   })
 
   it.each([
-    { name: 'an archived source', error: coded(409, 'SOURCE_ARCHIVED'), text: 'errors.sourceArchived' },
-    { name: 'a source with a job running', error: coded(409, 'SOURCE_BUSY'), text: 'errors.sourceBusy' },
-    { name: 'a missing photo', error: coded(404, 'IMAGE_NOT_FOUND'), text: 'errors.imageNotFound' },
+    { name: 'an archived source', error: coded(409, 'SOURCE_ARCHIVED'), text: errors.SOURCE_ARCHIVED },
+    { name: 'a source with a job running', error: coded(409, 'SOURCE_BUSY'), text: errors.SOURCE_BUSY },
+    { name: 'a missing photo', error: coded(404, 'IMAGE_NOT_FOUND'), text: errors.IMAGE_NOT_FOUND },
     { name: 'an uncoded 404', error: new ApiError('Item not found', 404, { detail: 'Item not found' }), text: 'createFailed' },
-    { name: 'no connection', error: new NetworkError(), text: 'createFailed' },
+    { name: 'no connection', error: new NetworkError('unreachable'), text: errors.NETWORK_CONNECT_FAILED },
     { name: 'an unexpected error', error: new Error('boom'), text: 'createFailed' },
     { name: 'a signed-out session', error: new ApiError('Not authenticated', 401, {}), text: null },
   ])('keeps the dialog open and shows one translated toast when creating fails ($name)', async ({ error, text }) => {
@@ -212,7 +226,7 @@ describe('SplitPhotoDialog', () => {
   it.each([
     { name: 'vision switched off', error: coded(503, 'AI_VISION_DISABLED'), text: 'errors.visionDisabled', retry: false },
     { name: 'an unreachable AI', error: coded(502, 'AI_UNREACHABLE'), text: 'errors.aiUnreachable', retry: true },
-    { name: 'a missing photo', error: coded(404, 'IMAGE_NOT_FOUND'), text: 'errors.imageNotFound', retry: true },
+    { name: 'a missing photo', error: coded(404, 'IMAGE_NOT_FOUND'), text: errors.IMAGE_NOT_FOUND, retry: true },
     { name: 'the rate limit', error: new ApiError('Too many requests', 429, { detail: 'Too many requests' }), text: 'errors.rateLimited', retry: true },
     { name: 'an uncoded server error', error: new ApiError('Internal Server Error', 500, {}), text: 'detectFailed', retry: true },
   ])('shows a detection failure inline, without a toast ($name)', async ({ error, text, retry }) => {

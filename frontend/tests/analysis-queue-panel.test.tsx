@@ -4,8 +4,25 @@ import { render, screen, within, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AnalysisQueuePanel } from '@/components/analysis-queue-panel'
 import type { TaggingProgress } from '@/lib/types'
+import enErrors from '@/messages/en/errors.json'
 
-// next-intl is mocked globally to echo the key, so every string the panel
+vi.mock('next-intl', async () => {
+  const errors = (await import('@/messages/en/errors.json')).default as unknown as Record<string, string>
+  return {
+    useLocale: () => 'en',
+    useFormatter: () => ({
+      number: (value: number) => String(value),
+      list: (items: string[]) => items.join(', '),
+    }),
+    useTranslations: (namespace?: string) => {
+      const t = (key: string) => (namespace === 'errors' ? (errors[key] ?? key) : key)
+      t.has = (key: string) => namespace !== 'errors' || key in errors
+      return t
+    },
+  }
+})
+
+// next-intl is mocked to echo the key outside the errors namespace, so every string the panel
 // renders shows up as a key path. That makes the panel assertions readable and
 // lets one test check every key it emits against the English catalog, which is
 // the only thing that catches a key the panel invents but nobody translated.
@@ -150,18 +167,33 @@ describe('AnalysisQueuePanel', () => {
             item_id: 'broken-1',
             name: 'Red scarf',
             type: 'scarf',
-            error: 'model qwen2.5vl not found',
+            error_code: 'AI_PROVIDER_ERROR',
+            error_params: {},
             failed_at: '2026-09-04T09:58:00.000Z',
           },
         ],
       })
     )
 
-    expect(screen.getByText('model qwen2.5vl not found')).toBeInTheDocument()
+    expect(screen.getByText(enErrors.AI_PROVIDER_ERROR)).toBeInTheDocument()
     expect(screen.getByText('batchFailed')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /retry/i }))
     expect(onRetry).toHaveBeenCalledWith('broken-1')
+  })
+
+  it('never shows the English text the worker stored', () => {
+    const fromApi = {
+      item_id: 'legacy',
+      name: 'Old coat',
+      type: 'coat',
+      error: 'boom',
+      failed_at: '2026-09-04T09:58:00.000Z',
+    }
+    renderPanel(progress({ failed: 1, failures: [{ ...fromApi, error_code: null }] }))
+
+    expect(screen.queryByText('boom')).not.toBeInTheDocument()
+    expect(screen.getByText('unknownError')).toBeInTheDocument()
   })
 
   it('drops the time-left estimate once nothing is left to analyze', () => {
@@ -253,7 +285,8 @@ describe('AnalysisQueuePanel', () => {
             item_id: 'c',
             name: 'Red scarf',
             type: 'scarf',
-            error: null,
+            error_code: null,
+            error_params: null,
             failed_at: '2026-09-04T09:58:00.000Z',
           },
         ],

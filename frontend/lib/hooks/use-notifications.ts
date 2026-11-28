@@ -22,6 +22,8 @@ export interface NotificationSettings {
   updated_at: string;
   // Set when a stored config fails this version's validation; the dispatcher skips past it.
   config_error: string | null;
+  config_error_code: string | null;
+  config_error_params: Record<string, string | number> | null;
 }
 
 export interface Schedule {

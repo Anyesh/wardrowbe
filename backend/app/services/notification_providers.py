@@ -26,8 +26,48 @@ from app.schemas.notification import (
     NtfyConfig,
 )
 from app.schemas.text import flatten_control_characters
+from app.utils.errors import Coded, ErrorParams
 
 logger = logging.getLogger(__name__)
+
+
+SMTP_NOT_CONFIGURED = "SMTP not configured"
+
+
+class NotificationSendError(Coded, Exception):
+    code = "NOTIFICATION_TEST_FAILED"
+
+
+@dataclass(frozen=True)
+class ConnectionTestResult:
+    message: str
+    failure: Exception | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.failure is None
+
+
+def _http_failure(response: httpx.Response) -> dict:
+    error = f"HTTP {response.status_code}: {response.text}"
+    return {
+        "success": False,
+        "error": error,
+        "failure": NotificationSendError(
+            error, code="NOTIFICATION_HTTP_ERROR", status=response.status_code
+        ),
+    }
+
+
+def failed_test_result(error: str) -> ConnectionTestResult:
+    return ConnectionTestResult(error, NotificationSendError(error))
+
+
+def _test_outcome(result: dict, success_message: str) -> ConnectionTestResult:
+    if result.get("success"):
+        return ConnectionTestResult(success_message)
+    error = result.get("error", "Unknown error")
+    return ConnectionTestResult(error, result.get("failure") or NotificationSendError(error))
 
 
 @dataclass
@@ -141,9 +181,9 @@ class NtfyProvider:
                 if response.status_code == 200:
                     return {"success": True, "response": response.json()}
                 else:
-                    error = f"HTTP {response.status_code}: {response.text}"
-                    logger.warning("ntfy request failed: %s", error)
-                    return {"success": False, "error": error}
+                    failure = _http_failure(response)
+                    logger.warning("ntfy request failed: %s", failure["error"])
+                    return failure
         except Exception as e:
             logger.exception("ntfy send failed")
             return {"success": False, "error": str(e)}
@@ -159,7 +199,7 @@ class NtfyProvider:
             )
         )
 
-    async def test_connection(self) -> tuple[bool, str]:
+    async def test_connection(self) -> ConnectionTestResult:
         try:
             result = await self.send(
                 NtfyNotification(
@@ -170,11 +210,9 @@ class NtfyProvider:
                     priority=2,
                 )
             )
-            if result.get("success"):
-                return True, "Test notification sent successfully"
-            return False, result.get("error", "Unknown error")
+            return _test_outcome(result, "Test notification sent successfully")
         except Exception as e:
-            return False, str(e)
+            return failed_test_result(str(e))
 
 
 # Mattermost Provider
@@ -276,9 +314,9 @@ class MattermostProvider:
                 if response.status_code == 200:
                     return {"success": True}
                 else:
-                    error = f"HTTP {response.status_code}: {response.text}"
-                    logger.warning("Mattermost request failed: %s", error)
-                    return {"success": False, "error": error}
+                    failure = _http_failure(response)
+                    logger.warning("Mattermost request failed: %s", failure["error"])
+                    return failure
         except Exception as e:
             logger.exception("Mattermost send failed")
             return {"success": False, "error": str(e)}
@@ -297,20 +335,18 @@ class MattermostProvider:
             )
         )
 
-    async def test_connection(self) -> tuple[bool, str]:
+    async def test_connection(self) -> ConnectionTestResult:
         try:
             result = await self.send(
                 MattermostMessage(text="This is a test message from Wardrowbe.")
             )
-            if result.get("success"):
-                return True, "Test notification sent successfully"
-            return False, result.get("error", "Unknown error")
+            return _test_outcome(result, "Test notification sent successfully")
         except Exception as e:
-            return False, str(e)
+            return failed_test_result(str(e))
 
 
-class InvalidSenderError(ValueError):
-    pass
+class InvalidSenderError(Coded, ValueError):
+    code = "EMAIL_SENDER_INVALID"
 
 
 # RFC 5322 atext (plus backslash for DOMAIN\user logins): what a relay can take as a local part.
@@ -330,7 +366,8 @@ def _smtp_sender(value: str) -> str:
     if _BARE_LOGIN.fullmatch(value) or _is_one_address(value):
         return value
     raise InvalidSenderError(
-        f"SMTP_FROM_EMAIL {value!r} is neither an email address nor a bare SMTP login"
+        f"SMTP_FROM_EMAIL {value!r} is neither an email address nor a bare SMTP login",
+        sender=value,
     )
 
 
@@ -388,7 +425,11 @@ class EmailProvider:
 
     async def send(self, message: EmailMessage) -> dict:
         if not self.is_configured():
-            return {"success": False, "error": "SMTP not configured"}
+            return {
+                "success": False,
+                "error": SMTP_NOT_CONFIGURED,
+                "failure": NotificationSendError(SMTP_NOT_CONFIGURED, code="SMTP_NOT_CONFIGURED"),
+            }
 
         try:
             sender = _smtp_sender(self.from_email)
@@ -417,7 +458,12 @@ class EmailProvider:
             return {"success": True}
         except InvalidSenderError as e:
             logger.warning("Email send failed: %s", e)
-            return {"success": False, "error": str(e), "retryable": False}
+            return {
+                "success": False,
+                "error": str(e),
+                "failure": e,
+                "retryable": False,
+            }
         # A 5xx reply is permanent by RFC 5321, so only a 4xx reply is worth another attempt.
         except aiosmtplib.SMTPRecipientsRefused as e:
             logger.warning("Email send failed: %s", e)
@@ -425,7 +471,14 @@ class EmailProvider:
             return {"success": False, "error": str(e), "retryable": not permanent}
         except aiosmtplib.SMTPResponseException as e:
             logger.warning("Email send failed: %s %s", e.code, e.message)
-            return {"success": False, "error": f"{e.code} {e.message}", "retryable": e.code < 500}
+            return {
+                "success": False,
+                "error": f"{e.code} {e.message}",
+                "failure": NotificationSendError(
+                    f"{e.code} {e.message}", code="EMAIL_SMTP_REJECTED", status=e.code
+                ),
+                "retryable": e.code < 500,
+            }
         except aiosmtplib.SMTPNotSupported as e:
             needs_utf8 = next((a for a in (sender, recipient) if not a.isascii()), None)
             if needs_utf8 is None:
@@ -436,7 +489,14 @@ class EmailProvider:
                 "because its name before the @ is not ASCII"
             )
             logger.warning("Email send failed: %s", error)
-            return {"success": False, "error": error, "retryable": False}
+            return {
+                "success": False,
+                "error": error,
+                "failure": NotificationSendError(
+                    error, code="EMAIL_SMTPUTF8_UNSUPPORTED", address=needs_utf8
+                ),
+                "retryable": False,
+            }
         except Exception as e:
             logger.exception("Email send failed")
             return {"success": False, "error": str(e)}
@@ -444,9 +504,12 @@ class EmailProvider:
     async def deliver(self, message: NotificationMessage) -> dict:
         return await self.send(build_notification_email(self.to_address, message))
 
-    async def test_connection(self) -> tuple[bool, str]:
+    async def test_connection(self) -> ConnectionTestResult:
         if not self.is_configured():
-            return False, "SMTP not configured"
+            return ConnectionTestResult(
+                SMTP_NOT_CONFIGURED,
+                NotificationSendError(SMTP_NOT_CONFIGURED, code="SMTP_NOT_CONFIGURED"),
+            )
 
         try:
             result = await self.send(
@@ -457,11 +520,9 @@ class EmailProvider:
                     text_body="This is a test email from Wardrowbe.",
                 )
             )
-            if result.get("success"):
-                return True, "Test email sent successfully"
-            return False, result.get("error", "Unknown error")
+            return _test_outcome(result, "Test email sent successfully")
         except Exception as e:
-            return False, str(e)
+            return failed_test_result(str(e))
 
 
 # Expo Push Provider
@@ -515,10 +576,7 @@ class ExpoPushProvider:
                             "error": ticket.get("message", "Push send failed"),
                         }
                 else:
-                    return {
-                        "success": False,
-                        "error": f"HTTP {response.status_code}: {response.text}",
-                    }
+                    return _http_failure(response)
         except Exception as e:
             logger.exception("Expo push send failed")
             return {"success": False, "error": str(e)}
@@ -533,7 +591,7 @@ class ExpoPushProvider:
             )
         )
 
-    async def test_connection(self) -> tuple[bool, str]:
+    async def test_connection(self) -> ConnectionTestResult:
         try:
             result = await self.send(
                 ExpoPushMessage(
@@ -542,17 +600,15 @@ class ExpoPushProvider:
                     body="Push notifications are working!",
                 )
             )
-            if result.get("success"):
-                return True, "Test push notification sent successfully"
-            return False, result.get("error", "Unknown error")
+            return _test_outcome(result, "Test push notification sent successfully")
         except Exception as e:
-            return False, str(e)
+            return failed_test_result(str(e))
 
 
 class NotificationProvider(Protocol):
     async def deliver(self, message: NotificationMessage) -> dict: ...
 
-    async def test_connection(self) -> tuple[bool, str]: ...
+    async def test_connection(self) -> ConnectionTestResult: ...
 
 
 @dataclass(frozen=True)
@@ -584,12 +640,39 @@ def parse_channel_config(channel: str, config: object) -> BaseModel:
 # config is not an object at all, no longer parses, so it is reported to the user rather than
 # hidden, while the dispatcher falls through past it. Only the message is returned because the
 # full error repeats the stored value, which can be a webhook secret.
-def channel_config_error(channel: str, config: object) -> str | None:
+class InvalidChannelConfigError(Coded, ValueError):
+    code = "INVALID_CHANNEL_CONFIG"
+
+
+@dataclass(frozen=True)
+class ChannelConfigFailure:
+    message: str
+    cause: Coded
+
+    @property
+    def code(self) -> str:
+        return self.cause.code
+
+    @property
+    def params(self) -> ErrorParams | None:
+        return self.cause.params or None
+
+
+def channel_config_failure(channel: str, config: object) -> ChannelConfigFailure | None:
     try:
         parse_channel_config(channel, config)
     except ValidationError as e:
-        return e.errors()[0]["msg"]
+        first = e.errors()[0]
+        cause = first.get("ctx", {}).get("error")
+        if isinstance(cause, Coded):
+            return ChannelConfigFailure(first["msg"], cause)
+        return ChannelConfigFailure(first["msg"], InvalidChannelConfigError(first["msg"]))
     return None
+
+
+def channel_config_error(channel: str, config: object) -> str | None:
+    failure = channel_config_failure(channel, config)
+    return failure.message if failure else None
 
 
 def build_provider(channel: str, config: object) -> NotificationProvider:

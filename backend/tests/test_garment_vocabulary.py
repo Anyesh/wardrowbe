@@ -39,6 +39,7 @@ from app.utils.garment_vocabulary import (
     ROLES,
     SEASONS,
     STYLES,
+    SUBTYPES,
     TYPES,
     canonical_color,
     canonical_colors,
@@ -76,6 +77,7 @@ def test_prompt_template_tokens_are_all_rendered():
     template = load_prompt("clothing_analysis")
     for token in (
         "<<TYPES>>",
+        "<<SUBTYPES>>",
         "<<MATERIALS>>",
         "<<FORMALITY>>",
         "<<COLORS>>",
@@ -86,6 +88,37 @@ def test_prompt_template_tokens_are_all_rendered():
     ):
         assert token in template
     assert "<<" not in render_tagging_prompt(template)
+
+
+def test_prompt_suggests_exactly_the_vocabulary_subtypes():
+    match = re.search(r"^SUBTYPE \([^)]*\):[^\n]*\n((?:- .+\n)+)", TAGGING_PROMPT, re.MULTILINE)
+    assert match, "SUBTYPE examples not found in clothing_analysis prompt"
+    rendered = {}
+    for line in match.group(1).splitlines():
+        type_, subtypes = line.removeprefix("- ").split(" → ")
+        rendered[type_] = tuple(s.strip() for s in subtypes.split(","))
+    assert rendered == SUBTYPES
+    assert list(rendered) == [t for t in TYPES if t in SUBTYPES]
+
+
+def test_subtypes_belong_to_real_types():
+    assert set(SUBTYPES) <= set(TYPES)
+    for type_, subtypes in SUBTYPES.items():
+        assert subtypes, type_
+        assert len(set(subtypes)) == len(subtypes), type_
+        assert all(s == s.strip().lower() for s in subtypes), type_
+
+
+# A subtype example that names a type steers the tagger to file that garment under the wrong
+# type. Dress socks are the one homonym.
+def test_no_subtype_names_a_type():
+    clashes = [
+        f"{type_} → {subtype}"
+        for type_, subtypes in SUBTYPES.items()
+        for subtype in subtypes
+        if subtype in TYPES
+    ]
+    assert clashes == ["socks → dress"]
 
 
 @pytest.mark.parametrize(

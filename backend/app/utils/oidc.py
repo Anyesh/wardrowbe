@@ -8,6 +8,7 @@ import jwt
 from jwt import PyJWKClient
 
 from app.config import get_settings
+from app.utils.errors import CodedValueError
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,9 @@ async def validate_oidc_id_token(
             expected_issuer = discovery.get("issuer", issuer_url.rstrip("/"))
     except httpx.HTTPError as e:
         logger.error("Failed to fetch OIDC discovery from %s: %s", issuer_url, e)
-        raise ValueError("Failed to contact OIDC provider") from None
+        raise CodedValueError(
+            "Failed to contact OIDC provider", code="AUTH_PROVIDER_UNAVAILABLE"
+        ) from None
 
     audience = [client_id] if isinstance(client_id, str) else client_id
 
@@ -78,6 +81,6 @@ async def validate_oidc_id_token(
             options={"verify_exp": True},
         )
     except jwt.PyJWTError:
-        raise ValueError("Invalid OIDC token") from None
+        raise CodedValueError("Invalid OIDC token", code="AUTH_TOKEN_INVALID") from None
 
     return payload

@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { AddItemDialog } from '@/components/add-item-dialog';
+import { AnalysisFailureReason } from '@/components/analysis-failure-reason';
 import { AnalysisQueuePanel } from '@/components/analysis-queue-panel';
 import { useAiUiEnabled } from '@/lib/hooks/use-features';
 import { ItemDetailDialog } from '@/components/item-detail-dialog';
@@ -201,13 +202,12 @@ function ItemCard({
                   ? t('ai.rotateFailed')
                   : t('ai.analysisFailed')}
             </span>
-            {!isImageOpKind && item.ai_error && (
-              <span
+            {!isImageOpKind && (
+              <AnalysisFailureReason
+                code={item.ai_error_code}
+                params={item.ai_error_params}
                 className="text-white/70 text-[10px] text-center line-clamp-2 px-1"
-                title={item.ai_error}
-              >
-                {item.ai_error}
-              </span>
+              />
             )}
             <div className="flex gap-1.5">
               {(() => {

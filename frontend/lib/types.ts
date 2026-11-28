@@ -1,4 +1,5 @@
 import { CLOTHING_TYPE_VALUES, OCCASION_VALUES } from '@/lib/generated/garment-vocabulary';
+import type { ApiErrorParams } from '@/lib/api';
 
 // API response types matching backend schemas
 
@@ -45,7 +46,8 @@ export interface Item {
   ai_processed: boolean;
   ai_confidence?: number;
   ai_description?: string;
-  ai_error?: string | null;
+  ai_error_code?: string | null;
+  ai_error_params?: ApiErrorParams | null;
   ai_unrecognized_type?: string | null;
   ai_started_at?: string | null;
   processing_kind?: 'background_removal' | 'rotate' | null;
@@ -98,7 +100,8 @@ export interface AnalysisFailure {
   item_id: string;
   name?: string | null;
   type: string;
-  error?: string | null;
+  error_code?: string | null;
+  error_params?: ApiErrorParams | null;
   failed_at?: string | null;
 }
 
@@ -169,31 +172,13 @@ export interface Preferences {
   excluded_item_ids: string[];
 }
 
-export { CLOTHING_COLORS } from '@/lib/generated/garment-vocabulary';
+export { CLOTHING_COLORS, CLOTHING_SUBTYPES } from '@/lib/generated/garment-vocabulary';
 
 // Picker order is alphabetical by value. The values come from the generated vocabulary, so the
 // labels are not stored here: they are translated from constants.types at render time.
 export const CLOTHING_TYPES = [...CLOTHING_TYPE_VALUES].sort().map((value) => ({ value }));
 
 export type ClothingTypeValue = (typeof CLOTHING_TYPE_VALUES)[number];
-
-// Suggested subtypes per type. Mirrors the SUBTYPE examples in clothing_analysis.txt.
-// Subtype is free text on the backend (and the model may answer outside this list),
-// so these are suggestions, not a closed set.
-export const CLOTHING_SUBTYPES: Record<string, readonly string[]> = {
-  shirt: ['henley', 'button-down', 'oxford', 'flannel', 'hawaiian', 'camp-collar'],
-  pants: ['chinos', 'joggers', 'cargo', 'trousers', 'sweatpants'],
-  dress: ['sundress', 'slip-dress', 'maxi', 'midi', 'wrap', 'shirt-dress', 'a-line'],
-  jacket: ['denim-jacket', 'bomber', 'parka', 'windbreaker', 'trucker', 'anorak'],
-  shoes: ['loafers', 'oxfords', 'mules', 'platforms'],
-  sneakers: ['low-top', 'high-top', 'chunky', 'slip-on'],
-  boots: ['ankle', 'chelsea', 'combat', 'knee-high', 'rain'],
-  skirt: ['mini', 'midi', 'maxi', 'pleated', 'wrap', 'pencil'],
-  sweater: ['pullover', 'crewneck', 'turtleneck', 'v-neck'],
-  socks: ['ankle', 'crew', 'knee-high', 'no-show', 'dress', 'athletic'],
-  tights: ['sheer', 'opaque', 'patterned', 'thermal'],
-  tie: ['necktie', 'bow-tie', 'bolo'],
-};
 
 export type Occasion = (typeof OCCASION_VALUES)[number];
 

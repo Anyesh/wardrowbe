@@ -112,7 +112,14 @@ describe('uploadFilesWithinServerLimit', () => {
     ]
 
     FakeXhr.queue.push(
-      { status: 400, body: { detail: 'Maximum 2 images per bulk upload' } },
+      {
+        status: 400,
+        body: {
+          detail: 'Maximum 2 images per bulk upload',
+          error_code: 'BULK_LIMIT_EXCEEDED',
+          params: { limit: 2 },
+        },
+      },
       {
         status: 201,
         body: {
@@ -141,6 +148,14 @@ describe('uploadFilesWithinServerLimit', () => {
     expect(result.total).toBe(3)
     expect(result.successful).toBe(3)
     expect(result.results.map((r) => r.filename)).toEqual(['a.jpg', 'b.jpg', 'c.jpg'])
+  })
+
+  it('does not read the limit out of English text without the code', async () => {
+    const files = [new File(['a'], 'a.jpg'), new File(['b'], 'b.jpg'), new File(['c'], 'c.jpg')]
+    FakeXhr.queue.push({ status: 400, body: { detail: 'Maximum 2 images per bulk upload' } })
+
+    await expect(uploadFilesWithinServerLimit(files, false, 'token', vi.fn())).rejects.toThrow()
+    expect(FakeXhr.sentImageCounts).toEqual([3])
   })
 
   it('propagates a non-limit error without splitting', async () => {
@@ -201,7 +216,7 @@ describe('fetchBulkUploadLimit', () => {
     ])('returns null without a global toast when it %s', async (_label, respond) => {
       vi.mocked(fetch).mockImplementationOnce(respond)
 
-      const limit = fetchBulkUploadLimit(createQueryClient())
+      const limit = fetchBulkUploadLimit(createQueryClient(() => 'error'))
       await vi.advanceTimersByTimeAsync(30_000)
 
       expect(await limit).toBeNull()
@@ -260,5 +275,24 @@ describe('useBulkCreateItems', () => {
     })
 
     expect(FakeXhr.sentImageCounts).toEqual([3])
+  })
+
+  it('keeps the error code of a rejected chunk on each of its files instead of English text', async () => {
+    FakeXhr.queue.push({
+      status: 413,
+      body: { detail: 'File exceeds the 1 MB upload limit', error_code: 'IMAGE_TOO_LARGE', params: { limit: 1 } },
+    })
+    const { result } = renderWith(clientWithFeatures())
+    const files = ['a.jpg', 'b.jpg'].map((name) => new File(['x'], name))
+
+    let outcome: Awaited<ReturnType<typeof result.current.mutateAsync>> | undefined
+    await act(async () => {
+      outcome = await result.current.mutateAsync({ files })
+    })
+
+    expect(outcome?.unprotected?.results).toEqual([
+      { filename: 'a.jpg', success: false, failure: { code: 'IMAGE_TOO_LARGE', params: { limit: 1 } } },
+      { filename: 'b.jpg', success: false, failure: { code: 'IMAGE_TOO_LARGE', params: { limit: 1 } } },
+    ])
   })
 })

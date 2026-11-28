@@ -13,6 +13,7 @@ from app.api.router import api_router
 from app.config import Settings, get_settings
 from app.database import engine
 from app.logging_config import configure_logging
+from app.utils.errors import CodedHTTPException
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -61,7 +62,14 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 app.include_router(api_router, prefix="/api/v1")
 
 
-# Global exception handlers
+@app.exception_handler(CodedHTTPException)
+async def coded_http_exception_handler(request: Request, exc: CodedHTTPException) -> JSONResponse:
+    content: dict[str, object] = {"detail": exc.detail, "error_code": exc.error_code}
+    if exc.params:
+        content["params"] = exc.params
+    return JSONResponse(status_code=exc.status_code, content=content, headers=exc.headers)
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
     request: Request, exc: RequestValidationError
@@ -75,6 +83,7 @@ async def validation_exception_handler(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "detail": "Validation error",
+            "error_code": "VALIDATION_ERROR",
             "errors": errors,
         },
     )
@@ -91,6 +100,7 @@ async def pydantic_validation_handler(request: Request, exc: ValidationError) ->
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "detail": "Validation error",
+            "error_code": "VALIDATION_ERROR",
             "errors": errors,
         },
     )

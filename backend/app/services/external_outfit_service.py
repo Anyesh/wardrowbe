@@ -12,6 +12,7 @@ from app.models.outfit import Outfit, OutfitItem, OutfitSource, OutfitStatus
 from app.models.user import User
 from app.services.pairing_service import PAIRING_OCCASION
 from app.services.studio_service import load_full_outfit, validate_item_ownership
+from app.utils.errors import CodedValueError
 from app.utils.timezone import get_user_today
 
 
@@ -115,7 +116,9 @@ class ExternalOutfitService:
             else list(dict.fromkeys([source_item_id, *item_ids]))
         )
         if len(ordered) < 2:
-            raise ValueError("A pairing needs at least one partner item")
+            raise CodedValueError(
+                "A pairing needs at least one partner item", code="PAIRING_PARTNER_REQUIRED"
+            )
 
         return await self._persist_outfit(
             user,

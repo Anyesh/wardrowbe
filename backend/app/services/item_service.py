@@ -22,14 +22,17 @@ from app.schemas.item import (
     ItemFilterFields,
     ItemUpdate,
 )
+from app.utils.errors import Coded
 from app.utils.tag_validation import normalize_tag_edits
 
 # Values the AI fills in that can also be changed on the item itself rather than inside tags.
 _EDITABLE_ITEM_FIELDS = ("type", "subtype", "primary_color", "colors")
 
 
-class TagVocabularyError(ValueError):
+class TagVocabularyError(Coded, ValueError):
     """A tag value outside its vocabulary that the item did not already have."""
+
+    code = "INVALID_TAG_VALUE"
 
 
 def _keep_colours_in_step(update_data: dict, incoming: dict, current: dict, existing: dict) -> None:

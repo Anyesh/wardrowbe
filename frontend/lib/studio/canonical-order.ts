@@ -1,4 +1,4 @@
-import { ITEM_ROLE, ROLE_VALUES } from '@/lib/generated/garment-vocabulary';
+import { ITEM_ROLE, ROLE_VALUES, WORN_ALONE_TYPES } from '@/lib/generated/garment-vocabulary';
 
 export { ITEM_ROLE };
 
@@ -13,6 +13,8 @@ const ROLE_SLOTS: Record<string, readonly string[]> = {
 export function slotsForType(type: string): readonly string[] {
   const role = ITEM_ROLE[type];
   if (!role || role === 'accessory') return [];
+  // Mirrors backend _slots_for_type: a worn-alone layer clashes only with its own type.
+  if (WORN_ALONE_TYPES.includes(type)) return [type];
   return ROLE_SLOTS[role] ?? [role];
 }
 

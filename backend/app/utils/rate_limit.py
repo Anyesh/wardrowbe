@@ -6,6 +6,7 @@ from fastapi import HTTPException, Request, status
 from redis.asyncio import Redis
 
 from app.config import get_settings
+from app.utils.errors import CodedHTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +94,10 @@ async def check_rate_limit(key: str, limit: int, window_seconds: int) -> None:
             results = await pipe.execute()
             count = results[1]
             if count > limit:
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="Too many requests. Please try again later.",
+                raise CodedHTTPException(
+                    status.HTTP_429_TOO_MANY_REQUESTS,
+                    "RATE_LIMITED",
+                    "Too many requests. Please try again later.",
                 )
         finally:
             await redis.aclose()

@@ -239,6 +239,9 @@ volumes:
       name: wardrobe-ca
 
 # configmap.yaml
+# Optional: separate public client (no secret) for the native mobile app,
+# falls back to the web client id when empty
+OIDC_MOBILE_CLIENT_ID: "wardrobe-mobile"
 OIDC_CA_BUNDLE: "/certs/internal-ca.pem"
 NODE_EXTRA_CA_CERTS: "/certs/internal-ca.pem"
 ```

@@ -1,3 +1,4 @@
+import logging
 import shutil
 import uuid
 from dataclasses import dataclass
@@ -11,6 +12,9 @@ from pillow_heif import register_heif_opener
 
 from app.config import get_settings
 from app.services import background_removal
+from app.utils.errors import Coded, CodedValueError
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -63,12 +67,23 @@ def _flatten_to_rgb(image: Image.Image) -> Image.Image:
     return image
 
 
-class ImageTooLargeError(ValueError):
+def _missing_image(image_path: str) -> CodedValueError:
+    logger.error("Image not found: %s", image_path)
+    return CodedValueError("Image not found", code="IMAGE_FILE_MISSING")
+
+
+class ImageTooLargeError(Coded, ValueError):
+    code = "IMAGE_TOO_MANY_PIXELS"
+
     def __init__(self, pixels: int, limit_pixels: int):
         self.pixels = pixels
         self.limit_pixels = limit_pixels
+        megapixels = round(pixels / 1_000_000, 1)
+        limit = round(limit_pixels / 1_000_000, 1)
         super().__init__(
-            f"Image is {pixels / 1_000_000:.1f}MP, above the {limit_pixels / 1_000_000:.1f}MP limit"
+            f"Image is {megapixels}MP, above the {limit}MP limit",
+            megapixels=megapixels,
+            limit=limit,
         )
 
 
@@ -143,7 +158,7 @@ class ImageService:
         # Validate file extension
         ext = Path(original_filename).suffix.lower()
         if ext not in ALLOWED_EXTENSIONS:
-            raise ValueError(f"Unsupported file type: {ext}")
+            raise CodedValueError(f"Unsupported file type: {ext}", code="UNSUPPORTED_IMAGE_TYPE")
 
         image = self._open_bounded(image_data, ext)
 
@@ -173,7 +188,7 @@ class ImageService:
         """
         source = self.storage_path / image_path
         if not source.exists():
-            raise ValueError(f"Image not found: {image_path}")
+            raise _missing_image(image_path)
         with Image.open(source) as opened:
             image = _flatten_to_rgb(opened)
             full_w, full_h = image.size
@@ -187,7 +202,7 @@ class ImageService:
                 min(int(y1 + pad) + 1, full_h),
             )
             if box[2] - box[0] < 1 or box[3] - box[1] < 1:
-                raise ValueError("The box is outside the photo")
+                raise CodedValueError("The box is outside the photo", code="BOX_OUTSIDE_PHOTO")
             output = BytesIO()
             image.crop(box).save(output, format="JPEG", quality=VARIANTS[0].quality, optimize=True)
             return output.getvalue()
@@ -288,7 +303,7 @@ class ImageService:
         original_full = self.storage_path / image_path
 
         if not original_full.exists():
-            raise ValueError(f"Image not found: {image_path}")
+            raise _missing_image(image_path)
 
         backup_path = f"{base_path}_orig.jpg"
         backup_full = self.storage_path / backup_path
@@ -313,7 +328,7 @@ class ImageService:
     def restore_original(self, image_path: str, backup_path: str) -> dict[str, str]:
         backup_full = self.storage_path / backup_path
         if not backup_full.exists():
-            raise ValueError(f"Backup not found: {backup_path}")
+            raise CodedValueError(f"Backup not found: {backup_path}", code="ORIGINAL_IMAGE_MISSING")
 
         image = Image.open(backup_full).convert("RGB")
         paths = self._save_all_sizes(image, image_path)
@@ -334,7 +349,7 @@ class ImageService:
         original_full = self.storage_path / image_path
 
         if not original_full.exists():
-            raise ValueError(f"Image not found: {image_path}")
+            raise _missing_image(image_path)
 
         angle = -90 if direction == "cw" else 90  # PIL rotates counter-clockwise by default
 

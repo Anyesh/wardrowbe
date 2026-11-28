@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import and_, select
 
@@ -22,6 +22,7 @@ from app.services.pairing_service import (
 )
 from app.services.studio_service import ItemOwnershipError
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException, http_error
 from app.utils.rate_limit import rate_limit_by_user
 from app.utils.signed_urls import sign_image_url, sign_optional
 
@@ -238,26 +239,18 @@ async def generate_pairings(
             num_pairings=request.num_pairings,
         )
     except InsufficientItemsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_400_BAD_REQUEST, e, "INSUFFICIENT_ITEMS_FOR_PAIRING") from e
     except AIDisabledError:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Internal AI is disabled; pairings are deferred to an external agent.",
+        raise CodedHTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "AI_PAIRINGS_DISABLED",
+            "Internal AI is disabled; pairings are deferred to an external agent.",
         ) from None
     except AIGenerationError as e:
         logger.error(f"AI pairing generation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_503_SERVICE_UNAVAILABLE, e, "AI_SERVICE_UNAVAILABLE") from e
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_400_BAD_REQUEST, e, "INVALID_INPUT") from e
 
     return GeneratePairingsResponse(
         generated=len(pairings),
@@ -340,9 +333,10 @@ async def create_external_pairing(
 
     source_item = await PairingService(db).get_source_item(current_user.id, item_id)
     if not source_item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Source item not found or not available",
+        raise CodedHTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "SOURCE_ITEM_UNAVAILABLE",
+            "Source item not found or not available",
         )
 
     service = ExternalOutfitService(db)
@@ -360,18 +354,13 @@ async def create_external_pairing(
             notes=request.notes,
         )
     except ItemOwnershipError:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error_code": "OUTFIT_ITEM_OWNERSHIP",
-                "message": "One or more items do not belong to you",
-            },
+        raise CodedHTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "OUTFIT_ITEM_OWNERSHIP",
+            "One or more items do not belong to you",
         ) from None
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from None
+        raise http_error(status.HTTP_400_BAD_REQUEST, e, "INVALID_INPUT") from e
 
     await db.commit()
 
@@ -397,9 +386,8 @@ async def delete_pairing(
     pairing = result.scalar_one_or_none()
 
     if not pairing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Pairing not found",
+        raise CodedHTTPException(
+            status.HTTP_404_NOT_FOUND, "PAIRING_NOT_FOUND", "Pairing not found"
         )
 
     await db.delete(pairing)

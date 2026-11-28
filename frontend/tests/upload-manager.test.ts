@@ -171,7 +171,15 @@ describe('startDrain', () => {
     let n = 0
     vi.mocked(fetch).mockImplementation(async () => {
       n += 1
-      if (n === 1) return jsonResponse({ detail: 'Maximum 2 images per bulk upload' }, false, 400)
+      if (n === 1) return jsonResponse(
+          {
+            detail: 'Maximum 2 images per bulk upload',
+            error_code: 'BULK_LIMIT_EXCEEDED',
+            params: { limit: 2 },
+          },
+          false,
+          400
+        )
       if (n === 2)
         return jsonResponse({
           total: 2,

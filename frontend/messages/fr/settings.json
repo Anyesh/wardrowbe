@@ -79,7 +79,6 @@
     "detected": "Localisation détectée. Vérifiez-la puis enregistrez.",
     "errors": {
       "geolocationDenied": "L'accès à la localisation a été refusé.",
-      "geolocationFailed": "Échec de l'obtention de la localisation exacte : {message}",
       "geolocationFailedGeneric": "Échec de l'obtention de la localisation exacte.",
       "geolocationTimeout": "La demande de localisation a expiré.",
       "geolocationUnavailable": "La localisation est actuellement indisponible.",
@@ -87,7 +86,6 @@
       "invalidCoordinates": "Veuillez saisir des valeurs de latitude et de longitude valides",
       "latitudeRange": "La latitude doit être comprise entre -90 et 90",
       "longitudeRange": "La longitude doit être comprise entre -180 et 180",
-      "networkLookupFailed": "Échec de la localisation par le réseau ({status})",
       "saveFailed": "Échec de l'enregistrement de la localisation. Veuillez réessayer.",
       "unableToDetect": "Impossible de détecter votre localisation."
     },

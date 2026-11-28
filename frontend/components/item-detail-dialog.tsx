@@ -66,6 +66,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { toast } from 'sonner';
 import { SplitPhotoDialog } from '@/components/split-photo-dialog';
 import { ApiError } from '@/lib/api';
+import { useDescribeError } from '@/lib/errors';
 import { usePreferences, useSetItemExcluded } from '@/lib/hooks/use-preferences';
 import { useUpdateItem, useDeleteItem, useReanalyzeItem, useRotateImage, useRemoveBackground, useRestoreOriginal, useReplaceItemImage, useLogWear, useLogWash, useWashHistory, useItemWearStats, useItemWearHistory, useAddItemImage, useDeleteItemImage, useSetPrimaryImage } from '@/lib/hooks/use-items';
 import { CLOTHING_SUBTYPES, Item } from '@/lib/types';
@@ -124,12 +125,6 @@ function isUnauthorized(error: unknown): boolean {
   return error instanceof ApiError && error.status === 401;
 }
 
-function isInvalidTagValue(error: unknown): boolean {
-  if (!(error instanceof ApiError)) return false;
-  const data = error.data as { detail?: { error_code?: string } } | undefined;
-  return data?.detail?.error_code === 'INVALID_TAG_VALUE';
-}
-
 function editFormFromItem(item: Item): EditForm {
   return {
     name: item.name || '',
@@ -151,6 +146,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
   const tc = useTranslations('common');
   const tw = useTranslations('wardrobe');
   const locale = useLocale();
+  const describeError = useDescribeError();
   const router = useRouter();
   const { data: preferences } = usePreferences();
   const setItemExcluded = useSetItemExcluded();
@@ -259,7 +255,7 @@ export function ItemDetailDialog({ item, open, onOpenChange }: ItemDetailDialogP
     } catch (error) {
       console.error('Failed to update item:', error);
       if (isUnauthorized(error)) return;
-      toast.error(isInvalidTagValue(error) ? t('tagsEditor.invalidValue') : t('actions.saveError'));
+      toast.error(describeError(error, t('actions.saveError')));
     }
   };
 

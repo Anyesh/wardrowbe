@@ -1,13 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict, field_validator
+from fastapi import APIRouter, Depends, status
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.database import DbSession
 from app.models.user import User
 from app.schemas.user import DisplayName, Latitude, Longitude, PlaceName
 from app.services.user_service import UserService
 from app.utils.auth import get_current_user
+from app.utils.errors import CodedHTTPException
 from app.utils.locale import SUPPORTED_LOCALES, is_supported_locale
 from app.utils.numbers import is_finite_number
 from app.utils.timezone import is_valid_timezone
@@ -49,6 +50,9 @@ class UserProfileUpdate(BaseModel):
     location_lon: Longitude | None = None
     location_name: PlaceName | None = None
     body_measurements: dict | None = None
+    # The iOS app (1.1.x) sends the phone's region with every location save. Nothing stores
+    # it yet, but refusing it as an unknown key made "Detect My Location" fail with a 422.
+    device_country_code: str | None = Field(default=None, max_length=10)
 
     # The column is NOT NULL, so an explicit null must be refused here instead of failing the flush.
     @field_validator("display_name")
@@ -73,22 +77,26 @@ async def update_profile(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> UserProfileResponse:
     update_data = data.model_dump(exclude_unset=True)
+    # Accepted for client compatibility only: there is no column for it.
+    update_data.pop("device_country_code", None)
 
     # update_data is applied with a blanket setattr below, so an unsupported locale
     # must be rejected here to prevent it reaching the column.
     if "locale" in update_data and not is_supported_locale(update_data["locale"]):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"locale must be one of: {', '.join(SUPPORTED_LOCALES)}",
+        raise CodedHTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "UNSUPPORTED_LOCALE",
+            f"locale must be one of: {', '.join(SUPPORTED_LOCALES)}",
         )
 
     # The settings page resends the stored timezone with every location save, so a
     # zone stored before validation existed must not block that save.
     new_timezone = update_data.get("timezone", current_user.timezone)
     if new_timezone != current_user.timezone and not is_valid_timezone(new_timezone):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="timezone must be an IANA timezone name such as Europe/London",
+        raise CodedHTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "INVALID_TIMEZONE",
+            "timezone must be an IANA timezone name such as Europe/London",
         )
 
     if "body_measurements" in update_data and update_data["body_measurements"] is not None:
@@ -99,9 +107,10 @@ async def update_profile(
             # Numeric fields are interpolated into the AI prompt, so anything other than a
             # real positive number (strings, bools, NaN/inf) is rejected, not just <= 0.
             if not is_finite_number(value) or value <= 0:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"{key} must be a positive number",
+                raise CodedHTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "INVALID_BODY_MEASUREMENT",
+                    f"{key} must be a positive number",
                 )
 
     for field, value in update_data.items():

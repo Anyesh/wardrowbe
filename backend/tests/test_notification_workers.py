@@ -21,8 +21,9 @@ from app.models.schedule import Schedule
 from app.models.user import User
 from app.services.notification_providers import EXPO_PUSH_URL
 from app.services.notification_service import NotificationDispatcher
-from app.services.recommendation_service import InsufficientWardrobeError
+from app.services.recommendation_service import AIRecommendationError, InsufficientWardrobeError
 from app.utils import redis_lock
+from app.utils.errors import CodedValueError
 from app.workers.notifications import (
     _check_wash_reminders_inner,
     check_scheduled_notifications,
@@ -479,6 +480,38 @@ class TestProcessScheduledNotification:
             result = await process_scheduled_notification({"job_try": 1}, str(schedule.id))
 
         assert result == {"status": "skipped", "reason": "Add a top and a bottom"}
+
+    @pytest.mark.asyncio
+    async def test_a_coded_value_error_from_the_recommendation_is_skipped(
+        self, db_session: AsyncSession, schedule_user: User, ntfy_channel
+    ):
+        schedule = _make_due_schedule(schedule_user)
+        db_session.add(schedule)
+        await db_session.commit()
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock(
+            side_effect=CodedValueError("User location not set.", code="LOCATION_NOT_SET")
+        )
+
+        with _scheduled_job_patches(db_session, mock_rec_service):
+            result = await process_scheduled_notification({"job_try": 1}, str(schedule.id))
+
+        assert result == {"status": "skipped", "reason": "User location not set."}
+
+    @pytest.mark.asyncio
+    async def test_a_failing_ai_is_still_retried(
+        self, db_session: AsyncSession, schedule_user: User, ntfy_channel
+    ):
+        schedule = _make_due_schedule(schedule_user)
+        db_session.add(schedule)
+        await db_session.commit()
+        mock_rec_service = MagicMock()
+        mock_rec_service.generate_recommendation = AsyncMock(
+            side_effect=AIRecommendationError("AI service is not available")
+        )
+
+        with pytest.raises(Retry), _scheduled_job_patches(db_session, mock_rec_service):
+            await process_scheduled_notification({"job_try": 1}, str(schedule.id))
 
     @pytest.mark.asyncio
     async def test_failure_on_the_last_try_reraises(

@@ -88,7 +88,11 @@ async def recover_stale_processing_items(ctx: dict) -> None:
                 else:
                     values = {
                         "status": ItemStatus.error,
-                        "ai_raw_response": {"error": "Job lost or timed out"},
+                        "ai_raw_response": {
+                            "error": "Job lost or timed out",
+                            "error_code": "ANALYSIS_TIMED_OUT",
+                            "error_params": {},
+                        },
                         "ai_failed_at": datetime.now(UTC),
                     }
                 result = await db.execute(

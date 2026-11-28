@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCloneToLookbook } from '@/lib/hooks/use-studio';
 import { useOccasionLabel } from '@/lib/hooks/use-translated-constants';
-import { getErrorMessage } from '@/lib/api';
+import { useDescribeError } from '@/lib/errors';
 import { formatDate } from '@/lib/utils';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -38,6 +38,7 @@ export function CloneToLookbookDialog({
   const locale = useLocale();
   const t = useTranslations('outfits.cloneToLookbook');
   const tc = useTranslations('common');
+  const describeError = useDescribeError();
   const occasionLabel = useOccasionLabel();
   const [name, setName] = useState('');
 
@@ -64,7 +65,7 @@ export function CloneToLookbookDialog({
       onSuccess?.(result.id);
       onClose();
     } catch (error) {
-      toast.error(getErrorMessage(error, t('saveError')));
+      toast.error(describeError(error, t('saveError')));
     }
   };
 

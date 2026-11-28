@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useSubmitFamilyRating, useDeleteFamilyRating } from '@/lib/hooks/use-outfits';
 import { FamilyRating } from '@/lib/types';
 import { useTranslations } from 'next-intl';
+import { useDescribeError } from '@/lib/errors';
 import { StarRatingDisplay, StarRatingInput } from '@/components/shared/star-rating';
 
 interface FamilyRatingFormProps {
@@ -21,6 +22,7 @@ export function FamilyRatingForm({ outfitId, existingRating, onSuccess }: Family
   const t = useTranslations('family.ratings');
   const [rating, setRating] = useState(existingRating?.rating ?? 0);
   const [comment, setComment] = useState(existingRating?.comment ?? '');
+  const describeError = useDescribeError();
   const submitRating = useSubmitFamilyRating();
 
   const handleSubmit = async () => {
@@ -36,8 +38,8 @@ export function FamilyRatingForm({ outfitId, existingRating, onSuccess }: Family
       });
       toast.success(existingRating ? t('ratingUpdated') : t('ratingSubmitted'));
       onSuccess?.();
-    } catch {
-      toast.error(t('submitError'));
+    } catch (error) {
+      toast.error(describeError(error, t('submitError')));
     }
   };
 
@@ -84,6 +86,7 @@ interface FamilyRatingsDisplayProps {
 
 export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: FamilyRatingsDisplayProps) {
   const t = useTranslations('family.ratings');
+  const describeError = useDescribeError();
   const deleteRating = useDeleteFamilyRating();
 
   if (ratings.length === 0) return null;
@@ -92,8 +95,8 @@ export function FamilyRatingsDisplay({ ratings, outfitId, currentUserId }: Famil
     try {
       await deleteRating.mutateAsync(outfitId);
       toast.success(t('ratingRemoved'));
-    } catch {
-      toast.error(t('removeError'));
+    } catch (error) {
+      toast.error(describeError(error, t('removeError')));
     }
   };
 
