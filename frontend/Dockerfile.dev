@@ -1,15 +1,21 @@
 FROM node:24-alpine
 
+# shadow provides usermod/groupmod for PUID/PGID remapping in the entrypoint
+RUN apk add --no-cache su-exec shadow
+
 WORKDIR /app
 
-# Copy package files first for better caching
 COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm install
+# node_modules is owned by node (uid 1000) so a fresh named volume seeded from it needs no
+# runtime chown when the host user is uid 1000.
+RUN npm install && chown -R node:node /app/node_modules
 
-# The rest will be mounted as volume
-# But we need node_modules to persist, so we use a named volume
+# The entrypoint drops to node (remapped to PUID/PGID), so files written into the bind-mounted
+# source (.next, package-lock.json) belong to the host user.
+COPY docker-entrypoint.dev.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 EXPOSE 3000
 
@@ -17,4 +23,4 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Install deps again at startup in case package.json changed
-CMD npm install && npm run dev
+CMD ["sh", "-c", "npm install && npm run dev"]

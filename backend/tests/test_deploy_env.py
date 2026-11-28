@@ -193,3 +193,14 @@ def test_frontend_gets_every_oidc_key_it_reads_in_compose_and_k8s():
 
     for path, keys in passed.items():
         assert keys == expected, f"{path} frontend OIDC env differs from what the frontend reads"
+
+
+def test_dev_containers_write_bind_mounts_as_the_host_user():
+    (dev,) = _load_repo_yaml("docker-compose.dev.yml")
+    services = dev["services"]
+
+    frontend_env = services["frontend"]["environment"]
+    assert frontend_env["PUID"] == "${PUID:-1000}"
+    assert frontend_env["PGID"] == "${PGID:-1000}"
+    for name in BACKEND_SERVICES:
+        assert services[name]["environment"]["PYTHONDONTWRITEBYTECODE"] == "1"

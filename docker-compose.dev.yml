@@ -47,6 +47,7 @@ services:
     environment:
       DEBUG: "true"
       DATABASE_ECHO: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
       TEST_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wardrobe}:${POSTGRES_PASSWORD:-wardrobe}@postgres:5432/wardrobe_test
 
   frontend:
@@ -64,6 +65,10 @@ services:
       NEXTAUTH_URL: http://localhost:3000
       BACKEND_URL: http://backend:8000
       WATCHPACK_POLLING: "true"
+      # docker-compose.yml defaults these to 1001 for the production nextjs user; the dev image
+      # runs as node, which should map to the host user that owns the bind-mounted source.
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
 
   worker:
     image: wardrowbe-backend:dev
@@ -78,6 +83,7 @@ services:
     environment:
       DEBUG: "true"
       DATABASE_ECHO: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
 
   image-worker:
     image: wardrowbe-backend:dev
@@ -92,6 +98,7 @@ services:
     environment:
       DEBUG: "true"
       DATABASE_ECHO: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
 
 volumes:
   caddy_data:
